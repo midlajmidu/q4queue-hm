@@ -15,6 +15,99 @@ import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem } from "@/types/api";
 
+// ─── Design Tokens (mirrors global dashboard) ─────────────────────
+const C = {
+  pageBg:      "#f7f8fa",
+  cardBg:      "#ffffff",
+  border:      "#e8eaef",
+  borderHov:   "#c4ccd8",
+  borderLight: "#f1f2f5",
+  text:        "#0f1729",
+  textSub:     "#475569",
+  textMuted:   "#8b95a9",
+  brand:       "#4f46e5",
+  brandDark:   "#4338ca",
+  brandLight:  "#eef2ff",
+  brandBorder: "#c7d2fe",
+  brandGlow:   "rgba(79,70,229,.10)",
+  green:  "#10b981", greenBg:  "#ecfdf5", greenBorder: "#a7f3d0",
+  amber:  "#f59e0b", amberBg:  "#fffbeb", amberBorder: "#fde68a",
+  red:    "#ef4444", redBg:    "#fef2f2", redBorder:   "#fecaca",
+  blue:   "#3b82f6", blueBg:   "#eff6ff", blueBorder:  "#bfdbfe",
+  violet: "#7c3aed", violetBg: "#f5f3ff",
+  cyan:   "#0891b2", cyanBg:   "#ecfeff",
+};
+
+const QD_STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+  .qd-root {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: ${C.text};
+    -webkit-font-smoothing: antialiased;
+  }
+  .qd-card {
+    background: ${C.cardBg};
+    border: 1px solid ${C.border};
+    border-radius: 14px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.02), 0 1px 2px rgba(0,0,0,.03), 0 2px 8px rgba(0,0,0,.025);
+    transition: box-shadow .25s ease, border-color .25s ease;
+  }
+  .qd-card:hover {
+    box-shadow: 0 0 0 1px rgba(0,0,0,.03), 0 4px 12px rgba(0,0,0,.06), 0 8px 28px rgba(0,0,0,.04);
+    border-color: ${C.borderHov};
+  }
+  .qd-sidebar {
+    background: linear-gradient(180deg,#ffffff 0%,#fafbfd 100%);
+    border-right: 1px solid ${C.border};
+    font-family: 'Inter', sans-serif;
+  }
+  .qd-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 10px;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; width: 100%; text-align: left;
+    transition: all .2s ease; background: transparent;
+    color: ${C.textSub}; font-family: 'Inter', sans-serif;
+  }
+  .qd-nav-item:hover { background: ${C.brandLight}; color: ${C.brand}; }
+  .qd-nav-item.active {
+    background: linear-gradient(135deg, ${C.brand} 0%, ${C.brandDark} 100%);
+    color: #fff; font-weight: 600;
+    box-shadow: 0 4px 12px ${C.brandGlow}, 0 2px 4px rgba(79,70,229,.2);
+  }
+  .qd-btn-primary {
+    background: linear-gradient(135deg, ${C.brand} 0%, ${C.brandDark} 100%);
+    color: #fff; font-weight: 700; border: none; border-radius: 12px;
+    padding: 14px 24px; font-size: 15px; cursor: pointer; font-family: 'Inter', sans-serif;
+    box-shadow: 0 4px 12px ${C.brandGlow};
+    transition: all .22s ease;
+  }
+  .qd-btn-primary:hover:not(:disabled) { box-shadow: 0 6px 20px ${C.brandGlow}; transform: translateY(-1px); }
+  .qd-btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  .qd-btn-secondary {
+    background: ${C.cardBg}; color: ${C.textSub};
+    border: 1px solid ${C.border}; border-radius: 12px;
+    padding: 14px 24px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04); transition: all .22s ease;
+  }
+  .qd-btn-secondary:hover:not(:disabled) { border-color: ${C.borderHov}; background: #f8fafc; transform: translateY(-1px); }
+  .qd-btn-secondary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  .qd-input {
+    width: 100%; padding: 10px 14px; font-size: 13.5px; font-weight: 400;
+    border: 1px solid ${C.border}; border-radius: 10px; font-family: 'Inter', sans-serif;
+    color: ${C.text}; background: ${C.cardBg}; outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .qd-input:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.18); }
+  .qd-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: ${C.textMuted}; font-family: 'Inter', sans-serif; }
+  .qd-section-title { font-size: clamp(20px,2.5vw,26px); font-weight: 800; letter-spacing: -.02em; color: ${C.text}; margin: 0; font-family: 'Inter', sans-serif; }
+  .qd-section-sub { font-size: 14px; color: ${C.textSub}; margin-top: 6px; font-weight: 400; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .fade-in { animation: qdfin .35s cubic-bezier(.16,1,.3,1) both; }
+  @keyframes qdfin { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .serving-num { font-family: 'Inter', sans-serif; font-weight: 900; font-variant-numeric: tabular-nums; color: ${C.brand}; line-height: 1; }
+`;
+
 interface PageProps {
     params: Promise<{ queueId: string }>;
 }
@@ -383,184 +476,165 @@ export default function QueueDetailPage({ params }: PageProps) {
     ];
 
     return (
-        <div className="flex w-full h-full">
+        <>
+        <style>{QD_STYLES}</style>
+        <div className="qd-root flex w-full h-full" style={{ background: C.pageBg }}>
             {/* ── Queue Inner Sidebar ─────────────────────────────── */}
-            <aside className="hidden md:flex w-56 flex-shrink-0 bg-white border-r border-gray-200 flex-col sticky top-0 h-full">
-                {/* Back to Sessions */}
-                <div className="px-4 pt-5 pb-3 border-b border-gray-100">
+            <aside className="qd-sidebar hidden md:flex w-60 flex-shrink-0 flex-col sticky top-0 h-full">
+                {/* Back link */}
+                <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${C.border}` }}>
                     <Link
                         href={`${dashBase}/sessions`}
-                        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors font-medium group"
+                        style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500, color: C.textMuted, textDecoration: "none", transition: "color .18s" }}
+                        onMouseEnter={e => (e.currentTarget.style.color = C.brand)}
+                        onMouseLeave={e => (e.currentTarget.style.color = C.textMuted)}
                     >
-                        <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                        </svg>
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                         Back to Sessions
                     </Link>
                 </div>
 
-                {/* Queue name */}
-                <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Managing Queue</p>
-                    <p className="text-sm font-bold text-gray-900 truncate">{queueName}</p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                        <span className={`w-1.5 h-1.5 rounded-full ${(state?.is_active ?? initialQueue?.is_active) ? "bg-emerald-500" : "bg-red-400"}`} />
-                        <span className={`text-xs font-medium ${(state?.is_active ?? initialQueue?.is_active) ? "text-emerald-600" : "text-red-500"}`}>
+                {/* Queue name badge */}
+                <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.border}` }}>
+                    <p className="qd-lbl" style={{ marginBottom: 6 }}>Managing Queue</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{queueName}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: (state?.is_active ?? initialQueue?.is_active) ? C.green : C.red, display: "inline-block", boxShadow: (state?.is_active ?? initialQueue?.is_active) ? `0 0 6px ${C.green}60` : "none" }} />
+                        <span style={{ fontSize: 12, fontWeight: 600, color: (state?.is_active ?? initialQueue?.is_active) ? C.green : C.red }}>
                             {(state?.is_active ?? initialQueue?.is_active) ? "Active" : "Inactive"}
                         </span>
                     </div>
                 </div>
 
                 {/* Nav items */}
-                <nav className="flex-1 py-4 px-3 space-y-1">
-                    <p className="px-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Queue Management</p>
+                <nav style={{ flex: 1, padding: "14px 10px", overflowY: "auto" }}>
+                    <p className="qd-lbl" style={{ padding: "0 8px", marginBottom: 10 }}>Queue Management</p>
                     {navItems.map((item) => (
                         <button
                             key={item.id}
                             onClick={() => setActiveSection(item.id)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${activeSection === item.id
-                                ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-                                : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                                }`}
+                            className={`qd-nav-item${activeSection === item.id ? " active" : ""}`}
+                            style={{ marginBottom: 2 }}
                         >
-                            <span className={activeSection === item.id ? "text-white" : "text-gray-400"}>
-                                {item.icon}
-                            </span>
-                            {item.label}
+                            <span style={{ color: activeSection === item.id ? "rgba(255,255,255,.85)" : C.textMuted, flexShrink: 0 }}>{item.icon}</span>
+                            <span style={{ flex: 1 }}>{item.label}</span>
                             {item.id === "announcement" && (state?.announcement || initialQueue?.announcement) && (
-                                <span className="ml-auto w-2 h-2 bg-blue-400 rounded-full flex-shrink-0" title="Active announcement" />
+                                <span style={{ width: 7, height: 7, borderRadius: "50%", background: activeSection === item.id ? "rgba(255,255,255,.6)" : C.brand, display: "inline-block", flexShrink: 0 }} />
                             )}
                         </button>
                     ))}
                 </nav>
 
                 {/* Connection status */}
-                <div className="p-4 border-t border-gray-100">
+                <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.border}` }}>
                     <ConnectionBadge status={status} />
                 </div>
             </aside>
 
             {/* ── Main Content ───────────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto bg-gray-50">
-                <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto w-full space-y-6">
+            <div style={{ flex: 1, overflowY: "auto", background: C.pageBg }}>
+                <div style={{ padding: "32px 32px 48px", maxWidth: 1200, margin: "0 auto", display: "flex", flexDirection: "column", gap: 28 }}>
 
                     {/* ── SECTION: Dashboard / Queues ─────────────────── */}
                     {activeSection === "queues" && (
-                        <div className="space-y-6">
+                        <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                             {/* Header row */}
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div className="min-w-0">
-                                <h1 className="text-2xl font-bold text-gray-900 break-words mb-1">
-                                    {queueName}
-                                </h1>
-                                <p className="text-sm text-gray-500">
-                                    Prefix: <span className="font-mono font-semibold">{state?.prefix || initialQueue?.prefix || "—"}</span>
-                                </p>
-                            </div>
-
-                            {/* Action buttons top-right */}
-                            {!isStaff && (
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    {/* Reset */}
-                                    <button
-                                        onClick={() => setShowResetConfirm(true)}
-                                        disabled={isDisabled || resetting}
-                                        className="text-xs font-bold px-3 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-100 flex items-center gap-1 shadow-sm"
-                                        aria-label="Reset Queue"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                        </svg>
-                                        Reset
-                                    </button>
-
-                                    {/* Display */}
-                                    <a
-                                        href={`/display/${queueId}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs font-bold px-3 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 flex items-center gap-1 shadow-sm"
-                                        aria-label="Open Display View"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                        </svg>
-                                        Display
-                                    </a>
-
-                                    {/* Delete */}
-                                    <button
-                                        onClick={() => setShowDeleteConfirm(true)}
-                                        className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-100 flex items-center gap-1"
-                                        aria-label="Delete Queue"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        Delete
-                                    </button>
+                            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+                                <div style={{ position: "relative", overflow: "hidden" }}>
+                                    <h1 className="qd-section-title">{queueName}</h1>
+                                    <p style={{ fontSize: 13.5, color: C.textSub, marginTop: 6, fontWeight: 400 }}>
+                                        Prefix: <span className="mono" style={{ fontWeight: 700, color: C.brand }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
+                                    </p>
                                 </div>
-                            )}
-                        </div>
+
+                                {!isStaff && (
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                        <button
+                                            onClick={() => setShowResetConfirm(true)}
+                                            disabled={isDisabled || resetting}
+                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 9, border: `1px solid ${C.amberBorder}`, background: C.amberBg, color: C.amber, cursor: "pointer", transition: "all .2s" }}
+                                            aria-label="Reset Queue"
+                                        >
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                            Reset
+                                        </button>
+                                        <a
+                                            href={`/display/${queueId}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 9, border: `1px solid ${C.brandBorder}`, background: C.brandLight, color: C.brand, textDecoration: "none", transition: "all .2s" }}
+                                            aria-label="Open Display View"
+                                        >
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                            Display
+                                        </a>
+                                        <button
+                                            onClick={() => setShowDeleteConfirm(true)}
+                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 9, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, cursor: "pointer", transition: "all .2s" }}
+                                            aria-label="Delete Queue"
+                                        >
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            Delete
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
                         {/* Main Grid */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Left column: Now Serving + Actions */}
                             <div className="lg:col-span-2 space-y-5">
                                 {/* Big serving indicator */}
-                                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center min-h-[260px] flex flex-col items-center justify-center">
-                                    <p className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">
-                                        Now Serving
-                                    </p>
-                                    <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-blue-600 tabular-nums tracking-tight leading-none py-4 break-words px-2 w-full max-w-full" aria-live="polite" aria-atomic="true">
+                                <div className="qd-card" style={{ padding: "40px 32px", textAlign: "center", minHeight: 260, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
+                                    <div style={{ position: "absolute", top: -60, right: -60, width: 220, height: 220, background: `radial-gradient(circle, ${C.brandGlow} 0%, transparent 70%)`, pointerEvents: "none" }} />
+                                    <p className="qd-lbl" style={{ marginBottom: 12, letterSpacing: ".12em" }}>Now Serving</p>
+                                    <div className="serving-num" style={{ fontSize: "clamp(72px,12vw,120px)" }} aria-live="polite" aria-atomic="true">
                                         {state?.prefix || ""}{state?.current_serving || 0}
                                     </div>
 
                                     {state?.serving_details && (
-                                        <div className="mt-2 text-center animate-in fade-in slide-in-from-bottom-2 duration-500 w-full px-2">
-                                            <p className="text-2xl font-bold text-gray-900 break-words">{state.serving_details.customer_name}</p>
-                                            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 font-medium">
-                                                {state.serving_details.customer_age != null && (
-                                                    <span>Age: {state.serving_details.customer_age}</span>
-                                                )}
-                                                {state.serving_details.customer_age != null && <span className="hidden sm:inline">•</span>}
-                                                <span className="break-all">{state.serving_details.customer_phone}</span>
+                                        <div className="fade-in" style={{ marginTop: 8, textAlign: "center" }}>
+                                            <p style={{ fontSize: 22, fontWeight: 800, color: C.text }}>{state.serving_details.customer_name}</p>
+                                            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "4px 12px", marginTop: 4, fontSize: 13.5, color: C.textMuted, fontWeight: 500 }}>
+                                                {state.serving_details.customer_age != null && <span>Age {state.serving_details.customer_age}</span>}
+                                                {state.serving_details.customer_age != null && <span>·</span>}
+                                                <span>{state.serving_details.customer_phone}</span>
                                             </div>
                                         </div>
                                     )}
 
-                                    <div className="flex items-center justify-center gap-6 mt-6 text-sm text-gray-500">
-                                        <span>Waiting: <strong className="text-gray-900">{state?.waiting_count ?? 0}</strong></span>
-                                        <span className="text-gray-300" aria-hidden="true">|</span>
-                                        <span>Issued: <strong className="text-gray-900">{state?.total_issued ?? 0}</strong></span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 24, marginTop: 20, fontSize: 13.5, color: C.textMuted }}>
+                                        <span>Waiting: <strong style={{ color: C.text, fontWeight: 700 }}>{state?.waiting_count ?? 0}</strong></span>
+                                        <span style={{ color: C.borderLight }}>|</span>
+                                        <span>Issued: <strong style={{ color: C.text, fontWeight: 700 }}>{state?.total_issued ?? 0}</strong></span>
                                     </div>
                                 </div>
 
                                 {/* Action buttons */}
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" role="toolbar" aria-label="Queue actions">
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }} role="toolbar" aria-label="Queue actions">
                                     <button
                                         onClick={handleNext}
                                         disabled={isDisabled}
-                                        aria-label="Call next token (keyboard shortcut: Enter)"
-                                        className="py-4 px-6 bg-blue-600 text-white font-bold text-lg rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-all shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-600 disabled:hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                                        className="qd-btn-primary"
+                                        style={{ gridColumn: "1", fontSize: 15 }}
+                                        aria-label="Call next token"
                                     >
                                         {actionLoading === "next" ? (
-                                            <span className="flex items-center justify-center gap-2">
-                                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
+                                            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                                                <span style={{ width: 18, height: 18, borderRadius: "50%", border: "2.5px solid rgba(255,255,255,.3)", borderTopColor: "#fff", display: "inline-block", animation: "spin .8s linear infinite" }} />
                                                 Calling...
                                             </span>
-                                        ) : (
-                                            <>Call Next <span className="hidden sm:inline text-blue-300 text-sm font-normal ml-1">(Enter)</span></>
-                                        )}
+                                        ) : "Call Next"}
                                     </button>
 
                                     <button
                                         onClick={handleSkip}
                                         disabled={isDisabled}
-                                        aria-label="Skip current token (keyboard shortcut: S)"
-                                        className="py-4 px-6 bg-white text-amber-700 font-bold text-lg rounded-xl border border-amber-200 hover:bg-amber-50 active:bg-amber-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+                                        className="qd-btn-secondary"
+                                        style={{ color: C.amber, borderColor: C.amberBorder }}
+                                        aria-label="Skip current token"
                                     >
-                                        {actionLoading === "skip" ? "Skipping..." : <>Skip <span className="hidden sm:inline text-amber-400 text-sm font-normal ml-1">(S)</span></>}
+                                        {actionLoading === "skip" ? "Skipping..." : "Skip"}
                                     </button>
 
                                     <button
@@ -570,12 +644,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
                                         })}
                                         disabled={isDisabled}
-                                        aria-label="Mark done and call next token"
-                                        className="py-4 px-6 bg-white text-emerald-700 font-bold text-lg rounded-xl border border-emerald-200 hover:bg-emerald-50 active:bg-emerald-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                                        className="qd-btn-secondary"
+                                        style={{ color: C.green, borderColor: C.greenBorder }}
+                                        aria-label="Mark done and call next"
                                     >
                                         {actionLoading === "done" ? "Completing..." : "Done & Next"}
                                     </button>
                                 </div>
+                                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
                                 {/* Extended Manual Controls */}
                                 <div className="flex flex-col md:flex-row gap-6 border-t border-gray-100 pt-6">
@@ -674,22 +750,23 @@ export default function QueueDetailPage({ params }: PageProps) {
                             {/* Right column: Waiting List & Recent Tokens */}
                             <div className="space-y-6">
                                 {/* Waiting List */}
-                                <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col" aria-label="Waiting list">
-                                    <div className="px-5 py-4 border-b border-gray-100 flex flex-col gap-3">
-                                        <div className="flex justify-between items-center">
-                                            <h2 className="font-semibold text-gray-900 text-sm">Waiting List</h2>
-                                            <span className="text-xs bg-indigo-50 text-indigo-700 font-medium px-2 py-1 rounded-full">{state?.waiting_count ?? 0}</span>
+                                <aside className="qd-card overflow-hidden flex flex-col" aria-label="Waiting list">
+                                    <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 10, background: "linear-gradient(180deg,#fafbfd,#fff)", borderRadius: "14px 14px 0 0" }}>
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                            <h2 style={{ fontSize: 13.5, fontWeight: 700, color: C.text, margin: 0 }}>Waiting List</h2>
+                                            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: C.brandLight, color: C.brand }}>{state?.waiting_count ?? 0}</span>
                                         </div>
-                                        <div className="relative">
-                                            <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                        <div style={{ position: "relative" }}>
+                                            <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
+                                                <svg width="14" height="14" fill="none" stroke={C.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                                             </span>
                                             <input
                                                 type="text"
                                                 placeholder="Search token..."
                                                 value={waitingSearch}
                                                 onChange={(e) => setWaitingSearch(e.target.value)}
-                                                className="w-full text-sm pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                                className="qd-input"
+                                                style={{ paddingLeft: 32, paddingTop: 8, paddingBottom: 8, fontSize: 13 }}
                                             />
                                         </div>
                                     </div>
@@ -772,19 +849,20 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 </aside>
 
                                 {/* Recent Activity */}
-                                <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col" aria-label="Recent activity">
-                                    <div className="px-5 py-4 border-b border-gray-100 flex flex-col gap-3">
-                                        <h2 className="font-semibold text-gray-900 text-sm">Recent Activity</h2>
-                                        <div className="relative">
-                                            <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                <aside className="qd-card overflow-hidden flex flex-col" aria-label="Recent activity">
+                                    <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 10, background: "linear-gradient(180deg,#fafbfd,#fff)", borderRadius: "14px 14px 0 0" }}>
+                                        <h2 style={{ fontSize: 13.5, fontWeight: 700, color: C.text, margin: 0 }}>Recent Activity</h2>
+                                        <div style={{ position: "relative" }}>
+                                            <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
+                                                <svg width="14" height="14" fill="none" stroke={C.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                                             </span>
                                             <input
                                                 type="text"
                                                 placeholder="Search recent..."
                                                 value={recentSearch}
                                                 onChange={(e) => setRecentSearch(e.target.value)}
-                                                className="w-full text-sm pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                                className="qd-input"
+                                                style={{ paddingLeft: 32, paddingTop: 8, paddingBottom: 8, fontSize: 13 }}
                                             />
                                         </div>
                                     </div>
@@ -824,10 +902,10 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                 {/* ── SECTION: QR Code ─────────────────────────────── */}
                 {activeSection === "qrcode" && (
-                    <div className="space-y-6">
+                    <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900 mb-1">QR Code</h1>
-                            <p className="text-sm text-gray-500">Share this QR code or link so customers can join the queue from their phones.</p>
+                            <h1 className="qd-section-title">QR Code</h1>
+                            <p className="qd-section-sub">Share this QR code or link so customers can join the queue from their phones.</p>
                         </div>
 
                         <div className="max-w-md">
@@ -842,13 +920,13 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                 {/* ── SECTION: Public Announcement ─────────────────── */}
                 {activeSection === "announcement" && (
-                    <div className="space-y-6">
+                    <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900 mb-1">Public Announcement</h1>
-                            <p className="text-sm text-gray-500">Set a message that will be displayed to all customers currently waiting in the queue.</p>
+                            <h1 className="qd-section-title">Public Announcement</h1>
+                            <p className="qd-section-sub">Set a message that will be displayed to all customers currently waiting in the queue.</p>
                         </div>
 
-                        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-4 max-w-2xl">
+                        <div className="qd-card" style={{ padding: 28, maxWidth: 640 }}>
                             <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-widest">Announcement</h3>
                                 {(state?.announcement || initialQueue?.announcement) && !isEditingAnnouncement && (
@@ -984,6 +1062,7 @@ export default function QueueDetailPage({ params }: PageProps) {
             />
             <TokenDetailModal token={selectedToken} onClose={() => setSelectedToken(null)} />
         </div>
+        </>
     );
 }
 
@@ -1143,13 +1222,13 @@ function QueueHistory({
     const totalPages = Math.ceil(historyTotal / historyPageSize) || 1;
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-1">Queue History</h1>
-                    <p className="text-sm text-gray-500">View past tokens and patient records for this queue.</p>
+                    <h1 className="qd-section-title">Queue History</h1>
+                    <p className="qd-section-sub">View past tokens and patient records for this queue.</p>
                 </div>
-                <div className="text-xs text-gray-400 font-medium">
+                <div style={{ fontSize: 12.5, color: C.textMuted, fontWeight: 500 }}>
                     {historyTotal > 0 ? <>{historyTotal} record{historyTotal !== 1 ? "s" : ""} found</> : null}
                 </div>
             </div>
