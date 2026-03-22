@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
       process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ||
       process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") ||
       "https://q4queue-backend.onrender.com";
+    
+    if (process.env.NODE_ENV === "production") {
+      console.log(`[Next.js Proxy] Targeting backend: ${backendUrl}`);
+    }
 
     return [
       {
