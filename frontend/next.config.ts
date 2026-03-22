@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     const backendUrl = process.env.BACKEND_URL ||
       process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ||
       process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") ||
-      "http://127.0.0.1:8000";
+      (process.env.NODE_ENV === "development" && !process.env.DOCKER_CONTAINER ? "http://127.0.0.1:8000" : "http://backend:8000");
 
     return [
       {
