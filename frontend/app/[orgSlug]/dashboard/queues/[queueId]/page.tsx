@@ -124,6 +124,11 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const { state, status } = useQueueSocket(queueId, { token: token || undefined });
 
+    const [isMounted, setIsMounted] = useState(false);
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     const [activeSection, setActiveSection] = useState<ActiveSection>("queues");
     const [selectedToken, setSelectedToken] = useState<TokenDetailData | null>(null);
     // Track token numbers added via admin "Add Customer" so we can label them Manual
@@ -474,6 +479,15 @@ export default function QueueDetailPage({ params }: PageProps) {
             ),
         },
     ];
+
+    if (!isMounted) {
+        return (
+            <div className="flex flex-col items-center justify-center w-full min-h-screen grow" style={{ background: "#f7f8fa" }}>
+                <span className="w-8 h-8 mb-4 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></span>
+                <span className="text-sm font-medium text-gray-500">Loading Queue...</span>
+            </div>
+        );
+    }
 
     return (
         <>
