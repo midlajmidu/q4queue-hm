@@ -1,23 +1,8 @@
 version: "3.9"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# DEVELOPMENT docker-compose — Enables hot-reloading for Frontend and Backend
+# DEVELOPMENT docker-compose
 # ═══════════════════════════════════════════════════════════════════════════════
 
-services:
-  # Override frontend to run in dev mode instead of a production build
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: builder # Target the builder stage so we have Node installed, but don't run build
-    command: npm run dev
-    volumes:
-      # Mount the local frontend folder so changes reflect instantly
-      - ./frontend:/app
-      # Anonymize node_modules to prevent Mac/Linux binary collision
-      - /app/node_modules
-      - /app/.next
-    environment:
-      - WATCHPACK_POLLING=true # Ensures file changes on Mac are detected inside the container
-      - NODE_ENV=development
+# Frontend now runs in high-efficiency production mode from main docker-compose.yml
+# Use docker-compose.yml for production-like environment.

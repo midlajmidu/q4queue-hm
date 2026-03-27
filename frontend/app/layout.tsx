@@ -12,6 +12,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", 
 export const metadata: Metadata = {
   title: config.appName,
   description: "Real-time Queue Management SaaS for clinics and service counters",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

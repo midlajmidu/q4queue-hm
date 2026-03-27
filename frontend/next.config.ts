@@ -2,12 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
+  output: "standalone",
   async rewrites() {
-    // Priority: 1. BACKEND_URL, 2. NEXT_PUBLIC_API_URL, 3. NEXT_PUBLIC_API_BASE_URL, 4. Dev Fallback
+    // Priority: 1. BACKEND_URL, 2. NEXT_PUBLIC_API_URL, 3. NEXT_PUBLIC_API_BASE_URL, 4. Docker Internal Fallback
     const backendUrl = process.env.BACKEND_URL ||
       process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ||
       process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api/v1", "") ||
-      "http://172.17.179.13:8000";
+      "http://backend:8000";
 
     return [
       {
