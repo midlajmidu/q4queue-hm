@@ -276,6 +276,8 @@ export interface OrgDetail {
     slug: string;
     is_active: boolean;
     created_at: string;
+    max_sessions: number;
+    max_queues_per_session: number;
     admin_email?: string | null;
     admin_initial_password?: string | null;
     admin_password_changed_at?: string | null;
@@ -291,12 +293,16 @@ export interface OrgCreateRequest {
     org_slug: string;
     admin_email: string;
     admin_password: string;
+    max_sessions: number;
+    max_queues_per_session: number;
 }
 
 export interface OrgUpdateRequest {
     org_name: string;
     org_slug: string;
     is_active: boolean;
+    max_sessions: number;
+    max_queues_per_session: number;
 }
 
 export interface OrgCreateResponse {

@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.session import Session
 from app.models.queue import Queue
+from app.models.organization import Organization
 from app.schemas.session import SessionCreate, SessionResponse
 from app.schemas.queue import QueueCreate
 
@@ -31,6 +32,13 @@ async def create_session(
     data: SessionCreate,
 ) -> SessionResponse:
     """Create a new session (one per date per org)."""
+    # ── Limit validation ──
+    org = await db.scalar(select(Organization).where(Organization.id == org_id))
+    if org:
+        current_sessions_count = await db.scalar(select(func.count(Session.id)).where(Session.org_id == org_id))
+        if current_sessions_count >= org.max_sessions:
+            raise ValueError(f"Organization limit reached: maximum {org.max_sessions} sessions allowed.")
+
     session = Session(
         org_id=org_id,
         session_date=data.session_date,
@@ -192,6 +200,13 @@ async def create_session_queue(
     """Create a queue scoped to a specific session."""
     # Verify session exists and belongs to org
     await get_session_or_404(db, session_id=session_id, org_id=org_id)
+
+    # ── Limit validation ──
+    org = await db.scalar(select(Organization).where(Organization.id == org_id))
+    if org:
+        current_queues_count = await db.scalar(select(func.count(Queue.id)).where(Queue.session_id == session_id))
+        if current_queues_count >= org.max_queues_per_session:
+            raise ValueError(f"Session limit reached: maximum {org.max_queues_per_session} queues allowed per session.")
 
     queue = Queue(
         org_id=org_id,

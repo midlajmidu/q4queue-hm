@@ -42,6 +42,10 @@ class Organization(Base):
     address: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     phone_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
 
+    # ── Limits ─────────────────────────────────────────────────────
+    max_sessions: Mapped[int] = mapped_column(default=10, nullable=False)
+    max_queues_per_session: Mapped[int] = mapped_column(default=20, nullable=False)
+
     # ── Relationships ──────────────────────────────────────────────
     users: Mapped[list["User"]] = relationship(  # noqa: F821
         "User", back_populates="organization", lazy="noload"

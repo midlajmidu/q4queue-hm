@@ -21,4 +21,3 @@ services:
     environment:
       - WATCHPACK_POLLING=true # Ensures file changes on Mac are detected inside the container
       - NODE_ENV=development
-      - BACKEND_URL=http://backend:8000

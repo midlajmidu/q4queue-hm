@@ -54,6 +54,8 @@ class OrgCreateRequest(BaseModel):
     org_slug: str
     admin_email: str
     admin_password: str
+    max_sessions: int = Field(default=10, ge=1)
+    max_queues_per_session: int = Field(default=20, ge=1)
 
     @field_validator("org_slug")
     @classmethod
@@ -65,6 +67,8 @@ class OrgUpdateRequest(BaseModel):
     org_name: str
     org_slug: str
     is_active: bool
+    max_sessions: int = Field(default=10, ge=1)
+    max_queues_per_session: int = Field(default=20, ge=1)
 
     @field_validator("org_slug")
     @classmethod
@@ -78,6 +82,8 @@ class OrgDetail(BaseModel):
     slug: str
     is_active: bool
     created_at: str
+    max_sessions: int
+    max_queues_per_session: int
     admin_email: str | None = None
     admin_initial_password: str | None = None
     admin_password_changed_at: str | None = None
@@ -122,6 +128,8 @@ def _org_to_detail(o: Organization, admin_user: User | None = None) -> OrgDetail
         slug=o.slug,
         is_active=o.is_active,
         created_at=o.created_at.isoformat(),
+        max_sessions=o.max_sessions,
+        max_queues_per_session=o.max_queues_per_session,
         admin_email=admin_user.email if admin_user else None,
         admin_password_changed_at=admin_user.password_changed_at.isoformat() if admin_user and admin_user.password_changed_at else None,
     )
@@ -250,7 +258,12 @@ async def create_organization(
             detail=f"Organization slug '{body.org_slug}' is already taken.",
         )
 
-    org = Organization(name=body.org_name, slug=body.org_slug)
+    org = Organization(
+        name=body.org_name, 
+        slug=body.org_slug,
+        max_sessions=body.max_sessions,
+        max_queues_per_session=body.max_queues_per_session,
+    )
     db.add(org)
     await db.flush()
 
@@ -366,6 +379,8 @@ async def update_organization(
     org.name = body.org_name
     org.slug = body.org_slug
     org.is_active = body.is_active
+    org.max_sessions = body.max_sessions
+    org.max_queues_per_session = body.max_queues_per_session
     await db.commit()
     await db.refresh(org)
 

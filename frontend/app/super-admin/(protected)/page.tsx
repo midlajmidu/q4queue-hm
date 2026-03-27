@@ -87,7 +87,13 @@ function SortIcon({ col, sortBy, sortOrder }: { col: SortBy; sortBy: SortBy; sor
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClose: () => void; onSaved: (u: OrgDetail) => void }) {
-    const [form, setForm] = useState<OrgUpdateRequest>({ org_name: org.name, org_slug: org.slug, is_active: org.is_active });
+    const [form, setForm] = useState<OrgUpdateRequest>({ 
+        org_name: org.name, 
+        org_slug: org.slug, 
+        is_active: org.is_active,
+        max_sessions: org.max_sessions ?? 10,
+        max_queues_per_session: org.max_queues_per_session ?? 20 
+    });
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -125,6 +131,16 @@ function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClose: () =
                     <div>
                         <label htmlFor="edit-slug" className="block text-sm font-medium text-slate-300 mb-1.5">Slug</label>
                         <input id="edit-slug" type="text" value={form.org_slug} onChange={(e) => setForm(f => ({ ...f, org_slug: e.target.value.toLowerCase() }))} required disabled={isSaving} className="w-full rounded-xl bg-slate-900/60 border border-slate-600 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm font-mono focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="edit-max-sessions" className="block text-sm font-medium text-slate-300 mb-1.5">Max Sessions</label>
+                            <input id="edit-max-sessions" type="number" min="1" value={form.max_sessions || ""} onChange={(e) => setForm(f => ({ ...f, max_sessions: parseInt(e.target.value) || 0 }))} required disabled={isSaving} className="w-full rounded-xl bg-slate-900/60 border border-slate-600 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
+                        </div>
+                        <div>
+                            <label htmlFor="edit-max-queues" className="block text-sm font-medium text-slate-300 mb-1.5">Max Queues</label>
+                            <input id="edit-max-queues" type="number" min="1" value={form.max_queues_per_session || ""} onChange={(e) => setForm(f => ({ ...f, max_queues_per_session: parseInt(e.target.value) || 0 }))} required disabled={isSaving} className="w-full rounded-xl bg-slate-900/60 border border-slate-600 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
+                        </div>
                     </div>
                     <div className="flex items-center justify-between py-1">
                         <span className="text-sm font-medium text-slate-300">Status</span>
@@ -259,7 +275,7 @@ export default function SuperAdminDashboard() {
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Create form
-    const [form, setForm] = useState<OrgCreateRequest>({ org_name: "", org_slug: "", admin_email: "", admin_password: "" });
+    const [form, setForm] = useState<OrgCreateRequest>({ org_name: "", org_slug: "", admin_email: "", admin_password: "", max_sessions: 10, max_queues_per_session: 20 });
     const [showAdminPassword, setShowAdminPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
@@ -334,7 +350,7 @@ export default function SuperAdminDashboard() {
         try {
             const res = await api.createOrganization(form);
             setSuccessMsg(res.message);
-            setForm({ org_name: "", org_slug: "", admin_email: "", admin_password: "" });
+            setForm({ org_name: "", org_slug: "", admin_email: "", admin_password: "", max_sessions: 10, max_queues_per_session: 20 });
             await Promise.all([loadOrgs(), loadStats()]);
         } catch (err) {
             setSubmitError(err instanceof ApiError ? err.detail : "Failed to create organization.");
@@ -413,6 +429,16 @@ export default function SuperAdminDashboard() {
                                 <div>
                                     <label htmlFor="org-slug" className="block text-sm font-medium text-slate-300 mb-1.5">Slug <span className="text-slate-500 text-xs">(auto-generated)</span></label>
                                     <input id="org-slug" type="text" value={form.org_slug} onChange={(e) => setForm(f => ({ ...f, org_slug: e.target.value.toLowerCase() }))} placeholder="sunrise-clinic" required disabled={isSubmitting} className="w-full rounded-xl bg-slate-900/60 border border-slate-600 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm font-mono focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="org-max-sessions" className="block text-sm font-medium text-slate-300 mb-1.5">Max Sessions</label>
+                                        <input id="org-max-sessions" type="number" min="1" value={form.max_sessions || ""} onChange={(e) => setForm(f => ({ ...f, max_sessions: parseInt(e.target.value) || 0 }))} required disabled={isSubmitting} className="w-full rounded-xl bg-slate-900/60 border border-slate-600 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="org-max-queues" className="block text-sm font-medium text-slate-300 mb-1.5">Max Queues/Session</label>
+                                        <input id="org-max-queues" type="number" min="1" value={form.max_queues_per_session || ""} onChange={(e) => setForm(f => ({ ...f, max_queues_per_session: parseInt(e.target.value) || 0 }))} required disabled={isSubmitting} className="w-full rounded-xl bg-slate-900/60 border border-slate-600 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
+                                    </div>
                                 </div>
                                 <hr className="border-slate-700" />
                                 <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Admin Account</p>
