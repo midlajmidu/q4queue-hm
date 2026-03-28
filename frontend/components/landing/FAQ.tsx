@@ -9,9 +9,9 @@ import { ArrowRight } from "lucide-react";
 
 const faqs = [
   {
-    question: "Is Q4Q free to use?",
+    question: "Is Q4queue free to use?",
     answer:
-      "Yes. You can set up and manage queues completely free. No hidden fees, no credit card required.",
+      "We offer a 2-week free trial for businesses to explore our platform. After the trial, we offer competitive B2B pricing tailored to your business needs. Contact us to learn more about our professional plans.",
   },
   {
     question: "Do visitors need to install an app?",
@@ -77,7 +77,7 @@ const FAQ = () => {
             <p className="text-muted-foreground text-sm mt-1">
               We&apos;re here to help. Reach out and we&apos;ll get back to you within 24 hours.
             </p>
-            <a href="mailto:support@q4q.io" className="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-primary hover:underline">
+            <a href="mailto:contact@q4queue.com" className="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-primary hover:underline">
               Contact Support <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
