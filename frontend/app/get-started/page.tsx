@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { CheckCircle2, ArrowRight, Zap, Clock, QrCode } from "lucide-react";
-import { Logo } from "@/components/ui/Logo";
+
 
 export default function GetStartedPage() {
     const [submitted, setSubmitted] = useState(false);
@@ -62,7 +62,7 @@ export default function GetStartedPage() {
             <div className="absolute bottom-20 right-[10%] w-56 h-56 bg-accent/8 rounded-full blur-[100px] animate-pulse pointer-events-none" />
 
             {/* Two-column layout */}
-            <div className="w-full max-w-6xl mx-auto px-6 lg:px-8 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10">
+            <div className="w-full max-w-6xl mx-auto px-6 lg:px-8 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center relative z-10">
 
                 {/* Left Column: Branding & Benefits */}
                 <motion.div
@@ -71,21 +71,21 @@ export default function GetStartedPage() {
                     transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                     className="hidden lg:flex flex-col justify-center"
                 >
-                    <Link href="/" className="inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-1 mb-10 w-fit" aria-label="Go to home page">
-                        <Logo size="lg" />
+                    <Link href="/" className="inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-1 mb-6 w-fit" aria-label="Go to home page">
+                        <Image src="/newLogo2.png" alt="Q4Queue Logo" width={642} height={543} className="h-20 w-auto object-contain" priority />
                     </Link>
 
-                    <h1 className="font-heading text-4xl xl:text-5xl font-extrabold tracking-tight text-foreground leading-[1.15]">
+                    <h1 className="font-heading text-3xl xl:text-4xl font-extrabold tracking-tight text-foreground leading-[1.15]">
                         Transform your <br />
                         waiting <span className="text-gradient">experience.</span>
                     </h1>
 
-                    <p className="text-lg text-muted-foreground mt-6 leading-relaxed max-w-md">
+                    <p className="text-base text-muted-foreground mt-4 leading-relaxed max-w-md">
                         Join modern organizations prioritizing customer happiness. Set up your smart digital queue in minutes — no app download required.
                     </p>
 
                     {/* Trust indicators with colored icon badges */}
-                    <div className="mt-10 flex flex-col gap-5">
+                    <div className="mt-8 flex flex-col gap-4">
                         {[
                             { icon: Zap, text: "Instant setup, zero hardware limits", color: "bg-primary" },
                             { icon: Clock, text: "Real-time positioning for customers", color: "bg-emerald-500" },
@@ -114,10 +114,9 @@ export default function GetStartedPage() {
                     transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
                     className="w-full max-w-md mx-auto lg:mx-0 lg:ml-auto"
                 >
-                    {/* Mobile-only logo */}
                     <div className="lg:hidden text-center mb-6 flex justify-center">
                         <Link href="/" className="inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-1" aria-label="Go to home page">
-                            <Logo size="md" />
+                            <Image src="/newLogo2.png" alt="Q4Queue Logo" width={642} height={543} className="h-20 w-auto object-contain" priority />
                         </Link>
                     </div>
 

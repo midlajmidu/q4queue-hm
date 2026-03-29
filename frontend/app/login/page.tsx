@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
-import { Logo } from "@/components/ui/Logo";
+
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
@@ -41,7 +41,7 @@ export default function LoginPage() {
                 {/* Logo */}
                 <div className="text-center mb-8 flex justify-center">
                     <Link href="/" className="inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-1" aria-label="Go to home page">
-                        <Logo size="lg" />
+                        <Image src="/newLogo2.png" alt="Q4Queue Logo" width={642} height={543} className="h-24 w-auto object-contain" priority />
                     </Link>
                 </div>
 
