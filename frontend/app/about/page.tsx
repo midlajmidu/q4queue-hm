@@ -5,7 +5,6 @@ import Footer from "@/components/landing/Footer";
 import AnimatedSection from "@/components/landing/AnimatedSection";
 import { motion } from "framer-motion";
 import {
-  Target,
   Users,
   Smartphone,
   Shield,
@@ -74,22 +73,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Mission */}
-      <section className="py-16 md:py-20 px-6 border-t border-border/40 bg-background">
-        <div className="max-w-4xl mx-auto">
-          <AnimatedSection className="text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 mb-6">
-              <Target className="w-6 h-6 text-primary" />
-            </div>
-            <h2 className="font-heading text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-              Our mission
-            </h2>
-            <p className="mt-4 text-muted-foreground text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
-              To reduce the friction and anxiety of waiting. We believe that every visitor deserves to know where they stand, and every operations team deserves tools that are simple, reliable, and ready for peak demand.
-            </p>
-          </AnimatedSection>
-        </div>
-      </section>
 
       {/* Why we built it + Who it's for */}
       <section className="py-16 md:py-24 px-6 bg-secondary/30">

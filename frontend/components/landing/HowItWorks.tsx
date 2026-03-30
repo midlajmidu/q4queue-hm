@@ -46,16 +46,16 @@ const HowItWorks = () => {
   const [activeStep, setActiveStep] = useState(0);
 
   return (
-    <section id="how-it-works" className="py-24 md:py-32 px-6 bg-secondary/40">
+    <section id="how-it-works" className="py-20 md:py-28 px-6 bg-secondary/40">
       <div className="max-w-6xl mx-auto">
-        <AnimatedSection className="text-center mb-16 md:mb-24">
+        <AnimatedSection className="text-center mb-12 md:mb-20">
           <span className="inline-block text-primary font-semibold text-sm tracking-wide uppercase mb-3 px-3 py-1 rounded-full bg-primary/8 border border-primary/15">
             How It Works
           </span>
-          <h2 className="font-heading text-4xl md:text-5xl font-extrabold tracking-[-0.02em] text-foreground mt-4">
+          <h2 className="font-heading text-3xl md:text-4xl font-extrabold tracking-[-0.02em] text-foreground mt-4">
             Three simple steps
           </h2>
-          <p className="mt-4 text-muted-foreground text-xl max-w-xl mx-auto">
+          <p className="mt-3 text-muted-foreground text-lg max-w-xl mx-auto">
             No complexity, no friction. Get started in minutes.
           </p>
         </AnimatedSection>
@@ -63,7 +63,7 @@ const HowItWorks = () => {
           {/* Vertical timeline line - desktop only */}
           <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-primary/20 via-primary/10 to-transparent" />
 
-          <div className="space-y-16 md:space-y-32">
+          <div className="space-y-12 md:space-y-24">
             {steps.map((step, i) => {
               const isActive = activeStep === i;
 
@@ -99,12 +99,12 @@ const HowItWorks = () => {
                         Step {step.number}
                       </span>
                     </div>
-                    <h3 className={`font-heading text-3xl font-bold mb-3 transition-colors duration-500 ${
+                    <h3 className={`font-heading text-2xl font-bold mb-2 transition-colors duration-500 ${
                       isActive ? "text-foreground" : "text-muted-foreground"
                     }`}>
                       {step.title}
                     </h3>
-                    <p className={`leading-relaxed text-lg transition-colors duration-500 ${
+                    <p className={`leading-relaxed text-base transition-colors duration-500 ${
                       isActive ? "text-muted-foreground" : "text-muted-foreground/60"
                     }`}>
                       {step.description}

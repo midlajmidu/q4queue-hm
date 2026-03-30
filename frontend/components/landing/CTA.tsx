@@ -8,9 +8,9 @@ import AnimatedSection from "./AnimatedSection";
 const CTA = () => {
   const router = useRouter();
   return (
-    <section className="py-24 md:py-32 px-6">
+    <section className="py-20 md:py-28 px-6">
       <AnimatedSection className="max-w-4xl mx-auto">
-        <div className="relative rounded-3xl overflow-hidden px-8 py-16 md:px-16 md:py-20 text-center bg-gradient-to-br from-primary via-accent to-blue-900"
+        <div className="relative rounded-3xl overflow-hidden px-8 py-14 md:px-16 md:py-16 text-center bg-gradient-to-br from-primary via-accent to-blue-900"
         >
           {/* Decorative shapes */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4" />
@@ -21,10 +21,10 @@ const CTA = () => {
           <div className="absolute inset-0 bg-[linear-gradient(to_right,white/5_1px,transparent_1px),linear-gradient(to_bottom,white/5_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-30" />
 
           <div className="relative">
-            <h2 className="font-heading text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-[-0.02em] text-primary-foreground">
+            <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-[-0.02em] text-primary-foreground">
               Ready to ditch the line?
             </h2>
-            <p className="mt-5 text-xl text-primary-foreground/80 max-w-lg mx-auto leading-relaxed">
+            <p className="mt-4 text-lg text-primary-foreground/80 max-w-lg mx-auto leading-relaxed">
               Set up your first queue in under 5 minutes.
             </p>
 

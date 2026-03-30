@@ -7,16 +7,49 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 const stats = [
-  { icon: Zap, value: "Live", label: "Real time updates", iconBg: "bg-blue-500 shadow-md shadow-blue-500/20", iconColor: "text-white" },
-  { icon: QrCode, value: "No App", label: "Scan to join", iconBg: "bg-violet-500 shadow-md shadow-violet-500/20", iconColor: "text-white" },
-  { icon: Clock, value: "Instant", label: "Setup in seconds", iconBg: "bg-emerald-500 shadow-md shadow-emerald-500/20", iconColor: "text-white" },
+  {
+    icon: Zap,
+    value: "Live",
+    label: "Real-time updates",
+    color: "blue",
+    iconBg: "bg-blue-500",
+    iconGlow: "shadow-blue-500/30",
+    accentFrom: "from-blue-500/10",
+    accentTo: "to-blue-500/5",
+    borderHover: "hover:border-blue-200",
+    valueCls: "text-blue-600",
+  },
+  {
+    icon: QrCode,
+    value: "No App",
+    label: "Scan to join",
+    color: "violet",
+    iconBg: "bg-violet-500",
+    iconGlow: "shadow-violet-500/30",
+    accentFrom: "from-violet-500/10",
+    accentTo: "to-violet-500/5",
+    borderHover: "hover:border-violet-200",
+    valueCls: "text-violet-600",
+  },
+  {
+    icon: Clock,
+    value: "Instant",
+    label: "Setup in seconds",
+    color: "emerald",
+    iconBg: "bg-emerald-500",
+    iconGlow: "shadow-emerald-500/30",
+    accentFrom: "from-emerald-500/10",
+    accentTo: "to-emerald-500/5",
+    borderHover: "hover:border-emerald-200",
+    valueCls: "text-emerald-600",
+  },
 ];
 
 const Hero = () => {
   const router = useRouter();
 
   return (
-    <section className="relative pt-24 pb-4 md:pt-32 md:pb-8 px-6 overflow-hidden bg-hero-glow">
+    <section className="relative pt-20 pb-4 md:pt-28 md:pb-6 px-6 overflow-hidden bg-hero-glow">
       {/* Decorative grid */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(220_16%_90%/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(220_16%_90%/0.5)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black_70%,transparent_100%)]" />
 
@@ -47,14 +80,23 @@ const Hero = () => {
           </motion.div>
 
           {/* Headline */}
-          <h1 className="font-heading text-5xl sm:text-6xl lg:text-[4.25rem] font-extrabold leading-[1.06] tracking-[-0.025em] text-foreground">
+          <h1 className="font-heading text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-foreground">
             Smarter queues,
             <br />
-            <span className="text-gradient">happier customers.</span>
+            <span
+              style={{
+                background: "linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #475569 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              happier customers.
+            </span>
           </h1>
 
           {/* Subhead */}
-          <p className="mt-6 text-lg md:text-xl text-muted-foreground leading-relaxed max-w-lg">
+          <p className="mt-5 text-base md:text-lg text-muted-foreground leading-relaxed max-w-lg">
             Let your visitors wait from anywhere. <strong className="text-foreground font-semibold">q4queue</strong> turns physical lines into
             digital queues — no app install, no hardware, no hassle.
           </p>
@@ -254,31 +296,31 @@ const Hero = () => {
 
       {/* Stats bar */}
       <motion.div
-        className="relative max-w-5xl mx-auto mt-16 md:mt-24"
+        className="relative max-w-3xl mx-auto mt-14 md:mt-20"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.5 }}
       >
-        <div className="glass-card rounded-2xl md:rounded-3xl p-6 md:p-8 bg-white/60 backdrop-blur-xl border border-white/80 shadow-xl shadow-primary/5">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-          
-          <div className="grid md:grid-cols-3 gap-8 md:gap-4 divide-y md:divide-y-0 md:divide-x divide-border/60">
+        <div className="rounded-2xl border border-border/40 bg-white/60 backdrop-blur-xl shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/40">
             {stats.map((stat, i) => (
               <motion.div
                 key={stat.label}
-                className="flex items-center gap-5 pt-6 md:pt-0 md:px-8 first:pt-0 first:pl-0 last:pr-0 group cursor-default"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.7 + i * 0.1 }}
+                className="flex items-center gap-3.5 px-6 py-5 md:justify-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.7 + i * 0.1 }}
               >
-                <div className="w-12 h-12 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors duration-300">
-                  <stat.icon className="w-5 h-5 text-primary/70 group-hover:text-primary transition-colors duration-300" />
+                <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                  <stat.icon className="w-4 h-4 text-gray-500" strokeWidth={2} />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-heading text-2xl font-bold tracking-tight text-foreground">{stat.value}</span>
-                  </div>
-                  <span className="text-sm text-muted-foreground font-medium mt-1 block">{stat.label}</span>
+                  <span className="font-heading text-sm font-bold text-foreground block leading-tight">
+                    {stat.value}
+                  </span>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    {stat.label}
+                  </span>
                 </div>
               </motion.div>
             ))}

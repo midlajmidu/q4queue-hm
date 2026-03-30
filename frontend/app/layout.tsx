@@ -13,7 +13,8 @@ export const metadata: Metadata = {
   title: config.appName,
   description: "Real-time Queue Management SaaS for clinics and service counters",
   icons: {
-    icon: "/icon.svg",
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
   },
 };
 

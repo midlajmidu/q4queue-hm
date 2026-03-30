@@ -138,7 +138,7 @@ const FeatureCard = ({ f, reverse }: FeatureProps) => (
         <h3 className="font-heading text-base font-bold text-white mb-2 tracking-tight">
           {f.title}
         </h3>
-        <p className="text-white/95 text-[16px] md:text-[17px] leading-relaxed">
+        <p className="text-white/90 text-sm md:text-[15px] leading-relaxed">
           {f.description}
         </p>
       </div>
@@ -180,7 +180,7 @@ const Features = () => {
 
       {/* ── Main section body ─────────────────────────────────────── */}
       <div
-        className="relative px-6 py-16 md:py-24"
+        className="relative px-6 py-10 md:py-14"
         style={{
           background: "linear-gradient(160deg, #090e17 0%, #111a2f 40%, #0c1322 70%, #090e17 100%)",
         }}
@@ -227,7 +227,7 @@ const Features = () => {
               </span>
             </div>
 
-            <h2 className="font-heading text-4xl md:text-[3.5rem] lg:text-[4rem] font-extrabold tracking-tight text-white leading-[1.05] mb-6">
+            <h2 className="font-heading text-3xl md:text-[2.75rem] lg:text-[3rem] font-extrabold tracking-tight text-white leading-[1.08] mb-5">
               Everything you need to
               <br className="hidden sm:block" />
               <span className="relative inline-block mt-1">
@@ -269,7 +269,7 @@ const Features = () => {
               </span>
             </h2>
 
-            <p className="mt-8 text-blue-100/80 text-lg md:text-xl max-w-xl mx-auto leading-relaxed">
+            <p className="mt-6 text-blue-100/80 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
               A comprehensive suite of tools built for operational excellence
               and seamless customer experiences.
             </p>
