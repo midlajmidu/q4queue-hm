@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { config } from "@/lib/config";
 
 const stats = [
   {
@@ -105,7 +106,7 @@ const Hero = () => {
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <Button
               size="lg"
-              onClick={() => router.push('/get-started')}
+              onClick={() => window.location.href = `${config.landingUrl}/get-started`}
               className="gap-2 text-base px-8 rounded-full font-heading font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300"
             >
               Set Up Your Queue <ArrowRight className="w-4 h-4" />

@@ -3,8 +3,8 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
-
-import Image from "next/image";
+import { Logo } from "@/components/ui/Logo";
+import { config } from "@/lib/config";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 
@@ -40,8 +40,8 @@ export default function LoginPage() {
             >
                 {/* Logo */}
                 <div className="text-center mb-8 flex justify-center">
-                    <Link href="/" className="inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-1" aria-label="Go to home page">
-                        <Image src="/newLogo2.png" alt="Q4Queue Logo" width={642} height={543} className="h-24 w-auto object-contain" priority />
+                    <Link href={config.landingUrl} className="inline-flex items-center gap-2" aria-label="Go to home page">
+                        <Logo size="lg" />
                     </Link>
                 </div>
 
@@ -69,106 +69,36 @@ export default function LoginPage() {
                                 </motion.div>
                             )}
                         </AnimatePresence>
-
                         <div>
-                            <label htmlFor="org-slug" className="block text-sm font-semibold text-foreground mb-1.5">Organization Slug</label>
-                            <input
-                                id="org-slug"
-                                type="text"
-                                value={orgSlug}
-                                onChange={(e) => setOrgSlug(e.target.value)}
-                                placeholder="your-org"
-                                required
-                                autoComplete="organization"
-                                className="w-full rounded-xl border border-input bg-white/50 px-4 py-2.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-muted-foreground"
-                                disabled={isLoading}
-                            />
+                            <label htmlFor="org-slug" className="block text-sm font-semibold text-foreground mb-1.5">Organization</label>
+                            <input id="org-slug" type="text" value={orgSlug} onChange={(e) => setOrgSlug(e.target.value)} placeholder="your-org" required className="w-full rounded-xl border border-input bg-white/50 px-4 py-2.5 text-sm" />
                         </div>
-
                         <div>
-                            <label htmlFor="email" className="block text-sm font-semibold text-foreground mb-1.5">Email Address</label>
-                            <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="admin@clinic.com"
-                                required
-                                autoComplete="email"
-                                className="w-full rounded-xl border border-input bg-white/50 px-4 py-2.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-muted-foreground"
-                                disabled={isLoading}
-                            />
+                            <label htmlFor="email" className="block text-sm font-semibold mb-1.5">Email Address</label>
+                            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@domain.com" required className="w-full rounded-xl border border-input bg-white/50 px-4 py-2.5 text-sm" />
                         </div>
-
                         <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                                <label htmlFor="password" title="Password" className="block text-sm font-semibold text-foreground">Password</label>
-                            </div>
+                            <label htmlFor="password" title="Password" className="block text-sm font-semibold mb-1.5">Password</label>
                             <div className="relative">
-                                <input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="••••••••"
-                                    required
-                                    autoComplete="current-password"
-                                    className="w-full rounded-xl border border-input bg-white/50 pl-4 pr-12 py-2.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-muted-foreground"
-                                    disabled={isLoading}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none p-1.5 rounded-md transition-colors"
-                                    aria-label={showPassword ? "Hide password" : "Show password"}
-                                    disabled={isLoading}
-                                >
-                                    {showPassword ? (
-                                        <EyeOff className="w-5 h-5" />
-                                    ) : (
-                                        <Eye className="w-5 h-5" />
-                                    )}
-                                </button>
+                                <input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required className="w-full rounded-xl border border-input bg-white/50 pl-4 pr-12 py-2.5 text-sm" />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground p-1.5 transition-colors">{showPassword ? <EyeOff /> : <Eye />}</button>
                             </div>
                         </div>
-
-                        <button
-                            type="submit"
-                            disabled={isLoading || !orgSlug || !email || !password}
-                            aria-label="Sign in"
-                            className="w-full h-11 mt-4 bg-primary text-primary-foreground font-semibold rounded-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Signing in...
-                                </>
-                            ) : (
-                                <>
-                                    Sign in <ArrowRight className="w-4 h-4 ml-1" />
-                                </>
-                            )}
+                        <button type="submit" disabled={isLoading || !orgSlug || !email || !password} className="w-full h-11 mt-4 bg-primary text-primary-foreground font-semibold rounded-full shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
+                           {isLoading ? "Signing in..." : <>Sign in <ArrowRight className="w-4 h-4 ml-1" /></>}
                         </button>
                     </form>
 
                     <div className="pt-5 border-t border-border/50 text-center">
                         <p className="text-sm text-muted-foreground">
                             Don&apos;t have an account?{" "}
-                            <Link href="/get-started" className="text-primary hover:text-primary/80 font-semibold ml-1 transition-colors">
+                            <a href={`${config.landingUrl}/get-started`} className="text-primary hover:text-primary/80 font-semibold ml-1 transition-colors">
                                 Get Started
-                            </Link>
+                            </a>
                         </p>
                     </div>
                 </div>
             </motion.div>
-
-            {/* Minimal footer */}
-            <p className="relative z-10 text-center text-xs text-muted-foreground mt-8">
-                © {new Date().getFullYear()} Q4Queue · <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
-            </p>
         </main>
     );
 }

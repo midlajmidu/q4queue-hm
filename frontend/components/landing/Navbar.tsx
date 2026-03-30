@@ -89,7 +89,7 @@ const Navbar = () => {
       )}
     >
       <div className="max-w-6xl mx-auto px-6 h-16 md:h-20 flex items-center justify-between">
-        <a href="/">
+        <a href={config.landingUrl}>
           <Logo size="lg" />
         </a>
         <div className="hidden md:flex items-center gap-8">
@@ -138,7 +138,7 @@ const Navbar = () => {
           </a>
           <Button
             size="default"
-            onClick={() => router.push('/get-started')}
+            onClick={() => window.location.href = `${config.landingUrl}/get-started`}
             className="hidden md:flex gap-2 rounded-full px-6 font-heading font-semibold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02] transition-all duration-300"
           >
             Get Started <ArrowRight className="w-4 h-4" />
@@ -176,7 +176,7 @@ const Navbar = () => {
           )}
           <Button
             size="sm"
-            onClick={() => router.push('/get-started')}
+            onClick={() => window.location.href = `${config.landingUrl}/get-started`}
             className="w-full gap-1.5 rounded-full font-semibold"
           >
             Get Started <ArrowRight className="w-3.5 h-3.5" />

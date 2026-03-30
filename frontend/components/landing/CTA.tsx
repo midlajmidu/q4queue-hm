@@ -3,6 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { config } from "@/lib/config";
 import AnimatedSection from "./AnimatedSection";
 
 const CTA = () => {
@@ -38,7 +39,7 @@ const CTA = () => {
               <Button
                 size="lg"
                 variant="secondary"
-                onClick={() => router.push('/get-started')}
+                onClick={() => window.location.href = `${config.landingUrl}/get-started`}
                 className="gap-2 text-base px-10 rounded-full font-semibold shadow-xl hover:scale-[1.02] transition-all duration-300"
               >
                 Start Your Free Trial <ArrowRight className="w-4 h-4" />
