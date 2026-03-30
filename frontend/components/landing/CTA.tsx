@@ -36,16 +36,12 @@ const CTA = () => {
             </div>
 
             <div className="mt-6">
-              <Button
-                size="lg"
-                variant="secondary"
-                asChild
-                className="gap-2 text-base px-10 rounded-full font-semibold shadow-xl hover:scale-[1.02] transition-all duration-300"
+              <a
+                href={`${config.landingUrl}/get-started`}
+                className="inline-flex items-center justify-center gap-2 h-12 px-10 rounded-full bg-secondary text-secondary-foreground font-semibold shadow-xl hover:scale-[1.02] transition-all duration-300"
               >
-                <a href={`${config.landingUrl}/get-started`}>
-                  Start Your Free Trial <ArrowRight className="w-4 h-4" />
-                </a>
-              </Button>
+                Start Your Free Trial <ArrowRight className="w-4 h-4" />
+              </a>
               <div className="mt-4 flex items-center justify-center gap-4 text-sm text-primary-foreground/60">
                 {["1 week free trial", "No credit card", "Setup in 2 min"].map((text) => (
                   <span key={text} className="flex items-center gap-1">
