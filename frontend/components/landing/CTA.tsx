@@ -39,10 +39,12 @@ const CTA = () => {
               <Button
                 size="lg"
                 variant="secondary"
-                onClick={() => window.location.href = `${config.landingUrl}/get-started`}
+                asChild
                 className="gap-2 text-base px-10 rounded-full font-semibold shadow-xl hover:scale-[1.02] transition-all duration-300"
               >
-                Start Your Free Trial <ArrowRight className="w-4 h-4" />
+                <a href={`${config.landingUrl}/get-started`}>
+                  Start Your Free Trial <ArrowRight className="w-4 h-4" />
+                </a>
               </Button>
               <div className="mt-4 flex items-center justify-center gap-4 text-sm text-primary-foreground/60">
                 {["1 week free trial", "No credit card", "Setup in 2 min"].map((text) => (

@@ -106,10 +106,12 @@ const Hero = () => {
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <Button
               size="lg"
-              onClick={() => window.location.href = `${config.landingUrl}/get-started`}
+              asChild
               className="gap-2 text-base px-8 rounded-full font-heading font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300"
             >
-              Set Up Your Queue <ArrowRight className="w-4 h-4" />
+              <a href={`${config.landingUrl}/get-started`}>
+                Set Up Your Queue <ArrowRight className="w-4 h-4" />
+              </a>
             </Button>
             <Button variant="outline" size="lg" className="text-base px-8 rounded-full font-heading font-semibold gap-2 hover:bg-primary/5 border-border/60 transition-all duration-300">
               <Play className="w-4 h-4" /> Watch Demo

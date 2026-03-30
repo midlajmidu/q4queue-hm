@@ -138,10 +138,12 @@ const Navbar = () => {
           </a>
           <Button
             size="default"
-            onClick={() => window.location.href = `${config.landingUrl}/get-started`}
+            asChild
             className="hidden md:flex gap-2 rounded-full px-6 font-heading font-semibold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02] transition-all duration-300"
           >
-            Get Started <ArrowRight className="w-4 h-4" />
+            <a href={`${config.landingUrl}/get-started`}>
+              Get Started <ArrowRight className="w-4 h-4" />
+            </a>
           </Button>
           <button
             className="md:hidden text-foreground"
@@ -176,10 +178,12 @@ const Navbar = () => {
           )}
           <Button
             size="sm"
-            onClick={() => window.location.href = `${config.landingUrl}/get-started`}
+            asChild
             className="w-full gap-1.5 rounded-full font-semibold"
           >
-            Get Started <ArrowRight className="w-3.5 h-3.5" />
+            <a href={`${config.landingUrl}/get-started`}>
+              Get Started <ArrowRight className="w-3.5 h-3.5" />
+            </a>
           </Button>
         </div>
       )}
