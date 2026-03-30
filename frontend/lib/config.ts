@@ -25,5 +25,6 @@ export const config = {
   })(),
 
   appName: process.env.NEXT_PUBLIC_APP_NAME || "Q4Queue",
+  appUrl: process.env.NEXT_PUBLIC_APP_URL || "https://app.q4queue.com",
   isProduction: process.env.NODE_ENV === "production",
 } as const;

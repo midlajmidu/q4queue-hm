@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
+import { config } from "@/lib/config";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 
 const navLinks = [
@@ -130,7 +131,7 @@ const Navbar = () => {
         </div>
         <div className="flex items-center gap-4">
           <a
-            href="/login"
+            href={`${config.appUrl}/login`}
             className="hidden md:inline-block text-sm font-heading font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Log in

@@ -16,6 +16,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { config } from "@/lib/config";
 import {
     setToken,
     removeToken,
@@ -56,7 +57,7 @@ export function useAuth(): UseAuthReturn {
                 removeToken();
                 setIsAuthed(false);
                 setUser(null);
-                router.replace("/login");
+                window.location.href = `${config.appUrl}/login`;
             }
         }, 30_000); // check every 30 seconds
         return () => clearInterval(interval);
@@ -102,8 +103,8 @@ export function useAuth(): UseAuthReturn {
         removeToken();
         setIsAuthed(false);
         setUser(null);
-        router.push("/login");
-    }, [router]);
+        window.location.href = `${config.appUrl}/login`;
+    }, []);
 
     return {
         isAuthenticated: isAuthed,

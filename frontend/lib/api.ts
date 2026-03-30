@@ -150,7 +150,9 @@ async function request<T>(
                 const isAlreadyonLogin = window.location.pathname.includes("/login");
 
                 if (!isAlreadyonLogin) {
-                    window.location.href = isSuperAdminPath ? "/super-admin/login" : "/login";
+                    window.location.href = isSuperAdminPath 
+                        ? `${config.appUrl}/super-admin/login` 
+                        : `${config.appUrl}/login`;
                 }
             }
         }

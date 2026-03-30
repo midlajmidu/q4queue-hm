@@ -10,12 +10,12 @@ const dmSans = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"
 const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--font-heading" });
 
 export const metadata: Metadata = {
-  title: config.appName,
-  description: "Real-time Queue Management SaaS for clinics and service counters",
+  title: "Q4Queue — Smarter Queues, Happier Customers",
+  description: "High-performance, multi-tenant digital queue management for clinics, banks, and retail. Let your visitors wait from anywhere — no apps, no hassle.",
   icons: {
     icon: "/icon.png",
     apple: "/apple-icon.png",
-  },
+  }
 };
 
 export default function RootLayout({
@@ -25,11 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${dmSans.variable} ${plusJakartaSans.variable}`} suppressHydrationWarning>
+      <body className={`${inter.className} ${dmSans.variable} ${plusJakartaSans.variable} flex flex-col`} suppressHydrationWarning>
         <ClientProviders>
-          <div className="flex flex-col">
-            {children}
-          </div>
+          {children}
         </ClientProviders>
       </body>
     </html>
