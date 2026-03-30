@@ -23,7 +23,7 @@ const CTA = () => {
 
           <div className="relative">
             <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-[-0.02em] text-primary-foreground">
-              Ready to ditch the line?
+              Start your digital queue system today
             </h2>
             <p className="mt-4 text-lg text-primary-foreground/80 max-w-lg mx-auto leading-relaxed">
               Set up your first queue in under 5 minutes.

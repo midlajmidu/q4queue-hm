@@ -9,29 +9,29 @@ import { ArrowRight } from "lucide-react";
 
 const faqs = [
   {
-    question: "Is Q4queue free to use?",
+    question: "Is the Q4Queue token system free to try?",
     answer:
-      "We offer a 2-week free trial for businesses to explore our platform. After the trial, we offer competitive B2B pricing tailored to your business needs. Contact us to learn more about our professional plans.",
+      "Yes! We offer a 1-week free trial for businesses to test our digital queue management software. After the trial, we provide transparent pricing for clinics, retail shops, and banks depending on your needs.",
   },
   {
-    question: "Do visitors need to install an app?",
+    question: "Do customers need an app for the virtual queue?",
     answer:
-      "No. Everything works through the browser. Visitors just scan a QR code and they're in the queue.",
+      "No. Q4Queue is 100% web-based. Customers simply scan the QR queue code and join the virtual waiting room instantly through their mobile browser.",
   },
   {
-    question: "What do I need to get started?",
+    question: "What hardware is required for this waiting list software?",
     answer:
-      "Just a device with a browser. Create your queue, print the QR code, and you're ready to go. No special hardware needed.",
+      "Zero hardware. You only need a smartphone, tablet, or laptop with an internet connection. Just generate your QR code, print it, and start managing your lines digitally.",
   },
   {
-    question: "Can I manage the queue from my phone?",
+    question: "Can I manage clinic queues from my mobile phone?",
     answer:
-      "Absolutely. The management interface works on any device — phone, tablet, or desktop. No software to install.",
+      "Absolutely. Our SaaS dashboard is fully responsive. You can serve patients, call tokens, and monitor real-time queue analytics from any device, anywhere.",
   },
   {
-    question: "How do visitors know when it's their turn?",
+    question: "How do visitors receive queue notifications?",
     answer:
-      "Visitors see real time updates on their phone screen and receive notifications when their turn is approaching.",
+      "Visitors stay updated through their live browser window. They get real-time position updates and proximity alerts when their turn is approaching in the digital line.",
   },
 ];
 

@@ -16,6 +16,7 @@ const navLinks = [
   { href: "/#how-it-works", label: "How It Works", scroll: true },
   { href: "/#faq", label: "FAQ", scroll: true },
   { href: "/about", label: "About", scroll: false },
+  { href: "/contact", label: "Contact", scroll: false },
 ];
 
 const Navbar = () => {

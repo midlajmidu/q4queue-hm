@@ -82,7 +82,7 @@ const Hero = () => {
 
           {/* Headline */}
           <h1 className="font-heading text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-foreground">
-            Smarter queues,
+            Smarter <span className="text-primary italic">Queue Management</span>,
             <br />
             <span
               style={{
@@ -161,6 +161,16 @@ const Hero = () => {
                   <span className="text-[11px] text-muted-foreground/60 font-medium">app.q4queue.com/dashboard</span>
                 </div>
               </div>
+            </div>
+
+            {/* Dashboard content with accessibility hidden image for alt keywords */}
+            <div className="sr-only">
+              <Image 
+                src="/og-image.png" 
+                alt="Q4Queue Digital Queue Management Dashboard for clinics and retail with token system" 
+                width={10} 
+                height={10} 
+              />
             </div>
 
             {/* Dashboard content */}

@@ -112,7 +112,7 @@ const Footer = () => {
         {/* Bottom bar */}
         <div className="mt-16 pt-8 border-t border-border/40 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground font-medium">
-            © {new Date().getFullYear()} Q4queue. All rights reserved.
+            © {new Date().getFullYear()} Q4Queue. All rights reserved.
           </p>
           <p className="text-[10px] text-muted-foreground/50 uppercase tracking-widest">
             Privacy Driven • Reliability First
