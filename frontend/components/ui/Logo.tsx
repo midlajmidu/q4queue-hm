@@ -8,9 +8,9 @@ interface LogoProps {
 
 export function Logo({ className, size = "md" }: LogoProps) {
   const sizeMap = {
-    sm: "h-4",   // 28px — Dashboard header
-    md: "h-5",   // 32px
-    lg: "h-6",   // 36px — Landing navbar
+    sm: "h-4",   // 16px - matches Dashboard header sm logo
+    md: "h-5",   // 20px
+    lg: "h-6",   // 24px - Landing navbar
   };
 
   const heightClass = sizeMap[size];

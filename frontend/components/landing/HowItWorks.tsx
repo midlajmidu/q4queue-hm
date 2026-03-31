@@ -9,36 +9,36 @@ import { useState } from "react";
 const steps = [
   {
     number: "01",
-    title: "Scan the QR code",
+    title: "Scan the QR token code",
     description:
-      "Display a QR code at your entrance. Visitors scan it with their phone camera — no app needed. They're instantly added to your queue.",
+      "Display your unique QR code at your clinic or counter. Visitors scan with their smartphone camera — no app needed. They are instantly added to your digital waiting list.",
     icon: QrCode,
     iconBg: "bg-blue-500",
     iconShadow: "shadow-xl shadow-blue-500/25",
     sticker: "/assets/step-scan.png",
-    stickerAlt: "Smartphone scanning a QR code illustration",
+    stickerAlt: "Smartphone scanning a QR code for digital token system",
   },
   {
     number: "02",
     title: "Wait from anywhere",
     description:
-      "No need to stand in line. Visitors track their real time position from their phone. They can wait in their car, grab a coffee, or browse nearby.",
+      "No more standing in lines. Customers track their real-time queue position from their phone. They can wait in their car or a nearby cafe until it's their turn.",
     icon: Smartphone,
     iconBg: "bg-amber-500",
     iconShadow: "shadow-xl shadow-amber-500/25",
     sticker: "/assets/step-wait.png",
-    stickerAlt: "Person relaxing while checking queue position on phone",
+    stickerAlt: "Patient waiting comfortably while checking virtual queue status on mobile",
   },
   {
     number: "03",
-    title: "Get notified",
+    title: "Get served instantly",
     description:
-      "When their turn is approaching, visitors receive an instant notification. No missed turns, no confusion — just a smooth, professional experience.",
+      "When their turn is approaching, customers receive live updates. A professional, stress-free queue experience that keeps patients and shoppers happy.",
     icon: BellRing,
     iconBg: "bg-emerald-500",
     iconShadow: "shadow-xl shadow-emerald-500/25",
     sticker: "/assets/step-notify.png",
-    stickerAlt: "Notification bell with checkmark showing your turn has arrived",
+    stickerAlt: "Queue notification alert for digital token system turn arrival",
   },
 ];
 
