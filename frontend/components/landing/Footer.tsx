@@ -8,7 +8,7 @@ const Footer = () => {
     <footer className="relative py-16 px-6 border-t border-border/40 bg-background overflow-hidden">
       {/* Subtle gradient glow at top */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-      
+
       <div className="max-w-6xl mx-auto">
         {/* Main footer grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
@@ -22,8 +22,8 @@ const Footer = () => {
             </p>
             <div className="mt-6 flex flex-col gap-3">
               <p className="text-sm font-heading font-semibold text-foreground mb-1 uppercase tracking-wider">Contact Support</p>
-              <a 
-                href="mailto:contact@q4queue.com" 
+              <a
+                href="mailto:contact@q4queue.com"
                 className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-medium group"
               >
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
@@ -31,8 +31,8 @@ const Footer = () => {
                 </div>
                 contact@q4queue.com
               </a>
-              <a 
-                href="tel:+919539679027" 
+              <a
+                href="tel:+919539679027"
                 className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-medium group"
               >
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
@@ -74,9 +74,9 @@ const Footer = () => {
           <div>
             <h4 className="text-sm font-heading font-bold text-foreground mb-6 uppercase tracking-widest">Follow Us</h4>
             <div className="flex flex-col gap-4">
-              <a 
-                href="https://www.instagram.com/q.4queue/" 
-                target="_blank" 
+              <a
+                href="https://www.instagram.com/q.4queue/"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-all group"
               >
@@ -85,9 +85,9 @@ const Footer = () => {
                 </div>
                 <span>Instagram</span>
               </a>
-              <a 
-                href="https://www.linkedin.com/company/q4queue" 
-                target="_blank" 
+              <a
+                href="https://www.linkedin.com/company/q4queue"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-all group"
               >
@@ -96,8 +96,8 @@ const Footer = () => {
                 </div>
                 <span>LinkedIn</span>
               </a>
-              <a 
-                href="mailto:contact@q4queue.com" 
+              <a
+                href="mailto:contact@q4queue.com"
                 className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-all group"
               >
                 <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
