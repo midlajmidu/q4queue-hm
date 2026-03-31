@@ -7,9 +7,9 @@ import { motion } from "framer-motion";
 const features = [
   {
     icon: QrCode,
-    title: "QR Code Token System",
+    title: "QR Code Check in",
     description:
-      "Visitors scan a QR code at your entrance and instantly join your digital queue. No apps, no forms — just scan and go.",
+      "Visitors scan a QR code at your entrance and instantly join your queue. No apps, no forms — just scan and go.",
     accent: "#3b82f6",
     accentRing: "rgba(59,130,246,0.15)",
     gradFrom: "#eff6ff",
@@ -17,9 +17,9 @@ const features = [
   },
   {
     icon: Bell,
-    title: "Smart Waitlist Alerts",
+    title: "Smart Notifications",
     description:
-      "Automatic notifications when a visitor's turn is approaching. Keep your waiting list moving with real-time browser push or SMS.",
+      "Automatic alerts when a visitor's turn is approaching. SMS, browser push, or in-app — they'll never miss their spot.",
     accent: "#8b5cf6",
     accentRing: "rgba(139,92,246,0.15)",
     gradFrom: "#f5f3ff",
@@ -27,9 +27,9 @@ const features = [
   },
   {
     icon: BarChart3,
-    title: "Queue Analytics SaaS",
+    title: "Real time Analytics",
     description:
-      "Track average wait times, peak hours, and visitor flow. Make data-driven decisions to optimize your clinic or retail operations.",
+      "Track wait times, peak hours, and visitor flow. Make data-driven decisions to optimize your operations.",
     accent: "#10b981",
     accentRing: "rgba(16,185,129,0.15)",
     gradFrom: "#ecfdf5",
@@ -37,9 +37,9 @@ const features = [
   },
   {
     icon: Users,
-    title: "Clinic Queue Specialist",
+    title: "Multi Queue Support",
     description:
-      "Run multiple queues simultaneously optimized for doctors, labs, and counters. One platform, unlimited digital lines.",
+      "Run multiple queues simultaneously — clinics, restaurants, retail. One platform, unlimited queues.",
     accent: "#f59e0b",
     accentRing: "rgba(245,158,11,0.15)",
     gradFrom: "#fffbeb",
@@ -47,9 +47,9 @@ const features = [
   },
   {
     icon: Globe,
-    title: "Virtual Waiting Room",
+    title: "Works Everywhere",
     description:
-      "No hardware needed. A cloud-based virtual queue system that works on any device — phone, tablet, or desktop.",
+      "No hardware needed. Works on any device with a browser — phone, tablet, or desktop.",
     accent: "#06b6d4",
     accentRing: "rgba(6,182,212,0.15)",
     gradFrom: "#ecfeff",
@@ -57,9 +57,9 @@ const features = [
   },
   {
     icon: Shield,
-    title: "Enterprise Reliability",
+    title: "Enterprise Security",
     description:
-      "End-to-end encryption and 99.9% uptime. The secure queue management choice for hospitals and government offices.",
+      "End to end encryption, GDPR compliant, and 99.9% uptime SLA. Built for businesses that demand reliability.",
     accent: "#ec4899",
     accentRing: "rgba(236,72,153,0.15)",
     gradFrom: "#fdf2f8",

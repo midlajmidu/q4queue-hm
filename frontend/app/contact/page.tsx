@@ -4,8 +4,8 @@ import { Mail, MapPin, Phone } from "lucide-react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Contact Us | Q4Queue — Get Support for Your Token System",
-  description: "Have questions about our digital queue management system? Reach out to the Q4Queue team for pricing, demos, or technical support.",
+  title: "Contact Us | Q4queue",
+  description: "Get in touch with the Q4queue team.",
 };
 
 export default function ContactPage() {

@@ -1,9 +1,9 @@
-import React from "react";
-import { Metadata } from "next";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About Us | Q4Queue — Our Mission for Smoother Queues",
-  description: "Learn why we built Q4Queue and how our mission to eliminate physical lines is helping clinics and businesses prioritize customer experience.",
+  title: "About | Q4Queue",
+  description:
+    "Learn why we built q4queue — digital queues for clinics, banks, and service counters. Real-time updates, minimal setup, no app required.",
 };
 
 export default function AboutLayout({
@@ -11,5 +11,5 @@ export default function AboutLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return children;
 }

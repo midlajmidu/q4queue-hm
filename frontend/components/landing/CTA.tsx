@@ -3,7 +3,6 @@
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { config } from "@/lib/config";
 import AnimatedSection from "./AnimatedSection";
 
 const CTA = () => {
@@ -23,7 +22,7 @@ const CTA = () => {
 
           <div className="relative">
             <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-[-0.02em] text-primary-foreground">
-              Start your digital queue system today
+              Ready to ditch the line?
             </h2>
             <p className="mt-4 text-lg text-primary-foreground/80 max-w-lg mx-auto leading-relaxed">
               Set up your first queue in under 5 minutes.
@@ -36,12 +35,14 @@ const CTA = () => {
             </div>
 
             <div className="mt-6">
-              <a
-                href={`${config.landingUrl}/get-started`}
-                className="inline-flex items-center justify-center gap-2 h-12 px-10 rounded-full bg-secondary text-secondary-foreground font-semibold shadow-xl hover:scale-[1.02] transition-all duration-300"
+              <Button
+                size="lg"
+                variant="secondary"
+                onClick={() => router.push('/get-started')}
+                className="gap-2 text-base px-10 rounded-full font-semibold shadow-xl hover:scale-[1.02] transition-all duration-300"
               >
                 Start Your Free Trial <ArrowRight className="w-4 h-4" />
-              </a>
+              </Button>
               <div className="mt-4 flex items-center justify-center gap-4 text-sm text-primary-foreground/60">
                 {["1 week free trial", "No credit card", "Setup in 2 min"].map((text) => (
                   <span key={text} className="flex items-center gap-1">

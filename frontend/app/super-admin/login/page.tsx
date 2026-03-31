@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import { config } from "@/lib/config";
 import { setToken, isAuthenticated, getCurrentUser } from "@/lib/auth";
 
 export default function SuperAdminLoginPage() {
@@ -148,9 +147,9 @@ export default function SuperAdminLoginPage() {
 
                     <p className="text-center text-xs text-slate-500 pt-1">
                         Regular admin?{" "}
-                        <a href={`${config.appUrl}/login`} className="text-violet-400 hover:text-violet-300 underline underline-offset-2">
+                        <Link href="/login" className="text-violet-400 hover:text-violet-300 underline underline-offset-2">
                             Sign in here
-                        </a>
+                        </Link>
                     </p>
                 </form>
             </div>

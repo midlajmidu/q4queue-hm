@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { config } from "@/lib/config";
 
 const stats = [
   {
@@ -82,7 +81,7 @@ const Hero = () => {
 
           {/* Headline */}
           <h1 className="font-heading text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-foreground">
-            Smarter <span className="text-primary italic">Queue Management</span>,
+            Smarter queues,
             <br />
             <span
               style={{
@@ -104,12 +103,13 @@ const Hero = () => {
 
           {/* CTAs */}
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
-            <a
-              href={`${config.landingUrl}/get-started`}
-              className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-primary text-primary-foreground font-heading font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300"
+            <Button
+              size="lg"
+              onClick={() => router.push('/get-started')}
+              className="gap-2 text-base px-8 rounded-full font-heading font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300"
             >
               Set Up Your Queue <ArrowRight className="w-4 h-4" />
-            </a>
+            </Button>
             <Button variant="outline" size="lg" className="text-base px-8 rounded-full font-heading font-semibold gap-2 hover:bg-primary/5 border-border/60 transition-all duration-300">
               <Play className="w-4 h-4" /> Watch Demo
             </Button>
@@ -161,16 +161,6 @@ const Hero = () => {
                   <span className="text-[11px] text-muted-foreground/60 font-medium">app.q4queue.com/dashboard</span>
                 </div>
               </div>
-            </div>
-
-            {/* Dashboard content with accessibility hidden image for alt keywords */}
-            <div className="sr-only">
-              <Image 
-                src="/og-image.png" 
-                alt="Q4Queue Digital Queue Management Dashboard for clinics and retail with token system" 
-                width={10} 
-                height={10} 
-              />
             </div>
 
             {/* Dashboard content */}
@@ -340,5 +330,6 @@ const Hero = () => {
     </section>
   );
 };
+
 
 export default Hero;
