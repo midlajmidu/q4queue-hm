@@ -18,7 +18,7 @@ const Footer = () => {
               <Logo size="md" />
             </Link>
             <p className="mt-4 text-muted-foreground text-sm leading-relaxed max-w-xs font-heading">
-              Turn physical lines into digital queues. No app install, no hardware, no hassle.
+              Turn physical lines into a digital queue management system. No app install, no hardware, no hassle.
             </p>
             <div className="mt-6 flex flex-col gap-3">
               <p className="text-sm font-heading font-semibold text-foreground mb-1 uppercase tracking-wider">Contact Support</p>

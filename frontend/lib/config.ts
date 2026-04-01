@@ -15,7 +15,7 @@ export const config = {
   apiBaseUrl: normalizedApiUrl,
 
   // WebSocket URL calculation
-  wsBaseUrl: process.env.NEXT_PUBLIC_WS_BASE_URL || (function() {
+  wsBaseUrl: process.env.NEXT_PUBLIC_WS_BASE_URL || (function () {
     if (normalizedApiUrl.startsWith('http')) return normalizedApiUrl.replace('http', 'ws') + '/ws';
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -25,5 +25,7 @@ export const config = {
   })(),
 
   appName: process.env.NEXT_PUBLIC_APP_NAME || "Q4Queue",
+  landingUrl: process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost",
+  appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://app.localhost",
   isProduction: process.env.NODE_ENV === "production",
 } as const;
