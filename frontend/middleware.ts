@@ -17,20 +17,26 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Normalize hostname: remove 'www.' if present to ensure clean subdomain logic
+  const normalizedHostname = hostname.replace("www.", "");
+  
   // Determine if we are on the 'app' subdomain
-  const isAppSubdomain = hostname.startsWith("app.");
+  const isAppSubdomain = normalizedHostname.startsWith("app.");
   
   // Construct counterpart hostnames
-  const appHost = isAppSubdomain ? hostname : `app.${hostname}`;
-  const rootHost = isAppSubdomain ? hostname.replace('app.', '') : hostname;
+  const baseDomain = isAppSubdomain ? normalizedHostname.replace('app.', '') : normalizedHostname;
+  const appHost = `app.${baseDomain}`;
+  const rootHost = baseDomain;
 
   // Define explicitly marketing/public routes that belong to the root domain
   const marketingRoutes = [
     '/',
     '/about',
+    '/get-started',
     '/contact',
     '/privacy-policy',
-    '/terms-and-conditions'
+    '/terms-and-conditions',
+    '/super-admin/login'
   ];
 
   const path = url.pathname;
