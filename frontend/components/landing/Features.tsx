@@ -9,7 +9,7 @@ const features = [
     icon: QrCode,
     title: "QR Code Check in",
     description:
-      "Visitors scan a QR code at your entrance and instantly join your queue. No apps, no forms — just scan and go.",
+      "Let customers join your queue instantly with a simple QR scan — no apps, no forms, just scan and go.",
     accent: "#3b82f6",
     accentRing: "rgba(59,130,246,0.15)",
     gradFrom: "#eff6ff",
@@ -19,7 +19,7 @@ const features = [
     icon: Bell,
     title: "Smart Notifications",
     description:
-      "Automatic alerts when a visitor's turn is approaching. SMS, browser push, or in-app — they'll never miss their spot.",
+      "Automatically notify customers when it’s their turn so your queue moves faster and smoother.",
     accent: "#8b5cf6",
     accentRing: "rgba(139,92,246,0.15)",
     gradFrom: "#f5f3ff",
@@ -29,7 +29,7 @@ const features = [
     icon: BarChart3,
     title: "Real time Analytics",
     description:
-      "Track wait times, peak hours, and visitor flow. Make data-driven decisions to optimize your operations.",
+      "Understand wait times, peak hours, and visitor flow to optimize your operations and reduce delays.",
     accent: "#10b981",
     accentRing: "rgba(16,185,129,0.15)",
     gradFrom: "#ecfdf5",
@@ -39,7 +39,7 @@ const features = [
     icon: Users,
     title: "Multi Queue Support",
     description:
-      "Run multiple queues simultaneously — clinics, restaurants, retail. One platform, unlimited queues.",
+      "Manage multiple queues across counters, doctors, or services from one simple dashboard.",
     accent: "#f59e0b",
     accentRing: "rgba(245,158,11,0.15)",
     gradFrom: "#fffbeb",
@@ -49,7 +49,7 @@ const features = [
     icon: Globe,
     title: "Works Everywhere",
     description:
-      "No hardware needed. Works on any device with a browser — phone, tablet, or desktop.",
+      "Let customers wait from anywhere — their phone becomes a virtual waiting room.",
     accent: "#06b6d4",
     accentRing: "rgba(6,182,212,0.15)",
     gradFrom: "#ecfeff",
@@ -59,7 +59,7 @@ const features = [
     icon: Shield,
     title: "Enterprise Security",
     description:
-      "End to end encryption, GDPR compliant, and 99.9% uptime SLA. Built for businesses that demand reliability.",
+      "Built with security and reliability in mind — encrypted, scalable, and always available.",
     accent: "#ec4899",
     accentRing: "rgba(236,72,153,0.15)",
     gradFrom: "#fdf2f8",

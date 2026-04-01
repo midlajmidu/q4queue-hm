@@ -34,7 +34,7 @@ const values = [
   {
     icon: Clock,
     title: "Respect everyone's time",
-    description: "Visitors wait from anywhere; staff see the full picture. Less stress, fewer missed turns.",
+    description: "Customers wait from anywhere; staff see the full picture. Less stress, fewer missed turns.",
     iconBg: "from-amber-500/10 to-amber-400/5",
     iconColor: "text-amber-600",
   },
@@ -67,7 +67,7 @@ export default function AboutPage() {
               <span className="text-gradient">calm, digital queues.</span>
             </h1>
             <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Q4Queue is a real-time queue management platform built for clinics, banks, and any business where waiting in line is part of the experience. We give operations teams control and visitors clarity — without extra hardware or app downloads.
+              Q4Queue is a real-time queue management platform built for clinics, banks, and any business where waiting in line is part of the experience. We give operations teams control and customers clarity — without extra hardware or app downloads.
             </p>
           </AnimatedSection>
         </div>
@@ -85,7 +85,7 @@ export default function AboutPage() {
               Long queues create stress for everyone
             </h2>
             <p className="mt-4 text-muted-foreground text-lg leading-relaxed max-w-3xl">
-              Unmanaged lines lead to uncertainty for visitors and pressure on staff. We built Q4Queue so that queues can be visible, fair, and easy to manage — with a modern SaaS experience for your team and a friction-free experience for the people waiting. No kiosks, no app installs; just a QR code and a phone.
+              Unmanaged lines lead to uncertainty for customers and pressure on staff. We built Q4Queue so that queues can be visible, fair, and easy to manage — with a modern SaaS experience for your team and a friction-free experience for the people waiting. No kiosks, no app installs; just a QR code and a phone.
             </p>
           </AnimatedSection>
 

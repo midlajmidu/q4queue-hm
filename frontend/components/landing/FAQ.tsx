@@ -9,7 +9,12 @@ import { ArrowRight } from "lucide-react";
 
 const faqs = [
   {
-    question: "Is Q4queue free to use?",
+    question: "What is a digital queue management system?",
+    answer:
+      "A digital queue management system replaces physical lines and paper tokens with a virtual waiting list. It allows customers to join your queue instantly via QR code and track their position in real time from their own phones.",
+  },
+  {
+    question: "Is the Q4Queue token system free to try?",
     answer:
       "We offer a 2-week free trial for businesses to explore our platform. After the trial, we offer competitive B2B pricing tailored to your business needs. Contact us to learn more about our professional plans.",
   },
@@ -24,14 +29,9 @@ const faqs = [
       "Just a device with a browser. Create your queue, print the QR code, and you're ready to go. No special hardware needed.",
   },
   {
-    question: "Can I manage the queue from my phone?",
+    question: "How do customers receive queue notifications?",
     answer:
-      "Absolutely. The management interface works on any device — phone, tablet, or desktop. No software to install.",
-  },
-  {
-    question: "How do visitors know when it's their turn?",
-    answer:
-      "Visitors see real time updates on their phone screen and receive notifications when their turn is approaching.",
+      "Customers stay updated through their live browser window. They get real-time position updates and proximity alerts when their turn is approaching in the digital line.",
   },
 ];
 

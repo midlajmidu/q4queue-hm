@@ -20,7 +20,7 @@ export default function ContactPage() {
               Get in <span className="text-primary">Touch</span>
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-              Have questions about pricing, features, or need support? We're here to help. Reach out to us below.
+              Have questions about pricing, features, or need support? We&apos;re here to help. We typically respond within 24 hours.
             </p>
           </div>
 
