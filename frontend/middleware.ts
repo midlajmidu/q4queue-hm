@@ -28,11 +28,9 @@ export function middleware(request: NextRequest) {
   const marketingRoutes = [
     '/',
     '/about',
-    '/get-started',
     '/contact',
     '/privacy-policy',
-    '/terms-and-conditions',
-    '/super-admin/login'
+    '/terms-and-conditions'
   ];
 
   const path = url.pathname;

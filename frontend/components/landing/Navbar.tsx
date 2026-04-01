@@ -8,7 +8,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
-import { config } from "@/lib/config";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 
 const navLinks = [
@@ -16,7 +15,6 @@ const navLinks = [
   { href: "/#how-it-works", label: "How It Works", scroll: true },
   { href: "/#faq", label: "FAQ", scroll: true },
   { href: "/about", label: "About", scroll: false },
-  { href: "/contact", label: "Contact", scroll: false },
 ];
 
 const Navbar = () => {
@@ -90,7 +88,7 @@ const Navbar = () => {
       )}
     >
       <div className="max-w-6xl mx-auto px-6 h-16 md:h-20 flex items-center justify-between">
-        <a href={config.landingUrl}>
+        <a href="/">
           <Logo size="lg" />
         </a>
         <div className="hidden md:flex items-center gap-8">
@@ -132,17 +130,18 @@ const Navbar = () => {
         </div>
         <div className="flex items-center gap-4">
           <a
-            href={`${config.appUrl}/login`}
+            href="/login"
             className="hidden md:inline-block text-sm font-heading font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Log in
           </a>
-          <a
-            href={`${config.landingUrl}/get-started`}
-            className="hidden md:flex items-center gap-2 rounded-full px-6 h-10 bg-primary text-primary-foreground font-heading font-semibold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02] transition-all duration-300"
+          <Button
+            size="default"
+            onClick={() => router.push('/get-started')}
+            className="hidden md:flex gap-2 rounded-full px-6 font-heading font-semibold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02] transition-all duration-300"
           >
             Get Started <ArrowRight className="w-4 h-4" />
-          </a>
+          </Button>
           <button
             className="md:hidden text-foreground"
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -174,13 +173,13 @@ const Navbar = () => {
               </Link>
             )
           )}
-          <a
-            href={`${config.landingUrl}/get-started`}
-            className="w-full flex items-center justify-center gap-1.5 h-9 bg-primary text-primary-foreground rounded-full font-semibold px-4 text-sm"
-            onClick={() => setMobileOpen(false)}
+          <Button
+            size="sm"
+            onClick={() => router.push('/get-started')}
+            className="w-full gap-1.5 rounded-full font-semibold"
           >
             Get Started <ArrowRight className="w-3.5 h-3.5" />
-          </a>
+          </Button>
         </div>
       )}
     </motion.nav>

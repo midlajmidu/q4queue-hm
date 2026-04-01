@@ -2,7 +2,6 @@
 
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-import { config } from "@/lib/config";
 import AnimatedSection from "@/components/landing/AnimatedSection";
 import { motion } from "framer-motion";
 import {
@@ -225,10 +224,12 @@ export default function AboutPage() {
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Button
                 size="lg"
-                onClick={() => window.location.href = `${config.landingUrl}/get-started`}
+                asChild
                 className="gap-2 rounded-full font-heading font-semibold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/25"
               >
-                Get started <ArrowRight className="w-4 h-4" />
+                <Link href="/get-started">
+                  Get started <ArrowRight className="w-4 h-4" />
+                </Link>
               </Button>
               <Button variant="outline" size="lg" asChild className="rounded-full font-heading font-semibold">
                 <Link href="/#features">View features</Link>
