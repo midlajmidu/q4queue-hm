@@ -43,16 +43,17 @@ const Hero = () => {
         <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-accent/5 rounded-full blur-[100px]" />
       </div>
 
-      <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+      <div className="max-w-6xl mx-auto grid lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-16 items-center">
         {/* Left — Text content */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="lg:pr-2"
         >
           {/* Badge */}
           <motion.div
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/8 border border-primary/15 mb-6"
+            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 mb-6"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
@@ -67,11 +68,11 @@ const Hero = () => {
           </motion.div>
 
           {/* Headline */}
-          <h1 className="font-heading text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold leading-[1.1] tracking-[-0.03em] text-foreground">
+          <h1 className="font-heading text-3xl sm:text-4xl lg:text-[2.95rem] font-extrabold leading-[1.1] tracking-[-0.03em] text-foreground">
             Smarter Queue Management.<br />
             <span
               style={{
-                background: "linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #475569 100%)",
+                background: "linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #043579ff 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -82,16 +83,16 @@ const Hero = () => {
           </h1>
 
           {/* Subhead */}
-          <p className="mt-3 text-sm md:text-base text-muted-foreground leading-relaxed max-w-lg">
+          <p className="mt-4 text-sm md:text-[15px] text-muted-foreground leading-[1.7] max-w-[480px]">
             Let your customers wait from anywhere. <strong className="text-foreground font-semibold">q4queue</strong> turns physical lines into a <span className="text-primary font-bold">digital queue management system</span> — no app install, no hardware, no hassle.
           </p>
 
           {/* CTAs */}
-          <div className="mt-5 flex flex-col sm:flex-row gap-3">
+          <div className="mt-7 flex flex-col sm:flex-row gap-3">
             <Button
               size="lg"
               onClick={() => router.push('/get-started')}
-              className="group text-base px-8 rounded-full font-heading font-semibold shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+              className="group text-base px-8 h-12 rounded-full font-heading font-semibold shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
             >
               Start Free Trial <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
@@ -99,14 +100,17 @@ const Hero = () => {
               variant="outline"
               size="lg"
               onClick={() => setShowDemo(true)}
-              className="text-base px-8 rounded-full font-heading font-semibold gap-2 hover:bg-primary/5 border-border/60 transition-all duration-300"
+              className="text-base px-8 h-12 rounded-full font-heading font-semibold gap-2.5 hover:bg-primary/5 border-border/60 transition-all duration-300"
             >
-              <Play className="w-4 h-4" /> Watch Demo
+              <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                <Play className="w-3.5 h-3.5 text-primary fill-primary" />
+              </span>
+              Watch Demo
             </Button>
           </div>
 
           {/* Social proof row */}
-          <div className="mt-5 flex items-center gap-6 text-xs text-muted-foreground">
+          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-muted-foreground">
             {["1 week free trial", "No signup required", "Set up in under 2 minutes"].map((text, i) => (
               <motion.span
                 key={text}
@@ -132,20 +136,20 @@ const Hero = () => {
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
         >
           {/* Background glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gradient-to-br from-primary/12 via-accent/8 to-primary/4 rounded-full blur-[100px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-primary/8 via-accent/5 to-primary/3 rounded-full blur-[140px]" />
 
           {/* Browser window mockup */}
-          <div className="relative z-[2] glass-card rounded-2xl overflow-hidden">
+          <div className="relative z-[2] rounded-2xl overflow-hidden border border-border/25 bg-white/75 backdrop-blur-xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.10),0_10px_25px_-10px_rgba(0,0,0,0.06)]">
             {/* Browser chrome bar */}
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 bg-white/50">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30 bg-gradient-to-b from-white/80 to-white/50">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-400/70" />
                 <div className="w-3 h-3 rounded-full bg-amber-400/70" />
                 <div className="w-3 h-3 rounded-full bg-emerald-400/70" />
               </div>
               <div className="flex-1 px-3">
-                <div className="bg-white/40 rounded-md py-1 px-3 border border-border/20 flex items-center justify-center">
-                  <span className="text-[11px] text-muted-foreground/60 font-medium">app.q4queue.com/dashboard</span>
+                <div className="bg-white/50 rounded-lg py-1.5 px-3 border border-border/20 flex items-center justify-center">
+                  <span className="text-[11px] text-muted-foreground/60 font-medium tracking-wide">app.q4queue.com/dashboard</span>
                 </div>
               </div>
             </div>
@@ -207,7 +211,7 @@ const Hero = () => {
                     transition={{ duration: 0.3, delay: 0.8 + i * 0.1 }}
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">
+                      <span className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-[9px] font-bold text-primary shrink-0 ring-2 ring-white">
                         {person.name[0]}
                       </span>
                       <div>
@@ -229,7 +233,7 @@ const Hero = () => {
 
           {/* Notification toast — top-right */}
           <motion.div
-            className="absolute -top-3 -right-3 z-[3] hidden lg:block"
+            className="absolute -top-3 -right-6 z-[3] hidden lg:block"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
@@ -251,12 +255,12 @@ const Hero = () => {
 
           {/* Active users — bottom-left */}
           <motion.div
-            className="absolute -bottom-5 -left-3 z-[3] hidden lg:block"
+            className="absolute -bottom-4 -left-6 z-[3] hidden lg:block"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 1.0, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="bg-white rounded-full border border-border/40 pl-1.5 pr-4 py-1.5 shadow-lg shadow-black/5 flex items-center gap-2">
+            <div className="bg-white rounded-full border border-border/40 pl-1.5 pr-4 py-1.5 shadow-lg shadow-black/5 flex items-center gap-2.5">
               {/* Avatar stack */}
               <div className="flex -space-x-2">
                 {["bg-primary", "bg-violet-500", "bg-emerald-500", "bg-amber-500"].map((bg, i) => (
@@ -274,7 +278,7 @@ const Hero = () => {
 
           {/* Uptime pill — bottom-right */}
           <motion.div
-            className="absolute -bottom-3 -right-2 z-[3] hidden lg:block"
+            className="absolute -bottom-2 -right-4 z-[3] hidden lg:block"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 1.2, ease: [0.22, 1, 0.36, 1] }}
@@ -297,21 +301,21 @@ const Hero = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.5 }}
       >
-        <div className="rounded-2xl border border-border/40 bg-white/60 backdrop-blur-xl shadow-sm">
+        <div className="rounded-2xl border border-border/40 bg-white/60 backdrop-blur-xl shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)]">
           <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/40">
             {stats.map((stat, i) => (
               <motion.div
                 key={stat.label}
-                className="flex items-center gap-3.5 px-6 py-5 md:justify-center"
+                className="flex items-center gap-4 px-7 py-5 md:justify-center"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.7 + i * 0.1 }}
               >
-                <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                  <stat.icon className="w-4 h-4 text-gray-500" strokeWidth={2} />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200/60 flex items-center justify-center shrink-0">
+                  <stat.icon className="w-[18px] h-[18px] text-gray-500" strokeWidth={2} />
                 </div>
                 <div>
-                  <span className="font-heading text-sm font-bold text-foreground block leading-tight">
+                  <span className="font-heading text-[15px] font-bold text-foreground block leading-tight">
                     {stat.value}
                   </span>
                   <span className="text-xs text-muted-foreground font-medium">
