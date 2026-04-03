@@ -21,12 +21,11 @@ export const config = {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       return `${protocol}//${window.location.host}${normalizedApiUrl}/ws`;
     }
-    return `ws://localhost:3000${normalizedApiUrl}/ws`;
+    return `ws://localhost${normalizedApiUrl}/ws`;
   })(),
 
   appName: process.env.NEXT_PUBLIC_APP_NAME || "Q4Queue",
-  landingUrl: process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost",
   appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://app.localhost",
   isProduction: process.env.NODE_ENV === "production",
-  landingUrl: process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost:3000",
+  landingUrl: process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost",
 } as const;
