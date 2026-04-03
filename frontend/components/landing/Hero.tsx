@@ -1,8 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Users, Clock, Zap } from "lucide-react";
+import { ArrowRight, Play, Users, Clock, Zap, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -14,6 +15,25 @@ const stats = [
 
 const Hero = () => {
   const router = useRouter();
+  const [showDemo, setShowDemo] = useState(false);
+
+  // Close modal on Escape key
+  const handleEsc = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") setShowDemo(false);
+  }, []);
+
+  useEffect(() => {
+    if (showDemo) {
+      document.addEventListener("keydown", handleEsc);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = "";
+    };
+  }, [showDemo, handleEsc]);
 
   return (
     <section className="relative pt-24 pb-10 md:pt-32 md:pb-16 px-6 overflow-hidden">
@@ -75,7 +95,12 @@ const Hero = () => {
             >
               Start Free Trial <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button variant="outline" size="lg" className="text-base px-8 rounded-full font-heading font-semibold gap-2 hover:bg-primary/5 border-border/60 transition-all duration-300">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setShowDemo(true)}
+              className="text-base px-8 rounded-full font-heading font-semibold gap-2 hover:bg-primary/5 border-border/60 transition-all duration-300"
+            >
               <Play className="w-4 h-4" /> Watch Demo
             </Button>
           </div>
@@ -298,6 +323,53 @@ const Hero = () => {
           </div>
         </div>
       </motion.div>
+      {/* ── Demo Video Modal ── */}
+      <AnimatePresence>
+        {showDemo && (
+          <motion.div
+            className="fixed inset-0 z-[9999] flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setShowDemo(false)}
+            />
+
+            {/* Modal content */}
+            <motion.div
+              className="relative w-[90vw] max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setShowDemo(false)}
+                className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 border border-white/15 flex items-center justify-center text-white/80 hover:text-white transition-all duration-200 hover:scale-110"
+                aria-label="Close demo video"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* YouTube embed */}
+              <iframe
+                className="w-full h-full"
+                src="https://www.youtube.com/embed/anway8BdW6I?si=AxgSdclEctwbudLi&autoplay=1"
+                title="Q4Queue Demo Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };
