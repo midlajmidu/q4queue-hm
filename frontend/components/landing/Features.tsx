@@ -182,7 +182,7 @@ const Features = () => {
       <div
         className="relative px-6 py-10 md:py-14"
         style={{
-          background: "linear-gradient(160deg, #090e17 0%, #111a2f 40%, #0c1322 70%, #090e17 100%)",
+          backgroundColor: "#090e17",
         }}
       >
         {/* Fine dot grid */}
@@ -191,6 +191,8 @@ const Features = () => {
           style={{
             backgroundImage: "radial-gradient(circle, rgba(148,163,184,0.25) 1px, transparent 1px)",
             backgroundSize: "28px 28px",
+            maskImage: "linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)",
+            WebkitMaskImage: "linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)",
           }}
         />
         {/* Radial vignette */}
@@ -199,9 +201,9 @@ const Features = () => {
           style={{ background: "radial-gradient(ellipse 80% 60% at 50% 50%, transparent 30%, #090e17 100%)" }}
         />
         {/* Ambient glows */}
-        <div className="absolute top-[-80px] left-1/4 w-[600px] h-[600px] rounded-full blur-[180px] pointer-events-none" style={{ background: "rgba(59,130,246,0.09)" }} />
+        <div className="absolute top-[20px] left-1/4 w-[600px] h-[600px] rounded-full blur-[180px] pointer-events-none" style={{ background: "rgba(59,130,246,0.09)" }} />
         <div className="absolute top-1/2 right-[-100px] w-[500px] h-[500px] rounded-full blur-[160px] pointer-events-none" style={{ background: "rgba(99,102,241,0.07)" }} />
-        <div className="absolute bottom-[-60px] left-1/3 w-[400px] h-[400px] rounded-full blur-[140px] pointer-events-none" style={{ background: "rgba(16,185,129,0.05)" }} />
+        <div className="absolute bottom-[20px] left-1/3 w-[400px] h-[400px] rounded-full blur-[140px] pointer-events-none" style={{ background: "rgba(16,185,129,0.05)" }} />
 
         <div className="relative max-w-6xl mx-auto">
 
@@ -328,7 +330,7 @@ const Features = () => {
       </div>
 
       {/* ── Bottom wave divider ───────────────────────────────────── */}
-      <div className="relative w-full -mt-px">
+      <div className="relative w-full -mt-px bg-secondary/40">
         <svg
           viewBox="0 0 1440 120"
           fill="none"

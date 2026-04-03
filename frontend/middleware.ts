@@ -41,6 +41,7 @@ export function middleware(request: NextRequest) {
 
   const path = url.pathname;
   const isMarketingRoute = marketingRoutes.includes(path);
+  const isSuperAdminRoute = path.startsWith('/super-admin');
 
   // 1. If the user visits root of app subdomain (app.domain.com/), redirect them to login
   if (isAppSubdomain && path === "/") {
@@ -49,8 +50,8 @@ export function middleware(request: NextRequest) {
   }
 
   // 2. If a user accesses an App route (like /login or /[orgSlug]) on the ROOT domain
-  // We need to move them to the App subdomain
-  if (!isAppSubdomain && !isMarketingRoute) {
+  // We need to move them to the App subdomain — but NOT super-admin routes
+  if (!isAppSubdomain && !isMarketingRoute && !isSuperAdminRoute) {
     // Preserve protocol (http for localhost, https for prod ideally)
     const protocol = hostname.includes('localhost') ? 'http:' : 'https:';
     return NextResponse.redirect(`${protocol}//${appHost}${path}${url.search}`);

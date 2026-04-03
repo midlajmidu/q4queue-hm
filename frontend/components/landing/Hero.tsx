@@ -16,7 +16,7 @@ const Hero = () => {
   const router = useRouter();
 
   return (
-    <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden">
+    <section className="relative pt-24 pb-10 md:pt-32 md:pb-16 px-6 overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
@@ -47,7 +47,7 @@ const Hero = () => {
           </motion.div>
 
           {/* Headline */}
-          <h1 className="font-heading text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-foreground">
+          <h1 className="font-heading text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold leading-[1.1] tracking-[-0.03em] text-foreground">
             Smarter Queue Management.<br />
             <span
               style={{
@@ -62,12 +62,12 @@ const Hero = () => {
           </h1>
 
           {/* Subhead */}
-          <p className="mt-5 text-base md:text-lg text-muted-foreground leading-relaxed max-w-lg">
+          <p className="mt-3 text-sm md:text-base text-muted-foreground leading-relaxed max-w-lg">
             Let your customers wait from anywhere. <strong className="text-foreground font-semibold">q4queue</strong> turns physical lines into a <span className="text-primary font-bold">digital queue management system</span> — no app install, no hardware, no hassle.
           </p>
 
           {/* CTAs */}
-          <div className="mt-8 flex flex-col sm:flex-row gap-3">
+          <div className="mt-5 flex flex-col sm:flex-row gap-3">
             <Button
               size="lg"
               onClick={() => router.push('/get-started')}
@@ -81,7 +81,7 @@ const Hero = () => {
           </div>
 
           {/* Social proof row */}
-          <div className="mt-8 flex items-center gap-6 text-sm text-muted-foreground">
+          <div className="mt-5 flex items-center gap-6 text-xs text-muted-foreground">
             {["1 week free trial", "No signup required", "Set up in under 2 minutes"].map((text, i) => (
               <motion.span
                 key={text}
@@ -267,7 +267,7 @@ const Hero = () => {
 
       {/* Stats bar */}
       <motion.div
-        className="relative max-w-3xl mx-auto mt-14 md:mt-20"
+        className="relative max-w-3xl mx-auto mt-10 md:mt-14"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.5 }}

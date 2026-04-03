@@ -1435,7 +1435,7 @@ function MetricCard({ label, value, Icon, trend, color, bg, border, valueColor, 
       </span>
 
       {/* colored bottom bar */}
-      <div style={{ marginTop: 20, height: 3, borderRadius: 99, background: bg, overflow: "hidden" }}>
+      <div style={{ marginTop: 20, height: 3, borderRadius: 99, background: bg, overflow: "hidden", opacity: value === 0 ? 0 : 1, transition: "opacity 0.3s ease" }}>
         <div style={{ height: "100%", width: muted ? "18%" : "65%", background: `linear-gradient(90deg, ${color}, ${color}cc)`, borderRadius: 99, opacity: muted ? .4 : .75 }} />
       </div>
 
