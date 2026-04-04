@@ -85,13 +85,19 @@ class PublicTokenResponse(BaseModel):
     
 
 class TokenRestoreResponse(BaseModel):
-    """Basic details used to restore a session in the public join page."""
+    """Details used to track or restore a token session in the public UI."""
     id: uuid.UUID
     token_number: int
     status: TokenStatus
     queue_id: uuid.UUID
     session_id: uuid.UUID
     queue_prefix: str
+    customer_name: str
+    customer_age: Optional[int] = None
+    customer_phone: str
+    created_at: datetime
+    served_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

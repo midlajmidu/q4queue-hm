@@ -173,7 +173,7 @@ export default function JoinQueuePage({ params }: PageProps) {
 
             try {
                 if (!newStatus) {
-                    const res = await api.getPublicToken(queueId, joinData.token_number);
+                    const res = await api.getPublicToken(joinData.id);
                     if (res.session_id !== joinData.session_id) {
                         if (mounted) {
                             newStatus = "deleted";

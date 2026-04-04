@@ -320,8 +320,8 @@ export const api = {
         });
     },
 
-    getPublicToken(queueId: string, tokenNumber: number): Promise<PublicTokenResponse> {
-        return request<PublicTokenResponse>(`/queues/${queueId}/tokens/${tokenNumber}`);
+    getPublicToken(tokenId: string): Promise<TokenRestoreResponse> {
+        return request<TokenRestoreResponse>(`/tokens/${tokenId}`);
     },
 
     callNext(queueId: string, action: "done" | "skipped" = "done"): Promise<NextResponse | NoTokenResponse> {

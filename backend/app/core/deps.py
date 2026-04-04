@@ -6,16 +6,21 @@ Security rules:
   - NEVER log raw tokens
   - NEVER expose internal errors to the client
   - Refresh user from DB on every request (catches deactivation mid-session)
+  - ALL resource lookups MUST include org_id (multi-tenant isolation)
 """
 import logging
 import uuid
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+if TYPE_CHECKING:
+    from app.models.queue import Queue
+    from app.models.token import Token
 
 from app.core.security import decode_access_token
 from app.db.deps import get_db
@@ -172,3 +177,85 @@ def require_super_admin() -> Callable:
         user = Depends(require_super_admin())
     """
     return get_current_super_admin
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tenant-scoped resource dependencies
+# SECURITY: All resource fetches MUST go through these; they enforce
+#           WHERE id = :id AND org_id = :org_id at the DB level.
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def get_queue_for_org(
+    queue_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> "Queue":
+    """
+    Dependency: fetch a Queue by ID scoped to the authenticated org.
+    Returns 404 for both "not found" AND "wrong org" — never leaks
+    whether the resource exists in another tenant.
+    """
+    from app.models.queue import Queue as QueueModel
+    result = await db.execute(
+        select(QueueModel).where(
+            QueueModel.id == queue_id,
+            QueueModel.org_id == current_user.org_id,  # TENANT ISOLATION
+        )
+    )
+    queue = result.scalar_one_or_none()
+    if queue is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Queue not found",
+        )
+    return queue
+
+
+async def get_admin_queue_for_org(
+    queue_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+) -> "Queue":
+    """
+    Same as get_queue_for_org but restricted to admin-role users.
+    Use this for destructive / mutating admin operations.
+    """
+    from app.models.queue import Queue as QueueModel
+    result = await db.execute(
+        select(QueueModel).where(
+            QueueModel.id == queue_id,
+            QueueModel.org_id == current_user.org_id,
+        )
+    )
+    queue = result.scalar_one_or_none()
+    if queue is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Queue not found",
+        )
+    return queue
+
+
+async def get_token_for_org(
+    token_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> "Token":
+    """
+    Dependency: fetch a Token by ID scoped to the authenticated org.
+    Returns 404 for both "not found" AND "wrong org".
+    """
+    from app.models.token import Token as TokenModel
+    result = await db.execute(
+        select(TokenModel).where(
+            TokenModel.id == token_id,
+            TokenModel.org_id == current_user.org_id,  # TENANT ISOLATION
+        )
+    )
+    token = result.scalar_one_or_none()
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Token not found",
+        )
+    return token

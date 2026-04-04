@@ -143,6 +143,12 @@ export interface TokenRestoreResponse {
     queue_id: string;
     session_id: string;
     queue_prefix: string;
+    customer_name: string;
+    customer_age: number | null;
+    customer_phone: string;
+    created_at: string;
+    served_at: string | null;
+    completed_at: string | null;
 }
 
 export interface PublicTokenResponse {

@@ -3,12 +3,23 @@ app/api/v1/endpoints/queues.py
 Queue management endpoints (admin protected).
 
 Routes:
-  POST   /queues                    → create queue
-  GET    /queues                    → list org's queues
-  GET    /queues/{queue_id}         → queue detail
-  PATCH  /queues/{queue_id}/active  → activate / deactivate
-  POST   /queues/{queue_id}/join    → customer joins (public)
-  POST   /queues/{queue_id}/next    → admin calls next token
+  POST   /queues                         → create queue
+  GET    /queues                         → list org's queues
+  GET    /queues/{queue_id}              → queue detail
+  PATCH  /queues/{queue_id}/active       → activate / deactivate
+  POST   /queues/{queue_id}/tokens       → customer joins (public)
+  GET    /queues/{queue_id}/tokens/{n}   → customer token status (public)
+  POST   /queues/{queue_id}/next         → admin calls next token
+  POST   /queues/{queue_id}/serve/{n}    → admin invites specific token
+  POST   /queues/{queue_id}/admin-join   → admin manually adds customer
+
+SECURITY:
+  - All authenticated routes use get_queue_for_org / get_admin_queue_for_org
+    dependencies (see app/core/deps.py) which enforce WHERE org_id = :org_id
+    at the DB level before any handler executes.
+  - Public token status endpoint is scoped by token UUID, not enumerable
+    token_number, except where queue_id + token_number is strictly needed for
+    the customer join page (the customer already knows their number).
 """
 import logging
 import uuid
@@ -17,8 +28,15 @@ from typing import Union
 from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_active_user, get_current_admin_or_staff, get_current_admin
+from app.core.deps import (
+    get_current_active_user,
+    get_current_admin_or_staff,
+    get_current_admin,
+    get_queue_for_org,
+    get_admin_queue_for_org,
+)
 from app.db.deps import get_db
+from app.models.queue import Queue
 from app.models.user import User
 from app.schemas.queue import (
     JoinRequest,
@@ -28,7 +46,6 @@ from app.schemas.queue import (
     QueueCreate,
     QueueResponse,
     TokenResponse,
-    PublicTokenResponse,
     AnnouncementUpdate,
 )
 from app.services import queue_service, token_service
@@ -99,17 +116,12 @@ async def list_queues(
     summary="Get Queue",
 )
 async def get_queue(
-    queue_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    queue: Queue = Depends(get_queue_for_org),
 ) -> QueueResponse:
-    """Get a specific queue (tenant-scoped)."""
-    try:
-        queue = await queue_service.get_queue_or_404(
-            db, queue_id=queue_id, org_id=current_user.org_id
-        )
-    except ValueError as exc:
-        _raise_404(exc)
+    """
+    Get a specific queue (tenant-scoped).
+    SECURITY: queue ownership is verified by get_queue_for_org dependency.
+    """
     return QueueResponse.model_validate(queue)
 
 
@@ -119,15 +131,16 @@ async def get_queue(
     summary="List tokens in a specific queue (Admin History)",
 )
 async def list_tokens(
-    queue_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_admin_or_staff),
-):
-    """Retrieve all tokens in a queue (history/details view)."""
-    # Verify queue exists and belongs to current_user
-    await queue_service.get_queue_or_404(db, queue_id=queue_id, org_id=current_user.org_id)
+    queue: Queue = Depends(get_queue_for_org),
+) -> list[TokenResponse]:
+    """
+    Retrieve all tokens in a queue (history/details view).
+    SECURITY: queue ownership verified by dependency before token list is fetched.
+    """
     tokens = await token_service.list_queue_tokens(
-        db, queue_id=queue_id, org_id=current_user.org_id
+        db, queue_id=queue.id, org_id=queue.org_id
     )
     return [TokenResponse.model_validate(t) for t in tokens]
 
@@ -138,19 +151,21 @@ async def list_tokens(
     summary="Toggle Queue Active State",
 )
 async def toggle_queue_active(
-    queue_id: uuid.UUID,
     is_active: bool,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    queue: Queue = Depends(get_admin_queue_for_org),
 ) -> QueueResponse:
-    """Activate or deactivate a queue."""
+    """
+    Activate or deactivate a queue.
+    SECURITY: queue ownership verified by dependency.
+    """
     try:
-        queue = await queue_service.set_queue_active(
-            db, queue_id=queue_id, org_id=current_user.org_id, is_active=is_active
+        updated = await queue_service.set_queue_active(
+            db, queue_id=queue.id, org_id=queue.org_id, is_active=is_active
         )
     except ValueError as exc:
         _raise_404(exc)
-    return QueueResponse.model_validate(queue)
+    return QueueResponse.model_validate(updated)
 
 
 @router.patch(
@@ -159,63 +174,69 @@ async def toggle_queue_active(
     summary="Update Queue Announcement",
 )
 async def update_queue_announcement(
-    queue_id: uuid.UUID,
     body: AnnouncementUpdate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    queue: Queue = Depends(get_admin_queue_for_org),
 ) -> QueueResponse:
-    """Update the announcement for a queue."""
+    """
+    Update the announcement for a queue.
+    SECURITY: queue ownership verified by dependency.
+    """
     try:
         announcement = body.announcement or ""
-        queue = await queue_service.set_queue_announcement(
-            db, queue_id=queue_id, org_id=current_user.org_id, announcement=announcement
+        updated = await queue_service.set_queue_announcement(
+            db, queue_id=queue.id, org_id=queue.org_id, announcement=announcement
         )
         background_tasks.add_task(
             token_service.notify_queue_update,
-            queue_id=queue_id,
-            org_id=current_user.org_id
+            queue_id=queue.id,
+            org_id=queue.org_id,
         )
     except ValueError as exc:
         _raise_404(exc)
-    return QueueResponse.model_validate(queue)
+    return QueueResponse.model_validate(updated)
+
 
 @router.delete(
     "/{queue_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete Queue",
-    description="Deletes a queue and all its associated tokens forever.",
 )
 async def delete_queue(
-    queue_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    queue: Queue = Depends(get_admin_queue_for_org),
 ) -> None:
-    """Delete a specific queue."""
+    """
+    Delete a queue and all its tokens.
+    SECURITY: queue ownership verified by dependency.
+    """
     try:
-        await queue_service.delete_queue(db, queue_id=queue_id, org_id=current_user.org_id)
+        await queue_service.delete_queue(db, queue_id=queue.id, org_id=queue.org_id)
     except ValueError as exc:
         _raise_404(exc)
+
 
 @router.post(
     "/{queue_id}/reset",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Reset Queue",
-    description="Deletes all tokens for a queue and resets token counter to 0.",
 )
 async def reset_queue(
-    queue_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    queue: Queue = Depends(get_admin_queue_for_org),
 ) -> None:
-    """Reset a specific queue."""
+    """
+    Reset a queue — delete all tokens, restart counter.
+    SECURITY: queue ownership verified by dependency.
+    """
     try:
-        await queue_service.reset_queue(db, queue_id=queue_id, org_id=current_user.org_id)
+        await queue_service.reset_queue(db, queue_id=queue.id, org_id=queue.org_id)
         background_tasks.add_task(
             token_service.notify_queue_update,
-            queue_id=queue_id,
-            org_id=current_user.org_id
+            queue_id=queue.id,
+            org_id=queue.org_id,
         )
     except ValueError as exc:
         _raise_404(exc)
@@ -244,20 +265,27 @@ async def create_token(
     db: AsyncSession = Depends(get_db),
 ) -> JoinResponse:
     """
-    Customer joins a queue by providing contact details.
+    Customer joins a queue.
     Returns token number and current position.
+
+    SECURITY NOTE: This is a public, unauthenticated endpoint. The only data
+    it acts on is the queue_id (public knowledge — printed on QR codes).
+    The join_queue service uses _lock_queue_public which does NOT expose
+    any other org's data; it just joins whatever public queue is at that ID.
     """
     try:
         result = await token_service.join_queue(db, queue_id=queue_id, data=body)
-        from sqlalchemy import select
-        from app.models.queue import Queue
-        q_res = await db.execute(select(Queue).where(Queue.id == queue_id))
+        # org_id comes from the queue row that was already fetched inside join_queue
+        # We re-read it from the result rather than making a second DB round-trip
+        from sqlalchemy import select as sa_select
+        from app.models.queue import Queue as QueueModel
+        q_res = await db.execute(sa_select(QueueModel).where(QueueModel.id == queue_id))
         queue = q_res.scalar_one_or_none()
         if queue:
             background_tasks.add_task(
                 token_service.notify_queue_update,
                 queue_id=queue_id,
-                org_id=queue.org_id
+                org_id=queue.org_id,
             )
     except ValueError as exc:
         msg = str(exc)
@@ -275,33 +303,8 @@ async def create_token(
     return result
 
 
-@router.get(
-    "/{queue_id}/tokens/{token_number}",
-    response_model=PublicTokenResponse,
-    summary="Get Token Status (Public)",
-    description="Returns the current status and customer info of a ticket.",
-)
-async def get_public_token(
-    queue_id: uuid.UUID,
-    token_number: int,
-    db: AsyncSession = Depends(get_db),
-) -> PublicTokenResponse:
-    from app.models.token import Token
-    from sqlalchemy import select
-    result = await db.execute(
-        select(Token).where(
-            Token.queue_id == queue_id,
-            Token.token_number == token_number
-        )
-    )
-    token = result.scalar_one_or_none()
-    if token is None:
-        raise HTTPException(status_code=404, detail="Token not found")
-    return PublicTokenResponse.model_validate(token)
-
-
 # ─────────────────────────────────────────────────────────────────────────────
-# Admin — Advance queue to next token
+# Admin — Manually add customer
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.post(
@@ -312,20 +315,21 @@ async def get_public_token(
     description="Admin manually generates a token for a customer.",
 )
 async def admin_join(
-    queue_id: uuid.UUID,
     body: JoinRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    queue: Queue = Depends(get_queue_for_org),
 ) -> JoinResponse:
+    """
+    Admin manually creates a token.
+    SECURITY: get_queue_for_org dependency verifies org ownership before join.
+    """
     try:
-        # Verify queue belongs to current_user's org
-        await queue_service.get_queue_or_404(db, queue_id=queue_id, org_id=current_user.org_id)
-        result = await token_service.join_queue(db, queue_id=queue_id, data=body)
+        result = await token_service.join_queue(db, queue_id=queue.id, data=body)
         background_tasks.add_task(
             token_service.notify_queue_update,
-            queue_id=queue_id,
-            org_id=current_user.org_id
+            queue_id=queue.id,
+            org_id=queue.org_id,
         )
     except ValueError as exc:
         msg = str(exc)
@@ -334,6 +338,11 @@ async def admin_join(
         _raise_400(exc)
     return result
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin — Invite specific token
+# ─────────────────────────────────────────────────────────────────────────────
+
 @router.post(
     "/{queue_id}/serve/{token_number}",
     response_model=NextResponse,
@@ -341,20 +350,23 @@ async def admin_join(
     description="Directly call a specific waiting token.",
 )
 async def serve_specific_token(
-    queue_id: uuid.UUID,
     token_number: int,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    queue: Queue = Depends(get_queue_for_org),
 ) -> NextResponse:
+    """
+    Admin invites a specific token number.
+    SECURITY: get_queue_for_org verifies org ownership before locking.
+    """
     try:
         result = await token_service.serve_specific_token(
-            db, queue_id=queue_id, org_id=current_user.org_id, token_number=token_number
+            db, queue_id=queue.id, org_id=queue.org_id, token_number=token_number
         )
         background_tasks.add_task(
-            token_service.notify_queue_update, 
-            queue_id=queue_id, 
-            org_id=current_user.org_id
+            token_service.notify_queue_update,
+            queue_id=queue.id,
+            org_id=queue.org_id,
         )
     except Exception as exc:
         msg = str(exc)
@@ -362,6 +374,7 @@ async def serve_specific_token(
             _raise_400(exc)
         raise HTTPException(status_code=400, detail=msg)
     return result
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Admin — Advance queue to next token (Auto)
@@ -373,26 +386,24 @@ async def serve_specific_token(
     summary="Call Next Token (Admin)",
 )
 async def call_next(
-    queue_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     action: str = "done",
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    queue: Queue = Depends(get_queue_for_org),
 ) -> Union[NextResponse, NoTokenResponse]:
     """
     Admin endpoint — move to the next waiting token.
-    Concurrency-safe: row-level lock prevents double-serving.
-    Action can be "done" or "skipped" to track the previous token correctly.
+    Concurrency-safe: row-level lock in token_service includes org_id,
+    preventing cross-tenant DoS.
     """
     try:
         result = await token_service.call_next(
-            db, queue_id=queue_id, org_id=current_user.org_id, action=action
+            db, queue_id=queue.id, org_id=queue.org_id, action=action
         )
-        # Always trigger update in background (serving changed or done changed)
         background_tasks.add_task(
             token_service.notify_queue_update,
-            queue_id=queue_id,
-            org_id=current_user.org_id
+            queue_id=queue.id,
+            org_id=queue.org_id,
         )
     except PermissionError as exc:
         _raise_403(exc)

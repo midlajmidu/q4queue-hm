@@ -8,10 +8,9 @@ This serialises concurrent requests at the database level, guaranteeing:
   - No double-serving
   - No skipped positions under parallel load
 
-PHASE 4+ REFACTOR: Transactions are now managed by the FastAPI dependency (get_db).
-This service performs the mutations and flushes. 
-Real-time updates are triggered by callers (usually via BackgroundTasks) 
-to ensure updates are published ONLY after successful commit.
+SECURITY: All admin-facing operations that acquire row locks now include
+org_id in the initial locking query to prevent cross-tenant DoS attacks.
+Public (unauthenticated) operations use the unsafe lock only on public queues.
 """
 import logging
 import uuid
@@ -35,13 +34,42 @@ logger = logging.getLogger(__name__)
 # Internal helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def _lock_queue(db: AsyncSession, queue_id: uuid.UUID) -> Queue:
+async def _lock_queue_public(db: AsyncSession, queue_id: uuid.UUID) -> Queue:
     """
-    Fetch the queue row with a row-level EXCLUSIVE lock (SELECT FOR UPDATE).
+    Public path: acquire a row-level EXCLUSIVE lock on the queue.
+    Used only for unauthenticated customer join flows where no org_id
+    is available. No admin/mutating operation should call this.
     """
     result = await db.execute(
         select(Queue)
         .where(Queue.id == queue_id)
+        .with_for_update()
+    )
+    queue = result.scalar_one_or_none()
+    if queue is None:
+        raise ValueError("Queue not found")
+    return queue
+
+
+async def _lock_queue_for_org(
+    db: AsyncSession,
+    queue_id: uuid.UUID,
+    org_id: uuid.UUID,
+) -> Queue:
+    """
+    Admin/staff path: acquire a row-level EXCLUSIVE lock on the queue
+    and simultaneously assert tenant ownership.
+
+    SECURITY FIX: org_id is included inside the FOR UPDATE query so that
+    the lock is never acquired on a row that belongs to another org.
+    A missing row (wrong org OR genuinely absent) raises ValueError → 404.
+    """
+    result = await db.execute(
+        select(Queue)
+        .where(
+            Queue.id == queue_id,
+            Queue.org_id == org_id,   # ← TENANT ISOLATION inside lock
+        )
         .with_for_update()
     )
     queue = result.scalar_one_or_none()
@@ -119,7 +147,7 @@ async def notify_queue_update(queue_id: uuid.UUID, org_id: uuid.UUID) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Public API — Join
+# Public API — Join (unauthenticated customer endpoint)
 # ─────────────────────────────────────────────────────────────────────────────
 
 async def join_queue(
@@ -130,10 +158,10 @@ async def join_queue(
 ) -> JoinResponse:
     """
     Atomically assign the next token number.
-    Stores customer name/age/phone on the token row.
+    Uses the public lock (no org_id) because this is a customer endpoint.
     Caller must handle commit and background notification.
     """
-    queue = await _lock_queue(db, queue_id)
+    queue = await _lock_queue_public(db, queue_id)
 
     if not queue.is_active:
         raise ValueError("Queue is not accepting customers")
@@ -144,7 +172,7 @@ async def join_queue(
     token = Token(
         org_id=queue.org_id,
         queue_id=queue.id,
-        session_id=queue.token_session_id,  # ← inherit current token session
+        session_id=queue.token_session_id,
         token_number=new_number,
         status=TokenStatus.waiting,
         customer_name=data.name.strip(),
@@ -154,7 +182,6 @@ async def join_queue(
     db.add(token)
     await db.flush()
 
-    # Position calculation
     position = await _count_waiting_ahead(db, queue_id=queue_id, token_number=new_number)
     current_serving = await _current_serving_number(db, queue_id=queue_id)
 
@@ -169,7 +196,7 @@ async def join_queue(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Public API — Next (admin)
+# Admin API — Call Next
 # ─────────────────────────────────────────────────────────────────────────────
 
 async def call_next(
@@ -177,13 +204,13 @@ async def call_next(
     *,
     queue_id: uuid.UUID,
     org_id: uuid.UUID,
-    action: str = "done",  # "done", "skipped", or "deleted"
+    action: str = "done",
 ) -> NextResponse | None:
     now = datetime.now(timezone.utc)
 
-    queue = await _lock_queue(db, queue_id)
-    if queue.org_id != org_id:
-        raise PermissionError("Access denied")
+    # SECURITY FIX: Lock acquired WITH org_id — no cross-tenant lock possible.
+    queue = await _lock_queue_for_org(db, queue_id, org_id)
+
     if not queue.is_active:
         raise ValueError("Queue is not active")
 
@@ -202,6 +229,7 @@ async def call_next(
         update(Token)
         .where(
             Token.queue_id == queue_id,
+            Token.org_id == org_id,           # ← TENANT ISOLATION
             Token.status == TokenStatus.serving,
         )
         .values(status=target_status, completed_at=now)
@@ -212,6 +240,7 @@ async def call_next(
         select(Token)
         .where(
             Token.queue_id == queue_id,
+            Token.org_id == org_id,           # ← TENANT ISOLATION
             Token.status == TokenStatus.waiting,
         )
         .order_by(Token.token_number.asc())
@@ -223,7 +252,7 @@ async def call_next(
     if next_token:
         next_token.status = TokenStatus.serving
         next_token.served_at = now
-    
+
     await db.flush()
 
     if next_token is None:
@@ -237,12 +266,23 @@ async def call_next(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Public API — Skip / Done
+# Admin API — Token state transitions (skip / done / remove)
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def _get_token_for_org(db: AsyncSession, token_id: uuid.UUID, org_id: uuid.UUID) -> Token:
+async def _get_token_for_org(
+    db: AsyncSession,
+    token_id: uuid.UUID,
+    org_id: uuid.UUID,
+) -> Token:
+    """
+    SECURITY: Fetches token with org_id in WHERE clause.
+    Returns same 404 for not-found and wrong-org to prevent tenant enumeration.
+    """
     result = await db.execute(
-        select(Token).where(Token.id == token_id, Token.org_id == org_id)
+        select(Token).where(
+            Token.id == token_id,
+            Token.org_id == org_id,   # ← TENANT ISOLATION
+        )
     )
     token = result.scalar_one_or_none()
     if token is None:
@@ -275,8 +315,9 @@ async def complete_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.
 
 async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID) -> Token:
     token = await _get_token_for_org(db, token_id=token_id, org_id=org_id)
-    queue = await _lock_queue(db, token.queue_id)
-    
+    # SECURITY FIX: use org-scoped lock to avoid cross-tenant DoS
+    queue = await _lock_queue_for_org(db, token.queue_id, org_id)
+
     if token.status == TokenStatus.waiting:
         token.status = TokenStatus.deleted
         token.completed_at = datetime.now(timezone.utc)
@@ -289,20 +330,31 @@ async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UU
     return token
 
 
-async def serve_specific_token(db: AsyncSession, *, queue_id: uuid.UUID, org_id: uuid.UUID, token_number: int) -> NextResponse:
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin API — Serve Specific Token
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def serve_specific_token(
+    db: AsyncSession,
+    *,
+    queue_id: uuid.UUID,
+    org_id: uuid.UUID,
+    token_number: int,
+) -> NextResponse:
     now = datetime.now(timezone.utc)
-    queue = await _lock_queue(db, queue_id)
-    
-    if queue.org_id != org_id:
-        raise PermissionError("Access denied")
+
+    # SECURITY FIX: Lock acquired WITH org_id — no cross-tenant lock possible.
+    queue = await _lock_queue_for_org(db, queue_id, org_id)
+
     if not queue.is_active:
         raise ValueError("Queue is not active")
 
-    # Find the specific token
+    # SECURITY FIX: Token fetched with org_id in WHERE clause.
     specific_result = await db.execute(
         select(Token)
         .where(
             Token.queue_id == queue_id,
+            Token.org_id == org_id,            # ← TENANT ISOLATION
             Token.token_number == token_number,
         )
         .with_for_update(skip_locked=False)
@@ -319,6 +371,7 @@ async def serve_specific_token(db: AsyncSession, *, queue_id: uuid.UUID, org_id:
         update(Token)
         .where(
             Token.queue_id == queue_id,
+            Token.org_id == org_id,            # ← TENANT ISOLATION
             Token.status == TokenStatus.serving,
         )
         .values(status=TokenStatus.skipped, completed_at=now)
@@ -326,7 +379,7 @@ async def serve_specific_token(db: AsyncSession, *, queue_id: uuid.UUID, org_id:
 
     specific_token.status = TokenStatus.serving
     specific_token.served_at = now
-    
+
     await db.flush()
 
     remaining = await _count_waiting(db, queue_id=queue_id)
@@ -334,11 +387,21 @@ async def serve_specific_token(db: AsyncSession, *, queue_id: uuid.UUID, org_id:
         serving=specific_token.token_number,
         remaining=remaining,
     )
-async def list_queue_tokens(db: AsyncSession, *, queue_id: uuid.UUID, org_id: uuid.UUID) -> list[Token]:
+
+
+async def list_queue_tokens(
+    db: AsyncSession,
+    *,
+    queue_id: uuid.UUID,
+    org_id: uuid.UUID,
+) -> list[Token]:
     """Retrieve all tokens in a queue (history/details view)."""
     result = await db.execute(
         select(Token)
-        .where(Token.queue_id == queue_id, Token.org_id == org_id)
+        .where(
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,            # ← TENANT ISOLATION
+        )
         .order_by(Token.token_number.asc())
     )
     return list(result.scalars().all())
