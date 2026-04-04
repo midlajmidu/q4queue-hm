@@ -121,13 +121,25 @@ app.add_middleware(SecurityHeadersMiddleware)
 # 3. Structured access logging
 app.add_middleware(LoggingMiddleware)
 
-# 4. CORS (env-based origins)
+# 4. CORS (production hardened)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=[
+        "Authorization", 
+        "Content-Type", 
+        "Accept", 
+        "Origin",
+        "X-Requested-With"
+    ],
+    expose_headers=[
+        "Retry-After",
+        "X-RateLimit-Limit",
+        "X-RateLimit-Remaining",
+        "X-RateLimit-Window",
+    ]
 )
 
 

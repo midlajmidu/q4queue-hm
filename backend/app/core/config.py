@@ -75,8 +75,10 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        if self.CORS_ORIGINS == "*":
-            return ["*"]
+        if not self.CORS_ORIGINS or self.CORS_ORIGINS == "*":
+            # Wildcard origins cannot be combined with allow_credentials=True
+            # Safe default fallback for local dev
+            return ["http://localhost:3000", "http://127.0.0.1:3000"]
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
 
