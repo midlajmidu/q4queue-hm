@@ -48,12 +48,12 @@ const QD_STYLES = `
   .qd-card {
     background: ${C.cardBg};
     border: 1px solid ${C.border};
-    border-radius: 14px;
-    box-shadow: 0 0 0 1px rgba(0,0,0,.02), 0 1px 2px rgba(0,0,0,.03), 0 2px 8px rgba(0,0,0,.025);
-    transition: box-shadow .25s ease, border-color .25s ease;
+    border-radius: 16px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.02), 0 1px 3px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.03);
+    transition: box-shadow .3s ease, border-color .3s ease, transform .3s ease;
   }
   .qd-card:hover {
-    box-shadow: 0 0 0 1px rgba(0,0,0,.03), 0 4px 12px rgba(0,0,0,.06), 0 8px 28px rgba(0,0,0,.04);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.03), 0 4px 12px rgba(0,0,0,.06), 0 12px 36px rgba(0,0,0,.05);
     border-color: ${C.borderHov};
   }
   .qd-sidebar {
@@ -63,7 +63,7 @@ const QD_STYLES = `
   }
   .qd-nav-item {
     display: flex; align-items: center; gap: 10px;
-    padding: 9px 12px; border-radius: 10px;
+    padding: 10px 14px; border-radius: 10px;
     font-size: 13px; font-weight: 500;
     cursor: pointer; border: none; width: 100%; text-align: left;
     transition: all .2s ease; background: transparent;
@@ -73,39 +73,71 @@ const QD_STYLES = `
   .qd-nav-item.active {
     background: linear-gradient(135deg, ${C.brand} 0%, ${C.brandDark} 100%);
     color: #fff; font-weight: 600;
-    box-shadow: 0 4px 12px ${C.brandGlow}, 0 2px 4px rgba(79,70,229,.2);
+    box-shadow: 0 4px 14px ${C.brandGlow}, 0 2px 4px rgba(79,70,229,.2);
   }
   .qd-btn-primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     background: linear-gradient(135deg, ${C.brand} 0%, ${C.brandDark} 100%);
     color: #fff; font-weight: 700; border: none; border-radius: 12px;
-    padding: 14px 24px; font-size: 15px; cursor: pointer; font-family: 'Inter', sans-serif;
-    box-shadow: 0 4px 12px ${C.brandGlow};
-    transition: all .22s ease;
+    padding: 14px 28px; font-size: 15px; cursor: pointer; font-family: 'Inter', sans-serif;
+    box-shadow: 0 4px 14px ${C.brandGlow}, 0 1px 3px rgba(0,0,0,.1);
+    transition: all .25s cubic-bezier(.22,1,.36,1);
   }
-  .qd-btn-primary:hover:not(:disabled) { box-shadow: 0 6px 20px ${C.brandGlow}; transform: translateY(-1px); }
+  .qd-btn-primary:hover:not(:disabled) { box-shadow: 0 8px 24px ${C.brandGlow}, 0 2px 6px rgba(0,0,0,.08); transform: translateY(-2px); }
+  .qd-btn-primary:active:not(:disabled) { transform: translateY(0); box-shadow: 0 2px 8px ${C.brandGlow}; }
   .qd-btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
   .qd-btn-secondary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     background: ${C.cardBg}; color: ${C.textSub};
-    border: 1px solid ${C.border}; border-radius: 12px;
+    border: 1.5px solid ${C.border}; border-radius: 12px;
     padding: 14px 24px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
-    box-shadow: 0 1px 3px rgba(0,0,0,.04); transition: all .22s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04); transition: all .25s cubic-bezier(.22,1,.36,1);
   }
-  .qd-btn-secondary:hover:not(:disabled) { border-color: ${C.borderHov}; background: #f8fafc; transform: translateY(-1px); }
+  .qd-btn-secondary:hover:not(:disabled) { border-color: ${C.borderHov}; background: #f8fafc; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+  .qd-btn-secondary:active:not(:disabled) { transform: translateY(0); }
   .qd-btn-secondary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
   .qd-input {
     width: 100%; padding: 10px 14px; font-size: 13.5px; font-weight: 400;
-    border: 1px solid ${C.border}; border-radius: 10px; font-family: 'Inter', sans-serif;
+    border: 1.5px solid ${C.border}; border-radius: 10px; font-family: 'Inter', sans-serif;
     color: ${C.text}; background: ${C.cardBg}; outline: none;
     transition: border-color .2s, box-shadow .2s;
   }
-  .qd-input:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.18); }
+  .qd-input:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.15); }
   .qd-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: ${C.textMuted}; font-family: 'Inter', sans-serif; }
   .qd-section-title { font-size: clamp(20px,2.5vw,26px); font-weight: 800; letter-spacing: -.02em; color: ${C.text}; margin: 0; font-family: 'Inter', sans-serif; }
   .qd-section-sub { font-size: 14px; color: ${C.textSub}; margin-top: 6px; font-weight: 400; }
   .mono { font-family: 'JetBrains Mono', monospace; }
   .fade-in { animation: qdfin .35s cubic-bezier(.16,1,.3,1) both; }
   @keyframes qdfin { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-  .serving-num { font-family: 'Inter', sans-serif; font-weight: 900; font-variant-numeric: tabular-nums; color: ${C.brand}; line-height: 1; }
+  .serving-num {
+    font-family: 'Inter', sans-serif; font-weight: 900; font-variant-numeric: tabular-nums;
+    color: ${C.brand}; line-height: 1;
+    filter: drop-shadow(0 2px 8px ${C.brandGlow});
+  }
+  .serving-card {
+    position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #ffffff 0%, #fafbff 50%, #f5f3ff 100%);
+    border: 1.5px solid ${C.border}; border-radius: 16px;
+    box-shadow: 0 0 0 1px rgba(79,70,229,.04), 0 4px 16px rgba(0,0,0,.04), 0 8px 32px rgba(79,70,229,.06);
+  }
+  .serving-card::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(circle, ${C.border} 1px, transparent 1px);
+    background-size: 20px 20px; opacity: .35; pointer-events: none;
+  }
+  .serving-card::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, ${C.brand}, ${C.brandDark}, ${C.violet});
+    border-radius: 16px 16px 0 0;
+  }
+  .qd-action-grid { display: grid; gap: 10px; }
+  @media (min-width: 640px) { .qd-action-grid { grid-template-columns: 1.3fr 1fr 1fr; } }
+  .qd-control-card {
+    background: linear-gradient(180deg, #fafbfd 0%, #ffffff 100%);
+    border: 1px solid ${C.border}; border-radius: 14px;
+    padding: 18px 20px; transition: border-color .2s;
+  }
+  .qd-control-card:hover { border-color: ${C.borderHov}; }
 `;
 
 interface PageProps {
@@ -566,7 +598,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <button
                                             onClick={() => setShowResetConfirm(true)}
                                             disabled={isDisabled || resetting}
-                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 9, border: `1px solid ${C.amberBorder}`, background: C.amberBg, color: C.amber, cursor: "pointer", transition: "all .2s" }}
+                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 12.5, fontWeight: 600, borderRadius: 10, border: `1.5px solid ${C.amberBorder}`, background: C.amberBg, color: "#92400e", cursor: "pointer", transition: "all .2s ease" }}
+                                            onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-1px)")}
+                                            onMouseLeave={e => (e.currentTarget.style.transform = "none")}
                                             aria-label="Reset Queue"
                                         >
                                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -576,7 +610,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             href={`/display/${queueId}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 9, border: `1px solid ${C.brandBorder}`, background: C.brandLight, color: C.brand, textDecoration: "none", transition: "all .2s" }}
+                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 12.5, fontWeight: 600, borderRadius: 10, border: `1.5px solid ${C.brandBorder}`, background: C.brandLight, color: C.brand, textDecoration: "none", transition: "all .2s ease" }}
+                                            onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-1px)")}
+                                            onMouseLeave={e => (e.currentTarget.style.transform = "none")}
                                             aria-label="Open Display View"
                                         >
                                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
@@ -584,7 +620,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         </a>
                                         <button
                                             onClick={() => setShowDeleteConfirm(true)}
-                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 9, border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red, cursor: "pointer", transition: "all .2s" }}
+                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 12.5, fontWeight: 600, borderRadius: 10, border: `1.5px solid ${C.redBorder}`, background: C.redBg, color: C.red, cursor: "pointer", transition: "all .2s ease" }}
+                                            onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-1px)")}
+                                            onMouseLeave={e => (e.currentTarget.style.transform = "none")}
                                             aria-label="Delete Queue"
                                         >
                                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -599,15 +637,16 @@ export default function QueueDetailPage({ params }: PageProps) {
                             {/* Left column: Now Serving + Actions */}
                             <div className="lg:col-span-2 space-y-5">
                                 {/* Big serving indicator */}
-                                <div className="qd-card" style={{ padding: "40px 32px", textAlign: "center", minHeight: 260, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
-                                    <div style={{ position: "absolute", top: -60, right: -60, width: 220, height: 220, background: `radial-gradient(circle, ${C.brandGlow} 0%, transparent 70%)`, pointerEvents: "none" }} />
-                                    <p className="qd-lbl" style={{ marginBottom: 12, letterSpacing: ".12em" }}>Now Serving</p>
-                                    <div className="serving-num" style={{ fontSize: "clamp(72px,12vw,120px)" }} aria-live="polite" aria-atomic="true">
+                                <div className="serving-card" style={{ padding: "44px 32px 36px", textAlign: "center", minHeight: 260, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                                    <div style={{ position: "absolute", top: -80, right: -80, width: 260, height: 260, background: `radial-gradient(circle, ${C.brandGlow} 0%, transparent 60%)`, pointerEvents: "none" }} />
+                                    <div style={{ position: "absolute", bottom: -60, left: -60, width: 200, height: 200, background: `radial-gradient(circle, rgba(124,58,237,.06) 0%, transparent 60%)`, pointerEvents: "none" }} />
+                                    <p className="qd-lbl" style={{ marginBottom: 14, letterSpacing: ".14em", fontSize: 11, position: "relative", zIndex: 1 }}>Now Serving</p>
+                                    <div className="serving-num" style={{ fontSize: "clamp(72px,12vw,120px)", position: "relative", zIndex: 1 }} aria-live="polite" aria-atomic="true">
                                         {state?.prefix || ""}{state?.current_serving || 0}
                                     </div>
 
                                     {state?.serving_details && (
-                                        <div className="fade-in" style={{ marginTop: 8, textAlign: "center" }}>
+                                        <div className="fade-in" style={{ marginTop: 12, textAlign: "center", position: "relative", zIndex: 1 }}>
                                             <p style={{ fontSize: 22, fontWeight: 800, color: C.text }}>{state.serving_details.customer_name}</p>
                                             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "4px 12px", marginTop: 4, fontSize: 13.5, color: C.textMuted, fontWeight: 500 }}>
                                                 {state.serving_details.customer_age != null && <span>Age {state.serving_details.customer_age}</span>}
@@ -617,20 +656,25 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         </div>
                                     )}
 
-                                    <div style={{ display: "flex", alignItems: "center", gap: 24, marginTop: 20, fontSize: 13.5, color: C.textMuted }}>
-                                        <span>Waiting: <strong style={{ color: C.text, fontWeight: 700 }}>{state?.waiting_count ?? 0}</strong></span>
-                                        <span style={{ color: C.borderLight }}>|</span>
-                                        <span>Issued: <strong style={{ color: C.text, fontWeight: 700 }}>{state?.total_issued ?? 0}</strong></span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 24, position: "relative", zIndex: 1 }}>
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 99, background: C.amberBg, border: `1px solid ${C.amberBorder}`, fontSize: 13, fontWeight: 600, color: "#92400e" }}>
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            Waiting: <strong style={{ fontWeight: 800, color: "#78350f" }}>{state?.waiting_count ?? 0}</strong>
+                                        </span>
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 99, background: C.blueBg, border: `1px solid ${C.blueBorder}`, fontSize: 13, fontWeight: 600, color: "#1e40af" }}>
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                            Issued: <strong style={{ fontWeight: 800, color: "#1e3a5f" }}>{state?.total_issued ?? 0}</strong>
+                                        </span>
                                     </div>
                                 </div>
 
                                 {/* Action buttons */}
-                                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }} role="toolbar" aria-label="Queue actions">
+                                <div className="qd-action-grid" role="toolbar" aria-label="Queue actions">
                                     <button
                                         onClick={handleNext}
                                         disabled={isDisabled}
                                         className="qd-btn-primary"
-                                        style={{ gridColumn: "1", fontSize: 15 }}
+                                        style={{ fontSize: 15, padding: "16px 28px" }}
                                         aria-label="Call next token"
                                     >
                                         {actionLoading === "next" ? (
@@ -638,17 +682,25 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <span style={{ width: 18, height: 18, borderRadius: "50%", border: "2.5px solid rgba(255,255,255,.3)", borderTopColor: "#fff", display: "inline-block", animation: "spin .8s linear infinite" }} />
                                                 Calling...
                                             </span>
-                                        ) : "Call Next"}
+                                        ) : (
+                                            <>
+                                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                                                Call Next
+                                                <span style={{ fontSize: 10, opacity: .5, marginLeft: 4, padding: "2px 6px", borderRadius: 4, background: "rgba(255,255,255,.15)", fontWeight: 600 }}>↵</span>
+                                            </>
+                                        )}
                                     </button>
 
                                     <button
                                         onClick={handleSkip}
                                         disabled={isDisabled}
                                         className="qd-btn-secondary"
-                                        style={{ color: C.amber, borderColor: C.amberBorder }}
+                                        style={{ color: C.amber, borderColor: C.amberBorder, background: C.amberBg }}
                                         aria-label="Skip current token"
                                     >
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
                                         {actionLoading === "skip" ? "Skipping..." : "Skip"}
+                                        <span style={{ fontSize: 9, opacity: .5, padding: "1px 5px", borderRadius: 4, background: "rgba(245,158,11,.12)", fontWeight: 700 }}>S</span>
                                     </button>
 
                                     <button
@@ -659,34 +711,40 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         })}
                                         disabled={isDisabled}
                                         className="qd-btn-secondary"
-                                        style={{ color: C.green, borderColor: C.greenBorder }}
+                                        style={{ color: C.green, borderColor: C.greenBorder, background: C.greenBg }}
                                         aria-label="Mark done and call next"
                                     >
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
                                         {actionLoading === "done" ? "Completing..." : "Done & Next"}
                                     </button>
                                 </div>
                                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
                                 {/* Extended Manual Controls */}
-                                <div className="flex flex-col md:flex-row gap-6 border-t border-gray-100 pt-6">
-                                    <div className="flex-1 space-y-2">
-                                        <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Manual Entry</p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="qd-control-card space-y-3">
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            <span style={{ width: 28, height: 28, borderRadius: 8, background: C.brandLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                <svg width="14" height="14" fill="none" stroke={C.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                                            </span>
+                                            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: C.textMuted, margin: 0 }}>Manual Entry</p>
+                                        </div>
                                         {!showAddForm ? (
                                             <button
                                                 onClick={() => setShowAddForm(true)}
                                                 disabled={isDisabled}
-                                                className="w-full py-3 px-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                                                className="w-full py-2.5 px-4 bg-white hover:bg-gray-50 border border-dashed border-gray-300 text-gray-600 font-semibold rounded-xl flex items-center justify-center gap-2 transition-all text-sm disabled:opacity-50 hover:border-gray-400"
                                             >
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                                                 </svg>
                                                 Add Customer
                                             </button>
                                         ) : (
                                             <div className="space-y-2">
-                                                <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="Full Name *" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                                <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="Phone *" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                                <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="Age (optional)" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                                <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="Full Name *" className="qd-input" style={{ fontSize: 13, padding: "8px 12px" }} />
+                                                <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="Phone *" className="qd-input" style={{ fontSize: 13, padding: "8px 12px" }} />
+                                                <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="Age (optional)" className="qd-input" style={{ fontSize: 13, padding: "8px 12px" }} />
                                                 <div className="flex gap-2">
                                                     <button onClick={handleAddCustomer} disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add" || isDisabled} className="flex-1 py-2 bg-blue-600 text-white font-bold rounded-lg text-sm disabled:opacity-50 hover:bg-blue-700 transition-colors">
                                                         {actionLoading === "add" ? "Adding..." : "Confirm"}
@@ -698,8 +756,13 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex-1 space-y-2">
-                                        <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Invite by Number</p>
+                                    <div className="qd-control-card space-y-3">
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            <span style={{ width: 28, height: 28, borderRadius: 8, background: C.brandLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                <svg width="14" height="14" fill="none" stroke={C.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                            </span>
+                                            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: C.textMuted, margin: 0 }}>Invite by Number</p>
+                                        </div>
                                         <form onSubmit={handleInvite} className="flex gap-2">
                                             <input
                                                 type="number"
@@ -708,19 +771,25 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 onChange={(e) => setInviteNumber(e.target.value)}
                                                 placeholder="Token #"
                                                 disabled={isDisabled || actionLoading === "invite"}
-                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="qd-input"
+                                                style={{ fontSize: 13, padding: "8px 12px" }}
                                             />
                                             <button
                                                 type="submit"
                                                 disabled={!inviteNumber || isDisabled || actionLoading === "invite"}
-                                                className="px-6 py-3 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                style={{ padding: "8px 18px", fontSize: 13, fontWeight: 700, borderRadius: 10, border: `1.5px solid ${C.brandBorder}`, background: C.brandLight, color: C.brand, cursor: "pointer", transition: "all .2s", whiteSpace: "nowrap" }}
                                             >
                                                 Call
                                             </button>
                                         </form>
                                     </div>
-                                    <div className="flex-1 space-y-2">
-                                        <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Remove by Number</p>
+                                    <div className="qd-control-card space-y-3">
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            <span style={{ width: 28, height: 28, borderRadius: 8, background: C.redBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                <svg width="14" height="14" fill="none" stroke={C.red} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </span>
+                                            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: C.textMuted, margin: 0 }}>Remove by Number</p>
+                                        </div>
                                         <form onSubmit={handleRemoveByNumber} className="flex gap-2">
                                             <input
                                                 type="number"
@@ -729,12 +798,13 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 onChange={(e) => setRemoveNumber(e.target.value)}
                                                 placeholder="Token #"
                                                 disabled={isDisabled || actionLoading === "remove"}
-                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                                className="qd-input"
+                                                style={{ fontSize: 13, padding: "8px 12px" }}
                                             />
                                             <button
                                                 type="submit"
                                                 disabled={!removeNumber || isDisabled || actionLoading === "remove"}
-                                                className="px-6 py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                style={{ padding: "8px 18px", fontSize: 13, fontWeight: 700, borderRadius: 10, border: `1.5px solid ${C.redBorder}`, background: C.redBg, color: C.red, cursor: "pointer", transition: "all .2s", whiteSpace: "nowrap" }}
                                             >
                                                 Remove
                                             </button>
@@ -762,13 +832,18 @@ export default function QueueDetailPage({ params }: PageProps) {
                             </div>
 
                             {/* Right column: Waiting List & Recent Tokens */}
-                            <div className="space-y-6">
+                            <div className="space-y-5">
                                 {/* Waiting List */}
                                 <aside className="qd-card overflow-hidden flex flex-col" aria-label="Waiting list">
-                                    <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 10, background: "linear-gradient(180deg,#fafbfd,#fff)", borderRadius: "14px 14px 0 0" }}>
+                                    <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 10, background: "linear-gradient(180deg,#fafbfd,#fff)", borderRadius: "16px 16px 0 0" }}>
                                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                            <h2 style={{ fontSize: 13.5, fontWeight: 700, color: C.text, margin: 0 }}>Waiting List</h2>
-                                            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: C.brandLight, color: C.brand }}>{state?.waiting_count ?? 0}</span>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                <span style={{ width: 26, height: 26, borderRadius: 8, background: C.amberBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                    <svg width="13" height="13" fill="none" stroke={C.amber} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                </span>
+                                                <h2 style={{ fontSize: 13.5, fontWeight: 700, color: C.text, margin: 0 }}>Waiting List</h2>
+                                            </div>
+                                            <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: C.brandLight, color: C.brand, minWidth: 28, textAlign: "center" }}>{state?.waiting_count ?? 0}</span>
                                         </div>
                                         <div style={{ position: "relative" }}>
                                             <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
@@ -786,8 +861,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </div>
                                     <div className="flex-1 overflow-y-auto max-h-[320px] divide-y divide-gray-50">
                                         {paginatedWaiting.length > 0 ? (
-                                            paginatedWaiting.map((t: WaitingToken) => (
-                                                <div key={t.id} className="px-5 py-3 group hover:bg-gray-50 transition-colors">
+                                            paginatedWaiting.map((t: WaitingToken, idx: number) => (
+                                                <div key={t.id} className="px-5 py-3 group hover:bg-indigo-50/30 transition-colors" style={{ background: idx % 2 === 1 ? "rgba(248,250,252,.6)" : "transparent" }}>
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
                                                             <span className="text-lg font-bold text-gray-900 tabular-nums w-14">
@@ -845,9 +920,11 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 </div>
                                             ))
                                         ) : (
-                                            <div className="px-5 py-10 text-center text-sm text-gray-400 flex flex-col items-center">
-                                                <svg className="w-8 h-8 text-gray-200 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                {waitingSearch ? "No tokens match your search" : "No one is waiting"}
+                                            <div className="px-5 py-12 text-center flex flex-col items-center">
+                                                <div style={{ width: 48, height: 48, borderRadius: 12, background: C.brandLight, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                                                    <svg width="22" height="22" fill="none" stroke={C.brand} viewBox="0 0 24 24" style={{ opacity: .5 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                </div>
+                                                <p style={{ fontSize: 13, color: C.textMuted, fontWeight: 500, margin: 0 }}>{waitingSearch ? "No tokens match your search" : "No one is waiting"}</p>
                                             </div>
                                         )}
                                     </div>
@@ -864,8 +941,13 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                                 {/* Recent Activity */}
                                 <aside className="qd-card overflow-hidden flex flex-col" aria-label="Recent activity">
-                                    <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 10, background: "linear-gradient(180deg,#fafbfd,#fff)", borderRadius: "14px 14px 0 0" }}>
-                                        <h2 style={{ fontSize: 13.5, fontWeight: 700, color: C.text, margin: 0 }}>Recent Activity</h2>
+                                    <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 10, background: "linear-gradient(180deg,#fafbfd,#fff)", borderRadius: "16px 16px 0 0" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            <span style={{ width: 26, height: 26, borderRadius: 8, background: C.greenBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                <svg width="13" height="13" fill="none" stroke={C.green} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                                            </span>
+                                            <h2 style={{ fontSize: 13.5, fontWeight: 700, color: C.text, margin: 0 }}>Recent Activity</h2>
+                                        </div>
                                         <div style={{ position: "relative" }}>
                                             <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
                                                 <svg width="14" height="14" fill="none" stroke={C.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -893,9 +975,11 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 />
                                             ))
                                         ) : (
-                                            <div className="px-5 py-10 text-center text-sm text-gray-400 flex flex-col items-center">
-                                                <svg className="w-8 h-8 text-gray-200 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                                {recentSearch ? "No tokens match your search" : "No recent activity"}
+                                            <div className="px-5 py-12 text-center flex flex-col items-center">
+                                                <div style={{ width: 48, height: 48, borderRadius: 12, background: C.greenBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                                                    <svg width="22" height="22" fill="none" stroke={C.green} viewBox="0 0 24 24" style={{ opacity: .5 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                </div>
+                                                <p style={{ fontSize: 13, color: C.textMuted, fontWeight: 500, margin: 0 }}>{recentSearch ? "No tokens match your search" : "No recent activity"}</p>
                                             </div>
                                         )}
                                     </div>
