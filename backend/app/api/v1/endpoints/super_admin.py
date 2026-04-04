@@ -333,6 +333,8 @@ async def get_organization_detail(
         slug=org.slug,
         is_active=org.is_active,
         created_at=org.created_at.isoformat(),
+        max_sessions=org.max_sessions,
+        max_queues_per_session=org.max_queues_per_session,
         total_users=total_users,
         total_admins=total_admins,
         admin_email=admin_user.email if admin_user else None,

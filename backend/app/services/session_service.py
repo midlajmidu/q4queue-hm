@@ -35,7 +35,7 @@ async def create_session(
     # ── Limit validation ──
     org = await db.scalar(select(Organization).where(Organization.id == org_id))
     if org:
-        current_sessions_count = await db.scalar(select(func.count(Session.id)).where(Session.org_id == org_id))
+        current_sessions_count = await db.scalar(select(func.count(Session.id)).where(Session.org_id == org_id)) or 0
         if current_sessions_count >= org.max_sessions:
             raise ValueError(f"Organization limit reached: maximum {org.max_sessions} sessions allowed.")
 
@@ -204,7 +204,7 @@ async def create_session_queue(
     # ── Limit validation ──
     org = await db.scalar(select(Organization).where(Organization.id == org_id))
     if org:
-        current_queues_count = await db.scalar(select(func.count(Queue.id)).where(Queue.session_id == session_id))
+        current_queues_count = await db.scalar(select(func.count(Queue.id)).where(Queue.session_id == session_id)) or 0
         if current_queues_count >= org.max_queues_per_session:
             raise ValueError(f"Session limit reached: maximum {org.max_queues_per_session} queues allowed per session.")
 
