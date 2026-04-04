@@ -100,12 +100,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 # ── FastAPI instance ──────────────────────────────────────────────
+if settings.ENVIRONMENT == "production":
+    docs_url = None
+    redoc_url = None
+    openapi_url = None
+else:
+    docs_url = "/docs"
+    redoc_url = "/redoc"
+    openapi_url = "/openapi.json"
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
     description="Multi-Tenant Queue Management SaaS — Production Hardened.",
-    docs_url="/docs" if not settings.is_production else None,
-    redoc_url="/redoc" if not settings.is_production else None,
+    docs_url=docs_url,
+    redoc_url=redoc_url,
+    openapi_url=openapi_url,
     lifespan=lifespan,
 )
 

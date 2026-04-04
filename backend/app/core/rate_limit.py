@@ -197,7 +197,12 @@ class RateLimiter:
                     raise HTTPException(
                         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                         detail="Request rate too high. Please slow down.",
-                        headers={"Retry-After": str(self.burst_window)},
+                        headers={
+                            "Retry-After": str(self.burst_window),
+                            "X-RateLimit-Limit": str(self.burst_limit),
+                            "X-RateLimit-Remaining": "0",
+                            "X-RateLimit-Window": str(self.burst_window),
+                        },
                     )
 
         except HTTPException:
