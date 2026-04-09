@@ -48,6 +48,8 @@ class Token(Base):
         Index("ix_tokens_queue_status", "queue_id", "status"),
         # Composite index: position calculation (count ahead)
         Index("ix_tokens_queue_number", "queue_id", "token_number"),
+        # Composite index: duplicate-prevention lookup by phone within a queue
+        Index("ix_tokens_queue_phone_status", "queue_id", "customer_phone", "status"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
