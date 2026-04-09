@@ -55,11 +55,20 @@ class JoinRequest(BaseModel):
     def validate_phone(cls, v: str) -> str:
         if not isinstance(v, str):
             return v
-        # Remove all non-digits
+        
+        # Remove whitespace
+        v = v.strip()
+        
+        # Check if it starts with +
+        has_plus = v.startswith("+")
+        
+        # Remove all non-digits for length check
         digits = re.sub(r"\D", "", v)
-        if len(digits) != 10:
-            raise ValueError("Phone number must be exactly 10 digits")
-        return digits
+        
+        if len(digits) < 7 or len(digits) > 15:
+            raise ValueError("Phone number must be between 7 and 15 digits")
+            
+        return f"+{digits}" if has_plus else digits
 
 
 class JoinResponse(BaseModel):

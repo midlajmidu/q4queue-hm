@@ -19,6 +19,20 @@ interface PageProps {
 
 const STORAGE_KEY = (queueId: string) => `queue_token_${queueId}`;
 
+const COUNTRY_CODES = [
+    { code: "+91", country: "India", flag: "🇮🇳" },
+    { code: "+1", country: "USA/Canada", flag: "🇺🇸" },
+    { code: "+44", country: "UK", flag: "🇬🇧" },
+    { code: "+971", country: "UAE", flag: "🇦🇪" },
+    { code: "+966", country: "Saudi Arabia", flag: "🇸🇦" },
+    { code: "+61", country: "Australia", flag: "🇦🇺" },
+    { code: "+49", country: "Germany", flag: "🇩🇪" },
+    { code: "+33", country: "France", flag: "🇫🇷" },
+    { code: "+81", country: "Japan", flag: "🇯🇵" },
+    { code: "+86", country: "China", flag: "🇨🇳" },
+    { code: "+65", country: "Singapore", flag: "🇸🇬" },
+];
+
 function saveTokenToStorage(queueId: string, tokenId: string) {
     try {
         localStorage.setItem(STORAGE_KEY(queueId), tokenId);
@@ -56,8 +70,10 @@ export default function JoinQueuePage({ params }: PageProps) {
     // ── Customer form state ──────────────────────────────────────
     const [customerName, setCustomerName] = useState("");
     const [customerAge, setCustomerAge] = useState("");
+    const [countryCode, setCountryCode] = useState("+91");
     const [customerPhone, setCustomerPhone] = useState("");
-    const isPhoneValid = /^\d{10}$/.test(customerPhone);
+    
+    const isPhoneValid = /^\d{7,15}$/.test(customerPhone);
     const isFormValid = customerName.trim().length > 0 && isPhoneValid;
 
     // Init Audio + read stored preferences on mount
@@ -251,7 +267,7 @@ export default function JoinQueuePage({ params }: PageProps) {
             const data = await api.joinQueue(queueId, {
                 name: customerName.trim(),
                 age: customerAge ? parseInt(customerAge, 10) : undefined,
-                phone: customerPhone.trim(),
+                phone: `${countryCode}${customerPhone.trim()}`,
             });
             setJoinData(data);
             saveTokenToStorage(queueId, data.id);
@@ -506,25 +522,44 @@ export default function JoinQueuePage({ params }: PageProps) {
                                     />
                                 </div>
 
-                                {/* Phone */}
                                 <div>
                                     <label htmlFor="customer-phone" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                                         Phone Number <span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        id="customer-phone"
-                                        type="tel"
-                                        value={customerPhone}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-                                            setCustomerPhone(val);
-                                        }}
-                                        placeholder="Enter 10 digit number"
-                                        required
-                                        autoComplete="tel"
-                                        disabled={isJoining || queueClosed}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
-                                    />
+                                    <div className="flex gap-2">
+                                        <div className="relative">
+                                            <select
+                                                id="country-code"
+                                                value={countryCode}
+                                                onChange={(e) => setCountryCode(e.target.value)}
+                                                disabled={isJoining || queueClosed}
+                                                className="h-full pl-3 pr-8 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer disabled:opacity-50"
+                                            >
+                                                {COUNTRY_CODES.map((c) => (
+                                                    <option key={c.code} value={c.code}>
+                                                        {c.flag} {c.code}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none text-gray-400">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                        </div>
+                                        <input
+                                            id="customer-phone"
+                                            type="tel"
+                                            value={customerPhone}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/\D/g, "").slice(0, 15);
+                                                setCustomerPhone(val);
+                                            }}
+                                            placeholder="Enter phone number"
+                                            required
+                                            autoComplete="tel"
+                                            disabled={isJoining || queueClosed}
+                                            className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
