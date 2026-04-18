@@ -152,6 +152,40 @@ export default function SuperAdminLoginPage() {
                         </Link>
                     </p>
                 </form>
+
+                {/* Development Credentials */}
+                <div className="mt-4 p-4 rounded-xl bg-violet-500/5 border border-violet-500/10 shadow-inner">
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-violet-400/70 mb-2">Local Development Credentials</p>
+                    <div className="space-y-1.5">
+                        <div className="flex justify-between items-center text-[13px]">
+                            <span className="text-slate-500">Email:</span>
+                            <code 
+                                className="text-violet-300 font-mono bg-violet-500/10 px-1.5 py-0.5 rounded cursor-pointer hover:bg-violet-500/20 transition-colors"
+                                onClick={() => {
+                                    navigator.clipboard.writeText("superadmin@qrq.internal");
+                                    setEmail("superadmin@qrq.internal");
+                                }}
+                                title="Click to copy and fill"
+                            >
+                                superadmin@qrq.internal
+                            </code>
+                        </div>
+                        <div className="flex justify-between items-center text-[13px]">
+                            <span className="text-slate-500">Pass:</span>
+                            <code 
+                                className="text-violet-300 font-mono bg-violet-500/10 px-1.5 py-0.5 rounded cursor-pointer hover:bg-violet-500/20 transition-colors"
+                                onClick={() => {
+                                    navigator.clipboard.writeText("SuperAdmin@2026!!!");
+                                    setPassword("SuperAdmin@2026!!!");
+                                }}
+                                title="Click to copy and fill"
+                            >
+                                SuperAdmin@2026!!!
+                            </code>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </main>
     );
