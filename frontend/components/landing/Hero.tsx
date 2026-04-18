@@ -84,7 +84,7 @@ const Hero = () => {
 
           {/* Subhead */}
           <p className="mt-4 text-sm md:text-[15px] text-muted-foreground leading-[1.7] max-w-[480px]">
-            Let your customers wait from anywhere. <strong className="text-foreground font-semibold">q4queue</strong> turns physical lines into a <span className="text-primary font-bold">digital queue management system</span> — no app install, no hardware, no hassle.
+            Let your customers wait from anywhere. <strong className="text-foreground font-semibold">q4queue</strong> turns physical lines into a <span className="text-primary font-bold">digital queue management system</span> no app install, no hardware, no hassle.
           </p>
 
           {/* CTAs */}
