@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { usePathname } from "next/navigation";
 
+import { AlertBannerContainer } from "@/components/AlertBannerContainer";
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { user, logout } = useAuth();
@@ -65,6 +67,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                     <main className={!isManageQueuePage ? "flex-1 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto md:overflow-y-visible" : "flex-1 overflow-hidden"}>
                         <div className={!isManageQueuePage ? "max-w-7xl mx-auto w-full" : "w-full h-full"}>
+                            <AlertBannerContainer />
                             {children}
                         </div>
                     </main>
