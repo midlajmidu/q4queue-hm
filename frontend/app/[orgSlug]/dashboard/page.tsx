@@ -710,6 +710,64 @@ export default function OverviewPage() {
   // ── New State ─────────────────────────────────────────────────
   const [feedFilter, setFeedFilter] = useState<"all" | "waiting" | "serving" | "done">("all");
   const [drawerAct, setDrawerAct] = useState<any | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadReport = async () => {
+    try {
+      setIsDownloading(true);
+      
+      let allItems: any[] = [];
+      let offset = 0;
+      const limit = 100;
+      let total = 1; // Start with > 0 to enter the loop
+      
+      while (offset < total) {
+        const res = await api.getHistory({ sessionId: selectedSession || undefined, limit, offset });
+        if (!res.items || res.items.length === 0) break;
+        
+        allItems = allItems.concat(res.items);
+        total = res.total || 0;
+        offset += limit;
+      }
+
+      if (allItems.length === 0) {
+        addAlert({ type: "info", message: "No history found to download." });
+        return;
+      }
+      
+      const headers = ["Token Number", "Queue Name", "Prefix", "Status", "Customer Name", "Customer Phone", "Created At", "Served At", "Completed At"];
+      const rows = allItems.map(item => [
+        item.token_number,
+        item.queue_name,
+        item.queue_prefix,
+        item.status,
+        item.customer_name || "-",
+        item.customer_phone || "-",
+        item.created_at ? new Date(item.created_at).toLocaleString() : "-",
+        item.served_at ? new Date(item.served_at).toLocaleString() : "-",
+        item.completed_at ? new Date(item.completed_at).toLocaleString() : "-"
+      ]);
+      
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(e => e.map(String).map(s => `"${s.replace(/"/g, '""')}"`).join(","))
+      ].join("\n");
+      
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `queue_report_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      addAlert({ type: "success", message: "Report downloaded successfully." });
+    } catch (err) {
+      addAlert({ type: "error", message: "Failed to download report." });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   // ── Auto-refresh & abort ──────────────────────────────────────
   const abortRef = useRef<AbortController | null>(null);
@@ -1073,13 +1131,26 @@ export default function OverviewPage() {
                 { label: "Create Queue", Icon: Icons.PlusCircle, href: `${dashBase}/queues` },
                 { label: "Add Staff", Icon: Icons.UserPlus, href: `${dashBase}/staff` },
                 { label: "Generate QR", Icon: Icons.QrCode, href: `${dashBase}/queues` },
-                { label: "Download Report", Icon: Icons.Download, href: `${dashBase}/history` },
-              ].map(a => (
-                <Link key={a.label} href={a.href} className="qa-btn">
-                  <a.Icon size={13} color="currentColor" />
-                  {a.label}
-                </Link>
-              ))}
+                { label: "Download Report", Icon: Icons.Download, onClick: handleDownloadReport },
+              ].map(a => 
+                a.onClick ? (
+                  <button key={a.label} onClick={a.onClick} className="qa-btn" disabled={isDownloading} style={{ fontFamily: "inherit", cursor: isDownloading ? "not-allowed" : "pointer" }}>
+                    {isDownloading && a.label === "Download Report" ? (
+                      <span className="spin" style={{ display: "inline-flex" }}>
+                        <Icons.RefreshCw size={13} color="currentColor" />
+                      </span>
+                    ) : (
+                      <a.Icon size={13} color="currentColor" />
+                    )}
+                    {a.label}
+                  </button>
+                ) : (
+                  <Link key={a.label} href={a.href!} className="qa-btn">
+                    <a.Icon size={13} color="currentColor" />
+                    {a.label}
+                  </Link>
+                )
+              )}
             </div>
           </div>
 
