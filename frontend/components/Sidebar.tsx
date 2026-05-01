@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/ui/Logo";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -17,6 +18,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const isAdmin = user?.role === "admin";
     const isSuperAdmin = user?.role === "super_admin" || pathname.startsWith("/super-admin");
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
     // Close on mobile when navigating
     useEffect(() => {
@@ -148,7 +150,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         </div>
                     </div>
                     <button
-                        onClick={logout}
+                        onClick={() => setIsLogoutModalOpen(true)}
                         className={`group w-full flex items-center gap-3.5 px-3.5 py-2.5 text-[13.5px] font-medium rounded-xl transition-all duration-[0.22s] ease-[cubic-bezier(0.4,0,0.2,1)] focus:outline-none focus:ring-2 focus:ring-red-500/50 border border-transparent ${isSuperAdmin ? "text-slate-400 hover:text-white hover:bg-slate-800/50 [&>svg]:text-slate-500 group-hover:[&>svg]:text-slate-300" : "text-[#64748b] hover:text-red-700 hover:bg-red-50/80 hover:border-red-100/50 [&>svg]:text-slate-400 group-hover:[&>svg]:text-red-500"}`}
                     >
                         <svg className="w-[18px] h-[18px] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,6 +160,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     </button>
                 </div>
             </aside>
+            <ConfirmModal
+                isOpen={isLogoutModalOpen}
+                title="Confirm Sign Out"
+                message="Are you sure you want to sign out?"
+                confirmLabel="Sign Out"
+                confirmVariant="danger"
+                onConfirm={() => {
+                    setIsLogoutModalOpen(false);
+                    logout();
+                }}
+                onCancel={() => setIsLogoutModalOpen(false)}
+            />
         </>
     );
 }

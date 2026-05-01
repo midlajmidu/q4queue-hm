@@ -1,16 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/ui/Logo";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function Header() {
     const { user, logout } = useAuth();
     const pathname = usePathname();
     const isAdmin = user?.role === "admin";
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
     const navLinkCls = (href: string) =>
         `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${pathname === href || pathname.startsWith(href + "/")
@@ -68,7 +70,7 @@ export default function Header() {
                             </div>
                         )}
                         <button
-                            onClick={logout}
+                            onClick={() => setIsLogoutModalOpen(true)}
                             aria-label="Sign out"
                             className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                         >
@@ -77,6 +79,18 @@ export default function Header() {
                     </div>
                 </div>
             </nav>
+            <ConfirmModal
+                isOpen={isLogoutModalOpen}
+                title="Confirm Sign Out"
+                message="Are you sure you want to sign out?"
+                confirmLabel="Sign Out"
+                confirmVariant="danger"
+                onConfirm={() => {
+                    setIsLogoutModalOpen(false);
+                    logout();
+                }}
+                onCancel={() => setIsLogoutModalOpen(false)}
+            />
         </header>
     );
 }

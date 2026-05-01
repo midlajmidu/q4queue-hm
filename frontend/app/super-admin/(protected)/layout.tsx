@@ -1,14 +1,16 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import SuperAdminRoute from "@/components/SuperAdminRoute";
 import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/ui/Logo";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function SuperAdminProtectedLayout({ children }: { children: ReactNode }) {
     const { logout } = useAuth();
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
     return (
         <SuperAdminRoute>
@@ -22,7 +24,7 @@ export default function SuperAdminProtectedLayout({ children }: { children: Reac
                             <Logo size="sm" className="text-white" />
                         </Link>
                         <button
-                            onClick={logout}
+                            onClick={() => setIsLogoutModalOpen(true)}
                             className="p-2 text-slate-400 hover:text-white focus:outline-none"
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,6 +40,18 @@ export default function SuperAdminProtectedLayout({ children }: { children: Reac
                     </main>
                 </div>
             </div>
+            <ConfirmModal
+                isOpen={isLogoutModalOpen}
+                title="Confirm Sign Out"
+                message="Are you sure you want to sign out?"
+                confirmLabel="Sign Out"
+                confirmVariant="danger"
+                onConfirm={() => {
+                    setIsLogoutModalOpen(false);
+                    logout();
+                }}
+                onCancel={() => setIsLogoutModalOpen(false)}
+            />
         </SuperAdminRoute>
     );
 }

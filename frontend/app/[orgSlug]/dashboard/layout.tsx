@@ -8,12 +8,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePathname } from "next/navigation";
 
 import { AlertBannerContainer } from "@/components/AlertBannerContainer";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { user, logout } = useAuth();
     const pathname = usePathname();
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
     const handleCloseSidebar = useCallback(() => {
         setIsMobileMenuOpen(false);
@@ -55,7 +57,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 </Link>
                             </div>
                             <button
-                                onClick={logout}
+                                onClick={() => setIsLogoutModalOpen(true)}
                                 className="p-2 text-gray-400 hover:text-gray-600 focus:outline-none"
                             >
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,6 +75,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </main>
                 </div>
             </div>
+            <ConfirmModal
+                isOpen={isLogoutModalOpen}
+                title="Confirm Sign Out"
+                message="Are you sure you want to sign out?"
+                confirmLabel="Sign Out"
+                confirmVariant="danger"
+                onConfirm={() => {
+                    setIsLogoutModalOpen(false);
+                    logout();
+                }}
+                onCancel={() => setIsLogoutModalOpen(false)}
+            />
         </ProtectedRoute>
     );
 }
