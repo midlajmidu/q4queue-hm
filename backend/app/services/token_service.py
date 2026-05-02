@@ -155,6 +155,7 @@ async def join_queue(
     *,
     queue_id: uuid.UUID,
     data: JoinRequest,
+    bypass_duplicate_check: bool = False,
 ) -> JoinResponse:
     """
     Atomically assign the next token number.
@@ -173,36 +174,37 @@ async def join_queue(
 
     # ── Duplicate prevention: check for existing active token by phone ──
     phone_cleaned = data.phone.strip()
-    existing_result = await db.execute(
-        select(Token)
-        .where(
-            Token.queue_id == queue_id,
-            Token.session_id == queue.token_session_id,
-            Token.customer_phone == phone_cleaned,
-            Token.status.in_([TokenStatus.waiting, TokenStatus.serving]),
+    if not bypass_duplicate_check:
+        existing_result = await db.execute(
+            select(Token)
+            .where(
+                Token.queue_id == queue_id,
+                Token.session_id == queue.token_session_id,
+                Token.customer_phone == phone_cleaned,
+                Token.status.in_([TokenStatus.waiting, TokenStatus.serving]),
+            )
+            .order_by(Token.created_at.desc())
+            .limit(1)
         )
-        .order_by(Token.created_at.desc())
-        .limit(1)
-    )
-    existing_token = existing_result.scalar_one_or_none()
+        existing_token = existing_result.scalar_one_or_none()
 
-    if existing_token is not None:
-        logger.info(
-            "Duplicate join prevented: phone=%s already has active token #%d in queue %s",
-            phone_cleaned, existing_token.token_number, queue_id,
-        )
-        position = await _count_waiting_ahead(
-            db, queue_id=queue_id, token_number=existing_token.token_number
-        )
-        current_serving = await _current_serving_number(db, queue_id=queue_id)
-        return JoinResponse(
-            id=existing_token.id,
-            token_number=existing_token.token_number,
-            position=position,
-            current_serving=current_serving,
-            queue_prefix=queue.prefix,
-            session_id=queue.token_session_id,
-        )
+        if existing_token is not None:
+            logger.info(
+                "Duplicate join prevented: phone=%s already has active token #%d in queue %s",
+                phone_cleaned, existing_token.token_number, queue_id,
+            )
+            position = await _count_waiting_ahead(
+                db, queue_id=queue_id, token_number=existing_token.token_number
+            )
+            current_serving = await _current_serving_number(db, queue_id=queue_id)
+            return JoinResponse(
+                id=existing_token.id,
+                token_number=existing_token.token_number,
+                position=position,
+                current_serving=current_serving,
+                queue_prefix=queue.prefix,
+                session_id=queue.token_session_id,
+            )
 
     # ── No active token found — create a new one ──
     queue.current_token_number += 1

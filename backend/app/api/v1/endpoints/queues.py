@@ -325,7 +325,9 @@ async def admin_join(
     SECURITY: get_queue_for_org dependency verifies org ownership before join.
     """
     try:
-        result = await token_service.join_queue(db, queue_id=queue.id, data=body)
+        result = await token_service.join_queue(
+            db, queue_id=queue.id, data=body, bypass_duplicate_check=True
+        )
         background_tasks.add_task(
             token_service.notify_queue_update,
             queue_id=queue.id,
