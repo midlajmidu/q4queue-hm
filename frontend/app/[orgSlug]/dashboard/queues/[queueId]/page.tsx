@@ -279,7 +279,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     const handleNext = useCallback(async () => {
         const prefix = state?.prefix ?? "";
         await performAction("next", async () => {
-            const res = await api.callNext(queueId, "done");
+            const res = await api.callNext(queueId, "skipped");
             if ("message" in res) {
                 toast(res.message, "info");
             } else {

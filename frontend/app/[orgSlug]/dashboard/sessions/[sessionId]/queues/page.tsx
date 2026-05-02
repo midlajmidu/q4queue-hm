@@ -33,8 +33,10 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [filterName, setFilterName] = useState("");
+    const [debouncedFilterName, setDebouncedFilterName] = useState("");
     const LIMIT = 12;
-    const [isLoading, setIsLoading] = useState(true);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isBackgroundLoading, setIsBackgroundLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Create queue modal state
@@ -45,9 +47,17 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const [createError, setCreateError] = useState<string | null>(null);
     const nameRef = useRef<HTMLInputElement>(null);
 
-    // Handle quick actions from dashboard
+    // Debounce search input
     useEffect(() => {
-        if (!isLoading && queues.length >= 0) {
+        const timer = setTimeout(() => {
+            setDebouncedFilterName(filterName);
+            setPage(1); // Reset to first page on search
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [filterName]);
+
+    useEffect(() => {
+        if (!isInitialLoading && queues.length >= 0) {
             const action = searchParams.get("action");
             if (action === "create") {
                 if (!isStaff) setShowCreate(true);
@@ -62,28 +72,48 @@ export default function SessionQueuesPage({ params }: PageProps) {
                 router.replace(`${dashBase}/sessions/${sessionId}/queues`);
             }
         }
-    }, [isLoading, queues.length, searchParams, isStaff, dashBase, sessionId, router]);
+    }, [isInitialLoading, queues.length, searchParams, isStaff, dashBase, sessionId, router]);
 
-    const loadData = useCallback(async () => {
-        setIsLoading(true);
+    const loadSession = useCallback(async () => {
         setError(null);
         try {
-            const [sessionData, queuesRes] = await Promise.all([
-                api.getSession(sessionId),
-                api.listSessionQueues(sessionId, LIMIT, (page - 1) * LIMIT, filterName || undefined),
-            ]);
+            const sessionData = await api.getSession(sessionId);
             setSession(sessionData);
+        } catch (err: unknown) {
+            if (err instanceof Error) setError(err.message);
+            else setError("Failed to load session");
+        }
+    }, [sessionId]);
+
+    const loadQueues = useCallback(async (isInitial = false) => {
+        if (isInitial) setIsInitialLoading(true);
+        else setIsBackgroundLoading(true);
+        
+        setError(null);
+        try {
+            const queuesRes = await api.listSessionQueues(sessionId, LIMIT, (page - 1) * LIMIT, debouncedFilterName || undefined);
             setQueues(queuesRes.items || []);
             setTotal(queuesRes.total);
         } catch (err: unknown) {
             if (err instanceof Error) setError(err.message);
-            else setError("Failed to load session data");
+            else setError("Failed to load queues");
         } finally {
-            setIsLoading(false);
+            setIsInitialLoading(false);
+            setIsBackgroundLoading(false);
         }
-    }, [sessionId, page, filterName]);
+    }, [sessionId, page, debouncedFilterName]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    // Initial load: Session + Queues
+    useEffect(() => {
+        Promise.all([loadSession(), loadQueues(true)]);
+    }, [sessionId]);
+
+    // Background updates: Search/Pagination
+    useEffect(() => {
+        if (!isInitialLoading) {
+            loadQueues(false);
+        }
+    }, [page, debouncedFilterName]);
 
     // Split queues into active vs inactive
     const activeQueues = useMemo(() => queues.filter(q => q.is_active), [queues]);
@@ -110,7 +140,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                 prefix: newPrefix.trim() || "A",
             });
             setShowCreate(false);
-            loadData();
+            loadQueues(false);
         } catch (err: unknown) {
             if (err instanceof ApiError) setCreateError(err.detail);
             else setCreateError("Failed to create queue");
@@ -119,7 +149,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
         }
     };
 
-    if (isLoading) {
+    if (isInitialLoading) {
         return (
             <div className="text-center py-24">
                 <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
@@ -190,7 +220,6 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                 value={filterName}
                                 onChange={(e) => {
                                     setFilterName(e.target.value);
-                                    setPage(1);
                                 }}
                                 className="text-sm text-gray-900 focus:outline-none bg-transparent w-full sm:w-48"
                                 placeholder="Search queues..."
@@ -222,11 +251,26 @@ export default function SessionQueuesPage({ params }: PageProps) {
             {error && (
                 <div role="alert" className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 text-sm flex items-center justify-between">
                     <span>{error}</span>
-                    <button onClick={loadData} className="underline font-medium">Retry</button>
+                    <button onClick={() => { loadSession(); loadQueues(true); }} className="underline font-medium">Retry</button>
                 </div>
             )}
 
+            {/* Background Loading Progress Line */}
+            {isBackgroundLoading && (
+                <div className="fixed top-0 left-0 right-0 h-1 z-[60]">
+                    <div className="h-full bg-blue-500 animate-[progress_1s_infinite_linear] origin-left" />
+                </div>
+            )}
+            <style>{`
+                @keyframes progress {
+                    0% { transform: scaleX(0); }
+                    50% { transform: scaleX(0.5); }
+                    100% { transform: scaleX(1); opacity: 0; }
+                }
+            `}</style>
+
             {/* Queues */}
+            <div className={`transition-opacity duration-200 ${isBackgroundLoading ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
             {queues.length === 0 ? (
                 <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 text-center py-20 px-6">
                     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -259,7 +303,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             </div>
                             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                                 {activeQueues.map((q) => (
-                                    <QueueCard key={q.id} queue={q} onToggled={loadData} />
+                                    <QueueCard key={q.id} queue={q} onToggled={() => loadQueues(false)} />
                                 ))}
                             </div>
                         </section>
@@ -289,7 +333,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             {!inactiveCollapsed && (
                                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                                     {inactiveQueues.map((q) => (
-                                        <QueueCard key={q.id} queue={q} onToggled={loadData} />
+                                        <QueueCard key={q.id} queue={q} onToggled={() => loadQueues(false)} />
                                     ))}
                                 </div>
                             )}
@@ -330,6 +374,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                     )}
                 </div>
             )}
+            </div>
 
             {/* Create Queue Modal */}
             {showCreate && (
