@@ -83,7 +83,7 @@ async def get_overview_metrics(
 
     # 3. Hourly Chart (Visits by hour) - Exclude deleted
     hourly_query = select(
-        func.extract('hour', Token.created_at).label('hr'),
+        func.extract('hour', func.timezone('Asia/Kolkata', Token.created_at)).label('hr'),
         func.count(Token.id)
     ).where(and_(*active_conditions)).group_by('hr').order_by('hr')
     
@@ -95,8 +95,8 @@ async def get_overview_metrics(
 
     # 4. Monthly Chart - Exclude deleted
     monthly_query = select(
-        func.extract('month', Token.created_at).label('mon'),
-        func.extract('year', Token.created_at).label('yr'),
+        func.extract('month', func.timezone('Asia/Kolkata', Token.created_at)).label('mon'),
+        func.extract('year', func.timezone('Asia/Kolkata', Token.created_at)).label('yr'),
         func.count(Token.id)
     ).where(and_(*active_conditions)).group_by('yr', 'mon').order_by('yr', 'mon')
     
