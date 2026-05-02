@@ -11,6 +11,7 @@ import {
     type MilestoneState,
 } from "@/utils/queueNotifications";
 import ConnectionBadge from "@/components/ConnectionBadge";
+import ConfirmModal from "@/components/ConfirmModal";
 import type { JoinResponse, TokenStatus } from "@/types/api";
 
 interface PageProps {
@@ -73,7 +74,7 @@ export default function JoinQueuePage({ params }: PageProps) {
     const [countryCode, setCountryCode] = useState("+91");
     const [customerPhone, setCustomerPhone] = useState("");
     
-    const isPhoneValid = /^\d{7,15}$/.test(customerPhone);
+    const isPhoneValid = /^\d{10}$/.test(customerPhone);
     const isFormValid = customerName.trim().length > 0 && isPhoneValid;
 
     // Init Audio + read stored preferences on mount
@@ -288,10 +289,10 @@ export default function JoinQueuePage({ params }: PageProps) {
     }, [queueId, customerName, customerAge, customerPhone, isFormValid]);
 
     const [isCancelling, setIsCancelling] = useState(false);
-    const handleCancel = useCallback(async () => {
-        if (!joinData || isCancelling) return;
-        if (!confirm("Are you sure you want to leave the queue? Your ticket will be cancelled.")) return;
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
+    const handleConfirmCancel = useCallback(async () => {
+        if (!joinData || isCancelling) return;
         setIsCancelling(true);
         try {
             await api.cancelToken(joinData.id);
@@ -299,12 +300,16 @@ export default function JoinQueuePage({ params }: PageProps) {
             setJoinData(null);
             setTokenStatus(null);
             setError(null);
+            setShowCancelConfirm(false);
         } catch (err: unknown) {
             setError(err instanceof ApiError ? err.detail : "Failed to cancel token");
+            setShowCancelConfirm(false);
         } finally {
             setIsCancelling(false);
         }
     }, [joinData, queueId, isCancelling]);
+
+    const handleCancelRequest = () => setShowCancelConfirm(true);
 
     // Derived: compute live position
     const myNumber = joinData?.token_number ?? null;
@@ -498,7 +503,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                             {!alreadyServed && (
                                 <div className="pt-4 border-t border-gray-100 flex justify-center">
                                     <button
-                                        onClick={handleCancel}
+                                        onClick={handleCancelRequest}
                                         disabled={isCancelling}
                                         className="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
                                     >
@@ -582,8 +587,9 @@ export default function JoinQueuePage({ params }: PageProps) {
                                             id="customer-phone"
                                             type="tel"
                                             value={customerPhone}
+                                            maxLength={10}
                                             onChange={(e) => {
-                                                const val = e.target.value.replace(/\D/g, "").slice(0, 15);
+                                                const val = e.target.value.replace(/\D/g, "").slice(0, 10);
                                                 setCustomerPhone(val);
                                             }}
                                             placeholder="Enter phone number"
@@ -630,6 +636,17 @@ export default function JoinQueuePage({ params }: PageProps) {
                     )}
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={showCancelConfirm}
+                title="Leave Queue?"
+                message="Are you sure you want to leave the queue? Your ticket will be cancelled and you will lose your position."
+                confirmLabel="Yes, Leave Queue"
+                confirmVariant="danger"
+                onConfirm={handleConfirmCancel}
+                onCancel={() => setShowCancelConfirm(false)}
+                isLoading={isCancelling}
+            />
         </main>
     );
 }
