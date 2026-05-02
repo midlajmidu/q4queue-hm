@@ -1,5 +1,5 @@
 "use client";
-import { use, useEffect, useState, useCallback, useRef } from "react";
+import { use, useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
@@ -85,6 +85,11 @@ export default function SessionQueuesPage({ params }: PageProps) {
 
     useEffect(() => { loadData(); }, [loadData]);
 
+    // Split queues into active vs inactive
+    const activeQueues = useMemo(() => queues.filter(q => q.is_active), [queues]);
+    const inactiveQueues = useMemo(() => queues.filter(q => !q.is_active), [queues]);
+    const [inactiveCollapsed, setInactiveCollapsed] = useState(false);
+
     useEffect(() => {
         if (showCreate) {
             setNewName("");
@@ -157,9 +162,22 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                 )}
                             </div>
                         </div>
-                        <p className="mt-2 text-sm text-gray-500 ml-13">
-                            {queues.length} {queues.length === 1 ? "queue" : "queues"} in this session
-                        </p>
+                        <div className="flex items-center gap-2 mt-2 ml-13">
+                            <p className="text-sm text-gray-500">
+                                {queues.length} {queues.length === 1 ? "queue" : "queues"} in this session
+                            </p>
+                            {activeQueues.length > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                                    {activeQueues.length} active
+                                </span>
+                            )}
+                            {inactiveQueues.length > 0 && (
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md">
+                                    {inactiveQueues.length} inactive
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -208,7 +226,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                 </div>
             )}
 
-            {/* Queues Grid */}
+            {/* Queues */}
             {queues.length === 0 ? (
                 <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 text-center py-20 px-6">
                     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -226,12 +244,65 @@ export default function SessionQueuesPage({ params }: PageProps) {
                     </button>
                 </div>
             ) : (
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {queues.map((q) => (
-                            <QueueCard key={q.id} queue={q} onToggled={loadData} />
-                        ))}
-                    </div>
+                <div className="space-y-8">
+                    {/* ── Active Queues Section ── */}
+                    {activeQueues.length > 0 && (
+                        <section>
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                                    <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-[15px] font-bold text-[#0f172a] tracking-tight">Active Queues</h2>
+                                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">{activeQueues.length}</span>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                                {activeQueues.map((q) => (
+                                    <QueueCard key={q.id} queue={q} onToggled={loadData} />
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* ── Inactive Queues Section ── */}
+                    {inactiveQueues.length > 0 && (
+                        <section>
+                            <button
+                                onClick={() => setInactiveCollapsed(c => !c)}
+                                className="flex items-center gap-3 mb-4 group cursor-pointer w-full text-left"
+                            >
+                                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                                    <div className="w-2.5 h-2.5 bg-slate-400 rounded-full" />
+                                </div>
+                                <div className="flex items-center gap-2 flex-1">
+                                    <h2 className="text-[15px] font-bold text-slate-500 tracking-tight">Inactive Queues</h2>
+                                    <span className="text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">{inactiveQueues.length}</span>
+                                </div>
+                                <svg
+                                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${inactiveCollapsed ? "-rotate-90" : "rotate-0"}`}
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            {!inactiveCollapsed && (
+                                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                                    {inactiveQueues.map((q) => (
+                                        <QueueCard key={q.id} queue={q} onToggled={loadData} />
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+                    )}
+
+                    {/* ── Only inactive, no active notice ── */}
+                    {activeQueues.length === 0 && inactiveQueues.length > 0 && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
+                            <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                            <p className="text-sm text-amber-800 font-medium">All queues are currently inactive. Activate a queue to start serving customers.</p>
+                        </div>
+                    )}
 
                     {/* Pagination */}
                     {total > LIMIT && (
