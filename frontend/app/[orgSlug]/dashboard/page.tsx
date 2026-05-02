@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { api } from "@/lib/api";
@@ -1128,9 +1129,9 @@ export default function OverviewPage() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               {[
                 { label: "Start Session", Icon: Icons.Play, href: `${dashBase}/sessions` },
-                { label: "Create Queue", Icon: Icons.PlusCircle, href: `${dashBase}/queues` },
+                { label: "Create Queue", Icon: Icons.PlusCircle, href: `${dashBase}/queues?action=create` },
                 { label: "Add Staff", Icon: Icons.UserPlus, href: `${dashBase}/staff` },
-                { label: "Generate QR", Icon: Icons.QrCode, href: `${dashBase}/queues` },
+                { label: "Generate QR", Icon: Icons.QrCode, href: `${dashBase}/queues?action=qr` },
                 { label: "Download Report", Icon: Icons.Download, onClick: handleDownloadReport },
               ].map(a => 
                 a.onClick ? (

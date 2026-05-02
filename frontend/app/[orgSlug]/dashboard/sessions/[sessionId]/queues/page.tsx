@@ -1,5 +1,6 @@
 "use client";
 import { use, useEffect, useState, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { QueueResponse, SessionResponse } from "@/types/api";
@@ -22,6 +23,8 @@ function isToday(dateStr: string): boolean {
 export default function SessionQueuesPage({ params }: PageProps) {
     const { sessionId } = use(params);
     const { user } = useAuth();
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
     const isStaff = user?.role === "staff";
 
@@ -41,6 +44,25 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const [createLoading, setCreateLoading] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
     const nameRef = useRef<HTMLInputElement>(null);
+
+    // Handle quick actions from dashboard
+    useEffect(() => {
+        if (!isLoading && queues.length >= 0) {
+            const action = searchParams.get("action");
+            if (action === "create") {
+                if (!isStaff) setShowCreate(true);
+                // Clear the URL
+                router.replace(`${dashBase}/sessions/${sessionId}/queues`);
+            } else if (action === "qr") {
+                // For QR, we could show an alert or highlight the first queue's QR
+                // But if there are no queues, maybe show the create modal instead?
+                if (queues.length === 0 && !isStaff) {
+                    setShowCreate(true);
+                }
+                router.replace(`${dashBase}/sessions/${sessionId}/queues`);
+            }
+        }
+    }, [isLoading, queues.length, searchParams, isStaff, dashBase, sessionId, router]);
 
     const loadData = useCallback(async () => {
         setIsLoading(true);
