@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     # ── Security ──────────────────────────────────────────────────
     SECRET_KEY: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440 # 24 hours
     JWT_ALGORITHM: str = "HS256"
 
     # ── PostgreSQL ────────────────────────────────────────────────

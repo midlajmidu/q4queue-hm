@@ -26,6 +26,7 @@ import type { JwtPayload, LoginRequest } from "@/types/api";
 
 interface UseAuthReturn {
     isAuthenticated: boolean;
+    isHydrated: boolean;
     user: JwtPayload | null;
     login: (credentials: LoginRequest) => Promise<void>;
     logout: () => void;
@@ -38,6 +39,7 @@ export function useAuth(): UseAuthReturn {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isAuthed, setIsAuthed] = useState(false);
+    const [isHydrated, setIsHydrated] = useState(false);
     const [user, setUser] = useState<JwtPayload | null>(null);
 
     // Hydrate auth state on mount
@@ -45,6 +47,7 @@ export function useAuth(): UseAuthReturn {
         const authed = checkAuth();
         setIsAuthed(authed);
         setUser(authed ? getCurrentUser() : null);
+        setIsHydrated(true);
     }, []);
 
     // Periodically check token validity — auto-logout if expired mid-session
@@ -107,6 +110,7 @@ export function useAuth(): UseAuthReturn {
 
     return {
         isAuthenticated: isAuthed,
+        isHydrated,
         user,
         login,
         logout,

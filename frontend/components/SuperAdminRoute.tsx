@@ -12,17 +12,11 @@ import { getCurrentUser, isAuthenticated } from "@/lib/auth";
  */
 export default function SuperAdminRoute({ children }: { children: ReactNode }) {
     const router = useRouter();
-    const [mounted, setMounted] = useState(false);
+    const [isHydrated, setIsHydrated] = useState(false);
     const [allowed, setAllowed] = useState(false);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setMounted(true);
-    }, []);
-
-    useEffect(() => {
-        if (!mounted) return;
-
+        // Hydration flag guarantees we wait for the client-side check to finish
         const handleAuth = () => {
             const authed = isAuthenticated();
             if (!authed) {
@@ -51,9 +45,10 @@ export default function SuperAdminRoute({ children }: { children: ReactNode }) {
         };
 
         handleAuth();
-    }, [mounted, router]);
+        setIsHydrated(true);
+    }, [router]);
 
-    if (!mounted || !allowed) {
+    if (!isHydrated || !allowed) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-900">
                 <div className="w-10 h-10 border-4 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 
@@ -9,11 +10,25 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-    const { login, isLoading, error } = useAuth();
+    const router = useRouter();
+    const { login, isLoading, error, isAuthenticated, isHydrated, user } = useAuth();
     const [orgSlug, setOrgSlug] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+
+    // Redirect to dashboard if already logged in
+    useEffect(() => {
+        if (isHydrated && isAuthenticated && user) {
+            if (user.role === "super_admin") {
+                router.replace("/super-admin");
+            } else if (user.org_slug) {
+                router.replace(`/${user.org_slug}/dashboard`);
+            } else {
+                router.replace("/dashboard");
+            }
+        }
+    }, [isHydrated, isAuthenticated, user, router]);
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
