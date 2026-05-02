@@ -287,6 +287,25 @@ export default function JoinQueuePage({ params }: PageProps) {
         }
     }, [queueId, customerName, customerAge, customerPhone, isFormValid]);
 
+    const [isCancelling, setIsCancelling] = useState(false);
+    const handleCancel = useCallback(async () => {
+        if (!joinData || isCancelling) return;
+        if (!confirm("Are you sure you want to leave the queue? Your ticket will be cancelled.")) return;
+
+        setIsCancelling(true);
+        try {
+            await api.cancelToken(joinData.id);
+            clearTokenFromStorage(queueId);
+            setJoinData(null);
+            setTokenStatus(null);
+            setError(null);
+        } catch (err: unknown) {
+            setError(err instanceof ApiError ? err.detail : "Failed to cancel token");
+        } finally {
+            setIsCancelling(false);
+        }
+    }, [joinData, queueId, isCancelling]);
+
     // Derived: compute live position
     const myNumber = joinData?.token_number ?? null;
     const serving = live?.current_serving ?? 0;
@@ -472,6 +491,20 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 <div role="status" className="text-center text-xs text-amber-600 flex items-center justify-center gap-1.5 py-2">
                                     <span className="w-3 h-3 border-2 border-amber-300 border-t-amber-600 rounded-full animate-spin" aria-hidden="true" />
                                     Reconnecting to live updates...
+                                </div>
+                            )}
+
+                            {/* Cancel / Leave Queue */}
+                            {!alreadyServed && (
+                                <div className="pt-4 border-t border-gray-100 flex justify-center">
+                                    <button
+                                        onClick={handleCancel}
+                                        disabled={isCancelling}
+                                        className="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        {isCancelling ? "Cancelling..." : "Leave Queue / Cancel Ticket"}
+                                    </button>
                                 </div>
                             )}
                         </div>

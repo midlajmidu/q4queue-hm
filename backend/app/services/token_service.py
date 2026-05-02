@@ -234,6 +234,23 @@ async def join_queue(
     )
 
 
+async def cancel_token_public(db: AsyncSession, *, token_id: uuid.UUID) -> Token:
+    """
+    Public path: allow a customer to cancel their own token using its secret UUID.
+    This effectively calls remove_token but doesn't require admin auth.
+    """
+    result = await db.execute(select(Token).where(Token.id == token_id))
+    token = result.scalar_one_or_none()
+    if token is None:
+        raise ValueError("Token not found")
+
+    if token.status not in (TokenStatus.waiting, TokenStatus.serving):
+        raise ValueError(f"Cannot cancel token with status '{token.status}'")
+
+    # Reuse the removal logic
+    return await remove_token(db, token_id=token.id, org_id=token.org_id)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Admin API — Call Next
 # ─────────────────────────────────────────────────────────────────────────────

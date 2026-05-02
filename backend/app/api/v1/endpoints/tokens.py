@@ -85,6 +85,34 @@ async def get_token(
     )
 
 
+@router.post(
+    "/{token_id}/cancel",
+    summary="Cancel Token (Public)",
+    description=(
+        "Public endpoint for a customer to voluntarily leave the queue. "
+        "Requires the unguessable token UUID."
+    ),
+)
+async def cancel_token(
+    token_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Publicly accessible cancellation.
+    """
+    try:
+        token = await token_service.cancel_token_public(db, token_id=token_id)
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=token.queue_id,
+            org_id=token.org_id,
+        )
+        return {"status": "cancelled", "token_number": token.token_number}
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
 @router.patch(
     "/{token_id}/skip",
     response_model=TokenResponse,
