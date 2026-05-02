@@ -280,7 +280,7 @@ export default function SessionsPage() {
                                                 <Link
                                                     key={session.id}
                                                     href={`${dashBase}/sessions/${session.id}/queues`}
-                                                    className={`group flex items-center gap-4 bg-white rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:-translate-y-[1px] ${today ? "border-indigo-200 ring-1 ring-indigo-100" : "border-slate-200"}`}
+                                                    className={`group flex items-center gap-4 bg-white rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] ${today ? "border-indigo-200 ring-1 ring-indigo-100" : "border-slate-200"}`}
                                                 >
                                                     {/* Date pill */}
                                                     <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${today ? "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-50 text-slate-600 border border-slate-200"}`}>

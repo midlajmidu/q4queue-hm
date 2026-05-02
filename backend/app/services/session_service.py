@@ -37,7 +37,11 @@ async def create_session(
     if org:
         current_sessions_count = await db.scalar(select(func.count(Session.id)).where(Session.org_id == org_id)) or 0
         if current_sessions_count >= org.max_sessions:
-            raise ValueError(f"Organization limit reached: maximum {org.max_sessions} sessions allowed.")
+            raise ValueError(
+                f"Organization session limit reached ({org.max_sessions}). "
+                f"You have already created the maximum number of sessions allowed for your account. "
+                f"Please delete old sessions to free up space or contact support to upgrade your plan."
+            )
 
     session = Session(
         org_id=org_id,
@@ -50,7 +54,11 @@ async def create_session(
         await db.refresh(session)
     except Exception as exc:
         await db.rollback()
-        raise ValueError(f"A session already exists for {data.session_date}") from exc
+        raise ValueError(
+            f"A session already exists for {data.session_date}. "
+            f"Each organization can only have one active session per day. "
+            f"Please manage the existing session or choose a different date."
+        ) from exc
 
     logger.info("Session created | id=%s org=%s date=%s", session.id, org_id, session.session_date)
     return SessionResponse(
