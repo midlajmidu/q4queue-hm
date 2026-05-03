@@ -157,6 +157,9 @@ export default function SettingsPage() {
     const [pwdSuccess, setPwdSuccess] = useState<string | null>(null);
     const [pwdError, setPwdError] = useState<string | null>(null);
 
+    const [otp, setOtp] = useState("");
+    const [pwdStep, setPwdStep] = useState<1 | 2>(1); // 1 = request OTP, 2 = verify and change
+
     const [showCurrent, setShowCurrent] = useState(false);
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -200,6 +203,23 @@ export default function SettingsPage() {
         }
     };
 
+    const handleRequestOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPwdSuccess(null);
+        setPwdError(null);
+        setIsSavingPassword(true);
+
+        try {
+            await api.requestPasswordChangeOtp({ current_password: currentPassword });
+            setPwdSuccess("OTP sent to your email. Please check your inbox.");
+            setPwdStep(2);
+        } catch (err) {
+            setPwdError(err instanceof ApiError ? err.detail : "Failed to verify current password and send OTP.");
+        } finally {
+            setIsSavingPassword(false);
+        }
+    };
+
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         setPwdSuccess(null);
@@ -209,21 +229,27 @@ export default function SettingsPage() {
             setPwdError("New passwords do not match.");
             return;
         }
+        if (otp.length !== 6) {
+            setPwdError("OTP must be 6 digits.");
+            return;
+        }
 
         setIsSavingPassword(true);
 
         try {
             await api.changePassword({
-                current_password: currentPassword,
+                otp: otp,
                 new_password: newPassword,
             });
             setPwdSuccess("Password changed successfully");
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
+            setOtp("");
+            setPwdStep(1);
             setTimeout(() => setPwdSuccess(null), 4000);
         } catch (err) {
-            setPwdError(err instanceof ApiError ? err.detail : "Failed to change password.");
+            setPwdError(err instanceof ApiError ? err.detail : "Failed to change password. OTP might be invalid.");
         } finally {
             setIsSavingPassword(false);
         }
@@ -331,7 +357,7 @@ export default function SettingsPage() {
                             </div>
                         </div>
 
-                        <form onSubmit={handleUpdatePassword} style={{ padding: '32px 24px' }}>
+                        <form onSubmit={pwdStep === 1 ? handleRequestOtp : handleUpdatePassword} style={{ padding: '32px 24px' }}>
                             {pwdSuccess && (
                                 <div style={{ background: C.greenBg, color: C.green, padding: '12px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 500, marginBottom: 24, border: `1px solid ${C.greenBorder}`, display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -346,45 +372,64 @@ export default function SettingsPage() {
                             )}
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 24, maxWidth: 480 }}>
-                                <div>
-                                    <label className="lbl">Current Password</label>
-                                    <div style={{ position: 'relative' }}>
-                                        <input type={showCurrent ? "text" : "password"} required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
-                                        <button type="button" onClick={() => setShowCurrent(!showCurrent)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
-                                            {showCurrent ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>}
-                                        </button>
+                                {pwdStep === 1 ? (
+                                    <div>
+                                        <label className="lbl">Current Password</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <input type={showCurrent ? "text" : "password"} required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
+                                            <button type="button" onClick={() => setShowCurrent(!showCurrent)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
+                                                {showCurrent ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>}
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="lbl">6-Digit OTP (sent to your email)</label>
+                                            <input type="text" required maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))} className="premium-input text-center text-lg tracking-[0.25em]" placeholder="000000" />
+                                        </div>
+                                        <div>
+                                            <label className="lbl">New Password</label>
+                                            <div style={{ position: 'relative' }}>
+                                                <input type={showNew ? "text" : "password"} required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
+                                                <button type="button" onClick={() => setShowNew(!showNew)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
+                                                    {showNew ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>}
+                                                </button>
+                                            </div>
+                                            <p style={{ marginTop: 8, fontSize: 12, color: C.textMuted }}>Minimum 8 characters length required.</p>
+                                        </div>
 
-                                <div>
-                                    <label className="lbl">New Password</label>
-                                    <div style={{ position: 'relative' }}>
-                                        <input type={showNew ? "text" : "password"} required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
-                                        <button type="button" onClick={() => setShowNew(!showNew)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
-                                            {showNew ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>}
-                                        </button>
-                                    </div>
-                                    <p style={{ marginTop: 8, fontSize: 12, color: C.textMuted }}>Minimum 8 characters length required.</p>
-                                </div>
-
-                                <div>
-                                    <label className="lbl">Confirm New Password</label>
-                                    <div style={{ position: 'relative' }}>
-                                        <input type={showConfirm ? "text" : "password"} required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
-                                        <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
-                                            {showConfirm ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>}
-                                        </button>
-                                    </div>
-                                    {confirmPassword && newPassword !== confirmPassword && (
-                                        <p style={{ marginTop: 8, fontSize: 12, fontWeight: 500, color: C.red }}>Passwords do not match.</p>
-                                    )}
-                                </div>
+                                        <div>
+                                            <label className="lbl">Confirm New Password</label>
+                                            <div style={{ position: 'relative' }}>
+                                                <input type={showConfirm ? "text" : "password"} required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
+                                                <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
+                                                    {showConfirm ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>}
+                                                </button>
+                                            </div>
+                                            {confirmPassword && newPassword !== confirmPassword && (
+                                                <p style={{ marginTop: 8, fontSize: 12, fontWeight: 500, color: C.red }}>Passwords do not match.</p>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.borderLight}` }}>
-                                <button type="submit" disabled={isSavingPassword || !currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword} className="qa-btn">
-                                    {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Updating...</> : "Update Password"}
-                                </button>
+                            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '16px', marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.borderLight}` }}>
+                                {pwdStep === 1 ? (
+                                    <button type="submit" disabled={isSavingPassword || !currentPassword} className="qa-btn">
+                                        {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Sending OTP...</> : "Send OTP"}
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button type="submit" disabled={isSavingPassword || !otp || otp.length !== 6 || !newPassword || !confirmPassword || newPassword !== confirmPassword} className="qa-btn">
+                                            {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Updating...</> : "Verify & Update Password"}
+                                        </button>
+                                        <button type="button" onClick={() => setPwdStep(1)} className="qa-btn" style={{ background: '#f1f5f9', color: '#475569', boxShadow: 'none' }}>
+                                            Cancel
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </form>
                     </div>

@@ -48,6 +48,7 @@ import type {
     OrganizationSettingsResponse,
     OrganizationSettingsUpdate,
     ChangePasswordRequest,
+    RequestOtpRequest,
     ResetPasswordRequest,
     SuccessResponse,
     PaginatedHistoryResponse,
@@ -459,6 +460,12 @@ export const api = {
         });
     },
 
+    requestPasswordChangeOtp(data: RequestOtpRequest): Promise<SuccessResponse> {
+        return request<SuccessResponse>("/organization/request-password-change-otp", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
     changePassword(data: ChangePasswordRequest): Promise<SuccessResponse> {
         return request<SuccessResponse>("/organization/change-password", {
             method: "POST",

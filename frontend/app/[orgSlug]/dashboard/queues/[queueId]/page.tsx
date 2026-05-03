@@ -742,7 +742,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </button>
                                         ) : (
                                             <div className="space-y-2">
-                                                <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="Full Name *" className="qd-input" style={{ fontSize: 13, padding: "8px 12px" }} />
+                                                <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="Full Name *" maxLength={50} className="qd-input" style={{ fontSize: 13, padding: "8px 12px" }} />
                                                 <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="Phone *" className="qd-input" style={{ fontSize: 13, padding: "8px 12px" }} />
                                                 <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="Age (optional)" className="qd-input" style={{ fontSize: 13, padding: "8px 12px" }} />
                                                 <div className="flex gap-2">

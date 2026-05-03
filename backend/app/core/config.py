@@ -44,6 +44,14 @@ class Settings(BaseSettings):
     # ── Logging ───────────────────────────────────────────────────
     LOG_LEVEL: str = "info"
 
+    # ── Email / SMTP ──────────────────────────────────────────────
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_FROM_NAME: str = "QRQ Queue System"
+
     # ── Server ────────────────────────────────────────────────────
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 10000

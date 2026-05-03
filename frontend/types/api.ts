@@ -358,8 +358,12 @@ export interface OrganizationSettingsUpdate {
     phone_number: string | null;
 }
 
-export interface ChangePasswordRequest {
+export interface RequestOtpRequest {
     current_password: string;
+}
+
+export interface ChangePasswordRequest {
+    otp: string;
     new_password: string;
 }
 

@@ -9,6 +9,9 @@ from app.core.security import hash_password, verify_password
 from app.db.deps import get_db
 from app.models.organization import Organization
 from app.models.user import User
+from app.redis.client import get_redis
+from app.services.email_service import send_otp_email
+import secrets
 
 router = APIRouter()
 
@@ -29,8 +32,11 @@ class OrganizationSettingsUpdate(BaseModel):
     phone_number: Optional[str] = Field(None, max_length=30)
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str
+    otp: str = Field(..., min_length=6, max_length=6)
     new_password: str = Field(..., min_length=8)
+
+class RequestOtpRequest(BaseModel):
+    current_password: str
 
 class SuccessResponse(BaseModel):
     message: str
@@ -93,15 +99,46 @@ async def update_organization_settings(
         phone_number=org.phone_number
     )
 
+@router.post("/request-password-change-otp", response_model=SuccessResponse)
+async def request_password_change_otp(
+    data: RequestOtpRequest,
+    current_user: User = Depends(get_current_active_user),
+):
+    """Verify current password and send an OTP via email for password change."""
+    if not verify_password(data.current_password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect current password")
+
+    # Generate 6-digit OTP
+    otp = "".join(str(secrets.randbelow(10)) for _ in range(6))
+    
+    redis = get_redis()
+    otp_key = f"otp:pwd_change:{current_user.id}"
+    
+    # Store OTP in Redis with 5 minutes expiration (300 seconds)
+    await redis.setex(otp_key, 300, otp)
+    
+    # Send email asynchronously
+    success = await send_otp_email(current_user.email, otp)
+    if not success:
+        # We don't fail the request completely to allow testing if SMTP isn't configured,
+        # since it logs the OTP. In strict prod, we might return 500.
+        pass
+
+    return SuccessResponse(message="OTP sent to your email address")
+
 @router.post("/change-password", response_model=SuccessResponse)
 async def change_password(
     data: ChangePasswordRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Change the admin's own password."""
-    if not verify_password(data.current_password, current_user.password_hash):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect current password")
+    """Change the admin's own password using the OTP sent to their email."""
+    redis = get_redis()
+    otp_key = f"otp:pwd_change:{current_user.id}"
+    
+    stored_otp = await redis.get(otp_key)
+    if not stored_otp or stored_otp != data.otp:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
 
     result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
     user = result.scalar_one_or_none()
@@ -113,5 +150,8 @@ async def change_password(
     from datetime import datetime, timezone
     user.password_changed_at = datetime.now(timezone.utc)
     await db.flush()
+    
+    # Invalidate OTP
+    await redis.delete(otp_key)
 
     return SuccessResponse(message="Password changed successfully")

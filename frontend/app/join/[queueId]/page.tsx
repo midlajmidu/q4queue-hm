@@ -535,6 +535,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                         onChange={(e) => setCustomerName(e.target.value)}
                                         placeholder="John Doe"
                                         required
+                                        maxLength={50}
                                         autoComplete="name"
                                         disabled={isJoining || queueClosed}
                                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
