@@ -1137,6 +1137,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                 onConfirm={handleDelete}
                 onCancel={() => setShowDeleteConfirm(false)}
                 isLoading={deleting}
+                requireInput={true}
+                requiredText={state?.queue_name || ""}
             />
             <ConfirmModal
                 isOpen={showResetConfirm}
@@ -1147,6 +1149,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                 onConfirm={handleReset}
                 onCancel={() => setShowResetConfirm(false)}
                 isLoading={resetting}
+                requireInput={true}
+                requiredText={state?.queue_name || ""}
             />
             <ConfirmModal
                 isOpen={!!tokenToRemove}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
 interface Props {
     isOpen: boolean;
@@ -11,6 +11,8 @@ interface Props {
     onConfirm: () => void;
     onCancel: () => void;
     isLoading?: boolean;
+    requireInput?: boolean;
+    requiredText?: string;
 }
 
 export default function ConfirmModal({
@@ -22,18 +24,29 @@ export default function ConfirmModal({
     onConfirm,
     onCancel,
     isLoading = false,
+    requireInput = false,
+    requiredText = "",
 }: Props) {
     const dialogRef = useRef<HTMLDivElement>(null);
     const cancelRef = useRef<HTMLButtonElement>(null);
+    const [inputValue, setInputValue] = useState("");
 
-    // Auto-focus cancel button when opened
+    // Auto-focus cancel button or input when opened
     useEffect(() => {
         if (isOpen) {
+            setInputValue("");
             // Small delay to ensure DOM is ready
-            const timer = setTimeout(() => cancelRef.current?.focus(), 50);
+            const timer = setTimeout(() => {
+                if (requireInput) {
+                    const input = dialogRef.current?.querySelector("input");
+                    input?.focus();
+                } else {
+                    cancelRef.current?.focus();
+                }
+            }, 50);
             return () => clearTimeout(timer);
         }
-    }, [isOpen]);
+    }, [isOpen, requireInput]);
 
     // Close on Escape key
     useEffect(() => {
@@ -93,6 +106,22 @@ export default function ConfirmModal({
             >
                 <h3 id="modal-title" className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
                 <p id="modal-message" className="text-sm text-gray-600 mb-6">{message}</p>
+                
+                {requireInput && (
+                    <div className="mb-6">
+                        <label className="block text-xs font-medium text-gray-700 mb-2">
+                            Type <span className="font-bold text-gray-900 select-all bg-gray-100 px-1 rounded">{requiredText}</span> to confirm.
+                        </label>
+                        <input
+                            type="text"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                            placeholder={requiredText}
+                        />
+                    </div>
+                )}
+
                 <div className="flex gap-3 justify-end">
                     <button
                         ref={cancelRef}
@@ -105,8 +134,8 @@ export default function ConfirmModal({
                     </button>
                     <button
                         onClick={onConfirm}
-                        disabled={isLoading}
-                        className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 ${btnColor}`}
+                        disabled={isLoading || (requireInput && inputValue !== requiredText)}
+                        className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${btnColor}`}
                         aria-label={confirmLabel}
                     >
                         {isLoading ? "Processing..." : confirmLabel}
