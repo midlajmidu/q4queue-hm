@@ -91,7 +91,9 @@ async def build_queue_snapshot(
         token_data = {
             "token_number": t.token_number,
             "status": t.status.value,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
             "served_at": t.served_at.isoformat() if t.served_at else None,
+            "completed_at": t.completed_at.isoformat() if t.completed_at else None,
             "customer_name": t.customer_name,
         }
         if is_admin:
@@ -116,6 +118,9 @@ async def build_queue_snapshot(
             "id": str(t.id),
             "token_number": t.token_number,
             "status": t.status.value,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+            "served_at": t.served_at.isoformat() if t.served_at else None,
+            "completed_at": t.completed_at.isoformat() if t.completed_at else None,
             "customer_name": t.customer_name,
         }
         if is_admin:

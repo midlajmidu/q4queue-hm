@@ -174,7 +174,9 @@ export interface NoTokenResponse {
 export interface RecentToken {
     token_number: number;
     status: TokenStatus;
+    created_at: string | null;
     served_at: string | null;
+    completed_at: string | null;
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
@@ -184,6 +186,9 @@ export interface WaitingToken {
     id: string;
     token_number: number;
     status: TokenStatus;
+    created_at: string | null;
+    served_at: string | null;
+    completed_at: string | null;
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;

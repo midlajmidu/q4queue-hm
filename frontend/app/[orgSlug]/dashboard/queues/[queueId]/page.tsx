@@ -890,6 +890,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                     customer_age: t.customer_age,
                                                                     customer_phone: t.customer_phone,
                                                                     status: t.status,
+                                                                    created_at: t.created_at,
+                                                                    served_at: t.served_at,
+                                                                    completed_at: t.completed_at,
                                                                     entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr",
                                                                     queue_name: queueName,
                                                                 })}
@@ -1220,7 +1223,9 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                                 customer_age: t.customer_age,
                                 customer_phone: t.customer_phone,
                                 status: t.status,
+                                created_at: t.created_at,
                                 served_at: t.served_at,
+                                completed_at: t.completed_at,
                                 entry_type: isManual ? "manual" : "qr",
                                 queue_name: queueName,
                             })}
