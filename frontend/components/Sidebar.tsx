@@ -108,6 +108,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 History
                             </Link>
 
+                            <Link href={`${dashBase}/notifications`} className={navLinkCls(`${dashBase}/notifications`)}>
+                                <svg className="w-[18px] h-[18px] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                </svg>
+                                Notifications
+                            </Link>
+
                             {isAdmin && (
                                 <>
                                     <Link href={`${dashBase}/staff`} className={navLinkCls(`${dashBase}/staff`)}>

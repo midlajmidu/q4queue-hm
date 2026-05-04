@@ -1,6 +1,7 @@
 
 "use client";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import type { AnalyticsOverview, SessionResponse, QueueResponse } from "@/types/api";
 import Link from "next/link";
@@ -599,7 +600,7 @@ const STYLES = `
     border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(.4,0,.2,1);
     box-shadow: 0 1px 2px rgba(0,0,0,.04);
   }
   .notif-btn:hover {
@@ -612,11 +613,12 @@ const STYLES = `
     background: ${C.brand};
     border-color: ${C.brand};
     color: #fff;
+    box-shadow: 0 4px 16px rgba(79,70,229,.25);
   }
   .notif-badge {
     position: absolute;
-    top: -4px; right: -4px;
-    background: ${C.red};
+    top: -5px; right: -5px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
     color: #fff;
     font-size: 10px; font-weight: 800;
     min-width: 18px; height: 18px;
@@ -624,38 +626,57 @@ const STYLES = `
     display: flex; align-items: center; justify-content: center;
     border: 2px solid #fff;
     padding: 0 4px;
-    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+    animation: badgePop 0.3s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes badgePop {
+    from { transform: scale(0); } to { transform: scale(1); }
   }
   .notif-dropdown {
-    position: absolute;
-    bottom: calc(100% + 12px);
-    right: 0;
-    width: 360px;
-    background: #fff;
+    width: 380px;
+    background: #ffffff;
     border: 1px solid ${C.border};
     border-radius: 16px;
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.02);
-    z-index: 1000;
+    box-shadow:
+      0 10px 50px rgba(0,0,0,.14),
+      0 4px 16px rgba(0,0,0,.06),
+      0 0 0 1px rgba(0,0,0,.03);
+    z-index: 9999;
     overflow: hidden;
-    animation: dropInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    transform-origin: bottom right;
+    animation: dropInDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform-origin: top right;
   }
-  @keyframes dropInUp { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes dropInDown {
+    from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
   .notif-item {
-    padding: 16px 20px;
-    display: flex; gap: 14px;
+    padding: 14px 18px;
+    display: flex; gap: 12px; align-items: flex-start;
     border-bottom: 1px solid ${C.borderLight};
     transition: background 0.15s ease;
     cursor: pointer;
   }
-  .notif-item:hover { background: ${C.slateBg}; }
-  .notif-item.unread { background: ${C.brandLight}44; }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-item:hover { background: #f8f9fb; }
+  .notif-item.unread { background: #f8faff; }
+  .notif-item.unread:hover { background: #f0f4ff; }
+  .notif-icon-dot {
+    width: 32px; height: 32px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 14px;
+  }
+  .notif-icon-dot.warning { background: #fffbeb; }
+  .notif-icon-dot.success { background: #ecfdf5; }
+  .notif-icon-dot.info { background: #eff6ff; }
+  .notif-icon-dot.error { background: #fef2f2; }
   .unread-dot {
-    width: 8px; height: 8px;
-    background: ${C.blue};
+    width: 7px; height: 7px;
+    background: ${C.brand};
     border-radius: 50%;
     flex-shrink: 0;
     margin-top: 6px;
+    box-shadow: 0 0 0 3px ${C.brandLight};
   }
   .bell-shake { animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both; }
   @keyframes shake {
@@ -716,16 +737,16 @@ export default function OverviewPage() {
   const handleDownloadReport = async () => {
     try {
       setIsDownloading(true);
-      
+
       let allItems: any[] = [];
       let offset = 0;
       const limit = 100;
       let total = 1; // Start with > 0 to enter the loop
-      
+
       while (offset < total) {
         const res = await api.getHistory({ sessionId: selectedSession || undefined, limit, offset });
         if (!res.items || res.items.length === 0) break;
-        
+
         allItems = allItems.concat(res.items);
         total = res.total || 0;
         offset += limit;
@@ -735,7 +756,7 @@ export default function OverviewPage() {
         addAlert({ type: "info", message: "No history found to download." });
         return;
       }
-      
+
       const headers = ["Token Number", "Queue Name", "Prefix", "Status", "Customer Name", "Customer Phone", "Created At", "Served At", "Completed At"];
       const rows = allItems.map(item => [
         item.token_number,
@@ -748,12 +769,12 @@ export default function OverviewPage() {
         item.served_at ? new Date(item.served_at).toLocaleString() : "-",
         item.completed_at ? new Date(item.completed_at).toLocaleString() : "-"
       ]);
-      
+
       const csvContent = [
         headers.join(","),
         ...rows.map(e => e.map(String).map(s => `"${s.replace(/"/g, '""')}"`).join(","))
       ].join("\n");
-      
+
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -1133,7 +1154,7 @@ export default function OverviewPage() {
                 { label: "Add Staff", Icon: Icons.UserPlus, href: `${dashBase}/staff` },
                 { label: "Generate QR", Icon: Icons.QrCode, href: `${dashBase}/queues?action=qr` },
                 { label: "Download Report", Icon: Icons.Download, onClick: handleDownloadReport },
-              ].map(a => 
+              ].map(a =>
                 a.onClick ? (
                   <button key={a.label} onClick={a.onClick} className="qa-btn" disabled={isDownloading} style={{ fontFamily: "inherit", cursor: isDownloading ? "not-allowed" : "pointer" }}>
                     {isDownloading && a.label === "Download Report" ? (
@@ -1232,77 +1253,75 @@ export default function OverviewPage() {
           {/* ══ LIVE QUEUES ══════════════════════════════════════ */}
           {activeQueues.length > 0 && (
             <div className="card" style={{ overflow: "hidden" }}>
-              {/* header — matches Hourly Traffic / Per-Queue Breakdown pattern */}
               <div className="card-header">
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div className="icon-badge" style={{ width: 34, height: 34, background: C.greenBg, border: `1px solid ${C.greenBorder}` }}>
-                    <Icons.Radio size={15} color={C.green} />
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div className="icon-badge" style={{ width: 32, height: 32, background: C.greenBg, border: `1px solid ${C.greenBorder}` }}>
+                    <Icons.Radio size={14} color={C.green} />
                   </div>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>Live Queue Status</span>
-                  <span className="live-dot" style={{ display: "block", width: 7, height: 7, borderRadius: "50%", background: C.green }} />
-                  <span className="chip" style={{ background: C.greenBg, color: "#15803d", border: `1px solid ${C.greenBorder}` }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>Live Queue Status</span>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, color: "#15803d",
+                    background: "#dcfce7", padding: "2px 8px", borderRadius: 6,
+                  }}>
                     {activeQueues.length} active
                   </span>
                 </div>
-                <Link href={`${dashBase}/queues`} className="view-more" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: C.brand, background: C.brandLight, border: `1px solid ${C.brandBorder}`, padding: "6px 14px", borderRadius: 10, textDecoration: "none", transition: "all .2s ease" }}>
-                  Manage <span className="arr"><Icons.ArrowRight size={12} color="currentColor" /></span>
+                <Link href={`${dashBase}/queues`} style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  fontSize: 12, fontWeight: 600, color: C.brand,
+                  padding: "5px 12px", borderRadius: 8,
+                  border: `1px solid ${C.border}`, background: "#fff",
+                  textDecoration: "none", transition: "all .15s ease",
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = C.brandBorder; e.currentTarget.style.background = C.brandLight; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = "#fff"; }}
+                >
+                  Manage <Icons.ArrowRight size={11} color="currentColor" />
                 </Link>
               </div>
 
-              {/* queue cards */}
-              <div style={{ padding: "18px 24px", display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
+              <div style={{ padding: "16px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}>
                 {activeQueues.map(q => {
                   const serving = q.current_token_number ? `${q.prefix}${q.current_token_number}` : "—";
                   const next = q.current_token_number ? `${q.prefix}${q.current_token_number + 1}` : "—";
                   return (
                     <div key={q.id} style={{
-                      background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 14,
-                      padding: 0, overflow: "hidden",
-                      boxShadow: "0 1px 4px rgba(0,0,0,.03)",
-                      transition: "box-shadow .2s, border-color .2s",
-                    }}>
-                      {/* Queue header strip */}
+                      background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10,
+                      overflow: "hidden", transition: "border-color .15s ease",
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderHov; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
+                    >
+                      {/* Queue name */}
                       <div style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
-                        padding: "14px 18px",
-                        background: "linear-gradient(180deg, #fafbfd 0%, #fff 100%)",
+                        padding: "12px 16px",
                         borderBottom: `1px solid ${C.borderLight}`,
                       }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{
-                            width: 28, height: 28, borderRadius: 8,
-                            background: C.greenBg, border: `1px solid ${C.greenBorder}`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                          }}>
-                            <Icons.Layers size={13} color={C.green} />
-                          </div>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.name}</span>
-                        </div>
-                        <span className="pill" style={{
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                          background: "#dcfce7", color: "#15803d", border: "1px solid #bbf7d0",
+                        <span style={{ fontSize: 13.5, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.name}</span>
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          fontSize: 10.5, fontWeight: 600, color: "#15803d",
+                          background: "#ecfdf5", padding: "2px 7px", borderRadius: 5,
                         }}>
-                          <span className="live-dot" style={{ display: "block", width: 5, height: 5, borderRadius: "50%", background: "#22c55e" }} />
+                          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", display: "block" }} />
                           Active
                         </span>
                       </div>
 
-                      {/* Stats */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0 }}>
+                      {/* Stats row */}
+                      <div style={{ display: "flex" }}>
                         {[
-                          { lbl: "Serving", val: serving, col: C.brand, icon: <Icons.Play size={11} color={C.brand} /> },
-                          { lbl: "Next", val: next, col: C.text, icon: <Icons.ArrowRight size={11} color={C.amber} /> },
-                          { lbl: "Prefix", val: q.prefix || "—", col: C.textMuted, icon: <Icons.Hash size={11} color={C.textMuted} /> },
+                          { lbl: "Serving", val: serving, col: C.brand },
+                          { lbl: "Next", val: next, col: C.text },
+                          { lbl: "Prefix", val: q.prefix || "—", col: C.textMuted },
                         ].map((item, i) => (
                           <div key={item.lbl} style={{
-                            padding: "18px 16px", textAlign: "center" as const,
+                            flex: 1, padding: "14px 12px", textAlign: "center" as const,
                             borderRight: i < 2 ? `1px solid ${C.borderLight}` : "none",
                           }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, marginBottom: 10 }}>
-                              {item.icon}
-                              <span className="lbl">{item.lbl}</span>
-                            </div>
-                            <span className="mono tnum" style={{ fontSize: 24, fontWeight: 700, color: item.col, letterSpacing: "-.03em" }}>{item.val}</span>
+                            <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase" as const, marginBottom: 6 }}>{item.lbl}</span>
+                            <span className="mono tnum" style={{ fontSize: 20, fontWeight: 800, color: item.col, letterSpacing: "-.02em" }}>{item.val}</span>
                           </div>
                         ))}
                       </div>
@@ -1816,24 +1835,41 @@ function ActivityLegend({ waiting, serving, done }: { waiting: number; serving: 
 
 function NotificationSystem() {
   const [isOpen, setIsOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
   const [notifications, setNotifications] = useState([
-    { id: 1, type: "warning", text: "Wait time exceeded 30 min - Doctor Ambedhkar queue", time: "2 minutes ago", isRead: false, icon: "⚠️" },
+    { id: 1, type: "warning", text: "Wait time exceeded 30 min — Doctor Ambedhkar queue", time: "2 minutes ago", isRead: false, icon: "⚠️" },
     { id: 2, type: "success", text: "Session started successfully", time: "1 hour ago", isRead: false, icon: "✅" },
     { id: 3, type: "info", text: "5 customers joined Doctor Imbu queue", time: "2 hours ago", isRead: true, icon: "ℹ️" },
   ]);
+  const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  // Mark all as read
   const markAllAsRead = () => {
     setNotifications(notifications.map(n => ({ ...n, isRead: true })));
   };
 
-  // Click outside to close
+  const toggleOpen = () => {
+    if (!isOpen && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setDropPos({
+        top: rect.bottom + 10,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setIsOpen(prev => !prev);
+  };
+
+  // Click outside to close — check both button and portal dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedInsideBtn = btnRef.current?.contains(target);
+      const clickedInsideDrop = dropdownRef.current?.contains(target);
+      if (!clickedInsideBtn && !clickedInsideDrop) {
         setIsOpen(false);
       }
     };
@@ -1845,71 +1881,167 @@ function NotificationSystem() {
     };
   }, [isOpen]);
 
+  const dropdownContent = isOpen ? (
+    <div
+      ref={dropdownRef}
+      className="notif-dropdown"
+      style={{
+        position: "fixed",
+        top: dropPos.top,
+        right: dropPos.right,
+        zIndex: 99999,
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        padding: "16px 18px",
+        borderBottom: `1px solid ${C.border}`,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        background: "linear-gradient(180deg, #fafbfd 0%, #ffffff 100%)",
+        borderRadius: "16px 16px 0 0",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 700, fontSize: 13.5, color: C.text, letterSpacing: "-0.01em" }}>Notifications</span>
+          {unreadCount > 0 && (
+            <span style={{
+              background: C.brandLight,
+              color: C.brand,
+              fontSize: 10.5,
+              fontWeight: 700,
+              padding: "2px 7px",
+              borderRadius: 6,
+              letterSpacing: "0.02em",
+            }}>
+              {unreadCount} new
+            </span>
+          )}
+        </div>
+        {unreadCount > 0 && (
+          <button
+            onClick={markAllAsRead}
+            style={{
+              background: "none",
+              border: "none",
+              color: C.brand,
+              fontSize: 11.5,
+              fontWeight: 600,
+              cursor: "pointer",
+              padding: "4px 10px",
+              borderRadius: 8,
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = C.brandLight)}
+            onMouseLeave={e => (e.currentTarget.style.background = "none")}
+          >
+            Mark all read
+          </button>
+        )}
+      </div>
+
+      {/* Items */}
+      <div style={{ maxHeight: 340, overflowY: "auto" }}>
+        {notifications.length > 0 ? (
+          notifications.map((n) => (
+            <div key={n.id} className={`notif-item ${!n.isRead ? "unread" : ""}`}>
+              <div className={`notif-icon-dot ${n.type}`}>{n.icon}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{
+                  margin: 0,
+                  fontSize: 13,
+                  fontWeight: n.isRead ? 500 : 600,
+                  color: C.text,
+                  lineHeight: 1.5,
+                  letterSpacing: "-0.005em",
+                }}>
+                  {n.text}
+                </p>
+                <p style={{
+                  margin: "4px 0 0",
+                  fontSize: 11,
+                  color: C.textMuted,
+                  fontWeight: 500,
+                }}>
+                  {n.time}
+                </p>
+              </div>
+              {!n.isRead && <div className="unread-dot" />}
+            </div>
+          ))
+        ) : (
+          <div style={{ padding: "48px 20px", textAlign: "center", color: C.textMuted }}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              background: "#f1f5f9",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 14,
+            }}>
+              <Icons.Bell size={22} color={C.textMuted} />
+            </div>
+            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: C.textSub }}>All caught up!</p>
+            <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textMuted }}>No new notifications</p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        padding: "12px 18px",
+        borderTop: `1px solid ${C.border}`,
+        background: "linear-gradient(180deg, #ffffff 0%, #fafbfd 100%)",
+        textAlign: "center",
+        borderRadius: "0 0 16px 16px",
+      }}>
+        <Link
+          href={`${dashBase}/notifications`}
+          onClick={() => setIsOpen(false)}
+          style={{
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: C.brand,
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "6px 14px",
+            borderRadius: 8,
+            transition: "all 0.15s ease",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = C.brandLight;
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          View All Notifications
+          <Icons.ArrowRight size={14} color="currentColor" />
+        </Link>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div style={{ position: "relative" }} ref={dropdownRef}>
+    <>
       <button
+        ref={btnRef}
         className={`notif-btn ${isOpen ? "active" : ""} ${unreadCount > 0 ? "bell-shake" : ""}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleOpen}
         aria-label="Notifications"
       >
         <Icons.Bell size={20} color={isOpen ? "#fff" : C.textSub} />
         {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
       </button>
-
-      {isOpen && (
-        <div className="notif-dropdown">
-          <div style={{ padding: "18px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fafafa" }}>
-            <span style={{ fontWeight: 800, fontSize: 13, color: C.text, letterSpacing: "-0.01em" }}>Notifications</span>
-            <button
-              onClick={markAllAsRead}
-              style={{ background: "none", border: "none", color: C.brand, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: "4px 8px", borderRadius: "6px" }}
-              onMouseEnter={e => (e.currentTarget.style.background = C.brandLight)}
-              onMouseLeave={e => (e.currentTarget.style.background = "none")}
-            >
-              Mark all as read
-            </button>
-          </div>
-
-          <div style={{ maxHeight: "380px", overflowY: "auto" }}>
-            {notifications.length > 0 ? (
-              notifications.map((n) => (
-                <div key={n.id} className={`notif-item ${!n.isRead ? "unread" : ""}`}>
-                  <div style={{ fontSize: 18, width: 24, flexShrink: 0, display: "flex", justifyContent: "center" }}>{n.icon}</div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: n.isRead ? 500 : 700, color: C.text, lineHeight: 1.5 }}>
-                      {n.text}
-                    </p>
-                    <p style={{ margin: "4px 0 0", fontSize: 11.5, color: C.textMuted, fontWeight: 500 }}>
-                      {n.time}
-                    </p>
-                  </div>
-                  {!n.isRead && <div className="unread-dot" />}
-                </div>
-              ))
-            ) : (
-              <div style={{ padding: "40px 20px", textAlign: "center", color: C.textMuted }}>
-                <div style={{ marginBottom: 16, opacity: 0.5 }}><Icons.Bell size={32} color={C.textMuted} /></div>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>All caught up!</p>
-              </div>
-            )}
-          </div>
-
-          <div style={{ padding: "14px 18px", borderTop: `1px solid ${C.border}`, background: "#fafafa", textAlign: "center" }}>
-            <Link
-              href="/notifications"
-              style={{ fontSize: 12, fontWeight: 700, color: C.brand, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
-              onMouseEnter={e => (e.currentTarget.style.textDecoration = "underline")}
-              onMouseLeave={e => (e.currentTarget.style.textDecoration = "none")}
-            >
-              View All Notifications
-              <Icons.ArrowRight size={14} color="currentColor" />
-            </Link>
-          </div>
-        </div>
-      )}
-    </div>
+      {typeof document !== "undefined" && createPortal(dropdownContent, document.body)}
+    </>
   );
 }
+
 
 function TimingPanel({ title, avg, max, barPct, warning, iconBg, iconColor, barColor, Icon }: {
   title: string; avg: number; max: number; barPct: number; warning: boolean;
@@ -1917,72 +2049,66 @@ function TimingPanel({ title, avg, max, barPct, warning, iconBg, iconColor, barC
   Icon: (p: IconProps) => React.ReactNode;
 }) {
   return (
-    <div className="card" style={{ overflow: "hidden" }}>
-      {/* panel header */}
-      <div className="card-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div className="icon-badge" style={{ width: 34, height: 34, background: iconBg, border: `1px solid ${iconColor}22` }}>
-            <Icon size={15} color={iconColor} />
+    <div style={{
+      background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12,
+      overflow: "hidden",
+    }}>
+      {/* Header */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 20px",
+        borderBottom: `1px solid ${C.borderLight}`,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8, background: iconBg,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <Icon size={13} color={iconColor} />
           </div>
-          <span style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>{title}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: C.text }}>{title}</span>
         </div>
         {warning && (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: "#92400e", background: C.amberBg, border: "1px solid #fde68a", padding: "4px 10px", borderRadius: 99 }}>
-            <Icons.AlertTriangle size={11} color={C.amber} /> High variance
-          </div>
+          <span style={{
+            fontSize: 10.5, fontWeight: 600, color: "#92400e",
+            background: "#fffbeb", padding: "3px 8px", borderRadius: 5,
+          }}>
+            High variance
+          </span>
         )}
       </div>
 
-      <div style={{ padding: "20px 24px" }}>
-        {/* avg / max stat cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 22 }}>
-          {/* Average */}
+      <div style={{ padding: "18px 20px" }}>
+        {/* Stats row */}
+        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
           <div style={{
-            background: `${iconBg}`, border: `1px solid ${iconColor}18`,
-            borderRadius: 12, padding: "16px 18px",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 10 }}>
-              <Icons.TrendingUp size={11} color={iconColor} />
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase" }}>Average</span>
-            </div>
-            <span className="mono tnum" style={{ display: "block", fontSize: 24, fontWeight: 700, color: iconColor, letterSpacing: "-.03em", lineHeight: 1 }}>{formatDuration(avg)}</span>
-          </div>
-          {/* Maximum */}
-          <div style={{
+            flex: 1, padding: "14px 16px", borderRadius: 10,
             background: "#fff", border: `1px solid ${C.border}`,
-            borderRadius: 12, padding: "16px 18px",
+            borderLeft: `3px solid ${iconColor}`,
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 10 }}>
-              <Icons.AlertTriangle size={11} color={C.textMuted} />
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase" }}>Maximum</span>
-            </div>
-            <span className="mono tnum" style={{ display: "block", fontSize: 24, fontWeight: 700, color: C.text, letterSpacing: "-.03em", lineHeight: 1 }}>{formatDuration(max)}</span>
+            <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: C.textMuted, letterSpacing: ".05em", textTransform: "uppercase" as const, marginBottom: 6 }}>Average</span>
+            <span className="mono tnum" style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: "-.02em", lineHeight: 1 }}>{formatDuration(avg)}</span>
           </div>
-
+          <div style={{
+            flex: 1, padding: "14px 16px", borderRadius: 10,
+            background: "#fff", border: `1px solid ${C.border}`,
+          }}>
+            <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: C.textMuted, letterSpacing: ".05em", textTransform: "uppercase" as const, marginBottom: 6 }}>Maximum</span>
+            <span className="mono tnum" style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: "-.02em", lineHeight: 1 }}>{formatDuration(max)}</span>
+          </div>
         </div>
 
-        {/* progress bar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <span className="lbl">Avg / Max ratio</span>
-          <span className="mono tnum" style={{
-            fontSize: 11, fontWeight: 700, color: iconColor,
-            background: iconBg, border: `1px solid ${iconColor}22`,
-            padding: "2px 8px", borderRadius: 99,
-          }}>{barPct}%</span>
+        {/* Progress bar */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 500, color: C.textMuted }}>Avg / Max ratio</span>
+          <span className="mono tnum" style={{ fontSize: 11.5, fontWeight: 700, color: C.textSub }}>{barPct}%</span>
         </div>
-        <div style={{ background: "#f0f2f5", borderRadius: 99, overflow: "hidden", height: 6, position: "relative" }}>
+        <div style={{ background: "#f1f5f9", borderRadius: 99, overflow: "hidden", height: 5 }}>
           <div style={{
             width: `${barPct}%`, height: "100%", borderRadius: 99,
-            background: `linear-gradient(90deg, ${barColor}, ${barColor}bb)`,
-            position: "relative", overflow: "hidden",
-            transition: "width 0.8s cubic-bezier(.4,0,.2,1)",
-          }}>
-            <div style={{
-              position: "absolute", inset: 0,
-              background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%)",
-              animation: "shimmer 2.5s infinite",
-            }} />
-          </div>
+            background: barColor,
+            transition: "width 0.6s ease",
+          }} />
         </div>
       </div>
     </div>
@@ -1997,49 +2123,49 @@ function SmartInsightCard({
   iconBg: string; iconColor: string;
 }) {
   return (
-    <div className="card smart-insight" style={{
-      padding: "24px", display: "flex", flexDirection: "column", gap: 18,
-      background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 18,
-      position: "relative", overflow: "hidden", transition: "all .3s ease"
-    }}>
-      <div aria-hidden style={{ position: "absolute", top: 0, right: 0, width: 120, height: 120, background: `radial-gradient(circle at 100% 0%, ${iconBg}, transparent 70%)`, pointerEvents: "none" }} />
-
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative", zIndex: 1 }}>
-        <div className="icon-badge" style={{ width: 38, height: 38, background: iconBg, border: `1px solid ${iconColor}22` }}>
-          <Icon size={18} color={iconColor} />
+    <div style={{
+      background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12,
+      overflow: "hidden", transition: "border-color .2s ease, box-shadow .2s ease",
+    }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = `${iconColor}40`; e.currentTarget.style.boxShadow = `0 4px 16px -4px rgba(0,0,0,.06)`; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = "none"; }}
+    >
+      <div style={{ padding: "18px 20px 16px" }}>
+        {/* Title row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: iconBg,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <Icon size={13} color={iconColor} />
+          </div>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: C.textMuted, letterSpacing: ".02em" }}>{title}</span>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".1em", color: C.textSub }}>{title}</span>
-      </div>
 
-      {/* Data Section */}
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span className="mono tnum" style={{ fontSize: 28, fontWeight: 800, color: C.text, letterSpacing: "-.04em" }}>{data}</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.textMuted }}>{dataSub}</span>
-        </div>
-        <p style={{ margin: "6px 0 0", fontSize: 13, color: C.textSub, fontWeight: 500, lineHeight: 1.5 }}>
+        {/* Value */}
+        <span className="mono tnum" style={{ fontSize: 24, fontWeight: 800, color: C.text, letterSpacing: "-.03em", lineHeight: 1, display: "block" }}>{data}</span>
+        <span style={{ fontSize: 11.5, fontWeight: 500, color: C.textMuted, marginTop: 3, display: "block" }}>{dataSub}</span>
+
+        {/* Analysis */}
+        <p style={{ margin: "12px 0 0", fontSize: 12.5, color: C.textSub, fontWeight: 400, lineHeight: 1.6 }}>
           {analysis}
         </p>
       </div>
 
-      {/* Recommendation Box */}
+      {/* Recommendation */}
       <div style={{
-        padding: "14px 16px", background: "#f8fafc", borderRadius: 12, border: "1px dashed #e2e8f0",
-        position: "relative", zIndex: 1
+        padding: "14px 20px",
+        background: "#fafbfc",
+        borderTop: `1px solid ${C.borderLight}`,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-          <Icons.Zap size={14} color={C.amber} />
-          <span style={{ fontSize: 11, fontWeight: 750, color: C.amber, textTransform: "uppercase", letterSpacing: ".05em" }}>Recommendation</span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ width: 4, borderRadius: 2, background: C.amber, flexShrink: 0, marginTop: 2 }} />
+          <p style={{ margin: 0, fontSize: 12, color: C.textSub, fontWeight: 450, lineHeight: 1.55 }}>
+            {recommendation}
+          </p>
         </div>
-        <p style={{ margin: 0, fontSize: 13, color: "#475569", fontWeight: 500, lineHeight: 1.5 }}>
-          {recommendation}
-        </p>
       </div>
-
-      <style jsx>{`
-        .smart-insight:hover { border-color: ${iconColor}55; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08); transform: translateY(-2px); }
-      `}</style>
     </div>
   );
 }
@@ -2139,24 +2265,8 @@ function HourlyChart({ hourly, maxVisits, accentColor, peakHour }: {
   const peakVisits = hourly.find(h => h.hour === peakHour)?.visits ?? 0;
 
   return (
-    <div style={{ padding: "20px 24px 22px" }}>
-      {/* Info banner pill */}
-      <div style={{
-        display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 20,
-        padding: "8px 16px", borderRadius: 99,
-        background: "linear-gradient(135deg, #eef2ff 0%, #f0f4ff 50%, #e8ecff 100%)",
-        border: "1px solid #c7d2fe",
-        boxShadow: "0 1px 4px rgba(99,102,241,.08)",
-      }}>
-        <div style={{ width: 22, height: 22, borderRadius: "50%", background: "linear-gradient(135deg, #6366f1, #818cf8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Icons.Info size={12} color="#fff" />
-        </div>
-        <span style={{ fontSize: 12.5, color: "#4338ca", fontWeight: 600, fontFamily: "'Inter',sans-serif", letterSpacing: "-.01em" }}>
-          Each slice shows one tracked hour — hover to explore the data
-        </span>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 36 }}>
+    <div style={{ padding: "24px 28px 26px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 40 }}>
 
         {/* ── Donut Chart ── */}
         <div style={{ flexShrink: 0, position: "relative", width: 380, height: 380 }}>
@@ -2278,61 +2388,37 @@ function HourlyChart({ hourly, maxVisits, accentColor, peakHour }: {
         {/* ── Right Panel ── */}
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
 
-          {/* ── Summary stat cards with icons ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            {/* Peak */}
-            <div style={{
-              background: "linear-gradient(135deg, #fef9f0 0%, #fff7ed 100%)",
-              border: "1px solid #fed7aa", borderRadius: 14, padding: "14px 16px",
-              position: "relative", overflow: "hidden",
-            }}>
-              <div style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #f59e0b, #fbbf24)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Icons.Zap size={14} color="#fff" />
+          {/* ── Summary stat cards ── */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            {[
+              { label: "Peak Hour", value: peakVisits, sub: peakHour, color: "#f59e0b", bg: "#fffbeb", border: "#fde68a", textColor: "#92400e" },
+              { label: "Total Visits", value: totalVisits.toLocaleString(), sub: "all hours", color: "#6366f1", bg: "#eef2ff", border: "#c7d2fe", textColor: "#3730a3" },
+              { label: "Average", value: avgVisits, sub: "per hour", color: "#10b981", bg: "#ecfdf5", border: "#a7f3d0", textColor: "#065f46" },
+            ].map(card => (
+              <div key={card.label} style={{
+                background: "#fff",
+                border: `1px solid ${C.border}`,
+                borderLeft: `3px solid ${card.color}`,
+                borderRadius: 12,
+                padding: "14px 16px",
+              }}>
+                <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: ".06em", textTransform: "uppercase" as const, marginBottom: 8 }}>{card.label}</span>
+                <span className="mono tnum" style={{ fontSize: 22, fontWeight: 800, color: C.text, lineHeight: 1 }}>{card.value}</span>
+                <span style={{ display: "block", fontSize: 11, color: C.textMuted, marginTop: 4, fontWeight: 500 }}>{card.sub}</span>
               </div>
-              <span style={{ display: "block", fontSize: 10.5, fontWeight: 600, color: "#92400e", letterSpacing: ".05em", textTransform: "uppercase" as const, marginBottom: 6 }}>Peak Hour</span>
-              <span className="mono tnum" style={{ fontSize: 22, fontWeight: 800, color: "#b45309", lineHeight: 1 }}>{peakVisits}</span>
-              <span style={{ display: "block", fontSize: 11, color: "#b45309", marginTop: 4, fontWeight: 600, opacity: 0.7 }}>{peakHour}</span>
-            </div>
-
-            {/* Total */}
-            <div style={{
-              background: "linear-gradient(135deg, #eef2ff 0%, #e8ecff 100%)",
-              border: "1px solid #c7d2fe", borderRadius: 14, padding: "14px 16px",
-              position: "relative", overflow: "hidden",
-            }}>
-              <div style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #6366f1, #818cf8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Icons.BarChart3 size={14} color="#fff" />
-              </div>
-              <span style={{ display: "block", fontSize: 10.5, fontWeight: 600, color: "#3730a3", letterSpacing: ".05em", textTransform: "uppercase" as const, marginBottom: 6 }}>Total Visits</span>
-              <span className="mono tnum" style={{ fontSize: 22, fontWeight: 800, color: "#4338ca", lineHeight: 1 }}>{totalVisits.toLocaleString()}</span>
-              <span style={{ display: "block", fontSize: 11, color: "#4338ca", marginTop: 4, fontWeight: 600, opacity: 0.7 }}>all hours</span>
-            </div>
-
-            {/* Average */}
-            <div style={{
-              background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
-              border: "1px solid #a7f3d0", borderRadius: 14, padding: "14px 16px",
-              position: "relative", overflow: "hidden",
-            }}>
-              <div style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #059669, #34d399)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Icons.Clock size={14} color="#fff" />
-              </div>
-              <span style={{ display: "block", fontSize: 10.5, fontWeight: 600, color: "#065f46", letterSpacing: ".05em", textTransform: "uppercase" as const, marginBottom: 6 }}>Average</span>
-              <span className="mono tnum" style={{ fontSize: 22, fontWeight: 800, color: "#047857", lineHeight: 1 }}>{avgVisits}</span>
-              <span style={{ display: "block", fontSize: 11, color: "#047857", marginTop: 4, fontWeight: 600, opacity: 0.7 }}>per hour</span>
-            </div>
+            ))}
           </div>
 
           {/* ── Top Hours breakdown ── */}
           <div style={{
-            background: "linear-gradient(180deg, #fafbff 0%, #fff 100%)",
-            border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 18px",
+            background: "#fff",
+            border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <Icons.TrendingUp size={14} color={C.brand} />
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: C.text, letterSpacing: ".02em" }}>Top Performing Hours</span>
+              <Icons.TrendingUp size={13} color={C.brand} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.text, letterSpacing: ".01em" }}>Top Performing Hours</span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {top3.map((h, rank) => {
                 const pct = Math.round((h.visits / safeTot) * 100);
                 const isPeak = h.hour === peakHour;
@@ -2340,20 +2426,20 @@ function HourlyChart({ hourly, maxVisits, accentColor, peakHour }: {
                 const clr = palette[idx % palette.length];
                 return (
                   <div key={h.hour} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ width: 22, height: 22, borderRadius: "50%", background: rankBg[rank], display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff", flexShrink: 0, boxShadow: "0 1px 3px rgba(0,0,0,.15)" }}>{rank + 1}</span>
-                    <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: clr, flexShrink: 0, boxShadow: `0 0 0 2px #fff, 0 0 6px ${clr}44` }} />
-                    <span style={{ fontSize: 13, fontWeight: isPeak ? 700 : 500, color: isPeak ? accentColor : C.text, width: 52, fontFamily: "'Inter',sans-serif" }}>{h.hour}</span>
-                    <div style={{ flex: 1, height: 8, borderRadius: 99, background: "#f1f5f9", overflow: "hidden", position: "relative" }}>
+                    <span style={{ width: 20, height: 20, borderRadius: 6, background: rank === 0 ? "#f59e0b" : rank === 1 ? "#94a3b8" : "#d97706", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff", flexShrink: 0 }}>{rank + 1}</span>
+                    <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: clr, flexShrink: 0 }} />
+                    <span style={{ fontSize: 12.5, fontWeight: isPeak ? 700 : 500, color: C.text, width: 52 }}>{h.hour}</span>
+                    <div style={{ flex: 1, height: 6, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
                       <div style={{
                         height: "100%", width: `${pct}%`, borderRadius: 99,
-                        background: `linear-gradient(90deg, ${clr}, ${clr}99)`,
-                        boxShadow: `inset 0 1px 0 rgba(255,255,255,.3)`,
+                        background: clr,
+                        transition: "width 0.4s ease",
                       }} />
                     </div>
-                    <span className="mono tnum" style={{ fontSize: 13, fontWeight: 700, color: C.text, width: 36, textAlign: "right" }}>{h.visits}</span>
+                    <span className="mono tnum" style={{ fontSize: 12, fontWeight: 700, color: C.text, width: 32, textAlign: "right" }}>{h.visits}</span>
                     <span className="mono tnum" style={{
-                      fontSize: 11, fontWeight: 600, width: 38, textAlign: "right",
-                      color: "#fff", background: `${clr}cc`, borderRadius: 6, padding: "2px 6px",
+                      fontSize: 10.5, fontWeight: 600, width: 34, textAlign: "right",
+                      color: C.textMuted,
                     }}>{pct}%</span>
                   </div>
                 );
@@ -2363,12 +2449,9 @@ function HourlyChart({ hourly, maxVisits, accentColor, peakHour }: {
 
           {/* ── Distribution legend ── */}
           <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <Icons.Clock size={13} color={C.textMuted} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub, letterSpacing: ".04em", textTransform: "uppercase" as const }}>All Hours</span>
-              </div>
-              <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 500 }}>{hourly.length} entries</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.textSub, letterSpacing: ".04em", textTransform: "uppercase" as const }}>All Hours</span>
+              <span style={{ fontSize: 10.5, color: C.textMuted, fontWeight: 500 }}>{hourly.length} entries</span>
             </div>
             <div style={{ maxHeight: 120, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 10px", paddingRight: 6 }}>
               {hourly.map((h, i) => {
