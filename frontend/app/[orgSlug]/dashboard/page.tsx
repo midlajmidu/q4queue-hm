@@ -1333,61 +1333,72 @@ export default function OverviewPage() {
           )}
 
           {/* ══ TIMING PANELS ════════════════════════════════════ */}
-          <div>
-            <div className="section-label" style={{ marginBottom: 14 }}>Timing Analysis</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16 }}>
-              <TimingPanel
-                title="Wait Times" warning={wWarn}
-                avg={wAvg}
-                max={wMax}
-                barPct={wPct}
-                iconBg={C.blueBg} iconColor={C.blue} barColor={wWarn ? C.amber : C.blue}
-                Icon={Icons.Clock}
-              />
-              <TimingPanel
-                title="Service Times" warning={sWarn}
-                avg={sAvg}
-                max={sMax}
-                barPct={sPct}
-                iconBg={C.greenBg} iconColor={C.green} barColor={sWarn ? C.amber : C.green}
-                Icon={Icons.CheckCircle2}
-              />
+          <div className="card" style={{ overflow: "hidden" }}>
+            <div className="card-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div className="icon-badge" style={{ width: 32, height: 32, background: C.blueBg, border: `1px solid ${C.blue}18` }}>
+                  <Icons.Clock size={14} color={C.blue} />
+                </div>
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>Timing Analysis</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", padding: "0 20px" }}>
+              <div style={{ flex: 1 }}>
+                <TimingPanel
+                  title="Wait Times" warning={wWarn}
+                  avg={wAvg} max={wMax} barPct={wPct}
+                  iconBg={C.blueBg} iconColor={C.blue} barColor={wWarn ? C.amber : C.blue}
+                  Icon={Icons.Clock}
+                />
+              </div>
+              <div style={{ width: 1, background: C.borderLight, margin: "16px 24px" }} />
+              <div style={{ flex: 1 }}>
+                <TimingPanel
+                  title="Service Times" warning={sWarn}
+                  avg={sAvg} max={sMax} barPct={sPct}
+                  iconBg={C.greenBg} iconColor={C.green} barColor={sWarn ? C.amber : C.green}
+                  Icon={Icons.CheckCircle2}
+                />
+              </div>
             </div>
           </div>
 
-          {/* ══ INSIGHTS ═════════════════════════════════════════ */}
+          {/* ══ INSIGHTS SUMMARY ═════════════════════════════════ */}
           {insights && (
             <div className="card" style={{ overflow: "hidden" }}>
               <div className="card-header">
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div className="icon-badge" style={{ width: 34, height: 34, background: C.violetBg, border: `1px solid ${C.violet}22` }}>
-                    <Icons.Activity size={15} color={C.violet} />
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div className="icon-badge" style={{ width: 32, height: 32, background: C.violetBg, border: `1px solid ${C.violet}18` }}>
+                    <Icons.Activity size={14} color={C.violet} />
                   </div>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>Performance Insights</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>Performance Insights</span>
                 </div>
-                <span className="lbl">{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                <Link href={`${dashBase}/insights`} style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  fontSize: 12, fontWeight: 600, color: C.brand,
+                  padding: "5px 12px", borderRadius: 8,
+                  border: `1px solid ${C.border}`, background: "#fff",
+                  textDecoration: "none", transition: "all .15s ease",
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = C.brandBorder; e.currentTarget.style.background = C.brandLight; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = "#fff"; }}
+                >
+                  View Details <Icons.ArrowRight size={11} color="currentColor" />
+                </Link>
               </div>
-              <div style={{ padding: "18px 24px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
-                <SmartInsightCard
-                  title="Peak Hour" data={insights.busiestHour} dataSub={`${insights.busiestVisits} visitors`}
-                  analysis={insights.busiestAnalysis} recommendation={insights.busiestRec}
-                  Icon={Icons.Zap} iconBg={C.amberBg} iconColor={C.amber}
-                />
-                <SmartInsightCard
-                  title="Wait Alert" data={formatDuration(timeToSeconds(insights.longestWait))} dataSub="Max Wait"
-                  analysis={insights.waitAnalysis} recommendation={insights.waitRec}
-                  Icon={Icons.Clock} iconBg={C.redBg} iconColor={C.red}
-                />
-                <SmartInsightCard
-                  title="Service Speed" data={formatDuration(timeToSeconds(insights.avgService))} dataSub="Avg Session"
-                  analysis={insights.servAnalysis} recommendation={insights.servRec}
-                  Icon={Icons.Activity} iconBg={C.violetBg} iconColor={C.violet}
-                />
-                <SmartInsightCard
-                  title="Queue Balance" data={String(insights.peakWaiting)} dataSub="Waiting Now"
-                  analysis={insights.distAnalysis} recommendation={insights.distRec}
-                  Icon={Icons.Users} iconBg={C.blueBg} iconColor={C.blue}
-                />
+              <div style={{ padding: "14px 20px", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+                {[
+                  { label: "Peak Hour", value: insights.busiestHour, sub: `${insights.busiestVisits} visitors`, color: C.amber },
+                  { label: "Max Wait", value: formatDuration(timeToSeconds(insights.longestWait)), sub: insights.waitAnalysis, color: C.red },
+                  { label: "Avg Service", value: formatDuration(timeToSeconds(insights.avgService)), sub: insights.servAnalysis, color: C.violet },
+                  { label: "Waiting Now", value: String(insights.peakWaiting), sub: insights.distAnalysis, color: C.blue },
+                ].map(item => (
+                  <div key={item.label} style={{ borderLeft: `3px solid ${item.color}`, paddingLeft: 12 }}>
+                    <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase" as const, marginBottom: 4 }}>{item.label}</span>
+                    <span className="mono tnum" style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: "-.02em", lineHeight: 1 }}>{item.value}</span>
+                    <span style={{ display: "block", fontSize: 11, color: C.textMuted, marginTop: 4, lineHeight: 1.4 }}>{item.sub}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -1397,121 +1408,87 @@ export default function OverviewPage() {
             const totalServed = queueStats.reduce((s, q) => s + q.served, 0);
             const totalWaiting = queueStats.reduce((s, q) => s + q.waiting, 0);
             const grandTotal = queueStats.reduce((s, q) => s + q.total, 0);
+            const overallPct = grandTotal > 0 ? Math.round((totalServed / grandTotal) * 100) : 0;
             return (
               <div className="card" style={{ overflow: "hidden" }}>
                 <div className="card-header">
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div className="icon-badge" style={{ width: 34, height: 34, background: C.brandLight, border: `1px solid ${C.brandBorder}` }}>
-                      <Icons.Table2 size={15} color={C.brand} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div className="icon-badge" style={{ width: 32, height: 32, background: C.brandLight, border: `1px solid ${C.brandBorder}` }}>
+                      <Icons.Table2 size={14} color={C.brand} />
                     </div>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>Queue Breakdown</span>
-                    <span className="chip" style={{ background: C.brandLight, color: C.brand, border: `1px solid ${C.brandBorder}` }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>Queue Breakdown</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: C.brand, background: C.brandLight, padding: "2px 8px", borderRadius: 6 }}>
                       {queueStats.length} queue{queueStats.length !== 1 ? "s" : ""}
                     </span>
                   </div>
-                  <span className="lbl">{grandTotal} total tokens</span>
+                  <span style={{ fontSize: 11, fontWeight: 500, color: C.textMuted }}>{grandTotal} total tokens</span>
                 </div>
                 <div style={{ overflowX: "auto" }}>
-                  <table className="qtable">
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr>
-                        <th style={{ paddingLeft: 24 }}>Queue Name</th>
-                        <th style={{ textAlign: "center", width: 100 }}>Served</th>
-                        <th style={{ textAlign: "center", width: 100 }}>Waiting</th>
-                        <th style={{ textAlign: "center", width: 120 }}>Progress</th>
-                        <th style={{ textAlign: "right", width: 90, paddingRight: 24 }}>Total</th>
+                        {["Queue Name", "Served", "Waiting", "Progress", "Total"].map((h, i) => (
+                          <th key={h} style={{
+                            padding: "8px 20px",
+                            fontSize: 10, fontWeight: 600, color: C.textMuted,
+                            letterSpacing: ".06em", textTransform: "uppercase" as const,
+                            textAlign: i === 0 ? "left" as const : i === 4 ? "right" as const : "center" as const,
+                            borderBottom: `1px solid ${C.borderLight}`,
+                            background: "#fafbfc",
+                          }}>{h}</th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
                       {queueStats.map(qs => {
                         const pct = qs.total > 0 ? Math.round((qs.served / qs.total) * 100) : 0;
                         return (
-                          <tr key={qs.queue} className="fade-in">
-                            <td style={{ paddingLeft: 24 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                <div style={{
-                                  width: 28, height: 28, borderRadius: 8,
-                                  background: C.brandLight, border: `1px solid ${C.brandBorder}`,
-                                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                                }}>
-                                  <Icons.Layers size={12} color={C.brand} />
-                                </div>
-                                <span style={{ fontWeight: 600, fontSize: 13.5 }}>{qs.queue}</span>
-                              </div>
+                          <tr key={qs.queue} style={{ borderBottom: `1px solid ${C.borderLight}` }}>
+                            <td style={{ padding: "12px 20px" }}>
+                              <span style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{qs.queue}</span>
                             </td>
-                            <td style={{ textAlign: "center" }}>
-                              <span style={{
-                                display: "inline-flex", alignItems: "center", gap: 4,
-                                padding: "3px 10px", borderRadius: 99,
-                                background: C.greenBg, color: "#15803d", border: `1px solid ${C.greenBorder}`,
-                                fontSize: 12, fontWeight: 700,
-                              }}>
-                                <Icons.CheckCircle2 size={10} color={C.green} />
-                                {qs.served}
-                              </span>
+                            <td style={{ textAlign: "center", padding: "12px 20px" }}>
+                              <span className="mono tnum" style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>{qs.served}</span>
                             </td>
-                            <td style={{ textAlign: "center" }}>
-                              <span style={{
-                                display: "inline-flex", alignItems: "center", gap: 4,
-                                padding: "3px 10px", borderRadius: 99,
-                                background: C.amberBg, color: "#92400e", border: "1px solid #fde68a",
-                                fontSize: 12, fontWeight: 700,
-                              }}>
-                                <Icons.Clock size={10} color={C.amber} />
-                                {qs.waiting}
-                              </span>
+                            <td style={{ textAlign: "center", padding: "12px 20px" }}>
+                              <span className="mono tnum" style={{ fontSize: 13, fontWeight: 700, color: "#92400e" }}>{qs.waiting}</span>
                             </td>
-                            <td style={{ textAlign: "center" }}>
+                            <td style={{ padding: "12px 20px" }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <div style={{ flex: 1, height: 6, borderRadius: 99, background: "#f0f2f5", overflow: "hidden" }}>
-                                  <div style={{ height: "100%", width: `${pct}%`, borderRadius: 99, background: `linear-gradient(90deg, ${C.green}, ${C.green}cc)`, transition: "width .4s ease" }} />
+                                <div style={{ flex: 1, height: 5, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
+                                  <div style={{ height: "100%", width: `${pct}%`, borderRadius: 99, background: C.green, transition: "width .4s ease" }} />
                                 </div>
-                                <span className="mono tnum" style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, minWidth: 30, textAlign: "right" }}>{pct}%</span>
+                                <span className="mono tnum" style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, minWidth: 28, textAlign: "right" }}>{pct}%</span>
                               </div>
                             </td>
-                            <td className="tnum" style={{ textAlign: "right", paddingRight: 24 }}>
-                              <span className="mono" style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{qs.total}</span>
+                            <td className="tnum" style={{ textAlign: "right", padding: "12px 20px" }}>
+                              <span className="mono" style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{qs.total}</span>
                             </td>
                           </tr>
                         );
                       })}
                     </tbody>
-                    {/* Summary footer */}
                     <tfoot>
                       <tr>
-                        <td style={{ paddingLeft: 24, borderTop: `1px solid ${C.border}`, background: "linear-gradient(180deg, #f9fafb, #fafbfd)" }}>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: C.textSub, letterSpacing: ".04em", textTransform: "uppercase" }}>Total</span>
+                        <td style={{ padding: "10px 20px", borderTop: `1px solid ${C.border}`, background: "#fafbfc" }}>
+                          <span style={{ fontWeight: 700, fontSize: 10, color: C.textMuted, letterSpacing: ".05em", textTransform: "uppercase" as const }}>Total</span>
                         </td>
-                        <td style={{ textAlign: "center", borderTop: `1px solid ${C.border}`, background: "linear-gradient(180deg, #f9fafb, #fafbfd)" }}>
-                          <span style={{
-                            display: "inline-flex", alignItems: "center", gap: 4,
-                            padding: "3px 10px", borderRadius: 99,
-                            background: C.greenBg, color: "#15803d", border: `1px solid ${C.greenBorder}`,
-                            fontSize: 12, fontWeight: 700,
-                          }}>
-                            {totalServed}
-                          </span>
+                        <td style={{ textAlign: "center", padding: "10px 20px", borderTop: `1px solid ${C.border}`, background: "#fafbfc" }}>
+                          <span className="mono tnum" style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>{totalServed}</span>
                         </td>
-                        <td style={{ textAlign: "center", borderTop: `1px solid ${C.border}`, background: "linear-gradient(180deg, #f9fafb, #fafbfd)" }}>
-                          <span style={{
-                            display: "inline-flex", alignItems: "center", gap: 4,
-                            padding: "3px 10px", borderRadius: 99,
-                            background: C.amberBg, color: "#92400e", border: "1px solid #fde68a",
-                            fontSize: 12, fontWeight: 700,
-                          }}>
-                            {totalWaiting}
-                          </span>
+                        <td style={{ textAlign: "center", padding: "10px 20px", borderTop: `1px solid ${C.border}`, background: "#fafbfc" }}>
+                          <span className="mono tnum" style={{ fontSize: 13, fontWeight: 700, color: "#92400e" }}>{totalWaiting}</span>
                         </td>
-                        <td style={{ borderTop: `1px solid ${C.border}`, background: "linear-gradient(180deg, #f9fafb, #fafbfd)" }}>
+                        <td style={{ padding: "10px 20px", borderTop: `1px solid ${C.border}`, background: "#fafbfc" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ flex: 1, height: 6, borderRadius: 99, background: "#f0f2f5", overflow: "hidden" }}>
-                              <div style={{ height: "100%", width: `${grandTotal > 0 ? Math.round((totalServed / grandTotal) * 100) : 0}%`, borderRadius: 99, background: `linear-gradient(90deg, ${C.brand}, ${C.brand}bb)` }} />
+                            <div style={{ flex: 1, height: 5, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${overallPct}%`, borderRadius: 99, background: C.brand }} />
                             </div>
-                            <span className="mono tnum" style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, minWidth: 30, textAlign: "right" }}>{grandTotal > 0 ? Math.round((totalServed / grandTotal) * 100) : 0}%</span>
+                            <span className="mono tnum" style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, minWidth: 28, textAlign: "right" }}>{overallPct}%</span>
                           </div>
                         </td>
-                        <td className="tnum" style={{ textAlign: "right", paddingRight: 24, borderTop: `1px solid ${C.border}`, background: "linear-gradient(180deg, #f9fafb, #fafbfd)" }}>
-                          <span className="mono" style={{ fontSize: 15, fontWeight: 800, color: C.brand }}>{grandTotal}</span>
+                        <td className="tnum" style={{ textAlign: "right", padding: "10px 20px", borderTop: `1px solid ${C.border}`, background: "#fafbfc" }}>
+                          <span className="mono" style={{ fontSize: 14, fontWeight: 800, color: C.brand }}>{grandTotal}</span>
                         </td>
                       </tr>
                     </tfoot>
@@ -1523,109 +1500,127 @@ export default function OverviewPage() {
 
           {/* ══ ACTIVITY FEED ════════════════════════════════════ */}
           <div className="card" style={{ overflow: "hidden" }}>
-            {/* header */}
-            <div className="card-header" style={{ position: "relative" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
-                <div className="icon-badge" style={{ width: 34, height: 34, background: C.brandLight, border: `1px solid ${C.brandBorder}` }}>
-                  <Icons.Activity size={15} color={C.brand} />
+            <div className="card-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div className="icon-badge" style={{ width: 32, height: 32, background: C.brandLight, border: `1px solid ${C.brandBorder}` }}>
+                  <Icons.Activity size={14} color={C.brand} />
                 </div>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>Recent Activity</span>
-                    <span className="live-dot" style={{ display: "block", width: 7, height: 7, borderRadius: "50%", background: C.green }} />
-                  </div>
-                  <p style={{ margin: "2px 0 0", fontSize: 11, color: C.textMuted, fontWeight: 500 }}>Live session feed</p>
-                </div>
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>Recent Activity</span>
               </div>
-
-              {!isLoading && overview?.recent_activity && (
-                <div className="activity-legend" style={{ position: "absolute", top: 18, right: 34 }}>
-                  <ActivityLegend
-                    waiting={overview.recent_activity.filter(a => a.status === "waiting").length}
-                    serving={overview.recent_activity.filter(a => a.status === "serving").length}
-                    done={overview.recent_activity.filter(a => a.status === "done").length}
-                  />
-                </div>
-              )}
-
-              <Link href={`${dashBase}/history`} className="view-more" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: C.brand, background: C.brandLight, border: `1px solid ${C.brandBorder}`, padding: "6px 14px", borderRadius: 10, textDecoration: "none", transition: "all .2s ease", marginLeft: 20 }}>
-                View all <span className="arr"><Icons.ArrowRight size={12} color="currentColor" /></span>
+              <Link href={`${dashBase}/history`} style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                fontSize: 12, fontWeight: 600, color: C.brand,
+                padding: "5px 12px", borderRadius: 8,
+                border: `1px solid ${C.border}`, background: "#fff",
+                textDecoration: "none", transition: "all .15s ease",
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.brandBorder; e.currentTarget.style.background = C.brandLight; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = "#fff"; }}
+              >
+                View all <Icons.ArrowRight size={11} color="currentColor" />
               </Link>
             </div>
 
             {isLoading ? (
-              <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
                 {[88, 70, 79, 63, 75].map((w, i) => (
-                  <div key={i} className="shimmer" style={{ height: 58, width: `${w}%`, borderRadius: 12 }} />
+                  <div key={i} className="shimmer" style={{ height: 48, width: `${w}%`, borderRadius: 8 }} />
                 ))}
               </div>
             ) : overview?.recent_activity?.length ? (
               <>
-                {/* feed filters */}
-                <div style={{ padding: "14px 24px", borderBottom: `1px solid ${C.border}`, background: "#fff" }}>
-                  <div className="feed-tabs">
+                {/* Filter tabs */}
+                <div style={{ padding: "10px 20px", borderBottom: `1px solid ${C.borderLight}` }}>
+                  <div style={{ display: "flex", gap: 4 }}>
                     {[
-                      { id: "all", lbl: "All", icon: Icons.Filter, count: overview.recent_activity.length },
-                      { id: "waiting", lbl: "Waiting", icon: Icons.Clock, count: overview.recent_activity.filter(a => a.status === "waiting").length },
-                      { id: "serving", lbl: "Serving", icon: Icons.Megaphone, count: overview.recent_activity.filter(a => a.status === "serving").length },
-                      { id: "done", lbl: "Done", icon: Icons.CheckCircle2, count: overview.recent_activity.filter(a => a.status === "done").length },
+                      { id: "all", lbl: "All", count: overview.recent_activity.length },
+                      { id: "waiting", lbl: "Waiting", count: overview.recent_activity.filter(a => a.status === "waiting").length },
+                      { id: "serving", lbl: "Serving", count: overview.recent_activity.filter(a => a.status === "serving").length },
+                      { id: "done", lbl: "Done", count: overview.recent_activity.filter(a => a.status === "done").length },
                     ].map(t => (
                       <button
                         key={t.id}
-                        className={`feed-tab ${feedFilter === t.id ? "active" : ""}`}
                         onClick={() => setFeedFilter(t.id as any)}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          padding: "5px 12px", borderRadius: 6, border: "none",
+                          fontSize: 12, fontWeight: 600, cursor: "pointer",
+                          background: feedFilter === t.id ? C.brandLight : "transparent",
+                          color: feedFilter === t.id ? C.brand : C.textMuted,
+                          transition: "all .12s ease",
+                        }}
                       >
-                        <t.icon size={13} color="currentColor" />
                         {t.lbl}
-                        <span className="badge tnum">{t.count}</span>
+                        <span className="mono tnum" style={{
+                          fontSize: 10.5, fontWeight: 700,
+                          color: feedFilter === t.id ? C.brand : C.textMuted,
+                          opacity: feedFilter === t.id ? 1 : 0.6,
+                        }}>{t.count}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* column headers */}
-                <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: "0 18px", padding: "10px 24px", borderBottom: `1px solid ${C.border}`, background: "linear-gradient(180deg, #fafbfc, #f8f9fb)" }}>
-                  {["Event", "Details", "Status", "Time"].map((h, i) => (
-                    <span key={h} className="lbl" style={{ textAlign: i >= 2 ? "center" : "left", fontSize: 11, letterSpacing: ".08em" }}>{h}</span>
+                {/* Column headers */}
+                <div style={{
+                  display: "grid", gridTemplateColumns: "1fr auto auto",
+                  gap: "0 16px", padding: "8px 20px",
+                  borderBottom: `1px solid ${C.borderLight}`,
+                }}>
+                  {["Details", "Status", "Time"].map((h, i) => (
+                    <span key={h} style={{
+                      fontSize: 10, fontWeight: 600, color: C.textMuted,
+                      letterSpacing: ".06em", textTransform: "uppercase" as const,
+                      textAlign: i >= 1 ? "center" as const : "left" as const,
+                    }}>{h}</span>
                   ))}
                 </div>
 
+                {/* Activity rows */}
                 <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                   {overview.recent_activity.filter(a => feedFilter === "all" || a.status === feedFilter).map((act, idx) => {
-                    const cfgMap: Record<string, { Icon: (p: IconProps) => React.ReactNode; iconBg: string; iconColor: string; chipBg: string; chipColor: string; chipBorder: string; dot: string }> = {
-                      waiting: { Icon: Icons.Clock, iconBg: C.amberBg, iconColor: C.amber, chipBg: C.amberBg, chipColor: "#92400e", chipBorder: "#fde68a", dot: C.amber },
-                      serving: { Icon: Icons.Megaphone, iconBg: C.blueBg, iconColor: C.blue, chipBg: C.blueBg, chipColor: "#1e40af", chipBorder: "#bfdbfe", dot: C.blue },
-                      done: { Icon: Icons.CheckCircle2, iconBg: C.greenBg, iconColor: C.green, chipBg: C.greenBg, chipColor: "#065f46", chipBorder: "#a7f3d0", dot: C.green },
+                    const statusColors: Record<string, { bg: string; color: string; dot: string }> = {
+                      waiting: { bg: "#fffbeb", color: "#92400e", dot: C.amber },
+                      serving: { bg: "#eff6ff", color: "#1e40af", dot: C.blue },
+                      done: { bg: "#ecfdf5", color: "#065f46", dot: C.green },
                     };
-                    const cfg = cfgMap[act.status] ?? { Icon: Icons.XCircle, iconBg: C.slateBg, iconColor: C.slate, chipBg: C.slateBg, chipColor: C.textSub, chipBorder: C.border, dot: C.textMuted };
+                    const sc = statusColors[act.status] ?? { bg: "#f8fafc", color: C.textSub, dot: C.textMuted };
 
                     return (
                       <li
                         key={idx}
-                        className="trow fade-in"
+                        className="fade-in"
                         onClick={() => setDrawerAct(act)}
-                        style={{ display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: "0 18px", alignItems: "center", padding: "14px 24px", borderBottom: `1px solid ${C.borderLight}`, animationDelay: `${idx * 20}ms`, cursor: "pointer" }}
+                        style={{
+                          display: "grid", gridTemplateColumns: "1fr auto auto",
+                          gap: "0 16px", alignItems: "center",
+                          padding: "12px 20px",
+                          borderBottom: `1px solid ${C.borderLight}`,
+                          cursor: "pointer",
+                          transition: "background .1s ease",
+                          animationDelay: `${idx * 15}ms`,
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
                       >
-                        {/* icon */}
-                        <div className="icon-badge" style={{ width: 38, height: 38, background: cfg.iconBg, border: `1px solid ${cfg.chipBorder}` }}>
-                          <cfg.Icon size={15} color={cfg.iconColor} />
-                        </div>
-                        {/* message */}
+                        {/* Details */}
                         <div style={{ minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
                             {statusLabel(act)}
                           </p>
-                          <p style={{ margin: "3px 0 0", fontSize: 11.5, color: C.textMuted, lineHeight: 1.3 }}>{act.queue}</p>
+                          <p style={{ margin: "2px 0 0", fontSize: 11, color: C.textMuted, lineHeight: 1.3 }}>{act.queue}</p>
                         </div>
-                        {/* status chip */}
-                        <div style={{ display: "flex", justifyContent: "center" }}>
-                          <span className="chip" style={{ background: cfg.chipBg, color: cfg.chipColor, border: `1px solid ${cfg.chipBorder}`, padding: "4px 11px", borderRadius: 8 }}>
-                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
-                            {act.status}
-                          </span>
-                        </div>
-                        {/* time */}
-                        <span className="mono tnum" style={{ fontSize: 12, color: C.textMuted, textAlign: "right", minWidth: 48, fontWeight: 500 }}>
+                        {/* Status */}
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          fontSize: 11, fontWeight: 600, color: sc.color,
+                          background: sc.bg, padding: "3px 9px", borderRadius: 5,
+                        }}>
+                          <span style={{ width: 5, height: 5, borderRadius: "50%", background: sc.dot }} />
+                          {act.status}
+                        </span>
+                        {/* Time */}
+                        <span className="mono tnum" style={{ fontSize: 11.5, color: C.textMuted, textAlign: "right", minWidth: 44, fontWeight: 500 }}>
                           {new Date(act.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </li>
@@ -1633,26 +1628,28 @@ export default function OverviewPage() {
                   })}
                 </ul>
 
-                {/* pagination */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", borderTop: `1px solid ${C.border}`, background: "linear-gradient(180deg, #f9fafb, #fafbfc)" }}>
+                {/* Pagination */}
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "10px 20px",
+                  borderTop: `1px solid ${C.borderLight}`,
+                }}>
                   <button onClick={() => setRecentPage(p => Math.max(1, p - 1))} disabled={recentPage === 1 || isLoading} className="pg-btn">
-                    <Icons.ArrowLeft size={13} color="currentColor" /> Previous
+                    <Icons.ArrowLeft size={12} color="currentColor" /> Prev
                   </button>
-                  <span className="mono tnum" style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em" }}>
+                  <span className="mono tnum" style={{ fontSize: 11, fontWeight: 600, color: C.textMuted }}>
                     Page {recentPage}
                   </span>
                   <button onClick={() => setRecentPage(p => p + 1)} disabled={(overview?.recent_activity?.length || 0) < LIMIT || isLoading} className="pg-btn">
-                    Next <Icons.ArrowRight size={13} color="currentColor" />
+                    Next <Icons.ArrowRight size={12} color="currentColor" />
                   </button>
                 </div>
               </>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "64px 0" }}>
-                <div className="icon-badge" style={{ width: 56, height: 56, background: C.slateBg, border: `1px solid ${C.border}` }}>
-                  <Icons.Clipboard size={24} color={C.textMuted} />
-                </div>
-                <p style={{ margin: 0, fontSize: 14, color: C.textSub, fontWeight: 600 }}>No recent activity detected</p>
-                <p style={{ margin: 0, fontSize: 13, color: C.textMuted, lineHeight: 1.6 }}>Activity will appear here once your session begins.</p>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "48px 0" }}>
+                <Icons.Clipboard size={28} color={C.textMuted} />
+                <p style={{ margin: 0, fontSize: 13, color: C.textSub, fontWeight: 600 }}>No recent activity</p>
+                <p style={{ margin: 0, fontSize: 12, color: C.textMuted }}>Activity will appear once your session begins.</p>
               </div>
             )}
           </div>
@@ -2049,71 +2046,48 @@ function TimingPanel({ title, avg, max, barPct, warning, iconBg, iconColor, barC
   Icon: (p: IconProps) => React.ReactNode;
 }) {
   return (
-    <div style={{
-      background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12,
-      overflow: "hidden",
-    }}>
-      {/* Header */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "14px 20px",
-        borderBottom: `1px solid ${C.borderLight}`,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 8, background: iconBg,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Icon size={13} color={iconColor} />
-          </div>
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: C.text }}>{title}</span>
+    <div style={{ padding: "16px 0" }}>
+      {/* Title row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Icon size={14} color={iconColor} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{title}</span>
         </div>
         {warning && (
-          <span style={{
-            fontSize: 10.5, fontWeight: 600, color: "#92400e",
-            background: "#fffbeb", padding: "3px 8px", borderRadius: 5,
-          }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: "#92400e", background: "#fffbeb", padding: "2px 7px", borderRadius: 4 }}>
             High variance
           </span>
         )}
       </div>
 
-      <div style={{ padding: "18px 20px" }}>
-        {/* Stats row */}
-        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-          <div style={{
-            flex: 1, padding: "14px 16px", borderRadius: 10,
-            background: "#fff", border: `1px solid ${C.border}`,
-            borderLeft: `3px solid ${iconColor}`,
-          }}>
-            <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: C.textMuted, letterSpacing: ".05em", textTransform: "uppercase" as const, marginBottom: 6 }}>Average</span>
-            <span className="mono tnum" style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: "-.02em", lineHeight: 1 }}>{formatDuration(avg)}</span>
-          </div>
-          <div style={{
-            flex: 1, padding: "14px 16px", borderRadius: 10,
-            background: "#fff", border: `1px solid ${C.border}`,
-          }}>
-            <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: C.textMuted, letterSpacing: ".05em", textTransform: "uppercase" as const, marginBottom: 6 }}>Maximum</span>
-            <span className="mono tnum" style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: "-.02em", lineHeight: 1 }}>{formatDuration(max)}</span>
-          </div>
+      {/* Stats */}
+      <div style={{ display: "flex", gap: 24, marginBottom: 14 }}>
+        <div>
+          <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase" as const, marginBottom: 4 }}>Average</span>
+          <span className="mono tnum" style={{ fontSize: 20, fontWeight: 800, color: iconColor, letterSpacing: "-.02em", lineHeight: 1 }}>{formatDuration(avg)}</span>
         </div>
+        <div>
+          <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase" as const, marginBottom: 4 }}>Maximum</span>
+          <span className="mono tnum" style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: "-.02em", lineHeight: 1 }}>{formatDuration(max)}</span>
+        </div>
+        <div style={{ marginLeft: "auto", textAlign: "right" }}>
+          <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase" as const, marginBottom: 4 }}>Ratio</span>
+          <span className="mono tnum" style={{ fontSize: 20, fontWeight: 800, color: C.textSub, letterSpacing: "-.02em", lineHeight: 1 }}>{barPct}%</span>
+        </div>
+      </div>
 
-        {/* Progress bar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 500, color: C.textMuted }}>Avg / Max ratio</span>
-          <span className="mono tnum" style={{ fontSize: 11.5, fontWeight: 700, color: C.textSub }}>{barPct}%</span>
-        </div>
-        <div style={{ background: "#f1f5f9", borderRadius: 99, overflow: "hidden", height: 5 }}>
-          <div style={{
-            width: `${barPct}%`, height: "100%", borderRadius: 99,
-            background: barColor,
-            transition: "width 0.6s ease",
-          }} />
-        </div>
+      {/* Progress bar */}
+      <div style={{ background: "#f1f5f9", borderRadius: 99, overflow: "hidden", height: 4 }}>
+        <div style={{
+          width: `${barPct}%`, height: "100%", borderRadius: 99,
+          background: barColor,
+          transition: "width 0.6s ease",
+        }} />
       </div>
     </div>
   );
 }
+
 
 function SmartInsightCard({
   title, data, dataSub, analysis, recommendation, Icon, iconBg, iconColor
@@ -2124,379 +2098,111 @@ function SmartInsightCard({
 }) {
   return (
     <div style={{
-      background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12,
-      overflow: "hidden", transition: "border-color .2s ease, box-shadow .2s ease",
-    }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = `${iconColor}40`; e.currentTarget.style.boxShadow = `0 4px 16px -4px rgba(0,0,0,.06)`; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = "none"; }}
-    >
-      <div style={{ padding: "18px 20px 16px" }}>
-        {/* Title row */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 8,
-            background: iconBg,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Icon size={13} color={iconColor} />
-          </div>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: C.textMuted, letterSpacing: ".02em" }}>{title}</span>
+      background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10,
+      borderLeft: `3px solid ${iconColor}`,
+      overflow: "hidden",
+    }}>
+      <div style={{ padding: "14px 16px 12px" }}>
+        {/* Label */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+          <Icon size={13} color={iconColor} />
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase" as const }}>{title}</span>
         </div>
 
         {/* Value */}
-        <span className="mono tnum" style={{ fontSize: 24, fontWeight: 800, color: C.text, letterSpacing: "-.03em", lineHeight: 1, display: "block" }}>{data}</span>
-        <span style={{ fontSize: 11.5, fontWeight: 500, color: C.textMuted, marginTop: 3, display: "block" }}>{dataSub}</span>
+        <span className="mono tnum" style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: "-.03em", lineHeight: 1, display: "block" }}>{data}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 500, color: C.textMuted, marginTop: 3, display: "block" }}>{dataSub}</span>
 
         {/* Analysis */}
-        <p style={{ margin: "12px 0 0", fontSize: 12.5, color: C.textSub, fontWeight: 400, lineHeight: 1.6 }}>
+        <p style={{ margin: "10px 0 0", fontSize: 12, color: C.textSub, fontWeight: 400, lineHeight: 1.55 }}>
           {analysis}
         </p>
       </div>
 
       {/* Recommendation */}
-      <div style={{
-        padding: "14px 20px",
-        background: "#fafbfc",
-        borderTop: `1px solid ${C.borderLight}`,
-      }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <div style={{ width: 4, borderRadius: 2, background: C.amber, flexShrink: 0, marginTop: 2 }} />
-          <p style={{ margin: 0, fontSize: 12, color: C.textSub, fontWeight: 450, lineHeight: 1.55 }}>
-            {recommendation}
-          </p>
-        </div>
+      <div style={{ padding: "10px 16px", background: "#f9fafb", borderTop: `1px solid ${C.borderLight}` }}>
+        <p style={{ margin: 0, fontSize: 11, color: C.textMuted, fontWeight: 450, lineHeight: 1.5 }}>
+          💡 {recommendation}
+        </p>
       </div>
     </div>
   );
 }
 
-// ── Hourly Traffic Chart ─────────────────────────────────────────
-function HourlyChart({ hourly, maxVisits, accentColor, peakHour }: {
+// ── Hourly Traffic Chart (Clean Redesign) ─────────────────────────
+function HourlyChart({ hourly, maxVisits, peakHour }: {
   hourly: { hour: string; visits: number }[];
   maxVisits: number;
   accentColor: string;
   peakHour: string;
 }) {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-
-  const totalVisits = hourly.reduce((s, h) => s + h.visits, 0);
-  const avgVisits = hourly.length > 0 ? Math.round(totalVisits / hourly.length) : 0;
-  const safeTot = totalVisits || 1;
-
-  // Vibrant multi-hue palette
-  const palette = [
-    "#6366f1", "#8b5cf6", "#a78bfa", "#818cf8", "#7c3aed",
-    "#4f46e5", "#6d28d9", "#5b21b6", "#4338ca", "#3b82f6",
-    "#2563eb", "#1d4ed8", "#0ea5e9", "#06b6d4", "#14b8a6",
-    "#10b981", "#059669", "#f59e0b", "#f97316", "#ef4444",
-    "#ec4899", "#d946ef", "#a855f7", "#8b5cf6", "#7c3aed",
-  ];
-
-  // Build slices
-  const activeHours = hourly.map((h, i) => ({ ...h, idx: i })).filter(h => h.visits > 0);
-  const slices = activeHours.map((h) => ({
-    ...h,
-    pct: h.visits / safeTot,
-    color: palette[h.idx % palette.length],
-    isPeak: h.hour === peakHour,
-  }));
-
-  // Top 3 hours sorted by visits
-  const top3 = [...hourly].sort((a, b) => b.visits - a.visits).slice(0, 3);
-  const rankBg = ["linear-gradient(135deg,#f59e0b,#fbbf24)", "linear-gradient(135deg,#94a3b8,#cbd5e1)", "linear-gradient(135deg,#b45309,#d97706)"];
-
-  // Donut dimensions
-  const VB = 420;
-  const ctr = VB / 2;
-  const R = 110, r = 70;
-  const LABEL_R = 142;
-  const GAP_DEG = 1.5;
-
-  // Build arc paths
-  const totalGap = slices.length * GAP_DEG;
-  const availDeg = 360 - totalGap;
-  let angleOffset = -90;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-
-  const arcs = slices.map((sl, arcIdx) => {
-    const sweep = sl.pct * availDeg;
-    const startA = angleOffset + GAP_DEG / 2;
-    const endA = startA + sweep;
-    angleOffset = endA + GAP_DEG / 2;
-
-    const outerR = sl.isPeak || hoveredIdx === sl.idx ? R + 8 : R;
-    const ax1 = ctr + outerR * Math.cos(toRad(startA));
-    const ay1 = ctr + outerR * Math.sin(toRad(startA));
-    const ax2 = ctr + outerR * Math.cos(toRad(endA));
-    const ay2 = ctr + outerR * Math.sin(toRad(endA));
-    const ix1 = ctr + r * Math.cos(toRad(endA));
-    const iy1 = ctr + r * Math.sin(toRad(endA));
-    const ix2 = ctr + r * Math.cos(toRad(startA));
-    const iy2 = ctr + r * Math.sin(toRad(startA));
-    const largeArc = sweep > 180 ? 1 : 0;
-
-    const d = [
-      `M ${ax1} ${ay1}`,
-      `A ${outerR} ${outerR} 0 ${largeArc} 1 ${ax2} ${ay2}`,
-      `L ${ix1} ${iy1}`,
-      `A ${r} ${r} 0 ${largeArc} 0 ${ix2} ${iy2}`,
-      `Z`,
-    ].join(" ");
-
-    const midAngle = (startA + endA) / 2;
-    const lx = ctr + LABEL_R * Math.cos(toRad(midAngle));
-    const ly = ctr + LABEL_R * Math.sin(toRad(midAngle));
-    const ox = ctr + (R + 3) * Math.cos(toRad(midAngle));
-    const oy = ctr + (R + 3) * Math.sin(toRad(midAngle));
-    const midR = (R + r) / 2;
-    const mx = ctr + midR * Math.cos(toRad(midAngle));
-    const my = ctr + midR * Math.sin(toRad(midAngle));
-
-    return { ...sl, d, midAngle, lx, ly, ox, oy, mx, my, sweep, arcIdx };
-  });
-
-  const hovered = hoveredIdx !== null ? hourly[hoveredIdx] : null;
-
-  // External labels for top 5 segments
-  const labelledIdxs = new Set(
-    [...arcs].sort((a, b) => b.visits - a.visits).slice(0, 5).filter(a => a.pct >= 0.04).map(a => a.idx)
-  );
-
+  const totalV = hourly.reduce((s, h) => s + h.visits, 0);
+  const avgV = hourly.length > 0 ? Math.round(totalV / hourly.length) : 0;
   const peakVisits = hourly.find(h => h.hour === peakHour)?.visits ?? 0;
+  const peakPct = totalV > 0 ? Math.round((peakVisits / totalV) * 100) : 0;
 
   return (
-    <div style={{ padding: "24px 28px 26px" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 40 }}>
-
-        {/* ── Donut Chart ── */}
-        <div style={{ flexShrink: 0, position: "relative", width: 380, height: 380 }}>
-          <svg viewBox={`0 0 ${VB} ${VB}`} width={380} height={380} style={{ display: "block" }}>
-            <defs>
-              <radialGradient id="hCenterGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#fff" />
-                <stop offset="70%" stopColor="#fafbff" />
-                <stop offset="100%" stopColor="#f0f0ff" />
-              </radialGradient>
-              <filter id="hShadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#6366f1" floodOpacity="0.12" />
-              </filter>
-              {/* Gradient fills for each arc */}
-              {arcs.map((arc) => (
-                <linearGradient key={`g-${arc.idx}`} id={`seg-${arc.idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor={arc.color} />
-                  <stop offset="100%" stopColor={`${arc.color}cc`} />
-                </linearGradient>
-              ))}
-            </defs>
-
-            {/* Decorative outer track */}
-            <circle cx={ctr} cy={ctr} r={R + 2} fill="none" stroke="#e8ecff" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
-
-            {/* Arc segments */}
-            {arcs.map((arc) => {
-              const isHov = hoveredIdx === arc.idx;
-              return (
-                <path
-                  key={arc.idx}
-                  d={arc.d}
-                  fill={`url(#seg-${arc.idx})`}
-                  opacity={hoveredIdx === null || isHov ? (arc.isPeak ? 1 : 0.88) : 0.25}
-                  stroke="#fff"
-                  strokeWidth={isHov ? 3 : 1}
-                  filter={isHov ? "url(#hShadow)" : undefined}
-                  onMouseEnter={() => setHoveredIdx(arc.idx)}
-                  onMouseLeave={() => setHoveredIdx(null)}
-                  style={{ cursor: "pointer", transition: "opacity 0.25s ease, stroke-width 0.2s ease" }}
-                />
-              );
-            })}
-
-            {/* Percentage labels on large slices */}
-            {arcs.filter(a => a.pct >= 0.08).map((arc) => (
-              <text
-                key={`pct-${arc.idx}`}
-                x={arc.mx} y={arc.my}
-                textAnchor="middle" dominantBaseline="middle"
-                style={{ fontSize: 10, fontWeight: 800, fill: "#fff", fontFamily: "'JetBrains Mono',monospace", pointerEvents: "none", textShadow: "0 1px 2px rgba(0,0,0,.2)" }}
-              >
-                {Math.round(arc.pct * 100)}%
-              </text>
-            ))}
-
-            {/* External labels with leader lines */}
-            {arcs.filter(a => labelledIdxs.has(a.idx)).map((arc) => {
-              const isRight = arc.lx > ctr;
-              const endX = isRight ? arc.lx + 24 : arc.lx - 24;
-              const isHov = hoveredIdx === arc.idx;
-              return (
-                <g key={`lbl-${arc.idx}`} opacity={hoveredIdx === null || isHov ? 1 : 0.3} style={{ transition: "opacity 0.25s" }}>
-                  <line x1={arc.ox} y1={arc.oy} x2={arc.lx} y2={arc.ly} stroke={arc.color} strokeWidth="1" opacity="0.4" />
-                  <line x1={arc.lx} y1={arc.ly} x2={endX} y2={arc.ly} stroke={arc.color} strokeWidth="1" opacity="0.4" />
-                  <circle cx={arc.ox} cy={arc.oy} r={2} fill={arc.color} />
-                  <text x={endX + (isRight ? 6 : -6)} y={arc.ly - 6} textAnchor={isRight ? "start" : "end"} dominantBaseline="auto"
-                    style={{ fontSize: 13, fontWeight: 700, fill: arc.isPeak ? accentColor : C.text, fontFamily: "'Inter',sans-serif" }}>
-                    {arc.hour}
-                  </text>
-                  <text x={endX + (isRight ? 6 : -6)} y={arc.ly + 9} textAnchor={isRight ? "start" : "end"} dominantBaseline="auto"
-                    style={{ fontSize: 11, fontWeight: 500, fill: C.textMuted, fontFamily: "'JetBrains Mono',monospace" }}>
-                    {arc.visits} visits
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* Center hole with glow */}
-            <circle cx={ctr} cy={ctr} r={r} fill="none" stroke="#c7d2fe" strokeWidth="0.5" opacity="0.3" />
-            <circle cx={ctr} cy={ctr} r={r - 1} fill="#fff" />
-            <circle cx={ctr} cy={ctr} r={r - 1} fill="url(#hCenterGlow)" />
-
-            {/* Center text */}
-            {hovered ? (
-              <>
-                <text x={ctr} y={ctr - 14} textAnchor="middle" dominantBaseline="middle"
-                  style={{ fontSize: 28, fontWeight: 800, fill: palette[hoveredIdx! % palette.length], fontFamily: "'JetBrains Mono',monospace", letterSpacing: "-.03em" }}>
-                  {hovered.visits}
-                </text>
-                <text x={ctr} y={ctr + 6} textAnchor="middle" dominantBaseline="middle"
-                  style={{ fontSize: 11, fontWeight: 600, fill: C.textSub, fontFamily: "'Inter',sans-serif" }}>
-                  {hovered.hour}
-                </text>
-                <text x={ctr} y={ctr + 22} textAnchor="middle" dominantBaseline="middle"
-                  style={{ fontSize: 9, fontWeight: 500, fill: C.textMuted, fontFamily: "'JetBrains Mono',monospace" }}>
-                  {Math.round((hovered.visits / safeTot) * 100)}% share
-                </text>
-              </>
-            ) : (
-              <>
-                <text x={ctr} y={ctr - 14} textAnchor="middle" dominantBaseline="middle"
-                  style={{ fontSize: 28, fontWeight: 800, fill: C.text, fontFamily: "'JetBrains Mono',monospace", letterSpacing: "-.04em" }}>
-                  {totalVisits.toLocaleString()}
-                </text>
-                <text x={ctr} y={ctr + 6} textAnchor="middle" dominantBaseline="middle"
-                  style={{ fontSize: 11, fontWeight: 500, fill: C.textMuted, fontFamily: "'Inter',sans-serif" }}>
-                  total visits
-                </text>
-                <text x={ctr} y={ctr + 22} textAnchor="middle" dominantBaseline="middle"
-                  style={{ fontSize: 9, fontWeight: 500, fill: C.textMuted, fontFamily: "'JetBrains Mono',monospace" }}>
-                  {hourly.length} hours tracked
-                </text>
-              </>
-            )}
-          </svg>
-        </div>
-
-        {/* ── Right Panel ── */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
-
-          {/* ── Summary stat cards ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-            {[
-              { label: "Peak Hour", value: peakVisits, sub: peakHour, color: "#f59e0b", bg: "#fffbeb", border: "#fde68a", textColor: "#92400e" },
-              { label: "Total Visits", value: totalVisits.toLocaleString(), sub: "all hours", color: "#6366f1", bg: "#eef2ff", border: "#c7d2fe", textColor: "#3730a3" },
-              { label: "Average", value: avgVisits, sub: "per hour", color: "#10b981", bg: "#ecfdf5", border: "#a7f3d0", textColor: "#065f46" },
-            ].map(card => (
-              <div key={card.label} style={{
-                background: "#fff",
-                border: `1px solid ${C.border}`,
-                borderLeft: `3px solid ${card.color}`,
-                borderRadius: 12,
-                padding: "14px 16px",
-              }}>
-                <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: ".06em", textTransform: "uppercase" as const, marginBottom: 8 }}>{card.label}</span>
-                <span className="mono tnum" style={{ fontSize: 22, fontWeight: 800, color: C.text, lineHeight: 1 }}>{card.value}</span>
-                <span style={{ display: "block", fontSize: 11, color: C.textMuted, marginTop: 4, fontWeight: 500 }}>{card.sub}</span>
-              </div>
-            ))}
+    <div style={{ padding: "32px" }}>
+      {/* KPI Row - Minimal */}
+      <div style={{ display: "flex", gap: 48, marginBottom: 40, paddingBottom: 24, borderBottom: `1px solid ${C.borderLight}` }}>
+        {[
+          { label: "Total Daily", val: totalV.toLocaleString(), clr: C.brand },
+          { label: "Peak Window", val: peakHour, clr: C.violet },
+          { label: "Peak Load", val: `${peakPct}%`, clr: C.brand },
+          { label: "Hourly Avg", val: avgV, clr: C.green },
+        ].map(k => (
+          <div key={k.label}>
+            <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>{k.label}</p>
+            <p style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{k.val}</p>
           </div>
+        ))}
+      </div>
 
-          {/* ── Top Hours breakdown ── */}
-          <div style={{
-            background: "#fff",
-            border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <Icons.TrendingUp size={13} color={C.brand} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.text, letterSpacing: ".01em" }}>Top Performing Hours</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {top3.map((h, rank) => {
-                const pct = Math.round((h.visits / safeTot) * 100);
-                const isPeak = h.hour === peakHour;
-                const idx = hourly.findIndex(x => x.hour === h.hour);
-                const clr = palette[idx % palette.length];
-                return (
-                  <div key={h.hour} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ width: 20, height: 20, borderRadius: 6, background: rank === 0 ? "#f59e0b" : rank === 1 ? "#94a3b8" : "#d97706", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#fff", flexShrink: 0 }}>{rank + 1}</span>
-                    <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: clr, flexShrink: 0 }} />
-                    <span style={{ fontSize: 12.5, fontWeight: isPeak ? 700 : 500, color: C.text, width: 52 }}>{h.hour}</span>
-                    <div style={{ flex: 1, height: 6, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
-                      <div style={{
-                        height: "100%", width: `${pct}%`, borderRadius: 99,
-                        background: clr,
-                        transition: "width 0.4s ease",
-                      }} />
-                    </div>
-                    <span className="mono tnum" style={{ fontSize: 12, fontWeight: 700, color: C.text, width: 32, textAlign: "right" }}>{h.visits}</span>
-                    <span className="mono tnum" style={{
-                      fontSize: 10.5, fontWeight: 600, width: 34, textAlign: "right",
-                      color: C.textMuted,
-                    }}>{pct}%</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ── Distribution legend ── */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: C.textSub, letterSpacing: ".04em", textTransform: "uppercase" as const }}>All Hours</span>
-              <span style={{ fontSize: 10.5, color: C.textMuted, fontWeight: 500 }}>{hourly.length} entries</span>
-            </div>
-            <div style={{ maxHeight: 120, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 10px", paddingRight: 6 }}>
-              {hourly.map((h, i) => {
-                const isHov = hoveredIdx === i;
-                const isPeak = h.hour === peakHour;
-                const pct = Math.round((h.visits / safeTot) * 100);
-                const clr = palette[i % palette.length];
-                return (
-                  <div
-                    key={h.hour}
-                    onMouseEnter={() => setHoveredIdx(i)}
-                    onMouseLeave={() => setHoveredIdx(null)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "6px 10px", borderRadius: 8,
-                      background: isHov ? `${clr}0d` : "transparent",
-                      border: isHov ? `1px solid ${clr}22` : "1px solid transparent",
-                      cursor: "pointer", transition: "all 0.18s ease",
-                      transform: isHov ? "scale(1.02)" : "scale(1)",
-                    }}
-                  >
-                    <span style={{
-                      display: "inline-block", width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                      background: clr,
-                      boxShadow: isPeak ? `0 0 0 2px #fff, 0 0 0 3.5px ${accentColor}, 0 0 8px ${accentColor}33` : (isHov ? `0 0 6px ${clr}44` : "none"),
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 200px", gap: 48 }}>
+        {/* Main Chart Area */}
+        <div>
+          <div style={{ height: 180, display: "flex", alignItems: "flex-end", gap: 8 }}>
+            {hourly.map((h, i) => {
+              const isPk = h.hour === peakHour;
+              const hPct = maxVisits > 0 ? (h.visits / maxVisits) * 100 : 0;
+              return (
+                <div key={i} className="hbar" style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ flex: 1, display: "flex", alignItems: "flex-end", position: "relative" }}>
+                    <div style={{ 
+                      width: "100%", 
+                      height: `${Math.max(hPct, 6)}%`, 
+                      background: isPk ? `linear-gradient(to top, ${C.violet}, #a855f7)` : `linear-gradient(to top, ${C.brand}, #818cf8)`,
+                      opacity: isPk ? 1 : 0.8,
+                      borderRadius: "6px 6px 2px 2px",
+                      boxShadow: isPk ? "0 4px 12px rgba(139, 92, 246, 0.25)" : "none",
+                      transition: "height 1s cubic-bezier(0.16, 1, 0.3, 1)"
                     }} />
-                    <span style={{ fontSize: 12.5, fontWeight: isPeak ? 700 : (isHov ? 600 : 400), color: isPeak ? accentColor : (isHov ? C.text : C.textSub), flex: 1, fontFamily: "'Inter',sans-serif" }}>
-                      {h.hour}
-                    </span>
-                    <span className="mono tnum" style={{ fontSize: 11.5, fontWeight: 600, color: isHov ? C.text : C.textMuted }}>
-                      {h.visits}
-                    </span>
-                    <span className="mono tnum" style={{
-                      fontSize: 10.5, fontWeight: 600, width: 30, textAlign: "right",
-                      color: isHov ? clr : C.textMuted,
-                    }}>
-                      {pct}%
-                    </span>
+                    {/* Value indicator on hover (optional enhancement) */}
+                    <div className="ins-spark-val" style={{ position: "absolute", top: -25, left: "50%", transform: "translateX(-50%)", background: C.text, color: "#fff", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, opacity: 0, transition: "opacity 0.2s" }}>{h.visits}</div>
                   </div>
-                );
-              })}
-            </div>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: isPk ? C.text : C.textFaint, textAlign: "center", whiteSpace: "nowrap" }}>{h.hour}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
+        {/* Minimal Side Analysis */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderLeft: `1px solid ${C.borderLight}`, paddingLeft: 32 }}>
+          <div style={{ position: "relative", width: 110, height: 110, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="110" height="110" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="44" fill="none" stroke={C.borderLight} strokeWidth="6" />
+              <circle cx="50" cy="50" r="44" fill="none" stroke={C.violet} strokeWidth="6" strokeDasharray="276" strokeDashoffset={276 - (276 * (peakPct / 100))} strokeLinecap="round" style={{ transformOrigin: "center", transform: "rotate(-90deg)", transition: "stroke-dashoffset 1.2s ease" }} />
+            </svg>
+            <div style={{ position: "absolute", textAlign: "center" }}>
+              <p style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: "-.02em" }}>{peakPct}%</p>
+            </div>
+          </div>
+          <div style={{ marginTop: 20, textAlign: "center" }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: C.textSub }}>Peak Concentration</p>
+            <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Busy window at {peakHour}</p>
+          </div>
+        </div>
       </div>
     </div>
   );

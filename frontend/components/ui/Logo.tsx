@@ -8,9 +8,9 @@ interface LogoProps {
 
 export function Logo({ className, size = "md" }: LogoProps) {
   const sizeMap = {
-    sm: "h-4",   // 28px — Dashboard header
-    md: "h-5",   // 32px
-    lg: "h-6",   // 36px — Landing navbar
+    sm: "h-7",   // Dashboard header
+    md: "h-9",
+    lg: "h-12",  // Landing navbar
   };
 
   const heightClass = sizeMap[size];
@@ -18,10 +18,10 @@ export function Logo({ className, size = "md" }: LogoProps) {
   return (
     <div className={cn("flex items-center group select-none cursor-pointer", className)}>
       <Image
-        src="/logo-main-trimmed.png"
+        src="/q4queue-logo-final.png"
         alt="Q4Queue Logo"
-        width={841}
-        height={175}
+        width={760}
+        height={219}
         className={cn("object-contain w-auto", heightClass)}
         priority
       />

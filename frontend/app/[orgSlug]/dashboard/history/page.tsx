@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import type { SessionResponse, QueueResponse, TokenHistoryItem, AnalyticsOverview } from "@/types/api";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 
 function formatDate(dateStr: string): string {
     return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
@@ -18,467 +20,359 @@ function formatTime(isoStr: string | null): string {
     return new Date(isoStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// ─── Design Tokens ────────────────────────────────────────────────
-const C = {
-  // bg
-  pageBg:     "#f7f8fa",
-  cardBg:     "#ffffff",
-  cardBgAlt:  "#fbfcfd",
-  // borders
-  border:     "#e8eaef",
-  borderHov:  "#c4ccd8",
-  borderLight:"#f1f2f5",
-  // text
-  text:       "#0f1729",
-  textSub:    "#475569",
-  textMuted:  "#8b95a9",
-  // brand
-  brand:      "#4f46e5",
-  brandDark:  "#4338ca",
-  brandLight: "#eef2ff",
-  brandBorder:"#c7d2fe",
-  brandGlow:  "rgba(79,70,229,.10)",
-  // semantic – slightly muted for calm feel
-  blue:       "#3b82f6", blueBg: "#eff6ff",   blueBorder: "#bfdbfe",
-  green:      "#10b981", greenBg: "#ecfdf5",   greenBorder:"#a7f3d0",
-  amber:      "#f59e0b", amberBg: "#fffbeb",   amberBorder:"#fde68a",
-  red:        "#ef4444", redBg:   "#fef2f2",   redBorder:  "#fecaca",
-  violet:     "#7c3aed", violetBg:"#f5f3ff",
-  slate:      "#64748b", slateBg: "#f8fafc",
-};
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-// ─── Global Styles ────────────────────────────────────────────────
-const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+const AVATAR_PALETTES = [
+  { bg: "#eef2ff", color: "#4f46e5" },
+  { bg: "#eff6ff", color: "#3b82f6" },
+  { bg: "#f0fdf4", color: "#16a34a" },
+  { bg: "#fff7ed", color: "#ea580c" },
+  { bg: "#fdf4ff", color: "#9333ea" },
+  { bg: "#fdf2f8", color: "#db2777" },
+  { bg: "#ecfdf5", color: "#059669" },
+  { bg: "#fefce8", color: "#ca8a04" },
+];
 
-  .ov {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: ${C.text};
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+function getPalette(str: string) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_PALETTES[Math.abs(hash) % AVATAR_PALETTES.length];
+}
 
-  /* ── Card ── */
-  .card {
-    background: ${C.cardBg};
-    border: 1px solid ${C.border};
-    border-radius: 14px;
-    box-shadow:
-      0 0 0 1px rgba(0,0,0,.02),
-      0 1px 2px rgba(0,0,0,.03),
-      0 2px 8px rgba(0,0,0,.025);
-    transition: box-shadow .25s cubic-bezier(.4,0,.2,1), border-color .25s ease;
-  }
-  .card:hover {
-    box-shadow:
-      0 0 0 1px rgba(0,0,0,.03),
-      0 4px 12px rgba(0,0,0,.06),
-      0 8px 28px rgba(0,0,0,.04);
-    border-color: ${C.borderHov};
-  }
+// ─── Components ─────────────────────────────────────────────────────────────
 
-  /* ── Metric card lift ── */
-  .metric-card { position: relative; }
-  .metric-card::before {
-    content: '';
-    position: absolute; inset: 0;
-    border-radius: 14px;
-    opacity: 0;
-    transition: opacity .25s cubic-bezier(.4,0,.2,1);
-    box-shadow: 0 8px 32px rgba(79,70,229,.10);
-    pointer-events: none;
-  }
-  .metric-card:hover { transform: none; }
-  .metric-card:hover::before { opacity: 1; }
+function Avatar({ name }: { name: string }) {
+  const { bg, color } = getPalette(name);
+  const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  return (
+    <div style={{
+      width: 34, height: 34, borderRadius: "50%", background: bg, color, flexShrink: 0,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: 12, fontWeight: 700, letterSpacing: "-.01em",
+    }}>
+      {initials || "U"}
+    </div>
+  );
+}
 
-  /* ── Select ── */
-  .ov-sel {
-    appearance: none;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    color: #0f172a;
-    border-radius: 8px;
-    padding: 9px 34px 9px 12px;
-    font-size: 13px; font-weight: 500;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer; min-width: 172px;
-    box-shadow: 0 1px 2px rgba(0,0,0,.03);
-    transition: all .2s cubic-bezier(.4,0,.2,1);
-  }
-  .ov-sel:hover:not(:disabled) {
-    border-color: #cbd5e1;
-    background: #f8fafc;
-    box-shadow: 0 2px 4px rgba(0,0,0,.04);
-  }
-  .ov-sel:focus {
-    outline: none;
-    border-color: #818cf8;
-    box-shadow: 0 0 0 3px rgba(129,140,248,.15), 0 1px 2px rgba(0,0,0,.03);
-    background: #ffffff;
-  }
-  .ov-sel:disabled { opacity: .4; cursor: not-allowed; }
+function StatCard({ label, value, color }: { label: string; value: number | string; color?: string }) {
+  return (
+    <div style={{
+      background: "#ffffff", borderRadius: 12, border: "0.5px solid #e8edf2",
+      padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8,
+    }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".07em" }}>{label}</span>
+      <span style={{ fontSize: 26, fontWeight: 700, color: color ?? "#0f172a", letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums" }}>{value}</span>
+    </div>
+  );
+}
 
-  /* ── Quick Action btn ── */
-  .qa-btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 9px 16px; font-size: 12.5px; font-weight: 500;
-    font-family: 'Inter', sans-serif; color: ${C.textSub};
-    background: ${C.cardBg}; border: 1px solid ${C.border};
-    border-radius: 10px; cursor: pointer; text-decoration: none;
-    box-shadow: 0 1px 2px rgba(0,0,0,.04);
-    transition: all .22s ease;
-  }
-  .qa-btn:hover {
-    border-color: ${C.brandBorder}; color: ${C.brand};
-    background: ${C.brandLight};
-    box-shadow: 0 2px 8px ${C.brandGlow};
-  }
+function StatusBadge({ status }: { status: string }) {
+  const s = status.toLowerCase();
+  let bg = "#f8fafc", color = "#64748b", border = "#e2e8f0";
+  
+  if (s === "done")         { bg = "#ecfdf5"; color = "#059669"; border = "#a7f3d0"; }
+  else if (s === "serving") { bg = "#eff6ff"; color = "#3b82f6"; border = "#bfdbfe"; }
+  else if (s === "waiting") { bg = "#fffbeb"; color = "#d97706"; border = "#fde68a"; }
+  else if (s === "deleted") { bg = "#fef2f2"; color = "#ef4444"; border = "#fecaca"; }
 
-  /* ── Icon badge ── */
-  .icon-badge {
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 11px; flex-shrink: 0;
-  }
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", padding: "3px 9px",
+      borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
+      background: bg, color, border: `0.5px solid ${border}`,
+    }}>
+      {status}
+    </span>
+  );
+}
 
-  /* ── Badge chip ── */
-  .chip {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 10px; border-radius: 8px;
-    font-size: 10.5px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
-    font-family: 'Inter', sans-serif;
-  }
+function SkeletonRow() {
+  return (
+    <tr>
+      {[80, 180, 120, 80, 80, 80, 80].map((w, i) => (
+        <td key={i} style={{ padding: "16px 20px", borderBottom: "0.5px solid #f1f5f9" }}>
+          <div style={{ height: 14, width: w, borderRadius: 6, background: "#f1f5f9" }} />
+        </td>
+      ))}
+    </tr>
+  );
+}
 
-  /* ── Pill ── */
-  .pill {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 10px; border-radius: 99px;
-    font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
-  }
+function Pagination({ total, limit, offset, onChange }: { total: number; limit: number; offset: number; onChange: (o: number) => void }) {
+  const current = Math.floor(offset / limit) + 1;
+  const pages = Math.max(1, Math.ceil(total / limit));
+  if (pages <= 1) return null;
 
-  /* ── Table row ── */
-  .trow { transition: background .2s ease, transform .2s ease, box-shadow .2s ease; }
-  .trow:hover { background: linear-gradient(90deg, #f8f9ff, #fbfcfe); }
+  const btnBase: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
+    fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif",
+    color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0",
+    borderRadius: 9, cursor: "pointer", transition: "all .15s",
+  };
 
-  /* ── Pagination btn ── */
-  .pg-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 16px; font-size: 12.5px; font-weight: 500;
-    font-family: 'Inter', sans-serif; color: ${C.textSub};
-    background: ${C.cardBg}; border: 1px solid ${C.border};
-    border-radius: 10px; cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0,0,0,.04);
-    transition: all .22s ease;
-  }
-  .pg-btn:hover:not(:disabled) {
-    border-color: ${C.brandBorder}; color: ${C.brand};
-    background: ${C.brandLight};
-    box-shadow: 0 2px 6px ${C.brandGlow};
-  }
-  .pg-btn:disabled { opacity: .3; cursor: not-allowed; }
+  return (
+    <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "0.5px solid #f1f5f9" }}>
+      <p style={{ fontSize: 13, color: "#94a3b8", fontWeight: 400 }}>
+        Showing <span style={{ fontWeight: 600, color: "#0f172a" }}>{offset + 1}</span>–<span style={{ fontWeight: 600, color: "#0f172a" }}>{Math.min(offset + limit, total)}</span> of <span style={{ fontWeight: 600, color: "#0f172a" }}>{total}</span>
+      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <button onClick={() => onChange(offset - limit)} disabled={offset === 0} style={{ ...btnBase, opacity: offset === 0 ? 0.35 : 1, cursor: offset === 0 ? "not-allowed" : "pointer" }}>
+          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg> Prev
+        </button>
+        <button onClick={() => onChange(offset + limit)} disabled={offset + limit >= total} style={{ ...btnBase, opacity: offset + limit >= total ? 0.35 : 1, cursor: offset + limit >= total ? "not-allowed" : "pointer" }}>
+          Next <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+        </button>
+      </div>
+    </div>
+  );
+}
 
-  /* ── Mono ── */
-  .mono { font-family: 'JetBrains Mono', 'Geist Mono', monospace; }
-
-  /* ── Label ── */
-  .lbl {
-    font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
-    color: ${C.textMuted};
-    font-family: 'Inter', sans-serif;
-  }
-
-  /* ── Card header strip ── */
-  .card-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 24px; border-bottom: 1px solid ${C.border};
-    background: linear-gradient(180deg, #fafbfd 0%, ${C.cardBg} 100%);
-    border-radius: 14px 14px 0 0;
-  }
-
-  /* ── Per-Queue Table (Reused for History) ── */
-  .qtable { width: 100%; border-collapse: collapse; text-align: left; }
-  .qtable th {
-    padding: 12px 16px; font-size: 11px; font-weight: 700;
-    letter-spacing: .06em; text-transform: uppercase;
-    color: ${C.textMuted}; border-bottom: 1px solid ${C.border};
-    background: linear-gradient(180deg, #fafbfd, ${C.slateBg});
-    font-family: 'Inter', sans-serif;
-  }
-  .qtable td { padding: 14px 16px; font-size: 13px; font-weight: 500; color: ${C.text}; border-bottom: 1px solid ${C.borderLight}; }
-  .qtable tbody tr { transition: background .12s ease; }
-  .qtable tbody tr:hover td { background: #f8f9ff; }
-
-  /* ── Tabular Nums ── */
-  .tnum { font-variant-numeric: tabular-nums; }
-`;
+const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@500&display=swap');`;
 
 export default function HistoryPage() {
-    // Filters
+    const params = useParams();
+    const orgSlug = params?.orgSlug as string;
     const [sessions, setSessions] = useState<SessionResponse[]>([]);
     const [queues, setQueues] = useState<QueueResponse[]>([]);
     const [selectedSessionId, setSelectedSessionId] = useState<string>("");
     const [selectedQueueId, setSelectedQueueId] = useState<string>("");
-
-    // Data
     const [history, setHistory] = useState<TokenHistoryItem[]>([]);
     const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
     const [total, setTotal] = useState(0);
-    const [page, setPage] = useState(1);
+    const [offset, setOffset] = useState(0);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const [secondsAgo, setSecondsAgo] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const PAGE_SIZE = 20;
 
-    // Load initial sessions
     useEffect(() => {
         api.listSessions(100, 0).then(res => {
             const data = res.items;
             setSessions(data || []);
-            if (data?.length > 0 && !selectedSessionId) {
-                setSelectedSessionId(data[0].id);
-            }
+            if (data?.length > 0 && !selectedSessionId) setSelectedSessionId(data[0].id);
         }).finally(() => setIsLoading(false));
-    }, [selectedSessionId]);
+    }, []);
 
-    // Load queues when session changes
     useEffect(() => {
         if (selectedSessionId) {
             api.listSessionQueues(selectedSessionId, 100, 0).then(res => {
-                const data = res.items;
-                setQueues(data || []);
-                setSelectedQueueId(""); // Reset queue selection
-                setPage(1); // Reset to first page
+                setQueues(res.items || []);
+                setSelectedQueueId("");
+                setOffset(0);
             });
         }
     }, [selectedSessionId]);
 
-    const loadHistory = useCallback(async () => {
-        setIsLoading(true);
+    const loadHistory = useCallback(async (isSilent = false) => {
+        if (!isSilent) setIsLoading(true);
+        setIsRefreshing(true);
         try {
             const [historyData, overviewData] = await Promise.all([
                 api.getHistory({
                     sessionId: selectedSessionId || undefined,
                     queueId: selectedQueueId || undefined,
                     limit: PAGE_SIZE,
-                    offset: (page - 1) * PAGE_SIZE
+                    offset
                 }),
                 api.getOverview(selectedSessionId || undefined, selectedQueueId || undefined)
             ]);
             setHistory(historyData.items);
             setTotal(historyData.total);
             setOverview(overviewData);
+            setLastUpdated(new Date());
+            setSecondsAgo(0);
         } catch (err) {
-            console.error("Failed to load history", err);
+            console.error(err);
         } finally {
-            setIsLoading(false);
+            if (!isSilent) setIsLoading(false);
+            setIsRefreshing(false);
         }
-    }, [selectedSessionId, selectedQueueId, page]);
+    }, [selectedSessionId, selectedQueueId, offset]);
 
-    useEffect(() => {
-        loadHistory();
+    useEffect(() => { 
+        loadHistory(); 
+        
+        // Polling every 10s
+        const timer = setInterval(() => {
+            loadHistory(true);
+        }, 10000);
+        
+        return () => clearInterval(timer);
     }, [loadHistory]);
+
+    // Update the "seconds ago" ticker
+    useEffect(() => {
+      const ticker = setInterval(() => {
+        if (lastUpdated) setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+      }, 1000);
+      return () => clearInterval(ticker);
+    }, [lastUpdated]);
+
+    const updatedLabel = lastUpdated
+      ? secondsAgo < 10 ? "Just now"
+        : secondsAgo < 60 ? "moments ago"
+          : `${Math.floor(secondsAgo / 60)}m ago`
+      : null;
+
+    const thStyle: React.CSSProperties = {
+      padding: "10px 20px", fontSize: 11, fontWeight: 600, color: "#94a3b8",
+      textTransform: "uppercase", letterSpacing: ".07em", textAlign: "left",
+      borderBottom: "0.5px solid #f1f5f9", background: "#fafbfe",
+      whiteSpace: "nowrap",
+    };
+
+    const tdStyle: React.CSSProperties = {
+      padding: "14px 20px", fontSize: 13.5, fontWeight: 500, color: "#0f172a",
+      borderBottom: "0.5px solid #f1f5f9",
+    };
+
+    const selectStyle: React.CSSProperties = {
+      height: 38, border: "0.5px solid #e2e8f0", borderRadius: 9, padding: "0 30px 0 12px",
+      fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", color: "#0f172a",
+      background: "#fafbfe", outline: "none", appearance: "none", cursor: "pointer",
+    };
 
     return (
         <>
-            <style>{STYLES}</style>
-            <div className="ov">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+            <style>{FONT_IMPORT}</style>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", gap: 24, WebkitFontSmoothing: "antialiased" }}>
+                
                 {/* ── Header ── */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                            <div className="icon-badge" style={{ background: C.brandLight, color: C.brand, width: 28, height: 28 }}>
-                                <svg width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </div>
-                            <span style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '.06em', color: C.brand, textTransform: 'uppercase' }}>
-                                Unified Logs
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: "#94a3b8" }}>
+                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <Link href={`/${orgSlug}/dashboard/insights`} style={{ color: "inherit", textDecoration: "none", transition: "color .15s" }} onMouseEnter={e => e.currentTarget.style.color = "#4f46e5"} onMouseLeave={e => e.currentTarget.style.color = "inherit"}>Analytics</Link>
+                      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                      <span style={{ color: "#64748b" }}>History</span>
+
+                      {/* Live Indicator */}
+                      <div style={{ marginLeft: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#ecfdf5", color: "#059669", padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, letterSpacing: ".05em" }}>
+                          <div style={{ width: 6, height: 6, background: "#059669", borderRadius: "50%", animation: "pulse 2s infinite" }} />
+                          LIVE
+                        </div>
+                        {updatedLabel && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                            <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>
+                              Updated {updatedLabel}
                             </span>
-                        </div>
-                        <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.02em', color: C.text, margin: '0 0 6px 0' }}>
-                            Queue History
-                        </h1>
-                        <p style={{ fontSize: '14px', color: C.textSub, margin: 0, maxWidth: '500px', lineHeight: 1.5 }}>
-                            Review past sessions, tokens, and detailed performance metrics.
-                        </p>
+                            {isRefreshing && (
+                              <svg className="spin" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", letterSpacing: "-.025em", margin: 0 }}>Queue History</h1>
+                    <p style={{ fontSize: 14, color: "#64748b", margin: 0, lineHeight: 1.5 }}>Review past sessions, tokens, and detailed performance metrics.</p>
+                  </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <div>
-                            <div className="lbl" style={{ marginBottom: 6, paddingLeft: 2 }}>Session</div>
-                            <div style={{ position: 'relative' }}>
-                                <select
-                                    value={selectedSessionId}
-                                    onChange={(e) => setSelectedSessionId(e.target.value)}
-                                    className="ov-sel"
-                                >
-                                    <option value="">All Sessions</option>
-                                    {sessions.map(s => (
-                                        <option key={s.id} value={s.id}>{formatDate(s.session_date)} {s.title ? `(${s.title})` : ""}</option>
-                                    ))}
-                                </select>
-                                <svg width={14} height={14} fill="none" stroke={C.textMuted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </svg>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div className="lbl" style={{ marginBottom: 6, paddingLeft: 2 }}>Queue</div>
-                            <div style={{ position: 'relative' }}>
-                                <select
-                                    value={selectedQueueId}
-                                    onChange={(e) => setSelectedQueueId(e.target.value)}
-                                    className="ov-sel"
-                                    disabled={!selectedSessionId}
-                                >
-                                    <option value="">All Queues</option>
-                                    {queues.map(q => (
-                                        <option key={q.id} value={q.id}>{q.name}</option>
-                                    ))}
-                                </select>
-                                <svg width={14} height={14} fill="none" stroke={C.textMuted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </svg>
-                            </div>
-                        </div>
+                  {/* Filters */}
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <div>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 6 }}>Session</p>
+                      <div style={{ position: "relative" }}>
+                        <select value={selectedSessionId} onChange={e => setSelectedSessionId(e.target.value)} style={selectStyle}>
+                          <option value="">All Sessions</option>
+                          {sessions.map(s => (
+                            <option key={s.id} value={s.id}>{formatDate(s.session_date)} {s.title ? `(${s.title})` : ""}</option>
+                          ))}
+                        </select>
+                        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><polyline points="6 9 12 15 18 9" /></svg>
+                      </div>
                     </div>
+                    <div>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 6 }}>Queue</p>
+                      <div style={{ position: "relative" }}>
+                        <select value={selectedQueueId} onChange={e => setSelectedQueueId(e.target.value)} disabled={!selectedSessionId} style={{ ...selectStyle, opacity: !selectedSessionId ? 0.5 : 1 }}>
+                          <option value="">All Queues</option>
+                          {queues.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
+                        </select>
+                        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><polyline points="6 9 12 15 18 9" /></svg>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* ── Overview Stats ── */}
                 {overview && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                        <StatCard title="Total Served" value={overview.status_counts.served} icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" color="green" />
-                        <StatCard title="Total Missed" value={overview.status_counts.cancelled} icon="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" color="red" />
-                        <StatCard title="Avg. Wait Time" value={overview.timings.avg_waiting_time} icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" color="amber" />
-                        <StatCard title="Avg. Service Time" value={overview.timings.avg_served_time} icon="M13 10V3L4 14h7v7l9-11h-7z" color="brand" />
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+                        <StatCard label="Tokens served" value={overview.status_counts.served} color="#059669" />
+                        <StatCard label="Tokens missed" value={overview.status_counts.cancelled} color="#ef4444" />
+                        <StatCard label="Avg. Wait time" value={overview.timings.avg_waiting_time} color="#d97706" />
+                        <StatCard label="Avg. Service" value={overview.timings.avg_served_time} color="#4f46e5" />
                     </div>
                 )}
 
-                {/* ── Table Area ── */}
-                <div className="card">
-                    <div className="card-header">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <svg width={16} height={16} fill="none" stroke={C.textMuted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
-                            <h2 style={{ fontSize: '14px', fontWeight: 600, color: C.text, margin: 0 }}>Historical Tokens</h2>
-                        </div>
-                        <div className="lbl tnum">
-                            {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, total)} OF {total}
+                {/* ── Table Card ── */}
+                <div style={{ background: "#ffffff", borderRadius: 16, border: "0.5px solid #e8edf2", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "0.5px solid #f1f5f9" }}>
+                        <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Historical Logs</h2>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>
+                          {offset + 1}-{Math.min(offset + PAGE_SIZE, total)} OF {total}
                         </div>
                     </div>
 
-                    <div style={{ overflowX: 'auto' }}>
-                        <table className="qtable">
+                    <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
                             <thead>
                                 <tr>
-                                    <th>Token</th>
-                                    <th>Customer</th>
-                                    <th>Queue</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
-                                    <th>Served</th>
-                                    <th>Completed</th>
+                                    <th style={thStyle}>Token</th>
+                                    <th style={thStyle}>Customer</th>
+                                    <th style={thStyle}>Queue</th>
+                                    <th style={thStyle}>Status</th>
+                                    <th style={thStyle}>Created</th>
+                                    <th style={thStyle}>Served</th>
+                                    <th style={thStyle}>Finished</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {isLoading && history.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: C.textMuted }}>
-                                            Loading history...
-                                        </td>
-                                    </tr>
+                                    Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
                                 ) : history.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} style={{ textAlign: 'center', padding: '48px' }}>
-                                            <div style={{ color: C.textMuted, fontSize: '14px', fontWeight: 500 }}>No history found</div>
-                                            <div style={{ color: C.textMuted, fontSize: '13px', marginTop: '4px' }}>Try adjusting your applied filters.</div>
+                                        <td colSpan={7} style={{ padding: "64px 24px", textAlign: "center" }}>
+                                            <div style={{ color: "#94a3b8", fontSize: "14px" }}>No history found for current filters</div>
                                         </td>
                                     </tr>
                                 ) : (
                                     history.map((item) => (
-                                        <tr key={item.id}>
-                                            <td style={{ fontWeight: 700, color: C.text }}>
-                                                {item.queue_prefix}{item.token_number}
-                                            </td>
-                                            <td>
-                                                <div style={{ fontWeight: 600, color: C.text }}>{item.customer_name}</div>
-                                                <div style={{ fontSize: '12px', color: C.textMuted, marginTop: '2px' }}>
-                                                    {item.customer_phone}{item.customer_age ? ` • ${item.customer_age}y` : ""}
+                                        <tr key={item.id} onMouseEnter={e => (e.currentTarget.style.background = "#fafbfe")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                                            <td style={{ ...tdStyle, color: "#4f46e5", fontWeight: 700 }}>{item.queue_prefix}{item.token_number}</td>
+                                            <td style={tdStyle}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                                  <Avatar name={item.customer_name} />
+                                                  <div style={{ display: "flex", flexDirection: "column" }}>
+                                                    <span style={{ fontWeight: 600 }}>{item.customer_name}</span>
+                                                    <span style={{ fontSize: 11, color: "#94a3b8" }}>{item.customer_phone}</span>
+                                                  </div>
                                                 </div>
                                             </td>
-                                            <td style={{ color: C.textSub }}>{item.queue_name}</td>
-                                            <td><StatusBadge status={item.status} /></td>
-                                            <td className="tnum" style={{ color: C.textSub }}>{formatTime(item.created_at)}</td>
-                                            <td className="tnum" style={{ color: C.textSub }}>{formatTime(item.served_at)}</td>
-                                            <td className="tnum" style={{ color: C.textSub }}>{formatTime(item.completed_at)}</td>
+                                            <td style={{ ...tdStyle, color: "#64748b" }}>{item.queue_name}</td>
+                                            <td style={tdStyle}><StatusBadge status={item.status} /></td>
+                                            <td style={{ ...tdStyle, color: "#94a3b8", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>{formatTime(item.created_at)}</td>
+                                            <td style={{ ...tdStyle, color: "#94a3b8", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>{formatTime(item.served_at)}</td>
+                                            <td style={{ ...tdStyle, color: "#94a3b8", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>{formatTime(item.completed_at)}</td>
                                         </tr>
                                     ))
                                 )}
                             </tbody>
                         </table>
                     </div>
-
-                    {/* Pagination Bottom Strip */}
-                    {total > PAGE_SIZE && (
-                        <div style={{ padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', borderTop: `1px solid ${C.borderLight}` }}>
-                            <button
-                                className="pg-btn"
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                            >
-                                <svg width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                                Previous
-                            </button>
-                            <button
-                                className="pg-btn"
-                                onClick={() => setPage(p => p + 1)}
-                                disabled={page * PAGE_SIZE >= total}
-                            >
-                                Next
-                                <svg width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                            </button>
-                        </div>
-                    )}
+                    <Pagination total={total} limit={PAGE_SIZE} offset={offset} onChange={setOffset} />
                 </div>
             </div>
-        </div>
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @keyframes pulse {
+                    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.7); }
+                    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(5, 150, 105, 0); }
+                    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+                }
+            `}</style>
         </>
-    );
-}
-
-function StatCard({ title, value, icon, color = "blue" }: { title: string; value: string | number; icon: string; color?: keyof typeof C }) {
-    // Dynamic color references based on token
-    const cPrimary     = C[color as keyof typeof C] || C.blue;
-    const cBg          = C[`${color}Bg` as keyof typeof C] || C.blueBg;
-    const cBorder      = C[`${color}Border` as keyof typeof C] || C.blueBorder;
-
-    return (
-        <div className="card metric-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <div style={{ flex: 1 }}>
-                    <div className="lbl" style={{ marginBottom: '6px' }}>{title}</div>
-                    <div className="tnum" style={{ fontSize: '28px', fontWeight: 600, letterSpacing: '-.02em', color: C.text, lineHeight: 1 }}>
-                        {value}
-                    </div>
-                </div>
-                <div className="icon-badge" style={{ width: 38, height: 38, background: cBg, color: cPrimary, border: `1px solid ${cBorder}` }}>
-                    <svg width={20} height={20} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <path d={icon} />
-                    </svg>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function StatusBadge({ status }: { status: string }) {
-    const s = status.toLowerCase();
-    
-    let cBg = C.slateBg, cText = C.textSub, cBorder = C.border;
-    if (s === "done")         { cBg = C.greenBg; cText = C.green; cBorder = C.greenBorder; }
-    else if (s === "serving") { cBg = C.blueBg;  cText = C.blue;  cBorder = C.blueBorder; }
-    else if (s === "waiting") { cBg = C.amberBg; cText = C.amber; cBorder = C.amberBorder; }
-    else if (s === "deleted") { cBg = C.redBg;   cText = C.red;   cBorder = C.redBorder; }
-
-    return (
-        <span className="pill" style={{ background: cBg, color: cText, border: `1px solid ${cBorder}` }}>
-            {status}
-        </span>
     );
 }

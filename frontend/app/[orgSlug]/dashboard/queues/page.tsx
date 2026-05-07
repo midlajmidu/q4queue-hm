@@ -41,10 +41,11 @@ export default function QueuesRedirect() {
     }, [user, router]);
 
     return (
-        <div className="flex items-center justify-center min-h-[50vh]">
-            <div className="text-center">
-                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-gray-500 font-medium">{status}</p>
+        <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-10 py-12 text-center max-w-xs w-full">
+                <div className="w-10 h-10 border-[3px] border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-5" />
+                <p className="text-sm font-semibold text-gray-700 mb-1">Loading Queues</p>
+                <p className="text-xs text-gray-400 font-medium leading-relaxed">{status}</p>
             </div>
         </div>
     );
