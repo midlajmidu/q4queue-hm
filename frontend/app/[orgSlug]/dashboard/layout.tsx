@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 
 import { AlertBannerContainer } from "@/components/AlertBannerContainer";
 import ConfirmModal from "@/components/ConfirmModal";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -32,8 +33,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     return (
         <ProtectedRoute>
-            <div className="bg-gray-50 flex min-h-screen">
-                {/* Main sidebar – shown on all pages except the queue detail page */}
+            <NotificationProvider>
+                <div className="bg-gray-50 flex min-h-screen">
+                    {/* Main sidebar – shown on all pages except the queue detail page */}
                 {!isManageQueuePage && (
                     <Sidebar
                         isOpen={isMobileMenuOpen}
@@ -112,6 +114,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 }}
                 onCancel={() => setIsLogoutModalOpen(false)}
             />
+            </NotificationProvider>
         </ProtectedRoute>
     );
 }

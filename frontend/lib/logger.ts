@@ -29,15 +29,18 @@ function pushLog(entry: LogEntry) {
 
     // Only log to console in development
     if (!config.isProduction) {
+        const contextStr = entry.context && Object.keys(entry.context).length > 0
+            ? ` | context: ${JSON.stringify(entry.context)}`
+            : "";
         if (entry.level === "error") {
             // eslint-disable-next-line no-console
-            console.error(`[FC:${entry.level}] ${entry.message}`, entry.context);
+            console.error(`[FC:${entry.level}] ${entry.message}${contextStr}`, entry.context);
         } else if (entry.level === "warn") {
             // eslint-disable-next-line no-console
-            console.warn(`[FC:${entry.level}] ${entry.message}`, entry.context);
+            console.warn(`[FC:${entry.level}] ${entry.message}${contextStr}`, entry.context);
         } else {
             // eslint-disable-next-line no-console
-            console.info(`[FC:${entry.level}] ${entry.message}`, entry.context);
+            console.info(`[FC:${entry.level}] ${entry.message}${contextStr}`, entry.context);
         }
     }
 }

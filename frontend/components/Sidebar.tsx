@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/ui/Logo";
 import ConfirmModal from "@/components/ConfirmModal";
+import { useNotifications } from "@/context/NotificationContext";
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -35,6 +36,7 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
     const isSuperAdmin = user?.role === "super_admin" || pathname.startsWith("/super-admin");
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const { unreadCount } = useNotifications();
     const c = collapsed; // shorthand
 
     useEffect(() => {
@@ -155,7 +157,9 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                             <NavLink href={`${dashBase}/notifications`} label="Notifications" icon={
                                 <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
                             } badge={
-                                <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white">2</span>
+                                unreadCount > 0 ? (
+                                    <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white">{unreadCount}</span>
+                                ) : undefined
                             } />
 
                             {isAdmin && (

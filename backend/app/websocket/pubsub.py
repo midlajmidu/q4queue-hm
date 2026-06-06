@@ -35,8 +35,9 @@ _pubsub: Optional[PubSub] = None
 _subscriber_task: Optional[asyncio.Task] = None
 _redis_sub: Optional[Redis] = None
 
-# Channel pattern — matches all org_*_queue_* channels
-CHANNEL_PATTERN = "org_*_queue_*"
+# Channel patterns
+QUEUE_CHANNEL_PATTERN = "org_*_queue_*"
+NOTIFICATIONS_CHANNEL_PATTERN = "org_*_notifications"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -85,7 +86,7 @@ async def _subscriber_loop() -> None:
     AUDIT FIX: Reconnects and re-subscribes on connection loss,
     rather than using a stale PubSub object.
     """
-    logger.info("Redis subscriber loop started | pattern=%s", CHANNEL_PATTERN)
+    logger.info("Redis subscriber loop started | patterns=%s, %s", QUEUE_CHANNEL_PATTERN, NOTIFICATIONS_CHANNEL_PATTERN)
 
     while True:
         redis_conn = None
@@ -100,8 +101,8 @@ async def _subscriber_loop() -> None:
                 socket_timeout=30,  # AUDIT: Increased from 5 to avoid false timeouts
             )
             pubsub = redis_conn.pubsub()
-            await pubsub.psubscribe(CHANNEL_PATTERN)
-            logger.info("Subscriber connected and subscribed to %s", CHANNEL_PATTERN)
+            await pubsub.psubscribe(QUEUE_CHANNEL_PATTERN, NOTIFICATIONS_CHANNEL_PATTERN)
+            logger.info("Subscriber connected and subscribed to %s, %s", QUEUE_CHANNEL_PATTERN, NOTIFICATIONS_CHANNEL_PATTERN)
 
             # Read messages
             while True:
@@ -147,7 +148,7 @@ async def _subscriber_loop() -> None:
             # Clean up before reconnecting
             if pubsub:
                 try:
-                    await pubsub.punsubscribe(CHANNEL_PATTERN)
+                    await pubsub.punsubscribe(QUEUE_CHANNEL_PATTERN, NOTIFICATIONS_CHANNEL_PATTERN)
                     await pubsub.aclose()
                 except Exception:
                     pass

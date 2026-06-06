@@ -151,3 +151,68 @@ async def websocket_queue(
             WS_DISCONNECTIONS_TOTAL.inc()
         except Exception:
             pass
+
+@router.websocket("/notifications")
+async def websocket_notifications(
+    websocket: WebSocket,
+    token: str = Query(..., alias="token"),
+):
+    """
+    Real-time WebSocket endpoint for organization-wide notifications.
+
+    Query params:
+      token (required) — JWT for admin authentication
+    """
+    channel: Optional[str] = None
+
+    await websocket.accept()
+
+    try:
+        from app.monitoring.metrics import WS_CONNECTIONS_TOTAL
+        WS_CONNECTIONS_TOTAL.inc()
+    except Exception:
+        pass
+
+    try:
+        # Validate JWT + org match
+        try:
+            payload = decode_access_token(token)
+            org_id_str = payload.get("org_id")
+            if not org_id_str:
+                await websocket.close(code=4403, reason="User must belong to an organization")
+                return
+            
+            logger.info("WS notifications connected | user=%s org=%s", payload.get("sub"), org_id_str)
+        except JWTError:
+            await websocket.close(code=4401, reason="Invalid or expired token")
+            return
+
+        channel = manager.get_notification_channel(org_id_str)
+
+        async with manager._lock:
+            manager._connections[channel].add(websocket)
+        logger.info(
+            "WS registered | channel=%s clients=%d",
+            channel, manager.active_count(channel),
+        )
+
+        while True:
+            try:
+                data = await websocket.receive_text()
+                if data == "ping":
+                    await websocket.send_json({"type": "pong"})
+            except WebSocketDisconnect:
+                break
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        logger.error("WebSocket error | notifications channel=%s err=%s", channel, exc)
+    finally:
+        if channel:
+            await manager.disconnect(channel, websocket)
+        try:
+            from app.monitoring.metrics import WS_DISCONNECTIONS_TOTAL
+            WS_DISCONNECTIONS_TOTAL.inc()
+        except Exception:
+            pass

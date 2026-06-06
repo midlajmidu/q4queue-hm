@@ -40,6 +40,11 @@ class ConnectionManager:
         """Build the tenant-isolated channel name."""
         return f"org_{org_id}_queue_{queue_id}"
 
+    @staticmethod
+    def get_notification_channel(org_id: str) -> str:
+        """Build the tenant-isolated notification channel name."""
+        return f"org_{org_id}_notifications"
+
     async def connect(self, channel: str, websocket: WebSocket) -> None:
         """Accept and register a WebSocket client."""
         await websocket.accept()

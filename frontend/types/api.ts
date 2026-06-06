@@ -225,6 +225,23 @@ export interface HealthResponse {
     redis: string;
 }
 
+// ── Messages / Notifications ───────────────────────────────────────
+export interface MessageResponse {
+    id: string;
+    org_id: string;
+    sender_id: string;
+    receiver_id: string | null;
+    content: string;
+    is_read: boolean;
+    message_type: string;
+    created_at: string;
+}
+
+export interface MessageUpdateResponse {
+    message: string;
+    updated_count: number;
+}
+
 // ── Errors ───────────────────────────────────────────────────────
 export interface ApiErrorShape {
     detail: string;

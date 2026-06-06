@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     organization,
     sessions,
     analytics,
+    messages,
 )
 
 api_router = APIRouter()
@@ -41,6 +42,9 @@ api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytic
 
 # ── Tokens ─────────────────────────────────────────────────────────
 api_router.include_router(tokens.router, prefix="/tokens", tags=["Tokens"])
+
+# ── Messages ───────────────────────────────────────────────────────
+api_router.include_router(messages.router, prefix="/messages", tags=["Messages"])
 
 # ── Organization ───────────────────────────────────────────────────
 api_router.include_router(organization.router, prefix="/organization", tags=["Organization"])

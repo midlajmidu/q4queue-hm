@@ -54,6 +54,8 @@ import type {
     PaginatedHistoryResponse,
     PaginatedSessionResponse,
     PaginatedQueueResponse,
+    MessageResponse,
+    MessageUpdateResponse,
 } from "@/types/api";
 
 // ── Error class ──────────────────────────────────────────────────
@@ -211,6 +213,23 @@ export const api = {
 
         const q = qs.toString();
         return request<PaginatedHistoryResponse>(`/analytics/history${q ? `?${q}` : ""}`);
+    },
+
+    // ── Messages ─────────────────────────────────────────────────
+    getMessages(): Promise<MessageResponse[]> {
+        return request<MessageResponse[]>("/messages");
+    },
+
+    markMessageRead(messageId: string): Promise<MessageResponse> {
+        return request<MessageResponse>(`/messages/${messageId}/read`, {
+            method: "PATCH",
+        });
+    },
+
+    markAllMessagesRead(): Promise<MessageUpdateResponse> {
+        return request<MessageUpdateResponse>("/messages/read-all", {
+            method: "PATCH",
+        });
     },
 
     // ── Sessions ─────────────────────────────────────────────────
