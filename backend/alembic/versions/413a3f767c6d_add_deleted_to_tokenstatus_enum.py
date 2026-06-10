@@ -22,7 +22,14 @@ def upgrade() -> None:
     # but Alembic usually handles this. If it fails, we may need to use
     # op.get_bind().execution_options(isolation_level="AUTOCOMMIT")
     with op.get_context().autocommit_block():
-        op.execute("ALTER TYPE tokenstatus ADD VALUE 'deleted'")
+        op.execute("""
+DO $$
+BEGIN
+    ALTER TYPE tokenstatus ADD VALUE 'deleted';
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+""")
 
 
 def downgrade() -> None:

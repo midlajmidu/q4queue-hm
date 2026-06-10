@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -17,7 +16,7 @@ type TabFilter = "all" | "unread" | "warning" | "info" | "success" | "error";
 // ─── Icon component ───────────────────────────────────────────────────────────
 
 function NotifIcon({ type }: { type: NotifType }) {
-  const map: Record<NotifType, { bg: string; color: string; path: JSX.Element }> = {
+  const map: Record<NotifType, { bg: string; color: string; path: React.ReactElement }> = {
     warning: {
       bg: "#fffbeb", color: "#d97706",
       path: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>,
@@ -78,12 +77,12 @@ export default function NotificationsPage() {
   // ── Tab config ────────────────────────────────────────────────────────────
 
   const tabs: { key: TabFilter; label: string; count?: number }[] = [
-    { key: "all",     label: "All",      count: notifications.length },
-    { key: "unread",  label: "Unread",   count: unreadCount },
+    { key: "all", label: "All", count: notifications.length },
+    { key: "unread", label: "Unread", count: unreadCount },
     { key: "warning", label: "Warnings" },
-    { key: "info",    label: "Info"      },
-    { key: "success", label: "Success"   },
-    { key: "error",   label: "Errors"    },
+    { key: "info", label: "Info" },
+    { key: "success", label: "Success" },
+    { key: "error", label: "Errors" },
   ];
 
   // ── Render ────────────────────────────────────────────────────────────────
