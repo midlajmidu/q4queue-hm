@@ -55,13 +55,6 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
         timestamp: new Date(),
       };
 
-      // Auto-dismiss logic (except for errors or explicitly persisted alerts)
-      if (alert.type !== "error" && !alert.persist) {
-        setTimeout(() => {
-          removeAlert(id);
-        }, 10000);
-      }
-
       return [newAlert, ...prev];
     });
   }, [removeAlert]);

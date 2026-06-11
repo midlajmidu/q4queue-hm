@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Alert, AlertType } from "@/context/AlertContext";
 
 interface AlertBannerProps {
@@ -136,10 +136,17 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({ alert, onDismiss }) =>
     progressPaused.current = isHovered;
   }, [isHovered]);
 
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     setIsDismissing(true);
     setTimeout(() => onDismiss(alert.id), 300);
-  };
+  }, [alert.id, onDismiss]);
+
+  // Auto-dismiss when progress reaches 0
+  useEffect(() => {
+    if (progress === 0 && !isDismissing) {
+      handleDismiss();
+    }
+  }, [progress, isDismissing, handleDismiss]);
 
   const elapsed = Math.round((Date.now() - alert.timestamp.getTime()) / 1000);
   const timeAgo = elapsed < 5 ? "just now" : elapsed < 60 ? `${elapsed}s ago` : `${Math.floor(elapsed / 60)}m ago`;

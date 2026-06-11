@@ -720,7 +720,6 @@ export default function OverviewPage() {
           type: "warning",
           message: "⚠️ High wait times detected in queues! Consider adding more staff now.",
           action: { label: "Manage Staff", onClick: () => window.location.href = `${dashBase}/staff` },
-          persist: true // Persistence for critical warnings
         });
       }
     }
