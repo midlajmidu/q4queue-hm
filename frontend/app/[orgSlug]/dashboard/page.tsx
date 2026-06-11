@@ -2167,9 +2167,9 @@ function HourlyChart({ hourly, maxVisits, peakHour }: {
               return (
                 <div key={i} className="hbar" style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
                   <div style={{ flex: 1, display: "flex", alignItems: "flex-end", position: "relative" }}>
-                    <div style={{ 
-                      width: "100%", 
-                      height: `${Math.max(hPct, 6)}%`, 
+                    <div style={{
+                      width: "100%",
+                      height: `${Math.max(hPct, 6)}%`,
                       background: isPk ? `linear-gradient(to top, ${C.violet}, #a855f7)` : `linear-gradient(to top, ${C.brand}, #818cf8)`,
                       opacity: isPk ? 1 : 0.8,
                       borderRadius: "6px 6px 2px 2px",
@@ -2179,7 +2179,7 @@ function HourlyChart({ hourly, maxVisits, peakHour }: {
                     {/* Value indicator on hover (optional enhancement) */}
                     <div className="ins-spark-val" style={{ position: "absolute", top: -25, left: "50%", transform: "translateX(-50%)", background: C.text, color: "#fff", padding: "2px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, opacity: 0, transition: "opacity 0.2s" }}>{h.visits}</div>
                   </div>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: isPk ? C.text : C.textFaint, textAlign: "center", whiteSpace: "nowrap" }}>{h.hour}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: isPk ? C.text : C.textMuted, textAlign: "center", whiteSpace: "nowrap" }}>{h.hour}</span>
                 </div>
               );
             })}
