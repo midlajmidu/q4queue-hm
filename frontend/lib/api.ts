@@ -220,6 +220,13 @@ export const api = {
         return request<MessageResponse[]>("/messages");
     },
 
+    createMessage(content: string, message_type: string): Promise<MessageResponse> {
+        return request<MessageResponse>("/messages", {
+            method: "POST",
+            body: JSON.stringify({ content, message_type }),
+        });
+    },
+
     markMessageRead(messageId: string): Promise<MessageResponse> {
         return request<MessageResponse>(`/messages/${messageId}/read`, {
             method: "PATCH",
@@ -229,6 +236,12 @@ export const api = {
     markAllMessagesRead(): Promise<MessageUpdateResponse> {
         return request<MessageUpdateResponse>("/messages/read-all", {
             method: "PATCH",
+        });
+    },
+
+    clearAllMessages(): Promise<SuccessResponse> {
+        return request<SuccessResponse>("/messages", {
+            method: "DELETE",
         });
     },
 

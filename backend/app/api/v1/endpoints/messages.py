@@ -7,18 +7,52 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.deps import get_db
 from app.core.deps import get_current_active_user
 from app.models.message import Message
 from app.models.user import User
-from app.schemas.message import MessageResponse, MessageUpdateResponse
+from app.schemas.message import MessageResponse, MessageUpdateResponse, MessageCreateRequest
 from app.redis.deps import get_redis
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+@router.post("", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
+async def create_message(
+    body: MessageCreateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Any:
+    """Create a new notification message and broadcast it via Redis."""
+    message = Message(
+        org_id=current_user.org_id,
+        sender_id=current_user.id,
+        content=body.content,
+        message_type=body.message_type,
+        is_read=False
+    )
+    db.add(message)
+    await db.commit()
+    await db.refresh(message)
+    
+    # Broadcast new_message event via Redis to trigger WebSocket update
+    try:
+        redis_client = await get_redis()
+        channel = f"org_{str(current_user.org_id)}_notifications"
+        payload = {
+            "type": "new_message",
+            "message_id": str(message.id)
+        }
+        import json
+        await redis_client.publish(channel, json.dumps(payload))
+    except Exception as exc:
+        logger.error("Failed to publish new_message event: %s", exc)
+        
+    return message
 
 
 @router.get("", response_model=list[MessageResponse])
@@ -114,3 +148,30 @@ async def mark_all_messages_read(
             logger.error("Failed to publish message_read_all event: %s", exc)
             
     return {"message": "All messages marked as read", "updated_count": updated_count}
+
+
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_all_messages(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> None:
+    """Clear all messages for the current user's organization."""
+    org_id = current_user.org_id
+    
+    stmt = delete(Message).where(Message.org_id == org_id)
+    await db.execute(stmt)
+    await db.commit()
+    
+    # Broadcast clear status via Redis
+    try:
+        redis_client = await get_redis()
+        channel = f"org_{str(org_id)}_notifications"
+        payload = {
+            "type": "messages_cleared"
+        }
+        import json
+        await redis_client.publish(channel, json.dumps(payload))
+    except Exception as exc:
+        logger.error("Failed to publish messages_cleared event: %s", exc)
+        
+    return None

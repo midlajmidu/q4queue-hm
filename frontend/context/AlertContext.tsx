@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { api } from "@/lib/api";
 
 export type AlertType = "error" | "warning" | "info" | "success";
 
@@ -16,6 +17,7 @@ export interface Alert {
   timestamp: Date;
   action?: AlertAction;
   persist?: boolean;
+  db?: boolean;
 }
 
 interface AlertContextType {
@@ -42,6 +44,13 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const addAlert = useCallback((alert: Omit<Alert, "id" | "timestamp">) => {
+    // Save alert persistently to backend database (triggers WebSocket sync) if specified
+    if (alert.db) {
+      api.createMessage(alert.message, alert.type).catch((err) => {
+        console.error("Failed to save alert message to database:", err);
+      });
+    }
+
     setAlerts((prev) => {
       // Prevent duplicate messages
       if (prev.some((a) => a.message === alert.message)) {

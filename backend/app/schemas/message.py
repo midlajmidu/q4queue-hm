@@ -20,6 +20,11 @@ class MessageCreate(MessageBase):
     receiver_id: Optional[uuid.UUID] = None
 
 
+class MessageCreateRequest(BaseModel):
+    content: str
+    message_type: str
+
+
 class MessageResponse(MessageBase):
     id: uuid.UUID
     org_id: uuid.UUID

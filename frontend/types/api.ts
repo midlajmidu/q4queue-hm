@@ -33,6 +33,7 @@ export interface AnalyticsOverview {
         number: number;
         status: string;
         queue: string;
+        customer_name?: string;
         time: string;
     }[];
 }

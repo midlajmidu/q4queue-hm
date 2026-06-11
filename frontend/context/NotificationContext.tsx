@@ -23,7 +23,7 @@ interface NotificationContextValue {
     unreadCount: number;
     markAsRead: (id: string) => Promise<void>;
     markAllAsRead: () => Promise<void>;
-    clearAll: () => void;
+    clearAll: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
@@ -44,11 +44,47 @@ function formatTimeAgo(dateString: string): string {
     return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
+function getDynamicTitle(content: string, type: string): string {
+    const text = content.toLowerCase();
+    
+    // Check keywords first
+    if (text.includes("wait time") || text.includes("staff")) {
+        return "Queue Warning";
+    }
+    if (text.includes("maintenance") || text.includes("schedule")) {
+        return "Maintenance Info";
+    }
+    if (text.includes("download") || text.includes("report") || text.includes("history")) {
+        if (type === "success") return "Export Success";
+        if (type === "error") return "Export Failed";
+        return "Export Info";
+    }
+    if (text.includes("joined") || text.includes("checked in") || text.includes("patient")) {
+        return "Customer Activity";
+    }
+    if (text.includes("called") || text.includes("served") || text.includes("completed")) {
+        return "Queue Activity";
+    }
+    
+    // Default fallbacks based on type
+    switch (type) {
+        case "warning":
+            return "System Warning";
+        case "success":
+            return "System Success";
+        case "error":
+            return "System Error";
+        case "info":
+        default:
+            return "System Update";
+    }
+}
+
 function mapMessageToNotification(msg: MessageResponse): DashboardNotification {
     return {
         id: msg.id,
         type: (msg.message_type as NotifType) || "info",
-        title: "System Update", // We might want to add title to Message model later
+        title: getDynamicTitle(msg.content, msg.message_type),
         message: msg.content,
         time: formatTimeAgo(msg.created_at),
         isRead: msg.is_read,
@@ -99,6 +135,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                         );
                     } else if (payload.type === "message_read_all") {
                         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                    } else if (payload.type === "messages_cleared") {
+                        setNotifications([]);
                     }
                 } catch (e) {
                     console.error("WS Parse error", e);
@@ -143,9 +181,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         }
     }, []);
 
-    const clearAll = useCallback(() => {
-        // Technically we need a delete API for this, but for now we just clear the UI
+    const clearAll = useCallback(async () => {
         setNotifications([]);
+        try {
+            await api.clearAllMessages();
+        } catch (err) {
+            console.error("Failed to clear all messages", err);
+        }
     }, []);
 
     return (
@@ -163,7 +205,7 @@ export function useNotifications() {
             unreadCount: 0,
             markAsRead: async () => {},
             markAllAsRead: async () => {},
-            clearAll: () => {}
+            clearAll: async () => {}
         };
     }
     return context;

@@ -7,6 +7,7 @@ import type { AnalyticsOverview, SessionResponse, QueueResponse } from "@/types/
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useAlert } from "@/context/AlertContext";
+import { useNotifications } from "@/context/NotificationContext";
 
 // ─── Helpers ─────────────────────────────────────────────────────
 function timeToSeconds(t: string): number {
@@ -29,15 +30,8 @@ function formatDuration(s: number): string {
   return `${seconds}s`;
 }
 
-function statusLabel(act: { number: number; status: string; queue: string }): string {
-  const map: Record<string, string> = {
-    waiting: `#${act.number} joined ${act.queue}`,
-    serving: `#${act.number} called to service`,
-    done: `#${act.number} service completed`,
-    skipped: `#${act.number} cancelled`,
-    deleted: `#${act.number} cancelled`,
-  };
-  return map[act.status] ?? `#${act.number} — ${act.status}`;
+function statusLabel(act: { number: number; status: string; queue: string; customer_name?: string }): string {
+  return act.customer_name && act.customer_name !== "-" ? act.customer_name : `Customer #${act.number}`;
 }
 
 // ─── SVG Icon primitives ──────────────────────────────────────────
@@ -703,13 +697,13 @@ export default function OverviewPage() {
   const { addAlert } = useAlert();
 
   // ── Demo Alerts ──────────────────────────────────────
-  useEffect(() => {
-    // Show maintenance info on load
-    addAlert({
-      type: "info",
-      message: "Scheduled maintenance tonight at 10 PM. System updates will be performed.",
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // useEffect(() => {
+  //   // Show maintenance info on load
+  //   addAlert({
+  //     type: "info",
+  //     message: "Scheduled maintenance tonight at 10 PM. System updates will be performed.",
+  //   });
+  // }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Monitor for high wait times
@@ -782,9 +776,9 @@ export default function OverviewPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      addAlert({ type: "success", message: "Report downloaded successfully." });
+      addAlert({ type: "success", message: "Report downloaded successfully.", db: true });
     } catch (err) {
-      addAlert({ type: "error", message: "Failed to download report." });
+      addAlert({ type: "error", message: "Failed to download report.", db: true });
     } finally {
       setIsDownloading(false);
     }
@@ -1835,17 +1829,14 @@ function NotificationSystem() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: "warning", text: "Wait time exceeded 30 min — Doctor Ambedhkar queue", time: "2 minutes ago", isRead: false, icon: "⚠️" },
-    { id: 2, type: "success", text: "Session started successfully", time: "1 hour ago", isRead: false, icon: "✅" },
-    { id: 3, type: "info", text: "5 customers joined Doctor Imbu queue", time: "2 hours ago", isRead: true, icon: "ℹ️" },
-  ]);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+  const notifIcons: Record<string, string> = {
+    warning: "⚠️",
+    success: "✅",
+    info: "ℹ️",
+    error: "🚨",
   };
 
   const toggleOpen = () => {
@@ -1940,8 +1931,12 @@ function NotificationSystem() {
       <div style={{ maxHeight: 340, overflowY: "auto" }}>
         {notifications.length > 0 ? (
           notifications.map((n) => (
-            <div key={n.id} className={`notif-item ${!n.isRead ? "unread" : ""}`}>
-              <div className={`notif-icon-dot ${n.type}`}>{n.icon}</div>
+            <div
+              key={n.id}
+              className={`notif-item ${!n.isRead ? "unread" : ""}`}
+              onClick={() => markAsRead(n.id)}
+            >
+              <div className={`notif-icon-dot ${n.type}`}>{notifIcons[n.type] || "ℹ️"}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{
                   margin: 0,
@@ -1951,7 +1946,7 @@ function NotificationSystem() {
                   lineHeight: 1.5,
                   letterSpacing: "-0.005em",
                 }}>
-                  {n.text}
+                  {n.message}
                 </p>
                 <p style={{
                   margin: "4px 0 0",

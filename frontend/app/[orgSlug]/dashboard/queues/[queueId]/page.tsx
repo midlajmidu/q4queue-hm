@@ -190,6 +190,58 @@ const QD_STYLES = `
   .qd-btn-secondary:active:not(:disabled) { transform: translateY(0); }
   .qd-btn-secondary:disabled { opacity: .35; cursor: not-allowed; }
 
+  .qd-btn-call-next {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: ${T.brand};
+    color: #fff;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    padding: 15px 28px;
+    font-size: 15px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: -0.01em;
+    box-shadow: 0 4px 14px rgba(91,94,244,.25);
+    transition: all .2s cubic-bezier(.22,1,.36,1);
+  }
+  .qd-btn-call-next:hover:not(:disabled) {
+    background: ${T.brandDark};
+    box-shadow: 0 6px 20px rgba(91,94,244,.4);
+    transform: translateY(-1.5px);
+  }
+  .qd-btn-call-next:active:not(:disabled) { transform: translateY(0); }
+  .qd-btn-call-next:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+  .qd-btn-done-next {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: ${T.green};
+    color: #fff;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    padding: 15px 28px;
+    font-size: 15px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: -0.01em;
+    box-shadow: 0 4px 14px rgba(22,163,74,.25);
+    transition: all .2s cubic-bezier(.22,1,.36,1);
+  }
+  .qd-btn-done-next:hover:not(:disabled) {
+    background: #15803d;
+    box-shadow: 0 6px 20px rgba(22,163,74,.4);
+    transform: translateY(-1.5px);
+  }
+  .qd-btn-done-next:active:not(:disabled) { transform: translateY(0); }
+  .qd-btn-done-next:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
   /* ── Inputs ── */
   .qd-input {
     width: 100%;
@@ -242,7 +294,7 @@ const QD_STYLES = `
 
   /* ── Action Grid ── */
   .qd-action-grid { display: grid; gap: 10px; }
-  @media (min-width: 640px) { .qd-action-grid { grid-template-columns: 1.4fr 1fr 1fr; } }
+  @media (min-width: 640px) { .qd-action-grid { grid-template-columns: 1fr 1fr; } }
 
   /* ── Stat Chip ── */
   .stat-chip {
@@ -302,7 +354,6 @@ export default function QueueDetailPage({ params }: PageProps) {
     const HISTORY_PAGE_SIZE = 15;
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
-    const [showSkipConfirm, setShowSkipConfirm] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -402,16 +453,7 @@ export default function QueueDetailPage({ params }: PageProps) {
         });
     }, [performAction, queueId, state?.prefix, toast]);
 
-    const handleSkip = useCallback(() => setShowSkipConfirm(true), []);
-    const handleConfirmSkip = useCallback(async () => {
-        setShowSkipConfirm(false);
-        const prefix = state?.prefix ?? "";
-        await performAction("skip", async () => {
-            const res = await api.callNext(queueId, "skipped");
-            if ("message" in res) toast(res.message, "info");
-            else toast(`${prefix}${res.serving} is now serving`, "success");
-        });
-    }, [performAction, queueId, state?.prefix, toast]);
+
 
     const handleReset = useCallback(async () => {
         setResetting(true);
@@ -529,13 +571,11 @@ export default function QueueDetailPage({ params }: PageProps) {
         function onKeyDown(e: KeyboardEvent) {
             const target = e.target as HTMLElement;
             if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
-            if (showSkipConfirm) return;
             if (e.key === "Enter" && !isDisabled) { e.preventDefault(); handleNext(); }
-            if ((e.key === "s" || e.key === "S") && !isDisabled) { e.preventDefault(); handleSkip(); }
         }
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
-    }, [isDisabled, handleNext, handleSkip, showSkipConfirm, state?.current_serving]);
+    }, [isDisabled, handleNext]);
 
     useEffect(() => { return () => { if (errorTimerRef.current) clearTimeout(errorTimerRef.current); }; }, []);
 
@@ -722,8 +762,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <button
                                             onClick={handleNext}
                                             disabled={isDisabled}
-                                            className="qd-btn-primary"
-                                            style={{ padding: "15px 28px", fontSize: 15 }}
+                                            className="qd-btn-call-next"
                                         >
                                             {actionLoading === "next" ? (
                                                 <>
@@ -740,28 +779,25 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         </button>
 
                                         <button
-                                            onClick={handleSkip}
-                                            disabled={isDisabled}
-                                            className="qd-btn-secondary"
-                                            style={{ color: T.amber, borderColor: T.amberBorder, background: T.amberBg }}
-                                        >
-                                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
-                                            {actionLoading === "skip" ? "Skipping…" : "Skip"}
-                                            <kbd style={{ fontSize: 9, opacity: .45, padding: "1px 5px", borderRadius: 3, background: "rgba(217,119,6,.1)", fontFamily: "'DM Mono', monospace" }}>S</kbd>
-                                        </button>
-
-                                        <button
                                             onClick={() => performAction("done", async () => {
                                                 const res = await api.callNext(queueId, "done");
                                                 if ("message" in res) toast(res.message, "info");
                                                 else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
                                             })}
                                             disabled={isDisabled}
-                                            className="qd-btn-secondary"
-                                            style={{ color: T.green, borderColor: T.greenBorder, background: T.greenBg }}
+                                            className="qd-btn-done-next"
                                         >
-                                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
-                                            {actionLoading === "done" ? "Completing…" : "Done & Next"}
+                                            {actionLoading === "done" ? (
+                                                <>
+                                                    <span style={{ width: 16, height: 16, borderRadius: "50%", border: "2.5px solid rgba(255,255,255,.3)", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                    Completing…
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                                                    Done & Next
+                                                </>
+                                            )}
                                         </button>
                                     </div>
 
@@ -1096,7 +1132,7 @@ export default function QueueDetailPage({ params }: PageProps) {
             </div>
 
             {/* ── Modals ─────────────────────────────────────────── */}
-            <ConfirmModal isOpen={showSkipConfirm} title="Skip Current Token?" message={`This will skip token ${state?.prefix || ""}${state?.current_serving || 0} and move to the next waiting token.`} confirmLabel="Skip Token" confirmVariant="danger" onConfirm={handleConfirmSkip} onCancel={() => setShowSkipConfirm(false)} isLoading={actionLoading === "skip"} />
+
             <ConfirmModal isOpen={showDeleteConfirm} title="Delete Queue" message={`Are you sure you want to permanently delete the queue "${state?.queue_name || "this queue"}"? All associated tokens and data will be lost forever.`} confirmLabel="Delete Queue" confirmVariant="danger" onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} isLoading={deleting} requireInput={true} requiredText={state?.queue_name || ""} />
             <ConfirmModal isOpen={showResetConfirm} title="Reset Queue" message={`Are you sure you want to reset the queue "${state?.queue_name || "this queue"}"? This will delete all tokens and reset the current serving number to 0. This cannot be undone.`} confirmLabel="Reset Queue" confirmVariant="danger" onConfirm={handleReset} onCancel={() => setShowResetConfirm(false)} isLoading={resetting} requireInput={true} requiredText={state?.queue_name || ""} />
             <ConfirmModal isOpen={!!tokenToRemove} title="Remove Customer" message={`Are you sure you want to remove token ${state?.prefix || ""}${tokenToRemove?.number} from the waiting list? They will be permanently marked as deleted.`} confirmLabel="Remove Token" confirmVariant="danger" onConfirm={handleConfirmRemove} onCancel={() => setTokenToRemove(null)} isLoading={actionLoading === "remove"} />
