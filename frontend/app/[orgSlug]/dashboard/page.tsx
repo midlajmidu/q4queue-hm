@@ -710,14 +710,21 @@ export default function OverviewPage() {
     if (overview?.timings?.max_waiting_time) {
       const waitSec = timeToSeconds(overview.timings.max_waiting_time);
       if (waitSec > 1800) { // 30 mins
-        addAlert({
-          type: "warning",
-          message: "⚠️ High wait times detected in queues! Consider adding more staff now.",
-          action: { label: "Manage Staff", onClick: () => window.location.href = `${dashBase}/staff` },
-        });
+        const todayDate = new Date().toLocaleDateString();
+        const lastAlertDate = localStorage.getItem("last_high_wait_alert_date");
+        
+        if (lastAlertDate !== todayDate) {
+          addAlert({
+            type: "warning",
+            message: "⚠️ High wait times detected in queues! Consider adding more staff now.",
+            action: { label: "Manage Staff", onClick: () => window.location.href = `${dashBase}/staff` },
+            db: true,
+          });
+          localStorage.setItem("last_high_wait_alert_date", todayDate);
+        }
       }
     }
-  }, [overview?.timings?.max_waiting_time, dashBase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [overview?.timings?.max_waiting_time, dashBase, addAlert]); // eslint-disable-line react-hooks/exhaustive-deps
   const [selectedQueue, setSelectedQueue] = useState("");
   const [recentPage, setRecentPage] = useState(1);
   const LIMIT = 10;
