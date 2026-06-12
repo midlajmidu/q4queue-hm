@@ -190,37 +190,34 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                     <div className={`p-3 space-y-1.5 ${c ? "flex flex-col items-center" : ""}`}>
                         {/* Profile */}
                         <Tip label={user?.email || "Account"} show={c}>
-                            <div className={`group flex items-center rounded-[10px] cursor-default transition-all duration-200 ${c ? "justify-center w-10 h-10" : "gap-3 px-3 py-[10px] w-full"} ${
-                                isSuperAdmin ? "hover:bg-slate-800/70" : "hover:bg-white hover:shadow-[0_0_0_1px_rgba(0,0,0,0.04),0_2px_6px_rgba(0,0,0,0.04)]"
+                            <div className={`group flex items-center rounded-xl cursor-default transition-all duration-300 ${
+                                c ? "justify-center w-10 h-10" : "gap-3 px-3 py-2.5 w-full"
+                            } ${
+                                isSuperAdmin 
+                                    ? "bg-slate-800/30 hover:bg-slate-800/60 ring-1 ring-white/5 hover:ring-white/10" 
+                                    : "bg-slate-100/60 hover:bg-white hover:shadow-sm ring-1 ring-slate-200/50 hover:ring-slate-200"
                             }`}>
                                 <div className="relative shrink-0">
-                                    <div className={`${c ? "w-8 h-8 rounded-lg text-[11px]" : "w-[34px] h-[34px] rounded-[9px] text-[12.5px]"} flex items-center justify-center font-bold shadow-sm transition-all duration-200 group-hover:shadow-md ${
+                                    <div className={`${c ? "w-8 h-8 rounded-lg text-[11px]" : "w-[34px] h-[34px] rounded-[10px] text-[13px]"} flex items-center justify-center font-bold shadow-sm transition-all duration-500 group-hover:scale-105 group-hover:-rotate-2 ${
                                         isSuperAdmin
-                                            ? "bg-gradient-to-br from-[#2563eb] via-[#4f46e5] to-[#043579] text-white ring-1 ring-white/10"
-                                            : "bg-gradient-to-br from-[#2563eb] via-[#4f46e5] to-[#043579] text-white ring-1 ring-black/5"
+                                            ? "bg-gradient-to-br from-indigo-500 to-blue-700 text-white ring-1 ring-white/10"
+                                            : "bg-gradient-to-br from-indigo-500 to-blue-700 text-white ring-1 ring-black/5 group-hover:shadow-indigo-500/20"
                                     }`}>
                                         {(user?.email?.[0] || "U").toUpperCase()}
                                     </div>
-                                    <div className={`absolute -bottom-[3px] -right-[3px] ${c ? "w-[9px] h-[9px] border-2" : "w-[11px] h-[11px] border-[2.5px]"} rounded-full bg-emerald-400 ${
-                                        isSuperAdmin ? "border-slate-900" : "border-[#fafbfe]"
-                                    }`} />
+                                    <div className={`absolute -bottom-0.5 -right-0.5 ${c ? "w-[10px] h-[10px] border-2" : "w-3 h-3 border-2"} rounded-full bg-emerald-400 ${
+                                        isSuperAdmin ? "border-slate-800 group-hover:border-slate-700" : "border-[#f4f5f8] group-hover:border-white"
+                                    } transition-colors duration-300`} />
                                 </div>
                                 {!c && (
                                     <>
-                                        <div className="flex flex-col min-w-0 flex-1">
-                                            <span className={`text-[13px] font-semibold truncate leading-none tracking-[-0.01em] ${isSuperAdmin ? "text-slate-100" : "text-slate-800"}`}>
+                                        <div className="flex flex-col min-w-0 flex-1 justify-center">
+                                            <span className={`text-[13px] font-semibold truncate tracking-tight transition-colors duration-300 ${isSuperAdmin ? "text-slate-100 group-hover:text-white" : "text-slate-700 group-hover:text-indigo-600"}`}>
                                                 {user?.email || "User Account"}
                                             </span>
-                                            <span className={`text-[10.5px] font-medium truncate leading-none mt-[5px] ${isSuperAdmin ? "text-slate-500" : "text-slate-400"}`}>
-                                                {formatRole(user?.role)}{user?.org_name ? <><span className="mx-1 opacity-40">·</span>{user.org_name}</> : ""}
+                                            <span className={`text-[11px] font-medium truncate mt-[2px] ${isSuperAdmin ? "text-slate-400" : "text-slate-500"}`}>
+                                                {formatRole(user?.role)}{user?.org_name ? <><span className="mx-1.5 opacity-30">|</span>{user.org_name}</> : ""}
                                             </span>
-                                        </div>
-                                        <div className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-all duration-200 ${
-                                            isSuperAdmin ? "text-slate-600 group-hover:text-slate-400 group-hover:bg-slate-700/50" : "text-slate-300 group-hover:text-slate-500 group-hover:bg-slate-100"
-                                        }`}>
-                                            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
-                                            </svg>
                                         </div>
                                     </>
                                 )}
