@@ -258,6 +258,10 @@ export interface ApiErrorResponse {
 export interface StaffMember {
     id: string;
     email: string;
+    first_name?: string;
+    last_name?: string;
+    counter?: string;
+    assigned_queues?: string[];
     org_id: string;
     role: "admin" | "staff";
     is_active: boolean;
@@ -266,11 +270,19 @@ export interface StaffMember {
 
 export interface StaffCreate {
     email: string;
+    first_name: string;
+    last_name: string;
+    counter?: string;
+    assigned_queues?: string[];
     password: string;
 }
 
 export interface StaffUpdate {
     email?: string;
+    first_name?: string;
+    last_name?: string;
+    counter?: string;
+    assigned_queues?: string[];
     is_active?: boolean;
     new_password?: string;
 }

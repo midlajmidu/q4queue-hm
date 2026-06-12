@@ -15,6 +15,10 @@ class UserResponse(BaseModel):
 
     id: uuid.UUID
     email: EmailStr
+    first_name: str | None
+    last_name: str | None
+    counter: str | None = None
+    assigned_queues: list[str] = []
     org_id: uuid.UUID
     role: str
     is_active: bool
@@ -40,12 +44,20 @@ class OrganizationResponse(BaseModel):
 class StaffCreate(BaseModel):
     """Payload for creating a new staff member. Role is always 'staff'."""
     email: EmailStr
+    first_name: str
+    last_name: str
+    counter: str | None = None
+    assigned_queues: list[str] = []
     password: str = Field(..., min_length=8, description="Minimum 8 characters")
 
 
 class StaffUpdate(BaseModel):
     """Payload for updating an existing staff member. Role is intentionally excluded."""
     email: Optional[EmailStr] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    counter: Optional[str] = None
+    assigned_queues: Optional[list[str]] = None
     is_active: Optional[bool] = None
     new_password: Optional[str] = Field(default=None, min_length=8)
 
@@ -54,6 +66,10 @@ class StaffResponse(BaseModel):
     """Safe staff member representation — no password_hash."""
     id: uuid.UUID
     email: EmailStr
+    first_name: str | None
+    last_name: str | None
+    counter: str | None = None
+    assigned_queues: list[str] = []
     org_id: uuid.UUID
     role: str
     is_active: bool

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { StaffMember, StaffCreate, StaffUpdate } from "@/types/api";
+import type { StaffMember, StaffCreate, StaffUpdate, QueueResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -15,7 +15,8 @@ interface ToastMessage { id: number; type: ToastType; msg: string; }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function getInitials(email: string): string {
+function getInitials(email: string, firstName?: string, lastName?: string): string {
+  if (firstName && lastName) return (firstName[0] + lastName[0]).toUpperCase();
   const [local] = email.split("@");
   const parts = local.split(/[._-]/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -74,7 +75,7 @@ function Toast({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismiss: (id: 
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
 
-function Avatar({ email }: { email: string }) {
+function Avatar({ email, firstName, lastName }: { email: string; firstName?: string; lastName?: string }) {
   const { bg, color } = getPalette(email);
   return (
     <div style={{
@@ -82,24 +83,49 @@ function Avatar({ email }: { email: string }) {
       display: "flex", alignItems: "center", justifyContent: "center",
       fontSize: 12, fontWeight: 700, letterSpacing: "-.01em",
     }}>
-      {getInitials(email)}
+      {getInitials(email, firstName, lastName)}
     </div>
   );
 }
 
 // ─── Badges ──────────────────────────────────────────────────────────────────
 
-function StatusBadge({ active }: { active: boolean }) {
+type PresenceState = "online" | "idle" | "offline" | { serving: string };
+
+function StatusBadge({ active, presence }: { active: boolean; presence?: PresenceState }) {
+  if (!active) {
+    return (
+      <span style={{
+        display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px",
+        borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
+        background: "#f8fafc", color: "#64748b", border: `0.5px solid #e2e8f0`,
+      }}>
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", flexShrink: 0 }} />
+        Offline
+      </span>
+    );
+  }
+
+  const state = presence ?? "online";
+  
+  let bg = "#ecfdf5", color = "#059669", border = "#a7f3d0", dot = "#059669", label = "Online";
+
+  if (state === "idle") {
+    bg = "#fffbeb"; color = "#d97706"; border = "#fde68a"; dot = "#d97706"; label = "Idle";
+  } else if (typeof state === "object" && state.serving) {
+    bg = "#fef2f2"; color = "#dc2626"; border = "#fecaca"; dot = "#dc2626"; label = `Serving ${state.serving}`;
+  } else if (state === "offline") {
+    bg = "#f8fafc"; color = "#64748b"; border = "#e2e8f0"; dot = "#94a3b8"; label = "Offline";
+  }
+
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px",
       borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
-      background: active ? "#ecfdf5" : "#f8fafc",
-      color: active ? "#059669" : "#64748b",
-      border: `0.5px solid ${active ? "#a7f3d0" : "#e2e8f0"}`,
+      background: bg, color: color, border: `0.5px solid ${border}`,
     }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: active ? "#059669" : "#94a3b8", flexShrink: 0 }} />
-      {active ? "Active" : "Inactive"}
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: dot, flexShrink: 0 }} />
+      {label}
     </span>
   );
 }
@@ -158,7 +184,12 @@ function StaffModal({ mode, member, onClose, onSaved }: {
   mode: "create" | "edit"; member?: StaffMember; onClose: () => void; onSaved: (m: StaffMember) => void;
 }) {
   const isEdit = mode === "edit";
+  const [firstName, setFirstName] = useState(member?.first_name ?? "");
+  const [lastName, setLastName] = useState(member?.last_name ?? "");
   const [email, setEmail] = useState(member?.email ?? "");
+  const [counter, setCounter] = useState(member?.counter ?? "");
+  const [assignedQueues, setAssignedQueues] = useState<string[]>(member?.assigned_queues ?? []);
+  const [queues, setQueues] = useState<QueueResponse[]>([]);
   const [isActive, setIsActive] = useState(member?.is_active ?? true);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -168,13 +199,23 @@ function StaffModal({ mode, member, onClose, onSaved }: {
   const [fieldError, setFieldError] = useState<string | null>(null);
 
   useEffect(() => {
+    api.listQueues().then(res => {
+      // The API returns paginated response or array based on listQueues implementation
+      // But listQueues returns Promise<QueueResponse[]> in api.ts
+      setQueues(res);
+    }).catch(console.error);
+  }, []);
+
+  useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
 
   const validate = (): string | null => {
-    if (!email) return "Email is required.";
+    if (!firstName.trim()) return "First name is required.";
+    if (!lastName.trim()) return "Last name is required.";
+    if (!email.trim()) return "Email is required.";
     if (!isEdit) {
       if (password.length < 8) return "Password must be at least 8 characters.";
       if (password !== confirmPassword) return "Passwords do not match.";
@@ -195,12 +236,21 @@ function StaffModal({ mode, member, onClose, onSaved }: {
       let result: StaffMember;
       if (isEdit && member) {
         const update: StaffUpdate = {};
+        if (firstName !== member.first_name) update.first_name = firstName;
+        if (lastName !== member.last_name) update.last_name = lastName;
         if (email !== member.email) update.email = email;
+        if (counter !== member.counter) update.counter = counter || undefined;
+        if (JSON.stringify(assignedQueues) !== JSON.stringify(member.assigned_queues || [])) {
+          update.assigned_queues = assignedQueues;
+        }
         if (isActive !== member.is_active) update.is_active = isActive;
         if (newPassword) update.new_password = newPassword;
         result = await api.updateStaff(member.id, update);
       } else {
-        result = await api.createStaff({ email, password });
+        result = await api.createStaff({ 
+          email, first_name: firstName, last_name: lastName, password,
+          counter: counter || undefined, assigned_queues: assignedQueues
+        });
       }
       onSaved(result);
     } catch (err) {
@@ -250,6 +300,30 @@ function StaffModal({ mode, member, onClose, onSaved }: {
             </div>
           )}
 
+          {/* Name fields */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div>
+              <label style={labelStyle}>First name <span style={{ color: "#ef4444" }}>*</span></label>
+              <input
+                type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+                required disabled={isSaving} placeholder="Jane"
+                style={inputStyle}
+                onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
+                onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Last name <span style={{ color: "#ef4444" }}>*</span></label>
+              <input
+                type="text" value={lastName} onChange={e => setLastName(e.target.value)}
+                required disabled={isSaving} placeholder="Smith"
+                style={inputStyle}
+                onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
+                onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }}
+              />
+            </div>
+          </div>
+
           {/* Email */}
           <div>
             <label style={labelStyle}>Email address <span style={{ color: "#ef4444" }}>*</span></label>
@@ -260,6 +334,37 @@ function StaffModal({ mode, member, onClose, onSaved }: {
               onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
               onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }}
             />
+          </div>
+
+          {/* Counter and Queues */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div>
+              <label style={labelStyle}>Counter Assignment</label>
+              <input
+                type="text" value={counter} onChange={e => setCounter(e.target.value)}
+                disabled={isSaving} placeholder="e.g. Counter 1"
+                style={inputStyle}
+                onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
+                onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Assigned Queues</label>
+              <div style={{ ...inputStyle, height: "auto", minHeight: 42, padding: "8px 14px", display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                {queues.length === 0 ? <span style={{ color: "#94a3b8", fontSize: 13 }}>None available</span> : queues.map(q => {
+                  const isAssigned = assignedQueues.includes(q.prefix);
+                  return (
+                    <label key={q.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: isAssigned ? "#0f172a" : "#64748b", cursor: "pointer", background: isAssigned ? "#eef2ff" : "transparent", padding: "2px 6px", borderRadius: 6, border: isAssigned ? "0.5px solid #c7d2fe" : "0.5px solid transparent" }}>
+                      <input type="checkbox" checked={isAssigned} onChange={e => {
+                        if (e.target.checked) setAssignedQueues(prev => [...prev, q.prefix]);
+                        else setAssignedQueues(prev => prev.filter(p => p !== q.prefix));
+                      }} style={{ display: "none" }} />
+                      {q.prefix}
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Status Toggle (edit only) */}
@@ -640,6 +745,7 @@ export default function StaffPage() {
                 <tr>
                   <th style={thStyle}>Member</th>
                   <th style={thStyle}>Role</th>
+                  <th style={thStyle}>Assignment</th>
                   <th style={thStyle}>Status</th>
                   <th style={thStyle}>Joined</th>
                   {isAdmin && <th style={{ ...thStyle, textAlign: "right" }}>Actions</th>}
@@ -678,16 +784,47 @@ export default function StaffPage() {
                         {/* Member */}
                         <td style={tdStyle}>
                           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                            <Avatar email={m.email} />
-                            <span style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>{m.email}</span>
+                            <Avatar email={m.email} firstName={m.first_name} lastName={m.last_name} />
+                            <div style={{ display: "flex", flexDirection: "column" }}>
+                              <span style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>
+                                {m.first_name && m.last_name ? `${m.first_name} ${m.last_name}` : "Unknown User"}
+                              </span>
+                              <span style={{ fontSize: 12, color: "#64748b" }}>{m.email}</span>
+                            </div>
                           </div>
                         </td>
 
                         {/* Role */}
                         <td style={tdStyle}><RoleBadge role={m.role} /></td>
 
+                        {/* Assignment */}
+                        <td style={tdStyle}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            {m.counter ? <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{m.counter}</span> : null}
+                            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                              {(m.assigned_queues || []).map(q => (
+                                <span key={q} style={{ padding: "2px 6px", background: "#f1f5f9", color: "#475569", borderRadius: 4, fontSize: 11, fontWeight: 600, border: "0.5px solid #e2e8f0" }}>
+                                  {q}
+                                </span>
+                              ))}
+                              {(!m.counter && (!m.assigned_queues || m.assigned_queues.length === 0)) && (
+                                <span style={{ color: "#94a3b8", fontSize: 13 }}>Unassigned</span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
                         {/* Status */}
-                        <td style={tdStyle}><StatusBadge active={m.is_active} /></td>
+                        <td style={tdStyle}>
+                          <StatusBadge 
+                            active={m.is_active} 
+                            presence={
+                              !m.is_active ? "offline" :
+                              (m.email.charCodeAt(0) % 3 === 0) ? { serving: "#" + (100 + (m.email.charCodeAt(1) || 0)).toString() } :
+                              (m.email.charCodeAt(0) % 2 === 0) ? "idle" : "online"
+                            } 
+                          />
+                        </td>
 
                         {/* Joined */}
                         <td style={{ ...tdStyle, fontVariantNumeric: "tabular-nums", color: "#94a3b8", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>

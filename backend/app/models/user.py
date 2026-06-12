@@ -19,7 +19,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -45,6 +45,10 @@ class User(Base):
         index=True,           # mandatory: ALL queries filter by org_id (unless super_admin)
     )
     email: Mapped[str] = mapped_column(String(255), nullable=False)
+    first_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    counter: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    assigned_queues: Mapped[list[str]] = mapped_column(ARRAY(String), server_default='{}')
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     
     # DEPRECATED: Stored plain-text passwords (security risk). No longer populated.
