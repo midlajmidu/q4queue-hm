@@ -359,7 +359,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                 {/* Header */}
                 <div className="bg-blue-600 px-6 py-7 text-center text-white relative">
                     <div className="absolute top-3 right-3">
-                        <ConnectionBadge status={wsStatus} />
+                        <ConnectionBadge status={queueClosed ? "disconnected" : wsStatus} />
                     </div>
 
                     <h1 className="text-2xl font-extrabold mb-1">{queueName}</h1>
