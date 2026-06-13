@@ -29,6 +29,17 @@ export interface AnalyticsOverview {
         hourly: { hour: string; visits: number }[];
         monthly: { month: string; visits: number }[];
     };
+    daily_timings?: {
+        date: string;
+        avg_wait: number;
+        avg_serve: number;
+    }[];
+    staff_performance?: {
+        staff_id: string;
+        name: string;
+        total_served: number;
+        avg_serve: number;
+    }[];
     recent_activity: {
         number: number;
         status: string;

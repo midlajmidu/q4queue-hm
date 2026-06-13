@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
+import { StandardPageHeader } from "@/components/StandardPageHeader";
 
 // ─── Date helpers ────────────────────────────────────────────────
 function toLocalDateStr(): string {
@@ -186,40 +187,44 @@ export default function SessionsPage() {
     };
 
     return (
-        <div className="pb-12">
+        <div>
             {/* ── Header ── */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-[28px] font-extrabold text-[#0f172a] tracking-tight leading-tight">Sessions</h1>
-                    <p className="mt-1.5 text-[14px] text-[#64748b]">Your service timeline — organized by date.</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
-                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        <input
-                            type="date"
-                            value={filterDate}
-                            max={toLocalDateStr()}
-                            onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
-                            className="text-[13px] font-medium text-[#0f172a] focus:outline-none bg-transparent appearance-none"
-                        />
-                        {filterDate && (
-                            <button onClick={() => { setFilterDate(""); setPage(1); }} className="text-slate-400 hover:text-slate-600 transition-colors">
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+            <StandardPageHeader
+                breadcrumbs={[
+                    { label: "Organization", href: dashBase },
+                    { label: "Sessions" }
+                ]}
+                title="Sessions"
+                subtitle="Your service timeline — organized by date."
+                action={
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
+                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            <input
+                                type="date"
+                                value={filterDate}
+                                max={toLocalDateStr()}
+                                onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
+                                className="text-[13px] font-medium text-[#0f172a] focus:outline-none bg-transparent appearance-none"
+                            />
+                            {filterDate && (
+                                <button onClick={() => { setFilterDate(""); setPage(1); }} className="text-slate-400 hover:text-slate-600 transition-colors">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                                </button>
+                            )}
+                        </div>
+                        {!isStaff && (
+                            <button
+                                onClick={() => setShowCreate(true)}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-b from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-semibold rounded-xl transition-all shadow-[0_1px_3px_rgba(99,102,241,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] text-[13px]"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+                                New Session
                             </button>
                         )}
                     </div>
-                    {!isStaff && (
-                        <button
-                            onClick={() => setShowCreate(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-b from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-semibold rounded-xl transition-all shadow-[0_1px_3px_rgba(99,102,241,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] text-[13px]"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
-                            New Session
-                        </button>
-                    )}
-                </div>
-            </div>
+                }
+            />
 
             {/* ── Error ── */}
             {error && (
@@ -268,7 +273,7 @@ export default function SessionsPage() {
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <h2 className="text-[18px] font-bold text-[#0f172a] tracking-tight">{group.label}</h2>
-                                            <span className="text-[12px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{group.sessions.length}</span>
+                                            <span className="tabular-nums text-[12px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{group.sessions.length}</span>
                                         </div>
                                     </div>
 
@@ -285,7 +290,7 @@ export default function SessionsPage() {
                                                     {/* Date pill */}
                                                     <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${today ? "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-50 text-slate-600 border border-slate-200"}`}>
                                                         <span className={`text-[10px] font-bold uppercase leading-none ${today ? "text-indigo-100" : "text-slate-400"}`}>{getMonthShort(session.session_date)}</span>
-                                                        <span className="text-[20px] font-extrabold leading-tight">{getDayNumber(session.session_date)}</span>
+                                                        <span className="tabular-nums text-[20px] font-extrabold leading-tight">{getDayNumber(session.session_date)}</span>
                                                     </div>
 
                                                     {/* Info */}
@@ -343,7 +348,7 @@ export default function SessionsPage() {
                     {total > LIMIT && (
                         <div className="flex items-center justify-between bg-white px-6 py-4 rounded-2xl border border-slate-200 shadow-sm mt-8">
                             <p className="text-[13px] text-[#64748b] font-medium">
-                                Showing <span className="text-[#0f172a] font-bold">{(page - 1) * LIMIT + 1}</span> to <span className="text-[#0f172a] font-bold">{Math.min(page * LIMIT, total)}</span> of <span className="text-[#0f172a] font-bold">{total}</span>
+                                Showing <span className="tabular-nums text-[#0f172a] font-bold">{(page - 1) * LIMIT + 1}</span> to <span className="tabular-nums text-[#0f172a] font-bold">{Math.min(page * LIMIT, total)}</span> of <span className="tabular-nums text-[#0f172a] font-bold">{total}</span>
                             </p>
                             <div className="flex gap-2">
                                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 text-[13px] font-semibold bg-white border border-slate-200 rounded-xl shadow-sm disabled:opacity-50 hover:bg-slate-50 transition-all text-[#0f172a]">Previous</button>

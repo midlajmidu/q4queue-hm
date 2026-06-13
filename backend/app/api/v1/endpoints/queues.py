@@ -363,7 +363,11 @@ async def serve_specific_token(
     """
     try:
         result = await token_service.serve_specific_token(
-            db, queue_id=queue.id, org_id=queue.org_id, token_number=token_number
+            db,
+            queue_id=queue_id,
+            org_id=current_user.org_id,
+            user_id=current_user.id,
+            token_number=token_number,
         )
         background_tasks.add_task(
             token_service.notify_queue_update,
@@ -400,7 +404,11 @@ async def call_next(
     """
     try:
         result = await token_service.call_next(
-            db, queue_id=queue.id, org_id=queue.org_id, action=action
+            db,
+            queue_id=queue_id,
+            org_id=current_user.org_id,
+            user_id=current_user.id,
+            action=action,
         )
         background_tasks.add_task(
             token_service.notify_queue_update,

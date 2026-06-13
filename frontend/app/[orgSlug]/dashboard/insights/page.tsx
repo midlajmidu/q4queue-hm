@@ -1,9 +1,14 @@
+
 "use client";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { api } from "@/lib/api";
 import type { AnalyticsOverview } from "@/types/api";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { PageWrapper } from "@/components/PageWrapper";
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+} from 'recharts';
 
 /* ─── Helpers ─────────────────────────────────────────────── */
 function timeToSeconds(t: string): number {
@@ -25,8 +30,8 @@ function formatDuration(s: number): string {
 /* ─── Colors ──────────────────────────────────────────────── */
 const C = {
   bg: "#f8fafc", card: "#ffffff",
-  border: "#e2e8f0", borderLight: "#f1f5f9",
-  text: "#0f172a", textSub: "#334155", textMuted: "#64748b", textFaint: "#94a3b8",
+  border: "#e5e7eb", borderLight: "#f3f4f6",
+  text: "#111827", textSub: "#6b7280", textMuted: "#9ca3af", textFaint: "#94a3b8",
   brand: "#4f46e5", brandLight: "#eef2ff", brandBorder: "#c7d2fe",
   green: "#059669", greenBg: "#ecfdf5", greenBd: "#a7f3d0",
   amber: "#d97706", amberBg: "#fffbeb", amberBd: "#fde68a",
@@ -48,65 +53,19 @@ const CSS = `
 
 /* Layout */
 .ins-stack { display: flex; flex-direction: column; gap: 24px; }
-.ins-grid-main { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
 
 /* Card */
 .ins-card {
   background: ${C.card};
   border: 1px solid ${C.border};
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.02), 0 4px 12px rgba(0,0,0,.03);
-  transition: transform .2s ease, box-shadow .2s ease;
+  border-radius: 8px;
+  box-shadow: none;
+  transition: box-shadow .25s cubic-bezier(.4,0,.2,1), border-color .25s ease;
 }
 .ins-card:hover {
-  box-shadow: 0 4px 6px rgba(0,0,0,.02), 0 10px 20px rgba(0,0,0,.04);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border-color: #d1d5db;
 }
-
-/* Tag */
-.ins-tag {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: ${C.borderLight};
-  color: ${C.textMuted};
-  text-transform: uppercase;
-  letter-spacing: .04em;
-}
-
-/* Glow */
-.ins-radial-glow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 140%;
-  height: 140%;
-  background: radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-/* Sparkline */
-.ins-spark-col { position: relative; height: 100%; }
-.ins-spark-bar { cursor: pointer; position: relative; z-index: 2; }
-.ins-spark-bar:hover { background: ${C.brand} !important; transform: scaleX(1.1); }
-.ins-spark-val {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translate(-50%, -8px);
-  background: ${C.text};
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  opacity: 0;
-  pointer-events: none;
-  transition: all .2s ease;
-  z-index: 10;
-}
-.ins-spark-col:hover .ins-spark-val { opacity: 1; transform: translate(-50%, -12px); }
 
 /* Fade */
 .ins-fade { animation: insFade .6s cubic-bezier(.16,1,.3,1) both; }
@@ -124,42 +83,20 @@ const CSS = `
 }
 @keyframes insShim { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-/* Progress */
-.ins-prog { height: 8px; background: ${C.borderLight}; border-radius: 99px; overflow: hidden; }
-.ins-prog-fill { height: 100%; border-radius: 99px; transition: width .8s cubic-bezier(.4,0,.2,1); }
-
-/* Bar fill */
-.ins-bar-fill { height: 100%; border-radius: 99px; transition: width .8s cubic-bezier(.4,0,.2,1); }
-
-/* KPI Premium */
-.ins-kpi-card-premium {
-  transition: all .2s ease;
+.date-input {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid ${C.border};
+  font-size: 13px;
+  color: ${C.text};
+  background: #fff;
+  transition: border-color .15s;
 }
-.ins-kpi-card-premium:hover {
-  transform: translateY(-2px);
-}
-
-/* Responsive */
-@media (max-width: 1100px) {
-  .ins-grid-main { grid-template-columns: 1fr !important; }
-}
-@media (max-width: 1024px) {
-  .ins-kpi { grid-template-columns: repeat(3, 1fr) !important; }
-  .ins-cards3 { grid-template-columns: 1fr 1fr !important; }
-  .ins-timing { flex-direction: column !important; }
-  .ins-timing-div { width: 100% !important; height: 1px !important; }
-}
-@media (max-width: 640px) {
-  .ins-kpi { grid-template-columns: repeat(2, 1fr) !important; }
-  .ins-cards3 { grid-template-columns: 1fr !important; }
-  .ins-hdr-row { flex-direction: column !important; align-items: flex-start !important; }
-}
+.date-input:focus { outline: none; border-color: ${C.brand}; box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
 `;
 
-/* ─── Mono helper ─────────────────────────────────────────── */
-const mono: React.CSSProperties = { fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums" };
+const mono: React.CSSProperties = { fontVariantNumeric: "tabular-nums" };
 
-/* ─── Main ────────────────────────────────────────────────── */
 export default function InsightsPage() {
   const { user } = useAuth();
   const orgSlug = user?.org_slug || "";
@@ -168,325 +105,256 @@ export default function InsightsPage() {
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Date Filters
+  const today = new Date().toISOString().split('T')[0];
+  const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(lastWeek);
+  const [endDate, setEndDate] = useState(today);
+
   const load = useCallback(async () => {
     setLoading(true);
-    try { setOverview(await api.getOverview()); }
+    try { setOverview(await api.getOverview({ startDate: startDate || undefined, endDate: endDate || undefined })); }
     catch (e) { console.error(e); }
     finally { setLoading(false); }
-  }, []);
+  }, [startDate, endDate]);
 
   useEffect(() => { load(); }, [load]);
 
   const d = useMemo(() => {
     if (!overview) return null;
     const fmtH = (s: string) => { const h = parseInt(s.split(':')[0], 10); return isNaN(h) ? s : `${h % 12 || 12}${h >= 12 ? 'pm' : 'am'}`; };
+    
     const hourly = (overview.charts?.hourly || []).map(h => ({ ...h, hour: fmtH(h.hour) }));
     const peak = hourly.length ? hourly.reduce((a, b) => b.visits > a.visits ? b : a, hourly[0]) : null;
-    const maxV = hourly.length ? Math.max(...hourly.map(h => h.visits)) : 0;
     const totalV = hourly.reduce((s, h) => s + h.visits, 0);
     const avgV = hourly.length > 0 ? Math.round(totalV / hourly.length) : 0;
     const peakPct = totalV > 0 ? Math.round(((peak?.visits ?? 0) / totalV) * 100) : 0;
+    
     const wA = timeToSeconds(overview.timings?.avg_waiting_time || "0");
-    const wM = timeToSeconds(overview.timings?.max_waiting_time || "0");
     const sA = timeToSeconds(overview.timings?.avg_served_time || "0");
-    const sM = timeToSeconds(overview.timings?.max_served_time || "0");
-    const wRatio = wA > 0 ? Math.round((wM / wA) * 10) / 10 : 0;
-    const sEff = sA > 0 ? Math.round((300 / sA) * 100) : 0;
-    const wP = wM ? Math.round((wA / wM) * 100) : 0;
-    const sP = sM ? Math.round((sA / sM) * 100) : 0;
+    
     const sc = overview.status_counts;
+
+    const dailyTimings = (overview.daily_timings || []).map(dt => ({
+      ...dt,
+      dateFormatted: new Date(dt.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      avg_wait_min: dt.avg_wait / 60,
+      avg_serve_min: dt.avg_serve / 60
+    }));
+
     return {
-      hourly, maxV, totalV, avgV, peakPct,
+      hourly, totalV, avgV, peakPct,
       peakHour: peak?.hour ?? "—", peakVisits: peak?.visits ?? 0,
-      wA, wM, sA, sM, wP, sP, wRatio, sEff,
+      wA, sA,
       waiting: sc?.waiting ?? 0, served: sc?.served ?? 0, total: sc?.total ?? 0, cancelled: sc?.cancelled ?? 0,
+      dailyTimings,
+      staffPerformance: overview.staff_performance || []
     };
   }, [overview]);
 
-  const cRate = d ? (d.total > 0 ? Math.round((d.served / d.total) * 100) : 0) : 0;
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-
-  /* ─── Render ─── */
   return (
     <>
       <style>{CSS}</style>
       <div className="ins-root">
-        <div className="ins-stack">
-
-          {/* ═══ HEADER ═══ */}
-          <div className="ins-fade">
-            {/* Breadcrumb */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
-              <Link href={dashBase} style={{ fontSize: 13, fontWeight: 500, color: C.textMuted, textDecoration: "none" }}>Dashboard</Link>
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={C.textFaint} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-              <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Insights</span>
-            </div>
-            <div className="ins-hdr-row" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
-              <div>
-                <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, letterSpacing: "-.02em", lineHeight: 1.2, margin: 0 }}>Performance Insights</h1>
-                <p style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>{today}</p>
+        <PageWrapper
+          title="Performance Insights"
+          subtitle="Visualize queue trends, wait times, and staff efficiency."
+          breadcrumbs={[
+            { label: "Organization", href: dashBase },
+            { label: "Analytics" }
+          ]}
+          action={
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", background: C.borderLight, padding: 3, borderRadius: 8, gap: 2 }}>
+                {[
+                  { l: "Today", s: today, e: today },
+                  { l: "7D", s: lastWeek, e: today },
+                  { l: "30D", s: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], e: today }
+                ].map(b => {
+                  const active = startDate === b.s && endDate === b.e;
+                  return (
+                    <button key={b.l} onClick={() => { setStartDate(b.s); setEndDate(b.e); }} style={{
+                      padding: "5px 14px", fontSize: 12, fontWeight: 600, borderRadius: 6,
+                      background: active ? "#fff" : "transparent", color: active ? C.text : C.textMuted,
+                      border: "none", boxShadow: active ? "0 1px 3px rgba(0,0,0,.08)" : "none",
+                      cursor: "pointer", transition: "all .15s ease",
+                    }}>{b.l}</button>
+                  );
+                })}
               </div>
+              <div style={{ width: 1, height: 24, background: C.border }} />
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="date-input" />
+              <span style={{ color: C.textMuted, fontSize: 13, fontWeight: 500 }}>to</span>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="date-input" />
               <button onClick={load} disabled={loading} style={{
-                display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
-                fontSize: 13, fontWeight: 600, fontFamily: "inherit", color: C.textSub,
+                display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
+                fontSize: 13, fontWeight: 600, color: C.textSub,
                 background: C.card, border: `1px solid ${C.border}`, borderRadius: 8,
-                cursor: loading ? "not-allowed" : "pointer", opacity: loading ? .6 : 1,
-                boxShadow: "0 1px 2px rgba(0,0,0,.04)", transition: "all .15s",
+                cursor: loading ? "not-allowed" : "pointer", opacity: loading ? .5 : 1,
+                transition: "all .15s",
               }}>
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
                   <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 21v-5h5" />
                 </svg>
                 Refresh
               </button>
+              <button onClick={() => {
+                if (!d) return;
+                const csv = ["Date,Avg Wait (min),Avg Serve (min)"];
+                d.dailyTimings.forEach(dt => csv.push(`${dt.dateFormatted},${dt.avg_wait_min},${dt.avg_serve_min}`));
+                const blob = new Blob([csv.join("\n")], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = `insights_${startDate}_${endDate}.csv`; a.click();
+              }} disabled={!d || loading} style={{
+                display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
+                fontSize: 13, fontWeight: 600, color: "#fff",
+                background: C.brand, border: "none", borderRadius: 8,
+                cursor: (!d || loading) ? "not-allowed" : "pointer", opacity: (!d || loading) ? .5 : 1,
+                boxShadow: "0 1px 3px rgba(79,70,229,.3)", transition: "all .15s",
+              }}>
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Export CSV
+              </button>
             </div>
-          </div>
-
+          }
+        >
           {/* ═══ LOADING ═══ */}
           {loading ? (
-            <div className="ins-stack" style={{ gap: 16 }}>
-              <div className="ins-kpi" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
-                {Array.from({ length: 6 }).map((_, i) => <div key={i} className="ins-shim" style={{ height: 88 }} />)}
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
+                {Array.from({ length: 5 }).map((_, i) => <div key={i} className="ins-shim" style={{ height: 88 }} />)}
               </div>
-              <div className="ins-shim" style={{ height: 220 }} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                <div className="ins-shim" style={{ height: 340 }} />
+                <div className="ins-shim" style={{ height: 340 }} />
+              </div>
               <div className="ins-shim" style={{ height: 200 }} />
             </div>
-
           ) : !d ? (
-            /* ═══ EMPTY ═══ */
             <div className="ins-card" style={{ padding: "80px 32px", textAlign: "center" }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: C.borderLight, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
                 <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={C.textFaint} strokeWidth={1.5}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
               </div>
               <p style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 4 }}>No data available</p>
-              <p style={{ fontSize: 13, color: C.textMuted }}>Start a session to see performance insights.</p>
+              <p style={{ fontSize: 13, color: C.textMuted }}>Try adjusting the date range.</p>
             </div>
-
           ) : (
-            <>
-              {/* ═══ KPI GRID ═══ */}
-              <div className="ins-kpi" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+
+              {/* ═══ KPI CARDS ═══ */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20 }}>
                 {([
-                  { label: "Total Tokens", val: d.total.toLocaleString(), clr: C.brand, bg: C.brandLight },
-                  { label: "Served", val: d.served.toLocaleString(), clr: C.green, bg: C.greenBg },
-                  { label: "Waiting", val: String(d.waiting), clr: C.amber, bg: C.amberBg },
-                  { label: "Cancelled", val: String(d.cancelled), clr: C.red, bg: C.redBg },
-                  { label: "Completion", val: `${cRate}%`, clr: cRate >= 90 ? C.green : cRate >= 70 ? C.amber : C.red, bg: cRate >= 90 ? C.greenBg : cRate >= 70 ? C.amberBg : C.redBg },
-                  { label: "Total Visits", val: d.totalV.toLocaleString(), clr: C.blue, bg: C.blueBg },
+                  { label: "Total Tokens", val: d.total.toLocaleString() },
+                  { label: "Served", val: d.served.toLocaleString() },
+                  { label: "Avg Wait", val: formatDuration(d.wA) },
+                  { label: "Avg Service", val: formatDuration(d.sA) },
+                  { label: "Drop-off Rate", val: d.total > 0 ? `${Math.round((d.cancelled / d.total) * 100)}%` : "0%" },
                 ]).map((s, i) => (
-                  <div key={s.label} className="ins-card ins-fade" style={{ padding: "20px", animationDelay: `${i * 50}ms` }}>
-                    <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em", color: C.textMuted, marginBottom: 10 }}>{s.label}</p>
-                    <p style={{ fontSize: 26, fontWeight: 700, color: C.text, letterSpacing: "-.02em", lineHeight: 1, ...mono }}>{s.val}</p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.clr }} />
-                      <span style={{ fontSize: 11, fontWeight: 500, color: C.textMuted }}>Live</span>
-                    </div>
+                  <div key={s.label} className="ins-card ins-fade" style={{ padding: "20px 24px", animationDelay: `${i * 50}ms` }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", color: C.textMuted, marginBottom: 12 }}>{s.label}</p>
+                    <p style={{ fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: "-.02em", lineHeight: 1, ...mono }}>{s.val}</p>
                   </div>
                 ))}
               </div>
 
-              {/* ═══ TIMING ═══ */}
-              <div className="ins-card ins-fade" style={{ overflow: "hidden", animationDelay: "300ms" }}>
-                <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.borderLight}` }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Timing Analysis</p>
-                </div>
-                <div className="ins-timing" style={{ display: "flex" }}>
-                  {/* Wait */}
-                  <div style={{ flex: 1, padding: "24px" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.textSub }}>Wait Times</span>
-                      {d.wRatio > 2 && <span style={{ fontSize: 11, fontWeight: 600, color: C.amber, background: C.amberBg, border: `1px solid ${C.amberBd}`, padding: "2px 8px", borderRadius: 99 }}>High Variance</span>}
-                    </div>
-                    <div style={{ display: "flex", gap: 32, marginBottom: 20 }}>
-                      {[{ l: "AVERAGE", v: formatDuration(d.wA), c: C.brand }, { l: "MAXIMUM", v: formatDuration(d.wM), c: C.text }].map(v => (
-                        <div key={v.l}>
-                          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".06em", color: C.textMuted, marginBottom: 6 }}>{v.l}</p>
-                          <p style={{ fontSize: 28, fontWeight: 700, color: v.c, lineHeight: 1, letterSpacing: "-.02em", ...mono }}>{v.v}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <span style={{ fontSize: 12, color: C.textMuted }}>Avg / Max ratio</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: C.text, ...mono }}>{d.wP}%</span>
-                      </div>
-                      <div className="ins-prog">
-                        <div className="ins-prog-fill" style={{ width: `${Math.min(d.wP, 100)}%`, background: d.wRatio > 2 ? C.amber : C.brand }} />
-                      </div>
-                    </div>
-                    <div style={{ background: C.borderLight, padding: "12px 14px", borderRadius: 8 }}>
-                      <p style={{ fontSize: 12, fontWeight: 500, color: C.textSub, lineHeight: 1.5 }}>
-                        {d.wRatio > 2 ? `Max wait is ${d.wRatio}× average — high variance.` : "Wait times are stable."}
-                      </p>
-                    </div>
+              {/* ═══ CHARTS ROW ═══ */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 20 }}>
+
+                {/* Hourly Traffic */}
+                <div className="ins-card ins-fade" style={{ padding: "24px", animationDelay: "200ms" }}>
+                  <div style={{ marginBottom: 20 }}>
+                    <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 4 }}>Hourly Traffic Distribution</h2>
+                    <p style={{ fontSize: 13, color: C.textMuted }}>Peak hour: <span style={{ fontWeight: 600, color: C.text }}>{d.peakHour}</span> ({d.peakPct}% of total)</p>
                   </div>
+                  <div style={{ height: 280 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={d.hourly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={C.borderLight} />
+                        <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: C.textMuted }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: C.textMuted }} />
+                        <Tooltip
+                          cursor={{ fill: "rgba(0,0,0,.03)" }}
+                          contentStyle={{ borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: "0 4px 16px rgba(0,0,0,.08)", fontSize: 13 }}
+                        />
+                        <Bar dataKey="visits" fill={C.brand} radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
 
-                  <div className="ins-timing-div" style={{ width: 1, background: C.borderLight }} />
-
-                  {/* Service */}
-                  <div style={{ flex: 1, padding: "24px" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.textSub }}>Service Times</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: d.sEff >= 100 ? C.green : C.amber, background: d.sEff >= 100 ? C.greenBg : C.amberBg, border: `1px solid ${d.sEff >= 100 ? C.greenBd : C.amberBd}`, padding: "2px 8px", borderRadius: 99 }}>{d.sEff}% eff.</span>
-                    </div>
-                    <div style={{ display: "flex", gap: 32, marginBottom: 20 }}>
-                      {[{ l: "AVERAGE", v: formatDuration(d.sA), c: C.green }, { l: "MAXIMUM", v: formatDuration(d.sM), c: C.text }].map(v => (
-                        <div key={v.l}>
-                          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".06em", color: C.textMuted, marginBottom: 6 }}>{v.l}</p>
-                          <p style={{ fontSize: 28, fontWeight: 700, color: v.c, lineHeight: 1, letterSpacing: "-.02em", ...mono }}>{v.v}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <span style={{ fontSize: 12, color: C.textMuted }}>Avg / Max ratio</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: C.text, ...mono }}>{d.sP}%</span>
-                      </div>
-                      <div className="ins-prog">
-                        <div className="ins-prog-fill" style={{ width: `${Math.min(d.sP, 100)}%`, background: C.green }} />
-                      </div>
-                    </div>
-                    <div style={{ background: C.borderLight, padding: "12px 14px", borderRadius: 8 }}>
-                      <p style={{ fontSize: 12, fontWeight: 500, color: C.textSub, lineHeight: 1.5 }}>
-                        {d.sEff < 100 ? `${100 - d.sEff}% below 5-min benchmark.` : "Operating at peak efficiency."}
-                      </p>
-                    </div>
+                {/* Daily Timing Trends */}
+                <div className="ins-card ins-fade" style={{ padding: "24px", animationDelay: "300ms" }}>
+                  <div style={{ marginBottom: 20 }}>
+                    <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 4 }}>Average Timing Trends</h2>
+                    <p style={{ fontSize: 13, color: C.textMuted }}>Wait vs Service times across days (in minutes).</p>
+                  </div>
+                  <div style={{ height: 280 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={d.dailyTimings} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={C.borderLight} />
+                        <XAxis dataKey="dateFormatted" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: C.textMuted }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: C.textMuted }} />
+                        <Tooltip
+                          contentStyle={{ borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: "0 4px 16px rgba(0,0,0,.08)", fontSize: 13 }}
+                          formatter={(value: any) => [Math.round(Number(value) * 10) / 10 + " min"]}
+                        />
+                        <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
+                        <Line type="monotone" name="Avg Service" dataKey="avg_serve_min" stroke={C.green} strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                        <Line type="monotone" name="Avg Wait" dataKey="avg_wait_min" stroke={C.amber} strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               </div>
 
-              {/* ═══ INSIGHT CARDS ═══ */}
-              <div className="ins-cards3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-                {([
-                  {
-                    label: "Peak Hour", value: d.peakHour,
-                    sub: `${d.peakVisits} visits · ${d.peakPct}% of traffic`,
-                    tip: "Consider adding staff during this peak window.",
-                    clr: C.amber, bg: C.amberBg,
-                    icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={C.amber} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
-                  },
-                  {
-                    label: "Queue Balance", value: String(d.waiting),
-                    sub: "currently waiting",
-                    tip: d.waiting > 10 ? "Redirect arrivals to less busy lines." : "Queue distribution is manageable.",
-                    clr: C.brand, bg: C.brandLight,
-                    icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={C.brand} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
-                  },
-                  {
-                    label: "Completion Rate", value: `${cRate}%`,
-                    sub: `${d.served} of ${d.total} served`,
-                    tip: cRate >= 90 ? "Excellent completion rate." : "Some tokens are not being completed.",
-                    clr: cRate >= 90 ? C.green : C.amber, bg: cRate >= 90 ? C.greenBg : C.amberBg,
-                    icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={cRate >= 90 ? C.green : C.amber} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
-                  },
-                ]).map((c, i) => (
-                  <div key={c.label} className="ins-card ins-fade" style={{ display: "flex", flexDirection: "column", animationDelay: `${400 + i * 60}ms` }}>
-                    <div style={{ padding: "20px 20px 16px", flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>{c.icon}</div>
-                        <span style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em", color: c.clr }}>{c.label}</span>
-                      </div>
-                      <p style={{ fontSize: 32, fontWeight: 700, color: C.text, letterSpacing: "-.02em", lineHeight: 1, marginBottom: 6, ...mono }}>{c.value}</p>
-                      <p style={{ fontSize: 12, color: C.textMuted }}>{c.sub}</p>
-                    </div>
-                    <div style={{ padding: "12px 20px", borderTop: `1px solid ${C.borderLight}`, background: C.borderLight }}>
-                      <p style={{ fontSize: 12, color: C.textSub, lineHeight: 1.5 }}>💡 {c.tip}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* ═══ TRAFFIC INTELLIGENCE (CLEAN REDESIGN) ═══ */}
-              <div className="ins-card ins-fade" style={{ padding: "32px", animationDelay: "600ms" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 40 }}>
-                  <div>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: "-.02em" }}>Hourly Traffic Analysis</h2>
-                    <p style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>Comprehensive distribution of visitor traffic across operational hours.</p>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <p style={{ fontSize: 24, fontWeight: 800, color: C.text, ...mono }}>{d.totalV.toLocaleString()}</p>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, textTransform: "uppercase", letterSpacing: ".05em" }}>Total Daily Visits</p>
-                  </div>
+              {/* ═══ STAFF PERFORMANCE TABLE ═══ */}
+              <div className="ins-card ins-fade" style={{ animationDelay: "400ms", overflow: "hidden" }}>
+                <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.borderLight}` }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 4 }}>Staff Performance</h2>
+                  <p style={{ fontSize: 13, color: C.textMuted }}>Tokens completed and average service time per team member.</p>
                 </div>
-
-                {/* KPI Row - Minimal */}
-                <div style={{ display: "flex", gap: 48, marginBottom: 48, paddingBottom: 32, borderBottom: `1px solid ${C.borderLight}` }}>
-                  {[
-                    { label: "Peak Window", val: d.peakHour, sub: `${d.peakVisits} visits`, clr: C.brand },
-                    { label: "Peak Load", val: `${d.peakPct}%`, sub: "of total traffic", clr: C.purple },
-                    { label: "Hourly Avg", val: d.avgV, sub: "visits / hr", clr: C.green },
-                  ].map(k => (
-                    <div key={k.label}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>{k.label}</p>
-                      <p style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{k.val}</p>
-                      <p style={{ fontSize: 12, color: C.textFaint, marginTop: 2 }}>{k.sub}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 240px", gap: 64 }}>
-                  {/* Primary Chart Area */}
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: C.textSub }}>Visitor Volume Timeline</span>
-                      <div style={{ display: "flex", gap: 12 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.brand }} />
-                          <span style={{ fontSize: 11, color: C.textMuted }}>Normal</span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.purple }} />
-                          <span style={{ fontSize: 11, color: C.textMuted }}>Peak</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div style={{ height: 200, display: "flex", alignItems: "flex-end", gap: 6 }}>
-                      {d.hourly.map((h, i) => {
-                        const isPk = h.hour === d.peakHour;
-                        const hPct = d.maxV > 0 ? (h.visits / d.maxV) * 100 : 0;
-                        return (
-                          <div key={i} className="ins-spark-col" style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
-                            <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "flex-end" }}>
-                              <div className="ins-spark-bar" style={{ 
-                                width: "100%", 
-                                height: `${Math.max(hPct, 4)}%`, 
-                                background: isPk ? `linear-gradient(to top, ${C.purple}, #a855f7)` : `linear-gradient(to top, ${C.brand}, #818cf8)`,
-                                opacity: isPk ? 1 : 0.8,
-                                borderRadius: "6px 6px 2px 2px",
-                                boxShadow: isPk ? "0 4px 12px rgba(139, 92, 246, 0.2)" : "none"
-                              }} />
-                              <div className="ins-spark-val">{h.visits}</div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: "left", padding: "12px 24px", fontSize: 11, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase", background: "#fafbfc", borderBottom: `1px solid ${C.borderLight}` }}>Staff Member</th>
+                        <th style={{ textAlign: "right", padding: "12px 24px", fontSize: 11, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase", background: "#fafbfc", borderBottom: `1px solid ${C.borderLight}` }}>Tokens Served</th>
+                        <th style={{ textAlign: "right", padding: "12px 24px", fontSize: 11, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase", background: "#fafbfc", borderBottom: `1px solid ${C.borderLight}` }}>Avg Service Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {d.staffPerformance.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} style={{ padding: "40px", textAlign: "center", color: C.textMuted, fontSize: 14 }}>No staff performance data available.</td>
+                        </tr>
+                      ) : d.staffPerformance.map(s => (
+                        <tr key={s.staff_id} style={{ borderBottom: `1px solid ${C.borderLight}`, transition: "background .1s" }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#fafbfc"; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                        >
+                          <td style={{ padding: "14px 24px", fontSize: 14, fontWeight: 600, color: C.text }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.brandLight, color: C.brand, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                                {s.name.substring(0, 2).toUpperCase()}
+                              </div>
+                              {s.name}
                             </div>
-                            <span style={{ fontSize: 10, fontWeight: 600, color: isPk ? C.text : C.textFaint, textAlign: "center" }}>{h.hour}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Minimal Donut / Distribution */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderLeft: `1px solid ${C.borderLight}`, paddingLeft: 40 }}>
-                    <div style={{ position: "relative", width: 140, height: 140, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="140" height="140" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="44" fill="none" stroke={C.borderLight} strokeWidth="6" />
-                        <circle cx="50" cy="50" r="44" fill="none" stroke={C.purple} strokeWidth="6" strokeDasharray="276" strokeDashoffset={276 - (276 * (d.peakPct / 100))} strokeLinecap="round" style={{ transformOrigin: "center", transform: "rotate(-90deg)", transition: "stroke-dashoffset 1s ease" }} />
-                      </svg>
-                      <div style={{ position: "absolute", textAlign: "center" }}>
-                        <p style={{ fontSize: 24, fontWeight: 800, color: C.text, letterSpacing: "-.02em" }}>{d.peakPct}%</p>
-                        <p style={{ fontSize: 10, fontWeight: 600, color: C.textFaint, textTransform: "uppercase" }}>Load</p>
-                      </div>
-                    </div>
-                    <div style={{ marginTop: 24, textAlign: "center" }}>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: C.textSub }}>Peak Concentration</p>
-                      <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Most arrivals occur in a single 1-hour window.</p>
-                    </div>
-                  </div>
+                          </td>
+                          <td className="tnum" style={{ textAlign: "right", padding: "14px 24px", fontSize: 14, fontWeight: 600, color: C.text, ...mono }}>{s.total_served}</td>
+                          <td className="tnum" style={{ textAlign: "right", padding: "14px 24px", fontSize: 14, fontWeight: 600, color: C.green, ...mono }}>{formatDuration(s.avg_serve)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            </>
+
+            </div>
           )}
-        </div>
+        </PageWrapper>
       </div>
     </>
   );

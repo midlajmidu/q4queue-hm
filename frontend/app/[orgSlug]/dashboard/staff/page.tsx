@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { StaffMember, StaffCreate, StaffUpdate, QueueResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
+import { StandardPageHeader } from "@/components/StandardPageHeader";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -44,7 +45,7 @@ function getPalette(email: string) {
 
 function Toast({ toasts, onDismiss }: { toasts: ToastMessage[]; onDismiss: (id: number) => void }) {
   return (
-    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, display: "flex", flexDirection: "column", gap: 10, pointerEvents: "none", fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, display: "flex", flexDirection: "column", gap: 10, pointerEvents: "none" }}>
       {toasts.map(t => (
         <div
           key={t.id}
@@ -169,7 +170,7 @@ function SkeletonRow() {
 function StatCard({ label, value, color }: { label: string; value: number | string; color?: string }) {
   return (
     <div style={{
-      background: "#ffffff", borderRadius: 12, border: "0.5px solid #e8edf2",
+      background: "#ffffff", borderRadius: 8, border: "1px solid #e8edf2",
       padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8,
     }}>
       <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".07em" }}>{label}</span>
@@ -262,7 +263,7 @@ function StaffModal({ mode, member, onClose, onSaved }: {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", height: 42, borderRadius: 10, border: "0.5px solid #e2e8f0",
-    padding: "0 14px", fontSize: 14, fontWeight: 500, fontFamily: "'DM Sans', sans-serif",
+    padding: "0 14px", fontSize: 14, fontWeight: 500,
     color: "#0f172a", background: "#fafbfe", outline: "none", transition: "border-color .15s, box-shadow .15s",
   };
 
@@ -272,7 +273,7 @@ function StaffModal({ mode, member, onClose, onSaved }: {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", fontFamily: "'DM Sans', sans-serif" }} role="dialog" aria-modal="true">
+    <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} role="dialog" aria-modal="true">
       <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,41,.45)", backdropFilter: "blur(4px)" }} onClick={onClose} />
       <div style={{
         position: "relative", width: "100%", maxWidth: 430,
@@ -442,8 +443,8 @@ function StaffModal({ mode, member, onClose, onSaved }: {
 
           {/* Actions */}
           <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-            <button type="button" onClick={onClose} disabled={isSaving} style={{ flex: 1, height: 42, fontSize: 13.5, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0", borderRadius: 10, cursor: "pointer" }}>Cancel</button>
-            <button type="submit" disabled={isSaving} style={{ flex: 1.5, height: 42, fontSize: 13.5, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", color: "#fff", background: isSaving ? "#a5b4fc" : "#4f46e5", border: "none", borderRadius: 10, cursor: isSaving ? "not-allowed" : "pointer", transition: "background .15s" }}>
+            <button type="button" onClick={onClose} disabled={isSaving} style={{ flex: 1, height: 42, fontSize: 13.5, fontWeight: 600, color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0", borderRadius: 10, cursor: "pointer" }}>Cancel</button>
+            <button type="submit" disabled={isSaving} style={{ flex: 1.5, height: 42, fontSize: 13.5, fontWeight: 600, color: "#fff", background: isSaving ? "#a5b4fc" : "#4f46e5", border: "none", borderRadius: 10, cursor: isSaving ? "not-allowed" : "pointer", transition: "background .15s" }}>
               {isSaving ? "Saving…" : isEdit ? "Save changes" : "Create staff"}
             </button>
           </div>
@@ -459,7 +460,7 @@ function ConfirmDeactivateModal({ member, onClose, onConfirm, isLoading }: {
   member: StaffMember; onClose: () => void; onConfirm: () => void; isLoading: boolean;
 }) {
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", fontFamily: "'DM Sans', sans-serif" }} role="dialog" aria-modal="true">
+    <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} role="dialog" aria-modal="true">
       <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,41,.45)", backdropFilter: "blur(4px)" }} onClick={!isLoading ? onClose : undefined} />
       <div style={{ position: "relative", width: "100%", maxWidth: 400, background: "#fff", borderRadius: 20, boxShadow: "0 24px 48px rgba(0,0,0,.12), 0 0 0 0.5px rgba(0,0,0,.06)", padding: 28 }}>
         <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
@@ -475,8 +476,8 @@ function ConfirmDeactivateModal({ member, onClose, onConfirm, isLoading }: {
           <span style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>{member.email}</span>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onClose} disabled={isLoading} style={{ flex: 1, height: 42, fontSize: 13.5, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0", borderRadius: 10, cursor: "pointer" }}>Cancel</button>
-          <button onClick={onConfirm} disabled={isLoading} style={{ flex: 1.5, height: 42, fontSize: 13.5, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", color: "#fff", background: isLoading ? "#fca5a5" : "#ef4444", border: "none", borderRadius: 10, cursor: isLoading ? "not-allowed" : "pointer", transition: "background .15s" }}>
+          <button onClick={onClose} disabled={isLoading} style={{ flex: 1, height: 42, fontSize: 13.5, fontWeight: 600, color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0", borderRadius: 10, cursor: "pointer" }}>Cancel</button>
+          <button onClick={onConfirm} disabled={isLoading} style={{ flex: 1.5, height: 42, fontSize: 13.5, fontWeight: 600, color: "#fff", background: isLoading ? "#fca5a5" : "#ef4444", border: "none", borderRadius: 10, cursor: isLoading ? "not-allowed" : "pointer", transition: "background .15s" }}>
             {isLoading ? "Deactivating…" : "Deactivate"}
           </button>
         </div>
@@ -494,7 +495,7 @@ function Pagination({ total, limit, offset, onChange }: { total: number; limit: 
 
   const btnBase: React.CSSProperties = {
     display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
-    fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif",
+    fontSize: 13, fontWeight: 500,
     color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0",
     borderRadius: 9, cursor: "pointer", transition: "all .15s",
   };
@@ -512,7 +513,7 @@ function Pagination({ total, limit, offset, onChange }: { total: number; limit: 
           const p = i + 1;
           const active = p === current;
           return (
-            <button key={p} onClick={() => onChange((p - 1) * limit)} style={{ width: 32, height: 32, borderRadius: 8, border: active ? "none" : "0.5px solid #e2e8f0", background: active ? "#4f46e5" : "#fff", color: active ? "#fff" : "#64748b", fontSize: 13, fontWeight: active ? 700 : 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all .15s" }}>
+            <button key={p} onClick={() => onChange((p - 1) * limit)} style={{ width: 32, height: 32, borderRadius: 8, border: active ? "none" : "0.5px solid #e2e8f0", background: active ? "#4f46e5" : "#fff", color: active ? "#fff" : "#64748b", fontSize: 13, fontWeight: active ? 700 : 500, cursor: "pointer", transition: "all .15s" }}>
               {p}
             </button>
           );
@@ -636,7 +637,7 @@ export default function StaffPage() {
 
   const selectStyle: React.CSSProperties = {
     height: 38, border: "0.5px solid #e2e8f0", borderRadius: 9, padding: "0 30px 0 12px",
-    fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", color: "#0f172a",
+    fontSize: 13, fontWeight: 500, color: "#0f172a",
     background: "#fafbfe", outline: "none", appearance: "none", cursor: "pointer",
   };
 
@@ -649,51 +650,47 @@ export default function StaffPage() {
       {editMember && <StaffModal mode="edit" member={editMember} onClose={() => setEditMember(null)} onSaved={handleSaved} />}
       {deactivateMember && <ConfirmDeactivateModal member={deactivateMember} onClose={() => setDeactivateMember(null)} onConfirm={handleDeactivate} isLoading={isDeactivating} />}
 
-      <div style={{ fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", gap: 24, WebkitFontSmoothing: "antialiased" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 28, WebkitFontSmoothing: "antialiased" }}>
 
         {/* ── Header ── */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {/* Breadcrumb */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: "#94a3b8" }}>
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-              <Link href={`/${orgSlug}/dashboard`} style={{ color: "inherit", textDecoration: "none", transition: "color .15s" }} onMouseEnter={e => e.currentTarget.style.color = "#4f46e5"} onMouseLeave={e => e.currentTarget.style.color = "inherit"}>Organization</Link>
-              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-              <span style={{ color: "#64748b" }}>Staff</span>
-            </div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", letterSpacing: "-.025em", margin: 0 }}>Staff Management</h1>
-            <p style={{ fontSize: 14, color: "#64748b", margin: 0, lineHeight: 1.5 }}>Add and manage team members who can access the dashboard.</p>
-          </div>
-
-          {isAdmin && (
-            <button
-              onClick={() => setShowCreate(true)}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px",
-                fontSize: 13.5, fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
-                color: "#fff", background: "#4f46e5", border: "none", borderRadius: 11,
-                cursor: "pointer", letterSpacing: "-.01em", height: 42,
-                boxShadow: "0 1px 2px rgba(79,70,229,.2), inset 0 1px 0 rgba(255,255,255,.1)",
-                transition: "background .15s",
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = "#4338ca")}
-              onMouseLeave={e => (e.currentTarget.style.background = "#4f46e5")}
-            >
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></svg>
-              Add member
-            </button>
-          )}
-        </div>
+        <StandardPageHeader
+          breadcrumbs={[
+            { label: "Organization", href: `/${orgSlug}/dashboard` },
+            { label: "Staff" }
+          ]}
+          title="Staff Management"
+          subtitle="Add and manage team members who can access the dashboard."
+          action={
+            isAdmin && (
+              <button
+                onClick={() => setShowCreate(true)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px",
+                  fontSize: 13.5, fontWeight: 600,
+                  color: "#fff", background: "#4f46e5", border: "none", borderRadius: 11,
+                  cursor: "pointer", letterSpacing: "-.01em", height: 42,
+                  boxShadow: "0 1px 2px rgba(79,70,229,.2), inset 0 1px 0 rgba(255,255,255,.1)",
+                  transition: "background .15s",
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#4338ca")}
+                onMouseLeave={e => (e.currentTarget.style.background = "#4f46e5")}
+              >
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></svg>
+                Add member
+              </button>
+            )
+          }
+        />
 
         {/* ── Stat Cards ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
           <StatCard label="Total staff" value={total} />
           <StatCard label="Active" value={activeCount} color="#059669" />
           <StatCard label="Inactive" value={inactiveCount} color="#94a3b8" />
         </div>
 
         {/* ── Table Card ── */}
-        <div style={{ background: "#ffffff", borderRadius: 16, border: "0.5px solid #e8edf2", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+        <div style={{ background: "#ffffff", borderRadius: 8, border: "1px solid #e8edf2", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
 
           {/* Toolbar */}
           <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, padding: "16px 20px", borderBottom: "0.5px solid #f1f5f9" }}>
@@ -703,7 +700,7 @@ export default function StaffPage() {
               <input
                 type="search" value={search} onChange={e => handleSearchChange(e.target.value)}
                 placeholder="Search by email…" aria-label="Search staff"
-                style={{ width: "100%", height: 38, borderRadius: 9, border: "0.5px solid #e2e8f0", paddingLeft: 36, paddingRight: 12, fontSize: 13.5, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", color: "#0f172a", background: "#fafbfe", outline: "none" }}
+                style={{ width: "100%", height: 38, borderRadius: 9, border: "0.5px solid #e2e8f0", paddingLeft: 36, paddingRight: 12, fontSize: 13.5, fontWeight: 500, color: "#0f172a", background: "#fafbfe", outline: "none" }}
                 onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; }}
                 onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}
               />
@@ -770,6 +767,22 @@ export default function StaffPage() {
                                 {debouncedSearch ? "Try a different search term." : "Add your first team member to get started."}
                               </p>
                             </div>
+                            {debouncedSearch ? (
+                              <button
+                                onClick={() => handleSearchChange("")}
+                                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#4f46e5", background: "#eef2ff", border: "none", borderRadius: 8, cursor: "pointer", transition: "background .15s" }}
+                              >
+                                Clear Search
+                              </button>
+                            ) : isAdmin ? (
+                              <button
+                                onClick={() => setShowCreate(true)}
+                                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#fff", background: "#4f46e5", border: "none", borderRadius: 8, cursor: "pointer", boxShadow: "0 1px 3px rgba(79,70,229,.3)", transition: "background .15s" }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+                                Add Staff Member
+                              </button>
+                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -826,8 +839,7 @@ export default function StaffPage() {
                           />
                         </td>
 
-                        {/* Joined */}
-                        <td style={{ ...tdStyle, fontVariantNumeric: "tabular-nums", color: "#94a3b8", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>
+                        <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>
                           {fmt(m.created_at)}
                         </td>
 

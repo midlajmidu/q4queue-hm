@@ -190,15 +190,17 @@ export const api = {
     },
 
     // ── Analytics ────────────────────────────────────────────────
-    getOverview(sessionId?: string, queueId?: string, recentLimit?: number, recentOffset?: number, init?: RequestInit): Promise<AnalyticsOverview> {
-        const params = new URLSearchParams();
-        if (sessionId) params.append("session_id", sessionId);
-        if (queueId) params.append("queue_id", queueId);
-        if (recentLimit != null) params.append("recent_limit", String(recentLimit));
-        if (recentOffset != null) params.append("recent_offset", String(recentOffset));
+    getOverview(params: { sessionId?: string; queueId?: string; startDate?: string; endDate?: string; recentLimit?: number; recentOffset?: number } = {}, init?: RequestInit): Promise<AnalyticsOverview> {
+        const qs = new URLSearchParams();
+        if (params.sessionId) qs.set("session_id", params.sessionId);
+        if (params.queueId) qs.set("queue_id", params.queueId);
+        if (params.startDate) qs.set("start_date", params.startDate);
+        if (params.endDate) qs.set("end_date", params.endDate);
+        if (params.recentLimit != null) qs.set("recent_limit", String(params.recentLimit));
+        if (params.recentOffset != null) qs.set("recent_offset", String(params.recentOffset));
 
-        const qs = params.toString();
-        const url = qs ? `/analytics/overview?${qs}` : "/analytics/overview";
+        const qsStr = qs.toString();
+        const url = qsStr ? `/analytics/overview?${qsStr}` : "/analytics/overview";
         return request<AnalyticsOverview>(url, init);
     },
 

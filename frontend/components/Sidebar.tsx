@@ -57,11 +57,11 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
         if (active) {
             return isSuperAdmin
                 ? `${base} bg-slate-800 text-white shadow-sm border border-slate-700/80 [&>svg]:text-indigo-400`
-                : `${base} bg-white text-[#0f172a] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04)] border border-slate-200/80 [&>svg]:text-indigo-600`;
+                : `${base} bg-indigo-50/70 text-indigo-700 font-semibold shadow-[inset_3px_0_0_0_rgba(79,70,229,1)] border border-transparent [&>svg]:text-indigo-600`;
         }
         return isSuperAdmin
             ? `${base} text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent [&>svg]:text-slate-500`
-            : `${base} text-[#64748b] hover:text-[#0f172a] hover:bg-black/[0.03] border border-transparent [&>svg]:text-slate-400`;
+            : `${base} text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent [&>svg]:text-gray-400`;
     };
 
     const sectionLabel = (text: string) =>
@@ -95,12 +95,12 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
             <aside
                 className={`fixed inset-y-0 left-0 border-r z-50 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
                     isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-                } ${isSuperAdmin ? "bg-slate-900 border-slate-800/60" : "bg-[#fafbfe] border-slate-200/60"}`}
+                } ${isSuperAdmin ? "bg-slate-900 border-slate-800/60" : "bg-white border-gray-200"}`}
                 style={{ width: c ? 72 : 256 }}
                 role="complementary"
             >
                 {/* ── Header ── */}
-                <div className={`h-14 flex items-center flex-shrink-0 border-b ${c ? "justify-center px-0" : "justify-between px-4"} ${isSuperAdmin ? "border-slate-800/60" : "border-slate-200/60"}`}>
+                <div className={`h-14 flex items-center flex-shrink-0 border-b ${c ? "justify-center px-0" : "justify-between px-4"} ${isSuperAdmin ? "border-slate-800/60" : "border-gray-200"}`}>
                     {!c && (
                         <Link href={isSuperAdmin ? "/super-admin" : dashBase} className="flex items-center gap-3 focus:outline-none rounded-lg py-1 pl-1">
                             <Logo size="sm" className={isSuperAdmin ? "text-white" : ""} />
@@ -141,9 +141,6 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                             <NavLink href={dashBase} label="Overview" icon={
                                 <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                             } />
-                            <NavLink href={`${dashBase}/insights`} label="Insights" icon={
-                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                            } />
 
                             {divider}
 
@@ -151,15 +148,22 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                             <NavLink href={`${dashBase}/sessions`} label="Sessions" icon={
                                 <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                             } />
-                            <NavLink href={`${dashBase}/history`} label="History" icon={
-                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            } />
                             <NavLink href={`${dashBase}/notifications`} label="Notifications" icon={
                                 <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
                             } badge={
                                 unreadCount > 0 ? (
                                     <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white">{unreadCount}</span>
                                 ) : undefined
+                            } />
+
+                            {divider}
+
+                            {sectionLabel("Analytics & Reports")}
+                            <NavLink href={`${dashBase}/insights`} label="Insights" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                            } />
+                            <NavLink href={`${dashBase}/history`} label="History" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             } />
 
                             {isAdmin && (
@@ -195,7 +199,7 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                             } ${
                                 isSuperAdmin 
                                     ? "bg-slate-800/30 hover:bg-slate-800/60 ring-1 ring-white/5 hover:ring-white/10" 
-                                    : "bg-slate-100/60 hover:bg-white hover:shadow-sm ring-1 ring-slate-200/50 hover:ring-slate-200"
+                                    : "bg-gray-50 hover:bg-white hover:shadow-sm ring-1 ring-gray-200 hover:ring-gray-300"
                             }`}>
                                 <div className="relative shrink-0">
                                     <div className={`${c ? "w-8 h-8 rounded-lg text-[11px]" : "w-[34px] h-[34px] rounded-[10px] text-[13px]"} flex items-center justify-center font-bold shadow-sm transition-all duration-500 group-hover:scale-105 group-hover:-rotate-2 ${
@@ -212,10 +216,10 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                                 {!c && (
                                     <>
                                         <div className="flex flex-col min-w-0 flex-1 justify-center">
-                                            <span className={`text-[13px] font-semibold truncate tracking-tight transition-colors duration-300 ${isSuperAdmin ? "text-slate-100 group-hover:text-white" : "text-slate-700 group-hover:text-indigo-600"}`}>
+                                            <span className={`text-[13px] font-semibold truncate tracking-tight transition-colors duration-300 ${isSuperAdmin ? "text-slate-100 group-hover:text-white" : "text-gray-900 group-hover:text-indigo-600"}`}>
                                                 {user?.email || "User Account"}
                                             </span>
-                                            <span className={`text-[11px] font-medium truncate mt-[2px] ${isSuperAdmin ? "text-slate-400" : "text-slate-500"}`}>
+                                            <span className={`text-[11px] font-medium truncate mt-[2px] ${isSuperAdmin ? "text-slate-400" : "text-gray-500"}`}>
                                                 {formatRole(user?.role)}{user?.org_name ? <><span className="mx-1.5 opacity-30">|</span>{user.org_name}</> : ""}
                                             </span>
                                         </div>

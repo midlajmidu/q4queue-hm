@@ -3,33 +3,36 @@
 import React, { useState, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { OrganizationSettingsResponse } from "@/types/api";
+import { Lock } from "lucide-react";
+import { PageWrapper } from "@/components/PageWrapper";
+import { useParams } from "next/navigation";
 
 const C = {
-  // bg
-  pageBg:     "#f7f8fa",
-  cardBg:     "#ffffff",
-  cardBgAlt:  "#fbfcfd",
-  // borders
-  border:     "#e8eaef",
-  borderHov:  "#c4ccd8",
-  borderLight:"#f1f2f5",
-  // text
-  text:       "#0f1729",
-  textSub:    "#475569",
-  textMuted:  "#8b95a9",
-  // brand
-  brand:      "#4f46e5",
-  brandDark:  "#4338ca",
-  brandLight: "#eef2ff",
-  brandBorder:"#c7d2fe",
-  brandGlow:  "rgba(79,70,229,.10)",
-  // semantic
-  blue:       "#3b82f6", blueBg: "#eff6ff",   blueBorder: "#bfdbfe",
-  green:      "#10b981", greenBg: "#ecfdf5",   greenBorder:"#a7f3d0",
-  amber:      "#f59e0b", amberBg: "#fffbeb",   amberBorder:"#fde68a",
-  red:        "#ef4444", redBg:   "#fef2f2",   redBorder:  "#fecaca",
-  violet:     "#7c3aed", violetBg:"#f5f3ff",
-  slate:      "#64748b", slateBg: "#f8fafc",
+    // bg
+    pageBg: "#f9fafb",
+    cardBg: "#ffffff",
+    cardBgAlt: "#f9fafb",
+    // borders
+    border: "#e5e7eb",
+    borderHov: "#d1d5db",
+    borderLight: "#f3f4f6",
+    // text
+    text: "#111827",
+    textSub: "#6b7280",
+    textMuted: "#9ca3af",
+    // brand
+    brand: "#4f46e5",
+    brandDark: "#4338ca",
+    brandLight: "#eef2ff",
+    brandBorder: "#c7d2fe",
+    brandGlow: "rgba(79,70,229,.10)",
+    // semantic
+    blue: "#3b82f6", blueBg: "#eff6ff", blueBorder: "#bfdbfe",
+    green: "#10b981", greenBg: "#ecfdf5", greenBorder: "#a7f3d0",
+    amber: "#f59e0b", amberBg: "#fffbeb", amberBorder: "#fde68a",
+    red: "#ef4444", redBg: "#fef2f2", redBorder: "#fecaca",
+    violet: "#7c3aed", violetBg: "#f5f3ff",
+    slate: "#64748b", slateBg: "#f8fafc",
 };
 
 const STYLES = `
@@ -45,18 +48,12 @@ const STYLES = `
   .card {
     background: ${C.cardBg};
     border: 1px solid ${C.border};
-    border-radius: 14px;
-    box-shadow:
-      0 0 0 1px rgba(0,0,0,.02),
-      0 1px 2px rgba(0,0,0,.03),
-      0 2px 8px rgba(0,0,0,.025);
+    border-radius: 8px;
+    box-shadow: none;
     transition: box-shadow .25s cubic-bezier(.4,0,.2,1), border-color .25s ease;
   }
   .card:hover {
-    box-shadow:
-      0 0 0 1px rgba(0,0,0,.03),
-      0 4px 12px rgba(0,0,0,.06),
-      0 8px 28px rgba(0,0,0,.04);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     border-color: ${C.borderHov};
   }
 
@@ -98,7 +95,7 @@ const STYLES = `
     padding: 10px 20px; font-size: 13.5px; font-weight: 600;
     font-family: 'Inter', sans-serif; color: #ffffff;
     background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); border: 1px solid transparent;
-    border-radius: 10px; cursor: pointer; text-decoration: none;
+    border-radius: 8px; cursor: pointer; text-decoration: none;
     box-shadow: 0 1px 3px rgba(37,99,235,0.2), 0 1px 2px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,0.1);
     transition: all .22s ease;
   }
@@ -111,7 +108,7 @@ const STYLES = `
 
   .icon-badge {
     display: flex; align-items: center; justify-content: center;
-    border-radius: 11px; flex-shrink: 0;
+    border-radius: 8px; flex-shrink: 0;
   }
 
   .lbl {
@@ -122,21 +119,21 @@ const STYLES = `
   }
 
   .premium-input {
-    width: 100%; border-radius: 12px; border: 1px solid #e2e8f0;
+    width: 100%; border-radius: 8px; border: 1px solid #e2e8f0;
     padding: 12px 16px; font-size: 14px; font-weight: 500; color: #0f172a;
     background: #fafbfe; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     outline: none;
   }
   .premium-input:hover:not(:disabled) { border-color: #cbd5e1; }
   .premium-input:focus:not(:disabled) {
-    background: #ffffff; border-color: #818cf8;
-    box-shadow: 0 0 0 4px rgba(129,140,248,.15);
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
   }
-  .premium-input:disabled { background: #f8fafc; color: #94a3b8; cursor: not-allowed; }
+  .premium-input:disabled { background: #f3f4f6; color: #4b5563; cursor: not-allowed; }
   
   .tab-btn {
     display: flex; align-items: center; gap: 12px;
-    padding: 12px 16px; width: 100%; border-radius: 10px;
+    padding: 12px 16px; width: 100%; border-radius: 8px;
     font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
     color: ${C.textSub}; background: transparent; border: none;
     cursor: pointer; text-align: left; transition: all 0.2s;
@@ -163,6 +160,8 @@ export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'operations'>('profile');
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
     const [pendingTab, setPendingTab] = useState<'profile' | 'security' | 'operations' | null>(null);
+    const params = useParams();
+    const orgSlug = params?.orgSlug as string;
 
     // Clinic Info State
     const [settings, setSettings] = useState<OrganizationSettingsResponse | null>(null);
@@ -209,7 +208,7 @@ export default function SettingsPage() {
         if (/[A-Z]/.test(pwd)) score += 1;
         if (/[0-9]/.test(pwd)) score += 1;
         if (/[^A-Za-z0-9]/.test(pwd)) score += 1;
-        
+
         if (pwd.length === 0) return { label: "", color: "transparent", width: "0%" };
         if (score <= 1) return { label: "Weak", color: C.red, width: "33%" };
         if (score === 2) return { label: "Medium", color: C.amber, width: "66%" };
@@ -382,7 +381,7 @@ export default function SettingsPage() {
     if (isLoading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-                <svg width={24} height={24} className="animate-spin text-indigo-600" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                <svg width={24} height={24} className="animate-spin text-indigo-600" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
             </div>
         );
     }
@@ -391,45 +390,32 @@ export default function SettingsPage() {
         <>
             <style>{STYLES}</style>
             <div className="ov">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1000, margin: '0 auto' }}>
-                    
-                    {/* Header */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
-                        <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                <div className="icon-badge" style={{ background: C.brandLight, color: C.brand, width: 28, height: 28 }}>
-                                    <svg width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                </div>
-                                <span style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '.06em', color: C.brand, textTransform: 'uppercase' }}>
-                                    Configuration
-                                </span>
-                            </div>
-                            <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.02em', color: C.text, margin: '0 0 6px 0' }}>
-                                Settings
-                            </h1>
-                            <p style={{ fontSize: '14px', color: C.textSub, margin: 0, maxWidth: '500px', lineHeight: 1.5 }}>
-                                Update your organization's core details and manage admin credentials.
-                            </p>
-                        </div>
-                    </div>
+                <PageWrapper 
+                    title="Settings"
+                    subtitle="Update your organization's core details and manage admin credentials."
+                    breadcrumbs={[
+                        { label: "Configuration", href: `/${orgSlug}/dashboard` },
+                        { label: "Settings" }
+                    ]}
+                >
 
                     <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         {/* Sidebar */}
                         <div style={{ flexShrink: 0, width: '240px', display: 'flex', flexDirection: 'column', gap: '8px', position: 'sticky', top: '24px' }}>
-                            <button 
-                                onClick={() => handleTabChange('profile')} 
+                            <button
+                                onClick={() => handleTabChange('profile')}
                                 className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
                             >
                                 <span style={{ fontSize: '18px' }}>🏢</span> Profile
                             </button>
-                            <button 
-                                onClick={() => handleTabChange('security')} 
+                            <button
+                                onClick={() => handleTabChange('security')}
                                 className={`tab-btn ${activeTab === 'security' ? 'active' : ''}`}
                             >
                                 <span style={{ fontSize: '18px' }}>🛡️</span> Security
                             </button>
-                            <button 
-                                onClick={() => handleTabChange('operations')} 
+                            <button
+                                onClick={() => handleTabChange('operations')}
                                 className={`tab-btn ${activeTab === 'operations' ? 'active' : ''}`}
                             >
                                 <span style={{ fontSize: '18px' }}>⚙️</span> Operations
@@ -450,13 +436,13 @@ export default function SettingsPage() {
                                     <form onSubmit={handleSaveInfo} style={{ padding: '32px 24px' }}>
                                         {infoSuccess && (
                                             <div style={{ background: C.greenBg, color: C.green, padding: '12px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 500, marginBottom: 24, border: `1px solid ${C.greenBorder}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                                                 {infoSuccess}
                                             </div>
                                         )}
                                         {infoError && (
                                             <div style={{ background: C.redBg, color: C.red, padding: '12px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 500, marginBottom: 24, border: `1px solid ${C.redBorder}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="8"/></svg>
+                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="m21 21-4.3-4.3" /><circle cx="11" cy="11" r="8" /></svg>
                                                 {infoError}
                                             </div>
                                         )}
@@ -478,20 +464,25 @@ export default function SettingsPage() {
                                             </div>
 
                                             <div>
-                                                <label className="lbl">Public URL Slug</label>
+                                                <label className="lbl" style={{ display: "flex", alignItems: "center", gap: 6 }} title="Slug cannot be changed after creation">
+                                                    Public URL Slug
+                                                    <Lock size={12} color={C.textMuted} style={{ cursor: "help" }} />
+                                                </label>
                                                 <input type="text" disabled value={settings?.slug || ""} className="premium-input" />
                                             </div>
 
                                             <div style={{ gridColumn: '1 / -1' }}>
-                                                <label className="lbl">Owner Email Address</label>
+                                                <label className="lbl" style={{ display: "flex", alignItems: "center", gap: 6 }} title="Modifying the system owner email requires contacting administrative support.">
+                                                    Owner Email Address
+                                                    <Lock size={12} color={C.textMuted} style={{ cursor: "help" }} />
+                                                </label>
                                                 <input type="email" disabled value={settings?.email || ""} className="premium-input" />
-                                                <p style={{ marginTop: 8, fontSize: 12, color: C.textMuted }}>Modifying the system owner email requires contacting administrative support.</p>
                                             </div>
                                         </div>
 
                                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.borderLight}` }}>
                                             <button type="submit" disabled={isSavingInfo || !name.trim()} className="qa-btn">
-                                                {isSavingInfo ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Saving...</> : "Save Details"}
+                                                {isSavingInfo ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Saving...</> : "Save Details"}
                                             </button>
                                         </div>
                                     </form>
@@ -510,13 +501,13 @@ export default function SettingsPage() {
                                     <form onSubmit={pwdStep === 1 ? handleRequestOtp : handleUpdatePassword} style={{ padding: '32px 24px' }}>
                                         {pwdSuccess && (
                                             <div style={{ background: C.greenBg, color: C.green, padding: '12px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 500, marginBottom: 24, border: `1px solid ${C.greenBorder}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                                                 {pwdSuccess}
                                             </div>
                                         )}
                                         {pwdError && (
                                             <div style={{ background: C.redBg, color: C.red, padding: '12px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 500, marginBottom: 24, border: `1px solid ${C.redBorder}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                                                 {pwdError}
                                             </div>
                                         )}
@@ -528,7 +519,7 @@ export default function SettingsPage() {
                                                     <div style={{ position: 'relative' }}>
                                                         <input type={showCurrent ? "text" : "password"} required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
                                                         <button type="button" onClick={() => setShowCurrent(!showCurrent)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
-                                                            {showCurrent ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>}
+                                                            {showCurrent ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" /></svg>}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -537,8 +528,8 @@ export default function SettingsPage() {
                                                     <div>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                                             <label className="lbl" style={{ margin: 0 }}>6-Digit OTP</label>
-                                                            <button 
-                                                                type="button" 
+                                                            <button
+                                                                type="button"
                                                                 onClick={handleResendOtp}
                                                                 disabled={resendTimer > 0 || isResending}
                                                                 style={{ fontSize: 12, fontWeight: 600, color: resendTimer > 0 ? C.textMuted : C.brand, background: 'none', border: 'none', padding: 0, cursor: resendTimer > 0 ? 'not-allowed' : 'pointer' }}
@@ -553,7 +544,7 @@ export default function SettingsPage() {
                                                         <div style={{ position: 'relative' }}>
                                                             <input type={showNew ? "text" : "password"} required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
                                                             <button type="button" onClick={() => setShowNew(!showNew)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
-                                                                {showNew ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>}
+                                                                {showNew ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" /></svg>}
                                                             </button>
                                                         </div>
                                                         {newPassword.length > 0 && (
@@ -575,7 +566,7 @@ export default function SettingsPage() {
                                                         <div style={{ position: 'relative' }}>
                                                             <input type={showConfirm ? "text" : "password"} required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
                                                             <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
-                                                                {showConfirm ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>}
+                                                                {showConfirm ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" /></svg>}
                                                             </button>
                                                         </div>
                                                         {confirmPassword && newPassword !== confirmPassword && (
@@ -589,12 +580,12 @@ export default function SettingsPage() {
                                         <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '16px', marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.borderLight}` }}>
                                             {pwdStep === 1 ? (
                                                 <button type="submit" disabled={isSavingPassword || !currentPassword} className="qa-btn">
-                                                    {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Sending OTP...</> : "Send OTP"}
+                                                    {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Sending OTP...</> : "Send OTP"}
                                                 </button>
                                             ) : (
                                                 <>
                                                     <button type="submit" disabled={isSavingPassword || !otp || otp.length !== 6 || !newPassword || !confirmPassword || newPassword !== confirmPassword} className="qa-btn">
-                                                        {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Updating...</> : "Verify & Update Password"}
+                                                        {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Updating...</> : "Verify & Update Password"}
                                                     </button>
                                                     <button type="button" onClick={() => setPwdStep(1)} className="qa-btn" style={{ background: '#f1f5f9', color: '#475569', boxShadow: 'none' }}>
                                                         Cancel
@@ -627,52 +618,60 @@ export default function SettingsPage() {
                             )}
                         </div>
                     </div>
+                </PageWrapper>
 
+            {hasProfileChanges && activeTab === 'profile' && (
+                <div style={{
+                    position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
+                    background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.12)', padding: '16px 24px',
+                    display: 'flex', alignItems: 'center', gap: 24, zIndex: 100
+                }}>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: C.text }}>You have unsaved changes.</span>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                        <button onClick={handleDiscardChanges} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: C.textSub, background: C.borderLight, border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>Discard/Reset</button>
+                        <button onClick={handleSaveInfo} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#fff', background: C.brand, border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>Save Changes</button>
+                    </div>
                 </div>
-            </div>
-
-
+            )}
 
             {showUnsavedModal && (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(15, 23, 42, 0.5)',
-                    backdropFilter: 'blur(2px)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                    backdropFilter: 'blur(4px)',
                     zIndex: 9999,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     padding: 24, animation: 'modalFadeIn 0.2s ease-out'
                 }}>
                     <div style={{
-                        background: '#ffffff', borderRadius: 12, width: '100%', maxWidth: 440,
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                        background: '#fff', borderRadius: 16, width: '100%', maxWidth: 400,
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
                         overflow: 'hidden', animation: 'modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
                     }}>
-                        <div style={{ padding: '24px 24px 20px', display: 'flex', gap: 16 }}>
-                            <div style={{ 
-                                width: 40, height: 40, borderRadius: '50%', 
-                                background: '#fef3c7', color: '#d97706', 
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                            }}>
-                                <svg width={20} height={20} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <div style={{ padding: '24px 24px 16px', display: 'flex', gap: 16 }}>
+                            <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.amberBg, color: C.amber, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <svg width={20} height={20} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
                             </div>
-                            <div style={{ flex: 1 }}>
-                                <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 600, color: '#0f172a' }}>Unsaved Changes</h3>
-                                <p style={{ margin: 0, fontSize: 14, color: '#475569', lineHeight: 1.5 }}>
-                                    You are about to switch tabs without saving. Any unsaved changes you have made will be lost.
+                            <div>
+                                <h3 style={{ margin: '0 0 8px 0', fontSize: 18, fontWeight: 700, color: C.text }}>Unsaved Changes</h3>
+                                <p style={{ margin: 0, fontSize: 14, color: C.textSub, lineHeight: 1.5 }}>
+                                    You have unsaved changes. Are you sure you want to switch tabs? Your unsaved changes will be lost.
                                 </p>
                             </div>
                         </div>
-                        <div style={{ padding: '16px 24px', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: 12, borderTop: `1px solid #e2e8f0` }}>
-                            <button onClick={cancelTabChange} style={{ padding: '8px 16px', borderRadius: 6, border: `1px solid #cbd5e1`, background: '#fff', color: '#334155', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s' }}>
+                        <div style={{ padding: '16px 24px', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: 12, borderTop: `1px solid ${C.borderLight}` }}>
+                            <button onClick={cancelTabChange} style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: '#fff', color: C.text, fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
                                 Cancel
                             </button>
-                            <button onClick={confirmTabChange} style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                            <button onClick={confirmTabChange} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: C.red, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}>
                                 Discard Changes
                             </button>
                         </div>
                     </div>
                 </div>
             )}
+            </div>
         </>
     );
 }

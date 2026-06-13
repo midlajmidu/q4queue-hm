@@ -82,7 +82,7 @@
 @layer base {
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: var(--font-body), sans-serif;
+    font-family: var(--font-sans), sans-serif;
   }
 
   h1,
@@ -91,7 +91,7 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-heading), sans-serif;
+    font-family: var(--font-sans), sans-serif;
   }
 
   :root {
@@ -134,8 +134,7 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 220 70% 50%;
 
-    --font-heading: 'Plus Jakarta Sans', sans-serif;
-    --font-body: 'DM Sans', sans-serif;
+    --font-sans: 'Inter', sans-serif;
   }
 
   .dark {
@@ -280,7 +279,7 @@
   }
 
   .font-heading {
-    font-family: var(--font-heading), sans-serif;
+    font-family: var(--font-sans), sans-serif;
   }
 
   .section-divider {

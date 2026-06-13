@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useNotifications, DashboardNotification } from "@/context/NotificationContext";
+import { PageWrapper } from "@/components/PageWrapper";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -47,6 +48,7 @@ function NotifIcon({ type }: { type: NotifType }) {
 export default function NotificationsPage() {
   const params = useParams();
   const orgSlug = params?.orgSlug as string;
+  const dashBase = `/${orgSlug}/dashboard`;
 
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
@@ -111,35 +113,21 @@ export default function NotificationsPage() {
       `}</style>
 
       <div style={{
-        fontFamily: "'DM Sans', sans-serif",
-        display: "flex", flexDirection: "column", gap: 24,
+        display: "flex", flexDirection: "column",
         WebkitFontSmoothing: "antialiased",
-        maxWidth: 840, margin: "0 auto",
       }}>
 
-        {/* ── Header ── */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: "#94a3b8" }}>
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
-              <Link href={`/${orgSlug}/dashboard`} style={{ color: "inherit", textDecoration: "none", transition: "color .15s" }}
-                onMouseEnter={e => (e.currentTarget.style.color = "#4f46e5")}
-                onMouseLeave={e => (e.currentTarget.style.color = "inherit")}>
-                Activity Center
-              </Link>
-              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-              <span style={{ color: "#64748b" }}>Notifications</span>
-            </div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", letterSpacing: "-.025em", margin: 0 }}>Recent Activity</h1>
-            <p style={{ fontSize: 14, color: "#64748b", margin: 0, lineHeight: 1.5 }}>Stay updated with queue events, performance alerts, and system logs.</p>
-          </div>
-
-          <div style={{ display: "flex", gap: 8 }}>
+        <PageWrapper
+          title="Recent Activity"
+          subtitle="Stay updated with queue events, performance alerts, and system logs."
+          breadcrumbs={[{ label: "Activity Center", href: dashBase }, { label: "Notifications" }]}
+          action={
+            <div style={{ display: "flex", gap: 8 }}>
             {unreadCount > 0 && (
               <button className="btn-primary" onClick={markAllAsRead} style={{
                 height: 38, padding: "0 14px", background: "#4f46e5", color: "#fff",
                 border: "none", borderRadius: 9, fontSize: 13, fontWeight: 600,
-                fontFamily: "inherit", cursor: "pointer",
+                cursor: "pointer",
                 display: "flex", alignItems: "center", gap: 8, transition: "background .15s",
               }}>
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg>
@@ -150,7 +138,7 @@ export default function NotificationsPage() {
               <button className="btn-secondary" onClick={clearAll} style={{
                 height: 38, padding: "0 14px", background: "#fff", color: "#64748b",
                 border: "0.5px solid #e2e8f0", borderRadius: 9, fontSize: 13, fontWeight: 600,
-                fontFamily: "inherit", cursor: "pointer",
+                cursor: "pointer",
                 display: "flex", alignItems: "center", gap: 8, transition: "all .15s",
               }}>
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
@@ -158,8 +146,9 @@ export default function NotificationsPage() {
               </button>
             )}
           </div>
-        </div>
-
+          }
+        >
+        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
         {/* ── Tab filters ── */}
         <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 4 }}>
           {tabs.map(tab => {
@@ -167,10 +156,10 @@ export default function NotificationsPage() {
             return (
               <button key={tab.key} className={active ? undefined : "tab-btn"} onClick={() => setActiveTab(tab.key)} style={{
                 height: 34, padding: "0 14px", borderRadius: 99,
-                border: active ? "0.5px solid #c7d2fe" : "0.5px solid #e2e8f0",
-                background: active ? "#eef2ff" : "#fff",
-                color: active ? "#4f46e5" : "#64748b",
-                fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
+                border: "1px solid #e2e8f0",
+                background: "#f8fafc",
+                color: "#64748b",
+                fontSize: 12, fontWeight: 600, cursor: "pointer",
                 transition: "all .15s", display: "flex", alignItems: "center", gap: 6,
                 whiteSpace: "nowrap", flexShrink: 0,
               }}>
@@ -291,6 +280,8 @@ export default function NotificationsPage() {
             Showing {filtered.length} of {notifications.length} notifications
           </div>
         )}
+      </div>
+      </PageWrapper>
       </div>
     </>
   );

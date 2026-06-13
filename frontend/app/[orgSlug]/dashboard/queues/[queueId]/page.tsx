@@ -21,17 +21,17 @@ const T = {
   sidebarBg:    "#ffffff",
   sidebarBorder:"#e4e7ef",
   // Page
-  pageBg:       "#f4f5f8",
+  pageBg: "#f9fafb",
   // Cards
-  cardBg:       "#ffffff",
+  cardBg: "#ffffff",
   cardBorder:   "#e4e7ef",
   cardBorderHov:"#c9cfe0",
   cardShadow:   "0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04)",
   cardShadowHov:"0 4px 20px rgba(0,0,0,.10)",
   // Text
-  text:         "#0e1420",
-  textSub:      "#5a6479",
-  textMuted:    "#9ba3b5",
+  text: "#111827",
+  textSub: "#6b7280",
+  textMuted: "#9ca3af",
   textInverse:  "#ffffff",
   textSidebarMuted: "#6b7280",
   // Brand (electric indigo)
@@ -55,10 +55,9 @@ const T = {
 };
 
 const QD_STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap');
 
   .qd-root {
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    
     color: ${T.text};
     -webkit-font-smoothing: antialiased;
     letter-spacing: -0.01em;
@@ -87,7 +86,7 @@ const QD_STYLES = `
     transition: background .15s ease, color .15s ease;
     background: transparent;
     color: ${T.navText};
-    font-family: 'DM Sans', sans-serif;
+    
     letter-spacing: -0.01em;
   }
   .qd-nav-item:hover { background: ${T.navHoverBg}; color: ${T.text}; }
@@ -102,7 +101,7 @@ const QD_STYLES = `
   .qd-card {
     background: ${T.cardBg};
     border: 1px solid ${T.cardBorder};
-    border-radius: 14px;
+    border-radius: 8px;
     box-shadow: ${T.cardShadow};
     transition: box-shadow .25s ease, border-color .25s ease;
   }
@@ -129,7 +128,7 @@ const QD_STYLES = `
     border-radius: 20px 20px 0 0;
   }
   .serving-num {
-    font-family: 'DM Sans', sans-serif;
+    
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     color: ${T.brand};
@@ -147,11 +146,11 @@ const QD_STYLES = `
     color: #fff;
     font-weight: 700;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 13px 26px;
     font-size: 14.5px;
     cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
+    
     letter-spacing: -0.01em;
     box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 4px 16px rgba(91,94,244,.3);
     transition: all .2s cubic-bezier(.22,1,.36,1);
@@ -172,12 +171,12 @@ const QD_STYLES = `
     background: ${T.cardBg};
     color: ${T.textSub};
     border: 1.5px solid ${T.cardBorder};
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 13px 22px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
+    
     box-shadow: 0 1px 2px rgba(0,0,0,.04);
     transition: all .2s cubic-bezier(.22,1,.36,1);
   }
@@ -199,11 +198,11 @@ const QD_STYLES = `
     color: #fff;
     font-weight: 700;
     border: none;
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 15px 28px;
     font-size: 15px;
     cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
+    
     letter-spacing: -0.01em;
     box-shadow: 0 4px 14px rgba(91,94,244,.25);
     transition: all .2s cubic-bezier(.22,1,.36,1);
@@ -225,11 +224,11 @@ const QD_STYLES = `
     color: #fff;
     font-weight: 700;
     border: none;
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 15px 28px;
     font-size: 15px;
     cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
+    
     letter-spacing: -0.01em;
     box-shadow: 0 4px 14px rgba(22,163,74,.25);
     transition: all .2s cubic-bezier(.22,1,.36,1);
@@ -250,7 +249,7 @@ const QD_STYLES = `
     font-weight: 400;
     border: 1.5px solid ${T.cardBorder};
     border-radius: 9px;
-    font-family: 'DM Sans', sans-serif;
+    
     color: ${T.text};
     background: #fafbfc;
     outline: none;
@@ -271,10 +270,10 @@ const QD_STYLES = `
     letter-spacing: .1em;
     text-transform: uppercase;
     color: ${T.textMuted};
-    font-family: 'DM Sans', sans-serif;
+    
   }
 
-  .mono { font-family: 'DM Mono', monospace; }
+  .mono {  }
 
   /* ── Animations ── */
   .fade-in { animation: qdfin .3s cubic-bezier(.16,1,.3,1) both; }
@@ -286,7 +285,7 @@ const QD_STYLES = `
   .qd-control-panel {
     background: #fafbfc;
     border: 1px solid ${T.cardBorder};
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 16px 18px;
     transition: border-color .2s;
   }
@@ -305,7 +304,7 @@ const QD_STYLES = `
     border-radius: 99px;
     font-size: 12.5px;
     font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
+    
   }
 
   /* ── Section heading ── */
@@ -315,7 +314,7 @@ const QD_STYLES = `
     letter-spacing: -0.03em;
     color: ${T.text};
     margin: 0;
-    font-family: 'DM Sans', sans-serif;
+    
   }
   .qd-section-sub {
     font-size: 13.5px;
@@ -605,7 +604,7 @@ export default function QueueDetailPage({ params }: PageProps) {
         return (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", minHeight: "100vh", background: T.pageBg }}>
                 <span style={{ width: 28, height: 28, marginBottom: 12, border: `3px solid ${T.brandLight}`, borderTopColor: T.brand, borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: T.textSub, fontFamily: "'DM Sans', sans-serif" }}>Loading Queue…</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: T.textSub }}>Loading Queue…</span>
             </div>
         );
     }
@@ -766,14 +765,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         >
                                             {actionLoading === "next" ? (
                                                 <>
-                                                    <span style={{ width: 16, height: 16, borderRadius: "50%", border: "2.5px solid rgba(255,255,255,.3)", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                    <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
                                                     Calling…
                                                 </>
                                             ) : (
                                                 <>
                                                     <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                                                     Call Next
-                                                    <kbd style={{ fontSize: 10, opacity: .5, marginLeft: 2, padding: "1px 6px", borderRadius: 4, background: "rgba(255,255,255,.15)", fontFamily: "'DM Mono', monospace" }}>↵</kbd>
+                                                    <kbd style={{ fontSize: 10, opacity: .5, marginLeft: 2, padding: "1px 6px", borderRadius: 4, background: "rgba(255,255,255,.15)" }}>↵</kbd>
                                                 </>
                                             )}
                                         </button>
@@ -789,7 +788,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         >
                                             {actionLoading === "done" ? (
                                                 <>
-                                                    <span style={{ width: 16, height: 16, borderRadius: "50%", border: "2.5px solid rgba(255,255,255,.3)", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                    <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
                                                     Completing…
                                                 </>
                                             ) : (
@@ -815,7 +814,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <button
                                                     onClick={() => setShowAddForm(true)}
                                                     disabled={isDisabled}
-                                                    style={{ width: "100%", padding: "9px 14px", background: "#fff", border: `1.5px dashed ${T.cardBorder}`, borderRadius: 9, color: T.textSub, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all .18s", fontFamily: "'DM Sans', sans-serif" }}
+                                                    style={{ width: "100%", padding: "9px 14px", background: "#fff", border: `1.5px dashed ${T.cardBorder}`, borderRadius: 9, color: T.textSub, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all .18s" }}
                                                     onMouseEnter={e => { e.currentTarget.style.borderColor = T.brand; e.currentTarget.style.color = T.brand; }}
                                                     onMouseLeave={e => { e.currentTarget.style.borderColor = T.cardBorder; e.currentTarget.style.color = T.textSub; }}
                                                 >
@@ -828,10 +827,10 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="Phone *" className="qd-input" style={{ fontSize: 13 }} />
                                                     <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="Age (optional)" className="qd-input" style={{ fontSize: 13 }} />
                                                     <div style={{ display: "flex", gap: 7 }}>
-                                                        <button onClick={handleAddCustomer} disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add"} style={{ flex: 1, padding: "8px", background: T.brand, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", opacity: (!addName.trim() || !addPhone.trim()) ? .4 : 1 }}>
+                                                        <button onClick={handleAddCustomer} disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add"} style={{ flex: 1, padding: "8px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!addName.trim() || !addPhone.trim()) ? .4 : 1 }}>
                                                             {actionLoading === "add" ? "Adding…" : "Confirm"}
                                                         </button>
-                                                        <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); }} style={{ flex: 1, padding: "8px", background: "#f4f5f8", border: `1px solid ${T.cardBorder}`, borderRadius: 8, color: T.textSub, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                                                        <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); }} style={{ flex: 1, padding: "8px", background: "#f4f5f8", border: `1px solid ${T.cardBorder}`, borderRadius: 8, color: T.textSub, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
                                                             Cancel
                                                         </button>
                                                     </div>
@@ -849,7 +848,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
                                             <form onSubmit={handleInvite} style={{ display: "flex", gap: 7 }}>
                                                 <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="qd-input" style={{ fontSize: 13 }} />
-                                                <button type="submit" disabled={!inviteNumber || isDisabled} style={{ padding: "9px 16px", fontSize: 13, fontWeight: 700, borderRadius: 9, border: `1.5px solid ${T.brandBorder}`, background: T.brandLight, color: T.brand, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'DM Sans', sans-serif", opacity: !inviteNumber ? .4 : 1 }}>
+                                                <button type="submit" disabled={!inviteNumber || isDisabled} style={{ padding: "9px 16px", fontSize: 13, fontWeight: 700, borderRadius: 9, border: `1.5px solid ${T.brandBorder}`, background: T.brandLight, color: T.brand, cursor: "pointer", whiteSpace: "nowrap", opacity: !inviteNumber ? .4 : 1 }}>
                                                     Call
                                                 </button>
                                             </form>
@@ -865,7 +864,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
                                             <form onSubmit={handleRemoveByNumber} style={{ display: "flex", gap: 7 }}>
                                                 <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="qd-input" style={{ fontSize: 13 }} />
-                                                <button type="submit" disabled={!removeNumber || isDisabled} style={{ padding: "9px 14px", fontSize: 13, fontWeight: 700, borderRadius: 9, border: `1.5px solid ${T.redBorder}`, background: T.redBg, color: T.red, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'DM Sans', sans-serif", opacity: !removeNumber ? .4 : 1 }}>
+                                                <button type="submit" disabled={!removeNumber || isDisabled} style={{ padding: "9px 14px", fontSize: 13, fontWeight: 700, borderRadius: 9, border: `1.5px solid ${T.redBorder}`, background: T.redBg, color: T.red, cursor: "pointer", whiteSpace: "nowrap", opacity: !removeNumber ? .4 : 1 }}>
                                                     Remove
                                                 </button>
                                             </form>
@@ -885,7 +884,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     )}
                                     {status === "reconnecting" && (
                                         <div role="status" style={{ background: T.blueBg, color: "#1d4ed8", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.blueBorder}`, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
-                                            <span style={{ width: 14, height: 14, border: "2px solid rgba(37,99,235,.3)", borderTopColor: "#2563eb", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                            <span style={{ width: 14, height: 14, border: "#e5e7eb", borderTopColor: "#2563eb", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
                                             Reconnecting to live updates…
                                         </div>
                                     )}
@@ -936,7 +935,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                                         <button
                                                             onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName })}
-                                                            style={{ opacity: 0, padding: "5px", color: T.textMuted, background: "transparent", border: "none", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
+                                                            style={{ opacity: 0, padding: "5px", color: T.textMuted, background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
                                                             className="group-hover-show"
                                                             onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                                                             onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
@@ -945,7 +944,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         </button>
                                                         <button
                                                             onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
-                                                            style={{ opacity: 0, fontSize: 11, fontWeight: 700, padding: "4px 9px", background: T.redBg, color: T.red, border: `1px solid ${T.redBorder}`, borderRadius: 6, cursor: "pointer", transition: "all .15s", fontFamily: "'DM Sans', sans-serif" }}
+                                                            style={{ opacity: 0, fontSize: 11, fontWeight: 700, padding: "4px 9px", background: T.redBg, color: T.red, border: `1px solid ${T.redBorder}`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
                                                             className="group-hover-show"
                                                         >
                                                             Remove
@@ -1062,15 +1061,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             onChange={e => setAnnouncementInput(e.target.value)}
                                             placeholder="Enter a message to display to all customers waiting…"
                                             disabled={isDisabled || actionLoading === "announcement"}
-                                            style={{ width: "100%", padding: "12px 14px", background: "#fafbfc", border: `1.5px solid ${T.cardBorder}`, borderRadius: 10, color: T.text, fontSize: 14, fontFamily: "'DM Sans', sans-serif", resize: "none", height: 120, outline: "none", transition: "border-color .18s" }}
+                                            style={{ width: "100%", padding: "12px 14px", background: "#fafbfc", border: `1.5px solid ${T.cardBorder}`, borderRadius: 10, color: T.text, fontSize: 14, resize: "none", height: 120, outline: "none", transition: "border-color .18s" }}
                                             onFocus={e => (e.currentTarget.style.borderColor = T.brand)}
                                             onBlur={e => (e.currentTarget.style.borderColor = T.cardBorder)}
                                         />
                                         <div style={{ display: "flex", gap: 8 }}>
-                                            <button type="submit" disabled={isDisabled || actionLoading === "announcement"} style={{ padding: "9px 20px", background: T.brand, color: "#fff", border: "none", borderRadius: 9, fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                                            <button type="submit" disabled={isDisabled || actionLoading === "announcement"} style={{ padding: "9px 20px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 9, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
                                                 {actionLoading === "announcement" ? "Saving…" : "Save Announcement"}
                                             </button>
-                                            <button type="button" onClick={() => setIsEditingAnnouncement(false)} disabled={isDisabled} style={{ padding: "9px 18px", background: "#f4f5f8", border: `1px solid ${T.cardBorder}`, borderRadius: 9, color: T.textSub, fontWeight: 600, fontSize: 13.5, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                                            <button type="button" onClick={() => setIsEditingAnnouncement(false)} disabled={isDisabled} style={{ padding: "9px 18px", background: "#f4f5f8", border: `1px solid ${T.cardBorder}`, borderRadius: 9, color: T.textSub, fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}>
                                                 Cancel
                                             </button>
                                         </div>
@@ -1090,7 +1089,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <button
                                             onClick={() => setIsEditingAnnouncement(true)}
                                             disabled={isDisabled}
-                                            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", background: T.brand, color: "#fff", border: "none", borderRadius: 9, fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+                                            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 9, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}
                                         >
                                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                             {(state?.announcement ?? initialQueue?.announcement) ? "Edit Announcement" : "Set Announcement"}
@@ -1187,7 +1186,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                 {onView && (
                     <button
                         onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
-                        style={{ padding: "5px", color: T.textMuted, background: "transparent", border: "none", borderRadius: 6, cursor: "pointer", transition: "all .15s", opacity: 0 }}
+                        style={{ padding: "5px", color: T.textMuted, background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s", opacity: 0 }}
                         className="group-hover-show"
                         onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                         onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
@@ -1276,7 +1275,7 @@ function QueueHistory({
                             </span>
                             <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Name, token #, or phone…" className="qd-input" style={{ paddingLeft: 34 }} />
                             {searchQuery && (
-                                <button onClick={() => setSearchQuery("")} style={{ position: "absolute", inset: "0 0 0 auto", display: "flex", alignItems: "center", paddingRight: 11, color: T.textMuted, background: "transparent", border: "none", cursor: "pointer" }}>
+                                <button onClick={() => setSearchQuery("")} style={{ position: "absolute", inset: "0 0 0 auto", display: "flex", alignItems: "center", paddingRight: 11, color: T.textMuted, background: "transparent", border: "#e5e7eb", cursor: "pointer" }}>
                                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                             )}
@@ -1340,7 +1339,7 @@ function QueueHistory({
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                             <button
                                                 onClick={() => onViewToken({ token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name, customer_age: item.customer_age, customer_phone: item.customer_phone, status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
-                                                style={{ padding: "6px", color: T.textMuted, background: "transparent", border: "none", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
+                                                style={{ padding: "6px", color: T.textMuted, background: "transparent", border: "#e5e7eb", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
                                                 onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                                                 onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
                                             >
@@ -1364,7 +1363,7 @@ function QueueHistory({
                                 { label: "«", onClick: () => setHistoryPage(1), disabled: historyPage === 1 },
                                 { label: "Prev", onClick: () => setHistoryPage(p => Math.max(1, p - 1)), disabled: historyPage === 1 },
                             ].map(btn => (
-                                <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled} style={{ padding: "5px 10px", fontSize: 12.5, fontWeight: 700, background: "#fff", border: `1px solid ${T.cardBorder}`, borderRadius: 7, cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? .4 : 1, fontFamily: "'DM Sans', sans-serif" }}>{btn.label}</button>
+                                <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled} style={{ padding: "5px 10px", fontSize: 12.5, fontWeight: 700, background: "#fff", border: `1px solid ${T.cardBorder}`, borderRadius: 7, cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? .4 : 1 }}>{btn.label}</button>
                             ))}
 
                             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -1374,7 +1373,7 @@ function QueueHistory({
                                 else if (historyPage >= totalPages - 2) p = totalPages - 4 + i;
                                 else p = historyPage - 2 + i;
                                 return (
-                                    <button key={p} onClick={() => setHistoryPage(p)} style={{ padding: "5px 10px", fontSize: 12.5, fontWeight: 700, border: "1px solid", borderRadius: 7, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", background: p === historyPage ? T.brand : "#fff", color: p === historyPage ? "#fff" : T.text, borderColor: p === historyPage ? T.brand : T.cardBorder }}>{p}</button>
+                                    <button key={p} onClick={() => setHistoryPage(p)} style={{ padding: "5px 10px", fontSize: 12.5, fontWeight: 700, border: "#e5e7eb", borderRadius: 7, cursor: "pointer", background: p === historyPage ? T.brand : "#fff", color: p === historyPage ? "#fff" : T.text, borderColor: p === historyPage ? T.brand : T.cardBorder }}>{p}</button>
                                 );
                             })}
 
@@ -1382,7 +1381,7 @@ function QueueHistory({
                                 { label: "Next", onClick: () => setHistoryPage(p => p + 1), disabled: historyPage >= totalPages },
                                 { label: "»", onClick: () => setHistoryPage(totalPages), disabled: historyPage >= totalPages },
                             ].map(btn => (
-                                <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled} style={{ padding: "5px 10px", fontSize: 12.5, fontWeight: 700, background: "#fff", border: `1px solid ${T.cardBorder}`, borderRadius: 7, cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? .4 : 1, fontFamily: "'DM Sans', sans-serif" }}>{btn.label}</button>
+                                <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled} style={{ padding: "5px 10px", fontSize: 12.5, fontWeight: 700, background: "#fff", border: `1px solid ${T.cardBorder}`, borderRadius: 7, cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? .4 : 1 }}>{btn.label}</button>
                             ))}
                         </div>
                     </div>

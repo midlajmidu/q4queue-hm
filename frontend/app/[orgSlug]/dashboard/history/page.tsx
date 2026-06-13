@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import type { SessionResponse, QueueResponse, TokenHistoryItem, AnalyticsOverview } from "@/types/api";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { StandardPageHeader } from "@/components/StandardPageHeader";
 
 function formatDate(dateStr: string): string {
     return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
@@ -58,11 +59,11 @@ function Avatar({ name }: { name: string }) {
 function StatCard({ label, value, color }: { label: string; value: number | string; color?: string }) {
   return (
     <div style={{
-      background: "#ffffff", borderRadius: 12, border: "0.5px solid #e8edf2",
+      background: "#ffffff", borderRadius: 8, border: "1px solid #e8edf2",
       padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8,
     }}>
       <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".07em" }}>{label}</span>
-      <span style={{ fontSize: 26, fontWeight: 700, color: color ?? "#0f172a", letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums" }}>{value}</span>
+      <span className="tabular-nums" style={{ fontSize: 26, fontWeight: 700, color: color ?? "#0f172a", letterSpacing: "-.03em" }}>{value}</span>
     </div>
   );
 }
@@ -106,7 +107,7 @@ function Pagination({ total, limit, offset, onChange }: { total: number; limit: 
 
   const btnBase: React.CSSProperties = {
     display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
-    fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif",
+    fontSize: 13, fontWeight: 500,
     color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0",
     borderRadius: 9, cursor: "pointer", transition: "all .15s",
   };
@@ -176,7 +177,7 @@ export default function HistoryPage() {
                     limit: PAGE_SIZE,
                     offset
                 }),
-                api.getOverview(selectedSessionId || undefined, selectedQueueId || undefined)
+                api.getOverview({ sessionId: selectedSessionId || undefined, queueId: selectedQueueId || undefined })
             ]);
             setHistory(historyData.items);
             setTotal(historyData.total);
@@ -230,48 +231,27 @@ export default function HistoryPage() {
 
     const selectStyle: React.CSSProperties = {
       height: 38, border: "0.5px solid #e2e8f0", borderRadius: 9, padding: "0 30px 0 12px",
-      fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", color: "#0f172a",
+      fontSize: 13, fontWeight: 500, color: "#0f172a",
       background: "#fafbfe", outline: "none", appearance: "none", cursor: "pointer",
     };
 
     return (
         <>
             <style>{FONT_IMPORT}</style>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", gap: 24, WebkitFontSmoothing: "antialiased" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 28, WebkitFontSmoothing: "antialiased" }}>
                 
                 {/* ── Header ── */}
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: "#94a3b8" }}>
-                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      <Link href={`/${orgSlug}/dashboard/insights`} style={{ color: "inherit", textDecoration: "none", transition: "color .15s" }} onMouseEnter={e => e.currentTarget.style.color = "#4f46e5"} onMouseLeave={e => e.currentTarget.style.color = "inherit"}>Analytics</Link>
-                      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-                      <span style={{ color: "#64748b" }}>History</span>
-
-                      {/* Live Indicator */}
-                      <div style={{ marginLeft: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#ecfdf5", color: "#059669", padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, letterSpacing: ".05em" }}>
-                          <div style={{ width: 6, height: 6, background: "#059669", borderRadius: "50%", animation: "pulse 2s infinite" }} />
-                          LIVE
-                        </div>
-                        {updatedLabel && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                            <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>
-                              Updated {updatedLabel}
-                            </span>
-                            {isRefreshing && (
-                              <svg className="spin" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", letterSpacing: "-.025em", margin: 0 }}>Queue History</h1>
-                    <p style={{ fontSize: 14, color: "#64748b", margin: 0, lineHeight: 1.5 }}>Review past sessions, tokens, and detailed performance metrics.</p>
-                  </div>
-
-                  {/* Filters */}
-                  <div style={{ display: "flex", gap: 12 }}>
+                <StandardPageHeader
+                  breadcrumbs={[
+                    { label: "Analytics", href: `/${orgSlug}/dashboard/insights` },
+                    { label: "History" }
+                  ]}
+                  title="Queue History"
+                  subtitle="Review past sessions, tokens, and detailed performance metrics."
+                  icon={<svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                  action={
+                    /* Filters */
+                    <div style={{ display: "flex", gap: 12 }}>
                     <div>
                       <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 6 }}>Session</p>
                       <div style={{ position: "relative" }}>
@@ -295,11 +275,30 @@ export default function HistoryPage() {
                       </div>
                     </div>
                   </div>
-                </div>
+                }
+              >
+                {/* Live Indicator */}
+                <div style={{ marginLeft: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#ecfdf5", color: "#059669", padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, letterSpacing: ".05em" }}>
+                      <div style={{ width: 6, height: 6, background: "#059669", borderRadius: "50%", animation: "pulse 2s infinite" }} />
+                      LIVE
+                    </div>
+                    {updatedLabel && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>
+                          Updated {updatedLabel}
+                        </span>
+                        {isRefreshing && (
+                          <svg className="spin" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </StandardPageHeader>
 
                 {/* ── Overview Stats ── */}
                 {overview && (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20 }}>
                         <StatCard label="Tokens served" value={overview.status_counts.served} color="#059669" />
                         <StatCard label="Tokens missed" value={overview.status_counts.cancelled} color="#ef4444" />
                         <StatCard label="Avg. Wait time" value={overview.timings.avg_waiting_time} color="#d97706" />
@@ -308,10 +307,10 @@ export default function HistoryPage() {
                 )}
 
                 {/* ── Table Card ── */}
-                <div style={{ background: "#ffffff", borderRadius: 16, border: "0.5px solid #e8edf2", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+                <div style={{ background: "#ffffff", borderRadius: 8, border: "1px solid #e8edf2", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "0.5px solid #f1f5f9" }}>
                         <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Historical Logs</h2>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>
+                        <div className="tabular-nums" style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8" }}>
                           {offset + 1}-{Math.min(offset + PAGE_SIZE, total)} OF {total}
                         </div>
                     </div>
@@ -335,7 +334,25 @@ export default function HistoryPage() {
                                 ) : history.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} style={{ padding: "64px 24px", textAlign: "center" }}>
-                                            <div style={{ color: "#94a3b8", fontSize: "14px" }}>No history found for current filters</div>
+                                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+                                            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#f8fafc", border: "0.5px solid #e8edf2", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                              <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                                            </div>
+                                            <div>
+                                              <p style={{ fontSize: 15, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>
+                                                No history found
+                                              </p>
+                                              <p style={{ fontSize: 13.5, color: "#94a3b8" }}>
+                                                Try adjusting the current filters.
+                                              </p>
+                                            </div>
+                                            <button
+                                              onClick={() => { setSelectedSessionId(""); setSelectedQueueId(""); }}
+                                              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#4f46e5", background: "#eef2ff", border: "none", borderRadius: 8, cursor: "pointer", transition: "background .15s" }}
+                                            >
+                                              Clear Filters
+                                            </button>
+                                          </div>
                                         </td>
                                     </tr>
                                 ) : (
@@ -353,9 +370,9 @@ export default function HistoryPage() {
                                             </td>
                                             <td style={{ ...tdStyle, color: "#64748b" }}>{item.queue_name}</td>
                                             <td style={tdStyle}><StatusBadge status={item.status} /></td>
-                                            <td style={{ ...tdStyle, color: "#94a3b8", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>{formatTime(item.created_at)}</td>
-                                            <td style={{ ...tdStyle, color: "#94a3b8", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>{formatTime(item.served_at)}</td>
-                                            <td style={{ ...tdStyle, color: "#94a3b8", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>{formatTime(item.completed_at)}</td>
+                                            <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(item.created_at)}</td>
+                                            <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(item.served_at)}</td>
+                                            <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(item.completed_at)}</td>
                                         </tr>
                                     ))
                                 )}

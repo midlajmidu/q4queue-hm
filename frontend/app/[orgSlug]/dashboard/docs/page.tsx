@@ -5,14 +5,14 @@ import Link from "next/link";
 import { getToken, getCurrentUser } from "@/lib/auth";
 
 const C = {
-  pageBg:       "#f3f5f9",
-  cardBg:       "#ffffff",
-  border:       "#e4e8f0",
-  borderHov:    "#bcc5d6",
-  borderLight:  "#eceef4",
-  text:         "#0b1423",
-  textSub:      "#45546a",
-  textMuted:    "#8595aa",
+  pageBg: "#f9fafb",
+  cardBg: "#ffffff",
+  border: "#e5e7eb",
+  borderHov: "#d1d5db",
+  borderLight: "#f3f4f6",
+  text: "#111827",
+  textSub: "#6b7280",
+  textMuted: "#9ca3af",
   brand:        "#4f46e5",
   brandDark:    "#4338ca",
   brandLight:   "#eef2ff",
@@ -32,15 +32,13 @@ const STYLES = `
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     color: ${C.text};
     -webkit-font-smoothing: antialiased;
-    background: ${C.pageBg};
-    min-height: 100vh;
   }
 
   /* ── Cards ── */
   .dp-card {
     background: ${C.cardBg};
     border: 1px solid ${C.border};
-    border-radius: 18px;
+    border-radius: 8px;
     box-shadow:
       0 1px 2px rgba(0,0,0,.03),
       0 4px 16px rgba(0,0,0,.04),
@@ -72,7 +70,7 @@ const STYLES = `
     color: #fff;
     background: linear-gradient(175deg, #6366f1 0%, ${C.brand} 45%, ${C.brandDark} 100%);
     border: 1px solid rgba(79,70,229,.3);
-    border-radius: 10px; cursor: pointer; text-decoration: none;
+    border-radius: 8px; cursor: pointer; text-decoration: none;
     box-shadow: 0 1px 3px rgba(79,70,229,.22), 0 4px 12px rgba(79,70,229,.18), inset 0 1px 0 rgba(255,255,255,.14);
     transition: all .2s ease; letter-spacing: -.01em;
   }
@@ -88,7 +86,7 @@ const STYLES = `
     font-family: 'Plus Jakarta Sans', sans-serif;
     color: ${C.textSub}; background: ${C.cardBg};
     border: 1.5px solid ${C.border};
-    border-radius: 10px; cursor: pointer; text-decoration: none;
+    border-radius: 8px; cursor: pointer; text-decoration: none;
     transition: all .18s ease; letter-spacing: -.01em;
   }
   .dp-btn-ghost:hover {
@@ -100,7 +98,7 @@ const STYLES = `
   .dp-nav-item {
     display: flex; align-items: center; gap: 10px;
     padding: 9px 12px; font-size: 13.5px; font-weight: 500;
-    color: ${C.textSub}; border-radius: 10px;
+    color: ${C.textSub}; border-radius: 8px;
     cursor: pointer; border: 1px solid transparent;
     transition: all .15s ease; width: 100%; text-align: left;
     background: transparent; font-family: 'Plus Jakarta Sans', sans-serif;
@@ -155,7 +153,7 @@ const STYLES = `
   .dp-table {
     width: 100%; border-collapse: separate; border-spacing: 0;
     margin: 14px 0 24px; border: 1px solid ${C.border};
-    border-radius: 12px; overflow: hidden;
+    border-radius: 8px; overflow: hidden;
     font-family: 'Plus Jakarta Sans', sans-serif;
   }
   .dp-table th {
@@ -176,7 +174,7 @@ const STYLES = `
   /* ── Callout ── */
   .dp-callout {
     display: flex; gap: 14px; align-items: flex-start;
-    padding: 14px 18px; border-radius: 12px; margin-bottom: 20px;
+    padding: 14px 18px; border-radius: 8px; margin-bottom: 20px;
     border: 1px solid transparent;
   }
   .dp-callout-icon { flex-shrink: 0; margin-top: 2px; }
@@ -210,7 +208,7 @@ const STYLES = `
   /* ── TV steps ── */
   .dp-steps-list {
     display: flex; flex-direction: column; gap: 0;
-    border: 1px solid ${C.border}; border-radius: 12px; overflow: hidden;
+    border: 1px solid ${C.border}; border-radius: 8px; overflow: hidden;
     margin: 14px 0 24px;
   }
   .dp-step-row {
@@ -494,13 +492,13 @@ export default function DocumentationPage() {
     <>
       <style>{STYLES}</style>
       <div className="dp-root">
-        <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 1040, margin: "0 auto", padding: "20px 0 52px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
 
           {/* ── Hero Header ── */}
           <header style={{
             position: "relative", overflow: "hidden",
             padding: "36px 40px",
-            borderRadius: 18,
+            borderRadius: 8,
             background: C.cardBg,
             border: `1px solid ${C.border}`,
             boxShadow: "0 1px 3px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.03)",
@@ -530,7 +528,7 @@ export default function DocumentationPage() {
                   </span>
                 </div>
 
-                <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-.03em", color: C.text, margin: "0 0 8px", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-.03em", color: C.text, margin: "0 0 8px" }}>
                   User Manual
                 </h1>
                 <p style={{ fontSize: 13.5, color: C.textSub, margin: 0, maxWidth: 440, lineHeight: 1.65 }}>
@@ -553,7 +551,7 @@ export default function DocumentationPage() {
           </header>
 
           {/* ── Body ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 248px) 1fr", gap: 22, alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 248px) 1fr", gap: 20, alignItems: "start" }}>
 
             {/* ── Sidebar ── */}
             <aside style={{ position: "sticky", top: 24, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -638,7 +636,7 @@ export default function DocumentationPage() {
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: "0 0 4px", letterSpacing: "-.03em", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: "0 0 4px", letterSpacing: "-.03em" }}>
                         {activeData.title}
                       </h2>
                       <span className="dp-lbl" style={{ letterSpacing: ".06em" }}>

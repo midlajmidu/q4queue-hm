@@ -262,6 +262,7 @@ async def call_next(
     *,
     queue_id: uuid.UUID,
     org_id: uuid.UUID,
+    user_id: uuid.UUID,
     action: str = "done",
 ) -> NextResponse | None:
     now = datetime.now(timezone.utc)
@@ -310,6 +311,7 @@ async def call_next(
     if next_token:
         next_token.status = TokenStatus.serving
         next_token.served_at = now
+        next_token.served_by_id = user_id
 
     await db.flush()
 
@@ -397,6 +399,7 @@ async def serve_specific_token(
     *,
     queue_id: uuid.UUID,
     org_id: uuid.UUID,
+    user_id: uuid.UUID,
     token_number: int,
 ) -> NextResponse:
     now = datetime.now(timezone.utc)
@@ -437,6 +440,7 @@ async def serve_specific_token(
 
     specific_token.status = TokenStatus.serving
     specific_token.served_at = now
+    specific_token.served_by_id = user_id
 
     await db.flush()
 

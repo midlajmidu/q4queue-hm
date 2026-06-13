@@ -16,10 +16,13 @@ async def get_overview_metrics(
     org_id: uuid.UUID,
     session_id: Optional[uuid.UUID] = None,
     queue_id: Optional[uuid.UUID] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     recent_limit: int = 5,
     recent_offset: int = 0,
 ) -> dict:
     """Fetch aggregated metrics for the dashboard."""
+    from dateutil.parser import parse as parse_date
     
     # Base conditions
     conditions = [Token.org_id == org_id]
@@ -28,6 +31,18 @@ async def get_overview_metrics(
     
     if queue_id:
         conditions.append(Token.queue_id == queue_id)
+        
+    if start_date:
+        try:
+            conditions.append(Token.created_at >= parse_date(start_date))
+        except Exception:
+            pass
+            
+    if end_date:
+        try:
+            conditions.append(Token.created_at <= parse_date(end_date))
+        except Exception:
+            pass
     
     # If session_id (date session) is provided, we must join with Queue or filter by a session_id on Token
     # Current Token.session_id stores the rotating token_session_id, so we join to filter by date session.
@@ -107,8 +122,56 @@ async def get_overview_metrics(
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     monthly_data = [{"month": f"{months[int(row[0])-1]} {int(row[1])}", "visits": row[2]} for row in monthly_res.all()]
 
-    # 5. Recent Activity (for show last details request)
-    from app.models.queue import Queue
+    # 5. Daily Timings Chart - Exclude deleted
+    daily_timings_query = select(
+        func.date(func.timezone('Asia/Kolkata', Token.created_at)).label('dt'),
+        func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait'),
+        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve'),
+    ).where(and_(*active_conditions)).group_by('dt').order_by('dt')
+    
+    if join_queue:
+        daily_timings_query = daily_timings_query.join(Queue, Token.queue_id == Queue.id)
+
+    daily_timings_res = await db.execute(daily_timings_query)
+    daily_timings_data = [
+        {
+            "date": row.dt.isoformat() if row.dt else "",
+            "avg_wait": float(row.avg_wait) if row.avg_wait else 0,
+            "avg_serve": float(row.avg_serve) if row.avg_serve else 0,
+        }
+        for row in daily_timings_res.all()
+    ]
+
+    # 6. Staff Performance - completed/served tokens by user
+    from app.models.user import User
+    staff_perf_query = select(
+        User.id,
+        User.first_name,
+        User.last_name,
+        User.email,
+        func.count(Token.id).label('total_served'),
+        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve'),
+    ).join(
+        User, Token.served_by_id == User.id
+    ).where(
+        and_(*active_conditions, Token.status == TokenStatus.done)
+    ).group_by(User.id).order_by(func.count(Token.id).desc())
+    
+    if join_queue:
+        staff_perf_query = staff_perf_query.join(Queue, Token.queue_id == Queue.id)
+
+    staff_perf_res = await db.execute(staff_perf_query)
+    staff_performance_data = [
+        {
+            "staff_id": str(row.id),
+            "name": f"{row.first_name} {row.last_name}".strip() if row.first_name else row.email.split('@')[0],
+            "total_served": row.total_served,
+            "avg_serve": float(row.avg_serve) if row.avg_serve else 0,
+        }
+        for row in staff_perf_res.all()
+    ]
+
+    # 7. Recent Activity (for show last details request)
     recent_query = select(
         Token.token_number,
         Token.status,
@@ -150,6 +213,8 @@ async def get_overview_metrics(
             "hourly": hourly_data,
             "monthly": monthly_data,
         },
+        "daily_timings": daily_timings_data,
+        "staff_performance": staff_performance_data,
         "recent_activity": recent_activity
     }
 
