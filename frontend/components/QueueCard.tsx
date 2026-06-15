@@ -68,37 +68,37 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
     };
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
             <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-base font-semibold text-gray-900 truncate">{queue.name}</h3>
-                    <span className={`shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white dark:text-white truncate">{queue.name}</h3>
+                    <span className={`shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isActive ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400"}`}>
                         {isActive ? "Active" : "Inactive"}
                     </span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="bg-gray-50 rounded-lg py-2">
+                    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg py-2">
                         <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Prefix</p>
-                        <p className="text-lg font-bold text-gray-900">{queue.prefix}</p>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">{queue.prefix}</p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg py-2">
+                    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg py-2">
                         <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Serving</p>
-                        <p className="text-lg font-bold text-blue-600">{queue.current_token_number}</p>
+                        <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{queue.current_token_number}</p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg py-2">
+                    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg py-2">
                         <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Status</p>
-                        <p className="text-lg font-bold text-gray-900">{isActive ? "Open" : "Closed"}</p>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">{isActive ? "Open" : "Closed"}</p>
                     </div>
                 </div>
 
                 {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
             </div>
 
-            <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-3 flex items-center gap-2">
+            <div className="border-t border-gray-100 bg-gray-50/50 dark:bg-slate-900/50 dark:border-white/10 px-5 py-3 flex items-center gap-2">
                 <Link
                     href={`${dashBase}/queues/${queue.id}`}
-                    className="flex-1 text-center text-sm font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 py-1.5 rounded-lg transition-colors"
+                    className="flex-1 text-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 py-1.5 rounded-lg transition-colors"
                 >
                     Manage
                 </Link>
@@ -107,14 +107,14 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                         <button
                             onClick={handleToggle}
                             disabled={toggling || deleting}
-                            className={`flex-1 text-center text-sm font-medium py-1.5 rounded-lg transition-colors disabled:opacity-50 ${isActive ? "text-amber-700 bg-amber-50 hover:bg-amber-100" : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"}`}
+                            className={`flex-1 text-center text-sm font-medium py-1.5 rounded-lg transition-colors disabled:opacity-50 ${isActive ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50" : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"}`}
                         >
                             {toggling ? "..." : isActive ? "End Queue" : "Start Queue"}
                         </button>
                         <button
                             onClick={() => setShowDeleteConfirm(true)}
                             disabled={toggling || deleting}
-                            className="flex text-center justify-center items-center text-sm font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 text-red-700 bg-red-50 hover:bg-red-100"
+                            className="flex text-center justify-center items-center text-sm font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
                             aria-label="Delete Queue"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useNotifications } from "@/context/NotificationContext";
@@ -53,23 +54,24 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
 
     const linkCls = (href: string) => {
         const active = isActive(href);
-        const base = `group relative flex items-center rounded-lg text-[13px] font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 ${c ? "justify-center w-10 h-10 mx-auto" : "gap-3 px-3 py-2"}`;
+        const base = `group relative flex items-center text-[13px] transition-colors duration-150 focus:outline-none ${c ? "justify-center w-10 h-10 mx-auto rounded-lg" : "gap-3 py-2 pr-3 pl-[9px]"}`;
+        
         if (active) {
             return isSuperAdmin
-                ? `${base} bg-slate-800 text-white shadow-sm border border-slate-700/80 [&>svg]:text-indigo-400`
-                : `${base} bg-indigo-50/70 text-indigo-700 font-semibold shadow-[inset_3px_0_0_0_rgba(79,70,229,1)] border border-transparent [&>svg]:text-indigo-600`;
+                ? `${base} bg-slate-800/30 text-slate-100 font-semibold rounded-lg ${c ? "shadow-[inset_3px_0_0_0_rgba(129,140,248,1)]" : "before:absolute before:left-0 before:top-[10%] before:bottom-[10%] before:w-[2px] before:bg-indigo-400 before:rounded-r-full"} [&>svg]:text-slate-100`
+                : `${base} bg-indigo-50/50 dark:bg-white/5 text-slate-900 dark:text-white font-semibold rounded-lg ${c ? "shadow-[inset_3px_0_0_0_rgba(79,70,229,1)] dark:shadow-[inset_3px_0_0_0_rgba(129,140,248,1)]" : "before:absolute before:left-0 before:top-[10%] before:bottom-[10%] before:w-[2px] before:bg-indigo-600 dark:before:bg-indigo-400 before:rounded-r-full"} [&>svg]:text-slate-900 dark:[&>svg]:text-white`;
         }
         return isSuperAdmin
-            ? `${base} text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent [&>svg]:text-slate-500`
-            : `${base} text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent [&>svg]:text-gray-400`;
+            ? `${base} text-slate-400 font-medium hover:bg-slate-800/30 hover:text-slate-200 ${c ? "border border-transparent" : ""} [&>svg]:text-slate-500 hover:[&>svg]:text-slate-400`
+            : `${base} text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-slate-200 ${c ? "border border-transparent" : ""} [&>svg]:text-slate-400 dark:[&>svg]:text-slate-500 hover:[&>svg]:text-slate-500 dark:hover:[&>svg]:text-slate-300`;
     };
 
     const sectionLabel = (text: string) =>
-        c ? <div className={`mx-auto my-1.5 w-5 h-px ${isSuperAdmin ? "bg-slate-800" : "bg-slate-200"}`} /> : (
+        c ? <div className="h-4" /> : (
             <p className={`px-3 text-[10px] uppercase font-bold tracking-[0.1em] mb-1.5 mt-0.5 ${isSuperAdmin ? "text-slate-600" : "text-slate-400"}`}>{text}</p>
         );
 
-    const divider = <div className={`${c ? "mx-auto w-5" : "mx-3"} my-2 border-t ${isSuperAdmin ? "border-slate-800" : "border-slate-100"}`} />;
+    const divider = <div className="h-4" />;
 
     /* ── Nav item helper ── */
     const NavLink = ({ href, label, icon, badge }: { href: string; label: string; icon: React.ReactNode; badge?: React.ReactNode }) => (
@@ -95,7 +97,7 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
             <aside
                 className={`fixed inset-y-0 left-0 border-r z-50 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
                     isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-                } ${isSuperAdmin ? "bg-slate-900 border-slate-800/60" : "bg-white border-gray-200"}`}
+                } ${isSuperAdmin ? "bg-slate-900 border-slate-800/60" : "bg-white dark:bg-transparent border-gray-200 border-r-[1px] dark:border-white/5"}`}
                 style={{ width: c ? 72 : 256 }}
                 role="complementary"
             >
@@ -199,7 +201,7 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                             } ${
                                 isSuperAdmin 
                                     ? "bg-slate-800/30 hover:bg-slate-800/60 ring-1 ring-white/5 hover:ring-white/10" 
-                                    : "bg-gray-50 hover:bg-white hover:shadow-sm ring-1 ring-gray-200 hover:ring-gray-300"
+                                    : "bg-gray-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:shadow-sm ring-1 ring-gray-200 dark:ring-white/5 hover:ring-gray-300 dark:hover:ring-white/10"
                             }`}>
                                 <div className="relative shrink-0">
                                     <div className={`${c ? "w-8 h-8 rounded-lg text-[11px]" : "w-[34px] h-[34px] rounded-[10px] text-[13px]"} flex items-center justify-center font-bold shadow-sm transition-all duration-500 group-hover:scale-105 group-hover:-rotate-2 ${
@@ -210,40 +212,48 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                                         {(user?.email?.[0] || "U").toUpperCase()}
                                     </div>
                                     <div className={`absolute -bottom-0.5 -right-0.5 ${c ? "w-[10px] h-[10px] border-2" : "w-3 h-3 border-2"} rounded-full bg-emerald-400 ${
-                                        isSuperAdmin ? "border-slate-800 group-hover:border-slate-700" : "border-[#f4f5f8] group-hover:border-white"
+                                        isSuperAdmin ? "border-slate-800 group-hover:border-slate-700" : "border-[#f4f5f8] dark:border-slate-900 group-hover:border-white dark:group-hover:border-slate-800"
                                     } transition-colors duration-300`} />
                                 </div>
+
                                 {!c && (
-                                    <>
-                                        <div className="flex flex-col min-w-0 flex-1 justify-center">
-                                            <span className={`text-[13px] font-semibold truncate tracking-tight transition-colors duration-300 ${isSuperAdmin ? "text-slate-100 group-hover:text-white" : "text-gray-900 group-hover:text-indigo-600"}`}>
-                                                {user?.email || "User Account"}
-                                            </span>
-                                            <span className={`text-[11px] font-medium truncate mt-[2px] ${isSuperAdmin ? "text-slate-400" : "text-gray-500"}`}>
-                                                {formatRole(user?.role)}{user?.org_name ? <><span className="mx-1.5 opacity-30">|</span>{user.org_name}</> : ""}
-                                            </span>
-                                        </div>
-                                    </>
+                                    <div className="flex flex-col min-w-0 flex-1 justify-center">
+                                        <span className={`text-[13px] font-semibold truncate tracking-tight transition-colors duration-300 ${isSuperAdmin ? "text-slate-100 group-hover:text-white" : "text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400"}`}>
+                                            {user?.email || "User Account"}
+                                        </span>
+                                        <span className={`text-[11px] font-medium truncate mt-[2px] ${isSuperAdmin ? "text-slate-400" : "text-gray-500 dark:text-gray-400"}`}>
+                                            {formatRole(user?.role)}{user?.org_name ? <><span className="mx-1.5 opacity-30">|</span>{user.org_name}</> : ""}
+                                        </span>
+                                    </div>
                                 )}
                             </div>
                         </Tip>
 
-                        {/* Sign out */}
-                        <Tip label="Sign out" show={c}>
-                            <button
-                                onClick={() => setIsLogoutModalOpen(true)}
-                                className={`group flex items-center rounded-[10px] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 ${c ? "justify-center w-10 h-10" : "w-full gap-2.5 px-3 py-[9px] text-[12.5px] font-medium"} ${
-                                    isSuperAdmin ? "text-slate-500 hover:text-red-400 hover:bg-red-500/10" : "text-slate-400 hover:text-red-600 hover:bg-red-50/80"
-                                }`}
-                            >
-                                <svg className={`${c ? "w-[17px] h-[17px]" : "w-[15px] h-[15px]"} transition-colors duration-200 ${
-                                    isSuperAdmin ? "group-hover:text-red-400" : "group-hover:text-red-500"
-                                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                </svg>
-                                {!c && "Sign out"}
-                            </button>
-                        </Tip>
+                        <div className={`flex items-center ${c ? "flex-col gap-1.5" : "gap-2"}`}>
+                            {/* Theme Toggle */}
+                            <Tip label="Theme" show={c}>
+                                <div className={c ? "" : "flex-shrink-0"}>
+                                    <ThemeToggle collapsed={c} />
+                                </div>
+                            </Tip>
+
+                            {/* Sign out */}
+                            <Tip label="Sign out" show={c}>
+                                <button
+                                    onClick={() => setIsLogoutModalOpen(true)}
+                                    className={`group flex items-center rounded-[10px] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 ${c ? "justify-center w-8 h-8" : "flex-1 gap-2.5 px-3 py-[9px] text-[12.5px] font-medium"} ${
+                                        isSuperAdmin ? "text-slate-500 hover:text-red-400 hover:bg-red-500/10" : "text-slate-400 hover:text-red-600 hover:bg-red-50/80"
+                                    }`}
+                                >
+                                    <svg className={`${c ? "w-[17px] h-[17px]" : "w-[15px] h-[15px]"} transition-colors duration-200 ${
+                                        isSuperAdmin ? "group-hover:text-red-400" : "group-hover:text-red-500"
+                                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    </svg>
+                                    {!c && "Sign out"}
+                                </button>
+                            </Tip>
+                        </div>
                     </div>
                 </div>
             </aside>

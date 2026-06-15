@@ -88,7 +88,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const loadQueues = useCallback(async (isInitial = false) => {
         if (isInitial) setIsInitialLoading(true);
         else setIsBackgroundLoading(true);
-        
+
         setError(null);
         try {
             const queuesRes = await api.listSessionQueues(sessionId, LIMIT, (page - 1) * LIMIT, debouncedFilterName || undefined);
@@ -163,7 +163,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50/50 pb-16">
+        <div className="min-h-screen bg-gray-50/50 dark:bg-transparent pb-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
 
                 {/* ── Background loading bar ── */}
@@ -181,7 +181,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                 `}</style>
 
                 {/* ── Header Card ── */}
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm p-6 sm:p-8">
                     {/* Breadcrumb */}
                     <nav className="flex items-center gap-1.5 text-sm mb-5">
                         <Link href={`${dashBase}/sessions`} className="text-gray-400 hover:text-gray-700 transition-colors font-medium">
@@ -190,7 +190,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                         <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                         </svg>
-                        <span className="text-gray-800 font-semibold">
+                        <span className="text-gray-800 dark:text-white font-semibold">
                             {session ? formatDate(session.session_date) : "Session"}
                         </span>
                     </nav>
@@ -205,10 +205,10 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                     </svg>
                                 </div>
                                 <div>
-                                    <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+                                    <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
                                         {session ? formatDate(session.session_date) : "Session Queues"}
                                         {session && isToday(session.session_date) && (
-                                            <span className="ml-2.5 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md align-middle">Today</span>
+                                            <span className="ml-2.5 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-900/50 px-2 py-0.5 rounded-md align-middle">Today</span>
                                         )}
                                     </h1>
                                     {session?.title && (
@@ -222,13 +222,13 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                     {queues.length} {queues.length === 1 ? "queue" : "queues"}
                                 </span>
                                 {activeQueues.length > 0 && (
-                                    <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                    <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-900/50 px-2 py-0.5 rounded-md">
                                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                                         {activeQueues.length} active
                                     </span>
                                 )}
                                 {inactiveQueues.length > 0 && (
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-md">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-2 py-0.5 rounded-md">
                                         {inactiveQueues.length} inactive
                                     </span>
                                 )}
@@ -237,15 +237,15 @@ export default function SessionQueuesPage({ params }: PageProps) {
 
                         {/* Right: Search & Create */}
                         <div className="flex items-center gap-3 flex-wrap">
-                            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-50 transition-all w-full sm:w-56">
-                                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-50 transition-all w-full sm:w-56">
+                                <svg className="w-4 h-4 text-gray-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                                 <input
                                     type="text"
                                     value={filterName}
                                     onChange={(e) => setFilterName(e.target.value)}
-                                    className="text-sm text-gray-900 font-medium focus:outline-none bg-transparent w-full placeholder:text-gray-400"
+                                    className="text-sm text-gray-900 dark:text-white font-medium focus:outline-none bg-transparent w-full placeholder:text-gray-400 dark:placeholder:text-slate-500"
                                     placeholder="Search queues…"
                                 />
                                 {filterName && (
@@ -283,13 +283,13 @@ export default function SessionQueuesPage({ params }: PageProps) {
                 <div className={`transition-opacity duration-200 ${isBackgroundLoading ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
                     {queues.length === 0 ? (
                         /* Empty state */
-                        <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 text-center py-24 px-8">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10 text-center py-24 px-8">
                             <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
                                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                 </svg>
                             </div>
-                            <h3 className="text-xl font-black text-gray-900 mb-2">No queues in this session</h3>
+                            <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">No queues in this session</h3>
                             <p className="text-sm text-gray-500 font-medium mb-8 max-w-xs mx-auto leading-relaxed">
                                 Add your first queue to start serving customers in this session.
                             </p>
@@ -311,11 +311,11 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             {activeQueues.length > 0 && (
                                 <section>
                                     <div className="flex items-center gap-3 mb-5">
-                                        <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                                        <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
                                             <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
                                         </div>
-                                        <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider">Active Queues</h2>
-                                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">{activeQueues.length}</span>
+                                        <h2 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Active Queues</h2>
+                                        <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-900/50 px-2 py-0.5 rounded-full">{activeQueues.length}</span>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                                         {activeQueues.map((q) => (
@@ -332,11 +332,11 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         onClick={() => setInactiveCollapsed(c => !c)}
                                         className="flex items-center gap-3 mb-5 group cursor-pointer w-full text-left"
                                     >
-                                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                                        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
                                             <div className="w-2.5 h-2.5 bg-gray-400 rounded-full" />
                                         </div>
-                                        <h2 className="text-sm font-black text-gray-400 uppercase tracking-wider flex-1 text-left">Inactive Queues</h2>
-                                        <span className="text-[11px] font-bold text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full mr-1">{inactiveQueues.length}</span>
+                                        <h2 className="text-sm font-black text-gray-400 dark:text-slate-400 uppercase tracking-wider flex-1 text-left">Inactive Queues</h2>
+                                        <span className="text-[11px] font-bold text-gray-400 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-2 py-0.5 rounded-full mr-1">{inactiveQueues.length}</span>
                                         <svg
                                             className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${inactiveCollapsed ? "-rotate-90" : "rotate-0"}`}
                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"

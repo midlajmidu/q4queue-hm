@@ -4,6 +4,7 @@ import { useEffect, ReactNode } from "react";
 import { ToastProvider } from "@/components/Toast";
 import { initGlobalErrorHandlers } from "@/lib/logger";
 
+import { ThemeProvider } from "next-themes";
 import { AlertProvider } from "@/context/AlertContext";
 
 export default function ClientProviders({ children }: { children: ReactNode }) {
@@ -12,10 +13,12 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
     }, []);
 
     return (
-        <AlertProvider>
-            <ToastProvider>
-                {children}
-            </ToastProvider>
-        </AlertProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <AlertProvider>
+                <ToastProvider>
+                    {children}
+                </ToastProvider>
+            </AlertProvider>
+        </ThemeProvider>
     );
 }

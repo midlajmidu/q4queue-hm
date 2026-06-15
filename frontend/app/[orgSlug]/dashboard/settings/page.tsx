@@ -9,28 +9,28 @@ import { useParams } from "next/navigation";
 
 const C = {
     // bg
-    pageBg: "#f9fafb",
-    cardBg: "#ffffff",
-    cardBgAlt: "#f9fafb",
+    pageBg: "var(--q-page-bg)",
+    cardBg: "var(--q-card-bg)",
+    cardBgAlt: "var(--q-card-bg-alt)",
     // borders
-    border: "#e5e7eb",
-    borderHov: "#d1d5db",
-    borderLight: "#f3f4f6",
+    border: "var(--q-border)",
+    borderHov: "var(--q-border-hov)",
+    borderLight: "var(--q-border-light)",
     // text
-    text: "#111827",
-    textSub: "#6b7280",
-    textMuted: "#9ca3af",
+    text: "var(--q-text)",
+    textSub: "var(--q-text-sub)",
+    textMuted: "var(--q-text-muted)",
     // brand
-    brand: "#4f46e5",
-    brandDark: "#4338ca",
-    brandLight: "#eef2ff",
-    brandBorder: "#c7d2fe",
-    brandGlow: "rgba(79,70,229,.10)",
+    brand: "var(--q-brand)",
+    brandDark: "var(--q-brand-dark)",
+    brandLight: "var(--q-brand-light)",
+    brandBorder: "var(--q-brand-border)",
+    brandGlow: "var(--q-brand-glow)",
     // semantic
-    blue: "#3b82f6", blueBg: "#eff6ff", blueBorder: "#bfdbfe",
-    green: "#10b981", greenBg: "#ecfdf5", greenBorder: "#a7f3d0",
-    amber: "#f59e0b", amberBg: "#fffbeb", amberBorder: "#fde68a",
-    red: "#ef4444", redBg: "#fef2f2", redBorder: "#fecaca",
+    blue: "var(--q-blue)", blueBg: "var(--q-blue-bg)", blueBorder: "var(--q-blue-border)",
+    green: "var(--q-green)", greenBg: "var(--q-green-bg)", greenBorder: "var(--q-green-border)",
+    amber: "var(--q-amber)", amberBg: "var(--q-amber-bg)", amberBorder: "var(--q-amber-border)",
+    red: "var(--q-red)", redBg: "var(--q-red-bg)", redBorder: "var(--q-red-border)",
     violet: "#7c3aed", violetBg: "#f5f3ff",
     slate: "#64748b", slateBg: "#f8fafc",
 };
@@ -47,6 +47,8 @@ const STYLES = `
 
   .card {
     background: ${C.cardBg};
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid ${C.border};
     border-radius: 8px;
     box-shadow: none;
@@ -60,15 +62,15 @@ const STYLES = `
   .card-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 16px 24px; border-bottom: 1px solid ${C.border};
-    background: linear-gradient(180deg, #fafbfd 0%, ${C.cardBg} 100%);
+    background: ${C.cardBg};
     border-radius: 14px 14px 0 0;
   }
 
   .ov-sel {
     appearance: none;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    color: #0f172a;
+    background: ${C.cardBgAlt};
+    border: 1px solid ${C.border};
+    color: ${C.text};
     border-radius: 8px;
     padding: 9px 34px 9px 12px;
     font-size: 13px; font-weight: 500;
@@ -78,15 +80,15 @@ const STYLES = `
     transition: all .2s cubic-bezier(.4,0,.2,1);
   }
   .ov-sel:hover:not(:disabled) {
-    border-color: #cbd5e1;
-    background: #f8fafc;
+    border-color: ${C.borderHov};
+    background: ${C.cardBg};
     box-shadow: 0 2px 4px rgba(0,0,0,.04);
   }
   .ov-sel:focus {
     outline: none;
-    border-color: #818cf8;
-    box-shadow: 0 0 0 3px rgba(129,140,248,.15), 0 1px 2px rgba(0,0,0,.03);
-    background: #ffffff;
+    border-color: ${C.brand};
+    box-shadow: 0 0 0 3px ${C.brandGlow}, 0 1px 2px rgba(0,0,0,.03);
+    background: ${C.cardBgAlt};
   }
   .ov-sel:disabled { opacity: .4; cursor: not-allowed; }
 
@@ -119,17 +121,19 @@ const STYLES = `
   }
 
   .premium-input {
-    width: 100%; border-radius: 8px; border: 1px solid #e2e8f0;
-    padding: 12px 16px; font-size: 14px; font-weight: 500; color: #0f172a;
-    background: #fafbfe; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%; border-radius: 8px; border: 1px solid var(--q-border-light);
+    padding: 12px 16px; font-size: 14px; font-weight: 500; color: var(--q-text);
+    background: var(--q-card-bg-alt); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     outline: none;
   }
-  .premium-input:hover:not(:disabled) { border-color: #cbd5e1; }
+  .premium-input::placeholder { color: var(--q-text-muted); opacity: 0.7; }
+  .premium-input:hover:not(:disabled) { border-color: var(--q-border-hov); }
   .premium-input:focus:not(:disabled) {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    border-color: var(--q-brand);
+    box-shadow: 0 0 0 3px var(--q-brand-glow);
+    background: var(--q-card-bg);
   }
-  .premium-input:disabled { background: #f3f4f6; color: #4b5563; cursor: not-allowed; }
+  .premium-input:disabled { background: var(--q-slate-bg); color: var(--q-text-muted); cursor: not-allowed; }
   
   .tab-btn {
     display: flex; align-items: center; gap: 12px;
@@ -390,7 +394,7 @@ export default function SettingsPage() {
         <>
             <style>{STYLES}</style>
             <div className="ov">
-                <PageWrapper 
+                <PageWrapper
                     title="Settings"
                     subtitle="Update your organization's core details and manage admin credentials."
                     breadcrumbs={[
@@ -620,57 +624,60 @@ export default function SettingsPage() {
                     </div>
                 </PageWrapper>
 
-            {hasProfileChanges && activeTab === 'profile' && (
-                <div style={{
-                    position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-                    background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12,
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.12)', padding: '16px 24px',
-                    display: 'flex', alignItems: 'center', gap: 24, zIndex: 100
-                }}>
-                    <span style={{ fontSize: 14, fontWeight: 500, color: C.text }}>You have unsaved changes.</span>
-                    <div style={{ display: 'flex', gap: 12 }}>
-                        <button onClick={handleDiscardChanges} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: C.textSub, background: C.borderLight, border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>Discard/Reset</button>
-                        <button onClick={handleSaveInfo} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#fff', background: C.brand, border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>Save Changes</button>
-                    </div>
-                </div>
-            )}
-
-            {showUnsavedModal && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-                    backdropFilter: 'blur(4px)',
-                    zIndex: 9999,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: 24, animation: 'modalFadeIn 0.2s ease-out'
-                }}>
+                {hasProfileChanges && activeTab === 'profile' && (
                     <div style={{
-                        background: '#fff', borderRadius: 16, width: '100%', maxWidth: 400,
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                        overflow: 'hidden', animation: 'modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                        position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
+                        background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12,
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.12)', padding: '16px 24px',
+                        display: 'flex', alignItems: 'center', gap: 24, zIndex: 100
                     }}>
-                        <div style={{ padding: '24px 24px 16px', display: 'flex', gap: 16 }}>
-                            <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.amberBg, color: C.amber, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <svg width={20} height={20} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                            </div>
-                            <div>
-                                <h3 style={{ margin: '0 0 8px 0', fontSize: 18, fontWeight: 700, color: C.text }}>Unsaved Changes</h3>
-                                <p style={{ margin: 0, fontSize: 14, color: C.textSub, lineHeight: 1.5 }}>
-                                    You have unsaved changes. Are you sure you want to switch tabs? Your unsaved changes will be lost.
-                                </p>
-                            </div>
-                        </div>
-                        <div style={{ padding: '16px 24px', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: 12, borderTop: `1px solid ${C.borderLight}` }}>
-                            <button onClick={cancelTabChange} style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: '#fff', color: C.text, fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
-                                Cancel
-                            </button>
-                            <button onClick={confirmTabChange} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: C.red, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                Discard Changes
-                            </button>
+                        <span style={{ fontSize: 14, fontWeight: 500, color: C.text }}>You have unsaved changes.</span>
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button onClick={handleDiscardChanges} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: C.textSub, background: C.borderLight, border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>Discard/Reset</button>
+                            <button onClick={handleSaveInfo} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#fff', background: C.brand, border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>Save Changes</button>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+
+                {showUnsavedModal && (
+                    <div style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                        backdropFilter: 'blur(4px)',
+                        zIndex: 9999,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: 24, animation: 'modalFadeIn 0.2s ease-out'
+                    }}>
+                        <div style={{
+                            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                            background: C.cardBg, borderRadius: 16, width: '100%', maxWidth: 400,
+                            padding: 32, textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            border: `1px solid ${C.border}`
+                        }}>
+                            <div style={{ width: 56, height: 56, borderRadius: '50%', background: C.redBg, color: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                                <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                    <line x1="12" y1="9" x2="12" y2="13" />
+                                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                                </svg>
+                            </div>
+                            <h3 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: '0 0 12px', letterSpacing: '-0.02em' }}>
+                                Unsaved Changes
+                            </h3>
+                            <p style={{ fontSize: 14, color: C.textSub, lineHeight: 1.5, margin: '0 0 24px' }}>
+                                You have unsaved changes in your settings. If you leave this tab, your changes will be lost. Are you sure you want to discard them?
+                            </p>
+                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                                <button onClick={cancelTabChange} style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.cardBgAlt, color: C.text, fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                    Keep Editing
+                                </button>
+                                <button onClick={confirmTabChange} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: C.red, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    Discard Changes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </>
     );

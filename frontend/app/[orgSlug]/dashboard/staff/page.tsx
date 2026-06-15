@@ -170,11 +170,11 @@ function SkeletonRow() {
 function StatCard({ label, value, color }: { label: string; value: number | string; color?: string }) {
   return (
     <div style={{
-      background: "#ffffff", borderRadius: 8, border: "1px solid #e8edf2",
+      background: "var(--q-card-bg)", borderRadius: 8, border: "1px solid var(--q-border-light)",
       padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8,
     }}>
-      <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".07em" }}>{label}</span>
-      <span style={{ fontSize: 26, fontWeight: 700, color: color ?? "#0f172a", letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums" }}>{value}</span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--q-text-muted)", textTransform: "uppercase", letterSpacing: ".07em" }}>{label}</span>
+      <span style={{ fontSize: 26, fontWeight: 700, color: color ?? "var(--q-text)", letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums" }}>{value}</span>
     </div>
   );
 }
@@ -618,15 +618,15 @@ export default function StaffPage() {
 
   // Derived totals for stat cards (use total from API for all, derive active/inactive from current page as proxy)
   const thStyle: React.CSSProperties = {
-    padding: "10px 20px", fontSize: 11, fontWeight: 600, color: "#94a3b8",
+    padding: "10px 20px", fontSize: 11, fontWeight: 600, color: "var(--q-text-muted)",
     textTransform: "uppercase", letterSpacing: ".07em", textAlign: "left",
-    borderBottom: "0.5px solid #f1f5f9", background: "#fafbfe",
+    borderBottom: "1px solid var(--q-border-light)", background: "var(--q-slate-bg)",
     whiteSpace: "nowrap",
   };
 
   const tdStyle: React.CSSProperties = {
-    padding: "14px 20px", fontSize: 13.5, fontWeight: 500, color: "#0f172a",
-    borderBottom: "0.5px solid #f1f5f9",
+    padding: "14px 20px", fontSize: 13.5, fontWeight: 500, color: "var(--q-text)",
+    borderBottom: "1px solid var(--q-border-light)",
   };
 
   const actionBtnBase: React.CSSProperties = {
@@ -690,19 +690,19 @@ export default function StaffPage() {
         </div>
 
         {/* ── Table Card ── */}
-        <div style={{ background: "#ffffff", borderRadius: 8, border: "1px solid #e8edf2", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+        <div style={{ background: "var(--q-card-bg)", borderRadius: 8, border: "1px solid var(--q-border-light)", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
 
           {/* Toolbar */}
-          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, padding: "16px 20px", borderBottom: "0.5px solid #f1f5f9" }}>
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, padding: "16px 20px", borderBottom: "1px solid var(--q-border-light)" }}>
             {/* Search */}
             <div style={{ flex: 1, minWidth: 220, position: "relative" }}>
               <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
               <input
                 type="search" value={search} onChange={e => handleSearchChange(e.target.value)}
                 placeholder="Search by email…" aria-label="Search staff"
-                style={{ width: "100%", height: 38, borderRadius: 9, border: "0.5px solid #e2e8f0", paddingLeft: 36, paddingRight: 12, fontSize: 13.5, fontWeight: 500, color: "#0f172a", background: "#fafbfe", outline: "none" }}
-                onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; }}
-                onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}
+                style={{ width: "100%", height: 38, borderRadius: 9, border: "1px solid var(--q-borderLight)", paddingLeft: 36, paddingRight: 12, fontSize: 13.5, fontWeight: 500, color: "var(--q-text)", background: "var(--q-card-bg-alt)", outline: "none" }}
+                onFocus={e => { e.currentTarget.style.borderColor = "var(--q-brand)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--q-brand-glow)"; }}
+                onBlur={e => { e.currentTarget.style.borderColor = "var(--q-borderLight)"; e.currentTarget.style.boxShadow = "none"; }}
               />
             </div>
 
@@ -756,14 +756,14 @@ export default function StaffPage() {
                       <tr>
                         <td colSpan={isAdmin ? 5 : 4} style={{ padding: "64px 24px", textAlign: "center" }}>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-                            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#f8fafc", border: "0.5px solid #e8edf2", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--q-slate-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="var(--q-text-muted)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                             </div>
                             <div>
-                              <p style={{ fontSize: 15, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>
+                              <p style={{ fontSize: 15, fontWeight: 600, color: "var(--q-text)", marginBottom: 4 }}>
                                 {debouncedSearch ? `No results for "${debouncedSearch}"` : "No staff found"}
                               </p>
-                              <p style={{ fontSize: 13.5, color: "#94a3b8" }}>
+                              <p style={{ fontSize: 13.5, color: "var(--q-text-muted)" }}>
                                 {debouncedSearch ? "Try a different search term." : "Add your first team member to get started."}
                               </p>
                             </div>
@@ -791,7 +791,7 @@ export default function StaffPage() {
                       <tr
                         key={m.id}
                         style={{ transition: "background .1s" }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "#fafbfe")}
+                        onMouseEnter={e => (e.currentTarget.style.background = "var(--q-card-bg-alt)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                       >
                         {/* Member */}
@@ -799,10 +799,10 @@ export default function StaffPage() {
                           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
                             <Avatar email={m.email} firstName={m.first_name} lastName={m.last_name} />
                             <div style={{ display: "flex", flexDirection: "column" }}>
-                              <span style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>
+                              <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--q-text)" }}>
                                 {m.first_name && m.last_name ? `${m.first_name} ${m.last_name}` : "Unknown User"}
                               </span>
-                              <span style={{ fontSize: 12, color: "#64748b" }}>{m.email}</span>
+                              <span style={{ fontSize: 12, color: "var(--q-text-muted)" }}>{m.email}</span>
                             </div>
                           </div>
                         </td>

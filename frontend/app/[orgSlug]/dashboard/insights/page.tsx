@@ -29,14 +29,14 @@ function formatDuration(s: number): string {
 
 /* ─── Colors ──────────────────────────────────────────────── */
 const C = {
-  bg: "#f8fafc", card: "#ffffff",
-  border: "#e5e7eb", borderLight: "#f3f4f6",
-  text: "#111827", textSub: "#6b7280", textMuted: "#9ca3af", textFaint: "#94a3b8",
-  brand: "#4f46e5", brandLight: "#eef2ff", brandBorder: "#c7d2fe",
-  green: "#059669", greenBg: "#ecfdf5", greenBd: "#a7f3d0",
-  amber: "#d97706", amberBg: "#fffbeb", amberBd: "#fde68a",
-  red: "#dc2626", redBg: "#fef2f2", redBd: "#fecaca",
-  blue: "#2563eb", blueBg: "#eff6ff", blueBd: "#bfdbfe",
+  bg: "var(--q-page-bg)", card: "var(--q-card-bg)",
+  border: "var(--q-border)", borderLight: "var(--q-border-light)",
+  text: "var(--q-text)", textSub: "var(--q-text-sub)", textMuted: "var(--q-text-muted)", textFaint: "var(--q-text-muted)",
+  brand: "var(--q-brand)", brandLight: "var(--q-brand-light)", brandBorder: "var(--q-brand-border)",
+  green: "var(--q-green)", greenBg: "var(--q-green-bg)", greenBd: "var(--q-green-border)",
+  amber: "var(--q-amber)", amberBg: "var(--q-amber-bg)", amberBd: "var(--q-amber-border)",
+  red: "var(--q-red)", redBg: "var(--q-red-bg)", redBd: "var(--q-red-border)",
+  blue: "var(--q-blue)", blueBg: "var(--q-blue-bg)", blueBd: "var(--q-blue-border)",
   purple: "#7c3aed", purpleBg: "#f5f3ff", purpleBd: "#ddd6fe",
 };
 
@@ -57,10 +57,12 @@ const CSS = `
 /* Card */
 .ins-card {
   background: ${C.card};
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid ${C.border};
   border-radius: 8px;
   box-shadow: none;
-  transition: box-shadow .25s cubic-bezier(.4,0,.2,1), border-color .25s ease;
+  transition: all .25s ease;
 }
 .ins-card:hover {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -88,8 +90,8 @@ const CSS = `
   border-radius: 8px;
   border: 1px solid ${C.border};
   font-size: 13px;
-  color: ${C.text};
-  background: #fff;
+  background: var(--q-card-bg);
+  color: var(--q-text);
   transition: border-color .15s;
 }
 .date-input:focus { outline: none; border-color: ${C.brand}; box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
@@ -123,16 +125,16 @@ export default function InsightsPage() {
   const d = useMemo(() => {
     if (!overview) return null;
     const fmtH = (s: string) => { const h = parseInt(s.split(':')[0], 10); return isNaN(h) ? s : `${h % 12 || 12}${h >= 12 ? 'pm' : 'am'}`; };
-    
+
     const hourly = (overview.charts?.hourly || []).map(h => ({ ...h, hour: fmtH(h.hour) }));
     const peak = hourly.length ? hourly.reduce((a, b) => b.visits > a.visits ? b : a, hourly[0]) : null;
     const totalV = hourly.reduce((s, h) => s + h.visits, 0);
     const avgV = hourly.length > 0 ? Math.round(totalV / hourly.length) : 0;
     const peakPct = totalV > 0 ? Math.round(((peak?.visits ?? 0) / totalV) * 100) : 0;
-    
+
     const wA = timeToSeconds(overview.timings?.avg_waiting_time || "0");
     const sA = timeToSeconds(overview.timings?.avg_served_time || "0");
-    
+
     const sc = overview.status_counts;
 
     const dailyTimings = (overview.daily_timings || []).map(dt => ({
@@ -175,17 +177,17 @@ export default function InsightsPage() {
                   return (
                     <button key={b.l} onClick={() => { setStartDate(b.s); setEndDate(b.e); }} style={{
                       padding: "5px 14px", fontSize: 12, fontWeight: 600, borderRadius: 6,
-                      background: active ? "#fff" : "transparent", color: active ? C.text : C.textMuted,
-                      border: "none", boxShadow: active ? "0 1px 3px rgba(0,0,0,.08)" : "none",
+                      background: active ? "var(--q-card-bg)" : "transparent", color: active ? "var(--q-text)" : "var(--q-text-muted)",
+                      border: active ? `1px solid var(--q-border)` : "1px solid transparent", boxShadow: active ? "0 1px 3px rgba(0,0,0,.08)" : "none",
                       cursor: "pointer", transition: "all .15s ease",
                     }}>{b.l}</button>
                   );
                 })}
               </div>
               <div style={{ width: 1, height: 24, background: C.border }} />
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="date-input" />
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="date-input bg-white dark:bg-slate-900 text-gray-900 dark:text-white" style={{ colorScheme: "light dark" }} />
               <span style={{ color: C.textMuted, fontSize: 13, fontWeight: 500 }}>to</span>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="date-input" />
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="date-input bg-white dark:bg-slate-900 text-gray-900 dark:text-white" style={{ colorScheme: "light dark" }} />
               <button onClick={load} disabled={loading} style={{
                 display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
                 fontSize: 13, fontWeight: 600, color: C.textSub,
@@ -211,7 +213,7 @@ export default function InsightsPage() {
                 fontSize: 13, fontWeight: 600, color: "#fff",
                 background: C.brand, border: "none", borderRadius: 8,
                 cursor: (!d || loading) ? "not-allowed" : "pointer", opacity: (!d || loading) ? .5 : 1,
-                boxShadow: "0 1px 3px rgba(79,70,229,.3)", transition: "all .15s",
+                boxShadow: "0 1px 3px rgba(23, 19, 93, 0.07)", transition: "all .15s",
               }}>
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
@@ -277,7 +279,7 @@ export default function InsightsPage() {
                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: C.textMuted }} />
                         <Tooltip
                           cursor={{ fill: "rgba(0,0,0,.03)" }}
-                          contentStyle={{ borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: "0 4px 16px rgba(0,0,0,.08)", fontSize: 13 }}
+                          contentStyle={{ borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: "0 4px 1px rgba(0,0,0,.08)", fontSize: 13 }}
                         />
                         <Bar dataKey="visits" fill={C.brand} radius={[6, 6, 0, 0]} />
                       </BarChart>
@@ -298,7 +300,7 @@ export default function InsightsPage() {
                         <XAxis dataKey="dateFormatted" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: C.textMuted }} />
                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: C.textMuted }} />
                         <Tooltip
-                          contentStyle={{ borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: "0 4px 16px rgba(0,0,0,.08)", fontSize: 13 }}
+                          contentStyle={{ borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: "0 4px 1px rgba(0,0,0,.08)", fontSize: 13 }}
                           formatter={(value: any) => [Math.round(Number(value) * 10) / 10 + " min"]}
                         />
                         <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
@@ -320,9 +322,9 @@ export default function InsightsPage() {
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr>
-                        <th style={{ textAlign: "left", padding: "12px 24px", fontSize: 11, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase", background: "#fafbfc", borderBottom: `1px solid ${C.borderLight}` }}>Staff Member</th>
-                        <th style={{ textAlign: "right", padding: "12px 24px", fontSize: 11, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase", background: "#fafbfc", borderBottom: `1px solid ${C.borderLight}` }}>Tokens Served</th>
-                        <th style={{ textAlign: "right", padding: "12px 24px", fontSize: 11, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase", background: "#fafbfc", borderBottom: `1px solid ${C.borderLight}` }}>Avg Service Time</th>
+                        <th style={{ textAlign: "left", padding: "12px 24px", fontSize: 11, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase", background: "var(--q-slate-bg)", borderBottom: `1px solid ${C.borderLight}` }}>Staff Member</th>
+                        <th style={{ textAlign: "right", padding: "12px 24px", fontSize: 11, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase", background: "var(--q-slate-bg)", borderBottom: `1px solid ${C.borderLight}` }}>Tokens Served</th>
+                        <th style={{ textAlign: "right", padding: "12px 24px", fontSize: 11, fontWeight: 600, color: C.textMuted, letterSpacing: ".04em", textTransform: "uppercase", background: "var(--q-slate-bg)", borderBottom: `1px solid ${C.borderLight}` }}>Avg Service Time</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -331,8 +333,9 @@ export default function InsightsPage() {
                           <td colSpan={3} style={{ padding: "40px", textAlign: "center", color: C.textMuted, fontSize: 14 }}>No staff performance data available.</td>
                         </tr>
                       ) : d.staffPerformance.map(s => (
-                        <tr key={s.staff_id} style={{ borderBottom: `1px solid ${C.borderLight}`, transition: "background .1s" }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#fafbfc"; }}
+                        <tr key={s.staff_id}
+                          style={{ transition: "background .15s", borderBottom: `1px solid var(--q-border-light)` }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--q-card-bg-alt)"; }}
                           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                         >
                           <td style={{ padding: "14px 24px", fontSize: 14, fontWeight: 600, color: C.text }}>

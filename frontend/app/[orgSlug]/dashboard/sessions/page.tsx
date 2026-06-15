@@ -179,11 +179,11 @@ export default function SessionsPage() {
     const grouped = useMemo(() => groupByTimeline(sessions), [sessions]);
 
     const labelMeta: Record<TimelineLabel, { color: string; dotColor: string; icon: string }> = {
-        Today:     { color: "text-indigo-700 bg-indigo-50 border-indigo-200", dotColor: "bg-indigo-500", icon: "⚡" },
-        Tomorrow:  { color: "text-sky-700 bg-sky-50 border-sky-200",         dotColor: "bg-sky-400",    icon: "📅" },
-        Yesterday: { color: "text-amber-700 bg-amber-50 border-amber-200",   dotColor: "bg-amber-400",  icon: "↩" },
-        "This Week": { color: "text-emerald-700 bg-emerald-50 border-emerald-200", dotColor: "bg-emerald-400", icon: "📆" },
-        Earlier:   { color: "text-slate-600 bg-slate-50 border-slate-200",    dotColor: "bg-slate-300",  icon: "🗂" },
+        Today:     { color: "text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-900/50", dotColor: "bg-indigo-500", icon: "⚡" },
+        Tomorrow:  { color: "text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30 border-sky-200 dark:border-sky-900/50",         dotColor: "bg-sky-400",    icon: "📅" },
+        Yesterday: { color: "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-900/50",   dotColor: "bg-amber-400",  icon: "↩" },
+        "This Week": { color: "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-900/50", dotColor: "bg-emerald-400", icon: "📆" },
+        Earlier:   { color: "text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",    dotColor: "bg-slate-300",  icon: "🗂" },
     };
 
     return (
@@ -198,14 +198,14 @@ export default function SessionsPage() {
                 subtitle="Your service timeline — organized by date."
                 action={
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
+                        <div className="flex items-center gap-2 bg-[var(--q-card-bg-alt)] border border-[var(--q-borderLight)] rounded-xl px-3 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                             <input
                                 type="date"
                                 value={filterDate}
                                 max={toLocalDateStr()}
                                 onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
-                                className="text-[13px] font-medium text-[#0f172a] focus:outline-none bg-transparent appearance-none"
+                                className="text-[13px] font-medium text-[var(--q-text)] focus:outline-none bg-transparent appearance-none"
                             />
                             {filterDate && (
                                 <button onClick={() => { setFilterDate(""); setPage(1); }} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -242,8 +242,8 @@ export default function SessionsPage() {
                 </div>
             ) : sessions.length === 0 ? (
                 /* ── Empty state ── */
-                <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 text-center py-24 px-6">
-                    <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-indigo-100">
+                <div className="bg-[var(--q-card-bg)] rounded-2xl border-2 border-dashed border-[var(--q-borderLight)] text-center py-24 px-6">
+                    <div className="w-16 h-16 bg-[var(--q-slate-bg)] rounded-2xl flex items-center justify-center mx-auto mb-5 border border-[var(--q-borderLight)]">
                         <svg className="w-7 h-7 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     </div>
                     <h3 className="text-[17px] font-bold text-[#0f172a] mb-2">No sessions yet</h3>
@@ -272,8 +272,8 @@ export default function SessionsPage() {
                                             {meta.icon}
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <h2 className="text-[18px] font-bold text-[#0f172a] tracking-tight">{group.label}</h2>
-                                            <span className="tabular-nums text-[12px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{group.sessions.length}</span>
+                                            <h2 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">{group.label}</h2>
+                                            <span className="tabular-nums text-[12px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{group.sessions.length}</span>
                                         </div>
                                     </div>
 
@@ -285,18 +285,18 @@ export default function SessionsPage() {
                                                 <Link
                                                     key={session.id}
                                                     href={`${dashBase}/sessions/${session.id}/queues`}
-                                                    className={`group flex items-center gap-4 bg-white rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] ${today ? "border-indigo-200 ring-1 ring-indigo-100" : "border-slate-200"}`}
+                                                    className={`group flex items-center gap-4 bg-[var(--q-card-bg)] rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] ${today ? "border-indigo-500/30 ring-1 ring-indigo-500/20" : "border-[var(--q-borderLight)]"}`}
                                                 >
                                                     {/* Date pill */}
-                                                    <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${today ? "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-50 text-slate-600 border border-slate-200"}`}>
-                                                        <span className={`text-[10px] font-bold uppercase leading-none ${today ? "text-indigo-100" : "text-slate-400"}`}>{getMonthShort(session.session_date)}</span>
+                                                    <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${today ? "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/20" : "bg-[var(--q-slate-bg)] text-[var(--q-text-muted)] border border-[var(--q-borderLight)]"}`}>
+                                                        <span className={`text-[10px] font-bold uppercase leading-none ${today ? "text-indigo-100" : "text-[var(--q-text-muted)]"}`}>{getMonthShort(session.session_date)}</span>
                                                         <span className="tabular-nums text-[20px] font-extrabold leading-tight">{getDayNumber(session.session_date)}</span>
                                                     </div>
 
                                                     {/* Info */}
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 mb-0.5">
-                                                            <p className="text-[15px] font-bold text-[#0f172a] tracking-tight truncate">
+                                                            <p className="text-[15px] font-bold text-[var(--q-text)] tracking-tight truncate">
                                                                 {today ? "Today's Session" : formatShortDate(session.session_date)}
                                                             </p>
                                                             {today && (
@@ -307,7 +307,7 @@ export default function SessionsPage() {
                                                             )}
                                                         </div>
                                                         {session.title && (
-                                                            <p className="text-[12.5px] text-[#64748b] truncate max-w-[200px]">{session.title}</p>
+                                                            <p className="text-[12.5px] text-[var(--q-text-muted)] truncate max-w-[200px]">{session.title}</p>
                                                         )}
                                                         <div className="flex items-center gap-3 mt-1.5">
                                                             <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-slate-500">
@@ -346,13 +346,13 @@ export default function SessionsPage() {
 
                     {/* Pagination */}
                     {total > LIMIT && (
-                        <div className="flex items-center justify-between bg-white px-6 py-4 rounded-2xl border border-slate-200 shadow-sm mt-8">
-                            <p className="text-[13px] text-[#64748b] font-medium">
-                                Showing <span className="tabular-nums text-[#0f172a] font-bold">{(page - 1) * LIMIT + 1}</span> to <span className="tabular-nums text-[#0f172a] font-bold">{Math.min(page * LIMIT, total)}</span> of <span className="tabular-nums text-[#0f172a] font-bold">{total}</span>
-                            </p>
+                        <div className="flex items-center justify-between bg-[var(--q-card-bg)] px-6 py-4 rounded-2xl border border-[var(--q-borderLight)] shadow-sm mt-8">
+                            <span className="text-[13px] font-medium text-[var(--q-text-muted)]">
+                                Showing <span className="font-bold text-[var(--q-text)]">{(page - 1) * LIMIT + 1}</span> to <span className="font-bold text-[var(--q-text)]">{Math.min(page * LIMIT, total)}</span> of <span className="font-bold text-[var(--q-text)]">{total}</span>
+                            </span>
                             <div className="flex gap-2">
-                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 text-[13px] font-semibold bg-white border border-slate-200 rounded-xl shadow-sm disabled:opacity-50 hover:bg-slate-50 transition-all text-[#0f172a]">Previous</button>
-                                <button onClick={() => setPage(p => p + 1)} disabled={page * LIMIT >= total} className="px-4 py-2 text-[13px] font-semibold bg-white border border-slate-200 rounded-xl shadow-sm disabled:opacity-50 hover:bg-slate-50 transition-all text-[#0f172a]">Next</button>
+                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 text-[13px] font-semibold bg-transparent border border-[var(--q-borderLight)] rounded-xl shadow-sm disabled:opacity-50 hover:bg-[var(--q-card-bg-alt)] transition-all text-[var(--q-text-muted)]">Previous</button>
+                                <button onClick={() => setPage(p => p + 1)} disabled={page * LIMIT >= total} className="px-4 py-2 text-[13px] font-semibold bg-transparent border border-[var(--q-borderLight)] rounded-xl shadow-sm disabled:opacity-50 hover:bg-[var(--q-card-bg-alt)] transition-all text-[var(--q-text-muted)]">Next</button>
                             </div>
                         </div>
                     )}

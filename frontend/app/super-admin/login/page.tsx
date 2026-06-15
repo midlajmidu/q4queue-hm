@@ -48,7 +48,7 @@ export default function SuperAdminLoginPage() {
     }, [email, password, router]);
 
     return (
-        <main className="min-h-screen flex items-center justify-center bg-slate-900 px-4">
+        <main className="force-light force-light min-h-screen flex items-center justify-center bg-slate-900 px-4">
             {/* Background glow */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
                 <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />

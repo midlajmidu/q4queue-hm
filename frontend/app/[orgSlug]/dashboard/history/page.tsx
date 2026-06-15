@@ -24,14 +24,14 @@ function formatTime(isoStr: string | null): string {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const AVATAR_PALETTES = [
-  { bg: "#eef2ff", color: "#4f46e5" },
-  { bg: "#eff6ff", color: "#3b82f6" },
-  { bg: "#f0fdf4", color: "#16a34a" },
-  { bg: "#fff7ed", color: "#ea580c" },
-  { bg: "#fdf4ff", color: "#9333ea" },
-  { bg: "#fdf2f8", color: "#db2777" },
-  { bg: "#ecfdf5", color: "#059669" },
-  { bg: "#fefce8", color: "#ca8a04" },
+  "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400",
+  "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+  "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+  "bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
+  "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
+  "bg-pink-50 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400",
+  "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
+  "bg-yellow-50 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400",
 ];
 
 function getPalette(str: string) {
@@ -43,14 +43,10 @@ function getPalette(str: string) {
 // ─── Components ─────────────────────────────────────────────────────────────
 
 function Avatar({ name }: { name: string }) {
-  const { bg, color } = getPalette(name);
+  const className = getPalette(name);
   const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   return (
-    <div style={{
-      width: 34, height: 34, borderRadius: "50%", background: bg, color, flexShrink: 0,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: 12, fontWeight: 700, letterSpacing: "-.01em",
-    }}>
+    <div className={"shrink-0 flex items-center justify-center w-[34px] h-[34px] rounded-full text-xs font-bold tracking-tight " + className}>
       {initials || "U"}
     </div>
   );
@@ -59,23 +55,23 @@ function Avatar({ name }: { name: string }) {
 function StatCard({ label, value, color }: { label: string; value: number | string; color?: string }) {
   return (
     <div style={{
-      background: "#ffffff", borderRadius: 8, border: "1px solid #e8edf2",
+      background: "var(--q-card-bg)", borderRadius: 8, border: "1px solid var(--q-border-light)",
       padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8,
     }}>
-      <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".07em" }}>{label}</span>
-      <span className="tabular-nums" style={{ fontSize: 26, fontWeight: 700, color: color ?? "#0f172a", letterSpacing: "-.03em" }}>{value}</span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--q-text-muted)", textTransform: "uppercase", letterSpacing: ".07em" }}>{label}</span>
+      <span className="tabular-nums" style={{ fontSize: 26, fontWeight: 700, color: color ?? "var(--q-text)", letterSpacing: "-.03em" }}>{value}</span>
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
   const s = status.toLowerCase();
-  let bg = "#f8fafc", color = "#64748b", border = "#e2e8f0";
+  let bg = "var(--q-slate-bg)", color = "var(--q-text-muted)", border = "var(--q-borderLight)";
   
-  if (s === "done")         { bg = "#ecfdf5"; color = "#059669"; border = "#a7f3d0"; }
-  else if (s === "serving") { bg = "#eff6ff"; color = "#3b82f6"; border = "#bfdbfe"; }
-  else if (s === "waiting") { bg = "#fffbeb"; color = "#d97706"; border = "#fde68a"; }
-  else if (s === "deleted") { bg = "#fef2f2"; color = "#ef4444"; border = "#fecaca"; }
+  if (s === "done")         { bg = "var(--q-green-bg)"; color = "var(--q-green)"; border = "var(--q-green-border)"; }
+  else if (s === "serving") { bg = "var(--q-blue-bg)"; color = "var(--q-blue)"; border = "var(--q-blue-border)"; }
+  else if (s === "waiting") { bg = "var(--q-amber-bg)"; color = "var(--q-amber)"; border = "var(--q-amber-border)"; }
+  else if (s === "deleted") { bg = "var(--q-red-bg)"; color = "var(--q-red)"; border = "var(--q-red-border)"; }
 
   return (
     <span style={{
@@ -108,7 +104,7 @@ function Pagination({ total, limit, offset, onChange }: { total: number; limit: 
   const btnBase: React.CSSProperties = {
     display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
     fontSize: 13, fontWeight: 500,
-    color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0",
+    color: "var(--q-text-muted)", background: "transparent", border: "1px solid var(--q-borderLight)",
     borderRadius: 9, cursor: "pointer", transition: "all .15s",
   };
 
@@ -218,21 +214,21 @@ export default function HistoryPage() {
       : null;
 
     const thStyle: React.CSSProperties = {
-      padding: "10px 20px", fontSize: 11, fontWeight: 600, color: "#94a3b8",
+      padding: "10px 20px", fontSize: 11, fontWeight: 600, color: "var(--q-text-muted)",
       textTransform: "uppercase", letterSpacing: ".07em", textAlign: "left",
-      borderBottom: "0.5px solid #f1f5f9", background: "#fafbfe",
+      borderBottom: "1px solid var(--q-border-light)", background: "var(--q-slate-bg)",
       whiteSpace: "nowrap",
     };
 
     const tdStyle: React.CSSProperties = {
-      padding: "14px 20px", fontSize: 13.5, fontWeight: 500, color: "#0f172a",
-      borderBottom: "0.5px solid #f1f5f9",
+      padding: "14px 20px", fontSize: 13.5, fontWeight: 500, color: "var(--q-text)",
+      borderBottom: "1px solid var(--q-border-light)",
     };
 
     const selectStyle: React.CSSProperties = {
-      height: 38, border: "0.5px solid #e2e8f0", borderRadius: 9, padding: "0 30px 0 12px",
-      fontSize: 13, fontWeight: 500, color: "#0f172a",
-      background: "#fafbfe", outline: "none", appearance: "none", cursor: "pointer",
+      height: 38, border: "1px solid var(--q-borderLight)", borderRadius: 9, padding: "0 30px 0 12px",
+      fontSize: 13, fontWeight: 500, color: "var(--q-text)",
+      background: "var(--q-card-bg-alt)", outline: "none", appearance: "none", cursor: "pointer",
     };
 
     return (
@@ -307,10 +303,10 @@ export default function HistoryPage() {
                 )}
 
                 {/* ── Table Card ── */}
-                <div style={{ background: "#ffffff", borderRadius: 8, border: "1px solid #e8edf2", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "0.5px solid #f1f5f9" }}>
-                        <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>Historical Logs</h2>
-                        <div className="tabular-nums" style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8" }}>
+                <div style={{ background: "var(--q-card-bg)", borderRadius: 8, border: "1px solid var(--q-border-light)", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--q-border-light)" }}>
+                        <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--q-text)" }}>Historical Logs</h2>
+                        <div className="tabular-nums" style={{ fontSize: 12, fontWeight: 600, color: "var(--q-text-muted)" }}>
                           {offset + 1}-{Math.min(offset + PAGE_SIZE, total)} OF {total}
                         </div>
                     </div>
@@ -348,7 +344,8 @@ export default function HistoryPage() {
                                             </div>
                                             <button
                                               onClick={() => { setSelectedSessionId(""); setSelectedQueueId(""); }}
-                                              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#4f46e5", background: "#eef2ff", border: "none", borderRadius: 8, cursor: "pointer", transition: "background .15s" }}
+                                              className="bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
+                                              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, border: "none", borderRadius: 8, cursor: "pointer", transition: "background .15s" }}
                                             >
                                               Clear Filters
                                             </button>
@@ -357,13 +354,13 @@ export default function HistoryPage() {
                                     </tr>
                                 ) : (
                                     history.map((item) => (
-                                        <tr key={item.id} onMouseEnter={e => (e.currentTarget.style.background = "#fafbfe")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                                            <td style={{ ...tdStyle, color: "#4f46e5", fontWeight: 700 }}>{item.queue_prefix}{item.token_number}</td>
+                                        <tr key={item.id} className="hover:bg-[#fafbfe] dark:hover:bg-slate-800/50 transition-colors">
+                                            <td className="text-indigo-600 dark:text-indigo-400" style={{ ...tdStyle, fontWeight: 700 }}>{item.queue_prefix}{item.token_number}</td>
                                             <td style={tdStyle}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                                  <Avatar name={item.customer_name} />
+                                                  <Avatar name={item.customer_name ? item.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : ""} />
                                                   <div style={{ display: "flex", flexDirection: "column" }}>
-                                                    <span style={{ fontWeight: 600 }}>{item.customer_name}</span>
+                                                    <span style={{ fontWeight: 600 }}>{item.customer_name ? item.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : '-'}</span>
                                                     <span style={{ fontSize: 11, color: "#94a3b8" }}>{item.customer_phone}</span>
                                                   </div>
                                                 </div>

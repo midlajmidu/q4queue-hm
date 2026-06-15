@@ -5,24 +5,24 @@ import Link from "next/link";
 import { getToken, getCurrentUser } from "@/lib/auth";
 
 const C = {
-  pageBg: "#f9fafb",
-  cardBg: "#ffffff",
-  border: "#e5e7eb",
-  borderHov: "#d1d5db",
-  borderLight: "#f3f4f6",
-  text: "#111827",
-  textSub: "#6b7280",
-  textMuted: "#9ca3af",
-  brand:        "#4f46e5",
-  brandDark:    "#4338ca",
-  brandLight:   "#eef2ff",
-  brandBorder:  "#c7d2fe",
-  blue:         "#3b82f6",  blueBg:    "#eff6ff",  blueBorder:   "#bfdbfe",
-  green:        "#059669",  greenBg:   "#ecfdf5",  greenBorder:  "#6ee7b7",
-  amber:        "#d97706",  amberBg:   "#fffbeb",  amberBorder:  "#fde68a",
-  red:          "#dc2626",  redBg:     "#fef2f2",  redBorder:    "#fca5a5",
-  purple:       "#7c3aed",  purpleBg:  "#f5f3ff",  purpleBorder: "#c4b5fd",
-  slate:        "#64748b",  slateBg:   "#f8fafc",
+  pageBg: "var(--q-page-bg)",
+  cardBg: "var(--q-card-bg)",
+  border: "var(--q-border)",
+  borderHov: "var(--q-border-hov)",
+  borderLight: "var(--q-border-light)",
+  text: "var(--q-text)",
+  textSub: "var(--q-text-sub)",
+  textMuted: "var(--q-text-muted)",
+  brand:        "var(--q-brand)",
+  brandDark:    "var(--q-brand-dark)",
+  brandLight:   "var(--q-brand-light)",
+  brandBorder:  "var(--q-brand-border)",
+  blue:         "var(--q-blue)",  blueBg:    "var(--q-blue-bg)",  blueBorder:   "var(--q-blue-border)",
+  green:        "var(--q-green)", greenBg:   "var(--q-green-bg)", greenBorder:  "var(--q-green-border)",
+  amber:        "var(--q-amber)", amberBg:   "var(--q-amber-bg)", amberBorder:  "var(--q-amber-border)",
+  red:          "var(--q-red)",   redBg:     "var(--q-red-bg)",   redBorder:    "var(--q-red-border)",
+  purple:       "#7c3aed",        purpleBg:  "#f5f3ff",           purpleBorder: "#c4b5fd",
+  slate:        "#64748b",        slateBg:   "#f8fafc",
 };
 
 const STYLES = `
@@ -37,12 +37,11 @@ const STYLES = `
   /* ── Cards ── */
   .dp-card {
     background: ${C.cardBg};
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid ${C.border};
     border-radius: 8px;
-    box-shadow:
-      0 1px 2px rgba(0,0,0,.03),
-      0 4px 16px rgba(0,0,0,.04),
-      0 0 0 1px rgba(255,255,255,.8) inset;
+    box-shadow: none;
     transition: box-shadow .25s ease, border-color .25s ease;
     overflow: hidden;
   }
@@ -97,16 +96,16 @@ const STYLES = `
   /* ── Sidebar nav items ── */
   .dp-nav-item {
     display: flex; align-items: center; gap: 10px;
-    padding: 9px 12px; font-size: 13.5px; font-weight: 500;
-    color: ${C.textSub}; border-radius: 8px;
-    cursor: pointer; border: 1px solid transparent;
+    padding: 9px 12px 9px 9px; font-size: 13.5px; font-weight: 500;
+    color: ${C.textSub}; border-left: 3px solid transparent;
+    cursor: pointer; border-top: none; border-right: none; border-bottom: none;
     transition: all .15s ease; width: 100%; text-align: left;
     background: transparent; font-family: 'Plus Jakarta Sans', sans-serif;
   }
-  .dp-nav-item:hover { background: #f2f4f9; color: ${C.text}; }
+  .dp-nav-item:hover { background: #f8fafc; color: #334155; }
   .dp-nav-item[data-active="true"] {
-    background: ${C.brandLight}; color: ${C.brand};
-    border-color: ${C.brandBorder}; font-weight: 700;
+    background: transparent; color: #0f172a;
+    border-left-color: ${C.brand}; font-weight: 700;
   }
 
   /* ── Prose ── */

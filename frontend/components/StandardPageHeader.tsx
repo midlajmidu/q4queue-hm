@@ -54,13 +54,13 @@ export function StandardPageHeader({ breadcrumbs, title, subtitle, action, icon,
         </div>
         
         {/* Title */}
-        <h1 style={{ fontSize: 24, fontWeight: 600, color: "#0f172a", letterSpacing: "-.025em", margin: 0 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 600, color: "var(--q-text)", letterSpacing: "-.025em", margin: 0 }}>
           {title}
         </h1>
         
         {/* Subtitle */}
         {subtitle && (
-          <p style={{ fontSize: 14, color: "#64748b", margin: 0, lineHeight: 1.5, fontWeight: 400 }}>
+          <p style={{ fontSize: 14, color: "var(--q-text-muted)", margin: 0, lineHeight: 1.5, fontWeight: 400 }}>
             {subtitle}
           </p>
         )}

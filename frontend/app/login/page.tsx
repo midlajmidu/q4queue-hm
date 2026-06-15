@@ -40,7 +40,7 @@ export default function LoginPage() {
     }, [login, orgSlug, email, password]);
 
     return (
-        <main className="min-h-screen h-screen relative flex flex-col items-center justify-center bg-hero-glow overflow-hidden px-4">
+        <main className="force-light force-light min-h-screen h-screen relative flex flex-col items-center justify-center bg-hero-glow overflow-hidden px-4">
             {/* Background grid */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(220_16%_90%/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(220_16%_90%/0.5)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black_70%,transparent_100%)] pointer-events-none" />
             <div className="absolute top-20 left-[10%] w-72 h-72 bg-primary/8 rounded-full blur-[120px] animate-pulse pointer-events-none" />

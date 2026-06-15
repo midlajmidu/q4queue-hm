@@ -17,27 +17,27 @@ type TabFilter = "all" | "unread" | "warning" | "info" | "success" | "error";
 // ─── Icon component ───────────────────────────────────────────────────────────
 
 function NotifIcon({ type }: { type: NotifType }) {
-  const map: Record<NotifType, { bg: string; color: string; path: React.ReactElement }> = {
+  const map: Record<NotifType, { className: string; path: React.ReactElement }> = {
     warning: {
-      bg: "#fffbeb", color: "#d97706",
+      className: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400",
       path: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>,
     },
     success: {
-      bg: "#ecfdf5", color: "#059669",
+      className: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400",
       path: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg>,
     },
     info: {
-      bg: "#eff6ff", color: "#3b82f6",
+      className: "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
       path: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>,
     },
     error: {
-      bg: "#fef2f2", color: "#ef4444",
+      className: "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400",
       path: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" /></svg>,
     },
   };
-  const { bg, color, path } = map[type];
+  const { className, path } = map[type];
   return (
-    <div style={{ width: 40, height: 40, borderRadius: 12, background: bg, color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+    <div className={"flex items-center justify-center shrink-0 w-10 h-10 rounded-xl " + className}>
       {path}
     </div>
   );
@@ -109,7 +109,7 @@ export default function NotificationsPage() {
         }
         .btn-primary:hover  { background: #4338ca !important; }
         .btn-secondary:hover { background: #f8fafc !important; border-color: #cbd5e1 !important; }
-        .tab-btn:hover { background: #f1f5f9 !important; }
+        
       `}</style>
 
       <div style={{
@@ -136,8 +136,8 @@ export default function NotificationsPage() {
             )}
             {notifications.length > 0 && (
               <button className="btn-secondary" onClick={clearAll} style={{
-                height: 38, padding: "0 14px", background: "#fff", color: "#64748b",
-                border: "0.5px solid #e2e8f0", borderRadius: 9, fontSize: 13, fontWeight: 600,
+                height: 38, padding: "0 14px", background: "transparent", color: "var(--q-text-muted)",
+                border: "1px solid var(--q-borderLight)", borderRadius: 9, fontSize: 13, fontWeight: 600,
                 cursor: "pointer",
                 display: "flex", alignItems: "center", gap: 8, transition: "all .15s",
               }}>
@@ -154,24 +154,10 @@ export default function NotificationsPage() {
           {tabs.map(tab => {
             const active = activeTab === tab.key;
             return (
-              <button key={tab.key} className={active ? undefined : "tab-btn"} onClick={() => setActiveTab(tab.key)} style={{
-                height: 34, padding: "0 14px", borderRadius: 99,
-                border: "1px solid #e2e8f0",
-                background: "#f8fafc",
-                color: "#64748b",
-                fontSize: 12, fontWeight: 600, cursor: "pointer",
-                transition: "all .15s", display: "flex", alignItems: "center", gap: 6,
-                whiteSpace: "nowrap", flexShrink: 0,
-              }}>
+              <button key={tab.key} className={"flex items-center gap-1.5 whitespace-nowrap shrink-0 h-[34px] px-3.5 rounded-full text-xs font-semibold cursor-pointer transition-colors bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"} onClick={() => setActiveTab(tab.key)}>
                 {tab.label}
                 {tab.count !== undefined && tab.count > 0 && (
-                  <span style={{
-                    fontSize: 10, padding: "1px 6px", borderRadius: 6,
-                    background: active ? "#4f46e5" : "#e2e8f0",
-                    color: active ? "#fff" : "#64748b",
-                    // Animate the count change
-                    transition: "background .15s, color .15s",
-                  }}>
+                  <span className={"text-[10px] px-1.5 rounded-md transition-colors " + (active ? "bg-indigo-600 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400")}>
                     {tab.count}
                   </span>
                 )}
@@ -182,18 +168,18 @@ export default function NotificationsPage() {
 
         {/* ── Notification list ── */}
         <div style={{
-          background: "#ffffff", borderRadius: 16,
-          border: "0.5px solid #e8edf2",
+          background: "var(--q-card-bg)", borderRadius: 16,
+          border: "1px solid var(--q-border-light)",
           boxShadow: "0 1px 4px rgba(0,0,0,.04)", overflow: "hidden",
         }}>
           {filtered.length === 0 ? (
             <div style={{ padding: "80px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 18, background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8" }}>
+              <div style={{ width: 56, height: 56, borderRadius: 18, background: "var(--q-slate-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--q-text-muted)" }}>
                 <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
               </div>
               <div>
-                <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#0f172a" }}>All caught up!</p>
-                <p style={{ margin: 4, fontSize: 14, color: "#94a3b8" }}>You have no notifications in this category.</p>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "var(--q-text)" }}>All caught up!</p>
+                <p style={{ margin: 4, fontSize: 14, color: "var(--q-text-muted)" }}>You have no notifications in this category.</p>
               </div>
             </div>
           ) : (
@@ -205,12 +191,12 @@ export default function NotificationsPage() {
                     key={n.id}
                     className="notif-row"
                     onClick={() => handleMarkAsRead(n.id)}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#fafbfe")}
-                    onMouseLeave={e => (e.currentTarget.style.background = n.isRead ? "transparent" : "#f8faff")}
+                    onMouseEnter={e => (e.currentTarget.style.background = "var(--q-card-bg-alt)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = n.isRead ? "transparent" : "var(--q-brand-bg)")}
                     style={{
                       padding: "20px 24px",
-                      borderBottom: i === filtered.length - 1 ? "none" : "0.5px solid #f1f5f9",
-                      background: n.isRead ? "transparent" : "#f8faff",
+                      borderBottom: i === filtered.length - 1 ? "none" : "1px solid var(--q-border-light)",
+                      background: n.isRead ? "transparent" : "var(--q-brand-bg)",
                       transition: "background .2s",
                       cursor: n.isRead ? "default" : "pointer",
                       display: "flex", alignItems: "flex-start", gap: 16,
@@ -231,7 +217,7 @@ export default function NotificationsPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                         <h3 style={{
-                          margin: 0, fontSize: 14.5, letterSpacing: "-.01em", color: "#0f172a",
+                          margin: 0, fontSize: 14.5, letterSpacing: "-.01em", color: "var(--q-text)",
                           fontWeight: n.isRead ? 600 : 700,
                           transition: "font-weight .2s",
                         }}>
@@ -243,8 +229,8 @@ export default function NotificationsPage() {
                           <span
                             className={isFading ? "new-badge-fading" : undefined}
                             style={{
-                              fontSize: 10, fontWeight: 700, color: "#4f46e5",
-                              background: "#eef2ff", padding: "1px 6px", borderRadius: 6,
+                              fontSize: 10, fontWeight: 700, color: "var(--q-brand)",
+                              background: "var(--q-brand-bg)", padding: "1px 6px", borderRadius: 6,
                               textTransform: "uppercase", letterSpacing: ".02em",
                               display: "inline-block",
                             }}

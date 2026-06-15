@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
+@custom-variant dark (&:is(.dark *));
 
 @theme {
   --color-border: hsl(var(--border));
@@ -81,7 +82,8 @@
 
 @layer base {
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply text-foreground antialiased;
+    background: var(--q-page-bg, hsl(var(--background)));
     font-family: var(--font-sans), sans-serif;
   }
 
@@ -134,6 +136,27 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 220 70% 50%;
 
+    /* Q4Queue Dashboard Custom Tokens (Light Mode) */
+    --q-page-bg: #f9fafb;
+    --q-card-bg: #ffffff;
+    --q-card-bg-alt: #f9fafb;
+    --q-border: #e5e7eb;
+    --q-border-hov: #d1d5db;
+    --q-border-light: #f3f4f6;
+    --q-text: #111827;
+    --q-text-sub: #6b7280;
+    --q-text-muted: #9ca3af;
+    --q-brand: #4f46e5;
+    --q-brand-dark: #4338ca;
+    --q-brand-light: #eef2ff;
+    --q-brand-border: #c7d2fe;
+    --q-brand-glow: rgba(79,70,229,.10);
+    --q-blue: #3b82f6; --q-blue-bg: #eff6ff; --q-blue-border: #bfdbfe;
+    --q-green: #10b981; --q-green-bg: #ecfdf5; --q-green-border: #a7f3d0;
+    --q-amber: #f59e0b; --q-amber-bg: #fffbeb; --q-amber-border: #fde68a;
+    --q-red: #ef4444; --q-red-bg: #fef2f2; --q-red-border: #fecaca;
+    --q-slate: #64748b; --q-slate-bg: #f8fafc;
+
     --font-sans: 'Inter', sans-serif;
   }
 
@@ -165,6 +188,28 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 220 14% 16%;
     --sidebar-ring: 220 70% 50%;
+
+    /* Q4Queue Dashboard Custom Tokens (Premium Dark Mode) */
+    --q-page-bg: linear-gradient(135deg, #0f172a 0%, #061121 50%, #030712 100%);
+    --q-card-bg: rgba(255, 255, 255, 0.03);
+    --q-card-bg-alt: rgba(255, 255, 255, 0.015);
+    --q-border: rgba(255, 255, 255, 0.1);
+    --q-border-hov: rgba(255, 255, 255, 0.15);
+    --q-border-light: rgba(255, 255, 255, 0.05);
+    --q-text: #ffffff;
+    --q-text-sub: #94a3b8;
+    --q-text-muted: #64748b;
+    --q-brand: #6366f1;
+    --q-brand-dark: #4f46e5;
+    --q-brand-light: rgba(99, 102, 241, 0.15);
+    --q-brand-border: rgba(99, 102, 241, 0.3);
+    --q-brand-glow: rgba(99, 102, 241, 0.25);
+    /* Slightly desaturated semantic colors for dark mode */
+    --q-blue: #60a5fa; --q-blue-bg: rgba(96, 165, 250, 0.1); --q-blue-border: rgba(96, 165, 250, 0.2);
+    --q-green: #34d399; --q-green-bg: rgba(52, 211, 153, 0.1); --q-green-border: rgba(52, 211, 153, 0.2);
+    --q-amber: #fbbf24; --q-amber-bg: rgba(251, 191, 36, 0.1); --q-amber-border: rgba(251, 191, 36, 0.2);
+    --q-red: #f87171; --q-red-bg: rgba(248, 113, 113, 0.1); --q-red-border: rgba(248, 113, 113, 0.2);
+    --q-slate: #94a3b8; --q-slate-bg: rgba(255, 255, 255, 0.05);
   }
 
   /* Global focus-visible ring for keyboard navigation (WCAG AA) */
@@ -285,4 +330,92 @@
   .section-divider {
     background: linear-gradient(to bottom, hsl(220 25% 97%), hsl(220 16% 95% / 0.4), hsl(220 25% 97%));
   }
+}
+/* Custom Scrollbar */
+.scrollbar-hide::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.scrollbar-hide::-webkit-scrollbar-track {
+    background: transparent;
+}
+.scrollbar-hide::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.3);
+    border-radius: 10px;
+}
+.dark .scrollbar-hide::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+}
+.scrollbar-hide {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+}
+.dark .scrollbar-hide {
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.force-light {
+
+    --background: 220 25% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    --primary: 220 70% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 16% 95%;
+    --secondary-foreground: 220 20% 10%;
+
+    --muted: 220 16% 95%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 230 65% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 16% 90%;
+    --input: 220 16% 90%;
+    --ring: 220 70% 50%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 220 70% 50%;
+
+    /* Q4Queue Dashboard Custom Tokens (Light Mode) */
+    --q-page-bg: #f9fafb;
+    --q-card-bg: #ffffff;
+    --q-card-bg-alt: #f9fafb;
+    --q-border: #e5e7eb;
+    --q-border-hov: #d1d5db;
+    --q-border-light: #f3f4f6;
+    --q-text: #111827;
+    --q-text-sub: #6b7280;
+    --q-text-muted: #9ca3af;
+    --q-brand: #4f46e5;
+    --q-brand-dark: #4338ca;
+    --q-brand-light: #eef2ff;
+    --q-brand-border: #c7d2fe;
+    --q-brand-glow: rgba(79,70,229,.10);
+    --q-blue: #3b82f6; --q-blue-bg: #eff6ff; --q-blue-border: #bfdbfe;
+    --q-green: #10b981; --q-green-bg: #ecfdf5; --q-green-border: #a7f3d0;
+    --q-amber: #f59e0b; --q-amber-bg: #fffbeb; --q-amber-border: #fde68a;
+    --q-red: #ef4444; --q-red-bg: #fef2f2; --q-red-border: #fecaca;
+    --q-slate: #64748b; --q-slate-bg: #f8fafc;
+
+    --font-sans: 'Inter', sans-serif;
+  
 }

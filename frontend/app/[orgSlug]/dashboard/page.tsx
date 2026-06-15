@@ -226,30 +226,30 @@ const Icons = {
 // ─── Design Tokens ────────────────────────────────────────────────
 const C = {
   // bg
-  pageBg: "#f9fafb",
-  cardBg: "#ffffff",
-  cardBgAlt: "#f9fafb",
+  pageBg: "var(--q-page-bg)",
+  cardBg: "var(--q-card-bg)",
+  cardBgAlt: "var(--q-card-bg-alt)",
   // borders
-  border: "#e5e7eb",
-  borderHov: "#d1d5db",
-  borderLight: "#f3f4f6",
+  border: "var(--q-border)",
+  borderHov: "var(--q-border-hov)",
+  borderLight: "var(--q-border-light)",
   // text
-  text: "#111827",
-  textSub: "#6b7280",
-  textMuted: "#9ca3af",
+  text: "var(--q-text)",
+  textSub: "var(--q-text-sub)",
+  textMuted: "var(--q-text-muted)",
   // brand
-  brand: "#4f46e5",
-  brandDark: "#4338ca",
-  brandLight: "#eef2ff",
-  brandBorder: "#c7d2fe",
-  brandGlow: "rgba(79,70,229,.10)",
-  // semantic – slightly muted for calm feel
-  blue: "#3b82f6", blueBg: "#eff6ff", blueBorder: "#bfdbfe",
-  green: "#10b981", greenBg: "#ecfdf5", greenBorder: "#a7f3d0",
-  amber: "#f59e0b", amberBg: "#fffbeb", amberBorder: "#fde68a",
-  red: "#ef4444", redBg: "#fef2f2", redBorder: "#fecaca",
+  brand: "var(--q-brand)",
+  brandDark: "var(--q-brand-dark)",
+  brandLight: "var(--q-brand-light)",
+  brandBorder: "var(--q-brand-border)",
+  brandGlow: "var(--q-brand-glow)",
+  // semantic
+  blue: "var(--q-blue)", blueBg: "var(--q-blue-bg)", blueBorder: "var(--q-blue-border)",
+  green: "var(--q-green)", greenBg: "var(--q-green-bg)", greenBorder: "var(--q-green-border)",
+  amber: "var(--q-amber)", amberBg: "var(--q-amber-bg)", amberBorder: "var(--q-amber-border)",
+  red: "var(--q-red)", redBg: "var(--q-red-bg)", redBorder: "var(--q-red-border)",
   violet: "#7c3aed", violetBg: "#f5f3ff",
-  slate: "#64748b", slateBg: "#f8fafc",
+  slate: "var(--q-slate)", slateBg: "var(--q-slate-bg)",
 };
 
 // ─── Global Styles ────────────────────────────────────────────────
@@ -266,6 +266,8 @@ const STYLES = `
   /* ── Card ── */
   .card {
     background: ${C.cardBg};
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid ${C.border};
     border-radius: 8px;
     box-shadow: none;
@@ -548,8 +550,8 @@ const STYLES = `
   @keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
   .drawer-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 24px 28px; border-bottom: 1px solid ${C.border};
-    background: linear-gradient(180deg, #fafbfd 0%, ${C.cardBg} 100%);
+    padding: 24px 28px; border-bottom: 1px solid var(--q-border-light);
+    background: var(--q-slate-bg);
   }
   .drawer-body { flex: 1; overflow-y: auto; padding: 28px; }
 
@@ -558,10 +560,10 @@ const STYLES = `
   .qtable th {
     padding: 12px 16px; font-size: 11px; font-weight: 700;
     letter-spacing: .06em; text-transform: uppercase;
-    color: ${C.textMuted}; border-bottom: 1px solid ${C.border};
-    background: linear-gradient(180deg, #fafbfd, ${C.slateBg});
+    color: var(--q-text-muted); border-bottom: 1px solid var(--q-border-light);
+    background: var(--q-slate-bg);
   }
-  .qtable td { padding: 14px 16px; font-size: 13px; font-weight: 500; color: ${C.text}; border-bottom: 1px solid ${C.borderLight}; }
+  .qtable td { padding: 14px 16px; font-size: 13px; font-weight: 500; color: ${C.text}; border-bottom: 1px solid var(--q-border-light); }
   .qtable tbody tr { transition: background .12s ease; }
   .qtable tbody tr:hover td { background: #f8f9ff; }
 
@@ -580,8 +582,8 @@ const STYLES = `
   /* ── Card header strip ── */
   .card-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 24px; border-bottom: 1px solid ${C.border};
-    background: linear-gradient(180deg, #fafbfd 0%, ${C.cardBg} 100%);
+    padding: 16px 24px; border-bottom: 1px solid var(--q-border-light);
+    background: var(--q-slate-bg);
     border-radius: 14px 14px 0 0;
   }
 
@@ -712,7 +714,7 @@ export default function OverviewPage() {
       if (waitSec > 1800) { // 30 mins
         const todayDate = new Date().toLocaleDateString();
         const lastAlertDate = localStorage.getItem("last_high_wait_alert_date");
-        
+
         if (lastAlertDate !== todayDate) {
           addAlert({
             type: "warning",
@@ -919,34 +921,24 @@ export default function OverviewPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
 
           {/* ══ HEADER CARD ═════════════════════════════════════════════════ */}
-          <div className="card fade-in" style={{
-            padding: "40px 44px", position: "relative", overflow: "hidden",
-            background: "linear-gradient(180deg, #ffffff 0%, #fafafa 100%)",
-            boxShadow: "0 1px 3px rgba(0,0,0,.02), 0 1px 2px rgba(0,0,0,.01), inset 0 1px 0 rgba(255,255,255,1)",
-            border: "#e5e7eb"
+          <div className="fade-in card" style={{
+            position: "relative", zIndex: 1, marginBottom: 24,
+            padding: "32px 36px", borderRadius: 24,
+            background: C.cardBg,
+            backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+            border: `1px solid ${C.border}`,
+            boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)",
           }}>
-            <div aria-hidden style={{
-              position: "absolute", top: -40, right: -40, width: 300, height: 300,
-              background: `radial-gradient(circle at 100% 0%, rgba(99,102,241,.03) 0%, transparent 60%)`,
-              pointerEvents: "none",
-            }} />
-
-            <div aria-hidden style={{
-              position: "absolute", top: -40, right: -40, width: 300, height: 300,
-              background: `radial-gradient(circle at 100% 0%, rgba(99,102,241,.03) 0%, transparent 60%)`,
-              pointerEvents: "none",
-            }} />
-
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 32 }}>
               {/* Left: title */}
-              <div style={{ position: "relative", zIndex: 1, maxWidth: 480 }}>
+              <div style={{ maxWidth: 480 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
                   {/* brand icon */}
                   <div className="icon-badge" style={{
                     width: 42, height: 42,
-                    background: `linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)`,
-                    border: "#e5e7eb",
-                    boxShadow: `0 2px 8px rgba(0,0,0,.03), inset 0 2px 0 rgba(255,255,255,.5)`,
+                    background: C.cardBg,
+                    border: `1px solid ${C.border}`,
+                    boxShadow: `0 2px 8px rgba(0,0,0,.03), inset 0 2px 0 ${C.borderLight}`,
                     borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center"
                   }}>
                     <Icons.BarChart3 size={20} color="#6366f1" strokeWidth={2.5} />
@@ -954,81 +946,27 @@ export default function OverviewPage() {
                   <span style={{
                     fontSize: 11, fontWeight: 600,
                     letterSpacing: '.06em', textTransform: 'uppercase',
-                    color: "#64748b",
+                    color: C.textSub,
                   }}>Analytics Dashboard</span>
                 </div>
                 <h1 style={{
                   fontSize: "clamp(26px,2.8vw,32px)", fontWeight: 800,
-                  color: "#0f172a", letterSpacing: "-.02em",
+                  color: C.text, letterSpacing: "-.02em",
                   lineHeight: 1.1, margin: 0,
                 }}>
                   Organization Overview
                 </h1>
                 <p style={{
-                  marginTop: 10, fontSize: 14.5, color: "#64748b",
+                  marginTop: 10, fontSize: 14.5, color: C.textSub,
                   lineHeight: 1.6, marginBottom: 0, fontWeight: 400,
                 }}>
                   Real time performance metrics across all queues and sessions.
                 </p>
               </div>
 
-              {/* Right: filters */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end", position: "relative", zIndex: 1 }}>
-                {[
-                  {
-                    id: "filter-session", lbl: "Session", val: selectedSession, set: setSelectedSession, dis: false,
-                    opts: <>
-                      <option value="">All Sessions</option>
-                      {sessions.map(s => (
-                        <option key={s.id} value={s.id}>
-                          {new Date(s.session_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                          {s.title ? ` — ${s.title}` : ""}
-                        </option>
-                      ))}
-                    </>,
-                  },
-                  {
-                    id: "filter-queue", lbl: "Queue", val: selectedQueue, set: setSelectedQueue, dis: !selectedSession,
-                    opts: <>
-                      <option value="">All Queues</option>
-                      {queues.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
-                    </>,
-                  },
-                ].map(f => (
-                  <div key={f.lbl} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <label htmlFor={f.id} className="lbl" style={{ fontSize: 11, letterSpacing: '.04em', color: "#64748b", fontWeight: 500 }}>{f.lbl}</label>
-                    <div style={{ position: "relative", transition: "transform .2s ease", cursor: "pointer" }} onMouseEnter={e => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={e => e.currentTarget.style.transform = "none"}>
-                      <select id={f.id} name={f.id} value={f.val} onChange={e => f.set(e.target.value)} disabled={f.dis} className="ov-sel">
-                        {f.opts}
-                      </select>
-                      <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.4 }}>
-                        <Icons.ChevronDown size={14} color="#0f172a" strokeWidth={2.5} />
-                      </span>
-                    </div>
-                  </div>
-                ))}
-
-                <div style={{ marginLeft: 16, display: "flex", gap: 10 }}>
-                  <Link href={`${dashBase}/sessions`} className="qa-btn" style={{ background: "#4f46e5", color: "#fff", borderColor: "#4338ca", boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
-                    <Icons.Play size={13} color="currentColor" />
-                    Start Session
-                  </Link>
-                  <Link href={`${dashBase}/queues?action=create`} className="qa-btn" style={{ background: "#fff", color: "#4f46e5", borderColor: "#4f46e5" }}>
-                    <Icons.PlusCircle size={13} color="currentColor" />
-                    Create Queue
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ══ QUICK ACTIONS ════════════════════════════════════ */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <div className="section-label" style={{ flex: 1 }}>Quick Actions</div>
-
+              {/* Right: Global Controls */}
               {/* ── Auto-refresh bar ── */}
-              <div className="refresh-bar" style={{ marginLeft: 16, flexShrink: 0 }}>
+              <div className="refresh-bar" style={{ flexShrink: 0, marginTop: 4 }}>
                 {/* live indicator */}
                 {autoRefresh && !isRefreshing && (
                   <span className="live-dot" style={{ display: "block", width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
@@ -1085,6 +1023,61 @@ export default function OverviewPage() {
                   </span>
                 </label>
               </div>
+            </div>
+
+            {/* Toolbar */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", marginTop: 24, paddingTop: 24, borderTop: "1px solid rgba(0, 0, 0, 0.04)" }}>
+              {[
+                {
+                  id: "filter-session", lbl: "Session", val: selectedSession, set: setSelectedSession, dis: false,
+                  opts: <>
+                    <option value="">All Sessions</option>
+                    {sessions.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {new Date(s.session_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {s.title ? ` — ${s.title}` : ""}
+                      </option>
+                    ))}
+                  </>,
+                },
+                {
+                  id: "filter-queue", lbl: "Queue", val: selectedQueue, set: setSelectedQueue, dis: !selectedSession,
+                  opts: <>
+                    <option value="">All Queues</option>
+                    {queues.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
+                  </>,
+                },
+              ].map(f => (
+                <div key={f.lbl} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <label htmlFor={f.id} className="lbl" style={{ fontSize: 13, color: C.textSub, fontWeight: 600 }}>{f.lbl}:</label>
+                  <div style={{ position: "relative", transition: "transform .2s ease", cursor: "pointer" }} onMouseEnter={e => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={e => e.currentTarget.style.transform = "none"}>
+                    <select id={f.id} name={f.id} value={f.val} onChange={e => f.set(e.target.value)} disabled={f.dis} className="ov-sel" style={{ padding: "8px 32px 8px 12px", background: C.cardBgAlt, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, fontWeight: 500, color: C.text, outline: "none", appearance: "none", minWidth: 160 }}>
+                      {f.opts}
+                    </select>
+                    <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.6 }}>
+                      <Icons.ChevronDown size={14} color={C.text} strokeWidth={2.5} />
+                    </span>
+                  </div>
+                </div>
+              ))}
+
+              <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
+                <Link href={`${dashBase}/sessions`} className="qa-btn" style={{ background: C.brand, color: "#fff", borderColor: C.brandDark, boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
+                  <Icons.Play size={13} color="currentColor" />
+                  Start Session
+                </Link>
+                <Link href={`${dashBase}/queues?action=create`} className="qa-btn" style={{ background: C.cardBgAlt, color: C.brand, borderColor: C.brand }}>
+                  <Icons.PlusCircle size={13} color="currentColor" />
+                  Create Queue
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* ══ QUICK ACTIONS ════════════════════════════════════ */}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <div className="section-label" style={{ flex: 1 }}>Quick Actions</div>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               {[
@@ -1157,7 +1150,7 @@ export default function OverviewPage() {
               <MetricCard
                 label="Cancelled / No-show" value={overview?.status_counts?.cancelled ?? 0}
                 Icon={Icons.XCircle} trend={mkTrend(overview?.status_counts?.cancelled ?? 0, prevOverview?.status_counts?.cancelled)}
-                color={C.slate} bg={C.slateBg} border={C.border}
+                color={"#475569"} bg={C.slateBg} border={C.border}
                 valueColor={C.textSub} muted isLoading={isLoading}
                 subtext={overview?.status_counts?.total ? `(${Math.round((overview.status_counts.cancelled / overview.status_counts.total) * 100)}% of visitors)` : undefined}
               />
@@ -1197,15 +1190,15 @@ export default function OverviewPage() {
                       {name.substring(0, 2).toUpperCase()}
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{name}</span>
-                    <span style={{ 
-                      marginLeft: 4, 
+                    <span style={{
+                      marginLeft: 4,
                       display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px",
                       borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
-                      background: s.is_active ? "#ecfdf5" : "#f8fafc", 
-                      color: s.is_active ? "#059669" : "#64748b", 
-                      border: `0.5px solid ${s.is_active ? "#a7f3d0" : "#e2e8f0"}` 
+                      background: s.is_active ? "var(--q-green-bg)" : "var(--q-slate-bg)",
+                      color: s.is_active ? "var(--q-green)" : "var(--q-text-muted)",
+                      border: `1px solid ${s.is_active ? "var(--q-green-border)" : "var(--q-border-light)"}`
                     }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.is_active ? "#059669" : "#94a3b8", flexShrink: 0 }} />
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.is_active ? "var(--q-green)" : "var(--q-text-muted)", flexShrink: 0 }} />
                       {s.is_active ? "Online" : "Offline"}
                     </span>
                   </div>
@@ -1244,8 +1237,8 @@ export default function OverviewPage() {
                             fontSize: 10, fontWeight: 600, color: C.textMuted,
                             letterSpacing: ".06em", textTransform: "uppercase" as const,
                             textAlign: i === 0 ? "left" as const : i === 4 ? "right" as const : "center" as const,
-                            borderBottom: `1px solid ${C.borderLight}`,
-                            background: "#fafbfc",
+                            borderBottom: `1px solid var(--q-border-light)`,
+                            background: "var(--q-slate-bg)",
                           }}>{h}</th>
                         ))}
                       </tr>
@@ -1281,16 +1274,16 @@ export default function OverviewPage() {
                     </tbody>
                     <tfoot>
                       <tr>
-                        <td style={{ padding: "10px 20px", borderTop: `1px solid ${C.border}`, background: "#fafbfc" }}>
+                        <td style={{ padding: "10px 20px", borderTop: `1px solid var(--q-border-light)`, background: "var(--q-slate-bg)" }}>
                           <span style={{ fontWeight: 700, fontSize: 10, color: C.textMuted, letterSpacing: ".05em", textTransform: "uppercase" as const }}>Total</span>
                         </td>
-                        <td style={{ textAlign: "center", padding: "10px 20px", borderTop: `1px solid ${C.border}`, background: "#fafbfc" }}>
+                        <td style={{ textAlign: "center", padding: "10px 20px", borderTop: `1px solid var(--q-border-light)`, background: "var(--q-slate-bg)" }}>
                           <span className="mono tnum" style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>{totalServed}</span>
                         </td>
-                        <td style={{ textAlign: "center", padding: "10px 20px", borderTop: `1px solid ${C.border}`, background: "#fafbfc" }}>
+                        <td style={{ textAlign: "center", padding: "10px 20px", borderTop: `1px solid var(--q-border-light)`, background: "var(--q-slate-bg)" }}>
                           <span className="mono tnum" style={{ fontSize: 13, fontWeight: 700, color: "#92400e" }}>{totalWaiting}</span>
                         </td>
-                        <td style={{ padding: "10px 20px", borderTop: `1px solid ${C.border}`, background: "#fafbfc" }}>
+                        <td style={{ padding: "10px 20px", borderTop: `1px solid var(--q-border-light)`, background: "var(--q-slate-bg)" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <div style={{ flex: 1, height: 5, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
                               <div style={{ height: "100%", width: `${overallPct}%`, borderRadius: 99, background: C.brand }} />
@@ -1298,7 +1291,7 @@ export default function OverviewPage() {
                             <span className="mono tnum" style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, minWidth: 28, textAlign: "right" }}>{overallPct}%</span>
                           </div>
                         </td>
-                        <td className="tnum" style={{ textAlign: "right", padding: "10px 20px", borderTop: `1px solid ${C.border}`, background: "#fafbfc" }}>
+                        <td className="tnum" style={{ textAlign: "right", padding: "10px 20px", borderTop: `1px solid var(--q-border-light)`, background: "var(--q-slate-bg)" }}>
                           <span className="mono" style={{ fontSize: 14, fontWeight: 800, color: C.brand }}>{grandTotal}</span>
                         </td>
                       </tr>
@@ -1320,13 +1313,13 @@ export default function OverviewPage() {
               </div>
               <Link href={`${dashBase}/history`} style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
-                fontSize: 12, fontWeight: 600, color: C.brand,
+                fontSize: 12, fontWeight: 600, color: "var(--q-text-sub)",
                 padding: "5px 12px", borderRadius: 8,
-                border: `1px solid ${C.border}`, background: "#fff",
+                border: `1px solid var(--q-border)`, background: "transparent",
                 textDecoration: "none", transition: "all .15s ease",
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = C.brandBorder; e.currentTarget.style.background = C.brandLight; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = "#fff"; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--q-border-hov)"; e.currentTarget.style.background = "var(--q-card-bg-alt)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--q-border)"; e.currentTarget.style.background = "transparent"; }}
               >
                 View all <Icons.ArrowRight size={11} color="currentColor" />
               </Link>
@@ -1400,7 +1393,7 @@ export default function OverviewPage() {
                     return (
                       <li
                         key={idx}
-                        className="fade-in"
+                        className="fade-in hover:bg-slate-50 dark:hover:bg-slate-800/50"
                         onClick={() => setDrawerAct(act)}
                         style={{
                           display: "grid", gridTemplateColumns: "1fr auto auto",
@@ -1411,8 +1404,6 @@ export default function OverviewPage() {
                           transition: "background .1s ease",
                           animationDelay: `${idx * 15}ms`,
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc"; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
                       >
                         {/* Details */}
                         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
@@ -1432,18 +1423,13 @@ export default function OverviewPage() {
                           </div>
                         </div>
                         {/* Status */}
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full capitalize ${
-                          act.status === 'done' ? 'bg-green-100 text-green-800' :
-                          act.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
-                          act.status === 'serving' ? 'bg-blue-100 text-blue-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            act.status === 'done' ? 'bg-green-600' :
-                            act.status === 'waiting' ? 'bg-yellow-600' :
-                            act.status === 'serving' ? 'bg-blue-600' :
-                            'bg-gray-500'
-                          }`} />
+                        <span style={{
+                          background: act.status === 'done' ? 'var(--q-green-bg)' : act.status === 'waiting' ? 'var(--q-amber-bg)' : act.status === 'serving' ? 'var(--q-blue-bg)' : 'var(--q-slate-bg)',
+                          color: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
+                        }} className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full capitalize">
+                          <span style={{
+                            background: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
+                          }} className="w-1.5 h-1.5 rounded-full" />
                           {act.status}
                         </span>
                         {/* Time */}
@@ -1612,11 +1598,11 @@ function MetricCard({
 
       {/* colored bottom bar */}
       <div style={{ marginTop: 20, height: 3, borderRadius: 99, background: bg, overflow: "hidden", opacity: value === 0 ? 0 : 1, transition: "opacity 0.3s ease" }}>
-        <div style={{ height: "100%", width: muted ? "18%" : "65%", background: `linear-gradient(90deg, ${color}, ${color}cc)`, borderRadius: 99, opacity: muted ? .4 : .75 }} />
+        <div style={{ height: "100%", width: "65%", background: `linear-gradient(90deg, ${color}, ${color}cc)`, borderRadius: 99, opacity: muted ? .4 : .75 }} />
       </div>
 
       {/* trend & subtext footer */}
-      <div style={{ marginTop: 12, minHeight: 20 }}>
+      <div style={{ marginTop: 12, height: 39, display: "flex", flexDirection: "column", justifyContent: "flex-start" }}>
         {trend ? (
           <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: trend.up ? C.green : C.red }}>
             {trend.up ? "↑" : "↓"}
@@ -1624,16 +1610,20 @@ function MetricCard({
             <span style={{ color: C.textMuted, fontWeight: 400, marginLeft: 4 }}>{comparisonLabel || "vs last session"}</span>
           </div>
         ) : (
-          comparisonLabel && (
+          comparisonLabel ? (
             <div style={{ fontSize: 12, color: C.textMuted, fontWeight: 400 }}>
               {comparisonLabel}
             </div>
+          ) : (
+            <div style={{ height: 18 }} />
           )
         )}
-        {subtext && (
+        {subtext ? (
           <div style={{ marginTop: (trend || comparisonLabel) ? 4 : 0, fontSize: 11.5, color: C.textMuted, fontWeight: 500 }}>
             {subtext}
           </div>
+        ) : (
+          <div style={{ height: 17, marginTop: (trend || comparisonLabel) ? 4 : 0 }} />
         )}
       </div>
 

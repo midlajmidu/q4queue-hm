@@ -35,7 +35,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return (
         <ProtectedRoute>
             <NotificationProvider>
-                <div className="bg-gray-50 flex min-h-screen">
+                <div className="flex min-h-screen" style={{ background: "var(--q-page-bg)" }}>
                     {/* Main sidebar – shown on all pages except the queue detail page */}
                 {!isManageQueuePage && (
                     <Sidebar

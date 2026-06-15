@@ -160,23 +160,23 @@ export function TopBar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
     const breadcrumbSegments = segments.length > 2 ? segments.slice(2) : segments.slice(1);
     
     return (
-        <header className="sticky top-0 z-20 w-full h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 w-full h-16 bg-white dark:bg-[#0b1121] border-b border-gray-200 dark:border-white/5 flex items-center justify-between px-4 sm:px-6 lg:px-8">
             {/* Left: Hamburger (Mobile) + Breadcrumbs (Desktop) */}
             <div className="flex items-center gap-3">
                 <button
                     onClick={onOpenMobileMenu}
-                    className="lg:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-md focus:outline-none transition-colors"
+                    className="lg:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-md focus:outline-none transition-colors"
                     aria-label="Open menu"
                 >
                     <Icons.Menu size={20} />
                 </button>
-                <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-500">
-                    <span className="text-gray-900 capitalize">
+                <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                    <span className="text-gray-900 dark:text-white capitalize">
                         {breadcrumbSegments[0] || "Overview"}
                     </span>
                     {breadcrumbSegments.length > 1 && (
                         <>
-                            <Icons.ChevronRight size={14} className="text-gray-400" />
+                            <Icons.ChevronRight size={14} className="text-gray-400 dark:text-gray-600" />
                             <span className="capitalize">{breadcrumbSegments[1]}</span>
                         </>
                     )}
@@ -191,22 +191,22 @@ export function TopBar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
                     <input 
                         type="text" 
                         placeholder="Search..." 
-                        className="w-full h-9 pl-9 pr-3 bg-gray-50 border border-gray-200 rounded-md text-[13px] text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-gray-400"
+                        className="w-full h-9 pl-9 pr-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-md text-[13px] text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-gray-400"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                        <kbd className="px-1.5 py-0.5 text-[10px] font-semibold text-gray-400 bg-white border border-gray-200 rounded shadow-sm">⌘K</kbd>
+                        <kbd className="px-1.5 py-0.5 text-[10px] font-semibold text-gray-400 dark:text-gray-500 bg-white dark:bg-white/10 border border-gray-200 dark:border-white/5 rounded shadow-sm">⌘K</kbd>
                     </div>
                 </div>
 
-                <div className="w-px h-6 bg-gray-200 hidden sm:block" />
+                <div className="w-px h-6 bg-gray-200 dark:bg-white/10 hidden sm:block" />
 
                 <NotificationSystem />
 
-                <div className="flex items-center gap-2.5 p-1 pr-2.5 bg-gray-50 border border-gray-200 rounded-full hover:border-gray-300 transition-colors cursor-pointer">
+                <div className="flex items-center gap-2.5 p-1 pr-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full hover:border-gray-300 dark:hover:border-white/20 transition-colors cursor-pointer">
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-bold text-[11px] shadow-sm">
                         {user?.email?.[0]?.toUpperCase() || "A"}
                     </div>
-                    <span className="hidden sm:block text-[12px] font-semibold text-gray-700 tracking-tight">
+                    <span className="hidden sm:block text-[12px] font-semibold text-gray-700 dark:text-gray-200 tracking-tight">
                         {user?.email?.split("@")[0] || "Admin"}
                     </span>
                 </div>

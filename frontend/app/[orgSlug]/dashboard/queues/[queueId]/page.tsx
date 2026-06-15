@@ -17,56 +17,53 @@ import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem } from 
 
 // ─── Design System ────────────────────────────────────────────────
 const T = {
-  // Sidebar
-  sidebarBg:    "#ffffff",
-  sidebarBorder:"#e4e7ef",
-  // Page
-  pageBg: "#f9fafb",
-  // Cards
-  cardBg: "#ffffff",
-  cardBorder:   "#e4e7ef",
-  cardBorderHov:"#c9cfe0",
-  cardShadow:   "0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04)",
-  cardShadowHov:"0 4px 20px rgba(0,0,0,.10)",
-  // Text
-  text: "#111827",
-  textSub: "#6b7280",
-  textMuted: "#9ca3af",
-  textInverse:  "#ffffff",
-  textSidebarMuted: "#6b7280",
-  // Brand (electric indigo)
-  brand:        "#5b5ef4",
-  brandDark:    "#4a4ce8",
-  brandLight:   "#eeefff",
-  brandBorder:  "#c7c9fb",
-  brandGlow:    "rgba(91,94,244,.15)",
-  // Accents
-  green:        "#16a34a", greenBg: "#f0fdf4", greenBorder: "#bbf7d0",
-  amber:        "#d97706", amberBg: "#fffbeb", amberBorder: "#fde68a",
-  red:          "#dc2626", redBg:   "#fef2f2", redBorder:   "#fecaca",
-  blue:         "#2563eb", blueBg:  "#eff6ff", blueBorder:  "#bfdbfe",
-  violet:       "#7c3aed", violetBg:"#f5f3ff",
-  cyan:         "#0e7490", cyanBg:  "#ecfeff",
-  // Sidebar nav
-  navActive:    "#5b5ef4",
-  navHoverBg:   "#f8f9fc",
-  navText:      "#5a6479",
-  navActiveText:"#ffffff",
+    // Sidebar
+    sidebarBg: "#ffffff",
+    sidebarBorder: "#e4e7ef",
+    // Page
+    pageBg: "#f9fafb",
+    // Cards
+    cardBg: "#ffffff",
+    cardBorder: "#e4e7ef",
+    cardBorderHov: "#c9cfe0",
+    cardShadow: "0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04)",
+    cardShadowHov: "0 4px 20px rgba(0,0,0,.10)",
+    // Text
+    text: "#111827",
+    textSub: "#6b7280",
+    textMuted: "#9ca3af",
+    textInverse: "#ffffff",
+    textSidebarMuted: "#6b7280",
+    // Brand (electric indigo)
+    brand: "#5b5ef4",
+    brandDark: "#4a4ce8",
+    brandLight: "#eeefff",
+    brandBorder: "#c7c9fb",
+    brandGlow: "rgba(91,94,244,.15)",
+    // Accents
+    green: "#16a34a", greenBg: "#f0fdf4", greenBorder: "#bbf7d0",
+    amber: "#d97706", amberBg: "#fffbeb", amberBorder: "#fde68a",
+    red: "#dc2626", redBg: "#fef2f2", redBorder: "#fecaca",
+    blue: "#2563eb", blueBg: "#eff6ff", blueBorder: "#bfdbfe",
+    violet: "#7c3aed", violetBg: "#f5f3ff",
+    cyan: "#0e7490", cyanBg: "#ecfeff",
+    // Sidebar nav
+    navActive: "#5b5ef4",
+    navHoverBg: "#f8f9fc",
+    navText: "#5a6479",
+    navActiveText: "#ffffff",
 };
 
 const QD_STYLES = `
 
   .qd-root {
     
-    color: ${T.text};
-    -webkit-font-smoothing: antialiased;
+        -webkit-font-smoothing: antialiased;
     letter-spacing: -0.01em;
   }
 
   /* ── Sidebar ── */
   .qd-sidebar {
-    background: ${T.sidebarBg};
-    border-right: 1px solid ${T.sidebarBorder};
     display: flex;
     flex-direction: column;
   }
@@ -99,8 +96,6 @@ const QD_STYLES = `
 
   /* ── Cards ── */
   .qd-card {
-    background: ${T.cardBg};
-    border: 1px solid ${T.cardBorder};
     border-radius: 8px;
     box-shadow: ${T.cardShadow};
     transition: box-shadow .25s ease, border-color .25s ease;
@@ -114,8 +109,6 @@ const QD_STYLES = `
   .serving-card {
     position: relative;
     overflow: hidden;
-    background: linear-gradient(180deg, #f8f9ff 0%, ${T.cardBg} 100%);
-    border: 1px solid ${T.cardBorder};
     border-radius: 20px;
     box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 8px 32px rgba(91,94,244,.06);
   }
@@ -131,7 +124,6 @@ const QD_STYLES = `
     
     font-weight: 800;
     font-variant-numeric: tabular-nums;
-    color: ${T.brand};
     line-height: 1;
     letter-spacing: -0.04em;
   }
@@ -250,8 +242,6 @@ const QD_STYLES = `
     border: 1.5px solid ${T.cardBorder};
     border-radius: 9px;
     
-    color: ${T.text};
-    background: #fafbfc;
     outline: none;
     transition: border-color .18s, box-shadow .18s;
     letter-spacing: -0.01em;
@@ -283,8 +273,6 @@ const QD_STYLES = `
 
   /* ── Control Panels ── */
   .qd-control-panel {
-    background: #fafbfc;
-    border: 1px solid ${T.cardBorder};
     border-radius: 8px;
     padding: 16px 18px;
     transition: border-color .2s;
@@ -312,7 +300,6 @@ const QD_STYLES = `
     font-size: clamp(20px,2.5vw,26px);
     font-weight: 800;
     letter-spacing: -0.03em;
-    color: ${T.text};
     margin: 0;
     
   }
@@ -411,7 +398,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        api.getQueue(queueId).then(setInitialQueue).catch(() => {});
+        api.getQueue(queueId).then(setInitialQueue).catch(() => { });
     }, [queueId]);
 
     const isDisabled = actionLoading !== null;
@@ -602,541 +589,542 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     if (!isMounted) {
         return (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", minHeight: "100vh", background: T.pageBg }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", minHeight: "100vh", /* background removed */ }}>
                 <span style={{ width: 28, height: 28, marginBottom: 12, border: `3px solid ${T.brandLight}`, borderTopColor: T.brand, borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: T.textSub }}>Loading Queue…</span>
+                <span className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, fontWeight: 600 }}>Loading Queue…</span>
             </div>
         );
     }
 
     return (
         <>
-        <style>{QD_STYLES}</style>
-        <div className="qd-root" style={{ display: "flex", width: "100%", height: "100%", background: T.pageBg }}>
+            <style>{QD_STYLES}</style>
+            <div className="qd-root bg-gray-50 dark:bg-transparent" style={{ display: "flex", width: "100%", height: "100%" }}>
 
-            {/* ── Dark Sidebar ─────────────────────────────────── */}
-            <aside className="qd-sidebar hidden md:flex" style={{ width: 232, flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}>
-                {/* Back link */}
-                <div style={{ padding: "18px 14px 14px", borderBottom: `1px solid ${T.sidebarBorder}` }}>
-                    <Link
-                        href={`${dashBase}/sessions`}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 500, color: "#6b7280", textDecoration: "none", transition: "color .15s" }}
-                        onMouseEnter={e => (e.currentTarget.style.color = "#111827")}
-                        onMouseLeave={e => (e.currentTarget.style.color = "#6b7280")}
-                    >
-                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
-                        Back to Sessions
-                    </Link>
-                </div>
-
-                {/* Queue identity */}
-                <div style={{ padding: "14px", borderBottom: `1px solid ${T.sidebarBorder}` }}>
-                    <p style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#4b5563", marginBottom: 6 }}>Managing</p>
-                    <p style={{ fontSize: 13.5, fontWeight: 700, color: "#111827", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{queueName}</p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: isActive ? "#22c55e" : "#ef4444", display: "inline-block", boxShadow: isActive ? "0 0 6px rgba(34,197,94,.7)" : "none", animation: isActive ? "pulse-dot 2s infinite" : "none" }} />
-                        <span style={{ fontSize: 11.5, fontWeight: 600, color: isActive ? "#22c55e" : "#f87171" }}>{isActive ? "Active" : "Inactive"}</span>
-                    </div>
-                </div>
-
-                {/* Nav */}
-                <nav style={{ flex: 1, padding: "12px 8px", overflowY: "auto" }}>
-                    <p style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#4b5563", padding: "0 6px", marginBottom: 8 }}>Queue Management</p>
-                    {navItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveSection(item.id)}
-                            className={`qd-nav-item${activeSection === item.id ? " active" : ""}`}
-                            style={{ marginBottom: 2 }}
+                {/* ── Dark Sidebar ─────────────────────────────────── */}
+                <aside className="qd-sidebar hidden md:flex bg-white dark:bg-transparent border-r border-[#e4e7ef] dark:border-white/10" style={{ width: 232, flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}>
+                    {/* Back link */}
+                    <div style={{ padding: "18px 14px 14px", borderBottom: `1px solid ${T.sidebarBorder}` }}>
+                        <Link
+                            href={`${dashBase}/sessions`}
+                            className="text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                            style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 500, textDecoration: "none" }}
                         >
-                            <span style={{ flexShrink: 0, opacity: activeSection === item.id ? 1 : 0.6 }}>{item.icon}</span>
-                            <span style={{ flex: 1, fontSize: 13 }}>{item.label}</span>
-                            {item.id === "announcement" && (state?.announcement || initialQueue?.announcement) && (
-                                <span style={{ width: 6, height: 6, borderRadius: "50%", background: activeSection === item.id ? "rgba(255,255,255,.5)" : T.brand, display: "inline-block", flexShrink: 0 }} />
-                            )}
-                        </button>
-                    ))}
-                </nav>
+                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                            Back to Sessions
+                        </Link>
+                    </div>
 
-                {/* Connection badge */}
-                <div style={{ padding: "12px 14px", borderTop: `1px solid ${T.sidebarBorder}` }}>
-                    <ConnectionBadge status={status} />
-                </div>
-            </aside>
+                    {/* Queue identity */}
+                    <div style={{ padding: "14px", borderBottom: `1px solid ${T.sidebarBorder}` }}>
+                        <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 6 }}>Managing</p>
+                        <p className="text-gray-900 dark:text-white" style={{ fontSize: 13.5, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{queueName}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7 }}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: isActive ? "#22c55e" : "#ef4444", display: "inline-block", boxShadow: isActive ? "0 0 6px rgba(34,197,94,.7)" : "none", animation: isActive ? "pulse-dot 2s infinite" : "none" }} />
+                            <span style={{ fontSize: 11.5, fontWeight: 600, color: isActive ? "#22c55e" : "#f87171" }}>{isActive ? "Active" : "Inactive"}</span>
+                        </div>
+                    </div>
 
-            {/* ── Main Content ──────────────────────────────────── */}
-            <div style={{ flex: 1, overflowY: "auto", background: T.pageBg }}>
-                <div style={{ padding: "28px 28px 56px", maxWidth: 1160, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+                    {/* Nav */}
+                    <nav style={{ flex: 1, padding: "12px 8px", overflowY: "auto" }}>
+                        <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", padding: "0 6px", marginBottom: 8 }}>Queue Management</p>
+                        {navItems.map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveSection(item.id)}
+                                className={`qd-nav-item${activeSection === item.id ? " active" : ""}`}
+                                style={{ marginBottom: 2 }}
+                            >
+                                <span style={{ flexShrink: 0, opacity: activeSection === item.id ? 1 : 0.6 }}>{item.icon}</span>
+                                <span className="text-gray-700 dark:text-slate-400" style={{ flex: 1, fontSize: 13 }}>{item.label}</span>
+                                {item.id === "announcement" && (state?.announcement || initialQueue?.announcement) && (
+                                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.brand, display: "inline-block", flexShrink: 0 }} />
+                                )}
+                            </button>
+                        ))}
+                    </nav>
 
-                    {/* ═══════════════════════════════════════════
+                    {/* Connection badge */}
+                    <div style={{ padding: "12px 14px", borderTop: `1px solid ${T.sidebarBorder}` }}>
+                        <ConnectionBadge status={status} />
+                    </div>
+                </aside>
+
+                {/* ── Main Content ──────────────────────────────────── */}
+                <div className="bg-gray-50 dark:bg-transparent" style={{ flex: 1, overflowY: "auto" }}>
+                    <div style={{ padding: "28px 28px 56px", maxWidth: 1160, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+
+                        {/* ═══════════════════════════════════════════
                         SECTION: Dashboard / Queues
                     ════════════════════════════════════════════ */}
-                    {activeSection === "queues" && (
-                        <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+                        {activeSection === "queues" && (
+                            <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
 
-                            {/* Header */}
-                            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
-                                <div>
-                                    <h1 className="qd-section-title">{queueName}</h1>
-                                    <p style={{ fontSize: 13, color: T.textSub, marginTop: 4 }}>
-                                        Prefix: <span className="mono" style={{ fontWeight: 600, color: T.brand, background: T.brandLight, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
-                                    </p>
+                                {/* Header */}
+                                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
+                                    <div>
+                                        <h1 className="qd-section-title text-gray-900 dark:text-white">{queueName}</h1>
+                                        <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
+                                            Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
+                                        </p>
+                                    </div>
+
+                                    {!isStaff && (
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                            <button
+                                                onClick={() => setShowResetConfirm(true)}
+                                                disabled={isDisabled || resetting}
+                                                className="dark:bg-slate-800 dark:text-white dark:border-white/10"
+                                                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: `1.5px solid ${T.amberBorder}`, cursor: "pointer", transition: "all .18s" }}
+                                            >
+                                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                Reset
+                                            </button>
+                                            <a
+                                                href={`/display/${queueId}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="dark:bg-slate-800 dark:text-white dark:border-white/10"
+                                                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: `1.5px solid ${T.brandBorder}`, textDecoration: "none", transition: "all .18s" }}
+                                            >
+                                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                                Display
+                                            </a>
+                                            <button
+                                                onClick={() => setShowDeleteConfirm(true)}
+                                                className="dark:bg-slate-800 dark:text-white dark:border-white/10"
+                                                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: `1.5px solid ${T.redBorder}`, cursor: "pointer", transition: "all .18s" }}
+                                            >
+                                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                Delete
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {!isStaff && (
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                                        <button
-                                            onClick={() => setShowResetConfirm(true)}
-                                            disabled={isDisabled || resetting}
-                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: `1.5px solid ${T.amberBorder}`, background: T.amberBg, color: "#92400e", cursor: "pointer", transition: "all .18s" }}
-                                        >
-                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                            Reset
-                                        </button>
-                                        <a
-                                            href={`/display/${queueId}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: `1.5px solid ${T.brandBorder}`, background: T.brandLight, color: T.brand, textDecoration: "none", transition: "all .18s" }}
-                                        >
-                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                                            Display
-                                        </a>
-                                        <button
-                                            onClick={() => setShowDeleteConfirm(true)}
-                                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: `1.5px solid ${T.redBorder}`, background: T.redBg, color: T.red, cursor: "pointer", transition: "all .18s" }}
-                                        >
-                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                            Delete
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                                {/* Main 2-col Grid */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                                    {/* Left: Serving + Actions */}
+                                    <div className="lg:col-span-2 space-y-4">
 
-                            {/* Main 2-col Grid */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                                {/* Left: Serving + Actions */}
-                                <div className="lg:col-span-2 space-y-4">
-
-                                    {/* Hero – Now Serving */}
-                                    <div className="serving-card" style={{ padding: "40px 32px 36px", textAlign: "center", minHeight: 280, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
-                                        {/* Label */}
-                                        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: T.brandLight, border: `1px solid ${T.brandBorder}`, borderRadius: 99, padding: "5px 16px", marginBottom: 20, position: "relative", zIndex: 1 }}>
-                                            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.brand, display: "inline-block", animation: "pulse-dot 2s infinite" }} />
-                                            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: T.brand }}>Now Serving</span>
-                                        </div>
-
-                                        {/* Token Number */}
-                                        <div className="serving-num" style={{ fontSize: "clamp(72px,11vw,116px)", position: "relative", zIndex: 1 }} aria-live="polite" aria-atomic="true">
-                                            {state?.prefix || ""}{state?.current_serving || 0}
-                                        </div>
-
-                                        {/* Customer Details */}
-                                        {state?.serving_details && (
-                                            <div className="fade-in" style={{ marginTop: 16, position: "relative", zIndex: 1, textAlign: "center" }}>
-                                                <p style={{ fontSize: 18, fontWeight: 700, color: T.text, letterSpacing: "-.02em", margin: 0 }}>{state.serving_details.customer_name}</p>
-                                                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "3px 8px", marginTop: 4, fontSize: 13, color: T.textSub, fontWeight: 500 }}>
-                                                    {state.serving_details.customer_age != null && <span>Age {state.serving_details.customer_age}</span>}
-                                                    {state.serving_details.customer_age != null && <span>·</span>}
-                                                    <span>{state.serving_details.customer_phone}</span>
-                                                </div>
+                                        {/* Hero – Now Serving */}
+                                        <div className="serving-card bg-white dark:bg-slate-900 dark:border-white/10" style={{ padding: "40px 32px 36px", textAlign: "center", minHeight: 280, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                                            {/* Label */}
+                                            <div style={{ display: "inline-flex", alignItems: "center", gap: 8,  border: `1px solid ${T.brandBorder}`, borderRadius: 99, padding: "5px 16px", marginBottom: 20, position: "relative", zIndex: 1 }}>
+                                                <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.brand, display: "inline-block", animation: "pulse-dot 2s infinite" }} />
+                                                <span className="text-blue-600 dark:text-blue-400" style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" }}>Now Serving</span>
                                             </div>
-                                        )}
 
-                                        {/* Stat Chips */}
-                                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 28, position: "relative", zIndex: 1, flexWrap: "wrap", justifyContent: "center" }}>
-                                            <span className="stat-chip" style={{ background: T.amberBg, border: `1px solid ${T.amberBorder}`, color: T.amber }}>
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                Waiting: <strong>{state?.waiting_count ?? 0}</strong>
-                                            </span>
-                                            <span className="stat-chip" style={{ background: T.blueBg, border: `1px solid ${T.blueBorder}`, color: T.blue }}>
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                                                Issued: <strong>{state?.total_issued ?? 0}</strong>
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Action buttons */}
-                                    <div className="qd-action-grid" role="toolbar">
-                                        <button
-                                            onClick={handleNext}
-                                            disabled={isDisabled}
-                                            className="qd-btn-call-next"
-                                        >
-                                            {actionLoading === "next" ? (
-                                                <>
-                                                    <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                                                    Calling…
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                                                    Call Next
-                                                    <kbd style={{ fontSize: 10, opacity: .5, marginLeft: 2, padding: "1px 6px", borderRadius: 4, background: "rgba(255,255,255,.15)" }}>↵</kbd>
-                                                </>
-                                            )}
-                                        </button>
-
-                                        <button
-                                            onClick={() => performAction("done", async () => {
-                                                const res = await api.callNext(queueId, "done");
-                                                if ("message" in res) toast(res.message, "info");
-                                                else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
-                                            })}
-                                            disabled={isDisabled}
-                                            className="qd-btn-done-next"
-                                        >
-                                            {actionLoading === "done" ? (
-                                                <>
-                                                    <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                                                    Completing…
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
-                                                    Done & Next
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-
-                                    {/* Manual Controls Row */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        {/* Manual Entry */}
-                                        <div className="qd-control-panel">
-                                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                                                <span style={{ width: 26, height: 26, borderRadius: 7, background: T.brandLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                    <svg width="13" height="13" fill="none" stroke={T.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                                                </span>
-                                                <p style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.textMuted, margin: 0 }}>Manual Entry</p>
+                                            {/* Token Number */}
+                                            <div className="serving-num dark:text-white" style={{ fontSize: "clamp(72px,11vw,116px)", position: "relative", zIndex: 1 }} aria-live="polite" aria-atomic="true">
+                                                {state?.prefix || ""}{state?.current_serving || 0}
                                             </div>
-                                            {!showAddForm ? (
-                                                <button
-                                                    onClick={() => setShowAddForm(true)}
-                                                    disabled={isDisabled}
-                                                    style={{ width: "100%", padding: "9px 14px", background: "#fff", border: `1.5px dashed ${T.cardBorder}`, borderRadius: 9, color: T.textSub, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all .18s" }}
-                                                    onMouseEnter={e => { e.currentTarget.style.borderColor = T.brand; e.currentTarget.style.color = T.brand; }}
-                                                    onMouseLeave={e => { e.currentTarget.style.borderColor = T.cardBorder; e.currentTarget.style.color = T.textSub; }}
-                                                >
-                                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                                                    Add Customer
-                                                </button>
-                                            ) : (
-                                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                                    <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="Full Name *" maxLength={50} className="qd-input" style={{ fontSize: 13 }} />
-                                                    <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="Phone *" className="qd-input" style={{ fontSize: 13 }} />
-                                                    <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="Age (optional)" className="qd-input" style={{ fontSize: 13 }} />
-                                                    <div style={{ display: "flex", gap: 7 }}>
-                                                        <button onClick={handleAddCustomer} disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add"} style={{ flex: 1, padding: "8px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!addName.trim() || !addPhone.trim()) ? .4 : 1 }}>
-                                                            {actionLoading === "add" ? "Adding…" : "Confirm"}
-                                                        </button>
-                                                        <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); }} style={{ flex: 1, padding: "8px", background: "#f4f5f8", border: `1px solid ${T.cardBorder}`, borderRadius: 8, color: T.textSub, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-                                                            Cancel
-                                                        </button>
+
+                                            {/* Customer Details */}
+                                            {state?.serving_details && (
+                                                <div className="fade-in" style={{ marginTop: 16, position: "relative", zIndex: 1, textAlign: "center" }}>
+                                                    <p style={{ fontSize: 18, fontWeight: 700,  letterSpacing: "-.02em", margin: 0 }}>{state.serving_details.customer_name}</p>
+                                                    <div className="text-gray-600 dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "3px 8px", marginTop: 4, fontSize: 13, fontWeight: 500 }}>
+                                                        {state.serving_details.customer_age != null && <span>Age {state.serving_details.customer_age}</span>}
+                                                        {state.serving_details.customer_age != null && <span>·</span>}
+                                                        <span>{state.serving_details.customer_phone}</span>
                                                     </div>
                                                 </div>
                                             )}
+
+                                            {/* Stat Chips */}
+                                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 28, position: "relative", zIndex: 1, flexWrap: "wrap", justifyContent: "center" }}>
+                                                <span className="stat-chip" style={{  border: `1px solid ${T.amberBorder}`, color: T.amber }}>
+                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                    Waiting: <strong>{state?.waiting_count ?? 0}</strong>
+                                                </span>
+                                                <span className="stat-chip" style={{ background: T.blueBg, border: `1px solid ${T.blueBorder}`, color: T.blue }}>
+                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                                    Issued: <strong>{state?.total_issued ?? 0}</strong>
+                                                </span>
+                                            </div>
                                         </div>
 
-                                        {/* Invite by Number */}
-                                        <div className="qd-control-panel">
-                                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                                                <span style={{ width: 26, height: 26, borderRadius: 7, background: T.brandLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                    <svg width="13" height="13" fill="none" stroke={T.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                                                </span>
-                                                <p style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.textMuted, margin: 0 }}>Invite by Number</p>
-                                            </div>
-                                            <form onSubmit={handleInvite} style={{ display: "flex", gap: 7 }}>
-                                                <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="qd-input" style={{ fontSize: 13 }} />
-                                                <button type="submit" disabled={!inviteNumber || isDisabled} style={{ padding: "9px 16px", fontSize: 13, fontWeight: 700, borderRadius: 9, border: `1.5px solid ${T.brandBorder}`, background: T.brandLight, color: T.brand, cursor: "pointer", whiteSpace: "nowrap", opacity: !inviteNumber ? .4 : 1 }}>
-                                                    Call
-                                                </button>
-                                            </form>
+                                        {/* Action buttons */}
+                                        <div className="qd-action-grid" role="toolbar">
+                                            <button
+                                                onClick={handleNext}
+                                                disabled={isDisabled}
+                                                className="qd-btn-call-next"
+                                            >
+                                                {actionLoading === "next" ? (
+                                                    <>
+                                                        <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                        Calling…
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                                                        Call Next
+                                                        <kbd style={{ fontSize: 10, opacity: .5, marginLeft: 2, padding: "1px 6px", borderRadius: 4, background: "rgba(255,255,255,.15)" }}>↵</kbd>
+                                                    </>
+                                                )}
+                                            </button>
+
+                                            <button
+                                                onClick={() => performAction("done", async () => {
+                                                    const res = await api.callNext(queueId, "done");
+                                                    if ("message" in res) toast(res.message, "info");
+                                                    else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
+                                                })}
+                                                disabled={isDisabled}
+                                                className="qd-btn-done-next"
+                                            >
+                                                {actionLoading === "done" ? (
+                                                    <>
+                                                        <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                        Completing…
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                                                        Done & Next
+                                                    </>
+                                                )}
+                                            </button>
                                         </div>
 
-                                        {/* Remove by Number */}
-                                        <div className="qd-control-panel">
-                                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                                                <span style={{ width: 26, height: 26, borderRadius: 7, background: T.redBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                    <svg width="13" height="13" fill="none" stroke={T.red} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                </span>
-                                                <p style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.textMuted, margin: 0 }}>Remove by Number</p>
+                                        {/* Manual Controls Row */}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            {/* Manual Entry */}
+                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900 border-[#e4e7ef] dark:border-white/10">
+                                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                                                    <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                        <svg width="13" height="13" fill="none" stroke={T.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                                                    </span>
+                                                    <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Manual Entry</p>
+                                                </div>
+                                                {!showAddForm ? (
+                                                    <button
+                                                        onClick={() => setShowAddForm(true)}
+                                                        disabled={isDisabled}
+                                                        style={{ width: "100%", padding: "9px 14px", /* background: "#fff" */ border: `1.5px dashed ${T.cardBorder}`, borderRadius: 9, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all .18s" }}
+                                                        onMouseEnter={e => { e.currentTarget.style.borderColor = T.brand; e.currentTarget.style.color = T.brand; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.borderColor = T.cardBorder; e.currentTarget.style.color = T.textSub; }}
+                                                    >
+                                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                                                        Add Customer
+                                                    </button>
+                                                ) : (
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                                        <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="Full Name *" maxLength={50} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ fontSize: 13 }} />
+                                                        <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="Phone *" className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ fontSize: 13 }} />
+                                                        <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="Age (optional)" className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ fontSize: 13 }} />
+                                                        <div style={{ display: "flex", gap: 7 }}>
+                                                            <button onClick={handleAddCustomer} disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add"} style={{ flex: 1, padding: "8px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!addName.trim() || !addPhone.trim()) ? .4 : 1 }}>
+                                                                {actionLoading === "add" ? "Adding…" : "Confirm"}
+                                                            </button>
+                                                            <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); }} className="text-gray-600 dark:text-slate-300 dark:bg-slate-800 dark:border-white/10" style={{ flex: 1, padding: "8px", background: "#f4f5f8", border: `1px solid ${T.cardBorder}`, borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <form onSubmit={handleRemoveByNumber} style={{ display: "flex", gap: 7 }}>
-                                                <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="qd-input" style={{ fontSize: 13 }} />
-                                                <button type="submit" disabled={!removeNumber || isDisabled} style={{ padding: "9px 14px", fontSize: 13, fontWeight: 700, borderRadius: 9, border: `1.5px solid ${T.redBorder}`, background: T.redBg, color: T.red, cursor: "pointer", whiteSpace: "nowrap", opacity: !removeNumber ? .4 : 1 }}>
-                                                    Remove
-                                                </button>
-                                            </form>
+
+                                            {/* Invite by Number */}
+                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900 border-[#e4e7ef] dark:border-white/10">
+                                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                                                    <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                        <svg width="13" height="13" fill="none" stroke={T.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                                    </span>
+                                                    <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Invite by Number</p>
+                                                </div>
+                                                <form onSubmit={handleInvite} style={{ display: "flex", gap: 7 }}>
+                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ fontSize: 13 }} />
+                                                    <button type="submit" disabled={!inviteNumber || isDisabled} className="text-blue-600 dark:text-blue-400 dark:border-white/10 dark:bg-slate-800" style={{ padding: "9px 16px", fontSize: 13, fontWeight: 700, borderRadius: 9, border: `1.5px solid ${T.brandBorder}`, cursor: "pointer", whiteSpace: "nowrap", opacity: !inviteNumber ? .4 : 1 }}>
+                                                        Call
+                                                    </button>
+                                                </form>
+                                            </div>
+
+                                            {/* Remove by Number */}
+                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900 border-[#e4e7ef] dark:border-white/10">
+                                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                                                    <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                        <svg width="13" height="13" fill="none" stroke={T.red} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </span>
+                                                    <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Remove by Number</p>
+                                                </div>
+                                                <form onSubmit={handleRemoveByNumber} style={{ display: "flex", gap: 7 }}>
+                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ fontSize: 13 }} />
+                                                    <button type="submit" disabled={!removeNumber || isDisabled} style={{ padding: "9px 14px", fontSize: 13, fontWeight: 700, borderRadius: 9, border: `1.5px solid ${T.redBorder}`,  color: T.red, cursor: "pointer", whiteSpace: "nowrap", opacity: !removeNumber ? .4 : 1 }}>
+                                                        Remove
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
+
+                                        {/* Status banners */}
+                                        {actionError && (
+                                            <div role="alert" style={{  color: "#991b1b", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.redBorder}`, fontSize: 13, fontWeight: 500 }}>
+                                                {actionError}
+                                            </div>
+                                        )}
+                                        {status === "disconnected" && (
+                                            <div role="alert" style={{  color: "#78350f", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.amberBorder}`, fontSize: 13 }}>
+                                                <strong>Connection lost.</strong> Retrying connection to live updates. Manual actions are still available.
+                                            </div>
+                                        )}
+                                        {status === "reconnecting" && (
+                                            <div role="status" style={{ background: T.blueBg, color: "#1d4ed8", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.blueBorder}`, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+                                                <span style={{ width: 14, height: 14, border: "#e5e7eb", borderTopColor: "#2563eb", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                Reconnecting to live updates…
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {/* Status banners */}
+                                    {/* Right: Lists */}
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+                                        {/* Waiting List */}
+                                        <aside className="qd-card bg-white dark:bg-slate-900 dark:border-white/10" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }} aria-label="Waiting list">
+                                            <div style={{ padding: "14px 18px 10px", borderBottom: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
+                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                        <span style={{ width: 24, height: 24, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                            <svg width="12" height="12" fill="none" stroke={T.amber} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                        </span>
+                                                        <h2 style={{ fontSize: 13, fontWeight: 700,  margin: 0 }}>Waiting List</h2>
+                                                    </div>
+                                                    <span className="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontSize: 11, fontWeight: 800, padding: "2px 9px", borderRadius: 99 }}>{state?.waiting_count ?? 0}</span>
+                                                </div>
+                                                <div style={{ position: "relative" }}>
+                                                    <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
+                                                        <svg width="13" height="13" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                    </span>
+                                                    <input type="text" placeholder="Search token…" value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 30, fontSize: 12.5 }} />
+                                                </div>
+                                            </div>
+                                            <div className="scrollbar-hide" style={{ flex: 1, overflowY: "auto", maxHeight: 310 }}>
+                                                {paginatedWaiting.length > 0 ? paginatedWaiting.map((t: WaitingToken, idx: number) => (
+                                                    <div key={t.id} className="group dark:border-white/10" style={{ padding: "10px 18px", background: idx % 2 === 1 ? "var(--q-row-alt)" : "transparent", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: "inherit", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                                <span className="dark:text-white" style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", minWidth: 48 }}>{state?.prefix || ""}{t.token_number}</span>
+                                                                <span style={{ padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em",  color: T.amber }}>Waiting</span>
+                                                                {manuallyAddedTokens.has(t.token_number)
+                                                                    ? <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.violetBg, color: T.violet }}>Manual</span>
+                                                                    : <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.cyanBg, color: T.cyan }}>Normal</span>
+                                                                }
+                                                            </div>
+                                                            {t.customer_name && (
+                                                                <div className="dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: 11.5, paddingLeft: 56 }}>
+                                                                    <span className="dark:text-white" style={{ fontWeight: 600 }}>{t.customer_name}</span>
+                                                                    {t.customer_age != null && <span>Age: {t.customer_age}</span>}
+                                                                    <span>{t.customer_phone}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                            <button
+                                                                onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName })}
+                                                                className="group-hover-show text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400" style={{ opacity: 0, padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
+                                                                onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
+                                                                onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+                                                            >
+                                                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
+                                                                style={{ opacity: 0, fontSize: 11, fontWeight: 700, padding: "4px 9px",  color: T.red, border: `1px solid ${T.redBorder}`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
+                                                                className="group-hover-show"
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )) : (
+                                                    <div style={{ padding: "40px 18px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                                        <div style={{ width: 42, height: 42, borderRadius: 10,  display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                                                            <svg width="20" height="20" fill="none" stroke={T.brand} viewBox="0 0 24 24" style={{ opacity: .4 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                        </div>
+                                                        <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{waitingSearch ? "No tokens match" : "No one is waiting"}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {filteredWaiting.length > PAGE_SIZE && (
+                                                <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
+                                                    <span>Showing {paginatedWaiting.length} of {filteredWaiting.length}</span>
+                                                    <div style={{ display: "flex", gap: 4 }}>
+                                                        <button onClick={() => setWaitingPage(p => Math.max(1, p - 1))} disabled={waitingPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage === 1 ? .4 : 1 }}>Prev</button>
+                                                        <button onClick={() => setWaitingPage(p => p + 1)} disabled={waitingPage * PAGE_SIZE >= filteredWaiting.length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage * PAGE_SIZE >= filteredWaiting.length ? .4 : 1 }}>Next</button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </aside>
+
+                                        {/* Recent Activity */}
+                                        <aside className="qd-card bg-white dark:bg-slate-900 dark:border-white/10" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }} aria-label="Recent activity">
+                                            <div style={{ padding: "14px 18px 10px", borderBottom: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                    <span style={{ width: 24, height: 24, borderRadius: 7, background: T.greenBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                        <svg width="12" height="12" fill="none" stroke={T.green} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                                                    </span>
+                                                    <h2 style={{ fontSize: 13, fontWeight: 700,  margin: 0 }}>Recent Activity</h2>
+                                                </div>
+                                                <div style={{ position: "relative" }}>
+                                                    <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
+                                                        <svg width="13" height="13" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                    </span>
+                                                    <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 30, fontSize: 12.5 }} />
+                                                </div>
+                                            </div>
+                                            <div className="scrollbar-hide" style={{ flex: 1, overflowY: "auto", maxHeight: 240 }}>
+                                                {paginatedRecent.length > 0 ? paginatedRecent.map((t: RecentToken, i: number) => (
+                                                    <RecentTokenRow
+                                                        key={`${t.token_number}-${i}`}
+                                                        token={t}
+                                                        prefix={state?.prefix || ""}
+                                                        queueName={queueName}
+                                                        isManual={manuallyAddedTokens.has(t.token_number)}
+                                                        onView={setSelectedToken}
+                                                    />
+                                                )) : (
+                                                    <div style={{ padding: "40px 18px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                                        <div style={{ width: 42, height: 42, borderRadius: 10, background: T.greenBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                                                            <svg width="20" height="20" fill="none" stroke={T.green} viewBox="0 0 24 24" style={{ opacity: .4 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                        </div>
+                                                        <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{recentSearch ? "No tokens match" : "No recent activity"}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {filteredRecent.length > PAGE_SIZE && (
+                                                <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
+                                                    <span>Showing {paginatedRecent.length} of {filteredRecent.length}</span>
+                                                    <div style={{ display: "flex", gap: 4 }}>
+                                                        <button onClick={() => setRecentPage(p => Math.max(1, p - 1))} disabled={recentPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: recentPage === 1 ? .4 : 1 }}>Prev</button>
+                                                        <button onClick={() => setRecentPage(p => p + 1)} disabled={recentPage * PAGE_SIZE >= filteredRecent.length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: recentPage * PAGE_SIZE >= filteredRecent.length ? .4 : 1 }}>Next</button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </aside>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ═══════════════════════════════════════════
+                        SECTION: QR Code
+                    ════════════════════════════════════════════ */}
+                        {activeSection === "qrcode" && (
+                            <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+                                <div>
+                                    <h1 className="qd-section-title text-gray-900 dark:text-white">QR Code</h1>
+                                    <p className="qd-section-sub">Share this QR code or link so customers can join the queue from their phones.</p>
+                                </div>
+                                <div style={{ maxWidth: 440 }}>
+                                    <QueueQRCode queueId={queueId} queueName={queueName} isCollapsible={false} />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ═══════════════════════════════════════════
+                        SECTION: Public Announcement
+                    ════════════════════════════════════════════ */}
+                        {activeSection === "announcement" && (
+                            <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+                                <div>
+                                    <h1 className="qd-section-title text-gray-900 dark:text-white">Public Announcement</h1>
+                                    <p className="qd-section-sub">Set a message that will be displayed to all customers currently waiting in the queue.</p>
+                                </div>
+
+                                <div className="qd-card" style={{ padding: 28, maxWidth: 600 }}>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                                        <h3 className="text-gray-500 dark:text-slate-400" style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", margin: 0 }}>Announcement</h3>
+                                        {(state?.announcement || initialQueue?.announcement) && !isEditingAnnouncement && (
+                                            <span className="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontSize: 10, fontWeight: 800, padding: "2px 9px", borderRadius: 5, textTransform: "uppercase", letterSpacing: ".07em" }}>Active</span>
+                                        )}
+                                    </div>
+
+                                    {isEditingAnnouncement ? (
+                                        <form onSubmit={handleUpdateAnnouncement} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                            <textarea
+                                                value={announcementInput}
+                                                onChange={e => setAnnouncementInput(e.target.value)}
+                                                placeholder="Enter a message to display to all customers waiting…"
+                                                disabled={isDisabled || actionLoading === "announcement"}
+                                                style={{ width: "100%", padding: "12px 14px", background: "#fafbfc", border: `1.5px solid ${T.cardBorder}`, borderRadius: 10,  fontSize: 14, resize: "none", height: 120, outline: "none", transition: "border-color .18s" }}
+                                                onFocus={e => (e.currentTarget.style.borderColor = T.brand)}
+                                                onBlur={e => (e.currentTarget.style.borderColor = T.cardBorder)}
+                                            />
+                                            <div style={{ display: "flex", gap: 8 }}>
+                                                <button type="submit" disabled={isDisabled || actionLoading === "announcement"} style={{ padding: "9px 20px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 9, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
+                                                    {actionLoading === "announcement" ? "Saving…" : "Save Announcement"}
+                                                </button>
+                                                <button type="button" onClick={() => setIsEditingAnnouncement(false)} disabled={isDisabled} className="text-gray-600 dark:text-slate-300 dark:bg-slate-800 dark:border-white/10" style={{ padding: "9px 18px", background: "#f4f5f8", border: `1px solid ${T.cardBorder}`, borderRadius: 9, fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}>
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </form>
+                                    ) : (
+                                        <div>
+                                            {(state?.announcement ?? initialQueue?.announcement) ? (
+                                                <div style={{ padding: "14px 16px",  borderRadius: 10, border: `1px solid ${T.brandBorder}`,  fontSize: 14, whiteSpace: "pre-wrap", lineHeight: 1.65, marginBottom: 16 }}>
+                                                    {state?.announcement ?? initialQueue?.announcement}
+                                                </div>
+                                            ) : (
+                                                <div style={{ padding: "28px 16px", background: "#fafbfc", borderRadius: 10, border: `1.5px dashed ${T.cardBorder}`, textAlign: "center", marginBottom: 16 }}>
+                                                    <svg width="28" height="28" fill="none" stroke={T.textMuted} viewBox="0 0 24 24" style={{ opacity: .4, margin: "0 auto 8px" }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+                                                    <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 13, fontStyle: "italic", margin: 0 }}>No active announcement. Set one below to inform waiting customers.</p>
+                                                </div>
+                                            )}
+                                            <button
+                                                onClick={() => setIsEditingAnnouncement(true)}
+                                                disabled={isDisabled}
+                                                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 9, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}
+                                            >
+                                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                {(state?.announcement ?? initialQueue?.announcement) ? "Edit Announcement" : "Set Announcement"}
+                                            </button>
+                                        </div>
+                                    )}
+
                                     {actionError && (
-                                        <div role="alert" style={{ background: T.redBg, color: "#991b1b", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.redBorder}`, fontSize: 13, fontWeight: 500 }}>
+                                        <div role="alert" style={{ marginTop: 14,  color: "#991b1b", padding: "11px 16px", borderRadius: 9, border: `1px solid ${T.redBorder}`, fontSize: 13 }}>
                                             {actionError}
                                         </div>
                                     )}
-                                    {status === "disconnected" && (
-                                        <div role="alert" style={{ background: T.amberBg, color: "#78350f", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.amberBorder}`, fontSize: 13 }}>
-                                            <strong>Connection lost.</strong> Retrying connection to live updates. Manual actions are still available.
-                                        </div>
-                                    )}
-                                    {status === "reconnecting" && (
-                                        <div role="status" style={{ background: T.blueBg, color: "#1d4ed8", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.blueBorder}`, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
-                                            <span style={{ width: 14, height: 14, border: "#e5e7eb", borderTopColor: "#2563eb", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                                            Reconnecting to live updates…
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Right: Lists */}
-                                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-                                    {/* Waiting List */}
-                                    <aside className="qd-card" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }} aria-label="Waiting list">
-                                        <div style={{ padding: "14px 18px 10px", borderBottom: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
-                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                    <span style={{ width: 24, height: 24, borderRadius: 7, background: T.amberBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                        <svg width="12" height="12" fill="none" stroke={T.amber} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                    </span>
-                                                    <h2 style={{ fontSize: 13, fontWeight: 700, color: T.text, margin: 0 }}>Waiting List</h2>
-                                                </div>
-                                                <span style={{ fontSize: 11, fontWeight: 800, padding: "2px 9px", borderRadius: 99, background: T.brandLight, color: T.brand }}>{state?.waiting_count ?? 0}</span>
-                                            </div>
-                                            <div style={{ position: "relative" }}>
-                                                <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
-                                                    <svg width="13" height="13" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                                                </span>
-                                                <input type="text" placeholder="Search token…" value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="qd-input" style={{ paddingLeft: 30, fontSize: 12.5 }} />
-                                            </div>
-                                        </div>
-                                        <div style={{ flex: 1, overflowY: "auto", maxHeight: 310 }}>
-                                            {paginatedWaiting.length > 0 ? paginatedWaiting.map((t: WaitingToken, idx: number) => (
-                                                <div key={t.id} style={{ padding: "10px 18px", background: idx % 2 === 1 ? "#fafbfc" : "transparent", borderBottom: `1px solid #f4f5f8`, display: "flex", alignItems: "center", justifyContent: "space-between" }} className="group">
-                                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                            <span style={{ fontSize: 15, fontWeight: 800, color: T.text, fontVariantNumeric: "tabular-nums", minWidth: 48 }}>{state?.prefix || ""}{t.token_number}</span>
-                                                            <span style={{ padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", background: T.amberBg, color: T.amber }}>Waiting</span>
-                                                            {manuallyAddedTokens.has(t.token_number)
-                                                                ? <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.violetBg, color: T.violet }}>Manual</span>
-                                                                : <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.cyanBg, color: T.cyan }}>Normal</span>
-                                                            }
-                                                        </div>
-                                                        {t.customer_name && (
-                                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: 11.5, color: T.textSub, paddingLeft: 56 }}>
-                                                                <span style={{ fontWeight: 600, color: T.text }}>{t.customer_name}</span>
-                                                                {t.customer_age != null && <span>Age: {t.customer_age}</span>}
-                                                                <span>{t.customer_phone}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                                        <button
-                                                            onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName })}
-                                                            style={{ opacity: 0, padding: "5px", color: T.textMuted, background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
-                                                            className="group-hover-show"
-                                                            onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
-                                                            onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
-                                                        >
-                                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
-                                                            style={{ opacity: 0, fontSize: 11, fontWeight: 700, padding: "4px 9px", background: T.redBg, color: T.red, border: `1px solid ${T.redBorder}`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
-                                                            className="group-hover-show"
-                                                        >
-                                                            Remove
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )) : (
-                                                <div style={{ padding: "40px 18px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                                    <div style={{ width: 42, height: 42, borderRadius: 10, background: T.brandLight, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-                                                        <svg width="20" height="20" fill="none" stroke={T.brand} viewBox="0 0 24 24" style={{ opacity: .4 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                    </div>
-                                                    <p style={{ fontSize: 13, color: T.textMuted, fontWeight: 500, margin: 0 }}>{waitingSearch ? "No tokens match" : "No one is waiting"}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                        {filteredWaiting.length > PAGE_SIZE && (
-                                            <div style={{ padding: "10px 18px", borderTop: `1px solid ${T.cardBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12, color: T.textSub }}>
-                                                <span>Showing {paginatedWaiting.length} of {filteredWaiting.length}</span>
-                                                <div style={{ display: "flex", gap: 4 }}>
-                                                    <button onClick={() => setWaitingPage(p => Math.max(1, p - 1))} disabled={waitingPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage === 1 ? .4 : 1 }}>Prev</button>
-                                                    <button onClick={() => setWaitingPage(p => p + 1)} disabled={waitingPage * PAGE_SIZE >= filteredWaiting.length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage * PAGE_SIZE >= filteredWaiting.length ? .4 : 1 }}>Next</button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </aside>
-
-                                    {/* Recent Activity */}
-                                    <aside className="qd-card" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }} aria-label="Recent activity">
-                                        <div style={{ padding: "14px 18px 10px", borderBottom: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                <span style={{ width: 24, height: 24, borderRadius: 7, background: T.greenBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                    <svg width="12" height="12" fill="none" stroke={T.green} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
-                                                </span>
-                                                <h2 style={{ fontSize: 13, fontWeight: 700, color: T.text, margin: 0 }}>Recent Activity</h2>
-                                            </div>
-                                            <div style={{ position: "relative" }}>
-                                                <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
-                                                    <svg width="13" height="13" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                                                </span>
-                                                <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="qd-input" style={{ paddingLeft: 30, fontSize: 12.5 }} />
-                                            </div>
-                                        </div>
-                                        <div style={{ flex: 1, overflowY: "auto", maxHeight: 240 }}>
-                                            {paginatedRecent.length > 0 ? paginatedRecent.map((t: RecentToken, i: number) => (
-                                                <RecentTokenRow
-                                                    key={`${t.token_number}-${i}`}
-                                                    token={t}
-                                                    prefix={state?.prefix || ""}
-                                                    queueName={queueName}
-                                                    isManual={manuallyAddedTokens.has(t.token_number)}
-                                                    onView={setSelectedToken}
-                                                />
-                                            )) : (
-                                                <div style={{ padding: "40px 18px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                                    <div style={{ width: 42, height: 42, borderRadius: 10, background: T.greenBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-                                                        <svg width="20" height="20" fill="none" stroke={T.green} viewBox="0 0 24 24" style={{ opacity: .4 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                                    </div>
-                                                    <p style={{ fontSize: 13, color: T.textMuted, fontWeight: 500, margin: 0 }}>{recentSearch ? "No tokens match" : "No recent activity"}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                        {filteredRecent.length > PAGE_SIZE && (
-                                            <div style={{ padding: "10px 18px", borderTop: `1px solid ${T.cardBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12, color: T.textSub }}>
-                                                <span>Showing {paginatedRecent.length} of {filteredRecent.length}</span>
-                                                <div style={{ display: "flex", gap: 4 }}>
-                                                    <button onClick={() => setRecentPage(p => Math.max(1, p - 1))} disabled={recentPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: recentPage === 1 ? .4 : 1 }}>Prev</button>
-                                                    <button onClick={() => setRecentPage(p => p + 1)} disabled={recentPage * PAGE_SIZE >= filteredRecent.length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: recentPage * PAGE_SIZE >= filteredRecent.length ? .4 : 1 }}>Next</button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </aside>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* ═══════════════════════════════════════════
-                        SECTION: QR Code
-                    ════════════════════════════════════════════ */}
-                    {activeSection === "qrcode" && (
-                        <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-                            <div>
-                                <h1 className="qd-section-title">QR Code</h1>
-                                <p className="qd-section-sub">Share this QR code or link so customers can join the queue from their phones.</p>
-                            </div>
-                            <div style={{ maxWidth: 440 }}>
-                                <QueueQRCode queueId={queueId} queueName={queueName} isCollapsible={false} />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ═══════════════════════════════════════════
-                        SECTION: Public Announcement
-                    ════════════════════════════════════════════ */}
-                    {activeSection === "announcement" && (
-                        <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-                            <div>
-                                <h1 className="qd-section-title">Public Announcement</h1>
-                                <p className="qd-section-sub">Set a message that will be displayed to all customers currently waiting in the queue.</p>
-                            </div>
-
-                            <div className="qd-card" style={{ padding: 28, maxWidth: 600 }}>
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                                    <h3 style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: T.textMuted, margin: 0 }}>Announcement</h3>
-                                    {(state?.announcement || initialQueue?.announcement) && !isEditingAnnouncement && (
-                                        <span style={{ background: T.brandLight, color: T.brand, fontSize: 10, fontWeight: 800, padding: "2px 9px", borderRadius: 5, textTransform: "uppercase", letterSpacing: ".07em" }}>Active</span>
-                                    )}
-                                </div>
-
-                                {isEditingAnnouncement ? (
-                                    <form onSubmit={handleUpdateAnnouncement} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                        <textarea
-                                            value={announcementInput}
-                                            onChange={e => setAnnouncementInput(e.target.value)}
-                                            placeholder="Enter a message to display to all customers waiting…"
-                                            disabled={isDisabled || actionLoading === "announcement"}
-                                            style={{ width: "100%", padding: "12px 14px", background: "#fafbfc", border: `1.5px solid ${T.cardBorder}`, borderRadius: 10, color: T.text, fontSize: 14, resize: "none", height: 120, outline: "none", transition: "border-color .18s" }}
-                                            onFocus={e => (e.currentTarget.style.borderColor = T.brand)}
-                                            onBlur={e => (e.currentTarget.style.borderColor = T.cardBorder)}
-                                        />
-                                        <div style={{ display: "flex", gap: 8 }}>
-                                            <button type="submit" disabled={isDisabled || actionLoading === "announcement"} style={{ padding: "9px 20px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 9, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
-                                                {actionLoading === "announcement" ? "Saving…" : "Save Announcement"}
-                                            </button>
-                                            <button type="button" onClick={() => setIsEditingAnnouncement(false)} disabled={isDisabled} style={{ padding: "9px 18px", background: "#f4f5f8", border: `1px solid ${T.cardBorder}`, borderRadius: 9, color: T.textSub, fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}>
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </form>
-                                ) : (
-                                    <div>
-                                        {(state?.announcement ?? initialQueue?.announcement) ? (
-                                            <div style={{ padding: "14px 16px", background: T.brandLight, borderRadius: 10, border: `1px solid ${T.brandBorder}`, color: T.text, fontSize: 14, whiteSpace: "pre-wrap", lineHeight: 1.65, marginBottom: 16 }}>
-                                                {state?.announcement ?? initialQueue?.announcement}
-                                            </div>
-                                        ) : (
-                                            <div style={{ padding: "28px 16px", background: "#fafbfc", borderRadius: 10, border: `1.5px dashed ${T.cardBorder}`, textAlign: "center", marginBottom: 16 }}>
-                                                <svg width="28" height="28" fill="none" stroke={T.textMuted} viewBox="0 0 24 24" style={{ opacity: .4, margin: "0 auto 8px" }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
-                                                <p style={{ fontSize: 13, color: T.textMuted, fontStyle: "italic", margin: 0 }}>No active announcement. Set one below to inform waiting customers.</p>
-                                            </div>
-                                        )}
-                                        <button
-                                            onClick={() => setIsEditingAnnouncement(true)}
-                                            disabled={isDisabled}
-                                            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 9, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}
-                                        >
-                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                            {(state?.announcement ?? initialQueue?.announcement) ? "Edit Announcement" : "Set Announcement"}
-                                        </button>
-                                    </div>
-                                )}
-
-                                {actionError && (
-                                    <div role="alert" style={{ marginTop: 14, background: T.redBg, color: "#991b1b", padding: "11px 16px", borderRadius: 9, border: `1px solid ${T.redBorder}`, fontSize: 13 }}>
-                                        {actionError}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ═══════════════════════════════════════════
+                        {/* ═══════════════════════════════════════════
                         SECTION: History
                     ════════════════════════════════════════════ */}
-                    {activeSection === "history" && (
-                        <QueueHistory
-                            queueId={queueId}
-                            queueName={queueName}
-                            prefix={state?.prefix || initialQueue?.prefix || ""}
-                            queueHistory={queueHistory}
-                            setQueueHistory={setQueueHistory}
-                            historyTotal={historyTotal}
-                            setHistoryTotal={setHistoryTotal}
-                            historyPage={historyPage}
-                            setHistoryPage={setHistoryPage}
-                            historyLoading={historyLoading}
-                            setHistoryLoading={setHistoryLoading}
-                            historyPageSize={HISTORY_PAGE_SIZE}
-                            manuallyAddedTokens={manuallyAddedTokens}
-                            onViewToken={setSelectedToken}
-                        />
-                    )}
+                        {activeSection === "history" && (
+                            <QueueHistory
+                                queueId={queueId}
+                                queueName={queueName}
+                                prefix={state?.prefix || initialQueue?.prefix || ""}
+                                queueHistory={queueHistory}
+                                setQueueHistory={setQueueHistory}
+                                historyTotal={historyTotal}
+                                setHistoryTotal={setHistoryTotal}
+                                historyPage={historyPage}
+                                setHistoryPage={setHistoryPage}
+                                historyLoading={historyLoading}
+                                setHistoryLoading={setHistoryLoading}
+                                historyPageSize={HISTORY_PAGE_SIZE}
+                                manuallyAddedTokens={manuallyAddedTokens}
+                                onViewToken={setSelectedToken}
+                            />
+                        )}
+                    </div>
                 </div>
+
+                {/* ── Modals ─────────────────────────────────────────── */}
+
+                <ConfirmModal isOpen={showDeleteConfirm} title="Delete Queue" message={`Are you sure you want to permanently delete the queue "${state?.queue_name || "this queue"}"? All associated tokens and data will be lost forever.`} confirmLabel="Delete Queue" confirmVariant="danger" onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} isLoading={deleting} requireInput={true} requiredText={state?.queue_name || ""} />
+                <ConfirmModal isOpen={showResetConfirm} title="Reset Queue" message={`Are you sure you want to reset the queue "${state?.queue_name || "this queue"}"? This will delete all tokens and reset the current serving number to 0. This cannot be undone.`} confirmLabel="Reset Queue" confirmVariant="danger" onConfirm={handleReset} onCancel={() => setShowResetConfirm(false)} isLoading={resetting} requireInput={true} requiredText={state?.queue_name || ""} />
+                <ConfirmModal isOpen={!!tokenToRemove} title="Remove Customer" message={`Are you sure you want to remove token ${state?.prefix || ""}${tokenToRemove?.number} from the waiting list? They will be permanently marked as deleted.`} confirmLabel="Remove Token" confirmVariant="danger" onConfirm={handleConfirmRemove} onCancel={() => setTokenToRemove(null)} isLoading={actionLoading === "remove"} />
+                <TokenDetailModal token={selectedToken} onClose={() => setSelectedToken(null)} />
             </div>
-
-            {/* ── Modals ─────────────────────────────────────────── */}
-
-            <ConfirmModal isOpen={showDeleteConfirm} title="Delete Queue" message={`Are you sure you want to permanently delete the queue "${state?.queue_name || "this queue"}"? All associated tokens and data will be lost forever.`} confirmLabel="Delete Queue" confirmVariant="danger" onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} isLoading={deleting} requireInput={true} requiredText={state?.queue_name || ""} />
-            <ConfirmModal isOpen={showResetConfirm} title="Reset Queue" message={`Are you sure you want to reset the queue "${state?.queue_name || "this queue"}"? This will delete all tokens and reset the current serving number to 0. This cannot be undone.`} confirmLabel="Reset Queue" confirmVariant="danger" onConfirm={handleReset} onCancel={() => setShowResetConfirm(false)} isLoading={resetting} requireInput={true} requiredText={state?.queue_name || ""} />
-            <ConfirmModal isOpen={!!tokenToRemove} title="Remove Customer" message={`Are you sure you want to remove token ${state?.prefix || ""}${tokenToRemove?.number} from the waiting list? They will be permanently marked as deleted.`} confirmLabel="Remove Token" confirmVariant="danger" onConfirm={handleConfirmRemove} onCancel={() => setTokenToRemove(null)} isLoading={actionLoading === "remove"} />
-            <TokenDetailModal token={selectedToken} onClose={() => setSelectedToken(null)} />
-        </div>
         </>
     );
 }
@@ -1153,7 +1141,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
 }) {
     const statusStyles: Record<string, { bg: string; color: string }> = {
         serving: { bg: T.blueBg, color: T.blue },
-        done:    { bg: T.greenBg, color: T.green },
+        done: { bg: T.greenBg, color: T.green },
         skipped: { bg: "#f3f4f6", color: "#6b7280" },
         deleted: { bg: T.redBg, color: T.red },
         waiting: { bg: T.amberBg, color: T.amber },
@@ -1161,13 +1149,13 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
     const s = statusStyles[t.status] || { bg: "#f3f4f6", color: "#6b7280" };
 
     return (
-        <div style={{ padding: "10px 18px", borderBottom: `1px solid #f4f5f8`, display: "flex", alignItems: "center", justifyContent: "space-between", transition: "background .15s" }} className="group"
-            onMouseEnter={e => (e.currentTarget.style.background = "#fafbfc")}
+        <div style={{ padding: "10px 18px", /*border*/ borderBottom: `1px solid #f4f5f8`, display: "flex", alignItems: "center", justifyContent: "space-between", transition: "background .15s" }} className="group"
+            onMouseEnter={e => (e.currentTarget.style.background = "var(--q-row-alt)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
         >
             <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: T.text, fontVariantNumeric: "tabular-nums", minWidth: 48 }}>{prefix}{t.token_number}</span>
+                    <span className="dark:text-white" style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", minWidth: 48 }}>{prefix}{t.token_number}</span>
                     <span style={{ padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", background: s.bg, color: s.color }}>{t.status}</span>
                     {isManual
                         ? <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.violetBg, color: T.violet }}>Manual</span>
@@ -1175,8 +1163,8 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                     }
                 </div>
                 {t.customer_name && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: 11.5, color: T.textSub, paddingLeft: 56 }}>
-                        <span style={{ fontWeight: 600, color: T.text }}>{t.customer_name}</span>
+                    <div className="dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: 11.5, paddingLeft: 56 }}>
+                        <span className="dark:text-white" style={{ fontWeight: 600 }}>{t.customer_name}</span>
                         {t.customer_age != null && <span>Age: {t.customer_age}</span>}
                         <span>{t.customer_phone}</span>
                     </div>
@@ -1186,7 +1174,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                 {onView && (
                     <button
                         onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
-                        style={{ padding: "5px", color: T.textMuted, background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s", opacity: 0 }}
+                        style={{ padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s", opacity: 0 }}
                         className="group-hover-show"
                         onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                         onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
@@ -1194,7 +1182,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                     </button>
                 )}
-                <span style={{ fontSize: 11.5, color: T.textMuted, fontVariantNumeric: "tabular-nums" }}>
+                <span className="dark:text-slate-400" style={{ fontSize: 11.5, fontVariantNumeric: "tabular-nums" }}>
                     {t.served_at ? new Date(t.served_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
                 </span>
             </div>
@@ -1247,7 +1235,7 @@ function QueueHistory({
     const totalPages = Math.ceil(historyTotal / historyPageSize) || 1;
 
     const statusStyleMap: Record<string, { bg: string; color: string; label: string }> = {
-        done:    { bg: T.greenBg, color: T.green, label: "Completed" },
+        done: { bg: T.greenBg, color: T.green, label: "Completed" },
         serving: { bg: T.blueBg, color: T.blue, label: "Serving" },
         skipped: { bg: "#f3f4f6", color: "#6b7280", label: "Skipped" },
         waiting: { bg: T.amberBg, color: T.amber, label: "Waiting" },
@@ -1258,32 +1246,32 @@ function QueueHistory({
         <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
                 <div>
-                    <h1 className="qd-section-title">Queue History</h1>
+                    <h1 className="qd-section-title text-gray-900 dark:text-white">Queue History</h1>
                     <p className="qd-section-sub">View past tokens and patient records for this queue.</p>
                 </div>
-                {historyTotal > 0 && <span style={{ fontSize: 12.5, color: T.textMuted, fontWeight: 500 }}>{historyTotal} record{historyTotal !== 1 ? "s" : ""} found</span>}
+                {historyTotal > 0 && <span style={{ fontSize: 12.5, fontWeight: 500 }}>{historyTotal} record{historyTotal !== 1 ? "s" : ""} found</span>}
             </div>
 
             {/* Filters */}
             <div className="qd-card" style={{ padding: "16px 20px" }}>
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 12 }}>
                     <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 6 }}>
-                        <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: T.textMuted }}>Search Patients</label>
+                        <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase",  }}>Search Patients</label>
                         <div style={{ position: "relative" }}>
                             <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 11, pointerEvents: "none" }}>
                                 <svg width="14" height="14" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </span>
-                            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Name, token #, or phone…" className="qd-input" style={{ paddingLeft: 34 }} />
+                            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Name, token #, or phone…" className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34 }} />
                             {searchQuery && (
-                                <button onClick={() => setSearchQuery("")} style={{ position: "absolute", inset: "0 0 0 auto", display: "flex", alignItems: "center", paddingRight: 11, color: T.textMuted, background: "transparent", border: "#e5e7eb", cursor: "pointer" }}>
+                                <button onClick={() => setSearchQuery("")} style={{ position: "absolute", inset: "0 0 0 auto", display: "flex", alignItems: "center", paddingRight: 11, background: "transparent", border: "#e5e7eb", cursor: "pointer" }}>
                                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                             )}
                         </div>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: T.textMuted }}>Status</label>
-                        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="qd-input" style={{ width: 148, cursor: "pointer" }}>
+                        <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase",  }}>Status</label>
+                        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ width: 148, cursor: "pointer" }}>
                             <option value="">All</option>
                             <option value="done">Completed</option>
                             <option value="skipped">Skipped</option>
@@ -1300,33 +1288,33 @@ function QueueHistory({
                         <thead>
                             <tr style={{ background: "#fafbfc", borderBottom: `1px solid ${T.cardBorder}` }}>
                                 {["Token", "Patient", "Status", "Type", "Wait Time", "Actions"].map(h => (
-                                    <th key={h} style={{ padding: "11px 18px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".09em", color: T.textMuted, whiteSpace: "nowrap" }}>{h}</th>
+                                    <th key={h} style={{ padding: "11px 18px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".09em", whiteSpace: "nowrap" }}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {historyLoading ? (
-                                <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", color: T.textMuted }}>
+                                <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center",  }}>
                                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                                         <span style={{ width: 18, height: 18, border: `2px solid ${T.brandLight}`, borderTopColor: T.brand, borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
                                         <span style={{ fontSize: 13 }}>Loading records…</span>
                                     </div>
                                 </td></tr>
                             ) : queueHistory.length === 0 ? (
-                                <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", color: T.textMuted, fontSize: 13 }}>No matching history found for this queue.</td></tr>
+                                <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", fontSize: 13 }}>No matching history found for this queue.</td></tr>
                             ) : queueHistory.map(item => {
                                 const isManual = manuallyAddedTokens.has(item.token_number);
                                 const ss = statusStyleMap[item.status] || { bg: "#f3f4f6", color: "#6b7280", label: item.status };
                                 return (
-                                    <tr key={item.id} style={{ borderBottom: `1px solid #f4f5f8`, transition: "background .12s" }}
-                                        onMouseEnter={e => (e.currentTarget.style.background = "#fafbfc")}
+                                    <tr key={item.id} style={{ /*border*/ borderBottom: `1px solid #f4f5f8`, transition: "background .12s" }}
+                                        onMouseEnter={e => (e.currentTarget.style.background = "var(--q-row-alt)")}
                                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                                     >
-                                        <td style={{ padding: "12px 18px", fontWeight: 800, color: T.text, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{item.queue_prefix}{item.token_number}</td>
+                                        <td style={{ padding: "12px 18px", fontWeight: 800,  fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{item.queue_prefix}{item.token_number}</td>
                                         <td style={{ padding: "12px 18px" }}>
                                             <div style={{ display: "flex", flexDirection: "column" }}>
-                                                <span style={{ fontWeight: 600, color: T.text, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.customer_name || "—"}</span>
-                                                <span style={{ fontSize: 12, color: T.textMuted }}>{item.customer_phone || "—"}</span>
+                                                <span style={{ fontWeight: 600,  maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.customer_name || "—"}</span>
+                                                <span style={{ fontSize: 12,  }}>{item.customer_phone || "—"}</span>
                                             </div>
                                         </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
@@ -1335,11 +1323,11 @@ function QueueHistory({
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                             <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: isManual ? T.violetBg : T.cyanBg, color: isManual ? T.violet : T.cyan }}>{isManual ? "Manual" : "Normal"}</span>
                                         </td>
-                                        <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, color: T.textSub, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
+                                        <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                             <button
                                                 onClick={() => onViewToken({ token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name, customer_age: item.customer_age, customer_phone: item.customer_phone, status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
-                                                style={{ padding: "6px", color: T.textMuted, background: "transparent", border: "#e5e7eb", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
+                                                style={{ padding: "6px", background: "transparent", border: "#e5e7eb", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
                                                 onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                                                 onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
                                             >
@@ -1355,8 +1343,8 @@ function QueueHistory({
 
                 {historyTotal > historyPageSize && (
                     <div style={{ background: "#fafbfc", padding: "14px 20px", borderTop: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 10, alignItems: "center", justifyContent: "space-between" }} className="sm:flex-row">
-                        <p style={{ fontSize: 12.5, color: T.textSub, margin: 0 }}>
-                            Showing <strong style={{ color: T.text }}>{(historyPage - 1) * historyPageSize + 1}</strong>–<strong style={{ color: T.text }}>{Math.min(historyPage * historyPageSize, historyTotal)}</strong> of <strong style={{ color: T.text }}>{historyTotal}</strong> patients
+                        <p style={{ fontSize: 12.5, margin: 0 }}>
+                            Showing <strong style={{  }}>{(historyPage - 1) * historyPageSize + 1}</strong>–<strong style={{  }}>{Math.min(historyPage * historyPageSize, historyTotal)}</strong> of <strong style={{  }}>{historyTotal}</strong> patients
                         </p>
                         <div style={{ display: "flex", gap: 4 }}>
                             {[
