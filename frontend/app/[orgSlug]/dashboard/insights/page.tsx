@@ -137,7 +137,29 @@ export default function InsightsPage() {
 
     const sc = overview.status_counts;
 
-    const dailyTimings = (overview.daily_timings || []).map(dt => ({
+    // Pad the daily timings to ensure the chart always renders properly
+    const start = startDate ? new Date(startDate) : new Date(Date.now() - 7 * 86400000);
+    const end = endDate ? new Date(endDate) : new Date();
+    const dateMap = new Map();
+    
+    // Generate all dates in the range
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const iso = d.toISOString().split('T')[0];
+        dateMap.set(iso, { date: iso, avg_wait: 0, avg_serve: 0 });
+    }
+
+    // Merge actual data
+    (overview.daily_timings || []).forEach(dt => {
+        // Some backends return full ISO strings, safely split it
+        const dtDate = dt.date ? dt.date.split('T')[0] : "";
+        if (dtDate) {
+            dateMap.set(dtDate, dt);
+        }
+    });
+
+    const paddedTimings = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
+    const dailyTimings = paddedTimings.map(dt => ({
       ...dt,
       dateFormatted: new Date(dt.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       avg_wait_min: dt.avg_wait / 60,

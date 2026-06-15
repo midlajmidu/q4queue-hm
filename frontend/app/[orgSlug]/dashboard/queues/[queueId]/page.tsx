@@ -134,7 +134,6 @@ const QD_STYLES = `
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: ${T.brand};
     color: #fff;
     font-weight: 700;
     border: none;
@@ -182,6 +181,9 @@ const QD_STYLES = `
   .qd-btn-secondary:disabled { opacity: .35; cursor: not-allowed; }
 
   .qd-btn-call-next {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, ${T.brand}, ${T.brandDark});
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -208,11 +210,13 @@ const QD_STYLES = `
   .qd-btn-call-next:disabled { opacity: .35; cursor: not-allowed; transform: none; }
 
   .qd-btn-done-next {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, ${T.green}, #15803d);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: ${T.green};
     color: #fff;
     font-weight: 700;
     border: none;
@@ -708,15 +712,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <div className="lg:col-span-2 space-y-4">
 
                                         {/* Hero – Now Serving */}
-                                        <div className="serving-card bg-white dark:bg-slate-900 dark:border-white/10" style={{ padding: "40px 32px 36px", textAlign: "center", minHeight: 280, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                                        <div className="serving-card bg-white dark:bg-[#0b1120]/80 dark:backdrop-blur-xl border border-transparent dark:border-white/10 shadow-2xl dark:shadow-primary/5" style={{ padding: "40px 32px 36px", textAlign: "center", minHeight: 280, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
                                             {/* Label */}
-                                            <div style={{ display: "inline-flex", alignItems: "center", gap: 8,  border: `1px solid ${T.brandBorder}`, borderRadius: 99, padding: "5px 16px", marginBottom: 20, position: "relative", zIndex: 1 }}>
+                                            <div className="dark:bg-primary/10 dark:border-primary/30" style={{ display: "inline-flex", alignItems: "center", gap: 8,  border: `1px solid ${T.brandBorder}`, borderRadius: 99, padding: "5px 16px", marginBottom: 20, position: "relative", zIndex: 1 }}>
                                                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.brand, display: "inline-block", animation: "pulse-dot 2s infinite" }} />
                                                 <span className="text-blue-600 dark:text-blue-400" style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" }}>Now Serving</span>
                                             </div>
 
                                             {/* Token Number */}
-                                            <div className="serving-num dark:text-white" style={{ fontSize: "clamp(72px,11vw,116px)", position: "relative", zIndex: 1 }} aria-live="polite" aria-atomic="true">
+                                            <div className="serving-num text-slate-900 dark:text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]" style={{ fontSize: "clamp(72px,11vw,116px)", position: "relative", zIndex: 1 }} aria-live="polite" aria-atomic="true">
                                                 {state?.prefix || ""}{state?.current_serving || 0}
                                             </div>
 
@@ -792,7 +796,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         {/* Manual Controls Row */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                             {/* Manual Entry */}
-                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900 border-[#e4e7ef] dark:border-white/10">
+                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-[#0b1120]/60 dark:backdrop-blur-lg border border-[#e4e7ef] dark:border-white/10 shadow-sm dark:shadow-none">
                                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                                                     <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                                         <svg width="13" height="13" fill="none" stroke={T.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
@@ -828,7 +832,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
 
                                             {/* Invite by Number */}
-                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900 border-[#e4e7ef] dark:border-white/10">
+                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-[#0b1120]/60 dark:backdrop-blur-lg border border-[#e4e7ef] dark:border-white/10 shadow-sm dark:shadow-none">
                                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                                                     <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                                         <svg width="13" height="13" fill="none" stroke={T.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
@@ -844,7 +848,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
 
                                             {/* Remove by Number */}
-                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900 border-[#e4e7ef] dark:border-white/10">
+                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-[#0b1120]/60 dark:backdrop-blur-lg border border-[#e4e7ef] dark:border-white/10 shadow-sm dark:shadow-none">
                                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                                                     <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                                         <svg width="13" height="13" fill="none" stroke={T.red} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>

@@ -151,6 +151,37 @@ function NotificationSystem() {
     );
 }
 
+
+function LiveClock() {
+    const [time, setTime] = useState<Date | null>(null);
+
+    useEffect(() => {
+        setTime(new Date());
+        const interval = setInterval(() => setTime(new Date()), 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    if (!time) return <div className="hidden md:block w-[140px] h-[32px] animate-pulse bg-gray-100 dark:bg-white/5 rounded-full" />;
+
+    const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+
+    return (
+        <div className="hidden md:flex items-center gap-2.5 px-3.5 py-1.5 bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-white/10 rounded-full shadow-sm select-none">
+            {/* Live Pulsing Dot */}
+            <div className="relative flex h-2 w-2 items-center justify-center">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+                <span className="text-[12.5px] font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none">{timeStr}</span>
+                <span className="text-[10.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mt-[1px]">{dateStr}</span>
+            </div>
+        </div>
+    );
+}
+
 export function TopBar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) {
     const pathname = usePathname();
     const { user } = useAuth();
@@ -184,19 +215,13 @@ export function TopBar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
                 </div>
             </div>
 
-            {/* Right: Search, Notifs, Profile */}
-            <div className="flex items-center gap-4">
+            {/* Right: Clock, Theme, Notifs */}
+            <div className="flex items-center gap-3 sm:gap-4">
+                <LiveClock />
+                <div className="w-px h-5 bg-gray-200 dark:bg-white/10 hidden md:block mx-1" />
                 <ThemeToggle />
                 <NotificationSystem />
 
-                <div className="flex items-center gap-2.5 p-1 pr-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full hover:border-gray-300 dark:hover:border-white/20 transition-colors cursor-pointer">
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-bold text-[11px] shadow-sm">
-                        {user?.email?.[0]?.toUpperCase() || "A"}
-                    </div>
-                    <span className="hidden sm:block text-[12px] font-semibold text-gray-700 dark:text-gray-200 tracking-tight">
-                        {user?.email?.split("@")[0] || "Admin"}
-                    </span>
-                </div>
             </div>
         </header>
     );
