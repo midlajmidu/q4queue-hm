@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useNotifications } from "@/context/NotificationContext";
@@ -230,13 +229,6 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                         </Tip>
 
                         <div className={`flex items-center ${c ? "flex-col gap-1.5" : "gap-2"}`}>
-                            {/* Theme Toggle */}
-                            <Tip label="Theme" show={c}>
-                                <div className={c ? "" : "flex-shrink-0"}>
-                                    <ThemeToggle collapsed={c} />
-                                </div>
-                            </Tip>
-
                             {/* Sign out */}
                             <Tip label="Sign out" show={c}>
                                 <button
