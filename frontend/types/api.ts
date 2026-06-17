@@ -75,6 +75,7 @@ export interface SessionResponse {
     title: string;
     created_at: string;
     queue_count: number;
+    queue_names: string[];
 }
 
 export interface PaginatedSessionResponse {
@@ -333,6 +334,7 @@ export interface OrgDetail {
     created_at: string;
     max_sessions: number;
     max_queues_per_session: number;
+    max_staff: number;
     admin_email?: string | null;
     admin_initial_password?: string | null;
     admin_password_changed_at?: string | null;
@@ -360,6 +362,7 @@ export interface OrgCreateRequest {
     admin_password: string;
     max_sessions: number;
     max_queues_per_session: number;
+    max_staff?: number;
 }
 
 export interface OrgUpdateRequest {
@@ -368,6 +371,8 @@ export interface OrgUpdateRequest {
     is_active: boolean;
     max_sessions?: number;
     max_queues_per_session?: number;
+    max_staff?: number;
+    admin_email?: string;
 }
 
 export interface OrgCreateResponse {
@@ -383,9 +388,7 @@ export interface PaginatedOrgsResponse {
     offset: number;
 }
 
-export interface OrgAnalyticsDetail {
-    org_id: string;
-    organization_name: string;
+export interface OrgAnalyticsDetail extends OrgDetail {
     queue_entries: number;
     customers_served: number;
     messages_sent: number;
@@ -492,6 +495,7 @@ export interface PaginatedAuditLogs {
 
 export interface ListOrgsParams {
     search?: string;
+    is_test?: boolean;
     limit?: number;
     offset?: number;
     sort_by?: SortBy;
@@ -554,3 +558,28 @@ export interface PaginatedHistoryResponse {
     offset: number;
 }
 export interface GlobalQueueDetail { id: string; organization: string; queue_name: string; current_position: number; customers_waiting: number; average_wait_time: string; staff_handling: number; status: string; } export interface GlobalQueueResponse { items: GlobalQueueDetail[]; }
+
+export interface GlobalUserDetail {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+    role: string;
+    is_active: boolean;
+    org_id: string | null;
+    org_name: string | null;
+    org_slug: string | null;
+    created_at: string;
+}
+
+export interface PaginatedGlobalUsers {
+    items: GlobalUserDetail[];
+    total: number;
+    limit: number;
+    offset: number;
+}
+
+export interface ResetPasswordResponse {
+    message: string;
+    temporary_password: string;
+}

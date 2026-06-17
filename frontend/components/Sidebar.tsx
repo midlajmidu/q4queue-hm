@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/ui/Logo";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useNotifications } from "@/context/NotificationContext";
+import { api } from "@/lib/api";
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -36,8 +37,15 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
     const isSuperAdmin = user?.role === "super_admin" || pathname.startsWith("/super-admin");
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [supportContact, setSupportContact] = useState<{support_email: string, support_phone: string} | null>(null);
     const { unreadCount } = useNotifications();
     const c = collapsed; // shorthand
+
+    useEffect(() => {
+        if (!isSuperAdmin) {
+            api.getSupportContact().then(setSupportContact).catch(() => {});
+        }
+    }, [isSuperAdmin]);
 
     useEffect(() => {
         if (onClose && isOpen) onClose();
@@ -55,21 +63,22 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
 
     const linkCls = (href: string, exact?: boolean) => {
         const active = isActive(href, exact);
-        const base = `group relative flex items-center text-sm transition-colors duration-150 focus:outline-none ${c ? "justify-center w-10 h-10 mx-auto rounded-lg" : "gap-3 py-2 pr-3 pl-[14px]"}`;
+        const isDummy = ["/super-admin/system-monitoring", "/super-admin/billing", "/super-admin/whatsapp"].includes(href);
+        const base = `group relative flex items-center text-sm transition-colors duration-150 focus:outline-none ${c ? "justify-center w-10 h-10 mx-auto rounded-lg" : "gap-3 py-2 px-6"}`;
         
         if (active) {
             return isSuperAdmin
-                ? `${base} bg-transparent text-white font-medium ${c ? "shadow-[inset_3px_0_0_0_rgba(99,102,241,1)]" : "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-indigo-500 before:rounded-r-sm"} [&>svg]:text-white`
+                ? `${base} bg-transparent ${isDummy ? "text-slate-400" : "text-white"} font-medium ${c ? "shadow-[inset_3px_0_0_0_rgba(99,102,241,1)]" : "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-indigo-500 before:rounded-r-sm"} [&>svg]:${isDummy ? "text-slate-400" : "text-white"}`
                 : `${base} bg-indigo-50/50 dark:bg-white/5 text-slate-900 dark:text-white font-semibold rounded-lg ${c ? "shadow-[inset_3px_0_0_0_rgba(79,70,229,1)] dark:shadow-[inset_3px_0_0_0_rgba(129,140,248,1)]" : "before:absolute before:left-0 before:top-[10%] before:bottom-[10%] before:w-[2px] before:bg-indigo-600 dark:before:bg-indigo-400 before:rounded-r-full"} [&>svg]:text-slate-900 dark:[&>svg]:text-white`;
         }
         return isSuperAdmin
-            ? `${base} text-slate-400 font-medium hover:bg-slate-800/50 ${c ? "border border-transparent rounded-lg" : ""} [&>svg]:text-slate-400`
+            ? `${base} ${isDummy ? "text-slate-600 hover:text-slate-500" : "text-slate-400 hover:text-slate-300"} font-medium hover:bg-white/5 ${c ? "border border-transparent rounded-lg" : ""} [&>svg]:${isDummy ? "text-slate-600 group-hover:text-slate-500" : "text-slate-400 group-hover:text-slate-300"}`
             : `${base} text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-slate-200 ${c ? "border border-transparent rounded-lg" : ""} [&>svg]:text-slate-400 dark:[&>svg]:text-slate-500 hover:[&>svg]:text-slate-500 dark:hover:[&>svg]:text-slate-300`;
     };
 
     const sectionLabel = (text: string) =>
         c ? <div className="h-4" /> : (
-            <p className={`px-4 text-xs uppercase font-semibold tracking-wider mb-2 mt-4 ${isSuperAdmin ? "text-slate-500" : "text-slate-400"}`}>{text}</p>
+            <p className={`px-6 text-xs uppercase font-semibold tracking-wider mb-2 mt-8 first:mt-2 ${isSuperAdmin ? "text-slate-500" : "text-slate-400"}`}>{text}</p>
         );
 
     const divider = <div className="h-4" />;
@@ -106,7 +115,7 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                 <div className={`h-14 flex items-center flex-shrink-0 border-b ${c ? "justify-center px-0" : "justify-between px-4"} ${isSuperAdmin ? "border-slate-800/60" : "border-gray-200"}`}>
                     {!c && (
                         <Link href={isSuperAdmin ? "/super-admin" : dashBase} className="flex items-center gap-3 focus:outline-none rounded-lg py-1 pl-1">
-                            <Logo size="sm" className={isSuperAdmin ? "text-white" : ""} />
+                            <Logo size={isSuperAdmin ? "md" : "sm"} className={isSuperAdmin ? "brightness-0 invert opacity-90 scale-[0.85] origin-left" : ""} />
                         </Link>
                     )}
                     {/* Toggle button */}
@@ -127,7 +136,7 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                 </div>
 
                 {/* ── Navigation ── */}
-                <div className={`flex-1 overflow-y-auto py-4 ${c ? "px-2" : "px-3"}`}>
+                <div className={`flex-1 overflow-y-auto py-4 ${c ? "px-2" : "px-0"}`}>
                     {isSuperAdmin ? (
                         <>
                             {sectionLabel("Overview")}
@@ -148,14 +157,14 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                             <NavLink href="/super-admin/queues" label="Queue Monitoring" icon={
                                 <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                             } />
-                            <NavLink href="/super-admin/messages" label="Message Logs" icon={
-                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                            } />
                             <NavLink href="/super-admin/audit-logs" label="Audit Logs" icon={
                                 <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                             } />
 
                             {sectionLabel("Administration")}
+                            <NavLink href="/super-admin/users" label="Global Staff" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                            } />
                             <NavLink href="/super-admin/settings" label="Global Settings" icon={
                                 <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             } />
@@ -217,6 +226,21 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                                     <NavLink href={`${dashBase}/docs`} label="Documentation" icon={
                                         <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                                     } />
+                                    {supportContact?.support_email && (
+                                        <div className={`mt-6 ${c ? 'mx-2' : 'mx-6'} p-3 rounded-xl bg-indigo-50/50 dark:bg-white/5 border border-indigo-100 dark:border-white/10`}>
+                                            {!c && <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-2">Need Help?</p>}
+                                            <a href={`mailto:${supportContact.support_email}`} className={`flex items-center ${c ? 'justify-center' : 'gap-2 mb-2'} text-xs text-slate-700 dark:text-slate-300 hover:text-indigo-600 transition-colors`} title={supportContact.support_email}>
+                                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                                {!c && <span className="truncate">{supportContact.support_email}</span>}
+                                            </a>
+                                            {!c && supportContact.support_phone && (
+                                                <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300" title={supportContact.support_phone}>
+                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                                    <span className="truncate">{supportContact.support_phone}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </>
@@ -232,8 +256,8 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                         <Tip label={user?.email || "Account"} show={c}>
                             <div 
                                 onClick={() => setIsLogoutModalOpen(true)}
-                                className={`group flex items-center justify-between rounded-xl cursor-pointer transition-all duration-300 ${
-                                c ? "justify-center w-12 h-12" : "gap-3 px-3 py-2 w-full"
+                                className={`group flex flex-row items-center justify-between rounded-xl cursor-pointer transition-all duration-300 ${
+                                c ? "justify-center w-12 h-12" : "gap-3 px-4 py-2 w-full"
                             } ${
                                 isSuperAdmin 
                                     ? "bg-slate-800/20 hover:bg-slate-800/40 border border-slate-700/50" 

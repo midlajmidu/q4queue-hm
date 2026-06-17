@@ -15,7 +15,11 @@ Access: All data-mutating routes require role == "super_admin" (enforced by depe
 """
 import logging
 import time
-from typing import Literal
+import secrets
+import string
+import uuid as _uuid
+from datetime import datetime
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, field_validator
@@ -27,8 +31,7 @@ from app.db.deps import get_db
 from app.models.organization import Organization
 from app.models.user import User
 from app.models.queue import Queue
-from app.models.token import Token
-from app.models.token import Token
+from app.models.token import Token, TokenStatus
 from app.models.system_announcement import SystemAnnouncement
 from app.audit.models import AuditLog
 from app.core.security import hash_password, create_access_token
@@ -65,8 +68,9 @@ class OrgCreateRequest(BaseModel):
     org_slug: str
     admin_email: str
     admin_password: str
-    max_sessions: int = Field(default=10, ge=1)
-    max_queues_per_session: int = Field(default=20, ge=1)
+    max_sessions: int | None = Field(None, ge=1)
+    max_queues_per_session: int | None = Field(None, ge=1)
+    max_staff: int | None = Field(None, ge=1)
 
     @field_validator("org_slug")
     @classmethod
@@ -78,8 +82,10 @@ class OrgUpdateRequest(BaseModel):
     org_name: str = Field(..., min_length=2)
     org_slug: str = Field(..., min_length=2)
     is_active: bool
+    admin_email: str | None = None
     max_sessions: int | None = Field(None, ge=1)
     max_queues_per_session: int | None = Field(None, ge=1)
+    max_staff: int | None = Field(None, ge=1)
 
     @field_validator("org_slug")
     @classmethod
@@ -95,6 +101,7 @@ class OrgDetail(BaseModel):
     created_at: str
     max_sessions: int
     max_queues_per_session: int
+    max_staff: int
     admin_email: str | None = None
     admin_initial_password: str | None = None
     admin_password_changed_at: str | None = None
@@ -123,9 +130,29 @@ class PaginatedOrgsResponse(BaseModel):
     limit: int
     offset: int
 
-class OrgAnalyticsDetail(BaseModel):
-    org_id: str
-    organization_name: str
+
+class GlobalUserDetail(BaseModel):
+    id: str
+    first_name: str | None
+    last_name: str | None
+    email: str
+    role: str
+    is_active: bool
+    org_id: str | None
+    org_name: str | None
+    org_slug: str | None
+    created_at: datetime
+
+class PaginatedGlobalUsers(BaseModel):
+    items: list[GlobalUserDetail]
+    total: int
+    limit: int
+    offset: int
+
+class ResetPasswordResponse(BaseModel):
+    message: str
+    temporary_password: str
+class OrgAnalyticsDetail(OrgDetail):
     queue_entries: int
     customers_served: int
     messages_sent: int
@@ -266,6 +293,7 @@ def _org_to_detail(o: Organization, admin_user: User | None = None) -> OrgDetail
         created_at=o.created_at.isoformat(),
         max_sessions=o.max_sessions,
         max_queues_per_session=o.max_queues_per_session,
+        max_staff=o.max_staff,
         admin_email=admin_user.email if admin_user else None,
         admin_password_changed_at=admin_user.password_changed_at.isoformat() if admin_user and admin_user.password_changed_at else None,
         logo_url=o.logo_url,
@@ -304,13 +332,27 @@ async def super_admin_login(
     summary="Organization Statistics",
 )
 async def get_stats(
+    is_test: Optional[bool] = Query(default=False, description="Filter test orgs"),
     _super_admin: User = Depends(get_current_super_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OrgStats:
     """Return dashboard-level stats: total / active / inactive org counts."""
-    total = await db.scalar(select(func.count(Organization.id))) or 0
+    test_pattern = or_(
+        Organization.name.ilike("Msg Org%"),
+        Organization.name.ilike("Q Org%"),
+        Organization.name.ilike("%test%"),
+        Organization.slug.ilike("%test%"),
+    )
+    
+    base_q = select(func.count(Organization.id))
+    if is_test is True:
+        base_q = base_q.where(test_pattern)
+    elif is_test is False:
+        base_q = base_q.where(~test_pattern)
+        
+    total = await db.scalar(base_q) or 0
     active = await db.scalar(
-        select(func.count(Organization.id)).where(Organization.is_active == True)  # noqa: E712
+        base_q.where(Organization.is_active == True)  # noqa: E712
     ) or 0
     return OrgStats(total=total, active=active, inactive=total - active)
 
@@ -321,51 +363,71 @@ async def get_stats(
     summary="Platform Analytics & Health",
 )
 async def get_platform_analytics(
+    is_test: Optional[bool] = Query(default=False, description="Filter test orgs"),
     _super_admin: User = Depends(get_current_super_admin),
     db: AsyncSession = Depends(get_db),
 ) -> PlatformAnalytics:
     """Return platform-wide utilization and organization growth metrics."""
+    test_pattern = or_(
+        Organization.name.ilike("Msg Org%"),
+        Organization.name.ilike("Q Org%"),
+        Organization.name.ilike("%test%"),
+        Organization.slug.ilike("%test%"),
+    )
+    
+    # We need to filter Queues, Tokens, and Users by whether their org is a test org.
+    # To keep it simple, we can join with Organization.
+    
+    def filter_org(stmt, org_col):
+        if is_test is True:
+            return stmt.join(Organization, org_col == Organization.id).where(test_pattern)
+        elif is_test is False:
+            return stmt.join(Organization, org_col == Organization.id).where(~test_pattern)
+        return stmt
+
     # Active Queues
     total_active_queues = await db.scalar(
-        select(func.count(Queue.id)).where(Queue.is_active == True)  # noqa: E712
+        filter_org(select(func.count(Queue.id)).where(Queue.is_active == True), Queue.org_id)
     ) or 0
 
     # Waiting / Serving Customers
     total_waiting_customers = await db.scalar(
-        select(func.count(Token.id)).where(Token.status == "waiting")
+        filter_org(select(func.count(Token.id)).where(Token.status == "waiting"), Token.org_id)
     ) or 0
     total_serving_customers = await db.scalar(
-        select(func.count(Token.id)).where(Token.status == "serving")
+        filter_org(select(func.count(Token.id)).where(Token.status == "serving"), Token.org_id)
     ) or 0
 
     # Today's and This Month's Entries
     total_queue_entries_today = await db.scalar(
-        select(func.count(Token.id)).where(Token.created_at >= func.date_trunc('day', func.timezone('UTC', func.now())))
+        filter_org(select(func.count(Token.id)).where(Token.created_at >= func.date_trunc('day', func.timezone('UTC', func.now()))), Token.org_id)
     ) or 0
     total_queue_entries_month = await db.scalar(
-        select(func.count(Token.id)).where(Token.created_at >= func.date_trunc('month', func.timezone('UTC', func.now())))
+        filter_org(select(func.count(Token.id)).where(Token.created_at >= func.date_trunc('month', func.timezone('UTC', func.now()))), Token.org_id)
     ) or 0
 
     # Total Served
     total_customers_served = await db.scalar(
-        select(func.count(Token.id)).where(Token.status == "done")
+        filter_org(select(func.count(Token.id)).where(Token.status == "done"), Token.org_id)
     ) or 0
 
     # Total Staff Users (all users that belong to an org)
     total_staff_users = await db.scalar(
-        select(func.count(User.id)).where(User.org_id.isnot(None))
+        filter_org(select(func.count(User.id)).where(User.org_id.isnot(None)), User.org_id)
     ) or 0
 
     # Organization Growth (by month)
-    # Using PostgreSQL date_trunc
-    growth_stmt = (
-        select(
-            func.to_char(Organization.created_at, "YYYY-MM").label("month"),
-            func.count(Organization.id).label("count")
-        )
-        .group_by("month")
-        .order_by("month")
+    growth_stmt = select(
+        func.to_char(Organization.created_at, "YYYY-MM").label("month"),
+        func.count(Organization.id).label("count")
     )
+    if is_test is True:
+        growth_stmt = growth_stmt.where(test_pattern)
+    elif is_test is False:
+        growth_stmt = growth_stmt.where(~test_pattern)
+        
+    growth_stmt = growth_stmt.group_by("month").order_by("month")
+    
     growth_result = await db.execute(growth_stmt)
     organization_growth = [{"month": row.month, "count": row.count} for row in growth_result.all()]
 
@@ -387,6 +449,7 @@ async def get_platform_analytics(
 )
 async def get_org_analytics(
     timeframe: Literal["daily", "weekly", "monthly"] = Query("daily"),
+    is_test: Optional[bool] = Query(default=False, description="Filter test organizations"),
     _super_admin: User = Depends(get_current_super_admin),
     db: AsyncSession = Depends(get_db),
 ) -> OrgAnalyticsResponse:
@@ -400,8 +463,24 @@ async def get_org_analytics(
     else:
         start_date = now - timedelta(days=30)
         
-    orgs_result = await db.execute(select(Organization.id, Organization.name))
-    orgs = orgs_result.all()
+    test_pattern = or_(
+        Organization.name.ilike("Msg Org%"),
+        Organization.name.ilike("Q Org%"),
+        Organization.name.ilike("%test%"),
+        Organization.slug.ilike("%test%"),
+    )
+    
+    org_stmt = (
+        select(Organization, User)
+        .outerjoin(User, and_(User.org_id == Organization.id, User.role == "admin"))
+    )
+    if is_test is True:
+        org_stmt = org_stmt.where(test_pattern)
+    elif is_test is False:
+        org_stmt = org_stmt.where(~test_pattern)
+
+    orgs_result = await db.execute(org_stmt)
+    org_rows = orgs_result.all()
 
     token_stmt = (
         select(
@@ -446,7 +525,7 @@ async def get_org_analytics(
         msg_metrics = {}
 
     items = []
-    for org in orgs:
+    for org, admin_user in org_rows:
         tm = token_metrics.get(org.id)
         entries = tm.entries if tm else 0
         served = tm.served if tm else 0
@@ -474,9 +553,10 @@ async def get_org_analytics(
             
         msgs = msg_metrics.get(org.id, 0)
         
+        base_org_detail = _org_to_detail(org, admin_user)
+        
         items.append(OrgAnalyticsDetail(
-            org_id=str(org.id),
-            organization_name=org.name,
+            **base_org_detail.model_dump(),
             queue_entries=entries,
             customers_served=served,
             messages_sent=msgs,
@@ -649,6 +729,7 @@ async def update_global_settings(
 )
 async def list_organizations(
     search: str = Query(default="", description="Case-insensitive search by name or slug"),
+    is_test: Optional[bool] = Query(default=False, description="If True, only show test orgs. If False, hide test orgs."),
     limit: int = Query(default=10, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     sort_by: Literal["name", "created_at", "is_active"] = Query(default="created_at"),
@@ -672,6 +753,24 @@ async def list_organizations(
             Organization.name.ilike(term),
             Organization.slug.ilike(term),
         )
+
+    test_pattern = or_(
+        Organization.name.ilike("Msg Org%"),
+        Organization.name.ilike("Q Org%"),
+        Organization.name.ilike("%test%"),
+        Organization.slug.ilike("%test%"),
+    )
+    
+    if is_test is True:
+        if base_filter is None:
+            base_filter = test_pattern
+        else:
+            base_filter = and_(base_filter, test_pattern)
+    elif is_test is False:
+        if base_filter is None:
+            base_filter = ~test_pattern
+        else:
+            base_filter = and_(base_filter, ~test_pattern)
 
     count_q = select(func.count(Organization.id))
     data_q = select(Organization)
@@ -725,8 +824,9 @@ async def create_organization(
     org = Organization(
         name=body.org_name, 
         slug=body.org_slug,
-        max_sessions=body.max_sessions,
-        max_queues_per_session=body.max_queues_per_session,
+        max_sessions=body.max_sessions if body.max_sessions is not None else IN_MEMORY_SETTINGS.get("default_session_limit", 10),
+        max_queues_per_session=body.max_queues_per_session if body.max_queues_per_session is not None else IN_MEMORY_SETTINGS.get("default_queue_limit", 20),
+        max_staff=body.max_staff if body.max_staff is not None else 5,
     )
     db.add(org)
     await db.flush()
@@ -907,12 +1007,29 @@ async def update_organization(
         org.max_sessions = body.max_sessions
     if body.max_queues_per_session is not None:
         org.max_queues_per_session = body.max_queues_per_session
+    if body.max_staff is not None:
+        org.max_staff = body.max_staff
+
+    # Handle admin email update
+    admin_user = await db.scalar(
+        select(User).where(and_(User.org_id == org.id, User.role == "admin")).limit(1)
+    )
+    if body.admin_email and admin_user and body.admin_email != admin_user.email:
+        email_clash = await db.scalar(select(User).where(User.email == body.admin_email).limit(1))
+        if email_clash:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Email '{body.admin_email}' is already in use by another user.",
+            )
+        admin_user.email = body.admin_email
 
     await db.commit()
     await db.refresh(org)
+    if admin_user:
+        await db.refresh(admin_user)
 
     logger.info("Super admin updated org | org=%s active=%s", org.slug, org.is_active)
-    return _org_to_detail(org)
+    return _org_to_detail(org, admin_user)
 
 
 @router.delete(
@@ -1028,6 +1145,7 @@ async def impersonate_organization(
 
     # Log the impersonation event
     client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
     await record_event(
         event_type="auth.impersonate",
         user_id=_super_admin.id,
@@ -1035,7 +1153,11 @@ async def impersonate_organization(
         ip_address=client_ip,
         resource_type="organization",
         resource_id=str(org.id),
-        details={"impersonated_user_id": str(admin.id), "impersonated_email": admin.email},
+        details={
+            "impersonated_user_id": str(admin.id),
+            "impersonated_email": admin.email,
+            "user_agent": user_agent
+        },
     )
 
     logger.info("Super admin %s impersonated org %s (admin %s)", _super_admin.email, org.slug, admin.email)
@@ -1200,7 +1322,7 @@ async def list_global_queues(
         )
         .join(Organization, Queue.org_id == Organization.id)
         .outerjoin(Token, Token.queue_id == Queue.id)
-        .where(Queue.is_active == True)
+        .where(or_(Queue.is_active == True, Queue.is_paused == True))
         .group_by(Queue.id, Organization.name)
         .order_by(Organization.name, Queue.name)
     )
@@ -1245,22 +1367,190 @@ async def perform_queue_action(
     except ValueError:
         raise HTTPException(status_code=422, detail="Invalid queue ID")
 
-    result = await db.execute(select(Queue).where(Queue.id == q_uuid, Queue.is_active == True))
+    result = await db.execute(select(Queue).where(
+        Queue.id == q_uuid, 
+        or_(Queue.is_active == True, Queue.is_paused == True)
+    ))
     queue = result.scalar_one_or_none()
     if not queue:
         raise HTTPException(status_code=404, detail="Queue not found")
 
     if action == "pause":
         queue.is_paused = True
+        queue.is_active = False
     elif action == "resume":
         queue.is_paused = False
+        queue.is_active = True
     elif action == "clear":
         # Delete all waiting tokens
         await db.execute(
             update(Token)
-            .where(Token.queue_id == queue.id, Token.status == "waiting")
-            .values(status="deleted")
+            .where(Token.queue_id == queue.id, Token.status == TokenStatus.waiting)
+            .values(status=TokenStatus.deleted)
         )
 
     await db.commit()
     return SuccessResponse(message=f"Queue {action}d successfully")
+
+
+@router.get(
+    "/users/search",
+    response_model=PaginatedGlobalUsers,
+    summary="Global Staff Search",
+)
+async def search_global_users(
+    q: str = Query("", description="Search by name or email"),
+    org_id: Optional[str] = Query(None, description="Filter by Organization ID"),
+    role: Optional[str] = Query(None, description="Filter by role (admin, receptionist, doctor)"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedGlobalUsers:
+    """Search all users across the platform."""
+    # Base query for counting
+    count_stmt = select(func.count(User.id)).outerjoin(Organization, User.org_id == Organization.id)
+    
+    # Data query
+    stmt = (
+        select(
+            User,
+            Organization.name.label("org_name"),
+            Organization.slug.label("org_slug")
+        )
+        .outerjoin(Organization, User.org_id == Organization.id)
+    )
+
+    # Filters
+    filters = []
+    if q:
+        search_pattern = f"%{q}%"
+        filters.append(or_(
+            User.first_name.ilike(search_pattern),
+            User.last_name.ilike(search_pattern),
+            User.email.ilike(search_pattern)
+        ))
+    
+    if org_id:
+        try:
+            filters.append(User.org_id == _uuid.UUID(org_id))
+        except ValueError:
+            pass
+
+    if role:
+        filters.append(User.role == role)
+
+    if filters:
+        count_stmt = count_stmt.where(and_(*filters))
+        stmt = stmt.where(and_(*filters))
+
+    # Get total count
+    total = await db.scalar(count_stmt) or 0
+
+    # Get paginated data
+    stmt = stmt.order_by(desc(User.created_at)).limit(limit).offset(offset)
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    items = []
+    for user, org_name, org_slug in rows:
+        items.append(GlobalUserDetail(
+            id=str(user.id),
+            first_name=user.first_name,
+            last_name=user.last_name,
+            email=user.email,
+            role=user.role,
+            is_active=user.is_active,
+            org_id=str(user.org_id) if user.org_id else None,
+            org_name=org_name,
+            org_slug=org_slug,
+            created_at=user.created_at
+        ))
+
+    return PaginatedGlobalUsers(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset
+    )
+
+
+@router.put(
+    "/users/{user_id}/status",
+    response_model=SuccessResponse,
+    summary="Toggle User Status",
+)
+async def toggle_user_status(
+    user_id: str,
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessResponse:
+    """Toggle a user's is_active status globally."""
+    try:
+        u_uuid = _uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid user ID")
+
+    result = await db.execute(select(User).where(User.id == u_uuid))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.is_active = not user.is_active
+    await db.commit()
+    
+    await record_event(
+        event_type="user.status_changed",
+        user_id=_super_admin.id,
+        org_id=user.org_id,
+        details={"target_user_id": str(user.id), "new_status": user.is_active}
+    )
+    
+    action = "Activated" if user.is_active else "Suspended"
+    return SuccessResponse(message=f"User {action} successfully")
+
+
+@router.post(
+    "/users/{user_id}/reset-password",
+    response_model=ResetPasswordResponse,
+    summary="Reset User Password",
+)
+async def reset_user_password(
+    user_id: str,
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> ResetPasswordResponse:
+    """Generate a temporary password and force a reset on next login."""
+    try:
+        u_uuid = _uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid user ID")
+
+    result = await db.execute(select(User).where(User.id == u_uuid))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # Generate 8-char random alphanumeric password
+    alphabet = string.ascii_letters + string.digits
+    temp_password = ''.join(secrets.choice(alphabet) for i in range(8))
+    
+    user.password_hash = hash_password(temp_password)
+    user.initial_password = temp_password
+    user.password_changed_at = None
+    
+    await db.commit()
+    
+    await record_event(
+        event_type="user.password_reset_by_admin",
+        user_id=_super_admin.id,
+        org_id=user.org_id,
+        details={"target_user_id": str(user.id), "target_email": user.email}
+    )
+    
+    return ResetPasswordResponse(
+        message="Password reset successfully",
+        temporary_password=temp_password
+    )

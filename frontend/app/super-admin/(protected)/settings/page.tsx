@@ -144,49 +144,6 @@ export default function SuperAdminSettingsPage() {
                 </div>
 
                 <div className="space-y-6">
-                    {/* Branding Card */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-6">
-                        <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-6">
-                            <svg className="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
-                            Branding Settings
-                        </h2>
-                        
-                        <div className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1.5">Platform Name</label>
-                                <input 
-                                    type="text" 
-                                    name="platform_name"
-                                    value={settings.platform_name}
-                                    onChange={handleChange}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-                                />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1.5">Primary Brand Color</label>
-                                <div className="flex items-center gap-3">
-                                    <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-700 shadow-sm shrink-0">
-                                        <input 
-                                            type="color" 
-                                            name="primary_color"
-                                            value={settings.primary_color}
-                                            onChange={handleChange}
-                                            className="absolute -top-2 -left-2 w-16 h-16 cursor-pointer"
-                                        />
-                                    </div>
-                                    <input 
-                                        type="text" 
-                                        name="primary_color"
-                                        value={settings.primary_color}
-                                        onChange={handleChange}
-                                        className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors uppercase font-mono text-sm"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Support Contact Card */}
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-6">
                         <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-6">

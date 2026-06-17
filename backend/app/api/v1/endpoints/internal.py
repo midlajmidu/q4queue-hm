@@ -70,10 +70,13 @@ async def create_tenant(
         # and we are creating a new org. It will be unique within the new org.
 
         # 2. Create Organization
+        from app.api.v1.endpoints.super_admin import IN_MEMORY_SETTINGS
         org = Organization(
             name=data.name,
             slug=data.slug,
             is_active=True,
+            max_sessions=IN_MEMORY_SETTINGS.get("default_session_limit", 10),
+            max_queues_per_session=IN_MEMORY_SETTINGS.get("default_queue_limit", 20),
         )
         db.add(org)
         await db.flush()  # to get org.id

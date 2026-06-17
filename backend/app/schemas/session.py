@@ -21,6 +21,7 @@ class SessionResponse(BaseModel):
     title: Optional[str] = None
     created_at: datetime
     queue_count: int = 0
+    queue_names: list[str] = []
 
     model_config = {"from_attributes": True}
 

@@ -80,9 +80,13 @@ async def list_sessions(
     session_date: Optional[date] = None,
 ) -> dict:
     """List all sessions for an org, newest first, with queue counts."""
-    # Subquery: count queues per session
-    queue_count_sq = (
-        select(Queue.session_id, func.count(Queue.id).label("queue_count"))
+    # Subquery: count queues and collect names per session
+    queue_agg_sq = (
+        select(
+            Queue.session_id, 
+            func.count(Queue.id).label("queue_count"),
+            func.array_agg(Queue.name).label("queue_names")
+        )
         .where(Queue.org_id == org_id)
         .group_by(Queue.session_id)
         .subquery()
@@ -96,8 +100,12 @@ async def list_sessions(
     total = total_res.scalar_one()
 
     # Apply pagination and filter
-    base_query = select(Session, func.coalesce(queue_count_sq.c.queue_count, 0).label("queue_count"))
-    base_query = base_query.outerjoin(queue_count_sq, queue_count_sq.c.session_id == Session.id)
+    base_query = select(
+        Session, 
+        func.coalesce(queue_agg_sq.c.queue_count, 0).label("queue_count"),
+        queue_agg_sq.c.queue_names.label("queue_names")
+    )
+    base_query = base_query.outerjoin(queue_agg_sq, queue_agg_sq.c.session_id == Session.id)
     base_query = base_query.where(Session.org_id == org_id)
     if session_date:
         base_query = base_query.where(Session.session_date == session_date)
@@ -115,6 +123,7 @@ async def list_sessions(
             title=row.Session.title,
             created_at=row.Session.created_at,
             queue_count=row.queue_count,
+            queue_names=row.queue_names or [],
         )
         for row in rows
     ]

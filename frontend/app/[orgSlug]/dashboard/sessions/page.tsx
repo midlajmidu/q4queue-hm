@@ -93,6 +93,8 @@ export default function SessionsPage() {
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
 
     const [sessions, setSessions] = useState<SessionResponse[]>([]);
+    const [queueList, setQueueList] = useState<string[]>([]);
+    const [selectedQueue, setSelectedQueue] = useState<string>("");
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [filterDate, setFilterDate] = useState("");
@@ -127,6 +129,14 @@ export default function SessionsPage() {
     }, [page, filterDate]);
 
     useEffect(() => { loadData(); }, [loadData]);
+
+    // Fetch unique queue names for the dropdown
+    useEffect(() => {
+        api.listQueues().then(queues => {
+            const unique = Array.from(new Set(queues.map(q => q.name))).sort();
+            setQueueList(unique);
+        }).catch(() => {});
+    }, []);
 
     useEffect(() => {
         if (searchParams.get("alert") === "no_session") {
@@ -176,7 +186,14 @@ export default function SessionsPage() {
         }
     };
 
-    const grouped = useMemo(() => groupByTimeline(sessions), [sessions]);
+    const filteredSessions = useMemo(() => {
+        if (!selectedQueue) return sessions;
+        return sessions.filter(session => 
+            session.queue_names?.includes(selectedQueue)
+        );
+    }, [sessions, selectedQueue]);
+
+    const grouped = useMemo(() => groupByTimeline(filteredSessions), [filteredSessions]);
 
     const labelMeta: Record<TimelineLabel, { color: string; dotColor: string; icon: string }> = {
         Today:     { color: "text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-900/50", dotColor: "bg-indigo-500", icon: "⚡" },
@@ -197,8 +214,21 @@ export default function SessionsPage() {
                 title="Sessions"
                 subtitle="Your service timeline — organized by date."
                 action={
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 bg-[var(--q-card-bg-alt)] border border-[var(--q-borderLight)] rounded-xl px-3 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
+                    <div className="flex flex-row items-center gap-3">
+                        <div className="relative">
+                            <select
+                                value={selectedQueue}
+                                onChange={(e) => setSelectedQueue(e.target.value)}
+                                className="h-10 pl-3 pr-8 bg-white border border-gray-200 rounded-lg text-slate-700 text-[13px] font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 shadow-[0_1px_2px_rgba(0,0,0,0.03)] cursor-pointer transition-all"
+                            >
+                                <option value="">All Queues</option>
+                                {queueList.map(name => (
+                                    <option key={name} value={name}>{name}</option>
+                                ))}
+                            </select>
+                            <svg className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                        <div className="flex items-center gap-2 h-10 bg-[var(--q-card-bg-alt)] border border-[var(--q-borderLight)] rounded-xl px-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                             <input
                                 type="date"
@@ -240,15 +270,17 @@ export default function SessionsPage() {
                     <div className="w-10 h-10 border-4 border-slate-100 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4" />
                     <p className="text-[13px] text-[#64748b] font-medium">Loading sessions...</p>
                 </div>
-            ) : sessions.length === 0 ? (
+            ) : filteredSessions.length === 0 ? (
                 /* ── Empty state ── */
                 <div className="bg-[var(--q-card-bg)] rounded-2xl border-2 border-dashed border-[var(--q-borderLight)] text-center py-24 px-6">
                     <div className="w-16 h-16 bg-[var(--q-slate-bg)] rounded-2xl flex items-center justify-center mx-auto mb-5 border border-[var(--q-borderLight)]">
                         <svg className="w-7 h-7 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     </div>
-                    <h3 className="text-[17px] font-bold text-[#0f172a] mb-2">No sessions yet</h3>
-                    <p className="text-[14px] text-[#64748b] mb-8 max-w-sm mx-auto">Create your first session to start organizing queues by date.</p>
-                    {!isStaff && (
+                    <h3 className="text-[17px] font-bold text-[#0f172a] mb-2">{selectedQueue ? "No sessions found" : "No sessions yet"}</h3>
+                    <p className="text-[14px] text-[#64748b] mb-8 max-w-sm mx-auto">
+                        {selectedQueue ? `No sessions recorded for ${selectedQueue}.` : "Create your first session to start organizing queues by date."}
+                    </p>
+                    {!isStaff && !selectedQueue && (
                         <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-b from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-semibold rounded-xl transition-all shadow-[0_1px_3px_rgba(99,102,241,0.3)] text-[14px]">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
                             Create First Session

@@ -74,7 +74,7 @@ function OrgUsageRow({ org }: { org: OrgDetail }) {
                 {loading ? <div className="w-8 h-4 bg-slate-800 rounded mx-auto animate-pulse" /> : usage ? <span className="text-sm font-medium text-slate-200">{usage.active_staff}</span> : "-"}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-center">
-                {loading ? <div className="w-8 h-4 bg-slate-800 rounded mx-auto animate-pulse" /> : usage ? <span className="text-sm font-medium text-slate-200">{usage.messages_sent}</span> : "-"}
+                {loading ? <div className="w-8 h-4 bg-slate-800 rounded mx-auto animate-pulse" /> : <span className="text-sm font-medium text-slate-500">N/A</span>}
             </td>
         </tr>
     );
@@ -127,6 +127,7 @@ export default function UsageMonitoringPage() {
     const [search, setSearch] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const [offset, setOffset] = useState(0);
+    const [activeTab, setActiveTab] = useState<"active" | "test">("active");
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -136,6 +137,7 @@ export default function UsageMonitoringPage() {
         try {
             const res = await api.listOrganizations({
                 search: debouncedSearch,
+                is_test: activeTab === "test",
                 limit: PAGE_SIZE,
                 offset: offset,
                 sort_by: "created_at",
@@ -148,7 +150,7 @@ export default function UsageMonitoringPage() {
         } finally {
             setLoading(false);
         }
-    }, [debouncedSearch, offset]);
+    }, [debouncedSearch, offset, activeTab]);
 
     useEffect(() => { loadOrgs(); }, [loadOrgs]);
 
@@ -174,7 +176,21 @@ export default function UsageMonitoringPage() {
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-800 space-y-3">
+                <div className="px-6 py-4 border-b border-slate-800 space-y-4">
+                    <div className="flex bg-slate-950 p-1 rounded-xl w-fit border border-slate-800">
+                        <button
+                            onClick={() => { setActiveTab("active"); setOffset(0); }}
+                            className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${activeTab === "active" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-300"}`}
+                        >
+                            Active Organizations
+                        </button>
+                        <button
+                            onClick={() => { setActiveTab("test"); setOffset(0); }}
+                            className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${activeTab === "test" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-300"}`}
+                        >
+                            Test Organizations
+                        </button>
+                    </div>
                     <div className="relative max-w-md">
                         <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                         <input

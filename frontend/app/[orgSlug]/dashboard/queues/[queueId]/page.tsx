@@ -110,15 +110,6 @@ const QD_STYLES = `
     position: relative;
     overflow: hidden;
     border-radius: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 8px 32px rgba(91,94,244,.06);
-  }
-  .serving-card::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, ${T.brand}, #818cf8, ${T.brand});
-    border-radius: 20px 20px 0 0;
   }
   .serving-num {
     
@@ -665,9 +656,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                             <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
 
                                 {/* Header */}
-                                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
+                                <div className="flex flex-row justify-between items-center w-full">
                                     <div>
-                                        <h1 className="qd-section-title text-gray-900 dark:text-white">{queueName}</h1>
+                                        <h1 className="qd-section-title text-gray-900 dark:text-white capitalize">{queueName}</h1>
                                         <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
                                             Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
                                         </p>
@@ -712,7 +703,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <div className="lg:col-span-2 space-y-4">
 
                                         {/* Hero – Now Serving */}
-                                        <div className="serving-card bg-white dark:bg-[#0b1120]/80 dark:backdrop-blur-xl border border-transparent dark:border-white/10 shadow-2xl dark:shadow-primary/5" style={{ padding: "40px 32px 36px", textAlign: "center", minHeight: 280, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                                        <div className="serving-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none" style={{ padding: "40px 32px 36px", textAlign: "center", minHeight: 280, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
                                             {/* Label */}
                                             <div className="dark:bg-primary/10 dark:border-primary/30" style={{ display: "inline-flex", alignItems: "center", gap: 8,  border: `1px solid ${T.brandBorder}`, borderRadius: 99, padding: "5px 16px", marginBottom: 20, position: "relative", zIndex: 1 }}>
                                                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.brand, display: "inline-block", animation: "pulse-dot 2s infinite" }} />
@@ -738,12 +729,12 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                                             {/* Stat Chips */}
                                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 28, position: "relative", zIndex: 1, flexWrap: "wrap", justifyContent: "center" }}>
-                                                <span className="stat-chip" style={{  border: `1px solid ${T.amberBorder}`, color: T.amber }}>
-                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                <span className="stat-chip bg-gray-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                                    <svg className="text-slate-500" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                     Waiting: <strong>{state?.waiting_count ?? 0}</strong>
                                                 </span>
-                                                <span className="stat-chip" style={{ background: T.blueBg, border: `1px solid ${T.blueBorder}`, color: T.blue }}>
-                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                                <span className="stat-chip bg-gray-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                                    <svg className="text-slate-500" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                                                     Issued: <strong>{state?.total_issued ?? 0}</strong>
                                                 </span>
                                             </div>
@@ -796,7 +787,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         {/* Manual Controls Row */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                             {/* Manual Entry */}
-                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-[#0b1120]/60 dark:backdrop-blur-lg border border-[#e4e7ef] dark:border-white/10 shadow-sm dark:shadow-none">
+                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900/60 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none">
                                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                                                     <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                                         <svg width="13" height="13" fill="none" stroke={T.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
@@ -807,7 +798,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <button
                                                         onClick={() => setShowAddForm(true)}
                                                         disabled={isDisabled}
-                                                        style={{ width: "100%", padding: "9px 14px", /* background: "#fff" */ border: `1.5px dashed ${T.cardBorder}`, borderRadius: 9, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all .18s" }}
+                                                        style={{ width: "100%", padding: "9px 14px", border: `1px solid ${T.cardBorder}`, borderRadius: 9, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all .18s" }}
                                                         onMouseEnter={e => { e.currentTarget.style.borderColor = T.brand; e.currentTarget.style.color = T.brand; }}
                                                         onMouseLeave={e => { e.currentTarget.style.borderColor = T.cardBorder; e.currentTarget.style.color = T.textSub; }}
                                                     >
@@ -832,7 +823,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
 
                                             {/* Invite by Number */}
-                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-[#0b1120]/60 dark:backdrop-blur-lg border border-[#e4e7ef] dark:border-white/10 shadow-sm dark:shadow-none">
+                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900/60 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none">
                                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                                                     <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                                         <svg width="13" height="13" fill="none" stroke={T.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
@@ -848,7 +839,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
 
                                             {/* Remove by Number */}
-                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-[#0b1120]/60 dark:backdrop-blur-lg border border-[#e4e7ef] dark:border-white/10 shadow-sm dark:shadow-none">
+                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900/60 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none">
                                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                                                     <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                                         <svg width="13" height="13" fill="none" stroke={T.red} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -891,8 +882,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             <div style={{ padding: "14px 18px 10px", borderBottom: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
                                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                        <span style={{ width: 24, height: 24, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                            <svg width="12" height="12" fill="none" stroke={T.amber} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                        <span className="text-slate-500" style={{ width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                         </span>
                                                         <h2 style={{ fontSize: 13, fontWeight: 700,  margin: 0 }}>Waiting List</h2>
                                                     </div>
@@ -967,8 +958,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <aside className="qd-card bg-white dark:bg-slate-900 dark:border-white/10" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }} aria-label="Recent activity">
                                             <div style={{ padding: "14px 18px 10px", borderBottom: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                    <span style={{ width: 24, height: 24, borderRadius: 7, background: T.greenBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                        <svg width="12" height="12" fill="none" stroke={T.green} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                                                    <span className="text-slate-500" style={{ width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
                                                     </span>
                                                     <h2 style={{ fontSize: 13, fontWeight: 700,  margin: 0 }}>Recent Activity</h2>
                                                 </div>
@@ -1168,7 +1159,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                 </div>
                 {t.customer_name && (
                     <div className="dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: 11.5, paddingLeft: 56 }}>
-                        <span className="dark:text-white" style={{ fontWeight: 600 }}>{t.customer_name}</span>
+                        <span className="font-medium text-slate-900 dark:text-white capitalize">{t.customer_name}</span>
                         {t.customer_age != null && <span>Age: {t.customer_age}</span>}
                         <span>{t.customer_phone}</span>
                     </div>

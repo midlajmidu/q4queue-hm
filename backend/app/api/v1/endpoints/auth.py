@@ -45,6 +45,7 @@ async def login(
     Returns a Bearer JWT valid for ACCESS_TOKEN_EXPIRE_MINUTES.
     """
     client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
 
     try:
         token = await authenticate_user(
@@ -57,7 +58,7 @@ async def login(
         await record_event(
             event_type="auth.login_failed",
             ip_address=client_ip,
-            details={"email": body.email, "org_slug": body.organization_slug},
+            details={"email": body.email, "org_slug": body.organization_slug, "user_agent": user_agent},
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -68,6 +69,6 @@ async def login(
     await record_event(
         event_type="auth.login",
         ip_address=client_ip,
-        details={"email": body.email, "org_slug": body.organization_slug},
+        details={"email": body.email, "org_slug": body.organization_slug, "user_agent": user_agent},
     )
     return TokenResponse(access_token=token)

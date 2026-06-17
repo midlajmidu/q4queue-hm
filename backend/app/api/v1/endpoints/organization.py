@@ -22,6 +22,10 @@ router = APIRouter()
 
 # ── Schemas ────────────────────────────────────────────────────────
 
+class SupportContactResponse(BaseModel):
+    support_email: str
+    support_phone: str
+
 class OrganizationSettingsResponse(BaseModel):
     name: str
     slug: str
@@ -50,6 +54,15 @@ class SuccessResponse(BaseModel):
     message: str
 
 # ── Endpoints ──────────────────────────────────────────────────────
+
+@router.get("/support-contact", response_model=SupportContactResponse)
+async def get_support_contact(current_user: User = Depends(get_current_active_user)):
+    """Get the platform support contact information."""
+    from app.api.v1.endpoints.super_admin import IN_MEMORY_SETTINGS
+    return SupportContactResponse(
+        support_email=IN_MEMORY_SETTINGS.get("support_email", ""),
+        support_phone=IN_MEMORY_SETTINGS.get("support_phone", "")
+    )
 
 @router.get("/settings", response_model=OrganizationSettingsResponse)
 async def get_organization_settings(

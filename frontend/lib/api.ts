@@ -67,6 +67,8 @@ import type {
     OrgAnalyticsResponse,
     SystemMonitoringResponse,
     GlobalSettings,
+    PaginatedGlobalUsers,
+    ResetPasswordResponse
 } from "@/types/api";
 
 // ── Error class ──────────────────────────────────────────────────
@@ -482,8 +484,8 @@ export const api = {
     getPlatformAnalytics(): Promise<PlatformAnalytics> {
         return request<PlatformAnalytics>("/super-admin/analytics");
     },
-    getOrgAnalytics(timeframe: "daily" | "weekly" | "monthly" = "daily"): Promise<OrgAnalyticsResponse> {
-        return request<OrgAnalyticsResponse>(`/super-admin/analytics/organizations?timeframe=${timeframe}`);
+    getOrgAnalytics(timeframe: "daily" | "weekly" | "monthly" = "daily", is_test: boolean = false): Promise<OrgAnalyticsResponse> {
+        return request<OrgAnalyticsResponse>(`/super-admin/analytics/organizations?timeframe=${timeframe}&is_test=${is_test}`);
     },
     getSystemMonitoring(): Promise<SystemMonitoringResponse> {
         return request<SystemMonitoringResponse>("/super-admin/system-monitoring");
@@ -501,6 +503,7 @@ export const api = {
     listOrganizations(params: ListOrgsParams = {}): Promise<PaginatedOrgsResponse> {
         const qs = new URLSearchParams();
         if (params.search) qs.set("search", params.search);
+        if (params.is_test !== undefined) qs.set("is_test", String(params.is_test));
         if (params.limit != null) qs.set("limit", String(params.limit));
         if (params.offset != null) qs.set("offset", String(params.offset));
         if (params.sort_by) qs.set("sort_by", params.sort_by);
@@ -620,11 +623,15 @@ export const api = {
             body: JSON.stringify(data),
         });
     },
-    changePassword(data: ChangePasswordRequest): Promise<SuccessResponse> {
-        return request<SuccessResponse>("/organization/change-password", {
+    changePassword(data: ChangePasswordRequest): Promise<{ message: string }> {
+        return request("/organization/change-password", {
             method: "POST",
             body: JSON.stringify(data),
         });
+    },
+
+    getSupportContact(): Promise<{ support_email: string; support_phone: string }> {
+        return request<{ support_email: string; support_phone: string }>("/organization/support-contact");
     },
 
     resetOrgPassword(orgId: string, data: ResetPasswordRequest): Promise<SuccessResponse> {
@@ -637,5 +644,18 @@ export const api = {
     // System
     getActiveSystemAnnouncements(): Promise<SystemAnnouncementDetail[]> {
         return request<SystemAnnouncementDetail[]>("/system/system-announcements/active");
+    },
+
+    // Global User Management
+    searchGlobalUsers(q: string = "", limit: number = 20, offset: number = 0): Promise<PaginatedGlobalUsers> {
+        return request<PaginatedGlobalUsers>(`/super-admin/users/search?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);
+    },
+
+    toggleUserStatus(userId: string): Promise<SuccessResponse> {
+        return request<SuccessResponse>(`/super-admin/users/${userId}/status`, { method: "PUT" });
+    },
+
+    resetUserPassword(userId: string): Promise<ResetPasswordResponse> {
+        return request<ResetPasswordResponse>(`/super-admin/users/${userId}/reset-password`, { method: "POST" });
     },
 } as const;

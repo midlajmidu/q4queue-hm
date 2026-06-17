@@ -144,6 +144,21 @@ async def create_staff(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"A user with email '{body.email}' already exists in this organization.",
         )
+        
+    from app.models.organization import Organization
+    org = await db.scalar(select(Organization).where(Organization.id == current_admin.org_id))
+    
+    current_staff_count = await db.scalar(
+        select(func.count(User.id)).where(
+            and_(User.org_id == current_admin.org_id, User.role == "staff", User.is_active == True)
+        )
+    ) or 0
+    
+    if current_staff_count >= org.max_staff:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Staff limit reached ({org.max_staff}). Contact support to upgrade your plan."
+        )
 
     member = User(
         org_id=current_admin.org_id,
