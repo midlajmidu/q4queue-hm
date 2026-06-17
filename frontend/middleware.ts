@@ -57,9 +57,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(`${protocol}//${appHost}${path}${url.search}`);
   }
 
-  // 3. If a user accesses a Marketing route (like /about) on the APP subdomain
+  // 3. If a user accesses a Marketing route or Super Admin route on the APP subdomain
   // We need to move them to the ROOT domain
-  if (isAppSubdomain && isMarketingRoute && path !== "/") {
+  if (isAppSubdomain && (isMarketingRoute || isSuperAdminRoute) && path !== "/") {
     const protocol = hostname.includes('localhost') ? 'http:' : 'https:';
     return NextResponse.redirect(`${protocol}//${rootHost}${path}${url.search}`);
   }

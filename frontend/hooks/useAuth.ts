@@ -21,6 +21,9 @@ import {
     removeToken,
     isAuthenticated as checkAuth,
     getCurrentUser,
+    getSuperAdminToken,
+    setSuperAdminToken,
+    removeSuperAdminToken,
 } from "@/lib/auth";
 import type { JwtPayload, LoginRequest } from "@/types/api";
 
@@ -32,6 +35,8 @@ interface UseAuthReturn {
     logout: () => void;
     isLoading: boolean;
     error: string | null;
+    isImpersonating: boolean;
+    stopImpersonating: () => void;
 }
 
 export function useAuth(): UseAuthReturn {
@@ -41,12 +46,29 @@ export function useAuth(): UseAuthReturn {
     const [isAuthed, setIsAuthed] = useState(false);
     const [isHydrated, setIsHydrated] = useState(false);
     const [user, setUser] = useState<JwtPayload | null>(null);
+    const [isImpersonating, setIsImpersonating] = useState(false);
 
     // Hydrate auth state on mount
     useEffect(() => {
+        // Check for token in URL fragment (used for cross-subdomain impersonation)
+        if (typeof window !== "undefined" && window.location.hash) {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            const newToken = params.get("token");
+            const newSaToken = params.get("saToken");
+            
+            if (newToken) {
+                setToken(newToken);
+                if (newSaToken) setSuperAdminToken(newSaToken);
+                // Clear the hash without reloading the page
+                window.history.replaceState(null, "", window.location.pathname + window.location.search);
+            }
+        }
+
         const authed = checkAuth();
         setIsAuthed(authed);
         setUser(authed ? getCurrentUser() : null);
+        setIsImpersonating(!!getSuperAdminToken());
         setIsHydrated(true);
     }, []);
 
@@ -103,10 +125,29 @@ export function useAuth(): UseAuthReturn {
 
     const logout = useCallback(() => {
         removeToken();
+        removeSuperAdminToken();
         setIsAuthed(false);
         setUser(null);
+        setIsImpersonating(false);
         router.push("/login");
     }, [router]);
+
+    const stopImpersonating = useCallback(() => {
+        const saToken = getSuperAdminToken();
+        if (saToken) {
+            const isAppSubdomain = window.location.hostname.startsWith("app.");
+            // Use .host to preserve the port (e.g. localhost:3000)
+            const rootHost = isAppSubdomain ? window.location.host.replace("app.", "") : window.location.host;
+            const protocol = window.location.protocol;
+            
+            // Remove from current subdomain
+            removeToken();
+            removeSuperAdminToken();
+            
+            // Navigate to root domain with token in fragment to restore
+            window.location.href = `${protocol}//${rootHost}/super-admin#token=${saToken}`;
+        }
+    }, []);
 
     return {
         isAuthenticated: isAuthed,
@@ -116,5 +157,7 @@ export function useAuth(): UseAuthReturn {
         logout,
         isLoading,
         error,
+        isImpersonating,
+        stopImpersonating,
     };
 }

@@ -17,6 +17,8 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 from app.core.config import get_settings
 from app.core.logging import setup_logging
@@ -168,6 +170,11 @@ if settings.METRICS_ENABLED:
 app.include_router(api_router, prefix="/api/v1")
 
 app.include_router(health_ep.router, prefix="", tags=["Health"])
+
+# ── Static Files ──────────────────────────────────────────────────
+# Ensure uploads directory exists
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # ── WebSocket routes ──────────────────────────────────────────────
 app.include_router(ws_router, prefix="/api/v1/ws")

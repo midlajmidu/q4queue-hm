@@ -353,17 +353,31 @@ export default function JoinQueuePage({ params }: PageProps) {
         else positionMessage = `${peopleAhead} people ahead of you`;
     }
 
+    const brandColor = live?.org_brand_color || '#2563eb';
+    const logoUrl = live?.org_logo_url;
+    const fullLogoUrl = logoUrl ? (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `http://localhost:8000${logoUrl}`) : null;
+
     return (
         <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
             <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
                 {/* Header */}
-                <div className="bg-blue-600 px-6 py-7 text-center text-white relative">
+                <div className="px-6 py-7 text-center text-white relative transition-colors duration-500" style={{ backgroundColor: brandColor }}>
                     <div className="absolute top-3 right-3">
                         <ConnectionBadge status={queueClosed ? "disconnected" : wsStatus} />
                     </div>
 
+                    {fullLogoUrl && (
+                        <div className="flex justify-center mb-3">
+                            <img 
+                                src={fullLogoUrl} 
+                                alt="Organization Logo" 
+                                className="h-16 object-contain bg-white/10 rounded-lg p-1.5 backdrop-blur-sm border border-white/20 shadow-sm"
+                            />
+                        </div>
+                    )}
+
                     <h1 className="text-2xl font-extrabold mb-1">{queueName}</h1>
-                    <p className="text-blue-200 text-xs font-semibold uppercase tracking-widest">
+                    <p className="text-white/80 text-xs font-semibold uppercase tracking-widest">
                         {queueClosed ? "Currently Closed" : "Now Serving"}
                     </p>
 
@@ -460,11 +474,11 @@ export default function JoinQueuePage({ params }: PageProps) {
 
                             <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center shadow-inner" aria-label="Your ticket information">
                                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Your Ticket</p>
-                                <div className={`text-7xl font-black tabular-nums mb-2 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : "text-blue-700"}`}>
+                                <div className={`text-7xl font-black tabular-nums mb-2 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : ""}`} style={(!isMyTurn && !alreadyServed) ? { color: brandColor } : {}}>
                                     {prefix}{myNumber}
                                 </div>
 
-                                <p aria-live="polite" className={`text-sm font-semibold mb-4 ${isMyTurn ? "text-emerald-600" : isNext ? "text-blue-600" : alreadyServed ? "text-gray-400" : "text-gray-600"}`}>
+                                <p aria-live="polite" className={`text-sm font-semibold mb-4 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : (!isNext ? "text-gray-600" : "")}`} style={isNext ? { color: brandColor } : {}}>
                                     {positionMessage}
                                 </p>
 
@@ -477,7 +491,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                     </div>
                                     <div className="flex-1 py-3">
                                         <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Status</p>
-                                        <p className={`text-sm font-bold mt-1 ${isMyTurn ? "text-emerald-600" : isSkipped ? "text-amber-500" : alreadyServed ? "text-gray-400" : isNext ? "text-blue-600" : "text-amber-600"}`}>
+                                        <p className={`text-sm font-bold mt-1 ${isMyTurn ? "text-emerald-600" : isSkipped ? "text-amber-500" : alreadyServed ? "text-gray-400" : (!isNext ? "text-amber-600" : "")}`} style={isNext ? { color: brandColor } : {}}>
                                             {isMyTurn ? "YOUR TURN" : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "NEXT" : "Waiting"}
                                         </p>
                                     </div>
@@ -608,7 +622,8 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 onClick={handleJoin}
                                 disabled={isJoining || queueClosed || !isFormValid}
                                 aria-label={queueClosed ? "Queue is closed" : "Take a token"}
-                                className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl text-lg shadow-lg hover:shadow-xl hover:bg-blue-700 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg"
+                                className="w-full py-4 text-white font-bold rounded-xl text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg"
+                                style={{ backgroundColor: brandColor }}
                             >
                                 {isJoining ? (
                                     <span className="flex items-center justify-center gap-2">

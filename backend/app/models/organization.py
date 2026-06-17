@@ -45,6 +45,11 @@ class Organization(Base):
     # ── Limits ─────────────────────────────────────────────────────
     max_sessions: Mapped[int] = mapped_column(default=10, nullable=False)
     max_queues_per_session: Mapped[int] = mapped_column(default=20, nullable=False)
+    max_tokens: Mapped[int] = mapped_column(default=5000, nullable=False)
+
+    # ── Branding ───────────────────────────────────────────────────
+    logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    brand_color: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     # ── Relationships ──────────────────────────────────────────────
     users: Mapped[list["User"]] = relationship(  # noqa: F821

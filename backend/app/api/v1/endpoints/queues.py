@@ -355,6 +355,7 @@ async def serve_specific_token(
     token_number: int,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_or_staff),
     queue: Queue = Depends(get_queue_for_org),
 ) -> NextResponse:
     """
@@ -364,7 +365,7 @@ async def serve_specific_token(
     try:
         result = await token_service.serve_specific_token(
             db,
-            queue_id=queue_id,
+            queue_id=queue.id,
             org_id=current_user.org_id,
             user_id=current_user.id,
             token_number=token_number,
@@ -395,6 +396,7 @@ async def call_next(
     background_tasks: BackgroundTasks,
     action: str = "done",
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_or_staff),
     queue: Queue = Depends(get_queue_for_org),
 ) -> Union[NextResponse, NoTokenResponse]:
     """
@@ -405,7 +407,7 @@ async def call_next(
     try:
         result = await token_service.call_next(
             db,
-            queue_id=queue_id,
+            queue_id=queue.id,
             org_id=current_user.org_id,
             user_id=current_user.id,
             action=action,

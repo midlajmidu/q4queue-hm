@@ -223,18 +223,24 @@ export default function InsightsPage() {
                 </svg>
                 Refresh
               </button>
-              <button onClick={() => {
-                if (!d) return;
-                const csv = ["Date,Avg Wait (min),Avg Serve (min)"];
-                d.dailyTimings.forEach(dt => csv.push(`${dt.dateFormatted},${dt.avg_wait_min},${dt.avg_serve_min}`));
-                const blob = new Blob([csv.join("\n")], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = `insights_${startDate}_${endDate}.csv`; a.click();
-              }} disabled={!d || loading} style={{
+              <button onClick={async () => {
+                try {
+                    const blob = await api.exportAnalyticsCSV({ startDate, endDate });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `queue_report_${startDate}_to_${endDate}.csv`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } catch (e) {
+                    console.error("Export failed", e);
+                    alert("Failed to export CSV report. Please try again.");
+                }
+              }} disabled={loading} style={{
                 display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
                 fontSize: 13, fontWeight: 600, color: "#fff",
                 background: C.brand, border: "none", borderRadius: 8,
-                cursor: (!d || loading) ? "not-allowed" : "pointer", opacity: (!d || loading) ? .5 : 1,
+                cursor: loading ? "not-allowed" : "pointer", opacity: loading ? .5 : 1,
                 boxShadow: "0 1px 3px rgba(23, 19, 93, 0.07)", transition: "all .15s",
               }}>
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

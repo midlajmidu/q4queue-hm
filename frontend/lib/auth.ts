@@ -14,6 +14,7 @@ import type { JwtPayload } from "@/types/api";
 let _accessToken: string | null = null;
 
 const STORAGE_KEY = "fc_access_token";
+const SA_STORAGE_KEY = "fc_sa_access_token";
 
 /**
  * Store the access token.
@@ -68,6 +69,32 @@ export function removeToken(): void {
     } catch {
         // SSR or storage unavailable
     }
+}
+
+// ── Super Admin Impersonation Token ──────────────────────────────
+export function setSuperAdminToken(token: string): void {
+    try {
+        if (typeof window !== "undefined") {
+            localStorage.setItem(SA_STORAGE_KEY, token);
+        }
+    } catch {}
+}
+
+export function getSuperAdminToken(): string | null {
+    try {
+        if (typeof window !== "undefined") {
+            return localStorage.getItem(SA_STORAGE_KEY);
+        }
+    } catch {}
+    return null;
+}
+
+export function removeSuperAdminToken(): void {
+    try {
+        if (typeof window !== "undefined") {
+            localStorage.removeItem(SA_STORAGE_KEY);
+        }
+    } catch {}
 }
 
 /**

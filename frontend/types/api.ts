@@ -60,6 +60,7 @@ export interface JwtPayload {
     org_id: string | null;
     org_slug: string | null;
     org_name: string | null;
+    org_logo_url: string | null;
     role: string;
     exp: number;       // UNIX timestamp
     email: string;
@@ -226,6 +227,8 @@ export interface QueueSnapshot {
     total_issued: number;
     recent_tokens: RecentToken[];
     waiting_tokens?: WaitingToken[];
+    org_logo_url?: string | null;
+    org_brand_color?: string | null;
 }
 
 export type QueueUpdate = QueueSnapshot;
@@ -333,11 +336,21 @@ export interface OrgDetail {
     admin_email?: string | null;
     admin_initial_password?: string | null;
     admin_password_changed_at?: string | null;
+    logo_url?: string | null;
 }
 
 export interface OrgDetailExtended extends OrgDetail {
     total_users: number;
     total_admins: number;
+}
+
+export interface OrgUsageResponse {
+    queue_entries_used: number;
+    queue_entries_max: number;
+    customers_served: number;
+    active_queues: number;
+    active_staff: number;
+    messages_sent: number;
 }
 
 export interface OrgCreateRequest {
@@ -353,8 +366,8 @@ export interface OrgUpdateRequest {
     org_name: string;
     org_slug: string;
     is_active: boolean;
-    max_sessions: number;
-    max_queues_per_session: number;
+    max_sessions?: number;
+    max_queues_per_session?: number;
 }
 
 export interface OrgCreateResponse {
@@ -370,10 +383,111 @@ export interface PaginatedOrgsResponse {
     offset: number;
 }
 
+export interface OrgAnalyticsDetail {
+    org_id: string;
+    organization_name: string;
+    queue_entries: number;
+    customers_served: number;
+    messages_sent: number;
+    average_wait_time: string;
+    peak_usage_time: string;
+}
+
+export interface OrgAnalyticsResponse {
+    items: OrgAnalyticsDetail[];
+}
+
+export interface ErrorLogItem {
+    id: string;
+    timestamp: string;
+    severity: string;
+    component: string;
+    message: string;
+}
+
+export interface SystemMonitoringResponse {
+    api_health: string;
+    database_health: string;
+    redis_health: string;
+    whatsapp_health: string;
+    uptime_seconds: number;
+    recent_errors: ErrorLogItem[];
+}
+
+export interface GlobalSettings {
+    default_queue_limit: number;
+    default_session_limit: number;
+    default_whatsapp_limit: number;
+    platform_name: string;
+    primary_color: string;
+    support_email: string;
+    support_phone: string;
+}
+
 export interface OrgStats {
     total: number;
     active: number;
     inactive: number;
+}
+
+export interface PlatformAnalytics {
+    total_active_queues: number;
+    total_waiting_customers: number;
+    total_serving_customers: number;
+    total_queue_entries_today: number;
+    total_queue_entries_month: number;
+    total_customers_served: number;
+    total_staff_users: number;
+    organization_growth: Array<{ month: string; count: number }>;
+}
+
+export interface AuditLogDetail {
+    id: string;
+    event_type: string;
+    org_id: string | null;
+    org_name: string | null;
+    user_id: string | null;
+    user_email: string | null;
+    ip_address: string | null;
+    resource_type: string | null;
+    resource_id: string | null;
+    details: Record<string, any> | null;
+    created_at: string;
+}
+
+export interface SystemAnnouncementDetail {
+    id: string;
+    message: string;
+    type: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PaginatedSystemAnnouncements {
+    items: SystemAnnouncementDetail[];
+    total: number;
+    limit: number;
+    offset: number;
+}
+
+export interface SystemAnnouncementCreate {
+    message: string;
+    type: string;
+    is_active: boolean;
+}
+
+export interface SystemAnnouncementUpdate {
+    message?: string;
+    type?: string;
+    is_active?: boolean;
+}
+
+export interface PaginatedAuditLogs {
+    items: AuditLogDetail[];
+    total: number;
+    limit: number;
+    offset: number;
 }
 
 export interface ListOrgsParams {
@@ -391,12 +505,15 @@ export interface OrganizationSettingsResponse {
     email: string;
     address: string | null;
     phone_number: string | null;
+    logo_url?: string | null;
+    brand_color?: string | null;
 }
 
 export interface OrganizationSettingsUpdate {
     name: string;
     address: string | null;
     phone_number: string | null;
+    brand_color?: string | null;
 }
 
 export interface RequestOtpRequest {
@@ -436,3 +553,4 @@ export interface PaginatedHistoryResponse {
     limit: number;
     offset: number;
 }
+export interface GlobalQueueDetail { id: string; organization: string; queue_name: string; current_position: number; customers_waiting: number; average_wait_time: string; staff_handling: number; status: string; } export interface GlobalQueueResponse { items: GlobalQueueDetail[]; }

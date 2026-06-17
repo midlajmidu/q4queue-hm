@@ -11,6 +11,8 @@ import { usePathname } from "next/navigation";
 import { AlertBannerContainer } from "@/components/AlertBannerContainer";
 import ConfirmModal from "@/components/ConfirmModal";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+import SystemBanner from "@/components/SystemBanner";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,6 +63,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         }
                     `}</style>
                     <div className={`flex-1 flex flex-col min-w-0 ${!isManageQueuePage ? 'sb-offset' : ''}`}>
+                        <SystemBanner />
+                        <ImpersonationBanner />
                         {/* Global Top Bar */}
                         {!isManageQueuePage && (
                             <TopBar onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />

@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.queue import Queue
 from app.models.token import Token, TokenStatus
+from app.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,10 @@ async def build_queue_snapshot(
     if queue is None:
         return {"type": "error", "message": "Queue not found"}
 
+    # ── Org Branding ───────────────────────────────────────────────
+    org_result = await db.execute(select(Organization).where(Organization.id == queue.org_id))
+    org = org_result.scalar_one_or_none()
+    
     # ── Currently serving ──────────────────────────────────────────
     serving_result = await db.execute(
         select(Token)
@@ -143,4 +148,6 @@ async def build_queue_snapshot(
         "total_issued": queue.current_token_number,
         "recent_tokens": recent_tokens,
         "waiting_tokens": waiting_tokens,
+        "org_logo_url": org.logo_url if org else None,
+        "org_brand_color": org.brand_color if org else None,
     }

@@ -61,3 +61,29 @@ async def get_history(
         limit=limit,
         offset=offset,
     )
+
+@router.get("/export", summary="Export CSV Report")
+async def export_analytics_csv(
+    start_date: Optional[str] = Query(None, description="Start date (ISO 8601)"),
+    end_date: Optional[str] = Query(None, description="End date (ISO 8601)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Download a CSV report of all queue interactions within a date range."""
+    from fastapi.responses import Response
+    from app.services.analytics_service import get_analytics_csv_data
+    
+    csv_data = await get_analytics_csv_data(
+        db,
+        org_id=current_user.org_id,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    
+    filename = f"queue_interactions_{start_date or 'all'}_to_{end_date or 'all'}.csv"
+    
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )

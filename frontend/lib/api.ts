@@ -47,6 +47,11 @@ import type {
     TokenRestoreResponse,
     OrganizationSettingsResponse,
     OrganizationSettingsUpdate,
+    PaginatedAuditLogs,
+    PaginatedSystemAnnouncements,
+    SystemAnnouncementCreate,
+    SystemAnnouncementUpdate,
+    SystemAnnouncementDetail,
     ChangePasswordRequest,
     RequestOtpRequest,
     ResetPasswordRequest,
@@ -56,6 +61,12 @@ import type {
     PaginatedQueueResponse,
     MessageResponse,
     MessageUpdateResponse,
+    OrgUsageResponse,
+    PlatformAnalytics,
+    GlobalQueueResponse,
+    OrgAnalyticsResponse,
+    SystemMonitoringResponse,
+    GlobalSettings,
 } from "@/types/api";
 
 // ── Error class ──────────────────────────────────────────────────
@@ -104,7 +115,7 @@ async function request<T>(
     }
 
     // Default content type for JSON bodies
-    if (options.body && !headers.has("Content-Type")) {
+    if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
         headers.set("Content-Type", "application/json");
     }
 
@@ -215,6 +226,24 @@ export const api = {
 
         const q = qs.toString();
         return request<PaginatedHistoryResponse>(`/analytics/history${q ? `?${q}` : ""}`);
+    },
+
+    async exportAnalyticsCSV(params: { startDate?: string; endDate?: string }): Promise<Blob> {
+        const qs = new URLSearchParams();
+        if (params.startDate) qs.append("start_date", params.startDate);
+        if (params.endDate) qs.append("end_date", params.endDate);
+        const q = qs.toString();
+        
+        const url = `${config.apiBaseUrl}/analytics/export${q ? `?${q}` : ""}`;
+        const headers = new Headers();
+        const token = getToken();
+        if (token) headers.set("Authorization", `Bearer ${token}`);
+
+        const resp = await fetch(url, { headers });
+        if (!resp.ok) {
+            throw new Error("Failed to export analytics data");
+        }
+        return await resp.blob();
     },
 
     // ── Messages ─────────────────────────────────────────────────
@@ -445,6 +474,29 @@ export const api = {
     getOrganizationStats(): Promise<OrgStats> {
         return request<OrgStats>("/super-admin/stats");
     },
+    
+    getOrganizationUsage(orgId: string): Promise<OrgUsageResponse> {
+        return request<OrgUsageResponse>(`/super-admin/organizations/${orgId}/usage`);
+    },
+
+    getPlatformAnalytics(): Promise<PlatformAnalytics> {
+        return request<PlatformAnalytics>("/super-admin/analytics");
+    },
+    getOrgAnalytics(timeframe: "daily" | "weekly" | "monthly" = "daily"): Promise<OrgAnalyticsResponse> {
+        return request<OrgAnalyticsResponse>(`/super-admin/analytics/organizations?timeframe=${timeframe}`);
+    },
+    getSystemMonitoring(): Promise<SystemMonitoringResponse> {
+        return request<SystemMonitoringResponse>("/super-admin/system-monitoring");
+    },
+    getGlobalSettings(): Promise<GlobalSettings> {
+        return request<GlobalSettings>("/super-admin/settings");
+    },
+    updateGlobalSettings(data: GlobalSettings): Promise<GlobalSettings> {
+        return request<GlobalSettings>("/super-admin/settings", {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
 
     listOrganizations(params: ListOrgsParams = {}): Promise<PaginatedOrgsResponse> {
         const qs = new URLSearchParams();
@@ -457,8 +509,58 @@ export const api = {
         return request<PaginatedOrgsResponse>(`/super-admin/organizations${q ? `?${q}` : ""}`);
     },
 
+    getAuditLogs(limit: number = 20, offset: number = 0): Promise<PaginatedAuditLogs> {
+        return request<PaginatedAuditLogs>(`/super-admin/audit-logs?limit=${limit}&offset=${offset}`);
+    },
+
+    getSystemAnnouncements(limit: number = 20, offset: number = 0): Promise<PaginatedSystemAnnouncements> {
+        return request<PaginatedSystemAnnouncements>(`/super-admin/announcements?limit=${limit}&offset=${offset}`);
+    },
+
+    createSystemAnnouncement(data: SystemAnnouncementCreate): Promise<SystemAnnouncementDetail> {
+        return request<SystemAnnouncementDetail>("/super-admin/announcements", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateSystemAnnouncement(id: string, data: SystemAnnouncementUpdate): Promise<SystemAnnouncementDetail> {
+        return request<SystemAnnouncementDetail>(`/super-admin/announcements/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteSystemAnnouncement(id: string): Promise<void> {
+        return request<void>(`/super-admin/announcements/${id}`, {
+            method: "DELETE",
+        });
+    },
+
     getOrganizationDetail(orgId: string): Promise<OrgDetailExtended> {
         return request<OrgDetailExtended>(`/super-admin/organizations/${orgId}`);
+    },
+
+    impersonateOrganization(orgId: string): Promise<TokenResponse> {
+        return request<TokenResponse>(`/super-admin/organizations/${orgId}/impersonate`, {
+            method: "POST",
+        });
+    },
+
+    getGlobalQueues(): Promise<GlobalQueueResponse> {
+        return request<GlobalQueueResponse>("/super-admin/queues");
+    },
+
+    pauseGlobalQueue(queueId: string): Promise<SuccessResponse> {
+        return request<SuccessResponse>(`/super-admin/queues/${queueId}/pause`, { method: "POST" });
+    },
+
+    resumeGlobalQueue(queueId: string): Promise<SuccessResponse> {
+        return request<SuccessResponse>(`/super-admin/queues/${queueId}/resume`, { method: "POST" });
+    },
+
+    clearGlobalQueue(queueId: string): Promise<SuccessResponse> {
+        return request<SuccessResponse>(`/super-admin/queues/${queueId}/clear`, { method: "POST" });
     },
 
     createOrganization(data: OrgCreateRequest): Promise<OrgCreateResponse> {
@@ -494,6 +596,24 @@ export const api = {
         });
     },
 
+    uploadOrganizationLogo(file: File): Promise<OrganizationSettingsResponse> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                const base64_data = reader.result as string;
+                request<OrganizationSettingsResponse>("/organization/settings/logo", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        filename: file.name,
+                        base64_data: base64_data
+                    }),
+                }).then(resolve).catch(reject);
+            };
+            reader.onerror = error => reject(error);
+        });
+    },
+
     requestPasswordChangeOtp(data: RequestOtpRequest): Promise<SuccessResponse> {
         return request<SuccessResponse>("/organization/request-password-change-otp", {
             method: "POST",
@@ -512,5 +632,10 @@ export const api = {
             method: "POST",
             body: JSON.stringify(data),
         });
+    },
+    
+    // System
+    getActiveSystemAnnouncements(): Promise<SystemAnnouncementDetail[]> {
+        return request<SystemAnnouncementDetail[]>("/system/system-announcements/active");
     },
 } as const;

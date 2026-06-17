@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { OrganizationSettingsResponse } from "@/types/api";
-import { Lock } from "lucide-react";
+import { Lock, CheckCircle } from "lucide-react";
 import { PageWrapper } from "@/components/PageWrapper";
 import { useParams } from "next/navigation";
 
@@ -175,8 +175,13 @@ export default function SettingsPage() {
     const [name, setName] = useState("");
     const [address, setAddress] = useState("");
     const [phone, setPhone] = useState("");
+    const [brandColor, setBrandColor] = useState("");
+    const [logoUrl, setLogoUrl] = useState("");
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
     const [infoSuccess, setInfoSuccess] = useState<string | null>(null);
+    const [showSuccessModal, setShowSuccessModal] = useState<string | null>(null);
     const [infoError, setInfoError] = useState<string | null>(null);
 
     // Password State
@@ -228,6 +233,8 @@ export default function SettingsPage() {
                 setName(data.name);
                 setAddress(data.address || "");
                 setPhone(data.phone_number || "");
+                setBrandColor(data.brand_color || "");
+                setLogoUrl(data.logo_url || "");
             } catch (err) {
                 setInfoError(err instanceof ApiError ? err.detail : "Failed to load settings.");
             } finally {
@@ -240,7 +247,9 @@ export default function SettingsPage() {
     const hasProfileChanges = settings ? (
         name !== settings.name ||
         address !== (settings.address || "") ||
-        phone !== (settings.phone_number || "")
+        phone !== (settings.phone_number || "") ||
+        brandColor !== (settings.brand_color || "") ||
+        logoFile !== null
     ) : false;
 
     const hasSecurityChanges = pwdStep === 2 || currentPassword !== "" || newPassword !== "" || confirmPassword !== "" || otp !== "";
@@ -262,6 +271,9 @@ export default function SettingsPage() {
             setName(settings.name);
             setAddress(settings.address || "");
             setPhone(settings.phone_number || "");
+            setBrandColor(settings.brand_color || "");
+            setLogoFile(null);
+            setLogoPreview(null);
         }
     };
 
@@ -298,14 +310,27 @@ export default function SettingsPage() {
         setIsSavingInfo(true);
 
         try {
+            const didUploadLogo = !!logoFile;
+
+            if (logoFile) {
+                await api.uploadOrganizationLogo(logoFile);
+            }
             const data = await api.updateOrganizationSettings({
                 name,
                 address: address || null,
                 phone_number: phone || null,
+                brand_color: brandColor || null,
             });
             setSettings(data);
-            setInfoSuccess("Settings updated successfully");
-            setTimeout(() => setInfoSuccess(null), 4000);
+            setLogoUrl(data.logo_url || "");
+            setLogoFile(null);
+            setLogoPreview(null);
+            
+            if (didUploadLogo) {
+                setShowSuccessModal("Logo uploaded and branding settings updated successfully!");
+            } else {
+                setShowSuccessModal("Settings updated successfully!");
+            }
         } catch (err) {
             setInfoError(err instanceof ApiError ? err.detail : "Failed to update settings.");
         } finally {
@@ -368,13 +393,12 @@ export default function SettingsPage() {
                 otp: otp,
                 new_password: newPassword,
             });
-            setPwdSuccess("Password changed successfully");
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
             setOtp("");
             setPwdStep(1);
-            setTimeout(() => setPwdSuccess(null), 4000);
+            setShowSuccessModal("Your password has been changed successfully.");
         } catch (err) {
             setPwdError(err instanceof ApiError ? err.detail : "Failed to change password. OTP might be invalid.");
         } finally {
@@ -481,6 +505,75 @@ export default function SettingsPage() {
                                                     <Lock size={12} color={C.textMuted} style={{ cursor: "help" }} />
                                                 </label>
                                                 <input type="email" disabled value={settings?.email || ""} className="premium-input" />
+                                            </div>
+
+                                            <div style={{ gridColumn: '1 / -1' }}>
+                                                <h3 style={{ fontSize: '14px', fontWeight: 600, color: C.text, marginBottom: '16px', marginTop: '8px', borderBottom: `1px solid ${C.borderLight}`, paddingBottom: '8px' }}>Branding</h3>
+                                            </div>
+
+                                            <div>
+                                                <label className="lbl">Brand Color</label>
+                                                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                                    <input 
+                                                        type="color" 
+                                                        value={brandColor || "#2563eb"} 
+                                                        onChange={(e) => setBrandColor(e.target.value)}
+                                                        style={{ width: 44, height: 44, padding: 0, border: `1px solid ${C.borderLight}`, borderRadius: 8, cursor: 'pointer', background: 'transparent' }}
+                                                    />
+                                                    <input 
+                                                        type="text" 
+                                                        value={brandColor} 
+                                                        onChange={(e) => setBrandColor(e.target.value)} 
+                                                        placeholder="#2563eb"
+                                                        className="premium-input" 
+                                                        style={{ flex: 1 }}
+                                                        pattern="^#[0-9A-Fa-f]{6}$"
+                                                    />
+                                                </div>
+                                                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Used as the primary color on the public ticket page.</p>
+                                            </div>
+
+                                            <div>
+                                                <label className="lbl">Organization Logo</label>
+                                                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                                                    <div style={{ 
+                                                        width: 64, height: 64, borderRadius: 12, border: `1px solid ${C.borderLight}`, 
+                                                        background: C.cardBgAlt, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                                                    }}>
+                                                        {(logoPreview || logoUrl) ? (
+                                                            <img src={logoPreview || (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `http://localhost:8000${logoUrl}`)} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                        ) : (
+                                                            <span style={{ fontSize: 24, color: C.textMuted }}>🏢</span>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <input 
+                                                            type="file" 
+                                                            id="logo-upload" 
+                                                            accept="image/*" 
+                                                            style={{ display: 'none' }}
+                                                            onChange={(e) => {
+                                                                if (e.target.files && e.target.files[0]) {
+                                                                    setLogoFile(e.target.files[0]);
+                                                                    setLogoPreview(URL.createObjectURL(e.target.files[0]));
+                                                                }
+                                                            }}
+                                                        />
+                                                        <label htmlFor="logo-upload" style={{ display: 'inline-block', padding: '6px 12px', fontSize: 13, fontWeight: 600, color: C.text, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                                                            Choose Image
+                                                        </label>
+                                                        {logoFile && (
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={() => { setLogoFile(null); setLogoPreview(null); }}
+                                                                style={{ marginLeft: 8, fontSize: 12, color: C.red, background: 'none', border: 'none', cursor: 'pointer' }}
+                                                            >
+                                                                Clear
+                                                            </button>
+                                                        )}
+                                                        <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Recommended: PNG or JPG, max 2MB.</p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -636,6 +729,50 @@ export default function SettingsPage() {
                             <button onClick={handleDiscardChanges} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: C.textSub, background: C.borderLight, border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>Discard/Reset</button>
                             <button onClick={handleSaveInfo} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#fff', background: C.brand, border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>Save Changes</button>
                         </div>
+                    </div>
+                )}
+
+                {/* Success Modal */}
+                {showSuccessModal && (
+                    <div style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+                    }}>
+                        <div style={{
+                            background: '#fff', borderRadius: 20, padding: 32, maxWidth: 400, width: '90%',
+                            boxShadow: '0 24px 48px rgba(0,0,0,0.15)', textAlign: 'center',
+                            animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                        }}>
+                            <div style={{
+                                width: 64, height: 64, borderRadius: 32, background: '#d1fae5',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px'
+                            }}>
+                                <CheckCircle size={32} color="#10b981" />
+                            </div>
+                            <h2 style={{ fontSize: 24, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Success!</h2>
+                            <p style={{ fontSize: 15, color: '#6b7280', marginBottom: 24, lineHeight: 1.5 }}>
+                                {showSuccessModal}
+                            </p>
+                            <button
+                                onClick={() => setShowSuccessModal(null)}
+                                style={{
+                                    width: '100%', padding: '12px', background: '#2563eb', color: '#fff',
+                                    border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                                    transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
+                                }}
+                                onMouseOver={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                onMouseOut={e => e.currentTarget.style.transform = 'none'}
+                            >
+                                Awesome
+                            </button>
+                        </div>
+                        <style>{`
+                            @keyframes popIn {
+                                0% { opacity: 0; transform: scale(0.9); }
+                                100% { opacity: 1; transform: scale(1); }
+                            }
+                        `}</style>
                     </div>
                 )}
 

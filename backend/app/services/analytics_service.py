@@ -40,7 +40,10 @@ async def get_overview_metrics(
             
     if end_date:
         try:
-            conditions.append(Token.created_at <= parse_date(end_date))
+            ed = parse_date(end_date)
+            if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
+                ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
+            conditions.append(Token.created_at <= ed)
         except Exception:
             pass
     
@@ -295,3 +298,89 @@ async def get_history_details(
         "limit": limit,
         "offset": offset
     }
+
+async def get_analytics_csv_data(
+    db: AsyncSession,
+    *,
+    org_id: uuid.UUID,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+) -> str:
+    """Generate a CSV report of all queue interactions within the date range."""
+    import csv
+    import io
+    from dateutil.parser import parse as parse_date
+    from sqlalchemy import and_
+    from app.models.queue import Queue
+    from app.models.user import User
+
+    conditions = [Token.org_id == org_id, Token.status != TokenStatus.deleted]
+    if start_date:
+        try:
+            conditions.append(Token.created_at >= parse_date(start_date))
+        except Exception:
+            pass
+            
+    if end_date:
+        try:
+            ed = parse_date(end_date)
+            if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
+                ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
+            conditions.append(Token.created_at <= ed)
+        except Exception:
+            pass
+
+    query = select(
+        Token,
+        Queue.name.label('queue_name'),
+        User.first_name,
+        User.last_name,
+        User.email
+    ).outerjoin(Queue, Token.queue_id == Queue.id)\
+     .outerjoin(User, Token.served_by_id == User.id)\
+     .where(and_(*conditions))\
+     .order_by(Token.created_at.desc())
+
+    result = await db.execute(query)
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Date", "Token Number", "Queue", "Customer Name", "Customer Phone", 
+        "Status", "Created At", "Served At", "Completed At", 
+        "Wait Time (mins)", "Serve Time (mins)", "Served By"
+    ])
+
+    for row in result.all():
+        token, q_name, f_name, l_name, u_email = row
+        
+        wait_time_mins = ""
+        if token.served_at and token.created_at:
+            wait_time_mins = round((token.served_at - token.created_at).total_seconds() / 60.0, 1)
+            
+        serve_time_mins = ""
+        if token.completed_at and token.served_at:
+            serve_time_mins = round((token.completed_at - token.served_at).total_seconds() / 60.0, 1)
+
+        served_by = ""
+        if f_name or l_name:
+            served_by = f"{f_name or ''} {l_name or ''}".strip()
+        elif u_email:
+            served_by = u_email.split('@')[0]
+
+        writer.writerow([
+            token.created_at.strftime("%Y-%m-%d"),
+            token.token_number,
+            q_name or "Unknown",
+            token.customer_name or "Walk-in",
+            token.customer_phone or "",
+            token.status.value,
+            token.created_at.isoformat(),
+            token.served_at.isoformat() if token.served_at else "",
+            token.completed_at.isoformat() if token.completed_at else "",
+            wait_time_mins,
+            serve_time_mins,
+            served_by
+        ])
+
+    return output.getvalue()

@@ -48,34 +48,36 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
         return role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     };
 
-    const isActive = (href: string) =>
-        href === dashBase ? pathname === dashBase : (pathname === href || pathname.startsWith(href + "/"));
+    const isActive = (href: string, exact?: boolean) => {
+        if (exact) return pathname === href;
+        return href === dashBase ? pathname === dashBase : (pathname === href || pathname.startsWith(href + "/"));
+    };
 
-    const linkCls = (href: string) => {
-        const active = isActive(href);
-        const base = `group relative flex items-center text-[13px] transition-colors duration-150 focus:outline-none ${c ? "justify-center w-10 h-10 mx-auto rounded-lg" : "gap-3 py-2 pr-3 pl-[9px]"}`;
+    const linkCls = (href: string, exact?: boolean) => {
+        const active = isActive(href, exact);
+        const base = `group relative flex items-center text-sm transition-colors duration-150 focus:outline-none ${c ? "justify-center w-10 h-10 mx-auto rounded-lg" : "gap-3 py-2 pr-3 pl-[14px]"}`;
         
         if (active) {
             return isSuperAdmin
-                ? `${base} bg-slate-800/30 text-slate-100 font-semibold rounded-lg ${c ? "shadow-[inset_3px_0_0_0_rgba(129,140,248,1)]" : "before:absolute before:left-0 before:top-[10%] before:bottom-[10%] before:w-[2px] before:bg-indigo-400 before:rounded-r-full"} [&>svg]:text-slate-100`
+                ? `${base} bg-transparent text-white font-medium ${c ? "shadow-[inset_3px_0_0_0_rgba(99,102,241,1)]" : "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-indigo-500 before:rounded-r-sm"} [&>svg]:text-white`
                 : `${base} bg-indigo-50/50 dark:bg-white/5 text-slate-900 dark:text-white font-semibold rounded-lg ${c ? "shadow-[inset_3px_0_0_0_rgba(79,70,229,1)] dark:shadow-[inset_3px_0_0_0_rgba(129,140,248,1)]" : "before:absolute before:left-0 before:top-[10%] before:bottom-[10%] before:w-[2px] before:bg-indigo-600 dark:before:bg-indigo-400 before:rounded-r-full"} [&>svg]:text-slate-900 dark:[&>svg]:text-white`;
         }
         return isSuperAdmin
-            ? `${base} text-slate-400 font-medium hover:bg-slate-800/30 hover:text-slate-200 ${c ? "border border-transparent" : ""} [&>svg]:text-slate-500 hover:[&>svg]:text-slate-400`
-            : `${base} text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-slate-200 ${c ? "border border-transparent" : ""} [&>svg]:text-slate-400 dark:[&>svg]:text-slate-500 hover:[&>svg]:text-slate-500 dark:hover:[&>svg]:text-slate-300`;
+            ? `${base} text-slate-400 font-medium hover:bg-slate-800/50 ${c ? "border border-transparent rounded-lg" : ""} [&>svg]:text-slate-400`
+            : `${base} text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-slate-200 ${c ? "border border-transparent rounded-lg" : ""} [&>svg]:text-slate-400 dark:[&>svg]:text-slate-500 hover:[&>svg]:text-slate-500 dark:hover:[&>svg]:text-slate-300`;
     };
 
     const sectionLabel = (text: string) =>
         c ? <div className="h-4" /> : (
-            <p className={`px-3 text-[10px] uppercase font-bold tracking-[0.1em] mb-1.5 mt-0.5 ${isSuperAdmin ? "text-slate-600" : "text-slate-400"}`}>{text}</p>
+            <p className={`px-4 text-xs uppercase font-semibold tracking-wider mb-2 mt-4 ${isSuperAdmin ? "text-slate-500" : "text-slate-400"}`}>{text}</p>
         );
 
     const divider = <div className="h-4" />;
 
     /* ── Nav item helper ── */
-    const NavLink = ({ href, label, icon, badge }: { href: string; label: string; icon: React.ReactNode; badge?: React.ReactNode }) => (
+    const NavLink = ({ href, label, icon, badge, exact }: { href: string; label: string; icon: React.ReactNode; badge?: React.ReactNode; exact?: boolean }) => (
         <Tip label={label} show={c}>
-            <Link href={href} className={linkCls(href)}>
+            <Link href={href} className={linkCls(href, exact)}>
                 {icon}
                 {!c && <>{label}{badge}</>}
                 {c && badge && (
@@ -85,7 +87,7 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
         </Tip>
     );
 
-    const iconCls = "w-[17px] h-[17px] shrink-0 transition-colors";
+    const iconCls = "w-4 h-4 shrink-0 transition-colors";
 
     return (
         <>
@@ -125,15 +127,48 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                 </div>
 
                 {/* ── Navigation ── */}
-                <div className={`flex-1 overflow-y-auto py-4 space-y-0.5 ${c ? "px-2" : "px-3"}`}>
+                <div className={`flex-1 overflow-y-auto py-4 ${c ? "px-2" : "px-3"}`}>
                     {isSuperAdmin ? (
                         <>
-                            {sectionLabel("Platform")}
-                            <NavLink href="/super-admin" label="Platform Stats" icon={
+                            {sectionLabel("Overview")}
+                            <NavLink href="/super-admin" exact label="Platform Stats" icon={
                                 <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                             } />
-                            <NavLink href="/super-admin/organizations" label="Organizations" icon={
-                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                            <NavLink href="/super-admin/analytics" label="Organization Analytics" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                            } />
+
+                            {sectionLabel("Monitoring & Logs")}
+                            <NavLink href="/super-admin/system-monitoring" label="System Monitoring" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>
+                            } />
+                            <NavLink href="/super-admin/usage" label="Usage Monitoring" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                            } />
+                            <NavLink href="/super-admin/queues" label="Queue Monitoring" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                            } />
+                            <NavLink href="/super-admin/messages" label="Message Logs" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                            } />
+                            <NavLink href="/super-admin/audit-logs" label="Audit Logs" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            } />
+
+                            {sectionLabel("Administration")}
+                            <NavLink href="/super-admin/settings" label="Global Settings" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            } />
+                            <NavLink href="/super-admin/billing" label="Billing Management" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            } />
+                            <NavLink href="/super-admin/whatsapp" label="WhatsApp Config" icon={
+                                <svg className={iconCls} fill="currentColor" viewBox="0 0 24 24">
+                                    <path fillRule="evenodd" clipRule="evenodd" d="M12.012 2C6.49 2 2 6.49 2 12.013c0 1.764.462 3.428 1.258 4.887L2 22l5.244-1.219a9.96 9.96 0 004.768 1.218h.004c5.52 0 10.01-4.488 10.01-10.009S17.534 2 12.012 2zm0 18.324a8.27 8.27 0 01-4.22-1.157l-.302-.18-3.136.73.743-3.056-.196-.312A8.256 8.256 0 013.682 12.01c0-4.596 3.74-8.335 8.337-8.335 2.227 0 4.32.868 5.894 2.44a8.3 8.3 0 012.443 5.895c0 4.594-3.74 8.335-8.334 8.335zm4.57-6.242c-.25-.125-1.482-.733-1.713-.816-.23-.084-.397-.126-.566.125-.168.252-.647.817-.792.984-.146.168-.293.188-.543.063a6.83 6.83 0 01-2.008-1.24 7.55 7.55 0 01-1.393-1.737c-.146-.252-.016-.388.11-.513.113-.112.25-.292.376-.439.125-.147.167-.251.25-.418.084-.168.042-.315-.021-.44-.063-.125-.565-1.36-.774-1.864-.203-.49-.408-.423-.566-.431-.146-.008-.313-.01-.48-.01a.92.92 0 00-.668.314c-.23.25-.878.858-.878 2.093 0 1.234.9 2.427 1.025 2.594.126.167 1.766 2.695 4.28 3.778 1.543.663 2.164.717 2.946.602.868-.126 2.673-1.09 3.05-2.146.376-1.055.376-1.956.262-2.145-.115-.188-.43-.303-.68-.428z" />
+                                </svg>
+                            } />
+                            <NavLink href="/super-admin/support" label="Support Tools" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>
                             } />
                         </>
                     ) : (
@@ -195,57 +230,60 @@ export default function Sidebar({ isOpen, onClose, collapsed = false, onToggleCo
                     <div className={`p-3 space-y-1.5 ${c ? "flex flex-col items-center" : ""}`}>
                         {/* Profile */}
                         <Tip label={user?.email || "Account"} show={c}>
-                            <div className={`group flex items-center rounded-xl cursor-default transition-all duration-300 ${
-                                c ? "justify-center w-10 h-10" : "gap-3 px-3 py-2.5 w-full"
+                            <div 
+                                onClick={() => setIsLogoutModalOpen(true)}
+                                className={`group flex items-center justify-between rounded-xl cursor-pointer transition-all duration-300 ${
+                                c ? "justify-center w-12 h-12" : "gap-3 px-3 py-2 w-full"
                             } ${
                                 isSuperAdmin 
-                                    ? "bg-slate-800/30 hover:bg-slate-800/60 ring-1 ring-white/5 hover:ring-white/10" 
-                                    : "bg-gray-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:shadow-sm ring-1 ring-gray-200 dark:ring-white/5 hover:ring-gray-300 dark:hover:ring-white/10"
+                                    ? "bg-slate-800/20 hover:bg-slate-800/40 border border-slate-700/50" 
+                                    : "bg-gray-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-gray-200 dark:border-white/5"
                             }`}>
-                                <div className="relative shrink-0">
-                                    <div className={`${c ? "w-8 h-8 rounded-lg text-[11px]" : "w-[34px] h-[34px] rounded-[10px] text-[13px]"} flex items-center justify-center font-bold shadow-sm transition-all duration-500 group-hover:scale-105 group-hover:-rotate-2 ${
-                                        isSuperAdmin
-                                            ? "bg-gradient-to-br from-indigo-500 to-blue-700 text-white ring-1 ring-white/10"
-                                            : "bg-gradient-to-br from-indigo-500 to-blue-700 text-white ring-1 ring-black/5 group-hover:shadow-indigo-500/20"
-                                    }`}>
-                                        {(user?.email?.[0] || "U").toUpperCase()}
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    <div className="relative shrink-0">
+                                        <div className={`${c ? "w-10 h-10 rounded-[10px] text-[13px]" : "w-[36px] h-[36px] rounded-[10px] text-[13px]"} flex items-center justify-center font-bold shadow-sm transition-all duration-500 group-hover:scale-105 group-hover:-rotate-2 ${
+                                            user?.org_logo_url
+                                                ? "bg-white dark:bg-slate-800 ring-1 ring-black/5 dark:ring-white/10"
+                                                : isSuperAdmin
+                                                    ? "bg-gradient-to-br from-indigo-500 to-blue-700 text-white ring-1 ring-white/10"
+                                                    : "bg-gradient-to-br from-indigo-500 to-blue-700 text-white ring-1 ring-black/5 group-hover:shadow-indigo-500/20"
+                                        } overflow-hidden shrink-0`}>
+                                            {user?.org_logo_url ? (
+                                                <img src={user.org_logo_url} alt="Org Logo" className="w-full h-full object-contain p-1" />
+                                            ) : (
+                                                (user?.email?.[0] || "U").toUpperCase()
+                                            )}
+                                        </div>
+                                        <div className={`absolute -bottom-0.5 -right-0.5 ${c ? "w-[10px] h-[10px] border-2" : "w-3 h-3 border-2"} rounded-full bg-emerald-400 ${
+                                            isSuperAdmin ? "border-slate-800 group-hover:border-slate-700" : "border-[#f4f5f8] dark:border-slate-900 group-hover:border-white dark:group-hover:border-slate-800"
+                                        } transition-colors duration-300`} />
                                     </div>
-                                    <div className={`absolute -bottom-0.5 -right-0.5 ${c ? "w-[10px] h-[10px] border-2" : "w-3 h-3 border-2"} rounded-full bg-emerald-400 ${
-                                        isSuperAdmin ? "border-slate-800 group-hover:border-slate-700" : "border-[#f4f5f8] dark:border-slate-900 group-hover:border-white dark:group-hover:border-slate-800"
-                                    } transition-colors duration-300`} />
-                                </div>
 
+                                    {!c && (
+                                        <div className="flex flex-col min-w-0 flex-1 justify-center">
+                                            <span className={`text-xs font-semibold truncate tracking-tight transition-colors duration-300 ${isSuperAdmin ? "text-slate-200 group-hover:text-white" : "text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400"}`}>
+                                                {user?.email || "User Account"}
+                                            </span>
+                                            <span className={`text-[10px] font-medium truncate mt-[2px] ${isSuperAdmin ? "text-slate-500" : "text-gray-500 dark:text-gray-400"}`}>
+                                                {formatRole(user?.role)}{user?.org_name ? <><span className="mx-1.5 opacity-30">|</span>{user.org_name}</> : ""}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
                                 {!c && (
-                                    <div className="flex flex-col min-w-0 flex-1 justify-center">
-                                        <span className={`text-[13px] font-semibold truncate tracking-tight transition-colors duration-300 ${isSuperAdmin ? "text-slate-100 group-hover:text-white" : "text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400"}`}>
-                                            {user?.email || "User Account"}
-                                        </span>
-                                        <span className={`text-[11px] font-medium truncate mt-[2px] ${isSuperAdmin ? "text-slate-400" : "text-gray-500 dark:text-gray-400"}`}>
-                                            {formatRole(user?.role)}{user?.org_name ? <><span className="mx-1.5 opacity-30">|</span>{user.org_name}</> : ""}
-                                        </span>
+                                    <div
+                                        className={`shrink-0 p-1.5 rounded-lg transition-colors ${
+                                            isSuperAdmin ? "text-slate-500 group-hover:text-red-400 group-hover:bg-red-500/10" : "text-slate-400 group-hover:text-red-600 group-hover:bg-red-50/80"
+                                        }`}
+                                        title="Sign out"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
                                     </div>
                                 )}
                             </div>
                         </Tip>
-
-                        <div className={`flex items-center ${c ? "flex-col gap-1.5" : "gap-2"}`}>
-                            {/* Sign out */}
-                            <Tip label="Sign out" show={c}>
-                                <button
-                                    onClick={() => setIsLogoutModalOpen(true)}
-                                    className={`group flex items-center rounded-[10px] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 ${c ? "justify-center w-8 h-8" : "flex-1 gap-2.5 px-3 py-[9px] text-[12.5px] font-medium"} ${
-                                        isSuperAdmin ? "text-slate-500 hover:text-red-400 hover:bg-red-500/10" : "text-slate-400 hover:text-red-600 hover:bg-red-50/80"
-                                    }`}
-                                >
-                                    <svg className={`${c ? "w-[17px] h-[17px]" : "w-[15px] h-[15px]"} transition-colors duration-200 ${
-                                        isSuperAdmin ? "group-hover:text-red-400" : "group-hover:text-red-500"
-                                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                    </svg>
-                                    {!c && "Sign out"}
-                                </button>
-                            </Tip>
-                        </div>
                     </div>
                 </div>
             </aside>

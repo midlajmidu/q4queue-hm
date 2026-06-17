@@ -15,12 +15,16 @@ from app.api.v1.endpoints import (
     sessions,
     analytics,
     messages,
+    system,
 )
 
 api_router = APIRouter()
 
 # ── Health ─────────────────────────────────────────────────────────
 api_router.include_router(health.router, prefix="", tags=["Health"])
+
+# ── System ─────────────────────────────────────────────────────────
+api_router.include_router(system.router, prefix="/system", tags=["System"])
 
 # ── Authentication ─────────────────────────────────────────────────
 api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
