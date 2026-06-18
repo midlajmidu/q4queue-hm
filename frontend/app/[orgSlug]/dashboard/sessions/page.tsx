@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Plus, Layers, Users, Clock } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -243,9 +243,7 @@ export default function SessionsPage() {
                     {!isStaff && (
                         <button
                             onClick={() => setShowCreate(true)}
-                            style={{ height: 36, padding: "0 16px", background: "#2563EB", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, transition: "background 0.15s" }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "#1D4ED8")}
-                            onMouseLeave={e => (e.currentTarget.style.background = "#2563EB")}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg h-10 px-4 transition-all duration-200 active:scale-[0.98] flex items-center gap-2"
                         >
                             <Plus className="w-4 h-4" />
                             New Session
@@ -310,82 +308,65 @@ export default function SessionsPage() {
                                                 <Link
                                                     key={session.id}
                                                     href={`${dashBase}/sessions/${session.id}/queues`}
-                                                    className="group"
-                                                    style={{
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: 16,
-                                                        padding: "16px 20px",
-                                                        background: "#fff",
-                                                        borderTop: "1px solid #E2E8F0",
-                                                        borderRight: "1px solid #E2E8F0",
-                                                        borderBottom: "1px solid #E2E8F0",
-                                                        borderLeft: `3px solid ${today ? "#2563EB" : "#E2E8F0"}`,
-                                                        borderRadius: 10,
-                                                        textDecoration: "none",
-                                                        cursor: "pointer",
-                                                        transition: "background 0.15s",
-                                                    }}
-                                                    onMouseEnter={e => (e.currentTarget.style.background = "#F8FAFC")}
-                                                    onMouseLeave={e => (e.currentTarget.style.background = "#fff")}
+                                                    className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 p-6 flex justify-between items-center w-full mb-4 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-950/5 hover:border-indigo-200/60 group cursor-pointer relative overflow-hidden"
                                                 >
-                                                    {/* Date badge */}
-                                                    <div style={{ width: 44, height: 44, borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0, background: today ? "#0F172A" : "#F8FAFC", border: today ? "none" : "1px solid #E2E8F0" }}>
-                                                        <span style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase" as const, lineHeight: 1, color: "#94A3B8", letterSpacing: "0.06em" }}>{getMonthShort(session.session_date)}</span>
-                                                        <span style={{ fontSize: 20, fontWeight: 600, lineHeight: 1.1, color: today ? "#fff" : "#1E293B" }}>{getDayNumber(session.session_date)}</span>
-                                                    </div>
+                                                    {/* Left Content */}
+                                                    <div className="flex items-center gap-4 min-w-0">
+                                                        {/* Absolute Left Edge Vertical Indicator Tab */}
+                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${today ? "bg-indigo-500" : "bg-slate-200"}`} />
 
-                                                    {/* Title + badge */}
-                                                    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-                                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                            <span style={{ fontSize: 15, fontWeight: 500, color: "#0F172A", textTransform: "capitalize" as const, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
-                                                                {session.title || (today ? "Today's Session" : formatShortDate(session.session_date))}
-                                                            </span>
-                                                            {today && (
-                                                                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#2563EB", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "2px 8px", lineHeight: 1.4 }}>
-                                                                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#2563EB", animation: "pulse-dot 1.5s infinite" }} />
-                                                                    LIVE
+                                                        {/* Title + badge */}
+                                                        <div className="flex flex-col gap-0.5 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-base font-bold text-slate-900 capitalize truncate">
+                                                                    {session.title || (today ? "Today's Session" : formatShortDate(session.session_date))}
                                                                 </span>
-                                                            )}
+                                                                {today && (
+                                                                    <span className="bg-sky-50 text-sky-700 border border-sky-200/60 font-bold px-2.5 py-0.5 rounded-full text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+                                                                        LIVE
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <span className="text-xs text-slate-400 font-normal">No notes provided</span>
                                                         </div>
-                                                        <span style={{ fontSize: 13, color: "#94A3B8" }}>No notes provided</span>
                                                     </div>
 
-                                                    {/* Stat pills */}
-                                                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                                                        {/* Queues */}
-                                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "#475569", fontWeight: 500 }}>
-                                                            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={3} width={7} height={7} /><rect x={14} y={3} width={7} height={7} /><rect x={3} y={14} width={7} height={7} /><rect x={14} y={14} width={7} height={7} /></svg>
-                                                            {session.queue_count} {session.queue_count === 1 ? "Queue" : "Queues"}
-                                                        </span>
-                                                        {/* Served */}
-                                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "#475569", fontWeight: 500 }}>
-                                                            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx={9} cy={7} r={4} /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>
-                                                            {served} Served
-                                                        </span>
-                                                        {/* Avg Wait */}
-                                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "#475569", fontWeight: 500 }}>
-                                                            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx={12} cy={12} r={10} /><polyline points="12 6 12 12 16 14" /></svg>
-                                                            {avgWait}
-                                                        </span>
-                                                    </div>
+                                                    {/* Right Content */}
+                                                    <div className="flex items-center shrink-0">
+                                                        {/* Unified Metrics Stream Row */}
+                                                        <div className="flex items-center gap-4 bg-indigo-50/40 border border-indigo-100/60 rounded-xl px-4 py-2 text-slate-600 font-semibold text-xs mr-4">
+                                                            {/* Queues */}
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Layers className="w-4 h-4 text-indigo-600" strokeWidth={2} />
+                                                                <span>{session.queue_count} {session.queue_count === 1 ? "Queue" : "Queues"}</span>
+                                                            </span>
+                                                            {/* Served */}
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Users className="w-4 h-4 text-sky-500" strokeWidth={2} />
+                                                                <span>{served} Served</span>
+                                                            </span>
+                                                            {/* Avg Wait */}
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Clock className="w-4 h-4 text-violet-500" strokeWidth={2} />
+                                                                <span>{avgWait}</span>
+                                                            </span>
+                                                        </div>
 
-                                                    {/* Delete + Chevron */}
-                                                    <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                                                        {!isStaff && (
-                                                            <button
-                                                                onClick={(e) => handleDelete(session.id, e)}
-                                                                disabled={deletingId === session.id}
-                                                                className="opacity-0 group-hover:opacity-100"
-                                                                style={{ background: "none", border: "none", padding: 4, cursor: "pointer", borderRadius: 4, transition: "all 0.15s", color: "#E2E8F0", display: "flex" }}
-                                                                onMouseEnter={e => { e.currentTarget.style.color = "#EF4444"; e.currentTarget.style.background = "#FEF2F2"; }}
-                                                                onMouseLeave={e => { e.currentTarget.style.color = "#E2E8F0"; e.currentTarget.style.background = "none"; }}
-                                                                aria-label="Delete session"
-                                                            >
-                                                                <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
-                                                            </button>
-                                                        )}
-                                                        <ChevronRight className="w-4 h-4 text-[#CBD5E1] group-hover:text-[#2563EB] transition-all duration-150 group-hover:translate-x-0.5" />
+                                                        {/* Delete + Chevron */}
+                                                        <div className="flex items-center gap-2">
+                                                            {!isStaff && (
+                                                                <button
+                                                                    onClick={(e) => handleDelete(session.id, e)}
+                                                                    disabled={deletingId === session.id}
+                                                                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all duration-150"
+                                                                    aria-label="Delete session"
+                                                                >
+                                                                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
+                                                                </button>
+                                                            )}
+                                                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-600 transition-all group-hover:translate-x-1" />
+                                                        </div>
                                                     </div>
                                                 </Link>
                                             );
