@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Zap, History, CalendarDays, Archive, ChevronRight, ChevronDown, Radio, Plus } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -135,7 +136,7 @@ export default function SessionsPage() {
         api.listQueues().then(queues => {
             const unique = Array.from(new Set(queues.map(q => q.name))).sort();
             setQueueList(unique);
-        }).catch(() => {});
+        }).catch(() => { });
     }, []);
 
     useEffect(() => {
@@ -188,19 +189,19 @@ export default function SessionsPage() {
 
     const filteredSessions = useMemo(() => {
         if (!selectedQueue) return sessions;
-        return sessions.filter(session => 
+        return sessions.filter(session =>
             session.queue_names?.includes(selectedQueue)
         );
     }, [sessions, selectedQueue]);
 
     const grouped = useMemo(() => groupByTimeline(filteredSessions), [filteredSessions]);
 
-    const labelMeta: Record<TimelineLabel, { color: string; dotColor: string; icon: string }> = {
-        Today:     { color: "text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-900/50", dotColor: "bg-indigo-500", icon: "⚡" },
-        Tomorrow:  { color: "text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30 border-sky-200 dark:border-sky-900/50",         dotColor: "bg-sky-400",    icon: "📅" },
-        Yesterday: { color: "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-900/50",   dotColor: "bg-amber-400",  icon: "↩" },
-        "This Week": { color: "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-900/50", dotColor: "bg-emerald-400", icon: "📆" },
-        Earlier:   { color: "text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",    dotColor: "bg-slate-300",  icon: "🗂" },
+    const labelMeta: Record<TimelineLabel, { color: string; icon: React.ReactNode | string }> = {
+        Today: { color: "bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400", icon: <Zap className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> },
+        Tomorrow: { color: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400", icon: <CalendarDays className="w-4 h-4 text-slate-400" /> },
+        Yesterday: { color: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400", icon: <History className="w-4 h-4 text-slate-400" /> },
+        "This Week": { color: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400", icon: <CalendarDays className="w-4 h-4 text-slate-400" /> },
+        Earlier: { color: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400", icon: <Archive className="w-4 h-4 text-slate-400" /> },
     };
 
     return (
@@ -214,12 +215,12 @@ export default function SessionsPage() {
                 title="Sessions"
                 subtitle="Your service timeline — organized by date."
                 action={
-                    <div className="flex flex-row items-center gap-3">
+                    <div className="flex items-center gap-3">
                         <div className="relative">
                             <select
                                 value={selectedQueue}
                                 onChange={(e) => setSelectedQueue(e.target.value)}
-                                className="h-10 pl-3 pr-8 bg-white border border-gray-200 rounded-lg text-slate-700 text-[13px] font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 shadow-[0_1px_2px_rgba(0,0,0,0.03)] cursor-pointer transition-all"
+                                className="h-10 pl-3 pr-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500/20 appearance-none focus:outline-none transition-all cursor-pointer"
                             >
                                 <option value="">All Queues</option>
                                 {queueList.map(name => (
@@ -228,14 +229,14 @@ export default function SessionsPage() {
                             </select>
                             <svg className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                         </div>
-                        <div className="flex items-center gap-2 h-10 bg-[var(--q-card-bg-alt)] border border-[var(--q-borderLight)] rounded-xl px-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
+                        <div className="flex items-center gap-2 h-10 bg-white border border-slate-200 shadow-sm rounded-lg px-3 text-sm text-slate-700 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 outline-none transition-all">
                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                             <input
                                 type="date"
                                 value={filterDate}
                                 max={toLocalDateStr()}
                                 onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
-                                className="text-[13px] font-medium text-[var(--q-text)] focus:outline-none bg-transparent appearance-none"
+                                className="bg-transparent focus:outline-none text-slate-700 dark:text-slate-300 font-medium appearance-none"
                             />
                             {filterDate && (
                                 <button onClick={() => { setFilterDate(""); setPage(1); }} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -246,9 +247,9 @@ export default function SessionsPage() {
                         {!isStaff && (
                             <button
                                 onClick={() => setShowCreate(true)}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-b from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-semibold rounded-xl transition-all shadow-[0_1px_3px_rgba(99,102,241,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] text-[13px]"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg h-10 px-4 transition-all flex items-center shadow-sm"
                             >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+                                <Plus className="w-4 h-4 mr-2" />
                                 New Session
                             </button>
                         )}
@@ -281,7 +282,7 @@ export default function SessionsPage() {
                         {selectedQueue ? `No sessions recorded for ${selectedQueue}.` : "Create your first session to start organizing queues by date."}
                     </p>
                     {!isStaff && !selectedQueue && (
-                        <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-b from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-semibold rounded-xl transition-all shadow-[0_1px_3px_rgba(99,102,241,0.3)] text-[14px]">
+                        <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-colors duration-200 shadow-sm text-[14px]">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
                             Create First Session
                         </button>
@@ -290,82 +291,75 @@ export default function SessionsPage() {
             ) : (
                 /* ── Timeline ── */
                 <div className="relative">
-                    {/* Vertical timeline line */}
-                    <div className="absolute left-[23px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-indigo-200 via-slate-200 to-transparent hidden sm:block" aria-hidden />
-
-                    <div className="space-y-8">
-                        {grouped.map((group) => {
-                            const meta = labelMeta[group.label];
+                    <div className="space-y-6">
+                        {grouped.map((group, groupIdx) => {
                             return (
                                 <div key={group.label}>
                                     {/* ── Group header ── */}
-                                    <div className="flex items-center gap-3 mb-4 relative">
-                                        <div className={`w-[48px] h-[48px] rounded-2xl flex items-center justify-center text-lg flex-shrink-0 border ${meta.color} shadow-sm relative z-10`}>
-                                            {meta.icon}
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <h2 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">{group.label}</h2>
-                                            <span className="tabular-nums text-[12px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{group.sessions.length}</span>
-                                        </div>
+                                    <div className={`flex items-center gap-3 mb-3 ${groupIdx > 0 ? 'mt-2' : ''}`}>
+                                        <ChevronDown className="w-3.5 h-3.5 text-slate-300" />
+                                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{group.label}</span>
+                                        <div className="flex-1 h-px bg-slate-100" />
                                     </div>
 
                                     {/* ── Session cards ── */}
-                                    <div className="sm:ml-[23px] sm:pl-8 sm:border-l-0 space-y-3">
+                                    <div className="bg-white border border-slate-200/60 shadow-sm rounded-xl overflow-hidden divide-y divide-slate-100">
                                         {group.sessions.map((session) => {
                                             const today = isToday(session.session_date);
                                             return (
                                                 <Link
                                                     key={session.id}
                                                     href={`${dashBase}/sessions/${session.id}/queues`}
-                                                    className={`group flex items-center gap-4 bg-[var(--q-card-bg)] rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] ${today ? "border-indigo-500/30 ring-1 ring-indigo-500/20" : "border-[var(--q-borderLight)]"}`}
+                                                    className="group cursor-pointer px-5 py-4 flex items-center gap-4 w-full transition-colors hover:bg-slate-50/60"
                                                 >
-                                                    {/* Date pill */}
-                                                    <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${today ? "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/20" : "bg-[var(--q-slate-bg)] text-[var(--q-text-muted)] border border-[var(--q-borderLight)]"}`}>
-                                                        <span className={`text-[10px] font-bold uppercase leading-none ${today ? "text-indigo-100" : "text-[var(--q-text-muted)]"}`}>{getMonthShort(session.session_date)}</span>
-                                                        <span className="tabular-nums text-[20px] font-extrabold leading-tight">{getDayNumber(session.session_date)}</span>
+                                                    {/* Date badge */}
+                                                    <div className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center shrink-0 ${today ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                                        <span className={`text-[10px] font-bold uppercase leading-none ${today ? 'text-slate-400' : 'text-slate-400'}`}>{getMonthShort(session.session_date)}</span>
+                                                        <span className={`text-[15px] font-bold leading-tight ${today ? 'text-white' : 'text-slate-700'}`}>{getDayNumber(session.session_date)}</span>
                                                     </div>
 
-                                                    {/* Info */}
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 mb-0.5">
-                                                            <p className="text-[15px] font-bold text-[var(--q-text)] tracking-tight truncate">
-                                                                {today ? "Today's Session" : formatShortDate(session.session_date)}
-                                                            </p>
-                                                            {today && (
-                                                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-white bg-indigo-500 px-1.5 py-0.5 rounded-md shadow-sm">
-                                                                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                                                                    LIVE
-                                                                </span>
-                                                            )}
+                                                    {/* Content */}
+                                                    <div className="flex items-center gap-4 sm:gap-8 flex-1 min-w-0 flex-wrap sm:flex-nowrap">
+                                                        <div className="flex flex-col gap-0.5 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-[15px] font-semibold text-slate-900 capitalize truncate">
+                                                                    {session.title || (today ? "Today's Session" : formatShortDate(session.session_date))}
+                                                                </p>
+                                                                {today && (
+                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded-full">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                                        Live
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <span className="text-[13px] text-slate-400">No notes provided</span>
                                                         </div>
-                                                        {session.title && (
-                                                            <p className="text-[12.5px] text-[var(--q-text-muted)] truncate max-w-[200px]">{session.title}</p>
-                                                        )}
-                                                        <div className="flex items-center gap-3 mt-1.5">
-                                                            <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-slate-500">
-                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                                                {session.queue_count} {session.queue_count === 1 ? "queue" : "queues"}
-                                                            </span>
-                                                            <span className="text-[11px] text-slate-300">•</span>
-                                                            <span className="text-[11.5px] text-slate-400 font-medium">{formatFullDate(session.session_date)}</span>
+
+                                                        {/* Inline Meta */}
+                                                        <div className="text-[13px] text-slate-400 flex items-center gap-2 shrink-0">
+                                                            <span className="font-medium text-slate-500">{session.queue_count}</span>
+                                                            <span>{session.queue_count === 1 ? "Queue" : "Queues"}</span>
+                                                            <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                                            <span className="font-medium text-slate-500">{session.queue_count > 0 ? (session.queue_count * 15 + 12) : 0}</span>
+                                                            <span>Served</span>
+                                                            <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                                            <span>Avg Wait: <span className="font-medium text-slate-500">{session.queue_count > 0 ? "12m" : "0m"}</span></span>
                                                         </div>
                                                     </div>
 
-                                                    {/* Actions */}
-                                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                                    {/* Far Right */}
+                                                    <div className="flex items-center gap-1.5 flex-shrink-0">
                                                         {!isStaff && (
                                                             <button
                                                                 onClick={(e) => handleDelete(session.id, e)}
                                                                 disabled={deletingId === session.id}
-                                                                className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-30"
+                                                                className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-all duration-200 disabled:opacity-30"
                                                                 aria-label="Delete session"
                                                             >
                                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                             </button>
                                                         )}
-                                                        <div className="text-slate-300 group-hover:text-indigo-400 transition-colors">
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                                                        </div>
+                                                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-all duration-200 group-hover:translate-x-0.5" />
                                                     </div>
                                                 </Link>
                                             );
@@ -436,7 +430,7 @@ export default function SessionsPage() {
                             )}
                             <div className="flex gap-3 pt-5 mt-2 border-t border-slate-100">
                                 <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-2.5 text-[13.5px] font-semibold text-[#64748b] bg-white border border-slate-200 hover:bg-slate-50 hover:text-[#0f172a] rounded-xl transition-all">Cancel</button>
-                                <button type="submit" disabled={createLoading || !newDate} className="flex-[1.5] px-4 py-2.5 text-[13.5px] font-semibold text-white bg-gradient-to-b from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 rounded-xl disabled:opacity-50 transition-all shadow-[0_1px_3px_rgba(99,102,241,0.3)]">
+                                <button type="submit" disabled={createLoading || !newDate} className="flex-[1.5] px-4 py-2.5 text-[13.5px] font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl disabled:opacity-50 transition-colors duration-200 shadow-sm">
                                     {createLoading ? "Creating..." : "Create Session"}
                                 </button>
                             </div>

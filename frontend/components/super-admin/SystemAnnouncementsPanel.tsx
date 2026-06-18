@@ -82,10 +82,10 @@ export default function SystemAnnouncementsPanel() {
                 </h2>
             </div>
             
-            <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-10">
                 {/* Create Form */}
-                <div className="lg:col-span-1 space-y-4">
-                    <h3 className="text-sm font-medium text-slate-300">New Broadcast</h3>
+                <div className="space-y-4 pr-4 border-r border-transparent lg:border-slate-800/50">
+                    <h3 className="text-sm font-semibold text-slate-300">New Broadcast</h3>
                     {error && <div className="text-xs text-red-400 bg-red-500/10 p-2 rounded">{error}</div>}
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
@@ -112,7 +112,7 @@ export default function SystemAnnouncementsPanel() {
                             <button 
                                 type="submit" 
                                 disabled={isSubmitting || !form.message.trim()}
-                                className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
+                                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
                             >
                                 {isSubmitting ? "Sending..." : "Broadcast"}
                             </button>
@@ -121,7 +121,7 @@ export default function SystemAnnouncementsPanel() {
                 </div>
 
                 {/* List */}
-                <div className="lg:col-span-2">
+                <div>
                     {isLoading ? (
                         <div className="animate-pulse space-y-3">
                             <div className="h-16 bg-slate-800 rounded-xl" />
@@ -133,9 +133,9 @@ export default function SystemAnnouncementsPanel() {
                             <p className="text-sm">No announcements broadcasted yet.</p>
                         </div>
                     ) : (
-                        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                        <div className="max-h-[300px] overflow-y-auto pr-2 divide-y divide-slate-800/60">
                             {announcements.map((a) => (
-                                <div key={a.id} className={`p-4 rounded-xl border flex items-center justify-between gap-4 transition-colors ${a.is_active ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-900/50 border-slate-800 opacity-60'}`}>
+                                <div key={a.id} className={`py-4 flex items-center justify-between gap-4 transition-colors ${!a.is_active && 'opacity-50 grayscale'}`}>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${getTypeColor(a.type)}`}>
@@ -145,12 +145,12 @@ export default function SystemAnnouncementsPanel() {
                                                 {new Date(a.created_at).toLocaleString()}
                                             </span>
                                         </div>
-                                        <p className="text-sm text-slate-200 truncate">{a.message}</p>
+                                        <p className="text-sm text-slate-300 truncate">{a.message}</p>
                                     </div>
                                     <div className="flex items-center gap-3 shrink-0">
                                         <button 
                                             onClick={() => handleToggle(a.id, a.is_active)}
-                                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${a.is_active ? "bg-emerald-500" : "bg-slate-600"}`}
+                                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${a.is_active ? "bg-emerald-500" : "bg-slate-700"}`}
                                         >
                                             <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${a.is_active ? "translate-x-5" : "translate-x-1"}`} />
                                         </button>

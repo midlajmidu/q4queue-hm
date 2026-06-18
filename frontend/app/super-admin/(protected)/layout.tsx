@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from "react";
 import SuperAdminRoute from "@/components/SuperAdminRoute";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/SuperAdminSidebar";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/ui/Logo";

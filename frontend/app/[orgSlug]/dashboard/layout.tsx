@@ -2,7 +2,7 @@
 
 import { ReactNode, useState, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/UserSidebar";
 import { TopBar } from "@/components/TopBar";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";

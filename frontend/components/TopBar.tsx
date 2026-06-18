@@ -191,6 +191,13 @@ export function TopBar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
     // Ignore first segment if it's the orgSlug, unless it's the only one
     const breadcrumbSegments = segments.length > 2 ? segments.slice(2) : segments.slice(1);
     
+    const formatSegment = (seg: string) => {
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(seg)) {
+            return "Details";
+        }
+        return seg;
+    };
+    
     return (
         <header className="sticky top-0 z-20 w-full h-16 bg-white dark:bg-[#0b1121] border-b border-gray-200 dark:border-white/5 flex items-center justify-between px-4 sm:px-6 lg:px-8">
             {/* Left: Hamburger (Mobile) + Breadcrumbs (Desktop) */}
@@ -209,7 +216,7 @@ export function TopBar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
                     {breadcrumbSegments.length > 1 && (
                         <>
                             <Icons.ChevronRight size={14} className="text-gray-400 dark:text-gray-600" />
-                            <span className="capitalize">{breadcrumbSegments[1]}</span>
+                            <span className="capitalize">{formatSegment(breadcrumbSegments[1])}</span>
                         </>
                     )}
                 </div>

@@ -669,8 +669,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             <button
                                                 onClick={() => setShowResetConfirm(true)}
                                                 disabled={isDisabled || resetting}
-                                                className="dark:bg-slate-800 dark:text-white dark:border-white/10"
-                                                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: `1.5px solid ${T.amberBorder}`, cursor: "pointer", transition: "all .18s" }}
+                                                className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
                                             >
                                                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                                 Reset
@@ -679,16 +678,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 href={`/display/${queueId}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="dark:bg-slate-800 dark:text-white dark:border-white/10"
-                                                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: `1.5px solid ${T.brandBorder}`, textDecoration: "none", transition: "all .18s" }}
+                                                className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
                                             >
                                                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                                 Display
                                             </a>
                                             <button
                                                 onClick={() => setShowDeleteConfirm(true)}
-                                                className="dark:bg-slate-800 dark:text-white dark:border-white/10"
-                                                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: `1.5px solid ${T.redBorder}`, cursor: "pointer", transition: "all .18s" }}
+                                                className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
                                             >
                                                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                 Delete
@@ -703,9 +700,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <div className="lg:col-span-2 space-y-4">
 
                                         {/* Hero – Now Serving */}
-                                        <div className="serving-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none" style={{ padding: "40px 32px 36px", textAlign: "center", minHeight: 280, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                                        <div className="serving-card bg-white dark:bg-slate-900 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 dark:border-white/10 dark:shadow-none" style={{ padding: "40px 32px 36px", textAlign: "center", minHeight: 280, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
                                             {/* Label */}
-                                            <div className="dark:bg-primary/10 dark:border-primary/30" style={{ display: "inline-flex", alignItems: "center", gap: 8,  border: `1px solid ${T.brandBorder}`, borderRadius: 99, padding: "5px 16px", marginBottom: 20, position: "relative", zIndex: 1 }}>
+                                            <div className="dark:bg-primary/10 dark:border-primary/30" style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid ${T.brandBorder}`, borderRadius: 99, padding: "5px 16px", marginBottom: 20, position: "relative", zIndex: 1 }}>
                                                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.brand, display: "inline-block", animation: "pulse-dot 2s infinite" }} />
                                                 <span className="text-blue-600 dark:text-blue-400" style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" }}>Now Serving</span>
                                             </div>
@@ -718,7 +715,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             {/* Customer Details */}
                                             {state?.serving_details && (
                                                 <div className="fade-in" style={{ marginTop: 16, position: "relative", zIndex: 1, textAlign: "center" }}>
-                                                    <p style={{ fontSize: 18, fontWeight: 700,  letterSpacing: "-.02em", margin: 0 }}>{state.serving_details.customer_name}</p>
+                                                    <p style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em", margin: 0 }}>{state.serving_details.customer_name}</p>
                                                     <div className="text-gray-600 dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "3px 8px", marginTop: 4, fontSize: 13, fontWeight: 500 }}>
                                                         {state.serving_details.customer_age != null && <span>Age {state.serving_details.customer_age}</span>}
                                                         {state.serving_details.customer_age != null && <span>·</span>}
@@ -729,12 +726,12 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                                             {/* Stat Chips */}
                                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 28, position: "relative", zIndex: 1, flexWrap: "wrap", justifyContent: "center" }}>
-                                                <span className="stat-chip bg-gray-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                                    <svg className="text-slate-500" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                <span className="bg-slate-50 text-slate-600 text-xs font-medium border border-slate-100 px-3 py-1 rounded-full flex items-center gap-2">
+                                                    <svg className="text-slate-400" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                     Waiting: <strong>{state?.waiting_count ?? 0}</strong>
                                                 </span>
-                                                <span className="stat-chip bg-gray-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                                    <svg className="text-slate-500" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                                <span className="bg-slate-50 text-slate-600 text-xs font-medium border border-slate-100 px-3 py-1 rounded-full flex items-center gap-2">
+                                                    <svg className="text-slate-400" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                                                     Issued: <strong>{state?.total_issued ?? 0}</strong>
                                                 </span>
                                             </div>
@@ -745,7 +742,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             <button
                                                 onClick={handleNext}
                                                 disabled={isDisabled}
-                                                className="qd-btn-call-next"
+                                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm shadow-indigo-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2"
                                             >
                                                 {actionLoading === "next" ? (
                                                     <>
@@ -768,7 +765,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
                                                 })}
                                                 disabled={isDisabled}
-                                                className="qd-btn-done-next"
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm shadow-emerald-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2"
                                             >
                                                 {actionLoading === "done" ? (
                                                     <>
@@ -785,36 +782,31 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         </div>
 
                                         {/* Manual Controls Row */}
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                                             {/* Manual Entry */}
-                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900/60 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none">
-                                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                                                    <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                        <svg width="13" height="13" fill="none" stroke={T.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                                                    </span>
-                                                    <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Manual Entry</p>
+                                            <div className="flex flex-col gap-3">
+                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                    <p className="text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Manual Entry</p>
                                                 </div>
                                                 {!showAddForm ? (
                                                     <button
                                                         onClick={() => setShowAddForm(true)}
                                                         disabled={isDisabled}
-                                                        style={{ width: "100%", padding: "9px 14px", border: `1px solid ${T.cardBorder}`, borderRadius: 9, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all .18s" }}
-                                                        onMouseEnter={e => { e.currentTarget.style.borderColor = T.brand; e.currentTarget.style.color = T.brand; }}
-                                                        onMouseLeave={e => { e.currentTarget.style.borderColor = T.cardBorder; e.currentTarget.style.color = T.textSub; }}
+                                                        className="h-10 px-4 w-full text-sm font-medium bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors flex justify-center items-center gap-2"
                                                     >
                                                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                                                         Add Customer
                                                     </button>
                                                 ) : (
                                                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                                        <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="Full Name *" maxLength={50} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ fontSize: 13 }} />
-                                                        <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="Phone *" className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ fontSize: 13 }} />
-                                                        <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="Age (optional)" className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ fontSize: 13 }} />
+                                                        <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="Full Name *" maxLength={50} className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
+                                                        <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="Phone *" className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
+                                                        <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="Age (optional)" className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
                                                         <div style={{ display: "flex", gap: 7 }}>
-                                                            <button onClick={handleAddCustomer} disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add"} style={{ flex: 1, padding: "8px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!addName.trim() || !addPhone.trim()) ? .4 : 1 }}>
+                                                            <button onClick={handleAddCustomer} disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add"} className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-200 shadow-sm shadow-indigo-500/10 rounded-lg px-3 text-sm font-medium flex-1 disabled:opacity-40">
                                                                 {actionLoading === "add" ? "Adding…" : "Confirm"}
                                                             </button>
-                                                            <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); }} className="text-gray-600 dark:text-slate-300 dark:bg-slate-800 dark:border-white/10" style={{ flex: 1, padding: "8px", background: "#f4f5f8", border: `1px solid ${T.cardBorder}`, borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                                                            <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); }} className="h-10 bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg px-3 text-sm font-medium flex-1 hover:bg-slate-50 transition-colors">
                                                                 Cancel
                                                             </button>
                                                         </div>
@@ -823,32 +815,26 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
 
                                             {/* Invite by Number */}
-                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900/60 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none">
-                                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                                                    <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                        <svg width="13" height="13" fill="none" stroke={T.brand} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                                                    </span>
-                                                    <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Invite by Number</p>
+                                            <div className="flex flex-col gap-3">
+                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                    <p className="text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Invite by Number</p>
                                                 </div>
                                                 <form onSubmit={handleInvite} style={{ display: "flex", gap: 7 }}>
-                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ fontSize: 13 }} />
-                                                    <button type="submit" disabled={!inviteNumber || isDisabled} className="text-blue-600 dark:text-blue-400 dark:border-white/10 dark:bg-slate-800" style={{ padding: "9px 16px", fontSize: 13, fontWeight: 700, borderRadius: 9, border: `1.5px solid ${T.brandBorder}`, cursor: "pointer", whiteSpace: "nowrap", opacity: !inviteNumber ? .4 : 1 }}>
+                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
+                                                    <button type="submit" disabled={!inviteNumber || isDisabled} className="h-10 px-4 text-sm font-medium bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-40">
                                                         Call
                                                     </button>
                                                 </form>
                                             </div>
 
                                             {/* Remove by Number */}
-                                            <div className="qd-control-panel bg-[#fafbfc] dark:bg-slate-900/60 border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none">
-                                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                                                    <span style={{ width: 26, height: 26, borderRadius: 7,  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                        <svg width="13" height="13" fill="none" stroke={T.red} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                    </span>
-                                                    <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Remove by Number</p>
+                                            <div className="flex flex-col gap-3">
+                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                    <p className="text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Remove by Number</p>
                                                 </div>
                                                 <form onSubmit={handleRemoveByNumber} style={{ display: "flex", gap: 7 }}>
-                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ fontSize: 13 }} />
-                                                    <button type="submit" disabled={!removeNumber || isDisabled} style={{ padding: "9px 14px", fontSize: 13, fontWeight: 700, borderRadius: 9, border: `1.5px solid ${T.redBorder}`,  color: T.red, cursor: "pointer", whiteSpace: "nowrap", opacity: !removeNumber ? .4 : 1 }}>
+                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
+                                                    <button type="submit" disabled={!removeNumber || isDisabled} className="h-10 px-4 text-sm font-medium bg-red-50 text-red-700 border border-red-100/80 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-40">
                                                         Remove
                                                     </button>
                                                 </form>
@@ -857,12 +843,12 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                                         {/* Status banners */}
                                         {actionError && (
-                                            <div role="alert" style={{  color: "#991b1b", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.redBorder}`, fontSize: 13, fontWeight: 500 }}>
+                                            <div role="alert" style={{ color: "#991b1b", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.redBorder}`, fontSize: 13, fontWeight: 500 }}>
                                                 {actionError}
                                             </div>
                                         )}
                                         {status === "disconnected" && (
-                                            <div role="alert" style={{  color: "#78350f", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.amberBorder}`, fontSize: 13 }}>
+                                            <div role="alert" style={{ color: "#78350f", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.amberBorder}`, fontSize: 13 }}>
                                                 <strong>Connection lost.</strong> Retrying connection to live updates. Manual actions are still available.
                                             </div>
                                         )}
@@ -885,7 +871,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         <span className="text-slate-500" style={{ width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                         </span>
-                                                        <h2 style={{ fontSize: 13, fontWeight: 700,  margin: 0 }}>Waiting List</h2>
+                                                        <h2 style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Waiting List</h2>
                                                     </div>
                                                     <span className="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontSize: 11, fontWeight: 800, padding: "2px 9px", borderRadius: 99 }}>{state?.waiting_count ?? 0}</span>
                                                 </div>
@@ -902,7 +888,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                                 <span className="dark:text-white" style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", minWidth: 48 }}>{state?.prefix || ""}{t.token_number}</span>
-                                                                <span style={{ padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em",  color: T.amber }}>Waiting</span>
+                                                                <span style={{ padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: T.amber }}>Waiting</span>
                                                                 {manuallyAddedTokens.has(t.token_number)
                                                                     ? <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.violetBg, color: T.violet }}>Manual</span>
                                                                     : <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.cyanBg, color: T.cyan }}>Normal</span>
@@ -927,7 +913,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                             </button>
                                                             <button
                                                                 onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
-                                                                style={{ opacity: 0, fontSize: 11, fontWeight: 700, padding: "4px 9px",  color: T.red, border: `1px solid ${T.redBorder}`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
+                                                                style={{ opacity: 0, fontSize: 11, fontWeight: 700, padding: "4px 9px", color: T.red, border: `1px solid ${T.redBorder}`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
                                                                 className="group-hover-show"
                                                             >
                                                                 Remove
@@ -936,7 +922,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     </div>
                                                 )) : (
                                                     <div style={{ padding: "40px 18px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                                        <div style={{ width: 42, height: 42, borderRadius: 10,  display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                                                        <div style={{ width: 42, height: 42, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
                                                             <svg width="20" height="20" fill="none" stroke={T.brand} viewBox="0 0 24 24" style={{ opacity: .4 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                         </div>
                                                         <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{waitingSearch ? "No tokens match" : "No one is waiting"}</p>
@@ -961,7 +947,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <span className="text-slate-500" style={{ width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
                                                     </span>
-                                                    <h2 style={{ fontSize: 13, fontWeight: 700,  margin: 0 }}>Recent Activity</h2>
+                                                    <h2 style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Recent Activity</h2>
                                                 </div>
                                                 <div style={{ position: "relative" }}>
                                                     <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
@@ -1044,7 +1030,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 onChange={e => setAnnouncementInput(e.target.value)}
                                                 placeholder="Enter a message to display to all customers waiting…"
                                                 disabled={isDisabled || actionLoading === "announcement"}
-                                                style={{ width: "100%", padding: "12px 14px", background: "#fafbfc", border: `1.5px solid ${T.cardBorder}`, borderRadius: 10,  fontSize: 14, resize: "none", height: 120, outline: "none", transition: "border-color .18s" }}
+                                                style={{ width: "100%", padding: "12px 14px", background: "#fafbfc", border: `1.5px solid ${T.cardBorder}`, borderRadius: 10, fontSize: 14, resize: "none", height: 120, outline: "none", transition: "border-color .18s" }}
                                                 onFocus={e => (e.currentTarget.style.borderColor = T.brand)}
                                                 onBlur={e => (e.currentTarget.style.borderColor = T.cardBorder)}
                                             />
@@ -1060,7 +1046,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     ) : (
                                         <div>
                                             {(state?.announcement ?? initialQueue?.announcement) ? (
-                                                <div style={{ padding: "14px 16px",  borderRadius: 10, border: `1px solid ${T.brandBorder}`,  fontSize: 14, whiteSpace: "pre-wrap", lineHeight: 1.65, marginBottom: 16 }}>
+                                                <div style={{ padding: "14px 16px", borderRadius: 10, border: `1px solid ${T.brandBorder}`, fontSize: 14, whiteSpace: "pre-wrap", lineHeight: 1.65, marginBottom: 16 }}>
                                                     {state?.announcement ?? initialQueue?.announcement}
                                                 </div>
                                             ) : (
@@ -1081,7 +1067,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     )}
 
                                     {actionError && (
-                                        <div role="alert" style={{ marginTop: 14,  color: "#991b1b", padding: "11px 16px", borderRadius: 9, border: `1px solid ${T.redBorder}`, fontSize: 13 }}>
+                                        <div role="alert" style={{ marginTop: 14, color: "#991b1b", padding: "11px 16px", borderRadius: 9, border: `1px solid ${T.redBorder}`, fontSize: 13 }}>
                                             {actionError}
                                         </div>
                                     )}
@@ -1134,14 +1120,14 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
     isManual?: boolean;
     onView?: (data: TokenDetailData) => void;
 }) {
-    const statusStyles: Record<string, { bg: string; color: string }> = {
-        serving: { bg: T.blueBg, color: T.blue },
-        done: { bg: T.greenBg, color: T.green },
-        skipped: { bg: "#f3f4f6", color: "#6b7280" },
-        deleted: { bg: T.redBg, color: T.red },
-        waiting: { bg: T.amberBg, color: T.amber },
+    const statusClasses: Record<string, string> = {
+        serving: "bg-emerald-50 text-emerald-700 border border-emerald-100/80 rounded-full font-medium px-2.5 py-0.5",
+        done: "bg-emerald-50 text-emerald-700 border border-emerald-100/80 rounded-full font-medium px-2.5 py-0.5",
+        skipped: "bg-amber-50 text-amber-700 border border-amber-100/80 rounded-full font-medium px-2.5 py-0.5",
+        deleted: "bg-red-50 text-red-700 border border-red-100/80 rounded-full font-medium px-2.5 py-0.5",
+        waiting: "bg-amber-50 text-amber-700 border border-amber-100/80 rounded-full font-medium px-2.5 py-0.5",
     };
-    const s = statusStyles[t.status] || { bg: "#f3f4f6", color: "#6b7280" };
+    const sClass = statusClasses[t.status] || "bg-slate-50 text-slate-700 border border-slate-100/80 rounded-full font-medium px-2.5 py-0.5";
 
     return (
         <div style={{ padding: "10px 18px", /*border*/ borderBottom: `1px solid #f4f5f8`, display: "flex", alignItems: "center", justifyContent: "space-between", transition: "background .15s" }} className="group"
@@ -1151,10 +1137,10 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
             <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                     <span className="dark:text-white" style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", minWidth: 48 }}>{prefix}{t.token_number}</span>
-                    <span style={{ padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", background: s.bg, color: s.color }}>{t.status}</span>
+                    <span className={`text-[10px] tracking-wider uppercase ${sClass}`}>{t.status}</span>
                     {isManual
-                        ? <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.violetBg, color: T.violet }}>Manual</span>
-                        : <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.cyanBg, color: T.cyan }}>Normal</span>
+                        ? <span className="bg-slate-50 text-slate-700 border border-slate-200/60 rounded-full font-medium px-2 py-0.5 text-[9px] tracking-wider uppercase">Manual</span>
+                        : <span className="bg-slate-50 text-slate-700 border border-slate-200/60 rounded-full font-medium px-2 py-0.5 text-[9px] tracking-wider uppercase">Normal</span>
                     }
                 </div>
                 {t.customer_name && (
@@ -1251,7 +1237,7 @@ function QueueHistory({
             <div className="qd-card" style={{ padding: "16px 20px" }}>
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 12 }}>
                     <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 6 }}>
-                        <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase",  }}>Search Patients</label>
+                        <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", }}>Search Patients</label>
                         <div style={{ position: "relative" }}>
                             <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 11, pointerEvents: "none" }}>
                                 <svg width="14" height="14" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -1265,7 +1251,7 @@ function QueueHistory({
                         </div>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase",  }}>Status</label>
+                        <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", }}>Status</label>
                         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ width: 148, cursor: "pointer" }}>
                             <option value="">All</option>
                             <option value="done">Completed</option>
@@ -1289,7 +1275,7 @@ function QueueHistory({
                         </thead>
                         <tbody>
                             {historyLoading ? (
-                                <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center",  }}>
+                                <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", }}>
                                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                                         <span style={{ width: 18, height: 18, border: `2px solid ${T.brandLight}`, borderTopColor: T.brand, borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
                                         <span style={{ fontSize: 13 }}>Loading records…</span>
@@ -1305,11 +1291,11 @@ function QueueHistory({
                                         onMouseEnter={e => (e.currentTarget.style.background = "var(--q-row-alt)")}
                                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                                     >
-                                        <td style={{ padding: "12px 18px", fontWeight: 800,  fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{item.queue_prefix}{item.token_number}</td>
+                                        <td style={{ padding: "12px 18px", fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{item.queue_prefix}{item.token_number}</td>
                                         <td style={{ padding: "12px 18px" }}>
                                             <div style={{ display: "flex", flexDirection: "column" }}>
-                                                <span style={{ fontWeight: 600,  maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.customer_name || "—"}</span>
-                                                <span style={{ fontSize: 12,  }}>{item.customer_phone || "—"}</span>
+                                                <span style={{ fontWeight: 600, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.customer_name || "—"}</span>
+                                                <span style={{ fontSize: 12, }}>{item.customer_phone || "—"}</span>
                                             </div>
                                         </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
@@ -1339,7 +1325,7 @@ function QueueHistory({
                 {historyTotal > historyPageSize && (
                     <div style={{ background: "#fafbfc", padding: "14px 20px", borderTop: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 10, alignItems: "center", justifyContent: "space-between" }} className="sm:flex-row">
                         <p style={{ fontSize: 12.5, margin: 0 }}>
-                            Showing <strong style={{  }}>{(historyPage - 1) * historyPageSize + 1}</strong>–<strong style={{  }}>{Math.min(historyPage * historyPageSize, historyTotal)}</strong> of <strong style={{  }}>{historyTotal}</strong> patients
+                            Showing <strong style={{}}>{(historyPage - 1) * historyPageSize + 1}</strong>–<strong style={{}}>{Math.min(historyPage * historyPageSize, historyTotal)}</strong> of <strong style={{}}>{historyTotal}</strong> patients
                         </p>
                         <div style={{ display: "flex", gap: 4 }}>
                             {[

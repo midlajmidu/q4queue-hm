@@ -1185,7 +1185,7 @@ export default function OverviewPage() {
               ) : staff.map(s => {
                 const name = s.first_name ? `${s.first_name} ${s.last_name || ""}`.trim() : s.email.split('@')[0];
                 return (
-                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 99, padding: "6px 16px 6px 6px", boxShadow: "0 1px 2px rgba(0,0,0,.02)" }}>
+                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 99, padding: "6px 16px 6px 6px", boxShadow: "0 1px 2px rgba(0,0,0,.02)" }}>
                     <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.brandLight, color: C.brand, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>
                       {name.substring(0, 2).toUpperCase()}
                     </div>

@@ -163,6 +163,10 @@ async def create_staff(
     member = User(
         org_id=current_admin.org_id,
         email=body.email,
+        first_name=body.first_name,
+        last_name=body.last_name,
+        counter=body.counter,
+        assigned_queues=body.assigned_queues,
         password_hash=hash_password(body.password),
         role="staff",  # always fixed — no role escalation via this endpoint
         is_active=True,
@@ -208,6 +212,14 @@ async def update_staff(
             )
         member.email = body.email
 
+    if body.first_name is not None:
+        member.first_name = body.first_name
+    if body.last_name is not None:
+        member.last_name = body.last_name
+    if body.counter is not None:
+        member.counter = body.counter
+    if body.assigned_queues is not None:
+        member.assigned_queues = body.assigned_queues
     if body.is_active is not None:
         member.is_active = body.is_active
     if body.new_password is not None:

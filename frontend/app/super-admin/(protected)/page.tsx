@@ -43,11 +43,11 @@ function StatsCards({ stats, analytics, loading }: { stats: OrgStats | null; ana
                         </svg>
                     </div>
                     <div>
-                        <p className="text-[10px] text-slate-500 uppercase tracking-wider font-medium">{label}</p>
+                        <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">{label}</p>
                         {loading ? (
-                            <div className="h-7 w-12 bg-slate-700 animate-pulse rounded mt-0.5" />
+                            <div className="h-8 w-16 bg-slate-700 animate-pulse rounded mt-1" />
                         ) : (
-                            <p className="text-xl font-bold text-white">{value ?? "-"}</p>
+                            <p className="text-2xl font-bold text-white">{value ?? "-"}</p>
                         )}
                     </div>
                 </div>
@@ -511,7 +511,7 @@ export default function SuperAdminDashboard() {
                         <h1 className="text-2xl font-bold text-white">Super Admin Panel</h1>
                         <p className="text-sm text-slate-400">Manage organizations and provision admin accounts.</p>
                     </div>
-                    <button onClick={() => setShowCreateModal(true)} className="ml-auto bg-violet-600 hover:bg-violet-500 text-white font-semibold py-2.5 px-5 rounded-xl transition-colors shadow-lg shadow-violet-500/20">+ Create Organization</button>
+                    <button onClick={() => setShowCreateModal(true)} className="ml-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-all">+ Create Organization</button>
                 </div>
 
                 {/* Stats Cards */}
@@ -544,7 +544,7 @@ export default function SuperAdminDashboard() {
                                             return `${new Date(parseInt(y), parseInt(m)-1).toLocaleString('default', { month: 'short' })} ${y}`;
                                         }}
                                     />
-                                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
                                     <Tooltip 
                                         contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }}
                                         itemStyle={{ color: '#a78bfa' }}

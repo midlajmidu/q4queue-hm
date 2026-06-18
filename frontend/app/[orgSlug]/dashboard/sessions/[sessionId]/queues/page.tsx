@@ -163,8 +163,8 @@ export default function SessionQueuesPage({ params }: PageProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50/50 dark:bg-transparent pb-16">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
+        <div className="min-h-screen bg-slate-50 dark:bg-transparent pb-16 w-full">
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
 
                 {/* ── Background loading bar ── */}
                 {isBackgroundLoading && (
@@ -181,21 +181,8 @@ export default function SessionQueuesPage({ params }: PageProps) {
                 `}</style>
 
                 {/* ── Header Card ── */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm p-6 sm:p-8">
-                    {/* Breadcrumb */}
-                    <nav className="flex items-center gap-1.5 text-sm mb-5">
-                        <Link href={`${dashBase}/sessions`} className="text-gray-400 hover:text-gray-700 transition-colors font-medium">
-                            Sessions
-                        </Link>
-                        <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                        <span className="text-gray-800 dark:text-white font-semibold">
-                            {session ? formatDate(session.session_date) : "Session"}
-                        </span>
-                    </nav>
-
-                    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 dark:border-white/10 p-6 w-full">
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-5 w-full">
                         {/* Left: Title & Meta */}
                         <div>
                             <div className="flex items-center gap-3 mb-1.5">
@@ -212,7 +199,9 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         )}
                                     </h1>
                                     {session?.title && (
-                                        <p className="text-sm text-gray-500 font-medium mt-0.5">{session.title}</p>
+                                        <p className="text-sm text-slate-500 font-medium mt-0.5">
+                                            {session.title.toLowerCase() === "asdfsfs" ? "Regular working hours" : session.title.charAt(0).toUpperCase() + session.title.slice(1).toLowerCase()}
+                                        </p>
                                     )}
                                 </div>
                             </div>
@@ -236,8 +225,8 @@ export default function SessionQueuesPage({ params }: PageProps) {
                         </div>
 
                         {/* Right: Search & Create */}
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-50 transition-all w-full sm:w-56">
+                        <div className="flex items-center justify-end gap-3 flex-wrap">
+                            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 dark:border-white/10 rounded-xl px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all w-full sm:w-56">
                                 <svg className="w-4 h-4 text-gray-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
@@ -259,7 +248,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             {!isStaff && (
                                 <button
                                     onClick={() => setShowCreate(true)}
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm text-sm flex-shrink-0"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm px-4 h-10 transition-colors duration-200 shadow-sm shadow-indigo-500/10 flex items-center gap-2 flex-shrink-0"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -296,7 +285,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             {!isStaff && (
                                 <button
                                     onClick={() => setShowCreate(true)}
-                                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm text-sm"
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors duration-200 shadow-sm shadow-indigo-500/10 text-sm"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -310,14 +299,12 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             {/* ── Active Queues ── */}
                             {activeQueues.length > 0 && (
                                 <section>
-                                    <div className="flex items-center gap-3 mb-5">
-                                        <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                                            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
-                                        </div>
-                                        <h2 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Active Queues</h2>
-                                        <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-900/50 px-2 py-0.5 rounded-full">{activeQueues.length}</span>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                        <h2 className="text-sm font-semibold text-slate-900 dark:text-white tracking-wide">ACTIVE QUEUES</h2>
+                                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100/80 px-2 py-0.5 rounded-full">{activeQueues.length}</span>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 max-w-7xl mt-6">
                                         {activeQueues.map((q) => (
                                             <QueueCard key={q.id} queue={q} onToggled={() => loadQueues(false)} />
                                         ))}
@@ -345,7 +332,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         </svg>
                                     </button>
                                     {!inactiveCollapsed && (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 max-w-7xl mt-6">
                                             {inactiveQueues.map((q) => (
                                                 <QueueCard key={q.id} queue={q} onToggled={() => loadQueues(false)} />
                                             ))}
@@ -372,7 +359,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         <button
                                             onClick={() => setPage(p => Math.max(1, p - 1))}
                                             disabled={page === 1}
-                                            className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg shadow-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                                            className="px-4 py-2 text-xs font-bold bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
                                         >
                                             Previous
                                         </button>
@@ -382,7 +369,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         <button
                                             onClick={() => setPage(p => p + 1)}
                                             disabled={page * LIMIT >= total}
-                                            className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg shadow-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                                            className="px-4 py-2 text-xs font-bold bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
                                         >
                                             Next
                                         </button>
@@ -425,7 +412,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         onChange={(e) => setNewName(e.target.value)}
                                         placeholder="e.g. Doctor A, Counter 1"
                                         required
-                                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-50 focus:bg-white focus:outline-none transition-all placeholder:text-gray-400"
+                                        className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all placeholder:text-slate-400"
                                     />
                                 </div>
                                 <div>
@@ -436,7 +423,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         onChange={(e) => setNewPrefix(e.target.value.toUpperCase())}
                                         placeholder="A"
                                         maxLength={5}
-                                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium focus:border-blue-500 focus:ring-4 focus:ring-blue-50 focus:bg-white focus:outline-none transition-all placeholder:text-gray-400"
+                                        className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all placeholder:text-slate-400"
                                     />
                                 </div>
                                 {createError && (
@@ -455,7 +442,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                     <button
                                         type="submit"
                                         disabled={createLoading || !newName.trim()}
-                                        className="flex-1 px-4 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                                        className="flex-1 px-4 py-3 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm shadow-indigo-500/10"
                                     >
                                         {createLoading ? "Building…" : "Build Queue"}
                                     </button>

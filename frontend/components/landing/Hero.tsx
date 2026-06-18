@@ -37,11 +37,7 @@ const Hero = () => {
 
   return (
     <section className="relative pt-24 pb-10 md:pt-32 md:pb-16 px-6 overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-accent/5 rounded-full blur-[100px]" />
-      </div>
+      {/* Background decoration removed */}
 
       <div className="max-w-6xl mx-auto grid lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-16 items-center">
         {/* Left — Text content */}
@@ -135,8 +131,7 @@ const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
         >
-          {/* Background glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-primary/8 via-accent/5 to-primary/3 rounded-full blur-[140px]" />
+          {/* Background glow removed */}
 
           {/* Browser window mockup */}
           <div className="relative z-[2] rounded-2xl overflow-hidden border border-border/25 bg-white/75 backdrop-blur-xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.10),0_10px_25px_-10px_rgba(0,0,0,0.06)]">

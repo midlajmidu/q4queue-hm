@@ -68,37 +68,37 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
     };
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 dark:border-white/10 hover:shadow-md transition-shadow overflow-hidden w-full max-w-[400px]">
             <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white dark:text-white truncate">{queue.name}</h3>
-                    <span className={`shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${isActive ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400"}`}>
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-white truncate capitalize">{queue.name}</h3>
+                    <span className={`shrink-0 ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full font-medium ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-100/80" : "bg-slate-50 text-slate-500 border border-slate-200/60"}`}>
                         {isActive ? "Active" : "Inactive"}
                     </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg py-2">
-                        <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Prefix</p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">{queue.prefix}</p>
+                <div className="grid grid-cols-3 text-center mt-3 mb-1 bg-transparent">
+                    <div className="flex flex-col items-center justify-center py-1">
+                        <p className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase mb-1">Prefix</p>
+                        <p className="text-xl font-bold text-slate-900 dark:text-white">{queue.prefix}</p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg py-2">
-                        <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Serving</p>
-                        <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{queue.current_token_number}</p>
+                    <div className="flex flex-col items-center justify-center py-1">
+                        <p className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase mb-1">Serving</p>
+                        <p className="text-xl font-bold text-slate-900 dark:text-white">{queue.current_token_number}</p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg py-2">
-                        <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Status</p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">{isActive ? "Open" : "Closed"}</p>
+                    <div className="flex flex-col items-center justify-center py-1">
+                        <p className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase mb-1">Status</p>
+                        <p className="text-xl font-bold text-slate-900 dark:text-white">{isActive ? "Open" : "Closed"}</p>
                     </div>
                 </div>
 
                 {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
             </div>
 
-            <div className="border-t border-gray-100 bg-gray-50/50 dark:bg-slate-900/50 dark:border-white/10 px-5 py-3 flex items-center gap-2">
+            <div className="border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 flex items-center justify-between gap-2">
                 <Link
                     href={`${dashBase}/queues/${queue.id}`}
-                    className="flex-1 text-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 py-1.5 rounded-lg transition-colors"
+                    className="flex-1 flex justify-center items-center border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm rounded-lg py-1.5 px-4 transition-all"
                 >
                     Manage
                 </Link>
@@ -107,17 +107,17 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                         <button
                             onClick={handleToggle}
                             disabled={toggling || deleting}
-                            className={`flex-1 text-center text-sm font-medium py-1.5 rounded-lg transition-colors disabled:opacity-50 ${isActive ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50" : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"}`}
+                            className="flex-1 flex justify-center items-center text-slate-500 hover:text-slate-800 text-sm font-medium transition-colors px-2 disabled:opacity-50"
                         >
                             {toggling ? "..." : isActive ? "End Queue" : "Start Queue"}
                         </button>
                         <button
                             onClick={() => setShowDeleteConfirm(true)}
                             disabled={toggling || deleting}
-                            className="flex text-center justify-center items-center text-sm font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50"
+                            className="shrink-0 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-md transition-colors disabled:opacity-50"
                             aria-label="Delete Queue"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                         </button>
