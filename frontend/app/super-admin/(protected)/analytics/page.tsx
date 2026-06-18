@@ -99,8 +99,7 @@ export default function SuperAdminAnalyticsPage() {
     };
 
     const filteredData = data.filter(d => 
-        d.name.toLowerCase().includes(search.toLowerCase()) ||
-        d.organization_name.toLowerCase().includes(search.toLowerCase())
+        d.name.toLowerCase().includes(search.toLowerCase())
     );
 
     return (
