@@ -404,6 +404,9 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, [queueId]);
 
     const isDisabled = actionLoading !== null;
+    const queueName = state?.queue_name || initialQueue?.name || "Queue";
+    const isActive = state?.is_active ?? initialQueue?.is_active;
+    const isPaused = (state?.is_paused ?? initialQueue?.is_paused) === true;
 
     const setErrorWithTimer = useCallback((msg: string) => {
         setActionError(msg);
@@ -577,17 +580,13 @@ export default function QueueDetailPage({ params }: PageProps) {
         function onKeyDown(e: KeyboardEvent) {
             const target = e.target as HTMLElement;
             if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
-            if (e.key === "Enter" && !isDisabled) { e.preventDefault(); handleNext(); }
+            if (e.key === "Enter" && !isDisabled && !isPaused) { e.preventDefault(); handleNext(); }
         }
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
-    }, [isDisabled, handleNext]);
+    }, [isDisabled, isPaused, handleNext]);
 
     useEffect(() => { return () => { if (errorTimerRef.current) clearTimeout(errorTimerRef.current); }; }, []);
-
-    const queueName = state?.queue_name || initialQueue?.name || "Queue";
-    const isActive = state?.is_active ?? initialQueue?.is_active;
-    const isPaused = state?.is_paused ?? initialQueue?.is_paused;
 
     const navItems: { id: ActiveSection; label: string; icon: React.ReactNode }[] = [
         {
@@ -785,8 +784,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div className="qd-action-grid" role="toolbar">
                                             <button
                                                 onClick={handleNext}
-                                                disabled={isDisabled}
-                                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm shadow-indigo-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2"
+                                                disabled={isDisabled || isPaused}
+                                                title={isPaused ? "Queue is currently on a break" : undefined}
+                                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm shadow-indigo-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 {actionLoading === "next" ? (
                                                     <>
@@ -808,8 +808,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     if ("message" in res) toast(res.message, "info");
                                                     else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
                                                 })}
-                                                disabled={isDisabled}
-                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm shadow-emerald-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2"
+                                                disabled={isDisabled || isPaused}
+                                                title={isPaused ? "Queue is currently on a break" : undefined}
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm shadow-emerald-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 {actionLoading === "done" ? (
                                                     <>
@@ -835,8 +836,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 {!showAddForm ? (
                                                     <button
                                                         onClick={() => setShowAddForm(true)}
-                                                        disabled={isDisabled}
-                                                        className="h-10 px-4 w-full text-sm font-medium bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors flex justify-center items-center gap-2"
+                                                        disabled={isDisabled || isPaused}
+                                                        title={isPaused ? "Queue is currently on a break" : undefined}
+                                                        className="h-10 px-4 w-full text-sm font-medium bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                                                         Add Customer
@@ -848,7 +850,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="Age (optional)" className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
                                                         <input type="text" value={addCompanions} onChange={e => setAddCompanions(e.target.value)} placeholder="Companions (comma separated, optional)" className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
                                                         <div style={{ display: "flex", gap: 7 }}>
-                                                            <button onClick={handleAddCustomer} disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add"} className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-200 shadow-sm shadow-indigo-500/10 rounded-lg px-3 text-sm font-medium flex-1 disabled:opacity-40">
+                                                            <button onClick={handleAddCustomer} disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add" || isPaused} title={isPaused ? "Queue is currently on a break" : undefined} className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-200 shadow-sm shadow-indigo-500/10 rounded-lg px-3 text-sm font-medium flex-1 disabled:opacity-40 disabled:cursor-not-allowed">
                                                                 {actionLoading === "add" ? "Adding…" : "Confirm"}
                                                             </button>
                                                             <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions(""); }} className="h-10 bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg px-3 text-sm font-medium flex-1 hover:bg-slate-50 transition-colors">
@@ -865,8 +867,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <p className="text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Invite by Number</p>
                                                 </div>
                                                 <form onSubmit={handleInvite} style={{ display: "flex", gap: 7 }}>
-                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
-                                                    <button type="submit" disabled={!inviteNumber || isDisabled} className="h-10 px-4 text-sm font-medium bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-40">
+                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Token #" disabled={isDisabled || isPaused} className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
+                                                    <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} title={isPaused ? "Queue is currently on a break" : undefined} className="h-10 px-4 text-sm font-medium bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                                                         Call
                                                     </button>
                                                 </form>
@@ -878,8 +880,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <p className="text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Remove by Number</p>
                                                 </div>
                                                 <form onSubmit={handleRemoveByNumber} style={{ display: "flex", gap: 7 }}>
-                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Token #" disabled={isDisabled} className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
-                                                    <button type="submit" disabled={!removeNumber || isDisabled} className="h-10 px-4 text-sm font-medium bg-red-50 text-red-700 border border-red-100/80 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-40">
+                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Token #" disabled={isDisabled || isPaused} className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
+                                                    <button type="submit" disabled={!removeNumber || isDisabled || isPaused} title={isPaused ? "Queue is currently on a break" : undefined} className="h-10 px-4 text-sm font-medium bg-red-50 text-red-700 border border-red-100/80 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                                                         Remove
                                                     </button>
                                                 </form>
