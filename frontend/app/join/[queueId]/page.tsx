@@ -1,6 +1,7 @@
 "use client";
 
 import React, { use, useState, useEffect, useCallback, useRef } from "react";
+import { CheckCircle2, Clock } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useQueueSocket } from "@/hooks/useQueueSocket";
 import {
@@ -51,6 +52,15 @@ function clearTokenFromStorage(queueId: string) {
         localStorage.removeItem(STORAGE_KEY(queueId));
     } catch { /* ignore */ }
 }
+
+const formatTime12 = (time24?: string | null) => {
+    if (!time24) return "";
+    const [h, m] = time24.split(":");
+    let hours = parseInt(h, 10);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${hours.toString().padStart(2, "0")}:${m} ${ampm}`;
+};
 
 export default function JoinQueuePage({ params }: PageProps) {
     const { queueId } = use(params);
@@ -341,21 +351,7 @@ export default function JoinQueuePage({ params }: PageProps) {
 
     }, [joinData?.token_number, joinData?.session_id, live?.current_serving, live?.session_id, soundEnabled]);
 
-    // Time boundary check
-    const [currentTime, setCurrentTime] = useState("");
-    useEffect(() => {
-        setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
-        const interval = setInterval(() => {
-            setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
-        }, 60000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const isOutsideHours = live?.open_time && live?.close_time && currentTime
-        ? (currentTime < live.open_time || currentTime > live.close_time)
-        : false;
-
-    const queueClosed = live?.is_active === false || isOutsideHours;
+    const queueClosed = live?.is_active === false;
     const queuePaused = live?.is_paused === true;
     const queueName = live?.queue_name || "Queue";
     const prefix = live?.prefix || joinData?.queue_prefix || "";
@@ -410,6 +406,15 @@ export default function JoinQueuePage({ params }: PageProps) {
 
                 {/* Body */}
                 <div className="p-6 space-y-5">
+                    {/* Service Hours Badge */}
+                    {live?.open_time && live?.close_time && (
+                        <div className="flex justify-center -mt-2 mb-2 relative z-10">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm shadow-sm border border-slate-200/60 rounded-full text-xs font-semibold text-slate-600 tracking-wide">
+                                <Clock className="w-3.5 h-3.5 text-blue-500" />
+                                <span>{formatTime12(live.open_time)} - {formatTime12(live.close_time)}</span>
+                            </div>
+                        </div>
+                    )}
                     {error && (
                         <div role="alert" className="bg-red-50 text-red-700 text-sm font-medium p-3 rounded-lg border border-red-100">
                             {error}
@@ -471,9 +476,6 @@ export default function JoinQueuePage({ params }: PageProps) {
                                     <p className="text-sm text-slate-900 font-semibold">
                                         {live.open_time} - {live.close_time}
                                     </p>
-                                    {isOutsideHours && (
-                                        <p className="text-xs font-bold text-red-500 mt-2 bg-red-50 py-1 px-2 rounded-md inline-block">Closed for the day</p>
-                                    )}
                                 </div>
                             )}
 

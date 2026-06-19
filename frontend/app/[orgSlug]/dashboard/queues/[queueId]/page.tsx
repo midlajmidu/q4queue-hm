@@ -14,7 +14,16 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem } from "@/types/api";
-import { Pause, Play } from "lucide-react";
+import { Pause, Play, Clock } from "lucide-react";
+
+const formatTime12 = (time24?: string | null) => {
+    if (!time24) return "";
+    const [h, m] = time24.split(":");
+    let hours = parseInt(h, 10);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${hours.toString().padStart(2, "0")}:${m} ${ampm}`;
+};
 
 // ─── Design System ────────────────────────────────────────────────
 const T = {
@@ -687,6 +696,12 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
                                             Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
                                         </p>
+                                        {(state?.open_time || initialQueue?.open_time) && (state?.close_time || initialQueue?.close_time) && (
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold shadow-sm mt-2">
+                                                <Clock className="w-3.5 h-3.5 text-blue-500" />
+                                                <span>{formatTime12(state?.open_time || initialQueue?.open_time)} - {formatTime12(state?.close_time || initialQueue?.close_time)}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {!isStaff && (
