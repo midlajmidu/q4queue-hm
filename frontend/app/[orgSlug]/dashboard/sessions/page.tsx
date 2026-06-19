@@ -308,12 +308,18 @@ export default function SessionsPage() {
                                                 <Link
                                                     key={session.id}
                                                     href={`${dashBase}/sessions/${session.id}/queues`}
-                                                    className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 p-6 flex justify-between items-center w-full mb-4 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-950/5 hover:border-indigo-200/60 group cursor-pointer relative overflow-hidden"
+                                                    className="bg-indigo-50/40 rounded-2xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 p-6 flex justify-between items-center w-full mb-4 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-950/5 hover:border-indigo-200/60 group cursor-pointer relative overflow-hidden"
                                                 >
                                                     {/* Left Content */}
                                                     <div className="flex items-center gap-4 min-w-0">
                                                         {/* Absolute Left Edge Vertical Indicator Tab */}
                                                         <div className={`absolute left-0 top-0 bottom-0 w-1 ${today ? "bg-indigo-500" : "bg-slate-200"}`} />
+
+                                                        {/* Date Badge */}
+                                                        <div className="flex flex-col items-center justify-center bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl w-[52px] h-[52px] shrink-0 shadow-md shadow-indigo-500/20">
+                                                            <span className="text-[10px] font-bold text-indigo-200/90 uppercase tracking-widest">{getMonthShort(session.session_date)}</span>
+                                                            <span className="text-[17px] font-extrabold text-white leading-none mt-1">{getDayNumber(session.session_date)}</span>
+                                                        </div>
 
                                                         {/* Title + badge */}
                                                         <div className="flex flex-col gap-0.5 min-w-0">

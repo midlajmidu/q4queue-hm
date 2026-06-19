@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { api, ApiError } from "@/lib/api";
 import type { QueueResponse } from "@/types/api";
 import ConfirmModal from "@/components/ConfirmModal";
-import { Hash, UserCheck, Activity, Trash2, Square } from "lucide-react";
+import { Hash, UserCheck, Activity, Trash2, Square, Clock, CalendarDays, Ticket } from "lucide-react";
 
 interface Props {
     queue: QueueResponse;
@@ -68,11 +68,40 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
         }
     };
 
+    // Compute elapsed time for active queues (updates every minute)
+    const [, setTick] = React.useState(0);
+    React.useEffect(() => {
+        if (!isActive) return;
+        const interval = setInterval(() => setTick(t => t + 1), 60_000);
+        return () => clearInterval(interval);
+    }, [isActive]);
+
+    const formatTime = (iso: string) => {
+        const d = new Date(iso);
+        return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    };
+
+    const getElapsed = (iso: string) => {
+        const diffMs = Date.now() - new Date(iso).getTime();
+        const mins = Math.floor(diffMs / 60_000);
+        const days = Math.floor(mins / (60 * 24));
+        const hrs = Math.floor((mins % (60 * 24)) / 60);
+        const remainMins = mins % 60;
+        
+        if (days > 0) return `${days}d ${hrs}h ${remainMins}m elapsed`;
+        if (hrs > 0) return `${hrs}h ${remainMins}m elapsed`;
+        return `${mins}m elapsed`;
+    };
+
     return (
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm ring-1 ring-slate-900/5 flex flex-col justify-between max-w-sm w-full transition-all duration-200 hover:shadow-md">
-            <div className="flex flex-col flex-1">
-                <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-base font-semibold text-slate-900 truncate capitalize">{queue.name}</h3>
+        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm ring-1 ring-slate-900/5 flex flex-col justify-between w-full transition-all duration-200 hover:shadow-md relative overflow-hidden group">
+            {/* Slanted Ticket Watermark */}
+            <Ticket className="absolute -bottom-6 -right-6 w-40 h-40 text-slate-900 opacity-[0.07] -rotate-45 pointer-events-none select-none z-0 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-[40deg]" />
+
+            {/* Foreground Content */}
+            <div className="relative z-10 flex flex-col flex-1">
+                <div className="flex items-start justify-between mb-1">
+                    <h3 className="text-sm font-bold text-slate-900 truncate capitalize">{queue.name}</h3>
                     <span className={`shrink-0 ml-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
                         isActive
                             ? "bg-sky-50 text-sky-700 border border-sky-200/60"
@@ -81,6 +110,23 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                         {isActive && <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />}
                         {isActive ? "Active" : "Inactive"}
                     </span>
+                </div>
+
+                {/* Temporal Telemetry */}
+                <div className="flex items-center gap-1.5 mt-1 mb-4 text-[10px] font-semibold text-slate-400 tracking-wide">
+                    {isActive ? (
+                        <>
+                            <Clock className="w-3 h-3 text-indigo-400" />
+                            <span>Started {formatTime(queue.created_at)}</span>
+                            <span className="text-slate-300">•</span>
+                            <span>{getElapsed(queue.created_at)}</span>
+                        </>
+                    ) : (
+                        <>
+                            <CalendarDays className="w-3 h-3 text-slate-400" />
+                            <span>Closed at {formatTime(queue.created_at)}</span>
+                        </>
+                    )}
                 </div>
 
                 <div className="flex items-center justify-center">
@@ -104,7 +150,7 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                 {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
             </div>
 
-            <div className="mt-3 border-t border-slate-100 pt-3 flex flex-col gap-0 w-full">
+            <div className="relative z-10 mt-3 border-t border-slate-100 pt-3 flex flex-col gap-0 w-full">
                 <Link
                     href={`${dashBase}/queues/${queue.id}`}
                     className="w-full h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center justify-center gap-2"

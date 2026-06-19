@@ -376,8 +376,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                 t.customer_name?.toLowerCase().includes(recentSearch.toLowerCase()) ||
                 t.customer_phone?.includes(recentSearch)
             )
-            : state.recent_tokens;
-        return filtered;
+            : [...state.recent_tokens];
+            
+        // Sort by most recently served (or completed/created) to show latest activity at the top
+        return filtered.sort((a, b) => {
+            const timeA = new Date(a.served_at || a.completed_at || a.created_at).getTime();
+            const timeB = new Date(b.served_at || b.completed_at || b.created_at).getTime();
+            return timeB - timeA;
+        });
     }, [state?.recent_tokens, recentSearch]);
 
     const paginatedRecent = React.useMemo(() => {

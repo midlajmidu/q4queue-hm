@@ -38,11 +38,16 @@ export default function SupportToolsPage() {
             if (currentToken) {
                 setSuperAdminToken(currentToken);
             }
-            // Set the new org token
+            // Set the new org token locally just in case
             setToken(response.access_token);
             
-            // Hard redirect to the organization dashboard so the entire app context re-initializes
-            window.location.href = `/${org.slug}/dashboard`;
+            // Construct the app subdomain URL to cross the domain boundary
+            const protocol = window.location.protocol;
+            const host = window.location.host;
+            const appHost = host.startsWith("app.") ? host : `app.${host}`;
+            
+            // Hard redirect to the app subdomain with tokens in the URL fragment
+            window.location.href = `${protocol}//${appHost}/${org.slug}/dashboard#token=${response.access_token}&saToken=${currentToken || ''}`;
         } catch (err) {
             console.error("Impersonation failed", err);
             let errMsg = "Failed to impersonate organization.";

@@ -6,7 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import type { QueueResponse, SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
 import QueueCard from "@/components/QueueCard";
-import { Calendar, Plus } from "lucide-react";
+import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays } from "lucide-react";
 
 interface PageProps {
     params: Promise<{ sessionId: string }>;
@@ -24,6 +24,12 @@ function formatWeekday(dateStr: string): string {
 
 function isToday(dateStr: string): boolean {
     return dateStr === new Date().toISOString().slice(0, 10);
+}
+
+function shiftDate(dateStr: string, days: number): string {
+    const d = new Date(dateStr + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
 }
 
 export default function SessionQueuesPage({ params }: PageProps) {
@@ -44,6 +50,8 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [isBackgroundLoading, setIsBackgroundLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [dateNavLoading, setDateNavLoading] = useState(false);
+    const datePickerRef = useRef<HTMLInputElement>(null);
 
     // Create queue modal state
     const [showCreate, setShowCreate] = useState(false);
@@ -121,6 +129,37 @@ export default function SessionQueuesPage({ params }: PageProps) {
         }
     }, [page, debouncedFilterName]);
 
+    // ── Date Navigation ──────────────────────────────────────────
+    const navigateToDate = useCallback(async (targetDate: string) => {
+        setDateNavLoading(true);
+        try {
+            const res = await api.listSessions(1, 0, targetDate);
+            if (res.items.length > 0) {
+                router.push(`${dashBase}/sessions/${res.items[0].id}/queues`);
+            }
+        } catch {
+            // No session found for that date
+        } finally {
+            setDateNavLoading(false);
+        }
+    }, [dashBase, router]);
+
+    const handlePrevDay = useCallback(() => {
+        if (!session) return;
+        navigateToDate(shiftDate(session.session_date, -1));
+    }, [session, navigateToDate]);
+
+    const handleNextDay = useCallback(() => {
+        if (!session) return;
+        navigateToDate(shiftDate(session.session_date, 1));
+    }, [session, navigateToDate]);
+
+    const handleDatePick = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.value) {
+            navigateToDate(e.target.value);
+        }
+    }, [navigateToDate]);
+
     // Split queues into active vs inactive
     const activeQueues = useMemo(() => queues.filter(q => q.is_active), [queues]);
     const inactiveQueues = useMemo(() => queues.filter(q => !q.is_active), [queues]);
@@ -189,22 +228,52 @@ export default function SessionQueuesPage({ params }: PageProps) {
                 {/* ── Header Card ── */}
                 <div className="p-4 md:py-4 md:px-6 bg-white border border-slate-100 rounded-xl shadow-sm ring-1 ring-slate-900/5 w-full">
                     <div className="flex items-center justify-between gap-4 w-full">
-                        {/* Left: Title & Meta inline */}
+                        {/* Left: Interactive Date Navigator + Meta */}
                         <div className="flex items-center gap-3 flex-wrap">
-                            <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                                <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                            {/* Date Navigator Pill */}
+                            <div className={`flex items-center gap-1 bg-white border border-slate-200 rounded-lg shadow-sm p-1 ${dateNavLoading ? 'opacity-60 pointer-events-none' : ''}`}>
+                                <button
+                                    onClick={handlePrevDay}
+                                    className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"
+                                    aria-label="Previous day"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => datePickerRef.current?.showPicker()}
+                                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 rounded-md cursor-pointer text-sm font-bold text-slate-900 transition-colors"
+                                >
+                                    <Calendar className="w-4 h-4 text-indigo-600" />
                                     {session ? formatMonthDayYear(session.session_date) : "Session Queues"}
                                     {session && isToday(session.session_date) && (
-                                        <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md align-middle">Today</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">Today</span>
                                     )}
-                                </h1>
+                                </button>
+                                <button
+                                    onClick={handleNextDay}
+                                    className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"
+                                    aria-label="Next day"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                                {/* Hidden native date picker */}
+                                <input
+                                    ref={datePickerRef}
+                                    type="date"
+                                    value={session?.session_date || ""}
+                                    onChange={handleDatePick}
+                                    className="sr-only"
+                                    tabIndex={-1}
+                                />
                             </div>
-                            <div className="flex items-center gap-2">
+
+                            {/* Metadata outside the pill */}
+                            <div className="flex items-center gap-2 text-xs font-medium text-slate-400 ml-1">
                                 {session && (
-                                    <span className="text-sm font-semibold text-indigo-500">{formatWeekday(session.session_date)}</span>
+                                    <span className="text-indigo-500 font-semibold">{formatWeekday(session.session_date)}</span>
                                 )}
-                                <span className="text-xs text-gray-400 font-medium">{queues.length} {queues.length === 1 ? "queue" : "queues"}</span>
+                                <span className="text-slate-300">·</span>
+                                <span>{queues.length} {queues.length === 1 ? "queue" : "queues"}</span>
                                 {activeQueues.length > 0 && (
                                     <span className="inline-flex items-center gap-1 bg-sky-50 text-sky-700 border border-sky-100 font-bold px-2 py-0.5 rounded-full text-[11px] uppercase tracking-wider">
                                         <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
@@ -297,7 +366,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         <h2 className="text-sm font-semibold text-slate-900 dark:text-white tracking-wide">ACTIVE QUEUES</h2>
                                         <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100/80 px-2 py-0.5 rounded-full">{activeQueues.length}</span>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4 max-w-7xl">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 mt-6 max-w-7xl">
                                         {activeQueues.map((q) => (
                                             <QueueCard key={q.id} queue={q} onToggled={() => loadQueues(false)} />
                                         ))}
@@ -325,7 +394,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         </svg>
                                     </button>
                                     {!inactiveCollapsed && (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4 max-w-7xl">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 mt-6 max-w-7xl">
                                             {inactiveQueues.map((q) => (
                                                 <QueueCard key={q.id} queue={q} onToggled={() => loadQueues(false)} />
                                             ))}
