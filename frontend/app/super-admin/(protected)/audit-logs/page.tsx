@@ -85,6 +85,37 @@ export default function SuperAdminAuditLogsPage() {
                     </h1>
                     <p className="text-sm text-slate-400 mt-1">Track every action across all organizations and the entire platform.</p>
                 </div>
+                
+                <button
+                    onClick={() => {
+                        const headers = ["Action", "Organization", "User", "IP Address", "Details", "Timestamp"];
+                        const rows = logs.map(log => {
+                            const { date, time } = formatDate(log.created_at);
+                            const detailsStr = log.details ? Object.entries(log.details).map(([k,v]) => `${k}:${v}`).join('; ') : '';
+                            return [
+                                formatAction(log.event_type),
+                                log.org_name || "System",
+                                log.user_email || "System User",
+                                log.ip_address || "unknown",
+                                detailsStr,
+                                `${date} ${time}`
+                            ];
+                        });
+                        const csvContent = [headers, ...rows].map(e => e.map(f => `"${String(f).replace(/"/g, '""')}"`).join(",")).join("\n");
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `audit_logs_${new Date().toISOString().split('T')[0]}.csv`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    }}
+                    disabled={loading || logs.length === 0}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    Export CSV
+                </button>
             </div>
 
             {/* Table Card */}

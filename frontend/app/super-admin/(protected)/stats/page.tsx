@@ -149,21 +149,48 @@ export default function SuperAdminAnalyticsPage() {
                         />
                     </div>
 
-                    {/* Timeframe Toggles */}
-                    <div className="flex bg-slate-950 border border-slate-800 p-1 rounded-xl shrink-0">
-                        {(["daily", "weekly", "monthly"] as const).map(tf => (
-                            <button
-                                key={tf}
-                                onClick={() => setTimeframe(tf)}
-                                className={`px-4 py-1.5 text-xs font-semibold rounded-lg capitalize transition-colors ${
-                                    timeframe === tf
-                                        ? "bg-slate-800 text-white shadow-sm"
-                                        : "text-slate-400 hover:text-slate-200"
-                                }`}
-                            >
-                                {tf}
-                            </button>
-                        ))}
+                    {/* Timeframe Toggles & Export */}
+                    <div className="flex gap-2 shrink-0">
+                        <div className="flex bg-slate-950 border border-slate-800 p-1 rounded-xl">
+                            {(["daily", "weekly", "monthly"] as const).map(tf => (
+                                <button
+                                    key={tf}
+                                    onClick={() => setTimeframe(tf)}
+                                    className={`px-4 py-1.5 text-xs font-semibold rounded-lg capitalize transition-colors ${
+                                        timeframe === tf
+                                            ? "bg-slate-800 text-white shadow-sm"
+                                            : "text-slate-400 hover:text-slate-200"
+                                    }`}
+                                >
+                                    {tf}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => {
+                                const headers = ["Organization", "Queue Entries", "Customers Served", "Status", "Avg Wait Time", "Peak Usage Time"];
+                                const rows = filteredData.map(d => [
+                                    d.name,
+                                    d.queue_entries,
+                                    d.customers_served,
+                                    d.is_active ? "Active" : "Inactive",
+                                    d.average_wait_time,
+                                    d.peak_usage_time
+                                ]);
+                                const csvContent = [headers, ...rows].map(e => e.map(f => `"${String(f).replace(/"/g, '""')}"`).join(",")).join("\n");
+                                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `org_analytics_${timeframe}_${new Date().toISOString().split('T')[0]}.csv`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                            }}
+                            className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 text-xs font-semibold rounded-xl transition-colors"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            Export CSV
+                        </button>
                     </div>
                 </div>
 

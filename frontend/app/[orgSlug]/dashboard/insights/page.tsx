@@ -141,20 +141,20 @@ export default function InsightsPage() {
     const start = startDate ? new Date(startDate) : new Date(Date.now() - 7 * 86400000);
     const end = endDate ? new Date(endDate) : new Date();
     const dateMap = new Map();
-    
+
     // Generate all dates in the range
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const iso = d.toISOString().split('T')[0];
-        dateMap.set(iso, { date: iso, avg_wait: 0, avg_serve: 0 });
+      const iso = d.toISOString().split('T')[0];
+      dateMap.set(iso, { date: iso, avg_wait: 0, avg_serve: 0 });
     }
 
     // Merge actual data
     (overview.daily_timings || []).forEach(dt => {
-        // Some backends return full ISO strings, safely split it
-        const dtDate = dt.date ? dt.date.split('T')[0] : "";
-        if (dtDate) {
-            dateMap.set(dtDate, dt);
-        }
+      // Some backends return full ISO strings, safely split it
+      const dtDate = dt.date ? dt.date.split('T')[0] : "";
+      if (dtDate) {
+        dateMap.set(dtDate, dt);
+      }
     });
 
     const paddedTimings = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
@@ -225,16 +225,16 @@ export default function InsightsPage() {
               </button>
               <button onClick={async () => {
                 try {
-                    const blob = await api.exportAnalyticsCSV({ startDate, endDate });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `queue_report_${startDate}_to_${endDate}.csv`;
-                    a.click();
-                    window.URL.revokeObjectURL(url);
+                  const blob = await api.exportAnalyticsCSV({ startDate, endDate });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `queue_report_${startDate}_to_${endDate}.csv`;
+                  a.click();
+                  window.URL.revokeObjectURL(url);
                 } catch (e) {
-                    console.error("Export failed", e);
-                    alert("Failed to export CSV report. Please try again.");
+                  console.error("Export failed", e);
+                  alert("Failed to export CSV report. Please try again.");
                 }
               }} disabled={loading} style={{
                 display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
