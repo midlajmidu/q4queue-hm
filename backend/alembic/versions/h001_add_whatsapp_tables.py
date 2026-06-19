@@ -7,7 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = "h001_add_whatsapp_tables"
-down_revision = "49cf574ceceb"
+down_revision = "h637e5f5d084"
 branch_labels = None
 depends_on = None
 
