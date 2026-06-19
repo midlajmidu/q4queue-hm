@@ -66,6 +66,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         async with _eng.begin() as conn:
             await conn.run_sync(AuditBase.metadata.create_all)
         logger.info("✓ Audit tables ready")
+        
+        from app.db.session import AsyncSessionLocal
+        from app.whatsapp.template_service import seed_default_templates
+        async with AsyncSessionLocal() as db:
+            await seed_default_templates(db)
+        logger.info("✓ WhatsApp templates seeded")
     except Exception as exc:
         logger.warning("Audit table creation skipped: %s", exc)
 

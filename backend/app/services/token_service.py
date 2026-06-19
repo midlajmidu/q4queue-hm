@@ -204,6 +204,7 @@ async def join_queue(
                 current_serving=current_serving,
                 queue_prefix=queue.prefix,
                 session_id=queue.token_session_id,
+                tracking_id=existing_token.tracking_id,
             )
 
     # ── No active token found — create a new one ──
@@ -233,6 +234,7 @@ async def join_queue(
         current_serving=current_serving,
         queue_prefix=queue.prefix,
         session_id=queue.token_session_id,
+        tracking_id=token.tracking_id,
     )
 
 
@@ -467,3 +469,95 @@ async def list_queue_tokens(
         .order_by(Token.token_number.asc())
     )
     return list(result.scalars().all())
+
+
+async def send_called_and_reminder_notifications(
+    queue_id: uuid.UUID,
+    org_id: uuid.UUID,
+    serving_token_number: int,
+) -> None:
+    """
+    After a token is called (serving), fire two types of notifications:
+    1. queue.called  → to the customer whose token was just called
+    2. queue.reminder → to any waiting customer now at position ≤ 3 (once only)
+
+    Designed to run as a BackgroundTask (post-commit).
+    """
+    try:
+        from app.services.notification_service import notify_queue_event
+
+        async with AsyncSessionLocal() as db:
+            # ── 1. Find the just-served token ───────────────────────────────
+            from app.models.queue import Queue
+
+            q_res = await db.execute(
+                select(Queue).where(Queue.id == queue_id)
+            )
+            queue = q_res.scalar_one_or_none()
+            if queue is None:
+                return
+
+            tok_res = await db.execute(
+                select(Token).where(
+                    Token.queue_id == queue_id,
+                    Token.token_number == serving_token_number,
+                    Token.org_id == org_id,
+                )
+            )
+            serving_token = tok_res.scalar_one_or_none()
+
+            if serving_token:
+                await notify_queue_event(
+                    event_type="queue_called_v2",
+                    org_id=org_id,
+                    token_id=serving_token.id,
+                    queue_id=queue_id,
+                    customer_name=serving_token.customer_name,
+                    customer_phone=serving_token.customer_phone,
+                    token_number=serving_token.token_number,
+                    token_prefix=queue.prefix,
+                    queue_name=queue.name,
+                    tracking_id=str(getattr(serving_token, "tracking_id", "")),
+                    session_id=queue.session_id,
+                )
+
+            # ── 2. Check for tokens now at position ≤ 5 ─────────────────────
+            waiting_res = await db.execute(
+                select(Token)
+                .where(
+                    Token.queue_id == queue_id,
+                    Token.org_id == org_id,
+                    Token.status == TokenStatus.waiting,
+                    Token.whatsapp_reminder_sent == False,  # noqa: E712
+                )
+                .order_by(Token.token_number.asc())
+                .limit(5)
+            )
+            waiting_tokens = waiting_res.scalars().all()
+
+            for i, wt in enumerate(waiting_tokens):
+                position = i + 1  # 1-indexed position
+                # Send reminder for the top 5 who haven't received one yet
+                event_type_reminder = "queue_nearby_3_v2" if position <= 3 else "queue_nearby_5_v2"
+                await notify_queue_event(
+                    event_type=event_type_reminder,
+                    org_id=org_id,
+                    token_id=wt.id,
+                    queue_id=queue_id,
+                    customer_name=wt.customer_name,
+                    customer_phone=wt.customer_phone,
+                    token_number=wt.token_number,
+                    token_prefix=queue.prefix,
+                    queue_name=queue.name,
+                    position=position,
+                    tracking_id=str(getattr(wt, "tracking_id", "")),
+                    session_id=queue.session_id,
+                )
+                # Mark reminder as sent so we don't re-send
+                wt.whatsapp_reminder_sent = True
+
+            if waiting_tokens:
+                await db.commit()
+
+    except Exception as exc:
+        logger.error("send_called_and_reminder_notifications error: %s", exc)

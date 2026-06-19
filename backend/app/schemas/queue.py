@@ -79,6 +79,7 @@ class JoinResponse(BaseModel):
     current_serving: int    # the token_number currently being served (0 = none)
     queue_prefix: str
     session_id: uuid.UUID
+    tracking_id: Optional[uuid.UUID] = None  # public tracking URL ID
 
 
 class PublicTokenResponse(BaseModel):
@@ -138,6 +139,7 @@ class TokenResponse(BaseModel):
     customer_name: str
     customer_age: Optional[int]
     customer_phone: str
+    tracking_id: Optional[uuid.UUID] = None
 
     model_config = {"from_attributes": True}
 

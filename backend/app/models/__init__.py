@@ -5,5 +5,20 @@ from app.models.session import Session
 from app.models.token import Token
 from app.models.message import Message
 from app.models.system_announcement import SystemAnnouncement
+from app.whatsapp.models import (
+    WhatsAppConfig,
+    WhatsAppTemplate,
+    WhatsAppMessage,
+    WhatsAppWebhookLog,
+    WhatsAppUsageStat,
+)
 
-__all__ = ["Organization", "User", "Queue", "Session", "Token", "Message", "SystemAnnouncement"]
+from app.audit.models import AuditLog
+
+__all__ = [
+    "Organization", "User", "Queue", "Session", "Token", "Message",
+    "SystemAnnouncement",
+    "WhatsAppConfig", "WhatsAppTemplate", "WhatsAppMessage",
+    "WhatsAppWebhookLog", "WhatsAppUsageStat",
+    "AuditLog"
+]

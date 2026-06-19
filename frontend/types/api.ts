@@ -583,3 +583,161 @@ export interface ResetPasswordResponse {
     message: string;
     temporary_password: string;
 }
+
+// ── WhatsApp Cloud API ────────────────────────────────────────────
+
+export interface WhatsAppConfig {
+    status: "connected" | "disconnected" | "error";
+    is_enabled: boolean;
+    payment_active: boolean;
+    business_verified: boolean;
+    webhook_active: boolean;
+    access_token?: string;
+    phone_number_id?: string;
+    waba_id?: string;
+    app_id?: string;
+    app_secret?: string;
+    business_id?: string;
+    connected_at?: string | null;
+}
+
+export interface WhatsAppTemplate {
+    id: string;
+    template_name: string;
+    category: string;
+    language: string;
+    description?: string;
+    body_text: string;
+    variables?: Record<string, string>;
+    status: "draft" | "approved" | "pending" | "rejected";
+    event_type?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface WhatsAppTemplateCreate {
+    template_name: string;
+    category?: string;
+    language?: string;
+    description?: string;
+    body_text: string;
+    variables?: Record<string, string>;
+    event_type?: string;
+    status?: string;
+}
+
+export interface WhatsAppTemplateUpdate {
+    category?: string;
+    language?: string;
+    description?: string;
+    body_text?: string;
+    variables?: Record<string, string>;
+    event_type?: string;
+    status?: string;
+}
+
+export interface WhatsAppMessage {
+    id: string;
+    organization_id?: string;
+    customer_phone: string;
+    customer_name?: string;
+    event_type?: string;
+    template_name?: string;
+    status: "pending" | "sent" | "delivered" | "read" | "failed";
+    meta_message_id?: string;
+    sent_at?: string | null;
+    delivered_at?: string | null;
+    read_at?: string | null;
+    failed_at?: string | null;
+    error_message?: string | null;
+    created_at: string;
+}
+
+export interface PaginatedWhatsAppMessages {
+    items: WhatsAppMessage[];
+    total: number;
+    limit: number;
+    offset: number;
+}
+
+export interface WhatsAppGlobalStats {
+    total: number;
+    sent: number;
+    delivered: number;
+    read: number;
+    failed: number;
+    pending: number;
+    success_rate: number;
+}
+
+export interface WhatsAppDailyChartItem {
+    date: string;
+    total: number;
+    delivered: number;
+    read: number;
+    failed: number;
+}
+
+export interface WhatsAppOrgStats {
+    organization_id?: string;
+    org_name?: string;
+    total: number;
+    delivered: number;
+    read: number;
+    failed: number;
+    success_rate: number;
+}
+
+export interface WhatsAppOrgConfig {
+    org_id?: string;
+    is_enabled: boolean;
+    notify_queue_joined: boolean;
+    notify_position_5: boolean;
+    notify_position_3: boolean;
+    notify_called: boolean;
+    notify_completed: boolean;
+}
+
+export interface WhatsAppEventStat {
+    event_type: string;
+    total: number;
+    delivered: number;
+    read: number;
+    failed: number;
+    success_rate: number;
+}
+
+export interface WhatsAppQueueStat {
+    queue_id: string | null;
+    queue_name: string;
+    total: number;
+    delivered: number;
+    read: number;
+    failed: number;
+    success_rate: number;
+}
+
+export interface WhatsAppSessionStat {
+    session_id: string | null;
+    session_date: string;
+    total: number;
+    delivered: number;
+    read: number;
+    failed: number;
+    success_rate: number;
+}
+
+export interface TrackingResponse {
+    token_id: string;
+    tracking_id: string;
+    token_number: number;
+    token_prefix: string;
+    status: string;
+    position: number;
+    queue_name: string;
+    org_name: string;
+    queue_is_active: boolean;
+    created_at: string;
+    served_at?: string | null;
+    completed_at?: string | null;
+}

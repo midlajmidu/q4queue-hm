@@ -16,6 +16,9 @@ from app.api.v1.endpoints import (
     analytics,
     messages,
     system,
+    tracking,
+    whatsapp,
+    whatsapp_analytics,
 )
 
 api_router = APIRouter()
@@ -55,3 +58,11 @@ api_router.include_router(organization.router, prefix="/organization", tags=["Or
 
 # ── Super Admin ────────────────────────────────────────────────────
 api_router.include_router(super_admin.router, prefix="/super-admin", tags=["Super Admin"])
+
+# ── WhatsApp ─────────────────────────────────────────────────
+api_router.include_router(whatsapp.router, prefix="/whatsapp", tags=["WhatsApp"])
+api_router.include_router(whatsapp_analytics.router, prefix="/whatsapp/analytics", tags=["WhatsApp Analytics"])
+api_router.include_router(whatsapp.webhook_router, prefix="/webhooks", tags=["Webhooks"])
+
+# ── Customer Tracking ───────────────────────────────────────
+api_router.include_router(tracking.router, prefix="/track", tags=["Tracking"])

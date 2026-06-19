@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     Enum as SAEnum,
     ForeignKey,
@@ -90,10 +91,24 @@ class Token(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
-    # ── Customer Info ──────────────────────────────────────────────
+    # ── Customer Info ─────────────────────────────────────────────
     customer_name: Mapped[str] = mapped_column(String(120), nullable=False)
     customer_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     customer_phone: Mapped[str] = mapped_column(String(20), nullable=False)
+
+    # ── WhatsApp / Tracking ────────────────────────────────────
+    # Separate UUID used in public tracking URLs — keeps internal ID private
+    tracking_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=False,
+        default=uuid.uuid4,
+        unique=True,
+        index=True,
+    )
+    # Set True once a "position ≤ 3" reminder has been sent to avoid duplicates
+    whatsapp_reminder_sent: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
 
     # ── Relationships ──────────────────────────────────────────────
     queue: Mapped["Queue"] = relationship(  # noqa: F821

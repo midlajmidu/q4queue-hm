@@ -52,6 +52,22 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = ""
     SMTP_FROM_NAME: str = "QRQ Queue System"
 
+    # ── Meta WhatsApp Cloud API ───────────────────────────────────
+    WHATSAPP_ACCESS_TOKEN: str = ""
+    WHATSAPP_PHONE_NUMBER_ID: str = ""
+    WHATSAPP_WABA_ID: str = ""
+    WHATSAPP_VERIFY_TOKEN: str = "qrq-whatsapp-webhook-secret"
+    WHATSAPP_API_VERSION: str = "v21.0"
+
+    @property
+    def whatsapp_configured(self) -> bool:
+        """True when all required Meta credentials are present."""
+        return bool(
+            self.WHATSAPP_ACCESS_TOKEN
+            and self.WHATSAPP_PHONE_NUMBER_ID
+            and self.WHATSAPP_WABA_ID
+        )
+
     # ── Server ────────────────────────────────────────────────────
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 10000

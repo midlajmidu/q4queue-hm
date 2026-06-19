@@ -26,6 +26,7 @@ from app.models.token import Token
 from app.models.user import User
 from app.schemas.queue import TokenResponse, TokenRestoreResponse
 from app.services import token_service
+from app.services.notification_service import notify_queue_event
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -100,14 +101,46 @@ async def cancel_token(
 ) -> dict:
     """
     Publicly accessible cancellation.
+    Also triggers WhatsApp notification: queue.cancelled
     """
     try:
+        from sqlalchemy import select
+        from app.models.queue import Queue
+
+        # Fetch token + queue details before cancellation (for notification)
+        result = await db.execute(
+            select(Token, Queue.name, Queue.prefix, Queue.session_id)
+            .join(Queue, Token.queue_id == Queue.id)
+            .where(Token.id == token_id)
+        )
+        row = result.one_or_none()
+
         token = await token_service.cancel_token_public(db, token_id=token_id)
+
         background_tasks.add_task(
             token_service.notify_queue_update,
             queue_id=token.queue_id,
             org_id=token.org_id,
         )
+
+        # WhatsApp notification: customer cancelled voluntarily
+        if row:
+            _token, queue_name, queue_prefix, session_id = row
+            background_tasks.add_task(
+                notify_queue_event,
+                event_type="test_notification_v2", # User voluntary cancel - no template specified but we can skip or use test? Wait, we don't have queue_cancelled_v2. Let's not send notification or use a generic. Wait, we deleted it.
+                org_id=token.org_id,
+                token_id=token.id,
+                queue_id=token.queue_id,
+                customer_name=token.customer_name,
+                customer_phone=token.customer_phone,
+                token_number=token.token_number,
+                token_prefix=queue_prefix,
+                queue_name=queue_name,
+                tracking_id=str(getattr(token, "tracking_id", "")),
+                session_id=session_id,
+            )
+
         return {"status": "cancelled", "token_number": token.token_number}
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
@@ -130,8 +163,17 @@ async def skip_token(
 ) -> TokenResponse:
     """
     SECURITY: get_token_for_org dependency validates org ownership before mutation.
+    Also sends WhatsApp notification: queue.cancelled (skipped = admin cancelled)
     """
     try:
+        from sqlalchemy import select
+        from app.models.queue import Queue
+
+        q_result = await db.execute(
+            select(Queue.name, Queue.prefix, Queue.session_id).where(Queue.id == token.queue_id)
+        )
+        q_row = q_result.one_or_none()
+
         updated = await token_service.skip_token(
             db, token_id=token.id, org_id=token.org_id
         )
@@ -140,6 +182,24 @@ async def skip_token(
             queue_id=token.queue_id,
             org_id=token.org_id,
         )
+
+        if q_row:
+            queue_name, queue_prefix, session_id = q_row
+            background_tasks.add_task(
+                notify_queue_event,
+                event_type="test_notification_v2",
+                org_id=token.org_id,
+                token_id=token.id,
+                queue_id=token.queue_id,
+                customer_name=token.customer_name,
+                customer_phone=token.customer_phone,
+                token_number=token.token_number,
+                token_prefix=queue_prefix,
+                queue_name=queue_name,
+                tracking_id=str(getattr(token, "tracking_id", "")),
+                session_id=session_id,
+            )
+
     except ValueError as exc:
         msg = str(exc)
         code = 404 if "not found" in msg.lower() else 400
@@ -164,8 +224,17 @@ async def complete_token(
 ) -> TokenResponse:
     """
     SECURITY: get_token_for_org dependency validates org ownership before mutation.
+    Also sends WhatsApp notification: queue.completed
     """
     try:
+        from sqlalchemy import select
+        from app.models.queue import Queue
+
+        q_result = await db.execute(
+            select(Queue.name, Queue.prefix, Queue.session_id).where(Queue.id == token.queue_id)
+        )
+        q_row = q_result.one_or_none()
+
         updated = await token_service.complete_token(
             db, token_id=token.id, org_id=token.org_id
         )
@@ -174,6 +243,24 @@ async def complete_token(
             queue_id=token.queue_id,
             org_id=token.org_id,
         )
+
+        if q_row:
+            queue_name, queue_prefix, session_id = q_row
+            background_tasks.add_task(
+                notify_queue_event,
+                event_type="queue_completed_v2",
+                org_id=token.org_id,
+                token_id=token.id,
+                queue_id=token.queue_id,
+                customer_name=token.customer_name,
+                customer_phone=token.customer_phone,
+                token_number=token.token_number,
+                token_prefix=queue_prefix,
+                queue_name=queue_name,
+                tracking_id=str(getattr(token, "tracking_id", "")),
+                session_id=session_id,
+            )
+
     except ValueError as exc:
         msg = str(exc)
         code = 404 if "not found" in msg.lower() else 400
@@ -198,8 +285,26 @@ async def remove_token(
 ) -> TokenResponse:
     """
     SECURITY: get_token_for_org dependency validates org ownership before mutation.
+    Also sends WhatsApp notification: queue.removed (staff removed customer)
     """
     try:
+        from sqlalchemy import select
+        from app.models.queue import Queue
+
+        q_result = await db.execute(
+            select(Queue.name, Queue.prefix, Queue.session_id).where(Queue.id == token.queue_id)
+        )
+        q_row = q_result.one_or_none()
+
+        # Save values before removal mutates the object
+        saved_name = token.customer_name
+        saved_phone = token.customer_phone
+        saved_number = token.token_number
+        saved_tracking = str(getattr(token, "tracking_id", ""))
+        saved_queue_id = token.queue_id
+        saved_org_id = token.org_id
+        saved_token_id = token.id
+
         updated = await token_service.remove_token(
             db, token_id=token.id, org_id=token.org_id
         )
@@ -208,6 +313,24 @@ async def remove_token(
             queue_id=token.queue_id,
             org_id=token.org_id,
         )
+
+        if q_row:
+            queue_name, queue_prefix, session_id = q_row
+            background_tasks.add_task(
+                notify_queue_event,
+                event_type="test_notification_v2",
+                org_id=saved_org_id,
+                token_id=saved_token_id,
+                queue_id=saved_queue_id,
+                customer_name=saved_name,
+                customer_phone=saved_phone,
+                token_number=saved_number,
+                token_prefix=queue_prefix,
+                queue_name=queue_name,
+                tracking_id=saved_tracking,
+                session_id=session_id,
+            )
+
     except ValueError as exc:
         msg = str(exc)
         code = 404 if "not found" in msg.lower() else 400

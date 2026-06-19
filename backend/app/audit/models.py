@@ -17,10 +17,10 @@ from sqlalchemy import DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base_class import AuditBase
+from app.db.base_class import Base
 
 
-class AuditLog(AuditBase):
+class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[uuid.UUID] = mapped_column(

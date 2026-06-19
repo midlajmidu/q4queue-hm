@@ -17,6 +17,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Bypass subdomain routing for ngrok tunnels to allow easy testing
+  if (hostname.includes('ngrok-free.app') || hostname.includes('ngrok.io')) {
+    return NextResponse.next();
+  }
+
   // Normalize hostname: remove 'www.' if present to ensure clean subdomain logic
   const normalizedHostname = hostname.replace("www.", "");
   
