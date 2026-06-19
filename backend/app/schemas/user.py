@@ -17,8 +17,6 @@ class UserResponse(BaseModel):
     email: EmailStr
     first_name: str | None
     last_name: str | None
-    counter: str | None = None
-    assigned_queues: list[str] = []
     org_id: uuid.UUID
     role: str
     is_active: bool
@@ -46,8 +44,6 @@ class StaffCreate(BaseModel):
     email: EmailStr
     first_name: str
     last_name: str
-    counter: str | None = None
-    assigned_queues: list[str] = []
     password: str = Field(..., min_length=8, description="Minimum 8 characters")
 
 
@@ -56,8 +52,6 @@ class StaffUpdate(BaseModel):
     email: Optional[EmailStr] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    counter: Optional[str] = None
-    assigned_queues: Optional[list[str]] = None
     is_active: Optional[bool] = None
     new_password: Optional[str] = Field(default=None, min_length=8)
 
@@ -68,8 +62,6 @@ class StaffResponse(BaseModel):
     email: EmailStr
     first_name: str | None
     last_name: str | None
-    counter: str | None = None
-    assigned_queues: list[str] = []
     org_id: uuid.UUID
     role: str
     is_active: bool

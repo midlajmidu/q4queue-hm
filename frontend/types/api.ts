@@ -94,6 +94,7 @@ export interface SessionCreate {
 export interface QueueCreate {
     name: string;
     prefix?: string;
+    starting_sequence?: number;
     open_time?: string;
     close_time?: string;
 }
@@ -106,6 +107,7 @@ export interface QueueResponse {
     name: string;
     prefix: string;
     announcement: string | null;
+    starting_sequence: number;
     current_token_number: number;
     is_active: boolean;
     is_paused: boolean;
@@ -121,10 +123,7 @@ export interface PaginatedQueueResponse {
     offset: number;
 }
 
-export interface QueueCreate {
-    name: string;
-    prefix?: string;
-}
+
 
 // ── Token ────────────────────────────────────────────────────────
 export type TokenStatus = "waiting" | "serving" | "done" | "skipped" | "deleted";
@@ -295,8 +294,6 @@ export interface StaffMember {
     email: string;
     first_name?: string;
     last_name?: string;
-    counter?: string;
-    assigned_queues?: string[];
     org_id: string;
     role: "admin" | "staff";
     is_active: boolean;
@@ -307,8 +304,6 @@ export interface StaffCreate {
     email: string;
     first_name: string;
     last_name: string;
-    counter?: string;
-    assigned_queues?: string[];
     password: string;
 }
 
@@ -316,8 +311,6 @@ export interface StaffUpdate {
     email?: string;
     first_name?: string;
     last_name?: string;
-    counter?: string;
-    assigned_queues?: string[];
     is_active?: boolean;
     new_password?: string;
 }

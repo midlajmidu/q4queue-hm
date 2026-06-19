@@ -241,6 +241,8 @@ async def create_session_queue(
         session_id=session_id,
         name=data.name,
         prefix=data.prefix,
+        starting_sequence=data.starting_sequence,
+        current_token_number=data.starting_sequence - 1,
     )
     db.add(queue)
     try:

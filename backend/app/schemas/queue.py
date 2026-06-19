@@ -17,6 +17,7 @@ from app.models.token import TokenStatus
 class QueueCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=150)
     prefix: str = Field(default="A", min_length=1, max_length=10)
+    starting_sequence: int = Field(default=1, ge=1)
     open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
 
@@ -32,6 +33,7 @@ class QueueResponse(BaseModel):
     name: str
     prefix: str
     announcement: Optional[str] = None
+    starting_sequence: int
     current_token_number: int
     is_active: bool
     is_paused: bool = False

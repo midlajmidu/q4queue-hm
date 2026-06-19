@@ -188,9 +188,6 @@ function StaffModal({ mode, member, onClose, onSaved }: {
   const [firstName, setFirstName] = useState(member?.first_name ?? "");
   const [lastName, setLastName] = useState(member?.last_name ?? "");
   const [email, setEmail] = useState(member?.email ?? "");
-  const [counter, setCounter] = useState(member?.counter ?? "");
-  const [assignedQueues, setAssignedQueues] = useState<string[]>(member?.assigned_queues ?? []);
-  const [queues, setQueues] = useState<QueueResponse[]>([]);
   const [isActive, setIsActive] = useState(member?.is_active ?? true);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -198,14 +195,6 @@ function StaffModal({ mode, member, onClose, onSaved }: {
   const [confirmNew, setConfirmNew] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.listQueues().then(res => {
-      // Deduplicate queues by prefix so we don't render 2,000 checkboxes
-      const uniquePrefixes = Array.from(new Set(res.map(q => q.prefix))).filter(Boolean).sort();
-      setQueues(uniquePrefixes.map(p => ({ id: p, prefix: p } as any)));
-    }).catch(console.error);
-  }, []);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -240,17 +229,12 @@ function StaffModal({ mode, member, onClose, onSaved }: {
         if (firstName !== member.first_name) update.first_name = firstName;
         if (lastName !== member.last_name) update.last_name = lastName;
         if (email !== member.email) update.email = email;
-        if (counter !== member.counter) update.counter = counter || undefined;
-        if (JSON.stringify(assignedQueues) !== JSON.stringify(member.assigned_queues || [])) {
-          update.assigned_queues = assignedQueues;
-        }
         if (isActive !== member.is_active) update.is_active = isActive;
         if (newPassword) update.new_password = newPassword;
         result = await api.updateStaff(member.id, update);
       } else {
         result = await api.createStaff({ 
-          email, first_name: firstName, last_name: lastName, password,
-          counter: counter || undefined, assigned_queues: assignedQueues
+          email, first_name: firstName, last_name: lastName, password
         });
       }
       onSaved(result);
@@ -337,36 +321,7 @@ function StaffModal({ mode, member, onClose, onSaved }: {
             />
           </div>
 
-          {/* Counter and Queues */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div>
-              <label style={labelStyle}>Counter Assignment</label>
-              <input
-                type="text" value={counter} onChange={e => setCounter(e.target.value)}
-                disabled={isSaving} placeholder="e.g. Counter 1"
-                style={inputStyle}
-                onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
-                onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Assigned Queues</label>
-              <div style={{ ...inputStyle, height: "auto", minHeight: 42, padding: "8px 14px", display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                {queues.length === 0 ? <span style={{ color: "#94a3b8", fontSize: 13 }}>None available</span> : queues.map(q => {
-                  const isAssigned = assignedQueues.includes(q.prefix);
-                  return (
-                    <label key={q.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: isAssigned ? "#0f172a" : "#64748b", cursor: "pointer", background: isAssigned ? "#eef2ff" : "transparent", padding: "2px 6px", borderRadius: 6, border: isAssigned ? "0.5px solid #c7d2fe" : "0.5px solid transparent" }}>
-                      <input type="checkbox" checked={isAssigned} onChange={e => {
-                        if (e.target.checked) setAssignedQueues(prev => [...prev, q.prefix]);
-                        else setAssignedQueues(prev => prev.filter(p => p !== q.prefix));
-                      }} style={{ display: "none" }} />
-                      {q.prefix}
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
+
 
           {/* Status Toggle (edit only) */}
           {isEdit && (
@@ -742,7 +697,6 @@ export default function StaffPage() {
                 <tr>
                   <th style={thStyle}>Member</th>
                   <th style={thStyle}>Role</th>
-                  <th style={thStyle}>Assignment</th>
                   <th style={thStyle}>Status</th>
                   <th style={thStyle}>Joined</th>
                   {isAdmin && <th style={{ ...thStyle, textAlign: "right" }}>Actions</th>}
@@ -809,23 +763,6 @@ export default function StaffPage() {
 
                         {/* Role */}
                         <td style={tdStyle}><RoleBadge role={m.role} /></td>
-
-                        {/* Assignment */}
-                        <td style={tdStyle}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            {m.counter ? <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{m.counter}</span> : null}
-                            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                              {(m.assigned_queues || []).map(q => (
-                                <span key={q} style={{ padding: "2px 6px", background: "#f1f5f9", color: "#475569", borderRadius: 4, fontSize: 11, fontWeight: 600, border: "0.5px solid #e2e8f0" }}>
-                                  {q}
-                                </span>
-                              ))}
-                              {(!m.counter && (!m.assigned_queues || m.assigned_queues.length === 0)) && (
-                                <span style={{ color: "#94a3b8", fontSize: 13 }}>Unassigned</span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
 
                         {/* Status */}
                         <td style={tdStyle}>

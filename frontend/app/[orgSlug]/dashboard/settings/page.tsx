@@ -554,8 +554,19 @@ export default function SettingsPage() {
                                                             style={{ display: 'none' }}
                                                             onChange={(e) => {
                                                                 if (e.target.files && e.target.files[0]) {
-                                                                    setLogoFile(e.target.files[0]);
-                                                                    setLogoPreview(URL.createObjectURL(e.target.files[0]));
+                                                                    const file = e.target.files[0];
+                                                                    const objectUrl = URL.createObjectURL(file);
+                                                                    const img = new Image();
+                                                                    img.onload = () => {
+                                                                        if (img.width > 1024 || img.height > 1024) {
+                                                                            alert("Image resolution too high. Please upload a profile picture that is 1024x1024 pixels or smaller.");
+                                                                            e.target.value = ''; // Reset the input
+                                                                        } else {
+                                                                            setLogoFile(file);
+                                                                            setLogoPreview(objectUrl);
+                                                                        }
+                                                                    };
+                                                                    img.src = objectUrl;
                                                                 }
                                                             }}
                                                         />

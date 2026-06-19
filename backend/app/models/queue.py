@@ -56,6 +56,9 @@ class Queue(Base):
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     prefix: Mapped[str] = mapped_column(String(10), nullable=False, default="A")
     announcement: Mapped[str] = mapped_column(String(500), nullable=True, default="")
+    starting_sequence: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
     current_token_number: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0
     )

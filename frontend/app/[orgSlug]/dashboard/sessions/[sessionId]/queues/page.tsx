@@ -57,6 +57,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const [showCreate, setShowCreate] = useState(false);
     const [newName, setNewName] = useState("");
     const [newPrefix, setNewPrefix] = useState("A");
+    const [newStartingSequence, setNewStartingSequence] = useState<number>(1);
     const [newOpenTime, setNewOpenTime] = useState("");
     const [newCloseTime, setNewCloseTime] = useState("");
     const [createLoading, setCreateLoading] = useState(false);
@@ -171,6 +172,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
         if (showCreate) {
             setNewName("");
             setNewPrefix("A");
+            setNewStartingSequence(1);
             setNewOpenTime("");
             setNewCloseTime("");
             setCreateError(null);
@@ -187,6 +189,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
             await api.createSessionQueue(sessionId, {
                 name: newName.trim(),
                 prefix: newPrefix.trim() || "A",
+                starting_sequence: newStartingSequence || 1,
                 open_time: newOpenTime || undefined,
                 close_time: newCloseTime || undefined,
             });
@@ -503,16 +506,29 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Token Prefix</label>
-                                    <input
-                                        type="text"
-                                        value={newPrefix}
-                                        onChange={(e) => setNewPrefix(e.target.value.toUpperCase())}
-                                        placeholder="A"
-                                        maxLength={5}
-                                        className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all placeholder:text-slate-400"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Token Prefix</label>
+                                        <input
+                                            type="text"
+                                            value={newPrefix}
+                                            onChange={(e) => setNewPrefix(e.target.value.toUpperCase())}
+                                            placeholder="A"
+                                            maxLength={5}
+                                            className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all placeholder:text-slate-400"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Starting Number</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            value={newStartingSequence}
+                                            onChange={(e) => setNewStartingSequence(parseInt(e.target.value) || 1)}
+                                            placeholder="1"
+                                            className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all placeholder:text-slate-400"
+                                        />
+                                    </div>
                                 </div>
                                 {createError && (
                                     <div className="px-4 py-3 rounded-xl bg-red-50 text-red-600 text-xs font-semibold border border-red-100">

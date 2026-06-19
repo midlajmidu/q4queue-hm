@@ -47,8 +47,6 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     first_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    counter: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    assigned_queues: Mapped[list[str]] = mapped_column(ARRAY(String), server_default='{}')
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     
     # DEPRECATED: Stored plain-text passwords (security risk). No longer populated.
