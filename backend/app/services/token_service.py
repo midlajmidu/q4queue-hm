@@ -172,6 +172,9 @@ async def join_queue(
     if not queue.is_active:
         raise ValueError("Queue is not accepting customers")
 
+    if getattr(queue, "is_paused", False):
+        raise ValueError("Queue is temporarily not accepting walk-ins")
+
     # ── Duplicate prevention: check for existing active token by phone ──
     phone_cleaned = data.phone.strip()
     if not bypass_duplicate_check:
@@ -204,6 +207,7 @@ async def join_queue(
                 current_serving=current_serving,
                 queue_prefix=queue.prefix,
                 session_id=queue.token_session_id,
+                companion_names=existing_token.companion_names if hasattr(existing_token, 'companion_names') else [],
             )
 
     # ── No active token found — create a new one ──
@@ -219,6 +223,7 @@ async def join_queue(
         customer_name=data.name.strip(),
         customer_age=data.age,
         customer_phone=phone_cleaned,
+        companion_names=data.companion_names,
     )
     db.add(token)
     await db.flush()
@@ -233,6 +238,7 @@ async def join_queue(
         current_serving=current_serving,
         queue_prefix=queue.prefix,
         session_id=queue.token_session_id,
+        companion_names=token.companion_names if hasattr(token, 'companion_names') else [],
     )
 
 

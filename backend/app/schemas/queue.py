@@ -32,6 +32,7 @@ class QueueResponse(BaseModel):
     announcement: Optional[str] = None
     current_token_number: int
     is_active: bool
+    is_paused: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -44,6 +45,7 @@ class JoinRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
     age: Optional[int] = Field(None, ge=0, le=150)
     phone: str = Field(..., min_length=10, max_length=15)
+    companion_names: list[str] = Field(default_factory=list, max_items=9)
 
     @field_validator("name", mode="before")
     @classmethod
@@ -79,6 +81,7 @@ class JoinResponse(BaseModel):
     current_serving: int    # the token_number currently being served (0 = none)
     queue_prefix: str
     session_id: uuid.UUID
+    companion_names: list[str]
 
 
 class PublicTokenResponse(BaseModel):
@@ -88,6 +91,7 @@ class PublicTokenResponse(BaseModel):
     customer_name: str
     customer_age: Optional[int]
     customer_phone: str
+    companion_names: list[str]
     session_id: uuid.UUID
 
     model_config = {"from_attributes": True}
@@ -104,6 +108,7 @@ class TokenRestoreResponse(BaseModel):
     customer_name: str
     customer_age: Optional[int] = None
     customer_phone: str
+    companion_names: list[str]
     created_at: datetime
     served_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
@@ -138,6 +143,7 @@ class TokenResponse(BaseModel):
     customer_name: str
     customer_age: Optional[int]
     customer_phone: str
+    companion_names: list[str]
 
     model_config = {"from_attributes": True}
 

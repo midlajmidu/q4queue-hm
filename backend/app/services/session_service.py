@@ -225,6 +225,17 @@ async def create_session_queue(
         if current_queues_count >= org.max_queues_per_session:
             raise ValueError(f"Session limit reached: maximum {org.max_queues_per_session} queues allowed per session.")
 
+    # ── Prefix validation ──
+    if data.prefix:
+        existing_prefix = await db.scalar(
+            select(Queue.id).where(
+                Queue.session_id == session_id, 
+                func.upper(Queue.prefix) == data.prefix.upper()
+            )
+        )
+        if existing_prefix:
+            raise ValueError(f"prefix '{data.prefix.upper()}' is already there today")
+
     queue = Queue(
         org_id=org_id,
         session_id=session_id,

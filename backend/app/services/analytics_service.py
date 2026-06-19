@@ -287,6 +287,7 @@ async def get_history_details(
             "customer_name": token.customer_name,
             "customer_phone": token.customer_phone,
             "customer_age": token.customer_age,
+            "companion_names": token.companion_names if hasattr(token, 'companion_names') else [],
             "created_at": token.created_at.isoformat(),
             "served_at": token.served_at.isoformat() if token.served_at else None,
             "completed_at": token.completed_at.isoformat() if token.completed_at else None,

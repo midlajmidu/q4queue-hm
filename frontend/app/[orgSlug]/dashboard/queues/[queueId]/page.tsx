@@ -14,6 +14,7 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem } from "@/types/api";
+import { Pause, Play } from "lucide-react";
 
 // ─── Design System ────────────────────────────────────────────────
 const T = {
@@ -380,8 +381,8 @@ export default function QueueDetailPage({ params }: PageProps) {
             
         // Sort by most recently served (or completed/created) to show latest activity at the top
         return filtered.sort((a, b) => {
-            const timeA = new Date(a.served_at || a.completed_at || a.created_at).getTime();
-            const timeB = new Date(b.served_at || b.completed_at || b.created_at).getTime();
+            const timeA = new Date(a.served_at || a.completed_at || a.created_at || 0).getTime();
+            const timeB = new Date(b.served_at || b.completed_at || b.created_at || 0).getTime();
             return timeB - timeA;
         });
     }, [state?.recent_tokens, recentSearch]);
@@ -470,10 +471,27 @@ export default function QueueDetailPage({ params }: PageProps) {
         } finally { setDeleting(false); }
     }, [queueId, router, dashBase, toast]);
 
+    const [pausing, setPausing] = useState(false);
+    const handlePauseToggle = useCallback(async () => {
+        const currentPaused = state?.is_paused ?? initialQueue?.is_paused ?? false;
+        const nextState = !currentPaused;
+        setPausing(true);
+        setActionError(null);
+        try {
+            await api.toggleQueuePaused(queueId, nextState);
+            toast(nextState ? "Queue paused successfully" : "Queue resumed successfully", nextState ? "warning" : "success");
+        } catch (err: unknown) {
+            if (err instanceof ApiError) setActionError(err.detail);
+            else setActionError("Failed to pause/resume queue");
+            toast("Action failed", "error");
+        } finally { setPausing(false); }
+    }, [queueId, state?.is_paused, initialQueue?.is_paused, toast]);
+
     const [showAddForm, setShowAddForm] = useState(false);
     const [addName, setAddName] = useState("");
     const [addPhone, setAddPhone] = useState("");
     const [addAge, setAddAge] = useState("");
+    const [addCompanions, setAddCompanions] = useState("");
 
     const handleAddCustomer = useCallback(async () => {
         const phoneDigits = addPhone.replace(/\D/g, "");
@@ -481,11 +499,12 @@ export default function QueueDetailPage({ params }: PageProps) {
         setActionLoading("add");
         setActionError(null);
         try {
-            const res = await api.adminJoin(queueId, { name: addName.trim(), phone: phoneDigits, age: addAge ? parseInt(addAge, 10) : undefined });
+            const parsedCompanions = addCompanions.split(",").map(n => n.trim()).filter(n => n.length > 0);
+            const res = await api.adminJoin(queueId, { name: addName.trim(), phone: phoneDigits, age: addAge ? parseInt(addAge, 10) : undefined, companion_names: parsedCompanions });
             toast(`Token ${state?.prefix || ""}${res.token_number} created`, "success");
             setManuallyAddedTokens(prev => new Set(prev).add(res.token_number));
             setShowAddForm(false);
-            setAddName(""); setAddPhone(""); setAddAge("");
+            setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions("");
         } catch (err: unknown) {
             if (err instanceof ApiError) setActionError(err.detail);
             else setActionError("Failed to add customer");
@@ -568,6 +587,7 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const queueName = state?.queue_name || initialQueue?.name || "Queue";
     const isActive = state?.is_active ?? initialQueue?.is_active;
+    const isPaused = state?.is_paused ?? initialQueue?.is_paused;
 
     const navItems: { id: ActiveSection; label: string; icon: React.ReactNode }[] = [
         {
@@ -621,8 +641,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                         <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 6 }}>Managing</p>
                         <p className="text-gray-900 dark:text-white" style={{ fontSize: 13.5, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{queueName}</p>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7 }}>
-                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: isActive ? "#22c55e" : "#ef4444", display: "inline-block", boxShadow: isActive ? "0 0 6px rgba(34,197,94,.7)" : "none", animation: isActive ? "pulse-dot 2s infinite" : "none" }} />
-                            <span style={{ fontSize: 11.5, fontWeight: 600, color: isActive ? "#22c55e" : "#f87171" }}>{isActive ? "Active" : "Inactive"}</span>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: isPaused ? "#f59e0b" : isActive ? "#22c55e" : "#ef4444", display: "inline-block", boxShadow: isPaused ? "0 0 6px rgba(245,158,11,.7)" : isActive ? "0 0 6px rgba(34,197,94,.7)" : "none", animation: isActive && !isPaused ? "pulse-dot 2s infinite" : "none" }} />
+                            <span style={{ fontSize: 11.5, fontWeight: 600, color: isPaused ? "#d97706" : isActive ? "#22c55e" : "#f87171" }}>{isPaused ? "Paused" : isActive ? "Active" : "Inactive"}</span>
                         </div>
                     </div>
 
@@ -672,6 +692,16 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                                     {!isStaff && (
                                         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                            {isActive && (
+                                                <button
+                                                    onClick={handlePauseToggle}
+                                                    disabled={isDisabled || pausing}
+                                                    className={`bg-white border ${isPaused ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-50"} shadow-sm ring-1 ring-slate-900/5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2`}
+                                                >
+                                                    {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                                                    {isPaused ? "Resume" : "Take a Break"}
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => setShowResetConfirm(true)}
                                                 disabled={isDisabled || resetting}
@@ -721,7 +751,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             {/* Customer Details */}
                                             {state?.serving_details && (
                                                 <div className="fade-in" style={{ marginTop: 16, position: "relative", zIndex: 1, textAlign: "center" }}>
-                                                    <p style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em", margin: 0 }}>{state.serving_details.customer_name}</p>
+                                                    <p style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                                                        {state.serving_details.customer_name}
+                                                        {(state.serving_details.companion_names && state.serving_details.companion_names.length > 0) && (
+                                                            <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1 font-bold" title={state.serving_details.companion_names.join(", ")}>
+                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                                                +{state.serving_details.companion_names.length}
+                                                            </span>
+                                                        )}
+                                                    </p>
                                                     <div className="text-gray-600 dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "3px 8px", marginTop: 4, fontSize: 13, fontWeight: 500 }}>
                                                         {state.serving_details.customer_age != null && <span>Age {state.serving_details.customer_age}</span>}
                                                         {state.serving_details.customer_age != null && <span>·</span>}
@@ -808,11 +846,12 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="Full Name *" maxLength={50} className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
                                                         <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="Phone *" className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
                                                         <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="Age (optional)" className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
+                                                        <input type="text" value={addCompanions} onChange={e => setAddCompanions(e.target.value)} placeholder="Companions (comma separated, optional)" className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
                                                         <div style={{ display: "flex", gap: 7 }}>
                                                             <button onClick={handleAddCustomer} disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add"} className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-200 shadow-sm shadow-indigo-500/10 rounded-lg px-3 text-sm font-medium flex-1 disabled:opacity-40">
                                                                 {actionLoading === "add" ? "Adding…" : "Confirm"}
                                                             </button>
-                                                            <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); }} className="h-10 bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg px-3 text-sm font-medium flex-1 hover:bg-slate-50 transition-colors">
+                                                            <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions(""); }} className="h-10 bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg px-3 text-sm font-medium flex-1 hover:bg-slate-50 transition-colors">
                                                                 Cancel
                                                             </button>
                                                         </div>
@@ -899,10 +938,18 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                     ? <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.violetBg, color: T.violet }}>Manual</span>
                                                                     : <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.cyanBg, color: T.cyan }}>Normal</span>
                                                                 }
+
                                                             </div>
                                                             {t.customer_name && (
                                                                 <div className="dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: 11.5, paddingLeft: 56 }}>
-                                                                    <span className="dark:text-white" style={{ fontWeight: 600 }}>{t.customer_name}</span>
+                                                                    <span className="dark:text-white" style={{ fontWeight: 600 }}>
+                                                                        {t.customer_name}
+                                                                        {(t.companion_names && t.companion_names.length > 0) && (
+                                                                            <span style={{ fontWeight: 400, color: "#6366f1", marginLeft: 4 }}>
+                                                                                (+ {t.companion_names.join(", ")})
+                                                                            </span>
+                                                                        )}
+                                                                    </span>
                                                                     {t.customer_age != null && <span>Age: {t.customer_age}</span>}
                                                                     <span>{t.customer_phone}</span>
                                                                 </div>
@@ -910,7 +957,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         </div>
                                                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                                             <button
-                                                                onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName })}
+                                                                onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName })}
                                                                 className="group-hover-show text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400" style={{ opacity: 0, padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
                                                                 onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                                                                 onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
@@ -1151,7 +1198,15 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                 </div>
                 {t.customer_name && (
                     <div className="dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: 11.5, paddingLeft: 56 }}>
-                        <span className="font-medium text-slate-900 dark:text-white capitalize">{t.customer_name}</span>
+                        <span className="font-medium text-slate-900 dark:text-white capitalize">
+                            {t.customer_name}
+                            {(t.companion_names && t.companion_names.length > 0) && (
+                                <span style={{ fontWeight: 400, color: "#6366f1", marginLeft: 4, textTransform: "none" }}>
+                                    (+ {t.companion_names.join(", ")})
+                                </span>
+                            )}
+                        </span>
+
                         {t.customer_age != null && <span>Age: {t.customer_age}</span>}
                         <span>{t.customer_phone}</span>
                     </div>
@@ -1160,7 +1215,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {onView && (
                     <button
-                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
+                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
                         style={{ padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s", opacity: 0 }}
                         className="group-hover-show"
                         onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
@@ -1300,7 +1355,16 @@ function QueueHistory({
                                         <td style={{ padding: "12px 18px", fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{item.queue_prefix}{item.token_number}</td>
                                         <td style={{ padding: "12px 18px" }}>
                                             <div style={{ display: "flex", flexDirection: "column" }}>
-                                                <span style={{ fontWeight: 600, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.customer_name || "—"}</span>
+                                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                    <span style={{ fontWeight: 600, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                        {item.customer_name || "—"}
+                                                        {(item.companion_names && item.companion_names.length > 0) && (
+                                                            <span style={{ fontWeight: 400, color: "#6366f1", marginLeft: 4 }}>
+                                                                (+ {item.companion_names.join(", ")})
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </div>
                                                 <span style={{ fontSize: 12, }}>{item.customer_phone || "—"}</span>
                                             </div>
                                         </td>
@@ -1313,7 +1377,7 @@ function QueueHistory({
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                             <button
-                                                onClick={() => onViewToken({ token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name, customer_age: item.customer_age, customer_phone: item.customer_phone, status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
+                                                onClick={() => onViewToken({ token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name, customer_age: item.customer_age, customer_phone: item.customer_phone, companion_names: item.companion_names || [], status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
                                                 style={{ padding: "6px", background: "transparent", border: "#e5e7eb", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
                                                 onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                                                 onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}

@@ -68,6 +68,7 @@ async def build_queue_snapshot(
             # Mask sensitive data for public screens
             serving_details["customer_age"] = serving_token.customer_age
             serving_details["customer_phone"] = serving_token.customer_phone
+            serving_details["companion_names"] = serving_token.companion_names
 
     # ── Waiting count ──────────────────────────────────────────────
     waiting_result = await db.execute(
@@ -104,6 +105,7 @@ async def build_queue_snapshot(
         if is_admin:
             token_data["customer_age"] = t.customer_age
             token_data["customer_phone"] = t.customer_phone
+            token_data["companion_names"] = t.companion_names
         recent_tokens.append(token_data)
 
     # ── Waiting tokens (all of them, or limit 50 for large queues) ──
@@ -131,6 +133,7 @@ async def build_queue_snapshot(
         if is_admin:
             token_data["customer_age"] = t.customer_age
             token_data["customer_phone"] = t.customer_phone
+            token_data["companion_names"] = t.companion_names
         waiting_tokens.append(token_data)
 
     return {
@@ -141,6 +144,7 @@ async def build_queue_snapshot(
         "prefix": queue.prefix,
         "announcement": queue.announcement,
         "is_active": queue.is_active,
+        "is_paused": queue.is_paused,
         "current_serving": current_serving,
         "serving_details": serving_details,
         "waiting_count": waiting_count,

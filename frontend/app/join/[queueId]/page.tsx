@@ -73,7 +73,9 @@ export default function JoinQueuePage({ params }: PageProps) {
     const [customerAge, setCustomerAge] = useState("");
     const [countryCode, setCountryCode] = useState("+91");
     const [customerPhone, setCustomerPhone] = useState("");
+    const [companionNames, setCompanionNames] = useState<string[]>([]);
     
+    // Derived values
     const isPhoneValid = /^\d{10}$/.test(customerPhone);
     const isFormValid = customerName.trim().length > 0 && isPhoneValid;
 
@@ -269,6 +271,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                 name: customerName.trim(),
                 age: customerAge ? parseInt(customerAge, 10) : undefined,
                 phone: `${countryCode}${customerPhone.trim()}`,
+                companion_names: companionNames.filter(name => name.trim().length > 0),
             });
             setJoinData(data);
             saveTokenToStorage(queueId, data.id);
@@ -339,6 +342,7 @@ export default function JoinQueuePage({ params }: PageProps) {
     }, [joinData?.token_number, joinData?.session_id, live?.current_serving, live?.session_id, soundEnabled]);
 
     const queueClosed = live?.is_active === false;
+    const queuePaused = live?.is_paused === true;
     const queueName = live?.queue_name || "Queue";
     const prefix = live?.prefix || joinData?.queue_prefix || "";
 
@@ -473,7 +477,15 @@ export default function JoinQueuePage({ params }: PageProps) {
                             )}
 
                             <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center shadow-inner" aria-label="Your ticket information">
-                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Your Ticket</p>
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
+                                    Your Ticket
+                                    {(companionNames && companionNames.length > 0) && (
+                                        <span className="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1" title={companionNames.join(", ")}>
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                            +{companionNames.length} companions
+                                        </span>
+                                    )}
+                                </p>
                                 <div className={`text-7xl font-black tabular-nums mb-2 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : ""}`} style={(!isMyTurn && !alreadyServed) ? { color: brandColor } : {}}>
                                     {prefix}{myNumber}
                                 </div>
@@ -615,13 +627,64 @@ export default function JoinQueuePage({ params }: PageProps) {
                                         />
                                     </div>
                                 </div>
+
+                                {/* Companion Names */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                                        Are you joining with others?
+                                    </label>
+                                    <div className="space-y-3">
+                                        {companionNames.map((name, idx) => (
+                                            <div key={idx} className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={name}
+                                                    onChange={(e) => {
+                                                        const newNames = [...companionNames];
+                                                        newNames[idx] = e.target.value;
+                                                        setCompanionNames(newNames);
+                                                    }}
+                                                    placeholder="Companion's Name"
+                                                    disabled={isJoining || queueClosed}
+                                                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const newNames = companionNames.filter((_, i) => i !== idx);
+                                                        setCompanionNames(newNames);
+                                                    }}
+                                                    disabled={isJoining || queueClosed}
+                                                    className="w-12 h-12 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-100 disabled:opacity-50 transition-colors shrink-0"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {companionNames.length < 9 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setCompanionNames([...companionNames, ""])}
+                                                disabled={isJoining || queueClosed}
+                                                className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                                Add Person
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Take Token button */}
                             <button
                                 onClick={handleJoin}
-                                disabled={isJoining || queueClosed || !isFormValid}
-                                aria-label={queueClosed ? "Queue is closed" : "Take a token"}
+                                disabled={isJoining || queueClosed || queuePaused || !isFormValid}
+                                aria-label={queueClosed ? "Queue is closed" : queuePaused ? "Operator on break" : "Take a token"}
                                 className="w-full py-4 text-white font-bold rounded-xl text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg"
                                 style={{ backgroundColor: brandColor }}
                             >
@@ -632,6 +695,8 @@ export default function JoinQueuePage({ params }: PageProps) {
                                     </span>
                                 ) : queueClosed ? (
                                     "Queue is Closed"
+                                ) : queuePaused ? (
+                                    "Operator on Break"
                                 ) : (
                                     "Take a Token"
                                 )}
@@ -643,7 +708,17 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 </p>
                             )}
 
-                            {!isFormValid && !queueClosed && (
+                            {queuePaused && !queueClosed && (
+                                <div className="text-amber-600 text-center flex flex-col items-center justify-center py-2 space-y-2">
+                                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shadow-sm">
+                                        <span className="text-2xl" role="img" aria-label="Coffee">☕</span>
+                                    </div>
+                                    <p className="text-sm font-bold uppercase tracking-wider">Taking a short break</p>
+                                    <p className="text-xs">We will resume accepting new walk-ins shortly.</p>
+                                </div>
+                            )}
+
+                            {!isFormValid && !queueClosed && !queuePaused && (
                                 <p className="text-xs text-gray-400 text-center">
                                     Please fill in your name and phone number to continue.
                                 </p>

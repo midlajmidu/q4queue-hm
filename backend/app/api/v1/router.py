@@ -42,7 +42,7 @@ api_router.include_router(sessions.router, prefix="/sessions", tags=["Sessions"]
 api_router.include_router(queues.router, prefix="/queues", tags=["Queues"])
 
 # ── Analytics ──────────────────────────────────────────────────────
-api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+api_router.include_router(analytics.router, prefix="/stats", tags=["Analytics"])
 
 # ── Tokens ─────────────────────────────────────────────────────────
 api_router.include_router(tokens.router, prefix="/tokens", tags=["Tokens"])

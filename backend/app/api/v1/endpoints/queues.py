@@ -169,6 +169,36 @@ async def toggle_queue_active(
 
 
 @router.patch(
+    "/{queue_id}/paused",
+    response_model=QueueResponse,
+    summary="Toggle Queue Paused State",
+)
+async def toggle_queue_paused(
+    is_paused: bool,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    queue: Queue = Depends(get_admin_queue_for_org),
+) -> QueueResponse:
+    """
+    Pause or resume a queue.
+    SECURITY: queue ownership verified by dependency.
+    """
+    try:
+        updated = await queue_service.set_queue_paused(
+            db, queue_id=queue.id, org_id=queue.org_id, is_paused=is_paused
+        )
+        # Notify clients about the queue state change
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=queue.id,
+            org_id=queue.org_id,
+        )
+    except ValueError as exc:
+        _raise_404(exc)
+    return QueueResponse.model_validate(updated)
+
+
+@router.patch(
     "/{queue_id}/announcement",
     response_model=QueueResponse,
     summary="Update Queue Announcement",

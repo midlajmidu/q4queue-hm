@@ -358,7 +358,7 @@ async def get_stats(
 
 
 @router.get(
-    "/analytics",
+    "/stats",
     response_model=PlatformAnalytics,
     summary="Platform Analytics & Health",
 )
@@ -443,7 +443,7 @@ async def get_platform_analytics(
     )
 
 @router.get(
-    "/analytics/organizations",
+    "/stats/organizations",
     response_model=OrgAnalyticsResponse,
     summary="Get Organization-Wise Analytics",
 )

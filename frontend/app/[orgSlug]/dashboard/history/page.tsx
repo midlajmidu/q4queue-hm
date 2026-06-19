@@ -360,7 +360,14 @@ export default function HistoryPage() {
                                                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                                   <Avatar name={item.customer_name ? item.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : ""} />
                                                   <div style={{ display: "flex", flexDirection: "column" }}>
-                                                    <span style={{ fontWeight: 600 }}>{item.customer_name ? item.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : '-'}</span>
+                                                    <span style={{ fontWeight: 600 }}>
+                                                      {item.customer_name ? item.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : '-'}
+                                                      {(item.companion_names && item.companion_names.length > 0) && (
+                                                          <span style={{ fontWeight: 400, color: "#6366f1", marginLeft: 4, textTransform: "none" }}>
+                                                              (+ {item.companion_names.join(", ")})
+                                                          </span>
+                                                      )}
+                                                    </span>
                                                     <span style={{ fontSize: 11, color: "#94a3b8" }}>{item.customer_phone}</span>
                                                   </div>
                                                 </div>

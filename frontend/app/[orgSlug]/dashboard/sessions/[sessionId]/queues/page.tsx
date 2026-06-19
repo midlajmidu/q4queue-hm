@@ -367,9 +367,9 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100/80 px-2 py-0.5 rounded-full">{activeQueues.length}</span>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 mt-6 max-w-7xl">
-                                        {activeQueues.map((q) => (
-                                            <QueueCard key={q.id} queue={q} onToggled={() => loadQueues(false)} />
-                                        ))}
+                                            {activeQueues.map((q) => (
+                                                <QueueCard key={q.id} queue={q} onToggled={() => { loadQueues(false); loadSession(); }} />
+                                            ))}
                                     </div>
                                 </section>
                             )}
@@ -396,7 +396,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                     {!inactiveCollapsed && (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 mt-6 max-w-7xl">
                                             {inactiveQueues.map((q) => (
-                                                <QueueCard key={q.id} queue={q} onToggled={() => loadQueues(false)} />
+                                                <QueueCard key={q.id} queue={q} onToggled={() => { loadQueues(false); loadSession(); }} />
                                             ))}
                                         </div>
                                     )}
