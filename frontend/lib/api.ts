@@ -227,7 +227,7 @@ export const api = {
         if (params.recentOffset != null) qs.set("recent_offset", String(params.recentOffset));
 
         const qsStr = qs.toString();
-        const url = qsStr ? `/analytics/overview?${qsStr}` : "/analytics/overview";
+        const url = qsStr ? `/stats/overview?${qsStr}` : "/stats/overview";
         return request<AnalyticsOverview>(url, init);
     },
 
@@ -241,7 +241,7 @@ export const api = {
         if (params.offset != null) qs.set("offset", String(params.offset));
 
         const q = qs.toString();
-        return request<PaginatedHistoryResponse>(`/analytics/history${q ? `?${q}` : ""}`);
+        return request<PaginatedHistoryResponse>(`/stats/history${q ? `?${q}` : ""}`);
     },
 
     async exportAnalyticsCSV(params: { startDate?: string; endDate?: string }): Promise<Blob> {
@@ -250,7 +250,7 @@ export const api = {
         if (params.endDate) qs.append("end_date", params.endDate);
         const q = qs.toString();
         
-        const url = `${config.apiBaseUrl}/analytics/export${q ? `?${q}` : ""}`;
+        const url = `${config.apiBaseUrl}/stats/export${q ? `?${q}` : ""}`;
         const headers = new Headers();
         const token = getToken();
         if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -352,6 +352,12 @@ export const api = {
 
     toggleQueue(queueId: string, isActive: boolean): Promise<QueueResponse> {
         return request<QueueResponse>(`/queues/${queueId}/active?is_active=${isActive}`, {
+            method: "PATCH",
+        });
+    },
+
+    toggleQueuePaused(queueId: string, isPaused: boolean): Promise<QueueResponse> {
+        return request<QueueResponse>(`/queues/${queueId}/paused?is_paused=${isPaused}`, {
             method: "PATCH",
         });
     },
@@ -496,10 +502,10 @@ export const api = {
     },
 
     getPlatformAnalytics(): Promise<PlatformAnalytics> {
-        return request<PlatformAnalytics>("/super-admin/analytics");
+        return request<PlatformAnalytics>("/super-admin/stats");
     },
     getOrgAnalytics(timeframe: "daily" | "weekly" | "monthly" = "daily", is_test: boolean = false): Promise<OrgAnalyticsResponse> {
-        return request<OrgAnalyticsResponse>(`/super-admin/analytics/organizations?timeframe=${timeframe}&is_test=${is_test}`);
+        return request<OrgAnalyticsResponse>(`/super-admin/stats/organizations?timeframe=${timeframe}&is_test=${is_test}`);
     },
     getSystemMonitoring(): Promise<SystemMonitoringResponse> {
         return request<SystemMonitoringResponse>("/super-admin/system-monitoring");

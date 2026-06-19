@@ -101,6 +101,7 @@ export interface QueueResponse {
     announcement: string | null;
     current_token_number: number;
     is_active: boolean;
+    is_paused: boolean;
     created_at: string;
 }
 
@@ -132,6 +133,7 @@ export interface TokenDetail {
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
+    companion_names: string[];
 }
 
 // ── Join ─────────────────────────────────────────────────────────
@@ -139,6 +141,7 @@ export interface JoinRequest {
     name: string;
     age?: number;
     phone: string;
+    companion_names: string[];
 }
 
 export interface JoinResponse {
@@ -160,6 +163,7 @@ export interface TokenRestoreResponse {
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
+    companion_names: string[];
     created_at: string;
     served_at: string | null;
     completed_at: string | null;
@@ -171,6 +175,7 @@ export interface PublicTokenResponse {
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
+    companion_names: string[];
     session_id: string;
 }
 
@@ -194,6 +199,7 @@ export interface RecentToken {
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
+    companion_names: string[];
 }
 
 export interface WaitingToken {
@@ -206,6 +212,7 @@ export interface WaitingToken {
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
+    companion_names: string[];
 }
 
 export interface QueueSnapshot {
@@ -216,12 +223,14 @@ export interface QueueSnapshot {
     prefix: string;
     announcement: string | null;
     is_active: boolean;
+    is_paused: boolean;
     current_serving: number;
     serving_details: {
         token_number: number;
         customer_name: string;
         customer_age: number | null;
         customer_phone: string;
+        companion_names?: string[];
     } | null;
     waiting_count: number;
     last_called: number;
@@ -546,6 +555,7 @@ export interface TokenHistoryItem {
     customer_name: string;
     customer_phone: string;
     customer_age: number | null;
+    companion_names: string[];
     created_at: string;
     served_at: string | null;
     completed_at: string | null;

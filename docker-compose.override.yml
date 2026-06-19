@@ -4,5 +4,15 @@ version: "3.9"
 # DEVELOPMENT docker-compose
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Frontend now runs in high-efficiency production mode from main docker-compose.yml
-# Use docker-compose.yml for production-like environment.
+services:
+  frontend:
+    build:
+      context: ./frontend
+      target: builder
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next

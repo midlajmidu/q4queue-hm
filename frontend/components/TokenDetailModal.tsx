@@ -8,6 +8,7 @@ export interface TokenDetailData {
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
+    companion_names?: string[];
     status: string;
     created_at?: string | null;
     served_at?: string | null;
@@ -126,6 +127,9 @@ export default function TokenDetailModal({ token, onClose }: TokenDetailModalPro
 
                     {/* Detail grid */}
                     <div className="grid grid-cols-2 gap-3">
+                        {token.companion_names && token.companion_names.length > 0 && (
+                            <DetailItem label="Companions" value={token.companion_names.join(", ")} highlight="emerald" />
+                        )}
                         <DetailItem label="Age" value={token.customer_age != null ? `${token.customer_age} yrs` : "—"} />
                         <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
                         <DetailItem label="Created" value={fmtTime(token.created_at)} />

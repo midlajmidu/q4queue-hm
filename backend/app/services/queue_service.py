@@ -98,6 +98,15 @@ async def set_queue_active(
 ) -> Queue:
     return await update_queue(db, queue_id=queue_id, org_id=org_id, is_active=is_active)
 
+async def set_queue_paused(
+    db: AsyncSession,
+    *,
+    queue_id: uuid.UUID,
+    org_id: uuid.UUID,
+    is_paused: bool,
+) -> Queue:
+    return await update_queue(db, queue_id=queue_id, org_id=org_id, is_paused=is_paused)
+
 async def set_queue_announcement(
     db: AsyncSession,
     *,

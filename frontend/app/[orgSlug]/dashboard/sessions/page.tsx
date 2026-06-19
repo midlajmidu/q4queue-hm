@@ -2,11 +2,10 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Zap, History, CalendarDays, Archive, ChevronRight, ChevronDown, Radio, Plus } from "lucide-react";
+import { ChevronRight, Plus, Layers, Users, Clock } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
-import { StandardPageHeader } from "@/components/StandardPageHeader";
 
 // ─── Date helpers ────────────────────────────────────────────────
 function toLocalDateStr(): string {
@@ -196,170 +195,184 @@ export default function SessionsPage() {
 
     const grouped = useMemo(() => groupByTimeline(filteredSessions), [filteredSessions]);
 
-    const labelMeta: Record<TimelineLabel, { color: string; icon: React.ReactNode | string }> = {
-        Today: { color: "bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400", icon: <Zap className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> },
-        Tomorrow: { color: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400", icon: <CalendarDays className="w-4 h-4 text-slate-400" /> },
-        Yesterday: { color: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400", icon: <History className="w-4 h-4 text-slate-400" /> },
-        "This Week": { color: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400", icon: <CalendarDays className="w-4 h-4 text-slate-400" /> },
-        Earlier: { color: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400", icon: <Archive className="w-4 h-4 text-slate-400" /> },
-    };
-
     return (
         <div>
-            {/* ── Header ── */}
-            <StandardPageHeader
-                breadcrumbs={[
-                    { label: "Organization", href: dashBase },
-                    { label: "Sessions" }
-                ]}
-                title="Sessions"
-                subtitle="Your service timeline — organized by date."
-                action={
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <select
-                                value={selectedQueue}
-                                onChange={(e) => setSelectedQueue(e.target.value)}
-                                className="h-10 pl-3 pr-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500/20 appearance-none focus:outline-none transition-all cursor-pointer"
-                            >
-                                <option value="">All Queues</option>
-                                {queueList.map(name => (
-                                    <option key={name} value={name}>{name}</option>
-                                ))}
-                            </select>
-                            <svg className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                        </div>
-                        <div className="flex items-center gap-2 h-10 bg-white border border-slate-200 shadow-sm rounded-lg px-3 text-sm text-slate-700 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 outline-none transition-all">
-                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            <input
-                                type="date"
-                                value={filterDate}
-                                max={toLocalDateStr()}
-                                onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
-                                className="bg-transparent focus:outline-none text-slate-700 dark:text-slate-300 font-medium appearance-none"
-                            />
-                            {filterDate && (
-                                <button onClick={() => { setFilterDate(""); setPage(1); }} className="text-slate-400 hover:text-slate-600 transition-colors">
-                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
-                                </button>
-                            )}
-                        </div>
-                        {!isStaff && (
-                            <button
-                                onClick={() => setShowCreate(true)}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg h-10 px-4 transition-all flex items-center shadow-sm"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                New Session
+            {/* ── Page Header ── */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 32 }}>
+                <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: "#94A3B8", marginBottom: 8 }}>
+                        <Link href={dashBase} style={{ color: "inherit", textDecoration: "none" }}>Organization</Link>
+                        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                        <span style={{ color: "#475569" }}>Sessions</span>
+                    </div>
+                    <h1 style={{ fontSize: 22, fontWeight: 600, color: "#0F172A", margin: 0, letterSpacing: "-0.025em" }}>Sessions</h1>
+                    <p style={{ fontSize: 13, color: "#94A3B8", margin: "4px 0 0", fontWeight: 400 }}>Your service timeline — organised by date.</p>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    {/* Queue filter */}
+                    <div style={{ position: "relative" }}>
+                        <select
+                            value={selectedQueue}
+                            onChange={(e) => setSelectedQueue(e.target.value)}
+                            style={{ height: 36, paddingLeft: 12, paddingRight: 32, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13, color: "#374151", appearance: "none" as const, outline: "none", cursor: "pointer" }}
+                        >
+                            <option value="">All Queues</option>
+                            {queueList.map(name => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                        </select>
+                        <svg style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                    </div>
+                    {/* Date filter */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, height: 36, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8, paddingLeft: 10, paddingRight: 10, fontSize: 13, color: "#374151" }}>
+                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={4} width={18} height={18} rx={2} /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+                        <input
+                            type="date"
+                            value={filterDate}
+                            max={toLocalDateStr()}
+                            onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
+                            style={{ background: "transparent", border: "none", outline: "none", fontSize: 13, color: "#374151", fontWeight: 500 }}
+                        />
+                        {filterDate && (
+                            <button onClick={() => { setFilterDate(""); setPage(1); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" }}>
+                                <svg width={14} height={14} viewBox="0 0 20 20" fill="#94A3B8"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
                             </button>
                         )}
                     </div>
-                }
-            />
+                    {/* Create */}
+                    {!isStaff && (
+                        <button
+                            onClick={() => setShowCreate(true)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg h-10 px-4 transition-all duration-200 active:scale-[0.98] flex items-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            New Session
+                        </button>
+                    )}
+                </div>
+            </div>
 
             {/* ── Error ── */}
             {error && (
-                <div role="alert" className="mb-6 bg-red-50 text-red-700 px-5 py-4 rounded-xl border border-red-200 text-[13px] font-medium flex items-center justify-between">
+                <div role="alert" style={{ marginBottom: 24, background: "#FEF2F2", color: "#B91C1C", padding: "12px 16px", borderRadius: 8, border: "1px solid #FECACA", fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span>{error}</span>
-                    <button onClick={loadData} className="underline font-semibold hover:text-red-800 transition-colors">Retry</button>
+                    <button onClick={loadData} style={{ background: "none", border: "none", textDecoration: "underline", fontWeight: 600, color: "inherit", cursor: "pointer" }}>Retry</button>
                 </div>
             )}
 
             {/* ── Loading ── */}
             {isLoading ? (
-                <div className="text-center py-24">
-                    <div className="w-10 h-10 border-4 border-slate-100 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-[13px] text-[#64748b] font-medium">Loading sessions...</p>
+                <div style={{ textAlign: "center", padding: "96px 0" }}>
+                    <div style={{ width: 32, height: 32, border: "3px solid #F1F5F9", borderTopColor: "#2563EB", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
+                    <p style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>Loading sessions...</p>
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                 </div>
             ) : filteredSessions.length === 0 ? (
                 /* ── Empty state ── */
-                <div className="bg-[var(--q-card-bg)] rounded-2xl border-2 border-dashed border-[var(--q-borderLight)] text-center py-24 px-6">
-                    <div className="w-16 h-16 bg-[var(--q-slate-bg)] rounded-2xl flex items-center justify-center mx-auto mb-5 border border-[var(--q-borderLight)]">
-                        <svg className="w-7 h-7 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <div style={{ background: "#fff", borderRadius: 12, border: "2px dashed #E2E8F0", textAlign: "center", padding: "96px 24px" }}>
+                    <div style={{ width: 56, height: 56, background: "#F8FAFC", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", border: "1px solid #F1F5F9" }}>
+                        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={4} width={18} height={18} rx={2} /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
                     </div>
-                    <h3 className="text-[17px] font-bold text-[#0f172a] mb-2">{selectedQueue ? "No sessions found" : "No sessions yet"}</h3>
-                    <p className="text-[14px] text-[#64748b] mb-8 max-w-sm mx-auto">
+                    <h3 style={{ fontSize: 16, fontWeight: 600, color: "#0F172A", marginBottom: 8 }}>{selectedQueue ? "No sessions found" : "No sessions yet"}</h3>
+                    <p style={{ fontSize: 14, color: "#94A3B8", marginBottom: 32, maxWidth: 320, marginLeft: "auto", marginRight: "auto" }}>
                         {selectedQueue ? `No sessions recorded for ${selectedQueue}.` : "Create your first session to start organizing queues by date."}
                     </p>
                     {!isStaff && !selectedQueue && (
-                        <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-colors duration-200 shadow-sm text-[14px]">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+                        <button onClick={() => setShowCreate(true)} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", background: "#2563EB", color: "#fff", fontWeight: 500, borderRadius: 8, border: "none", fontSize: 14, cursor: "pointer" }}>
+                            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v16m8-8H4" /></svg>
                             Create First Session
                         </button>
                     )}
                 </div>
             ) : (
                 /* ── Timeline ── */
-                <div className="relative">
-                    <div className="space-y-6">
-                        {grouped.map((group, groupIdx) => {
+                <div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+                        {grouped.map((group) => {
                             return (
                                 <div key={group.label}>
                                     {/* ── Group header ── */}
-                                    <div className={`flex items-center gap-3 mb-3 ${groupIdx > 0 ? 'mt-2' : ''}`}>
-                                        <ChevronDown className="w-3.5 h-3.5 text-slate-300" />
-                                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{group.label}</span>
-                                        <div className="flex-1 h-px bg-slate-100" />
+                                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.07em", color: "#94A3B8", textTransform: "uppercase" as const, whiteSpace: "nowrap" as const }}>{group.label}</span>
+                                        <div style={{ flex: 1, height: 1, background: "#F1F5F9" }} />
+                                        <span style={{ fontSize: 11, color: "#CBD5E1", whiteSpace: "nowrap" as const }}>{group.sessions.length} {group.sessions.length === 1 ? "session" : "sessions"}</span>
                                     </div>
 
                                     {/* ── Session cards ── */}
-                                    <div className="bg-white border border-slate-200/60 shadow-sm rounded-xl overflow-hidden divide-y divide-slate-100">
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                         {group.sessions.map((session) => {
                                             const today = isToday(session.session_date);
+                                            const served = session.queue_count > 0 ? (session.queue_count * 15 + 12) : 0;
+                                            const avgWait = session.queue_count > 0 ? "12m" : "—";
                                             return (
                                                 <Link
                                                     key={session.id}
                                                     href={`${dashBase}/sessions/${session.id}/queues`}
-                                                    className="group cursor-pointer px-5 py-4 flex items-center gap-4 w-full transition-colors hover:bg-slate-50/60"
+                                                    className="bg-indigo-50/40 rounded-2xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 p-6 flex justify-between items-center w-full mb-4 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-950/5 hover:border-indigo-200/60 group cursor-pointer relative overflow-hidden"
                                                 >
-                                                    {/* Date badge */}
-                                                    <div className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center shrink-0 ${today ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                                        <span className={`text-[10px] font-bold uppercase leading-none ${today ? 'text-slate-400' : 'text-slate-400'}`}>{getMonthShort(session.session_date)}</span>
-                                                        <span className={`text-[15px] font-bold leading-tight ${today ? 'text-white' : 'text-slate-700'}`}>{getDayNumber(session.session_date)}</span>
-                                                    </div>
+                                                    {/* Left Content */}
+                                                    <div className="flex items-center gap-4 min-w-0">
+                                                        {/* Absolute Left Edge Vertical Indicator Tab */}
+                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${today ? "bg-indigo-500" : "bg-slate-200"}`} />
 
-                                                    {/* Content */}
-                                                    <div className="flex items-center gap-4 sm:gap-8 flex-1 min-w-0 flex-wrap sm:flex-nowrap">
+                                                        {/* Date Badge */}
+                                                        <div className="flex flex-col items-center justify-center bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl w-[52px] h-[52px] shrink-0 shadow-md shadow-indigo-500/20">
+                                                            <span className="text-[10px] font-bold text-indigo-200/90 uppercase tracking-widest">{getMonthShort(session.session_date)}</span>
+                                                            <span className="text-[17px] font-extrabold text-white leading-none mt-1">{getDayNumber(session.session_date)}</span>
+                                                        </div>
+
+                                                        {/* Title + badge */}
                                                         <div className="flex flex-col gap-0.5 min-w-0">
                                                             <div className="flex items-center gap-2">
-                                                                <p className="text-[15px] font-semibold text-slate-900 capitalize truncate">
+                                                                <span className="text-base font-bold text-slate-900 capitalize truncate">
                                                                     {session.title || (today ? "Today's Session" : formatShortDate(session.session_date))}
-                                                                </p>
+                                                                </span>
                                                                 {today && (
-                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded-full">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                                        Live
+                                                                    <span className="bg-sky-50 text-sky-700 border border-sky-200/60 font-bold px-2.5 py-0.5 rounded-full text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+                                                                        LIVE
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <span className="text-[13px] text-slate-400">No notes provided</span>
-                                                        </div>
-
-                                                        {/* Inline Meta */}
-                                                        <div className="text-[13px] text-slate-400 flex items-center gap-2 shrink-0">
-                                                            <span className="font-medium text-slate-500">{session.queue_count}</span>
-                                                            <span>{session.queue_count === 1 ? "Queue" : "Queues"}</span>
-                                                            <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                                            <span className="font-medium text-slate-500">{session.queue_count > 0 ? (session.queue_count * 15 + 12) : 0}</span>
-                                                            <span>Served</span>
-                                                            <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                                            <span>Avg Wait: <span className="font-medium text-slate-500">{session.queue_count > 0 ? "12m" : "0m"}</span></span>
+                                                            <span className="text-xs text-slate-400 font-normal">No notes provided</span>
                                                         </div>
                                                     </div>
 
-                                                    {/* Far Right */}
-                                                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                                                        {!isStaff && (
-                                                            <button
-                                                                onClick={(e) => handleDelete(session.id, e)}
-                                                                disabled={deletingId === session.id}
-                                                                className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-all duration-200 disabled:opacity-30"
-                                                                aria-label="Delete session"
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                            </button>
-                                                        )}
-                                                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-all duration-200 group-hover:translate-x-0.5" />
+                                                    {/* Right Content */}
+                                                    <div className="flex items-center shrink-0">
+                                                        {/* Unified Metrics Stream Row */}
+                                                        <div className="flex items-center gap-4 bg-indigo-50/40 border border-indigo-100/60 rounded-xl px-4 py-2 text-slate-600 font-semibold text-xs mr-4">
+                                                            {/* Queues */}
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Layers className="w-4 h-4 text-indigo-600" strokeWidth={2} />
+                                                                <span>{session.queue_count} {session.queue_count === 1 ? "Queue" : "Queues"}</span>
+                                                            </span>
+                                                            {/* Served */}
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Users className="w-4 h-4 text-sky-500" strokeWidth={2} />
+                                                                <span>{served} Served</span>
+                                                            </span>
+                                                            {/* Avg Wait */}
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Clock className="w-4 h-4 text-violet-500" strokeWidth={2} />
+                                                                <span>{avgWait}</span>
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Delete + Chevron */}
+                                                        <div className="flex items-center gap-2">
+                                                            {!isStaff && (
+                                                                <button
+                                                                    onClick={(e) => handleDelete(session.id, e)}
+                                                                    disabled={deletingId === session.id}
+                                                                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all duration-150"
+                                                                    aria-label="Delete session"
+                                                                >
+                                                                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
+                                                                </button>
+                                                            )}
+                                                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-600 transition-all group-hover:translate-x-1" />
+                                                        </div>
                                                     </div>
                                                 </Link>
                                             );
@@ -372,32 +385,40 @@ export default function SessionsPage() {
 
                     {/* Pagination */}
                     {total > LIMIT && (
-                        <div className="flex items-center justify-between bg-[var(--q-card-bg)] px-6 py-4 rounded-2xl border border-[var(--q-borderLight)] shadow-sm mt-8">
-                            <span className="text-[13px] font-medium text-[var(--q-text-muted)]">
-                                Showing <span className="font-bold text-[var(--q-text)]">{(page - 1) * LIMIT + 1}</span> to <span className="font-bold text-[var(--q-text)]">{Math.min(page * LIMIT, total)}</span> of <span className="font-bold text-[var(--q-text)]">{total}</span>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", marginTop: 24, borderTop: "1px solid #F1F5F9" }}>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: "#94A3B8" }}>
+                                Showing <span style={{ fontWeight: 600, color: "#334155" }}>{(page - 1) * LIMIT + 1}</span> to <span style={{ fontWeight: 600, color: "#334155" }}>{Math.min(page * LIMIT, total)}</span> of <span style={{ fontWeight: 600, color: "#334155" }}>{total}</span>
                             </span>
-                            <div className="flex gap-2">
-                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 text-[13px] font-semibold bg-transparent border border-[var(--q-borderLight)] rounded-xl shadow-sm disabled:opacity-50 hover:bg-[var(--q-card-bg-alt)] transition-all text-[var(--q-text-muted)]">Previous</button>
-                                <button onClick={() => setPage(p => p + 1)} disabled={page * LIMIT >= total} className="px-4 py-2 text-[13px] font-semibold bg-transparent border border-[var(--q-borderLight)] rounded-xl shadow-sm disabled:opacity-50 hover:bg-[var(--q-card-bg-alt)] transition-all text-[var(--q-text-muted)]">Next</button>
+                            <div style={{ display: "flex", gap: 8 }}>
+                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ padding: "6px 16px", fontSize: 13, fontWeight: 500, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8, cursor: page === 1 ? "not-allowed" : "pointer", opacity: page === 1 ? 0.5 : 1, color: "#64748B" }}>Previous</button>
+                                <button onClick={() => setPage(p => p + 1)} disabled={page * LIMIT >= total} style={{ padding: "6px 16px", fontSize: 13, fontWeight: 500, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8, cursor: page * LIMIT >= total ? "not-allowed" : "pointer", opacity: page * LIMIT >= total ? 0.5 : 1, color: "#64748B" }}>Next</button>
                             </div>
                         </div>
                     )}
+
+                    {/* Pulse animation for LIVE dot */}
+                    <style>{`
+                        @keyframes pulse-dot {
+                            0%, 100% { opacity: 1; transform: scale(1); }
+                            50% { opacity: 0.4; transform: scale(0.75); }
+                        }
+                    `}</style>
                 </div>
             )}
 
             {/* ── Create Session Modal ── */}
             {showCreate && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
-                    <div className="relative bg-white rounded-[20px] shadow-[0_20px_40px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.02)] max-w-[400px] w-full p-7">
-                        <div className="mb-6">
-                            <h3 className="text-[20px] font-extrabold text-[#0f172a] tracking-tight mb-1.5">New Session</h3>
-                            <p className="text-[13.5px] text-[#64748b]">Select a date and optional title for the new session.</p>
+                <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+                    <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.4)", backdropFilter: "blur(4px)" }} onClick={() => setShowCreate(false)} />
+                    <div style={{ position: "relative", background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", maxWidth: 400, width: "100%", padding: 28 }}>
+                        <div style={{ marginBottom: 24 }}>
+                            <h3 style={{ fontSize: 18, fontWeight: 600, color: "#0F172A", letterSpacing: "-0.02em", margin: 0, marginBottom: 4 }}>New Session</h3>
+                            <p style={{ fontSize: 13, color: "#94A3B8", margin: 0 }}>Select a date and optional title for the new session.</p>
                         </div>
-                        <form onSubmit={handleCreate} className="space-y-4">
+                        <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                             <div>
-                                <label className="block text-[10.5px] font-bold text-[#64748b] uppercase tracking-[0.08em] mb-2">
-                                    Session Date <span className="text-red-500">*</span>
+                                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const, letterSpacing: "0.07em", marginBottom: 8 }}>
+                                    Session Date <span style={{ color: "#EF4444" }}>*</span>
                                 </label>
                                 <input
                                     ref={dateRef}
@@ -405,13 +426,13 @@ export default function SessionsPage() {
                                     value={newDate}
                                     onChange={(e) => setNewDate(e.target.value)}
                                     required
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-[14px] text-[#0f172a] font-medium bg-[#fafbfe] hover:border-slate-300 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 focus:outline-none transition-all"
+                                    style={{ width: "100%", borderRadius: 8, border: "1px solid #E2E8F0", padding: "10px 14px", fontSize: 14, color: "#0F172A", fontWeight: 500, background: "#F8FAFC", outline: "none", boxSizing: "border-box" }}
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10.5px] font-bold text-[#64748b] uppercase tracking-[0.08em] mb-2 flex items-center justify-between">
+                                <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const, letterSpacing: "0.07em", marginBottom: 8 }}>
                                     <span>Title</span>
-                                    <span className="text-slate-400 font-medium tracking-normal normal-case">Optional</span>
+                                    <span style={{ fontWeight: 400, textTransform: "none" as const, letterSpacing: "normal" }}>Optional</span>
                                 </label>
                                 <input
                                     type="text"
@@ -419,18 +440,18 @@ export default function SessionsPage() {
                                     onChange={(e) => setNewTitle(e.target.value)}
                                     placeholder="e.g. Morning Clinic"
                                     maxLength={200}
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-[14px] text-[#0f172a] font-medium bg-[#fafbfe] hover:border-slate-300 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 focus:outline-none transition-all placeholder:text-slate-400/80"
+                                    style={{ width: "100%", borderRadius: 8, border: "1px solid #E2E8F0", padding: "10px 14px", fontSize: 14, color: "#0F172A", fontWeight: 500, background: "#F8FAFC", outline: "none", boxSizing: "border-box" }}
                                 />
                             </div>
                             {createError && (
-                                <div className="p-3 rounded-xl bg-red-50 text-red-700 text-[13px] font-medium border border-red-100 flex items-start gap-2">
-                                    <svg className="w-[18px] h-[18px] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <div style={{ padding: 12, borderRadius: 8, background: "#FEF2F2", color: "#B91C1C", fontSize: 13, fontWeight: 500, border: "1px solid #FECACA", display: "flex", alignItems: "flex-start", gap: 8 }}>
+                                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx={12} cy={12} r={10} /><path d="M12 8v4m0 4h.01" /></svg>
                                     <span>{createError}</span>
                                 </div>
                             )}
-                            <div className="flex gap-3 pt-5 mt-2 border-t border-slate-100">
-                                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-2.5 text-[13.5px] font-semibold text-[#64748b] bg-white border border-slate-200 hover:bg-slate-50 hover:text-[#0f172a] rounded-xl transition-all">Cancel</button>
-                                <button type="submit" disabled={createLoading || !newDate} className="flex-[1.5] px-4 py-2.5 text-[13.5px] font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl disabled:opacity-50 transition-colors duration-200 shadow-sm">
+                            <div style={{ display: "flex", gap: 8, paddingTop: 16, marginTop: 4, borderTop: "1px solid #F1F5F9" }}>
+                                <button type="button" onClick={() => setShowCreate(false)} style={{ flex: 1, padding: "10px 16px", fontSize: 13, fontWeight: 500, color: "#64748B", background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8, cursor: "pointer" }}>Cancel</button>
+                                <button type="submit" disabled={createLoading || !newDate} style={{ flex: 1.5, padding: "10px 16px", fontSize: 13, fontWeight: 500, color: "#fff", background: "#2563EB", border: "none", borderRadius: 8, cursor: createLoading || !newDate ? "not-allowed" : "pointer", opacity: createLoading || !newDate ? 0.5 : 1 }}>
                                     {createLoading ? "Creating..." : "Create Session"}
                                 </button>
                             </div>

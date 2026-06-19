@@ -201,9 +201,9 @@ function StaffModal({ mode, member, onClose, onSaved }: {
 
   useEffect(() => {
     api.listQueues().then(res => {
-      // The API returns paginated response or array based on listQueues implementation
-      // But listQueues returns Promise<QueueResponse[]> in api.ts
-      setQueues(res);
+      // Deduplicate queues by prefix so we don't render 2,000 checkboxes
+      const uniquePrefixes = Array.from(new Set(res.map(q => q.prefix))).filter(Boolean).sort();
+      setQueues(uniquePrefixes.map(p => ({ id: p, prefix: p } as any)));
     }).catch(console.error);
   }, []);
 

@@ -22,6 +22,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     String,
     UniqueConstraint,
     func,
@@ -95,6 +96,7 @@ class Token(Base):
     customer_name: Mapped[str] = mapped_column(String(120), nullable=False)
     customer_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     customer_phone: Mapped[str] = mapped_column(String(20), nullable=False)
+    companion_names: Mapped[list[str]] = mapped_column(JSON, nullable=False, server_default='[]')
 
     # ── WhatsApp / Tracking ────────────────────────────────────
     # Separate UUID used in public tracking URLs — keeps internal ID private
