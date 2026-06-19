@@ -17,6 +17,8 @@ from app.models.token import TokenStatus
 class QueueCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=150)
     prefix: str = Field(default="A", min_length=1, max_length=10)
+    open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+    close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
 
 
 class AnnouncementUpdate(BaseModel):
@@ -33,6 +35,8 @@ class QueueResponse(BaseModel):
     current_token_number: int
     is_active: bool
     is_paused: bool = False
+    open_time: Optional[str] = None
+    close_time: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

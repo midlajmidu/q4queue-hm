@@ -91,10 +91,17 @@ export interface SessionCreate {
 }
 
 // ── Queue ────────────────────────────────────────────────────────
+export interface QueueCreate {
+    name: string;
+    prefix?: string;
+    open_time?: string;
+    close_time?: string;
+}
+
 export interface QueueResponse {
     id: string;
     org_id: string;
-    session_id: string;
+    session_id: string | null;
     token_session_id: string;
     name: string;
     prefix: string;
@@ -102,6 +109,8 @@ export interface QueueResponse {
     current_token_number: number;
     is_active: boolean;
     is_paused: boolean;
+    open_time?: string;
+    close_time?: string;
     created_at: string;
 }
 
@@ -224,6 +233,8 @@ export interface QueueSnapshot {
     announcement: string | null;
     is_active: boolean;
     is_paused: boolean;
+    open_time?: string;
+    close_time?: string;
     current_serving: number;
     serving_details: {
         token_number: number;

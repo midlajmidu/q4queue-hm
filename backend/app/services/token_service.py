@@ -175,6 +175,11 @@ async def join_queue(
     if getattr(queue, "is_paused", False):
         raise ValueError("Queue is temporarily not accepting walk-ins")
 
+    if queue.open_time and queue.close_time:
+        current_time = datetime.now().strftime("%H:%M")
+        if current_time < queue.open_time or current_time > queue.close_time:
+            raise ValueError(f"Queue is closed. Service hours are {queue.open_time} - {queue.close_time}")
+
     # ── Duplicate prevention: check for existing active token by phone ──
     phone_cleaned = data.phone.strip()
     if not bypass_duplicate_check:

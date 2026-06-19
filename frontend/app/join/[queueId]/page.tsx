@@ -341,7 +341,21 @@ export default function JoinQueuePage({ params }: PageProps) {
 
     }, [joinData?.token_number, joinData?.session_id, live?.current_serving, live?.session_id, soundEnabled]);
 
-    const queueClosed = live?.is_active === false;
+    // Time boundary check
+    const [currentTime, setCurrentTime] = useState("");
+    useEffect(() => {
+        setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+        const interval = setInterval(() => {
+            setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+        }, 60000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const isOutsideHours = live?.open_time && live?.close_time && currentTime
+        ? (currentTime < live.open_time || currentTime > live.close_time)
+        : false;
+
+    const queueClosed = live?.is_active === false || isOutsideHours;
     const queuePaused = live?.is_paused === true;
     const queueName = live?.queue_name || "Queue";
     const prefix = live?.prefix || joinData?.queue_prefix || "";
@@ -447,6 +461,19 @@ export default function JoinQueuePage({ params }: PageProps) {
                                         <span className="text-xs font-bold uppercase tracking-widest text-indigo-900">Announcement</span>
                                     </div>
                                     <p className="text-sm text-indigo-900 whitespace-pre-wrap">{live.announcement}</p>
+                                </div>
+                            )}
+
+                            {/* Service Hours */}
+                            {live?.open_time && live?.close_time && (
+                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm text-center">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Service Hours</p>
+                                    <p className="text-sm text-slate-900 font-semibold">
+                                        {live.open_time} - {live.close_time}
+                                    </p>
+                                    {isOutsideHours && (
+                                        <p className="text-xs font-bold text-red-500 mt-2 bg-red-50 py-1 px-2 rounded-md inline-block">Closed for the day</p>
+                                    )}
                                 </div>
                             )}
 

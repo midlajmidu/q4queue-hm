@@ -145,6 +145,8 @@ async def build_queue_snapshot(
         "announcement": queue.announcement,
         "is_active": queue.is_active,
         "is_paused": queue.is_paused,
+        "open_time": queue.open_time,
+        "close_time": queue.close_time,
         "current_serving": current_serving,
         "serving_details": serving_details,
         "waiting_count": waiting_count,

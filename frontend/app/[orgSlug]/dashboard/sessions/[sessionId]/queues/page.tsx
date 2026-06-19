@@ -57,6 +57,8 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const [showCreate, setShowCreate] = useState(false);
     const [newName, setNewName] = useState("");
     const [newPrefix, setNewPrefix] = useState("A");
+    const [newOpenTime, setNewOpenTime] = useState("");
+    const [newCloseTime, setNewCloseTime] = useState("");
     const [createLoading, setCreateLoading] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
     const nameRef = useRef<HTMLInputElement>(null);
@@ -169,6 +171,8 @@ export default function SessionQueuesPage({ params }: PageProps) {
         if (showCreate) {
             setNewName("");
             setNewPrefix("A");
+            setNewOpenTime("");
+            setNewCloseTime("");
             setCreateError(null);
             setTimeout(() => nameRef.current?.focus(), 100);
         }
@@ -183,6 +187,8 @@ export default function SessionQueuesPage({ params }: PageProps) {
             await api.createSessionQueue(sessionId, {
                 name: newName.trim(),
                 prefix: newPrefix.trim() || "A",
+                open_time: newOpenTime || undefined,
+                close_time: newCloseTime || undefined,
             });
             setShowCreate(false);
             loadQueues(false);
@@ -476,6 +482,26 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         required
                                         className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all placeholder:text-slate-400"
                                     />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Open Time</label>
+                                        <input
+                                            type="time"
+                                            value={newOpenTime}
+                                            onChange={(e) => setNewOpenTime(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Close Time</label>
+                                        <input
+                                            type="time"
+                                            value={newCloseTime}
+                                            onChange={(e) => setNewCloseTime(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all"
+                                        />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Token Prefix</label>
