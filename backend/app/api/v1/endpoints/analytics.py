@@ -64,6 +64,10 @@ async def get_history(
 
 @router.get("/export", summary="Export CSV Report")
 async def export_analytics_csv(
+    queue_id: Optional[uuid.UUID] = Query(None, description="Filter by Queue ID"),
+    session_id: Optional[uuid.UUID] = Query(None, description="Filter by Session ID"),
+    search: Optional[str] = Query(None, description="Search term"),
+    status: Optional[str] = Query(None, description="Filter by token status"),
     start_date: Optional[str] = Query(None, description="Start date (ISO 8601)"),
     end_date: Optional[str] = Query(None, description="End date (ISO 8601)"),
     db: AsyncSession = Depends(get_db),
@@ -76,6 +80,10 @@ async def export_analytics_csv(
     csv_data = await get_analytics_csv_data(
         db,
         org_id=current_user.org_id,
+        queue_id=queue_id,
+        session_id=session_id,
+        search=search,
+        status=status,
         start_date=start_date,
         end_date=end_date,
     )

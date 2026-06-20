@@ -304,6 +304,10 @@ async def get_analytics_csv_data(
     db: AsyncSession,
     *,
     org_id: uuid.UUID,
+    queue_id: Optional[uuid.UUID] = None,
+    session_id: Optional[uuid.UUID] = None,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
 ) -> str:
@@ -316,6 +320,25 @@ async def get_analytics_csv_data(
     from app.models.user import User
 
     conditions = [Token.org_id == org_id, Token.status != TokenStatus.deleted]
+    if queue_id:
+        conditions.append(Token.queue_id == queue_id)
+    if status:
+        conditions.append(Token.status == status)
+        
+    if search:
+        from sqlalchemy import or_, cast, String
+        search_term = f"%{search.lower()}%"
+        conditions.append(or_(
+            func.lower(Token.customer_name).like(search_term),
+            Token.customer_phone.like(search_term),
+            cast(Token.token_number, String).like(search_term)
+        ))
+
+    join_queue = False
+    if session_id:
+        join_queue = True
+        conditions.append(Queue.session_id == session_id)
+
     if start_date:
         try:
             conditions.append(Token.created_at >= parse_date(start_date))

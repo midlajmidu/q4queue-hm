@@ -505,6 +505,7 @@ export default function StaffPage() {
   const [editMember, setEditMember] = useState<StaffMember | null>(null);
   const [deactivateMember, setDeactivateMember] = useState<StaffMember | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const toastId = useRef(0);
 
@@ -565,6 +566,19 @@ export default function StaffPage() {
       setIsDeactivating(false);
     }
   }, [deactivateMember, toast]);
+
+  const handleReactivate = useCallback(async (member: StaffMember) => {
+    setActivatingId(member.id);
+    try {
+      const updated = await api.updateStaff(member.id, { is_active: true });
+      setMembers(prev => prev.map(m => m.id === updated.id ? updated : m));
+      toast("success", `${updated.email} has been reactivated.`);
+    } catch (err) {
+      toast("error", err instanceof ApiError ? err.detail : "Failed to reactivate.");
+    } finally {
+      setActivatingId(null);
+    }
+  }, [toast]);
 
   const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -795,15 +809,21 @@ export default function StaffPage() {
                                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                               </button>
                               <button
-                                onClick={() => m.is_active && setDeactivateMember(m)}
-                                disabled={!m.is_active}
-                                aria-label={`Deactivate ${m.email}`}
-                                title={m.is_active ? "Deactivate" : "Already inactive"}
-                                style={{ ...actionBtnBase, opacity: m.is_active ? 1 : 0.3, cursor: m.is_active ? "pointer" : "not-allowed" }}
-                                onMouseEnter={e => { if (m.is_active) { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.borderColor = "#fecaca"; } }}
-                                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; e.currentTarget.style.borderColor = "#e8edf2"; }}
+                                type="button" role="switch" aria-checked={m.is_active}
+                                onClick={() => m.is_active ? setDeactivateMember(m) : handleReactivate(m)}
+                                disabled={activatingId === m.id}
+                                title={m.is_active ? "Active - Click to Deactivate" : "Inactive - Click to Reactivate"}
+                                style={{ width: 40, height: 22, borderRadius: 99, border: "none", cursor: activatingId === m.id ? "wait" : "pointer", padding: 2, background: m.is_active ? "#10b981" : "#e2e8f0", transition: "background .3s ease", position: "relative", opacity: activatingId === m.id ? 0.6 : 1, display: "flex", alignItems: "center", flexShrink: 0 }}
                               >
-                                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m4.9 4.9 14.2 14.2" /></svg>
+                                <span style={{
+                                  display: "flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.1)", transition: "transform .3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                                  transform: m.is_active ? "translateX(18px)" : "translateX(0)",
+                                }}>
+                                    {activatingId === m.id && (
+                                        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={m.is_active ? "#10b981" : "#94a3b8"} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                                    )}
+                                </span>
                               </button>
                             </div>
                           </td>

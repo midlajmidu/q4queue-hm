@@ -22,6 +22,7 @@ export interface QueueWebSocketOptions {
     token?: string;
     onSnapshot?: (snapshot: QueueSnapshot) => void;
     onUpdate?: (update: QueueSnapshot) => void;
+    onNewCustomer?: (data: any) => void;
     onStatusChange?: (status: ConnectionStatus) => void;
     onError?: (error: Event | Error) => void;
 }
@@ -89,7 +90,10 @@ export class QueueWebSocket {
                 const data = JSON.parse(event.data as string) as QueueSnapshot;
                 if (data.type === "pong") return;
 
-                if (data.type === "queue_update") {
+                if (data.type === "new_customer") {
+                    console.log("RECEIVED NEW CUSTOMER EVENT via WS:", data);
+                    this.options.onNewCustomer?.(data);
+                } else if (data.type === "queue_update") {
                     this.options.onUpdate?.(data);
                 } else {
                     // Snapshot always overrides entire state

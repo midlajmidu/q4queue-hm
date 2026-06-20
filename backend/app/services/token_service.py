@@ -145,6 +145,22 @@ async def notify_queue_update(queue_id: uuid.UUID, org_id: uuid.UUID) -> None:
     except Exception as exc:
         logger.error("Failed to publish background queue update: %s", exc)
 
+async def notify_new_customer(queue_id: uuid.UUID, org_id: uuid.UUID, token: str, name: str, time_str: str) -> None:
+    try:
+        from app.redis.client import get_redis
+        redis = get_redis()
+        channel = ws_manager.get_channel(str(org_id), str(queue_id))
+        
+        payload = {
+            "type": "new_customer",
+            "token": token,
+            "name": name,
+            "time": time_str
+        }
+        await publish_queue_update(redis, channel=channel, payload=payload)
+    except Exception as exc:
+        logger.error("Failed to publish new customer event: %s", exc)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Public API — Join (unauthenticated customer endpoint)

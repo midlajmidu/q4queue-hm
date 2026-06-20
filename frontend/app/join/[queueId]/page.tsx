@@ -84,14 +84,20 @@ export default function JoinQueuePage({ params }: PageProps) {
 
     // ── Customer form state ──────────────────────────────────────
     const [customerName, setCustomerName] = useState("");
+    const [debouncedCustomerName, setDebouncedCustomerName] = useState("");
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedCustomerName(customerName), 800);
+        return () => clearTimeout(t);
+    }, [customerName]);
     const [customerAge, setCustomerAge] = useState("");
     const [countryCode, setCountryCode] = useState("+91");
     const [customerPhone, setCustomerPhone] = useState("");
     const [companionNames, setCompanionNames] = useState<string[]>([]);
     
     // Derived values
+    const isNameValid = /^[A-Za-z\s'-]{2,50}$/.test(customerName.trim());
     const isPhoneValid = /^\d{10}$/.test(customerPhone);
-    const isFormValid = customerName.trim().length > 0 && isPhoneValid;
+    const isFormValid = isNameValid && isPhoneValid;
 
     // Init Audio + read stored preferences on mount
     useEffect(() => {
@@ -606,8 +612,14 @@ export default function JoinQueuePage({ params }: PageProps) {
                                         maxLength={50}
                                         autoComplete="name"
                                         disabled={isJoining || queueClosed}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
+                                        className={`w-full px-4 py-3 bg-gray-50 border ${debouncedCustomerName.length > 0 && !/^[A-Za-z\\s'-]{2,50}$/.test(debouncedCustomerName.trim()) ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50`}
                                     />
+                                    {debouncedCustomerName.length > 0 && !/^[A-Za-z\\s'-]{2,50}$/.test(debouncedCustomerName.trim()) && (
+                                        <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1 font-medium" role="alert">
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
+                                            Please enter a valid name (letters only, min 2 chars).
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Age */}

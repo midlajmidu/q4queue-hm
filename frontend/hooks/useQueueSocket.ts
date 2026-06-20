@@ -7,6 +7,7 @@ import type { QueueSnapshot } from "@/types/api";
 interface UseQueueSocketOptions {
     token?: string;
     enabled?: boolean;
+    onNewCustomer?: (data: any) => void;
 }
 
 interface UseQueueSocketReturn {
@@ -19,7 +20,7 @@ export function useQueueSocket(
     queueId: string | null,
     options: UseQueueSocketOptions = {}
 ): UseQueueSocketReturn {
-    const { token, enabled = true } = options;
+    const { token, enabled = true, onNewCustomer } = options;
 
     const [state, setState] = useState<QueueSnapshot | null>(null);
     const [status, setStatus] = useState<ConnectionStatus>("disconnected");
@@ -52,6 +53,7 @@ export function useQueueSocket(
             token,
             onSnapshot: handleSnapshot,
             onUpdate: handleUpdate,
+            onNewCustomer,
             onStatusChange: handleStatus,
             onError: handleError,
         });
@@ -63,7 +65,7 @@ export function useQueueSocket(
             ws.disconnect();
             wsRef.current = null;
         };
-    }, [queueId, token, enabled, handleSnapshot, handleUpdate, handleStatus, handleError]);
+    }, [queueId, token, enabled, onNewCustomer, handleSnapshot, handleUpdate, handleStatus, handleError]);
 
     return { state, status, error };
 }

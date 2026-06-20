@@ -244,8 +244,12 @@ export const api = {
         return request<PaginatedHistoryResponse>(`/stats/history${q ? `?${q}` : ""}`);
     },
 
-    async exportAnalyticsCSV(params: { startDate?: string; endDate?: string }): Promise<Blob> {
+    async exportAnalyticsCSV(params: { queueId?: string; sessionId?: string; search?: string; status?: string; startDate?: string; endDate?: string }): Promise<Blob> {
         const qs = new URLSearchParams();
+        if (params.queueId) qs.append("queue_id", params.queueId);
+        if (params.sessionId) qs.append("session_id", params.sessionId);
+        if (params.search) qs.append("search", params.search);
+        if (params.status) qs.append("status", params.status);
         if (params.startDate) qs.append("start_date", params.startDate);
         if (params.endDate) qs.append("end_date", params.endDate);
         const q = qs.toString();

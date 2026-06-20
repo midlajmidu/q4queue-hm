@@ -3,6 +3,7 @@
 import { useEffect, ReactNode } from "react";
 import { ToastProvider } from "@/components/Toast";
 import { initGlobalErrorHandlers } from "@/lib/logger";
+import { Toaster } from "sonner";
 
 import { ThemeProvider } from "next-themes";
 import { usePathname } from "next/navigation";
@@ -22,6 +23,7 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
             <AlertProvider>
                 <ToastProvider>
                     {children}
+                    <Toaster position="bottom-right" expand={false} />
                 </ToastProvider>
             </AlertProvider>
         </ThemeProvider>

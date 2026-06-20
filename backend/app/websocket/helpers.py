@@ -108,7 +108,7 @@ async def build_queue_snapshot(
             Token.status.in_([TokenStatus.serving, TokenStatus.done, TokenStatus.skipped, TokenStatus.deleted]),
         )
         .order_by(Token.token_number.desc())
-        .limit(5)
+        .limit(50)
     )
     
     recent_tokens = []
