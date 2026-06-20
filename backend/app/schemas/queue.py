@@ -89,6 +89,7 @@ class JoinResponse(BaseModel):
     session_id: uuid.UUID
     tracking_id: Optional[uuid.UUID] = None  # public tracking URL ID
     companion_names: list[str]
+    is_existing: bool = False  # True if this token already existed (duplicate phone)
 
 
 class PublicTokenResponse(BaseModel):

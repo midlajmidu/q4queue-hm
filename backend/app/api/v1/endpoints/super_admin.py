@@ -1554,3 +1554,62 @@ async def reset_user_password(
         message="Password reset successfully",
         temporary_password=temp_password
     )
+
+# ── Bare-Metal Backups ────────────────────────────────────────────────────────
+
+class BackupItem(BaseModel):
+    filename: str
+    size_mb: float
+    created_at: str
+
+class BackupListResponse(BaseModel):
+    items: list[BackupItem]
+
+class RestoreRequest(BaseModel):
+    filename: str
+
+@router.get(
+    "/backups",
+    response_model=BackupListResponse,
+    summary="List bare-metal database backups",
+)
+async def list_backups(
+    _super_admin: User = Depends(get_current_super_admin),
+) -> BackupListResponse:
+    import os
+    from datetime import datetime
+
+    BACKUP_DIR = "/app/backups"
+    if not os.path.exists(BACKUP_DIR):
+        return BackupListResponse(items=[])
+
+    files = []
+    for filename in os.listdir(BACKUP_DIR):
+        if filename.endswith(".dump"):
+            filepath = os.path.join(BACKUP_DIR, filename)
+            stat = os.stat(filepath)
+            size_mb = round(stat.st_size / (1024 * 1024), 2)
+            created_at = datetime.fromtimestamp(stat.st_mtime).isoformat()
+            files.append(BackupItem(filename=filename, size_mb=size_mb, created_at=created_at))
+
+    # Sort descending by date
+    files.sort(key=lambda x: x.created_at, reverse=True)
+    return BackupListResponse(items=files)
+
+@router.post(
+    "/backups/restore",
+    response_model=SuccessResponse,
+    summary="Restore bare-metal database from backup",
+)
+async def restore_from_backup(
+    body: RestoreRequest,
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessResponse:
+    from app.utils.backup import restore_backup
+    try:
+        await restore_backup(body.filename, db)
+        return SuccessResponse(message=f"Database successfully restored from {body.filename}")
+    except Exception as e:
+        logger.error(f"Restore failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

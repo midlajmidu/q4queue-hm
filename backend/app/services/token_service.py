@@ -209,6 +209,7 @@ async def join_queue(
                 session_id=queue.token_session_id,
                 tracking_id=existing_token.tracking_id,
                 companion_names=existing_token.companion_names if hasattr(existing_token, 'companion_names') else [],
+                is_existing=True,
             )
 
     # ── No active token found — create a new one ──

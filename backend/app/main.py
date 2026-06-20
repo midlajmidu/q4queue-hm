@@ -91,6 +91,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Start pool monitor
     await start_pool_monitor()
 
+    # Start backup scheduler
+    from app.utils.backup import start_scheduler
+    start_scheduler()
+
     # Init metrics
     from app.monitoring.metrics import init_app_info
     init_app_info()

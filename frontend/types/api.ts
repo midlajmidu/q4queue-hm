@@ -159,6 +159,7 @@ export interface JoinResponse {
     current_serving: number;
     queue_prefix: string;
     session_id: string;  // session the token was created in
+    is_existing?: boolean; // True if this was an already-active token (duplicate phone)
 }
 
 export interface TokenRestoreResponse {

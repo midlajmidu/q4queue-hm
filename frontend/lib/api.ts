@@ -752,6 +752,17 @@ export const api = {
         return request("/whatsapp/org/test", { method: "POST", body: JSON.stringify({ phone, message }) });
     },
 
+    // ── Bare-Metal Backups ──────────────────────────────────────────
+    getBackups(): Promise<{ items: { filename: string; size_mb: number; created_at: string }[] }> {
+        return request("/super-admin/backups");
+    },
+    restoreBackup(filename: string): Promise<SuccessResponse> {
+        return request("/super-admin/backups/restore", {
+            method: "POST",
+            body: JSON.stringify({ filename })
+        });
+    },
+
     // ── Public Tracking ───────────────────────────────────────────
     getTrackingInfo(trackingId: string): Promise<TrackingResponse> {
         return request<TrackingResponse>(`/track/${trackingId}`);

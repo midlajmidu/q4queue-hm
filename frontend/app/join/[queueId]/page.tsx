@@ -71,6 +71,10 @@ export default function JoinQueuePage({ params }: PageProps) {
     const [isJoining, setIsJoining] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [soundEnabled, setSoundEnabled] = useState(false);
+
+    // ── Existing token modal state ──
+    const [showExistingTokenModal, setShowExistingTokenModal] = useState(false);
+    const [existingTokenData, setExistingTokenData] = useState<JoinResponse | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     // Tracks which milestone alerts have already fired to prevent repeats
@@ -283,6 +287,15 @@ export default function JoinQueuePage({ params }: PageProps) {
                 phone: `${countryCode}${customerPhone.trim()}`,
                 companion_names: companionNames.filter(name => name.trim().length > 0),
             });
+
+            // ── Intercept: existing token detected ──
+            if (data.is_existing) {
+                setExistingTokenData(data);
+                setShowExistingTokenModal(true);
+                setIsJoining(false);
+                return;
+            }
+
             setJoinData(data);
             saveTokenToStorage(queueId, data.id);
             setTokenStatus("waiting");
@@ -299,7 +312,7 @@ export default function JoinQueuePage({ params }: PageProps) {
         } finally {
             setIsJoining(false);
         }
-    }, [queueId, customerName, customerAge, customerPhone, isFormValid]);
+    }, [queueId, customerName, customerAge, customerPhone, countryCode, companionNames, isFormValid]);
 
     const [isCancelling, setIsCancelling] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -767,6 +780,70 @@ export default function JoinQueuePage({ params }: PageProps) {
                 onCancel={() => setShowCancelConfirm(false)}
                 isLoading={isCancelling}
             />
+
+            {/* ── "You're Already in Line" Premium Modal ── */}
+            {showExistingTokenModal && existingTokenData && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                        onClick={() => setShowExistingTokenModal(false)}
+                    />
+
+                    {/* Modal Card */}
+                    <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-sm w-full mx-4 p-6 text-center transform transition-all animate-in fade-in zoom-in-95 duration-200">
+
+                        {/* Icon */}
+                        <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-indigo-50 text-indigo-600 mb-4">
+                            <svg className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M15 5v2" />
+                                <path d="M15 11v2" />
+                                <path d="M15 17v2" />
+                                <path d="M5 5h14a2 2 0 012 2v3a2 2 0 000 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 000-4V7a2 2 0 012-2z" />
+                            </svg>
+                        </div>
+
+                        {/* Title & Subtitle */}
+                        <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+                            You&apos;re already in line!
+                        </h3>
+                        <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+                            We found an active token associated with your phone number.
+                        </p>
+
+                        {/* Token Number Display */}
+                        <div className="mt-5 py-4 bg-slate-50 rounded-xl border border-slate-100">
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Your Token</p>
+                            <div className="font-mono text-3xl font-bold text-slate-800 tabular-nums tracking-tight">
+                                {existingTokenData.queue_prefix}{existingTokenData.token_number}
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-col gap-2 mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowExistingTokenModal(false);
+                                    setJoinData(existingTokenData);
+                                    saveTokenToStorage(queueId, existingTokenData.id);
+                                    setTokenStatus("waiting");
+                                    interactedRef.current = true;
+                                    triggeredRef.current = { five: false, two: false, turn: false };
+                                }}
+                                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-md shadow-indigo-200 transition-all cursor-pointer"
+                            >
+                                View My Token
+                            </button>
+                            <button
+                                onClick={() => setShowExistingTokenModal(false)}
+                                className="w-full py-3 bg-white text-slate-600 hover:bg-slate-50 rounded-xl font-medium transition-all cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }
