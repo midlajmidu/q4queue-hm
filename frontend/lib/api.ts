@@ -570,8 +570,9 @@ export const api = {
         });
     },
 
-    getGlobalQueues(): Promise<GlobalQueueResponse> {
-        return request<GlobalQueueResponse>("/super-admin/queues");
+    getGlobalQueues(limit: number = 20, offset: number = 0, search: string = ""): Promise<GlobalQueueResponse> {
+        const query = search ? `&search=${encodeURIComponent(search)}` : "";
+        return request<GlobalQueueResponse>(`/super-admin/queues?limit=${limit}&offset=${offset}${query}`);
     },
 
     pauseGlobalQueue(queueId: string): Promise<SuccessResponse> {

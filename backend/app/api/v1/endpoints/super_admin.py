@@ -277,6 +277,9 @@ class GlobalQueueDetail(BaseModel):
 
 class GlobalQueueResponse(BaseModel):
     items: list[GlobalQueueDetail]
+    total: int = 0
+    page: int = 1
+    pages: int = 1
 
 class ResetPasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8)
@@ -1306,9 +1309,27 @@ async def delete_announcement(
     summary="List all active global queues",
 )
 async def list_global_queues(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    search: str | None = Query(None),
     _super_admin: User = Depends(get_current_super_admin),
     db: AsyncSession = Depends(get_db),
 ) -> GlobalQueueResponse:
+    # Build conditions
+    conditions = [or_(Queue.is_active == True, Queue.is_paused == True)]
+    if search:
+        conditions.append(or_(
+            Organization.name.ilike(f"%{search}%"),
+            Queue.name.ilike(f"%{search}%")
+        ))
+        
+    # First, get the total count
+    # Need to join Organization to filter by its name in count
+    count_stmt = select(func.count(Queue.id)).join(Organization, Queue.org_id == Organization.id).where(and_(*conditions))
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar_one()
+
+    # Then fetch paginated data
     stmt = (
         select(
             Queue.id,
@@ -1322,9 +1343,11 @@ async def list_global_queues(
         )
         .join(Organization, Queue.org_id == Organization.id)
         .outerjoin(Token, Token.queue_id == Queue.id)
-        .where(or_(Queue.is_active == True, Queue.is_paused == True))
-        .group_by(Queue.id, Organization.name)
-        .order_by(Organization.name, Queue.name)
+        .where(and_(*conditions))
+        .group_by(Queue.id, Organization.name, Queue.created_at)
+        .order_by(Queue.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     result = await db.execute(stmt)
     rows = result.all()
@@ -1347,7 +1370,10 @@ async def list_global_queues(
             status="Paused" if row.is_paused else "Active"
         ))
         
-    return GlobalQueueResponse(items=items)
+    page = (offset // limit) + 1
+    pages = (total + limit - 1) // limit if limit > 0 else 1
+
+    return GlobalQueueResponse(items=items, total=total, page=page, pages=pages)
 
 
 @router.post(

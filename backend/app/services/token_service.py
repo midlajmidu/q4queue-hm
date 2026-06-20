@@ -433,8 +433,8 @@ async def serve_specific_token(
 
     if not specific_token:
         raise ValueError("Token not found")
-    if specific_token.status != TokenStatus.waiting:
-        raise ValueError("Token is not waiting")
+    if specific_token.status not in (TokenStatus.waiting, TokenStatus.skipped):
+        raise ValueError("Token is not waiting or skipped")
 
     # Mark currently-serving token as skipped
     await db.execute(

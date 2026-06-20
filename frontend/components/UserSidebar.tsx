@@ -65,7 +65,7 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
         if (active) {
             return `${base} bg-indigo-50/70 dark:bg-white/5 text-indigo-600 dark:text-white font-medium ${c ? "border-transparent shadow-[inset_3px_0_0_0_rgba(79,70,229,1)] dark:shadow-[inset_3px_0_0_0_rgba(255,255,255,0.1)]" : "border border-transparent"} [&>svg]:text-indigo-600 dark:[&>svg]:text-white`;
         }
-        return `${base} text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200 ${c ? "border border-transparent" : "border border-transparent"} [&>svg]:text-slate-500 dark:[&>svg]:text-slate-500 hover:[&>svg]:text-slate-800 dark:hover:[&>svg]:text-slate-300`;
+        return `${base} text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-slate-200 ${c ? "border border-transparent" : "border border-transparent"} [&>svg]:text-slate-600 dark:[&>svg]:text-slate-400 hover:[&>svg]:text-slate-900 dark:hover:[&>svg]:text-slate-200`;
     };
 
     const sectionLabel = (text: string) =>

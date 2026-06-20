@@ -14,7 +14,7 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem } from "@/types/api";
-import { Pause, Play, Clock } from "lucide-react";
+import { Pause, Play, Clock, QrCode } from "lucide-react";
 
 const formatTime12 = (time24?: string | null) => {
     if (!time24) return "";
@@ -361,6 +361,8 @@ export default function QueueDetailPage({ params }: PageProps) {
     const PAGE_SIZE = 10;
     const router = useRouter();
 
+    const [activeListTab, setActiveListTab] = useState<"waiting" | "skipped">("waiting");
+
     const filteredWaiting = React.useMemo(() => {
         if (!state?.waiting_tokens) return [];
         const filtered = waitingSearch
@@ -377,6 +379,23 @@ export default function QueueDetailPage({ params }: PageProps) {
         const start = (waitingPage - 1) * PAGE_SIZE;
         return filteredWaiting.slice(start, start + PAGE_SIZE);
     }, [filteredWaiting, waitingPage]);
+
+    const filteredSkipped = React.useMemo(() => {
+        if (!state?.skipped_tokens) return [];
+        const filtered = waitingSearch
+            ? state.skipped_tokens.filter(t =>
+                String(t.token_number).includes(waitingSearch) ||
+                t.customer_name?.toLowerCase().includes(waitingSearch.toLowerCase()) ||
+                t.customer_phone?.includes(waitingSearch)
+            )
+            : state.skipped_tokens;
+        return filtered;
+    }, [state?.skipped_tokens, waitingSearch]);
+
+    const paginatedSkipped = React.useMemo(() => {
+        const start = (waitingPage - 1) * PAGE_SIZE;
+        return filteredSkipped.slice(start, start + PAGE_SIZE);
+    }, [filteredSkipped, waitingPage]);
 
     const filteredRecent = React.useMemo(() => {
         if (!state?.recent_tokens) return [];
@@ -631,7 +650,7 @@ export default function QueueDetailPage({ params }: PageProps) {
             <div className="qd-root bg-gray-50 dark:bg-transparent" style={{ display: "flex", width: "100%", height: "100%" }}>
 
                 {/* ── Dark Sidebar ─────────────────────────────────── */}
-                <aside className="qd-sidebar hidden md:flex bg-white dark:bg-transparent border-r border-[#e4e7ef] dark:border-white/10" style={{ width: 232, flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}>
+                <aside className="qd-sidebar hidden md:flex flex-col bg-white dark:bg-transparent border-r border-[#e4e7ef] dark:border-white/10" style={{ width: 232, flexShrink: 0, position: "sticky", top: 0, height: "100%" }}>
                     {/* Back link */}
                     <div style={{ padding: "18px 14px 14px", borderBottom: `1px solid ${T.sidebarBorder}` }}>
                         <Link
@@ -745,9 +764,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 </div>
 
                                 {/* Main 2-col Grid */}
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:h-[calc(100vh-theme(spacing.36))]">
                                     {/* Left: Serving + Actions */}
-                                    <div className="lg:col-span-2 space-y-4">
+                                    <div className="lg:col-span-2 space-y-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1">
 
                                         {/* Hero – Now Serving */}
                                         <div className="serving-card bg-white dark:bg-slate-900 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 dark:border-white/10 dark:shadow-none" style={{ padding: "40px 32px 36px", textAlign: "center", minHeight: 280, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
@@ -782,63 +801,119 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 </div>
                                             )}
 
-                                            {/* Stat Chips */}
-                                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 28, position: "relative", zIndex: 1, flexWrap: "wrap", justifyContent: "center" }}>
-                                                <span className="bg-slate-50 text-slate-600 text-xs font-medium border border-slate-100 px-3 py-1 rounded-full flex items-center gap-2">
-                                                    <svg className="text-slate-400" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                    Waiting: <strong>{state?.waiting_count ?? 0}</strong>
-                                                </span>
-                                                <span className="bg-slate-50 text-slate-600 text-xs font-medium border border-slate-100 px-3 py-1 rounded-full flex items-center gap-2">
-                                                    <svg className="text-slate-400" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                                                    Issued: <strong>{state?.total_issued ?? 0}</strong>
-                                                </span>
+                                            {/* Live Statistics Grid */}
+                                            <div className="grid grid-cols-4 gap-4 w-full mt-8 pt-6 border-t border-slate-100 relative z-10">
+                                                {/* Total Customers (Issued) */}
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <span className="text-xl font-bold text-slate-900">{state?.total_issued ?? 0}</span>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                                        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Issued</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Remaining (Waiting) */}
+                                                <div className="flex flex-col items-center justify-center bg-indigo-50/50 rounded-xl py-2 border border-indigo-50/50">
+                                                    <span className="text-xl font-bold text-indigo-600">{state?.waiting_count ?? 0}</span>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                                                        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Waiting</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Served */}
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <span className="text-xl font-bold text-emerald-600">{state?.done_count ?? 0}</span>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                                        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Served</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Skipped */}
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <span className="text-xl font-bold text-rose-600">{state?.skipped_count ?? 0}</span>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                                        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Skipped</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
                                         {/* Action buttons */}
-                                        <div className="qd-action-grid" role="toolbar">
-                                            <button
-                                                onClick={handleNext}
-                                                disabled={isDisabled || isPaused}
-                                                title={isPaused ? "Queue is currently on a break" : undefined}
-                                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm shadow-indigo-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                {actionLoading === "next" ? (
-                                                    <>
-                                                        <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                                                        Calling…
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                                                        Call Next
-                                                        <kbd style={{ fontSize: 10, opacity: .5, marginLeft: 2, padding: "1px 6px", borderRadius: 4, background: "rgba(255,255,255,.15)" }}>↵</kbd>
-                                                    </>
-                                                )}
-                                            </button>
+                                        <div className={`grid gap-3 w-full ${(!state?.current_serving || state.current_serving === 0) ? "grid-cols-1" : "grid-cols-2"}`} role="toolbar">
+                                            {(!state?.current_serving || state.current_serving === 0) && (
+                                                <button
+                                                    onClick={handleNext}
+                                                    disabled={isDisabled || isPaused}
+                                                    title={isPaused ? "Queue is currently on a break" : undefined}
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm shadow-indigo-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {actionLoading === "next" ? (
+                                                        <>
+                                                            <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                            Calling…
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                                                            Call Next
+                                                            <kbd style={{ fontSize: 10, opacity: .5, marginLeft: 2, padding: "1px 6px", borderRadius: 4, background: "rgba(255,255,255,.15)" }}>↵</kbd>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
 
-                                            <button
-                                                onClick={() => performAction("done", async () => {
-                                                    const res = await api.callNext(queueId, "done");
-                                                    if ("message" in res) toast(res.message, "info");
-                                                    else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
-                                                })}
-                                                disabled={isDisabled || isPaused}
-                                                title={isPaused ? "Queue is currently on a break" : undefined}
-                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm shadow-emerald-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                {actionLoading === "done" ? (
-                                                    <>
-                                                        <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                                                        Completing…
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
-                                                        Done & Next
-                                                    </>
-                                                )}
-                                            </button>
+                                            {(state?.current_serving ?? 0) > 0 && (
+                                                <>
+                                                    <button
+                                                        onClick={() => performAction("skipped", async () => {
+                                                            const res = await api.callNext(queueId, "skipped");
+                                                            if ("message" in res) toast(res.message, "info");
+                                                            else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
+                                                        })}
+                                                        disabled={isDisabled || isPaused}
+                                                        title={isPaused ? "Queue is currently on a break" : undefined}
+                                                        className="bg-rose-500 hover:bg-rose-600 text-white font-medium shadow-sm shadow-rose-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        {actionLoading === "skipped" ? (
+                                                            <>
+                                                                <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                                Skipping…
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg>
+                                                                Skip & Next
+                                                            </>
+                                                        )}
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => performAction("done", async () => {
+                                                            const res = await api.callNext(queueId, "done");
+                                                            if ("message" in res) toast(res.message, "info");
+                                                            else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
+                                                        })}
+                                                        disabled={isDisabled || isPaused}
+                                                        title={isPaused ? "Queue is currently on a break" : undefined}
+                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm shadow-emerald-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        {actionLoading === "done" ? (
+                                                            <>
+                                                                <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                                Completing…
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                                                                Done & Next
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
 
                                         {/* Manual Controls Row */}
@@ -848,32 +923,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                     <p className="text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Manual Entry</p>
                                                 </div>
-                                                {!showAddForm ? (
-                                                    <button
-                                                        onClick={() => setShowAddForm(true)}
-                                                        disabled={isDisabled || isPaused}
-                                                        title={isPaused ? "Queue is currently on a break" : undefined}
-                                                        className="h-10 px-4 w-full text-sm font-medium bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                                                        Add Customer
-                                                    </button>
-                                                ) : (
-                                                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                                        <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="Full Name *" maxLength={50} className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
-                                                        <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="Phone *" className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
-                                                        <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="Age (optional)" className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
-                                                        <input type="text" value={addCompanions} onChange={e => setAddCompanions(e.target.value)} placeholder="Companions (comma separated, optional)" className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
-                                                        <div style={{ display: "flex", gap: 7 }}>
-                                                            <button onClick={handleAddCustomer} disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add" || isPaused} title={isPaused ? "Queue is currently on a break" : undefined} className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-200 shadow-sm shadow-indigo-500/10 rounded-lg px-3 text-sm font-medium flex-1 disabled:opacity-40 disabled:cursor-not-allowed">
-                                                                {actionLoading === "add" ? "Adding…" : "Confirm"}
-                                                            </button>
-                                                            <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions(""); }} className="h-10 bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg px-3 text-sm font-medium flex-1 hover:bg-slate-50 transition-colors">
-                                                                Cancel
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                <button
+                                                    onClick={() => setShowAddForm(true)}
+                                                    disabled={isDisabled || isPaused}
+                                                    title={isPaused ? "Queue is currently on a break" : undefined}
+                                                    className="h-10 px-4 w-full text-sm font-medium bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/10 shadow-sm ring-1 ring-slate-900/5 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                                                    Add Customer
+                                                </button>
                                             </div>
 
                                             {/* Invite by Number */}
@@ -923,37 +981,46 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </div>
 
                                     {/* Right: Lists */}
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                    <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
 
-                                        {/* Waiting List */}
-                                        <aside className="qd-card bg-white dark:bg-slate-900 dark:border-white/10" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }} aria-label="Waiting list">
+                                        {/* Waiting/Skipped List */}
+                                        <aside className="qd-card bg-white dark:bg-slate-900 dark:border-white/10 flex-1 min-h-0" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }} aria-label="Waiting list">
                                             <div style={{ padding: "14px 18px 10px", borderBottom: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
                                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                        <span className="text-slate-500" style={{ width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                        </span>
-                                                        <h2 style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Waiting List</h2>
+                                                    <div className="flex gap-5 pt-1">
+                                                        <button 
+                                                            onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }} 
+                                                            className={`flex items-center gap-2 text-[13px] font-bold pb-2 transition-colors ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                        >
+                                                            Waiting
+                                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.waiting_count ?? 0}</span>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }} 
+                                                            className={`flex items-center gap-2 text-[13px] font-bold pb-2 transition-colors ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                        >
+                                                            Skipped
+                                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.skipped_count ?? 0}</span>
+                                                        </button>
                                                     </div>
-                                                    <span className="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontSize: 11, fontWeight: 800, padding: "2px 9px", borderRadius: 99 }}>{state?.waiting_count ?? 0}</span>
                                                 </div>
                                                 <div style={{ position: "relative" }}>
                                                     <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
                                                         <svg width="13" height="13" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                                     </span>
-                                                    <input type="text" placeholder="Search token…" value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 30, fontSize: 12.5 }} />
+                                                    <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 30, fontSize: 12.5 }} />
                                                 </div>
                                             </div>
-                                            <div className="scrollbar-hide" style={{ flex: 1, overflowY: "auto", maxHeight: 310 }}>
-                                                {paginatedWaiting.length > 0 ? paginatedWaiting.map((t: WaitingToken, idx: number) => (
-                                                    <div key={t.id} className="group dark:border-white/10" style={{ padding: "10px 18px", background: idx % 2 === 1 ? "var(--q-row-alt)" : "transparent", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: "inherit", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                            <div className="scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700" style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+                                                {(activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).map((t: WaitingToken, idx: number) => (
+                                                    <div key={t.id} className="group border-b border-slate-200/60 dark:border-white/10" style={{ padding: "10px 18px", background: idx % 2 === 1 ? "var(--q-row-alt)" : "transparent", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                                 <span className="dark:text-white" style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", minWidth: 48 }}>{state?.prefix || ""}{t.token_number}</span>
-                                                                <span style={{ padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: T.amber }}>Waiting</span>
+                                                                <span style={{ padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: activeListTab === "waiting" ? T.amber : T.red }}>{activeListTab}</span>
                                                                 {manuallyAddedTokens.has(t.token_number)
                                                                     ? <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.violetBg, color: T.violet }}>Manual</span>
-                                                                    : <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.cyanBg, color: T.cyan }}>Normal</span>
+                                                                    : <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.cyanBg, color: T.cyan, display: "inline-flex", alignItems: "center", gap: 3 }}><QrCode className="w-2.5 h-2.5" />QR</span>
                                                                 }
 
                                                             </div>
@@ -975,19 +1042,32 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                                             <button
                                                                 onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName })}
-                                                                className="group-hover-show text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400" style={{ opacity: 0, padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
+                                                                className="text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400" style={{ padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
                                                                 onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                                                                 onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
                                                             >
                                                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                             </button>
-                                                            <button
-                                                                onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
-                                                                style={{ opacity: 0, fontSize: 11, fontWeight: 700, padding: "4px 9px", color: T.red, border: `1px solid ${T.redBorder}`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
-                                                                className="group-hover-show"
-                                                            >
-                                                                Remove
-                                                            </button>
+                                                            {activeListTab === "waiting" ? (
+                                                                <button
+                                                                    onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
+                                                                    style={{ fontSize: 11, fontWeight: 700, padding: "4px 9px", color: T.red, border: `1px solid ${T.redBorder}`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
+                                                                    className="hover:bg-red-50 dark:hover:bg-red-900/30"
+                                                                >
+                                                                    Remove
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => performAction("recall", async () => {
+                                                                        const res = await api.serveSpecificToken(queueId, t.token_number);
+                                                                        toast(`Recalled ${state?.prefix || ""}${res.serving}`, "success");
+                                                                    })}
+                                                                    style={{ fontSize: 11, fontWeight: 700, padding: "4px 9px", color: "#4f46e5", border: `1px solid #4f46e5`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
+                                                                    className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                                                                >
+                                                                    Recall
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )) : (
@@ -995,23 +1075,23 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         <div style={{ width: 42, height: 42, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
                                                             <svg width="20" height="20" fill="none" stroke={T.brand} viewBox="0 0 24 24" style={{ opacity: .4 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                         </div>
-                                                        <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{waitingSearch ? "No tokens match" : "No one is waiting"}</p>
+                                                        <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{waitingSearch ? "No tokens match" : activeListTab === "waiting" ? "No one is waiting" : "No skipped tokens"}</p>
                                                     </div>
                                                 )}
                                             </div>
-                                            {filteredWaiting.length > PAGE_SIZE && (
+                                            {(activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length > PAGE_SIZE && (
                                                 <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
-                                                    <span>Showing {paginatedWaiting.length} of {filteredWaiting.length}</span>
+                                                    <span>Showing {(activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).length} of {(activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length}</span>
                                                     <div style={{ display: "flex", gap: 4 }}>
                                                         <button onClick={() => setWaitingPage(p => Math.max(1, p - 1))} disabled={waitingPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage === 1 ? .4 : 1 }}>Prev</button>
-                                                        <button onClick={() => setWaitingPage(p => p + 1)} disabled={waitingPage * PAGE_SIZE >= filteredWaiting.length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage * PAGE_SIZE >= filteredWaiting.length ? .4 : 1 }}>Next</button>
+                                                        <button onClick={() => setWaitingPage(p => p + 1)} disabled={waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length ? .4 : 1 }}>Next</button>
                                                     </div>
                                                 </div>
                                             )}
                                         </aside>
 
                                         {/* Recent Activity */}
-                                        <aside className="qd-card bg-white dark:bg-slate-900 dark:border-white/10" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }} aria-label="Recent activity">
+                                        <aside className="qd-card bg-white dark:bg-slate-900 dark:border-white/10 flex-1 min-h-0" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }} aria-label="Recent activity">
                                             <div style={{ padding: "14px 18px 10px", borderBottom: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                     <span className="text-slate-500" style={{ width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -1026,7 +1106,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 30, fontSize: 12.5 }} />
                                                 </div>
                                             </div>
-                                            <div className="scrollbar-hide" style={{ flex: 1, overflowY: "auto", maxHeight: 240 }}>
+                                            <div className="scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700" style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                                                 {paginatedRecent.length > 0 ? paginatedRecent.map((t: RecentToken, i: number) => (
                                                     <RecentTokenRow
                                                         key={`${t.token_number}-${i}`}
@@ -1174,7 +1254,65 @@ export default function QueueDetailPage({ params }: PageProps) {
                 <ConfirmModal isOpen={showDeleteConfirm} title="Delete Queue" message={`Are you sure you want to permanently delete the queue "${state?.queue_name || "this queue"}"? All associated tokens and data will be lost forever.`} confirmLabel="Delete Queue" confirmVariant="danger" onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} isLoading={deleting} requireInput={true} requiredText={state?.queue_name || ""} />
                 <ConfirmModal isOpen={showResetConfirm} title="Reset Queue" message={`Are you sure you want to reset the queue "${state?.queue_name || "this queue"}"? This will delete all tokens and reset the current serving number to 0. This cannot be undone.`} confirmLabel="Reset Queue" confirmVariant="danger" onConfirm={handleReset} onCancel={() => setShowResetConfirm(false)} isLoading={resetting} requireInput={true} requiredText={state?.queue_name || ""} />
                 <ConfirmModal isOpen={!!tokenToRemove} title="Remove Customer" message={`Are you sure you want to remove token ${state?.prefix || ""}${tokenToRemove?.number} from the waiting list? They will be permanently marked as deleted.`} confirmLabel="Remove Token" confirmVariant="danger" onConfirm={handleConfirmRemove} onCancel={() => setTokenToRemove(null)} isLoading={actionLoading === "remove"} />
-                <TokenDetailModal token={selectedToken} onClose={() => setSelectedToken(null)} />
+                {showAddForm && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setShowAddForm(false); }}>
+                        <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-white/10">
+                            <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Manual Entry</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Add a new customer to the queue</p>
+                                </div>
+                                <button onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-900/5 p-2 rounded-full">
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                            <div className="p-6 flex flex-col gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Full Name <span className="text-red-500">*</span></label>
+                                    <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="e.g. Jane Doe" maxLength={50} className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Phone Number <span className="text-red-500">*</span></label>
+                                    <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="e.g. +1 234 567 8900" className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Age <span className="text-slate-400 font-normal normal-case">(optional)</span></label>
+                                        <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="e.g. 28" className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Companions <span className="text-slate-400 font-normal normal-case">(optional)</span></label>
+                                        <input type="text" value={addCompanions} onChange={e => setAddCompanions(e.target.value)} placeholder="e.g. John, Mary" className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="px-6 py-5 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-white/5 flex items-center gap-3 justify-end">
+                                <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions(""); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleAddCustomer} 
+                                    disabled={!addName.trim() || !addPhone.trim() || actionLoading === "add" || isPaused} 
+                                    className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {actionLoading === "add" ? (
+                                        <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Adding...</>
+                                    ) : (
+                                        "Add to Queue"
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                <TokenDetailModal 
+                    token={selectedToken} 
+                    onClose={() => setSelectedToken(null)} 
+                    onRecall={selectedToken ? () => performAction("recall", async () => {
+                        const res = await api.serveSpecificToken(queueId, selectedToken.token_number);
+                        toast(`Recalled ${state?.prefix || ""}${res.serving}`, "success");
+                    }) : undefined}
+                />
             </div>
         </>
     );
@@ -1191,7 +1329,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
     onView?: (data: TokenDetailData) => void;
 }) {
     const statusClasses: Record<string, string> = {
-        serving: "bg-emerald-50 text-emerald-700 border border-emerald-100/80 rounded-full font-medium px-2.5 py-0.5",
+        serving: "bg-blue-50 text-blue-700 border border-blue-100/80 rounded-full font-medium px-2.5 py-0.5",
         done: "bg-emerald-50 text-emerald-700 border border-emerald-100/80 rounded-full font-medium px-2.5 py-0.5",
         skipped: "bg-amber-50 text-amber-700 border border-amber-100/80 rounded-full font-medium px-2.5 py-0.5",
         deleted: "bg-red-50 text-red-700 border border-red-100/80 rounded-full font-medium px-2.5 py-0.5",
@@ -1200,7 +1338,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
     const sClass = statusClasses[t.status] || "bg-slate-50 text-slate-700 border border-slate-100/80 rounded-full font-medium px-2.5 py-0.5";
 
     return (
-        <div style={{ padding: "10px 18px", /*border*/ borderBottom: `1px solid #f4f5f8`, display: "flex", alignItems: "center", justifyContent: "space-between", transition: "background .15s" }} className="group"
+        <div style={{ padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "background .15s" }} className="group border-b border-slate-200/60 dark:border-white/10"
             onMouseEnter={e => (e.currentTarget.style.background = "var(--q-row-alt)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
         >
@@ -1210,7 +1348,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                     <span className={`text-[10px] tracking-wider uppercase ${sClass}`}>{t.status}</span>
                     {isManual
                         ? <span className="bg-slate-50 text-slate-700 border border-slate-200/60 rounded-full font-medium px-2 py-0.5 text-[9px] tracking-wider uppercase">Manual</span>
-                        : <span className="bg-slate-50 text-slate-700 border border-slate-200/60 rounded-full font-medium px-2 py-0.5 text-[9px] tracking-wider uppercase">Normal</span>
+                        : <span className="bg-slate-50 text-slate-700 border border-slate-200/60 rounded-full font-medium px-2 py-0.5 text-[9px] tracking-wider uppercase inline-flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
                     }
                 </div>
                 {t.customer_name && (
@@ -1232,9 +1370,8 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {onView && (
                     <button
-                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
-                        style={{ padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s", opacity: 0 }}
-                        className="group-hover-show"
+                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queueName })}
+                        style={{ padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
                         onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                         onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
                     >
@@ -1389,18 +1526,32 @@ function QueueHistory({
                                             <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: ss.bg, color: ss.color }}>{ss.label}</span>
                                         </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
-                                            <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: isManual ? T.violetBg : T.cyanBg, color: isManual ? T.violet : T.cyan }}>{isManual ? "Manual" : "Normal"}</span>
+                                            <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: isManual ? T.violetBg : T.cyanBg, color: isManual ? T.violet : T.cyan, display: "inline-flex", alignItems: "center", gap: 3 }}>{!isManual && <QrCode className="w-2.5 h-2.5" />}{isManual ? "Manual" : "QR"}</span>
                                         </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
-                                            <button
-                                                onClick={() => onViewToken({ token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name, customer_age: item.customer_age, customer_phone: item.customer_phone, companion_names: item.companion_names || [], status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
-                                                style={{ padding: "6px", background: "transparent", border: "#e5e7eb", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
-                                                onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
-                                                onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
-                                            >
-                                                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                            </button>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                {item.status === "skipped" && (
+                                                    <button
+                                                        onClick={() => performAction("recall", async () => {
+                                                            const res = await api.serveSpecificToken(queueId, item.token_number);
+                                                            toast(`Recalled ${item.queue_prefix || ""}${res.serving}`, "success");
+                                                        })}
+                                                        style={{ fontSize: 10, fontWeight: 700, padding: "4px 8px", color: "#4f46e5", border: `1px solid #4f46e5`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
+                                                        className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                                                    >
+                                                        Recall
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => onViewToken({ token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name, customer_age: item.customer_age, customer_phone: item.customer_phone, companion_names: item.companion_names || [], status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
+                                                    style={{ padding: "6px", background: "transparent", border: "#e5e7eb", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
+                                                    onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.color = "inherit"; e.currentTarget.style.background = "transparent"; }}
+                                                >
+                                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 );

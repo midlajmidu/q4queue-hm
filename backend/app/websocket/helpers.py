@@ -81,6 +81,25 @@ async def build_queue_snapshot(
     )
     waiting_count = waiting_result.scalar_one()
 
+    # ── Done and Skipped counts ──
+    done_result = await db.execute(
+        select(func.count(Token.id)).where(
+            Token.queue_id == queue_id,
+            Token.session_id == queue.token_session_id,
+            Token.status == TokenStatus.done,
+        )
+    )
+    done_count = done_result.scalar_one()
+
+    skipped_result = await db.execute(
+        select(func.count(Token.id)).where(
+            Token.queue_id == queue_id,
+            Token.session_id == queue.token_session_id,
+            Token.status == TokenStatus.skipped,
+        )
+    )
+    skipped_count = skipped_result.scalar_one()
+
     # ── Recent tokens (last 5 served/serving/skipped/deleted for display) ───
     recent_result = await db.execute(
         select(Token)
@@ -136,6 +155,35 @@ async def build_queue_snapshot(
             token_data["companion_names"] = t.companion_names
         waiting_tokens.append(token_data)
 
+    # ── Skipped tokens (all of them, or limit 50) ──
+    skipped_tokens_result = await db.execute(
+        select(Token)
+        .where(
+            Token.queue_id == queue_id,
+            Token.session_id == queue.token_session_id,
+            Token.status == TokenStatus.skipped,
+        )
+        .order_by(Token.token_number.desc())
+        .limit(50)
+    )
+    
+    skipped_tokens = []
+    for t in skipped_tokens_result.scalars().all():
+        token_data = {
+            "id": str(t.id),
+            "token_number": t.token_number,
+            "status": t.status.value,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+            "served_at": t.served_at.isoformat() if t.served_at else None,
+            "completed_at": t.completed_at.isoformat() if t.completed_at else None,
+            "customer_name": t.customer_name,
+        }
+        if is_admin:
+            token_data["customer_age"] = t.customer_age
+            token_data["customer_phone"] = t.customer_phone
+            token_data["companion_names"] = t.companion_names
+        skipped_tokens.append(token_data)
+
     return {
         "type": "queue_snapshot",
         "queue_id": str(queue_id),
@@ -150,10 +198,13 @@ async def build_queue_snapshot(
         "current_serving": current_serving,
         "serving_details": serving_details,
         "waiting_count": waiting_count,
+        "done_count": done_count,
+        "skipped_count": skipped_count,
         "last_called": current_serving,
         "total_issued": queue.current_token_number,
         "recent_tokens": recent_tokens,
         "waiting_tokens": waiting_tokens,
+        "skipped_tokens": skipped_tokens,
         "org_logo_url": org.logo_url if org else None,
         "org_brand_color": org.brand_color if org else None,
     }

@@ -37,7 +37,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return (
         <ProtectedRoute>
             <NotificationProvider>
-                <div className="flex min-h-screen" style={{ background: "var(--q-page-bg)" }}>
+                <div className="flex h-screen overflow-hidden bg-slate-50/60 dark:bg-slate-950">
                     {/* Main sidebar – shown on all pages except the queue detail page */}
                 {!isManageQueuePage && (
                     <Sidebar
@@ -49,7 +49,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 )}
 
                 <div
-                    className={`flex-1 flex flex-col min-w-0 transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]`}
+                    className={`flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]`}
                     style={{
                         paddingLeft: !isManageQueuePage
                             ? undefined
@@ -62,7 +62,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             .sb-offset { padding-left: ${!isManageQueuePage ? (isSidebarCollapsed ? '72px' : '256px') : '0px'}; transition: padding-left 300ms cubic-bezier(0.4,0,0.2,1); }
                         }
                     `}</style>
-                    <div className={`flex-1 flex flex-col min-w-0 ${!isManageQueuePage ? 'sb-offset' : ''}`}>
+                    <div className={`flex-1 flex flex-col min-w-0 h-full overflow-hidden ${!isManageQueuePage ? 'sb-offset' : ''}`}>
                         <SystemBanner />
                         <ImpersonationBanner />
                         {/* Global Top Bar */}
@@ -70,7 +70,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <TopBar onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
                         )}
 
-                        <main className={!isManageQueuePage ? "flex-1 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto md:overflow-y-visible" : "flex-1 overflow-hidden"}>
+                        <main className={!isManageQueuePage ? "flex-1 min-h-0 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto" : "flex-1 min-h-0 overflow-hidden"}>
                             <div className={!isManageQueuePage ? "max-w-7xl mx-auto w-full" : "w-full h-full"}>
                                 <AlertBannerContainer />
                                 {children}

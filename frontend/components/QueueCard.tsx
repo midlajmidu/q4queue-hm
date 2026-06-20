@@ -110,7 +110,7 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
     };
 
     return (
-        <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm ring-1 ring-slate-900/5 flex flex-col justify-between w-full transition-all duration-200 hover:shadow-md relative overflow-hidden group">
+        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-sm ring-1 ring-slate-900/5 flex flex-col justify-between w-full transition-all duration-200 hover:shadow-md relative overflow-hidden group">
             {/* Slanted Ticket Watermark */}
             <Ticket className="absolute -bottom-6 -right-6 w-40 h-40 text-slate-900 opacity-[0.07] -rotate-45 pointer-events-none select-none z-0 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-[40deg]" />
 
@@ -136,17 +136,17 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                 </div>
 
                 {/* Temporal Telemetry */}
-                <div className="flex items-center gap-1.5 mt-1 mb-4 text-[10px] font-semibold text-slate-400 tracking-wide">
+                <div className="flex items-center gap-1.5 mt-1 mb-4 text-[10px] font-semibold text-slate-600 tracking-wide">
                     {isActive ? (
                         <>
-                            <Clock className="w-3 h-3 text-indigo-400" />
+                            <Clock className="w-3 h-3 text-indigo-500" />
                             <span>Started {formatTime(queue.created_at)}</span>
-                            <span className="text-slate-300">•</span>
+                            <span className="text-slate-400">•</span>
                             <span>{getElapsed(queue.created_at)}</span>
                         </>
                     ) : (
                         <>
-                            <CalendarDays className="w-3 h-3 text-slate-400" />
+                            <CalendarDays className="w-3 h-3 text-slate-500" />
                             <span>Closed at {formatTime(queue.created_at)}</span>
                         </>
                     )}
@@ -156,16 +156,16 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                     <div className="flex flex-col items-center justify-center group">
                         <div className="w-24 h-24 rounded-full bg-slate-50/50 border border-slate-100 flex flex-col items-center justify-center relative shadow-inner ring-4 ring-indigo-50/40 mx-auto my-3 transition-transform duration-300 group-hover:scale-105">
                             {/* Prefix badge — top-center */}
-                            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-white border border-slate-200 text-indigo-950 font-bold text-[10px] px-1.5 py-0.5 rounded-full shadow-sm z-10">
+                            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-white border border-slate-200 text-slate-800 font-bold text-[10px] px-1.5 py-0.5 rounded-full shadow-sm z-10">
                                 {queue.prefix}
                             </div>
                             <span className="text-2xl font-black text-slate-900 tracking-tight">
                                 {queue.current_token_number}
                             </span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                        <div className="flex items-center gap-1.5 text-slate-600 mb-1">
                             <UserCheck className="w-3 h-3" />
-                            <p className="text-[10px] font-bold tracking-widest uppercase">Serving</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Serving</p>
                         </div>
                     </div>
                 </div>

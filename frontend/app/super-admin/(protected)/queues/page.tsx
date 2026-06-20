@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { GlobalQueueDetail } from "@/types/api";
 
@@ -8,25 +8,43 @@ export default function QueueMonitoringPage() {
     const [queues, setQueues] = useState<GlobalQueueDetail[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const limit = 20;
 
-    const fetchQueues = async () => {
+    // Debounce search input
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPage(1); // Reset to page 1 on new search
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [search]);
+
+    const fetchQueues = useCallback(async () => {
+        setIsLoading(true);
         try {
-            const res = await api.getGlobalQueues();
+            const offset = (page - 1) * limit;
+            const res = await api.getGlobalQueues(limit, offset, debouncedSearch);
             setQueues(res.items);
+            setTotalPages(res.pages || 1);
         } catch (err) {
             console.error("Failed to fetch global queues", err);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [page, debouncedSearch]);
 
     useEffect(() => {
         fetchQueues();
         // Optional: refresh every 15 seconds
         const interval = setInterval(fetchQueues, 15000);
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchQueues]);
 
     const handleAction = async (queueId: string, actionName: "pause" | "resume" | "clear") => {
         setActionLoading(`${queueId}-${actionName}`);
@@ -49,11 +67,6 @@ export default function QueueMonitoringPage() {
             setActionLoading(null);
         }
     };
-
-    const filteredQueues = queues.filter(q => 
-        q.organization.toLowerCase().includes(search.toLowerCase()) || 
-        q.queue_name.toLowerCase().includes(search.toLowerCase())
-    );
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -105,8 +118,8 @@ export default function QueueMonitoringPage() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredQueues.length > 0 ? (
-                                filteredQueues.map(q => (
+                            ) : queues.length > 0 ? (
+                                queues.map(q => (
                                     <tr key={q.id} className="hover:bg-slate-800/30 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
@@ -192,6 +205,31 @@ export default function QueueMonitoringPage() {
                         </tbody>
                     </table>
                 </div>
+                
+                {/* Pagination Controls */}
+                {!isLoading && totalPages > 1 && (
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-900/50">
+                        <span className="text-sm text-slate-400">
+                            Page {page} of {totalPages}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg border border-slate-700 hover:bg-slate-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg border border-slate-700 hover:bg-slate-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

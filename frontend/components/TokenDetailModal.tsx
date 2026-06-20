@@ -20,6 +20,7 @@ export interface TokenDetailData {
 interface TokenDetailModalProps {
     token: TokenDetailData | null;
     onClose: () => void;
+    onRecall?: () => void;
 }
 
 function fmt(iso: string | null | undefined): string {
@@ -59,7 +60,7 @@ const ENTRY_STYLES: Record<string, string> = {
     auto: "bg-orange-100 text-orange-700",
 };
 
-export default function TokenDetailModal({ token, onClose }: TokenDetailModalProps) {
+export default function TokenDetailModal({ token, onClose, onRecall }: TokenDetailModalProps) {
     if (!token) return null;
 
     const statusInfo = STATUS_STYLES[token.status] ?? { badge: "bg-gray-100 text-gray-500", label: token.status };
@@ -169,7 +170,15 @@ export default function TokenDetailModal({ token, onClose }: TokenDetailModalPro
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 pb-5">
+                <div className="px-6 pb-5 flex gap-3">
+                    {token.status === "skipped" && onRecall && (
+                        <button
+                            onClick={() => { onClose(); onRecall(); }}
+                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        >
+                            Recall Token
+                        </button>
+                    )}
                     <button
                         onClick={onClose}
                         className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"

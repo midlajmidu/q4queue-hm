@@ -244,10 +244,13 @@ export interface QueueSnapshot {
         companion_names?: string[];
     } | null;
     waiting_count: number;
+    done_count: number;
+    skipped_count: number;
     last_called: number;
     total_issued: number;
     recent_tokens: RecentToken[];
     waiting_tokens?: WaitingToken[];
+    skipped_tokens?: WaitingToken[];
     org_logo_url?: string | null;
     org_brand_color?: string | null;
 }
@@ -572,7 +575,13 @@ export interface PaginatedHistoryResponse {
     limit: number;
     offset: number;
 }
-export interface GlobalQueueDetail { id: string; organization: string; queue_name: string; current_position: number; customers_waiting: number; average_wait_time: string; staff_handling: number; status: string; } export interface GlobalQueueResponse { items: GlobalQueueDetail[]; }
+export interface GlobalQueueDetail { id: string; organization: string; queue_name: string; current_position: number; customers_waiting: number; average_wait_time: string; staff_handling: number; status: string; } 
+export interface GlobalQueueResponse { 
+    items: GlobalQueueDetail[]; 
+    total: number;
+    page: number;
+    pages: number;
+}
 
 export interface GlobalUserDetail {
     id: string;
