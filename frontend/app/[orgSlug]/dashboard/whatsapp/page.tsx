@@ -29,11 +29,15 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 const EVENT_LABEL: Record<string, string> = {
-    "queue.joined": "Joined",
-    "queue.position_5": "Position 5",
-    "queue.position_3": "Position 3",
-    "queue.called": "Called",
-    "queue.completed": "Completed",
+    "queue_joined_v2": "Queue Joined (Template)",
+    "queue_position_v2": "Position Update",
+    "queue_served_v2": "Customer Called",
+    "queue_completed_v2": "Service Completed",
+    "queue.joined": "Joined (Legacy)",
+    "queue.position_5": "Position 5 (Legacy)",
+    "queue.position_3": "Position 3 (Legacy)",
+    "queue.called": "Called (Legacy)",
+    "queue.completed": "Completed (Legacy)",
     test: "Test",
 };
 
@@ -167,12 +171,25 @@ export default function OrgWhatsAppDashboard() {
 
             <div className="pt-4">
                 {activeTab === "overview" && (
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <StatCard label="Total Sent" value={stats?.total ?? 0} color="#6366f1" />
-                        <StatCard label="Delivered" value={stats?.delivered ?? 0} color="#34d399" />
-                        <StatCard label="Read" value={stats?.read ?? 0} color="#818cf8" />
-                        <StatCard label="Failed" value={stats?.failed ?? 0} color="#f87171" />
-                        <StatCard label="Success Rate" value={`${stats?.success_rate ?? 0}%`} color="#f59e0b" />
+                    <div className="space-y-6">
+                        <div className="bg-indigo-900/40 border border-indigo-500/30 rounded-xl p-5 flex items-start gap-4">
+                            <div className="bg-indigo-500/20 p-2 rounded-lg shrink-0">
+                                <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            </div>
+                            <div>
+                                <h3 className="text-indigo-200 font-bold text-sm">Hybrid Notification Model Active</h3>
+                                <p className="text-indigo-300/80 text-xs mt-1 leading-relaxed">
+                                    Your organization is utilizing our ultra-efficient Hybrid Notification Model. You only pay Meta for the initial Welcome template. All subsequent updates (Position, Turn, etc.) bypass Meta templates and are delivered 100% free of charge for customers who opt in!
+                                </p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <StatCard label="Total Sent" value={stats?.total ?? 0} color="#6366f1" />
+                            <StatCard label="Delivered" value={stats?.delivered ?? 0} color="#34d399" />
+                            <StatCard label="Read" value={stats?.read ?? 0} color="#818cf8" />
+                            <StatCard label="Failed" value={stats?.failed ?? 0} color="#f87171" />
+                            <StatCard label="Success Rate" value={`${stats?.success_rate ?? 0}%`} color="#f59e0b" />
+                        </div>
                     </div>
                 )}
 
@@ -340,65 +357,84 @@ export default function OrgWhatsAppDashboard() {
                             </p>
                         </div>
 
-                        {/* Granular Toggles */}
+                        {/* Hybrid Configurations */}
                         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                            <h2 className="text-lg font-bold text-white mb-4">Notification Events</h2>
+                            <h2 className="text-lg font-bold text-white mb-2">Notification Pipeline</h2>
+                            <p className="text-sm text-slate-400 mb-6">Manage how notifications flow to your customers through the hybrid pipeline.</p>
                             
-                            <div className="space-y-5">
+                            {/* Section 1: Paid Template */}
+                            <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5 mb-6">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <h3 className="font-bold text-emerald-400 text-sm uppercase tracking-wide">Step 1: Primary Gateway</h3>
+                                    <span className="bg-emerald-500/10 text-emerald-400 text-[10px] px-2 py-0.5 rounded border border-emerald-500/20">Paid Template</span>
+                                </div>
+                                <p className="text-xs text-slate-400 mb-4">This initial welcome message uses an official Meta Utility template to establish the 24-hour service window.</p>
+                                
                                 <label className="flex items-center justify-between cursor-pointer">
                                     <div>
                                         <div className="text-sm font-medium text-slate-200">Queue Joined</div>
-                                        <div className="text-xs text-slate-500">Sent immediately when customer joins.</div>
+                                        <div className="text-xs text-slate-500 mt-0.5">Sent immediately when a customer is added to a queue. Includes the quick-reply opt-in button.</div>
                                     </div>
-                                    <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_queue_joined ? "bg-indigo-500" : "bg-slate-700"}`}>
+                                    <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_queue_joined ? "bg-[#25d366]" : "bg-slate-700"}`}>
                                         <input type="checkbox" className="sr-only" checked={config?.notify_queue_joined ?? true} onChange={(e) => handleSettingChange("notify_queue_joined", e.target.checked)} />
                                         <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_queue_joined ? "translate-x-4" : "translate-x-1"}`} />
                                     </div>
                                 </label>
+                            </div>
 
-                                <label className="flex items-center justify-between cursor-pointer">
-                                    <div>
-                                        <div className="text-sm font-medium text-slate-200">Position 5 Reminder</div>
-                                        <div className="text-xs text-slate-500">Alerts customer they are 5th in line.</div>
-                                    </div>
-                                    <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_position_5 ? "bg-indigo-500" : "bg-slate-700"}`}>
-                                        <input type="checkbox" className="sr-only" checked={config?.notify_position_5 ?? false} onChange={(e) => handleSettingChange("notify_position_5", e.target.checked)} />
-                                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_position_5 ? "translate-x-4" : "translate-x-1"}`} />
-                                    </div>
-                                </label>
+                            {/* Section 2: Free Hybrid */}
+                            <div className="bg-indigo-900/20 border border-indigo-500/20 rounded-lg p-5">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <h3 className="font-bold text-indigo-400 text-sm uppercase tracking-wide">Step 2: Free Hybrid Follow-ups</h3>
+                                    <span className="bg-indigo-500/10 text-indigo-400 text-[10px] px-2 py-0.5 rounded border border-indigo-500/20">100% Free</span>
+                                </div>
+                                <p className="text-xs text-slate-400 mb-5">These updates are delivered as raw text completely free of charge. <strong>Note:</strong> They are only delivered if the user actively opted in via the Quick Reply button on the welcome message.</p>
 
-                                <label className="flex items-center justify-between cursor-pointer">
-                                    <div>
-                                        <div className="text-sm font-medium text-slate-200">Position 3 Reminder</div>
-                                        <div className="text-xs text-slate-500">Alerts customer they are 3rd in line.</div>
-                                    </div>
-                                    <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_position_3 ? "bg-indigo-500" : "bg-slate-700"}`}>
-                                        <input type="checkbox" className="sr-only" checked={config?.notify_position_3 ?? false} onChange={(e) => handleSettingChange("notify_position_3", e.target.checked)} />
-                                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_position_3 ? "translate-x-4" : "translate-x-1"}`} />
-                                    </div>
-                                </label>
+                                <div className="space-y-4">
+                                    <label className="flex items-center justify-between cursor-pointer">
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-200">Position 5 Reminder</div>
+                                            <div className="text-xs text-slate-500 mt-0.5">Alerts customer when there are exactly 5 people ahead.</div>
+                                        </div>
+                                        <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_position_5 ? "bg-indigo-500" : "bg-slate-700"}`}>
+                                            <input type="checkbox" className="sr-only" checked={config?.notify_position_5 ?? false} onChange={(e) => handleSettingChange("notify_position_5", e.target.checked)} />
+                                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_position_5 ? "translate-x-4" : "translate-x-1"}`} />
+                                        </div>
+                                    </label>
 
-                                <label className="flex items-center justify-between cursor-pointer">
-                                    <div>
-                                        <div className="text-sm font-medium text-slate-200">Customer Called</div>
-                                        <div className="text-xs text-slate-500">Sent when it's their turn to be served.</div>
-                                    </div>
-                                    <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_called ? "bg-indigo-500" : "bg-slate-700"}`}>
-                                        <input type="checkbox" className="sr-only" checked={config?.notify_called ?? true} onChange={(e) => handleSettingChange("notify_called", e.target.checked)} />
-                                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_called ? "translate-x-4" : "translate-x-1"}`} />
-                                    </div>
-                                </label>
+                                    <label className="flex items-center justify-between cursor-pointer">
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-200">Position 3 Reminder</div>
+                                            <div className="text-xs text-slate-500 mt-0.5">Alerts customer when there are exactly 3 people ahead.</div>
+                                        </div>
+                                        <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_position_3 ? "bg-indigo-500" : "bg-slate-700"}`}>
+                                            <input type="checkbox" className="sr-only" checked={config?.notify_position_3 ?? false} onChange={(e) => handleSettingChange("notify_position_3", e.target.checked)} />
+                                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_position_3 ? "translate-x-4" : "translate-x-1"}`} />
+                                        </div>
+                                    </label>
 
-                                <label className="flex items-center justify-between cursor-pointer">
-                                    <div>
-                                        <div className="text-sm font-medium text-slate-200">Service Completed</div>
-                                        <div className="text-xs text-slate-500">Sent after they are marked as done.</div>
-                                    </div>
-                                    <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_completed ? "bg-indigo-500" : "bg-slate-700"}`}>
-                                        <input type="checkbox" className="sr-only" checked={config?.notify_completed ?? false} onChange={(e) => handleSettingChange("notify_completed", e.target.checked)} />
-                                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_completed ? "translate-x-4" : "translate-x-1"}`} />
-                                    </div>
-                                </label>
+                                    <label className="flex items-center justify-between cursor-pointer">
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-200">Customer Called</div>
+                                            <div className="text-xs text-slate-500 mt-0.5">Sent when it is their turn to proceed to the counter.</div>
+                                        </div>
+                                        <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_called ? "bg-indigo-500" : "bg-slate-700"}`}>
+                                            <input type="checkbox" className="sr-only" checked={config?.notify_called ?? true} onChange={(e) => handleSettingChange("notify_called", e.target.checked)} />
+                                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_called ? "translate-x-4" : "translate-x-1"}`} />
+                                        </div>
+                                    </label>
+
+                                    <label className="flex items-center justify-between cursor-pointer">
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-200">Service Completed</div>
+                                            <div className="text-xs text-slate-500 mt-0.5">Thank you message and review request when service finishes.</div>
+                                        </div>
+                                        <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_completed ? "bg-indigo-500" : "bg-slate-700"}`}>
+                                            <input type="checkbox" className="sr-only" checked={config?.notify_completed ?? false} onChange={(e) => handleSettingChange("notify_completed", e.target.checked)} />
+                                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_completed ? "translate-x-4" : "translate-x-1"}`} />
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 

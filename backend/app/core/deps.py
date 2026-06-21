@@ -127,7 +127,13 @@ async def get_current_active_user(
     """
     Convenience alias — handy for routes that want an explicit
     active-user dependency without the inline is_active check.
+    Also blocks access if the user has not completed first-time password change.
     """
+    if current_user.is_first_login:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="force_password_change"
+        )
     return current_user
 
 

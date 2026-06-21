@@ -98,7 +98,14 @@ export function useAuth(): UseAuthReturn {
                 setIsAuthed(true);
                 const currentUser = getCurrentUser();
                 setUser(currentUser);
-                if (currentUser && currentUser.org_slug) {
+                
+                if (response.force_password_change) {
+                    if (!currentUser || !currentUser.org_slug) {
+                        router.push('/super-admin/change-password');
+                    } else {
+                        router.push(`/${currentUser.org_slug}/change-password`);
+                    }
+                } else if (currentUser && currentUser.org_slug) {
                     router.push(`/${currentUser.org_slug}/dashboard`);
                 } else {
                     router.push("/dashboard");

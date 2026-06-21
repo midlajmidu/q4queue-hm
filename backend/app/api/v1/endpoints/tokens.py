@@ -80,6 +80,7 @@ async def get_token(
         customer_name=token.customer_name,
         customer_age=token.customer_age,
         customer_phone=token.customer_phone,
+        companion_names=token.companion_names,
         created_at=token.created_at,
         served_at=token.served_at,
         completed_at=token.completed_at,
@@ -123,23 +124,9 @@ async def cancel_token(
             org_id=token.org_id,
         )
 
-        # WhatsApp notification: customer cancelled voluntarily
-        if row:
-            _token, queue_name, queue_prefix, session_id = row
-            background_tasks.add_task(
-                notify_queue_event,
-                event_type="test_notification_v2", # User voluntary cancel - no template specified but we can skip or use test? Wait, we don't have queue_cancelled_v2. Let's not send notification or use a generic. Wait, we deleted it.
-                org_id=token.org_id,
-                token_id=token.id,
-                queue_id=token.queue_id,
-                customer_name=token.customer_name,
-                customer_phone=token.customer_phone,
-                token_number=token.token_number,
-                token_prefix=queue_prefix,
-                queue_name=queue_name,
-                tracking_id=str(getattr(token, "tracking_id", "")),
-                session_id=session_id,
-            )
+        # WhatsApp notification: removed because there is no approved 'cancelled' template
+        # if row:
+        #     pass
 
         return {"status": "cancelled", "token_number": token.token_number}
     except ValueError as exc:
@@ -187,7 +174,7 @@ async def skip_token(
             queue_name, queue_prefix, session_id = q_row
             background_tasks.add_task(
                 notify_queue_event,
-                event_type="test_notification_v2",
+                event_type="queue_skipped_v2",
                 org_id=token.org_id,
                 token_id=token.id,
                 queue_id=token.queue_id,
@@ -318,16 +305,16 @@ async def remove_token(
             queue_name, queue_prefix, session_id = q_row
             background_tasks.add_task(
                 notify_queue_event,
-                event_type="test_notification_v2",
-                org_id=saved_org_id,
-                token_id=saved_token_id,
-                queue_id=saved_queue_id,
-                customer_name=saved_name,
-                customer_phone=saved_phone,
-                token_number=saved_number,
+                event_type="queue_removed_v2",
+                org_id=token.org_id,
+                token_id=token.id,
+                queue_id=token.queue_id,
+                customer_name=token.customer_name,
+                customer_phone=token.customer_phone,
+                token_number=token.token_number,
                 token_prefix=queue_prefix,
                 queue_name=queue_name,
-                tracking_id=saved_tracking,
+                tracking_id=str(getattr(token, "tracking_id", "")),
                 session_id=session_id,
             )
 

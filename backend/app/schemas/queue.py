@@ -58,6 +58,7 @@ class JoinRequest(BaseModel):
     age: Optional[int] = Field(None, ge=0, le=150)
     phone: str = Field(..., min_length=10, max_length=15)
     companion_names: list[str] = Field(default_factory=list, max_items=9)
+    send_whatsapp: bool = Field(default=True)
 
     @field_validator("name", mode="before")
     @classmethod

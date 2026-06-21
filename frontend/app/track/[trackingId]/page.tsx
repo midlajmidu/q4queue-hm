@@ -13,6 +13,16 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string
     cancelled: { label: "Left Queue", color: "#64748b", icon: "👋", bg: "#0f172a" },
 };
 
+const formatTime12 = (time24?: string | null) => {
+    if (!time24) return "";
+    const [h, m] = time24.split(":");
+    if (!h || !m) return time24;
+    const hours = parseInt(h, 10);
+    const suffix = hours >= 12 ? "PM" : "AM";
+    const h12 = hours % 12 || 12;
+    return `${h12}:${m} ${suffix}`;
+};
+
 export default function TrackingPage({ params }: { params: { trackingId: string } }) {
     const [data, setData] = useState<TrackingResponse | null>(null);
     const [loading, setLoading] = useState(true);
@@ -139,6 +149,24 @@ export default function TrackingPage({ params }: { params: { trackingId: string 
                             <div style={{ color: "#e2e8f0", fontWeight: 600 }}>{data.queue_name}</div>
                             <div style={{ fontSize: 12, color: "#475569", marginTop: 2 }}>{data.org_name}</div>
                         </div>
+
+                        {/* Service Hours */}
+                        {data.open_time && data.close_time && (
+                            <div style={{ background: "#1e293b", borderRadius: 10, padding: "12px 16px", marginBottom: 16, textAlign: "center" }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 2 }}>Service Hours</div>
+                                <div style={{ color: "#e2e8f0", fontWeight: 600, fontSize: 14 }}>
+                                    {formatTime12(data.open_time)} - {formatTime12(data.close_time)}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Paused alert */}
+                        {data.queue_is_paused && data.status === "waiting" && (
+                            <div style={{ background: "#281204", border: "1px solid #7c2d12", borderRadius: 10, padding: "14px 16px", textAlign: "center", marginBottom: 16, animation: "pulse 2s infinite" }}>
+                                <div style={{ color: "#fdba74", fontWeight: 700, fontSize: 15 }}>⏸ The queue is currently on a break</div>
+                                <div style={{ color: "#fdba74", opacity: 0.8, fontSize: 12, marginTop: 4 }}>Service has been temporarily paused.</div>
+                            </div>
+                        )}
 
                         {/* Position (only if waiting) */}
                         {data.status === "waiting" && (

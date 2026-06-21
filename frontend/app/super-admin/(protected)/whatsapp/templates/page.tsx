@@ -5,7 +5,8 @@ import { api } from "@/lib/api";
 import type { WhatsAppTemplate, WhatsAppTemplateCreate } from "@/types/api";
 
 const EVENT_OPTIONS = [
-    { value: "queue.joined", label: "Customer Joins Queue" },
+    { value: "queue_joined_v2", label: "Customer Joins Queue (Hybrid Gateway)" },
+    { value: "queue.joined", label: "Customer Joins Queue (Legacy)" },
     { value: "queue.called", label: "Token Called" },
     { value: "queue.reminder", label: "Position ≤ 3 Reminder" },
     { value: "queue.removed", label: "Staff Removes Customer" },

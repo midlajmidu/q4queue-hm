@@ -433,21 +433,22 @@ async def admin_join(
             time_str=datetime.now().strftime("%I:%M %p")
         )
         # WhatsApp notification: staff manually added customer
-        background_tasks.add_task(
-            notify_queue_event,
-            event_type="queue_joined_v2",
-            org_id=queue.org_id,
-            token_id=result.id,
-            queue_id=queue.id,
-            customer_name=body.name,
-            customer_phone=body.phone,
-            token_number=result.token_number,
-            token_prefix=queue.prefix,
-            queue_name=queue.name,
-            position=result.position,
-            tracking_id=str(result.tracking_id) if hasattr(result, "tracking_id") else None,
-            session_id=queue.session_id,
-        )
+        if body.send_whatsapp:
+            background_tasks.add_task(
+                notify_queue_event,
+                event_type="queue_joined_v2",
+                org_id=queue.org_id,
+                token_id=result.id,
+                queue_id=queue.id,
+                customer_name=body.name,
+                customer_phone=body.phone,
+                token_number=result.token_number,
+                token_prefix=queue.prefix,
+                queue_name=queue.name,
+                position=result.position,
+                tracking_id=str(result.tracking_id) if hasattr(result, "tracking_id") else None,
+                session_id=queue.session_id,
+            )
     except ValueError as exc:
         msg = str(exc)
         if "not found" in msg.lower():
@@ -489,6 +490,12 @@ async def serve_specific_token(
             token_service.notify_queue_update,
             queue_id=queue.id,
             org_id=queue.org_id,
+        )
+        background_tasks.add_task(
+            token_service.send_called_and_reminder_notifications,
+            queue_id=queue.id,
+            org_id=queue.org_id,
+            serving_token_number=token_number,
         )
     except Exception as exc:
         msg = str(exc)

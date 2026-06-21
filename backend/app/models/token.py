@@ -97,6 +97,8 @@ class Token(Base):
     customer_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     customer_phone: Mapped[str] = mapped_column(String(20), nullable=False)
     companion_names: Mapped[list[str]] = mapped_column(JSON, nullable=False, server_default='[]')
+    whatsapp_alerts_active: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
+    whatsapp_window_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # ── WhatsApp / Tracking ────────────────────────────────────
     # Separate UUID used in public tracking URLs — keeps internal ID private

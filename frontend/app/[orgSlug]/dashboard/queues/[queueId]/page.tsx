@@ -588,16 +588,29 @@ export default function QueueDetailPage({ params }: PageProps) {
     const [addPhone, setAddPhone] = useState("");
     const [addAge, setAddAge] = useState("");
     const [addCompanions, setAddCompanions] = useState("");
+    const [showWhatsappConfirm, setShowWhatsappConfirm] = useState(false);
     const isAddNameValid = /^[A-Za-z\s'-]{2,50}$/.test(addName.trim());
 
-    const handleAddCustomer = useCallback(async () => {
+    const handlePreAddCustomer = useCallback(async () => {
         const phoneDigits = addPhone.replace(/\D/g, "");
         if (!isAddNameValid || phoneDigits.length !== 10) { toast("Please enter a valid name and 10 digit phone number", "error"); return; }
+        setShowWhatsappConfirm(true);
+    }, [addPhone, toast, isAddNameValid]);
+
+    const handleConfirmAddCustomer = useCallback(async (sendWhatsapp: boolean) => {
+        setShowWhatsappConfirm(false);
+        const phoneDigits = addPhone.replace(/\D/g, "");
         setActionLoading("add");
         setActionError(null);
         try {
             const parsedCompanions = addCompanions.split(",").map(n => n.trim()).filter(n => n.length > 0);
-            const res = await api.adminJoin(queueId, { name: addName.trim(), phone: `${addCountryCode}${phoneDigits}`, age: addAge ? parseInt(addAge, 10) : undefined, companion_names: parsedCompanions });
+            const res = await api.adminJoin(queueId, { 
+                name: addName.trim(), 
+                phone: `${addCountryCode}${phoneDigits}`, 
+                age: addAge ? parseInt(addAge, 10) : undefined, 
+                companion_names: parsedCompanions,
+                send_whatsapp: sendWhatsapp
+            });
             toast(`Token ${state?.prefix || ""}${res.token_number} created`, "success");
             setManuallyAddedTokens(prev => new Set(prev).add(res.token_number));
             setShowAddForm(false);
@@ -1377,6 +1390,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     const res = await api.serveSpecificToken(queueId, num);
                                     toast(`Recalled ${pfx || ""}${res.serving}`, "success");
                                 })}
+                                performAction={performAction}
+                                toast={toast}
                             />
                         )}
 
@@ -1555,6 +1570,19 @@ export default function QueueDetailPage({ params }: PageProps) {
                 <ConfirmModal isOpen={showDeleteConfirm} title="Delete Queue" message={`Are you sure you want to permanently delete the queue "${state?.queue_name || "this queue"}"? All associated tokens and data will be lost forever.`} confirmLabel="Delete Queue" confirmVariant="danger" onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} isLoading={deleting} requireInput={true} requiredText={state?.queue_name || ""} />
                 <ConfirmModal isOpen={showResetConfirm} title="Reset Queue" message={`Are you sure you want to reset the queue "${state?.queue_name || "this queue"}"? This will delete all tokens and reset the current serving number to 0. This cannot be undone.`} confirmLabel="Reset Queue" confirmVariant="danger" onConfirm={handleReset} onCancel={() => setShowResetConfirm(false)} isLoading={resetting} requireInput={true} requiredText={state?.queue_name || ""} />
                 <ConfirmModal isOpen={!!tokenToRemove} title="Remove Customer" message={`Are you sure you want to remove token ${state?.prefix || ""}${tokenToRemove?.number} from the waiting list? They will be permanently marked as deleted.`} confirmLabel="Remove Token" confirmVariant="danger" onConfirm={handleConfirmRemove} onCancel={() => setTokenToRemove(null)} isLoading={actionLoading === "remove"} />
+                
+                {/* WhatsApp Confirmation Modal */}
+                <ConfirmModal 
+                    isOpen={showWhatsappConfirm} 
+                    title="Send WhatsApp Update?" 
+                    message={`Do you want to send a WhatsApp notification to ${addName.trim()} containing their token number and tracking link?`} 
+                    confirmLabel="Send with WhatsApp" 
+                    confirmVariant="primary"
+                    cancelLabel="Skip WhatsApp"
+                    onConfirm={() => handleConfirmAddCustomer(true)} 
+                    onCancel={() => handleConfirmAddCustomer(false)} 
+                    isLoading={actionLoading === "add"} 
+                />
                 {showAddForm && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setShowAddForm(false); }}>
                         <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-white/10">
@@ -1570,8 +1598,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                             <div className="p-6 flex flex-col gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Full Name <span className="text-red-500">*</span></label>
-                                    <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="e.g. Jane Doe" maxLength={50} className={`w-full h-11 bg-slate-50 dark:bg-slate-950 border ${debouncedAddName.length > 0 && !/^[A-Za-z\\s'-]{2,50}$/.test(debouncedAddName.trim()) ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-indigo-500 focus:border-indigo-500'} rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 transition-all outline-none`} />
-                                    {debouncedAddName.length > 0 && !/^[A-Za-z\\s'-]{2,50}$/.test(debouncedAddName.trim()) && (
+                                    <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="e.g. Jane Doe" maxLength={50} className={`w-full h-11 bg-slate-50 dark:bg-slate-950 border ${debouncedAddName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedAddName.trim()) ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-indigo-500 focus:border-indigo-500'} rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 transition-all outline-none`} />
+                                    {debouncedAddName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedAddName.trim()) && (
                                         <p className="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">
                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01" /></svg>
                                             Please enter a valid name (letters only, min 2 chars).
@@ -1609,9 +1637,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions(""); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
                                     Cancel
                                 </button>
-                                <button
-                                    onClick={handleAddCustomer}
-                                    disabled={!isAddNameValid || !addPhone.trim() || actionLoading === "add" || isPaused}
+                                <button 
+                                    onClick={handlePreAddCustomer} 
+                                    disabled={!isAddNameValid || !addPhone.trim() || actionLoading === "add" || isPaused} 
                                     className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
                                     {actionLoading === "add" ? (
@@ -1712,7 +1740,7 @@ function QueueHistory({
     historyTotal, setHistoryTotal,
     historyPage, setHistoryPage,
     historyLoading, setHistoryLoading,
-    historyPageSize, manuallyAddedTokens, onViewToken, onRecallToken
+    historyPageSize, manuallyAddedTokens, onViewToken, onRecallToken, performAction, toast,
 }: {
     queueId: string; queueName: string; prefix: string;
     queueHistory: TokenHistoryItem[]; setQueueHistory: (d: TokenHistoryItem[]) => void;
@@ -1722,6 +1750,8 @@ function QueueHistory({
     historyPageSize: number; manuallyAddedTokens: Set<number>;
     onViewToken: (t: TokenDetailData) => void;
     onRecallToken: (tokenNumber: number, prefix: string) => void;
+    performAction: (action: string, fn: () => Promise<void>) => Promise<void>;
+    toast: (msg: string, type: "success" | "error" | "info" | "warning") => void;
 }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");

@@ -49,10 +49,6 @@ export interface AnalyticsOverview {
     }[];
 }
 
-export interface TokenResponse {
-    access_token: string;
-    token_type: string;
-}
 
 // ── JWT Payload (decoded client-side) ────────────────────────────
 export interface JwtPayload {
@@ -62,6 +58,7 @@ export interface JwtPayload {
     org_name: string | null;
     org_logo_url: string | null;
     role: string;
+    is_first_login?: boolean;
     exp: number;       // UNIX timestamp
     email: string;
 }
@@ -152,6 +149,7 @@ export interface JoinRequest {
     age?: number;
     phone: string;
     companion_names: string[];
+    send_whatsapp?: boolean;
 }
 
 export interface JoinResponse {
@@ -295,6 +293,28 @@ export interface ApiErrorResponse {
 }
 
 // ── Staff Management ──────────────────────────────────────────────
+export interface User {
+    id: string;
+    email: string;
+    first_name: string | null;
+    last_name: string | null;
+    org_id: string;
+    role: string;
+    is_active: boolean;
+    is_first_login: boolean;
+    created_at: string;
+}
+
+export interface TokenResponse {
+    access_token: string;
+    token_type: string;
+    force_password_change: boolean;
+}
+
+export interface ChangeFirstPasswordRequest {
+    new_password: string;
+}
+
 export interface StaffMember {
     id: string;
     email: string;
@@ -763,6 +783,9 @@ export interface TrackingResponse {
     queue_name: string;
     org_name: string;
     queue_is_active: boolean;
+    queue_is_paused: boolean;
+    open_time?: string | null;
+    close_time?: string | null;
     created_at: string;
     served_at?: string | null;
     completed_at?: string | null;

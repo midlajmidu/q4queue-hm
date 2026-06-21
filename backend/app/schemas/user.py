@@ -20,6 +20,7 @@ class UserResponse(BaseModel):
     org_id: uuid.UUID
     role: str
     is_active: bool
+    is_first_login: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -65,6 +66,7 @@ class StaffResponse(BaseModel):
     org_id: uuid.UUID
     role: str
     is_active: bool
+    is_first_login: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

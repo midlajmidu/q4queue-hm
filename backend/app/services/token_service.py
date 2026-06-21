@@ -309,15 +309,52 @@ async def call_next(
         target_status = TokenStatus.skipped
 
     # Mark currently-serving token
-    await db.execute(
-        update(Token)
+    serving_result = await db.execute(
+        select(Token)
         .where(
             Token.queue_id == queue_id,
             Token.org_id == org_id,           # ← TENANT ISOLATION
             Token.status == TokenStatus.serving,
         )
-        .values(status=target_status, completed_at=now)
     )
+    currently_serving = serving_result.scalar_one_or_none()
+    
+    if currently_serving:
+        currently_serving.status = target_status
+        currently_serving.completed_at = now
+        
+        # If the action was 'done', trigger the completed notification immediately
+        if action in ["done", "skipped", "deleted"]:
+            try:
+                from app.services.notification_service import notify_queue_event
+                # Need the queue info for the notification
+                q_result = await db.execute(select(Queue).where(Queue.id == queue_id))
+                q_row = q_result.scalar_one_or_none()
+                if q_row:
+                    import asyncio
+                    event_map = {
+                        "done": "queue_completed_v2",
+                        "skipped": "queue_skipped_v2",
+                        "deleted": "queue_removed_v2"
+                    }
+                    # Dispatch fire-and-forget task
+                    asyncio.create_task(
+                        notify_queue_event(
+                            event_type=event_map[action],
+                            org_id=org_id,
+                            token_id=currently_serving.id,
+                            queue_id=queue_id,
+                            customer_name=currently_serving.customer_name,
+                            customer_phone=currently_serving.customer_phone,
+                            token_number=currently_serving.token_number,
+                            token_prefix=q_row.prefix,
+                            queue_name=q_row.name,
+                            tracking_id=str(getattr(currently_serving, "tracking_id", "")),
+                            session_id=q_row.session_id,
+                        )
+                    )
+            except Exception as e:
+                logger.error("Failed to dispatch completion notification: %s", e)
 
     # Find next waiting token
     next_result = await db.execute(
@@ -502,7 +539,7 @@ async def send_called_and_reminder_notifications(
     """
     After a token is called (serving), fire two types of notifications:
     1. queue.called  → to the customer whose token was just called
-    2. queue.reminder → to any waiting customer now at position ≤ 3 (once only)
+    2. queue.reminder → to any waiting customer now at position == 3 (once only)
 
     Designed to run as a BackgroundTask (post-commit).
     """
@@ -544,7 +581,7 @@ async def send_called_and_reminder_notifications(
                     session_id=queue.session_id,
                 )
 
-            # ── 2. Check for tokens now at position ≤ 5 ─────────────────────
+            # ── 2. Check for tokens now at position == 3 ────────────────────
             waiting_res = await db.execute(
                 select(Token)
                 .where(
@@ -554,30 +591,29 @@ async def send_called_and_reminder_notifications(
                     Token.whatsapp_reminder_sent == False,  # noqa: E712
                 )
                 .order_by(Token.token_number.asc())
-                .limit(5)
+                .limit(3)
             )
             waiting_tokens = waiting_res.scalars().all()
 
             for i, wt in enumerate(waiting_tokens):
                 position = i + 1  # 1-indexed position
-                # Send reminder for the top 5 who haven't received one yet
-                event_type_reminder = "queue_nearby_3_v2" if position <= 3 else "queue_nearby_5_v2"
-                await notify_queue_event(
-                    event_type=event_type_reminder,
-                    org_id=org_id,
-                    token_id=wt.id,
-                    queue_id=queue_id,
-                    customer_name=wt.customer_name,
-                    customer_phone=wt.customer_phone,
-                    token_number=wt.token_number,
-                    token_prefix=queue.prefix,
-                    queue_name=queue.name,
-                    position=position,
-                    tracking_id=str(getattr(wt, "tracking_id", "")),
-                    session_id=queue.session_id,
-                )
-                # Mark reminder as sent so we don't re-send
-                wt.whatsapp_reminder_sent = True
+                if position == 3:
+                    await notify_queue_event(
+                        event_type="queue_nearby_3_v2",
+                        org_id=org_id,
+                        token_id=wt.id,
+                        queue_id=queue_id,
+                        customer_name=wt.customer_name,
+                        customer_phone=wt.customer_phone,
+                        token_number=wt.token_number,
+                        token_prefix=queue.prefix,
+                        queue_name=queue.name,
+                        position=position,
+                        tracking_id=str(getattr(wt, "tracking_id", "")),
+                        session_id=queue.session_id,
+                    )
+                    # Mark reminder as sent so we don't re-send
+                    wt.whatsapp_reminder_sent = True
 
             if waiting_tokens:
                 await db.commit()

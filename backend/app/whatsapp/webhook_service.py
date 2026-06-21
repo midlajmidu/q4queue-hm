@@ -14,7 +14,7 @@ Design:
 """
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from sqlalchemy import select, update
@@ -25,6 +25,7 @@ from app.whatsapp.models import (
     WhatsAppWebhookLog,
     WhatsAppDeliveryStatus,
 )
+from app.models.token import Token, TokenStatus
 from app.db.session import AsyncSessionLocal
 from app.core.config import get_settings
 
@@ -126,7 +127,7 @@ async def _process_webhook_internal(payload: dict) -> None:
                     error_info=status_obj.get("errors", []),
                 )
 
-            # ── Incoming Messages (log only for now) ──────────────
+            # ── Incoming Messages ──────────────
             messages = value.get("messages", [])
             for msg_obj in messages:
                 meta_message_id = msg_obj.get("id")
@@ -137,7 +138,45 @@ async def _process_webhook_internal(payload: dict) -> None:
                     payload=msg_obj,
                     phone=phone,
                 )
-                logger.info("WhatsApp incoming message from %s (not processed)", phone)
+                
+                # Check for Quick Reply Button
+                msg_type = msg_obj.get("type")
+                if msg_type == "button":
+                    # If created via Meta UI, the payload might just be the exact button text
+                    button_text = msg_obj.get("button", {}).get("text", "")
+                    button_payload = msg_obj.get("button", {}).get("payload", "")
+                    
+                    if "ACTIVATE_LIVE_ALERTS" in button_payload or "Activate" in button_text or "Activate" in button_payload:
+                        logger.info("WhatsApp alerts activated for %s", phone)
+                        await _activate_whatsapp_alerts(phone, now)
+                else:
+                    logger.info("WhatsApp incoming message from %s (not processed)", phone)
+
+
+async def _activate_whatsapp_alerts(phone: str, current_time: datetime) -> None:
+    """Activates the WhatsApp alerts for a customer by finding their active token."""
+    try:
+        async with AsyncSessionLocal() as db:
+            # Normalize phone just in case, though webhook usually sends with country code and no +
+            # We match using standard string matching (might need exact match based on how we save)
+            # Find the active token for this phone
+            result = await db.execute(
+                select(Token).where(
+                    Token.customer_phone.like(f"%{phone[-10:]}%"), # Handle formatting differences
+                    Token.status.in_([TokenStatus.waiting, TokenStatus.serving])
+                ).order_by(Token.created_at.desc())
+            )
+            token = result.scalars().first()
+            
+            if token:
+                token.whatsapp_alerts_active = True
+                token.whatsapp_window_expires_at = current_time + timedelta(hours=24)
+                await db.commit()
+                logger.info("Activated WhatsApp alerts for Token %s", token.id)
+            else:
+                logger.warning("Received ACTIVATE_LIVE_ALERTS but no active token found for phone %s", phone)
+    except Exception as exc:
+        logger.error("Failed to activate whatsapp alerts for %s: %s", phone, exc)
 
 
 async def _store_webhook_log(

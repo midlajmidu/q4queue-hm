@@ -39,6 +39,9 @@ class TrackingResponse(BaseModel):
     queue_name: str
     org_name: str
     queue_is_active: bool
+    queue_is_paused: bool
+    open_time: Optional[str] = None
+    close_time: Optional[str] = None
     created_at: datetime
     served_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
@@ -61,7 +64,16 @@ async def track_token(
     from app.models.organization import Organization
 
     result = await db.execute(
-        select(Token, Queue.name, Queue.prefix, Queue.is_active, Organization.name)
+        select(
+            Token, 
+            Queue.name, 
+            Queue.prefix, 
+            Queue.is_active, 
+            Queue.is_paused, 
+            Queue.open_time,
+            Queue.close_time,
+            Organization.name
+        )
         .join(Queue, Token.queue_id == Queue.id)
         .join(Organization, Token.org_id == Organization.id)
         .where(Token.tracking_id == tracking_id)
@@ -74,7 +86,7 @@ async def track_token(
             detail="Token not found",
         )
 
-    token, queue_name, queue_prefix, queue_is_active, org_name = row
+    token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name = row
 
     # Calculate current position
     if token.status == TokenStatus.waiting:
@@ -103,6 +115,9 @@ async def track_token(
         queue_name=queue_name,
         org_name=org_name,
         queue_is_active=queue_is_active,
+        queue_is_paused=queue_is_paused,
+        open_time=open_time,
+        close_time=close_time,
         created_at=token.created_at,
         served_at=token.served_at,
         completed_at=token.completed_at,
@@ -145,10 +160,10 @@ async def leave_queue(
             queue_id=token.queue_id,
             org_id=token.org_id,
         )
-        # WhatsApp: customer left voluntarily
+        from app.services.notification_service import notify_queue_event
         background_tasks.add_task(
             notify_queue_event,
-            event_type="test_notification_v2",
+            event_type="queue_removed_v2",
             org_id=token.org_id,
             token_id=token.id,
             queue_id=token.queue_id,
@@ -157,7 +172,7 @@ async def leave_queue(
             token_number=token.token_number,
             token_prefix=queue_prefix,
             queue_name=queue_name,
-            tracking_id=str(tracking_id),
+            tracking_id=str(getattr(token, "tracking_id", "")),
             session_id=session_id,
         )
         return {"status": "cancelled", "token_number": updated.token_number}

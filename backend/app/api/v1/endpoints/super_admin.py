@@ -318,7 +318,7 @@ async def super_admin_login(
     """Authenticate a super admin by email + password only (no org slug required)."""
     client_ip = request.client.host if request.client else "unknown"
     try:
-        token = await authenticate_super_admin(db, email=body.email, plain_password=body.password)
+        token, user = await authenticate_super_admin(db, email=body.email, plain_password=body.password)
     except ValueError as exc:
         logger.warning("Super-admin login failed | ip=%s", client_ip)
         raise HTTPException(

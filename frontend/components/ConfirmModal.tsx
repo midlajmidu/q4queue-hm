@@ -8,6 +8,7 @@ interface Props {
     message: string;
     confirmLabel?: string;
     confirmVariant?: "danger" | "primary" | "warning";
+    cancelLabel?: string;
     onConfirm: () => void;
     onCancel: () => void;
     isLoading?: boolean;
@@ -21,6 +22,7 @@ export default function ConfirmModal({
     message,
     confirmLabel = "Confirm",
     confirmVariant = "danger",
+    cancelLabel = "Cancel",
     onConfirm,
     onCancel,
     isLoading = false,
@@ -128,9 +130,9 @@ export default function ConfirmModal({
                         onClick={onCancel}
                         disabled={isLoading}
                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                        aria-label="Cancel"
+                        aria-label={cancelLabel}
                     >
-                        Cancel
+                        {cancelLabel}
                     </button>
                     <button
                         onClick={onConfirm}

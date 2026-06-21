@@ -120,6 +120,8 @@ async def send_whatsapp_message(
     queue_id: Optional[uuid.UUID] = None,
     customer_name: Optional[str] = None,
     session_id: Optional[uuid.UUID] = None,
+    is_raw_text: bool = False,
+    raw_body: Optional[str] = None,
 ) -> None:
     """
     Main entry point for sending a WhatsApp message.
@@ -136,17 +138,24 @@ async def send_whatsapp_message(
             return
 
         template_name = None
+        template_language = "en"
         rendered_body = None
-        if event_type == "test":
+        
+        if is_raw_text and raw_body:
+            rendered_body = raw_body
+        elif event_type == "test":
             rendered_body = variables[0] if variables else "Test notification"
             template_name = "test_notification_v2"
         else:
             # Get template
-            template_name, rendered_body, err = await get_rendered_template(event_type, variables)
-            if err:
+            template_obj, rendered_body, err = await get_rendered_template(event_type, variables)
+            if err or not template_obj:
                 logger.warning("WhatsApp template error | event=%s err=%s", event_type, err)
                 template_name = f"fallback_{event_type}"
                 rendered_body = f"Event: {event_type} | Variables: {variables}"
+            else:
+                template_name = template_obj.template_name
+                template_language = template_obj.language
 
         # Store message record (status=pending)
         msg = await _store_message(
@@ -175,19 +184,33 @@ async def send_whatsapp_message(
             )
             return
 
-        # TEMPORARY OVERRIDE FOR TESTING (using free-form text)
-        # Meta blocks the 'hello_world' template on real business numbers.
-        # So we send a standard text message. (NOTE: This requires the customer to message the business first to open the 24h window).
         payload = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
             "to": phone_normalized.lstrip("+"),
-            "type": "text",
-            "text": {
-                "preview_url": False,
-                "body": f"[Test Mode] {rendered_body}"
-            },
         }
+        
+        if is_raw_text and raw_body:
+            payload["type"] = "text"
+            payload["text"] = {
+                "preview_url": True,
+                "body": raw_body
+            }
+        else:
+            components = []
+            if variables:
+                components.append({
+                    "type": "body",
+                    "parameters": [{"type": "text", "text": str(v)} for v in variables]
+                })
+
+            payload["type"] = "template"
+            payload["template"] = {
+                "name": template_name,
+                "language": {"code": template_language},
+            }
+            if components:
+                payload["template"]["components"] = components
 
         url = f"{META_API_BASE}/{api_version}/{phone_number_id}/messages"
         headers = {

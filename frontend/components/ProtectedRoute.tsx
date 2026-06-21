@@ -5,16 +5,33 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRouter, usePathname } from "next/navigation";
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-    const { isAuthenticated, isLoading, isHydrated } = useAuth();
+    const { user, isAuthenticated, isLoading, isHydrated } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
 
     useEffect(() => {
         // Only redirect if hydration is complete and we know for sure they aren't authenticated
-        if (isHydrated && !isLoading && !isAuthenticated) {
-            router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+        if (isHydrated && !isLoading) {
+            if (!isAuthenticated) {
+                router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+                return;
+            }
+
+            // Global Guard: Intercept active sessions that still require a password change
+            const currentUser = user;
+            if (currentUser && currentUser.is_first_login) {
+                const isAlreadyOnChangePassword = pathname.endsWith("/change-password");
+                if (!isAlreadyOnChangePassword) {
+                    if (currentUser.org_slug) {
+                        router.replace(`/${currentUser.org_slug}/change-password`);
+                    } else {
+                        router.replace('/super-admin/change-password');
+                    }
+                    return;
+                }
+            }
         }
-    }, [isHydrated, isAuthenticated, isLoading, router, pathname]);
+    }, [isHydrated, isAuthenticated, isLoading, router, pathname, user]);
 
     if (!isHydrated || isLoading || !isAuthenticated) {
         return (

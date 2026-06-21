@@ -27,3 +27,7 @@ class TokenResponse(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
+    force_password_change: bool = False
+
+class ChangeFirstPasswordRequest(BaseModel):
+    new_password: str = Field(..., min_length=8)

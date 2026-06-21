@@ -53,6 +53,7 @@ import type {
     SystemAnnouncementUpdate,
     SystemAnnouncementDetail,
     ChangePasswordRequest,
+    ChangeFirstPasswordRequest,
     RequestOtpRequest,
     ResetPasswordRequest,
     SuccessResponse,
@@ -185,6 +186,27 @@ async function request<T>(
             }
         }
 
+        // 403 → intercept force_password_change
+        if (resp.status === 403 && rawDetail === "force_password_change") {
+            if (typeof window !== "undefined") {
+                const isAlreadyOnChangePassword = window.location.pathname.endsWith("/change-password");
+                if (!isAlreadyOnChangePassword) {
+                    // Try to extract orgSlug from URL if possible, otherwise fallback to super-admin
+                    const pathParts = window.location.pathname.split('/');
+                    if (pathParts[1] === 'super-admin') {
+                        window.location.href = '/super-admin/change-password';
+                    } else {
+                        const orgSlug = pathParts.length > 1 && pathParts[1] ? pathParts[1] : 'super-admin';
+                        if (orgSlug === 'super-admin') {
+                            window.location.href = `/super-admin/change-password`;
+                        } else {
+                            window.location.href = `/${orgSlug}/change-password`;
+                        }
+                    }
+                }
+            }
+        }
+
         // 429 → extract Retry-After
         if (resp.status === 429) {
             const ra = resp.headers.get("Retry-After");
@@ -211,6 +233,13 @@ export const api = {
     // ── Auth ─────────────────────────────────────────────────────
     login(data: LoginRequest): Promise<TokenResponse> {
         return request<TokenResponse>("/auth/login", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    changeFirstPassword(data: ChangeFirstPasswordRequest): Promise<TokenResponse> {
+        return request<TokenResponse>("/auth/change-first-password", {
             method: "POST",
             body: JSON.stringify(data),
         });

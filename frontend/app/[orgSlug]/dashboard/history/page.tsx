@@ -6,6 +6,8 @@ import type { SessionResponse, QueueResponse, TokenHistoryItem, AnalyticsOvervie
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { StandardPageHeader } from "@/components/StandardPageHeader";
+import TokenDetailModal from "@/components/TokenDetailModal";
+import type { TokenDetailData } from "@/components/TokenDetailModal";
 
 function formatDate(dateStr: string): string {
     return new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", {
@@ -134,6 +136,9 @@ export default function HistoryPage() {
     const [queues, setQueues] = useState<QueueResponse[]>([]);
     const [selectedSessionId, setSelectedSessionId] = useState<string>("");
     const [selectedQueueId, setSelectedQueueId] = useState<string>("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [selectedToken, setSelectedToken] = useState<TokenDetailData | null>(null);
     const [history, setHistory] = useState<TokenHistoryItem[]>([]);
     const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
     const [total, setTotal] = useState(0);
@@ -142,7 +147,40 @@ export default function HistoryPage() {
     const [secondsAgo, setSecondsAgo] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [exporting, setExporting] = useState(false);
     const PAGE_SIZE = 20;
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+            setOffset(0);
+        }, 400);
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
+
+    const handleExport = async () => {
+        setExporting(true);
+        try {
+            const blob = await api.exportAnalyticsCSV({
+                sessionId: selectedSessionId || undefined,
+                queueId: selectedQueueId || undefined,
+                search: debouncedSearch || undefined,
+            });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `Queue_History.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (err) {
+            console.error("Failed to export CSV", err);
+            alert("Failed to export data.");
+        } finally {
+            setExporting(false);
+        }
+    };
 
     useEffect(() => {
         api.listSessions(100, 0).then(res => {
@@ -170,6 +208,7 @@ export default function HistoryPage() {
                 api.getHistory({
                     sessionId: selectedSessionId || undefined,
                     queueId: selectedQueueId || undefined,
+                    search: debouncedSearch || undefined,
                     limit: PAGE_SIZE,
                     offset
                 }),
@@ -186,7 +225,7 @@ export default function HistoryPage() {
             if (!isSilent) setIsLoading(false);
             setIsRefreshing(false);
         }
-    }, [selectedSessionId, selectedQueueId, offset]);
+    }, [selectedSessionId, selectedQueueId, offset, debouncedSearch]);
 
     useEffect(() => { 
         loadHistory(); 
@@ -249,12 +288,29 @@ export default function HistoryPage() {
                     /* Filters */
                     <div style={{ display: "flex", gap: 12 }}>
                     <div>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 6 }}>Search</p>
+                      <div style={{ position: "relative" }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input
+                          type="text"
+                          placeholder="Search..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          style={{
+                              ...selectStyle,
+                              paddingLeft: 34,
+                              width: 160
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div>
                       <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 6 }}>Session</p>
                       <div style={{ position: "relative" }}>
                         <select value={selectedSessionId} onChange={e => setSelectedSessionId(e.target.value)} style={selectStyle}>
                           <option value="">All Sessions</option>
                           {sessions.map(s => (
-                            <option key={s.id} value={s.id}>{formatDate(s.session_date)} {s.title ? `(${s.title})` : ""}</option>
+                            <option key={s.id} value={s.id}>{formatDate(s.session_date)}</option>
                           ))}
                         </select>
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><polyline points="6 9 12 15 18 9" /></svg>
@@ -270,6 +326,40 @@ export default function HistoryPage() {
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><polyline points="6 9 12 15 18 9" /></svg>
                       </div>
                     </div>
+                    
+                    <button
+                        onClick={handleExport}
+                        disabled={exporting}
+                        style={{
+                            height: 38,
+                            padding: "0 16px",
+                            borderRadius: 8,
+                            background: "#4f46e5",
+                            color: "#fff",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            border: "none",
+                            cursor: exporting ? "not-allowed" : "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            opacity: exporting ? 0.7 : 1,
+                            transition: "all .15s",
+                            alignSelf: "flex-end"
+                        }}
+                    >
+                        {exporting ? (
+                            <>
+                                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
+                                Exporting...
+                            </>
+                        ) : (
+                            <>
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                Export CSV
+                            </>
+                        )}
+                    </button>
                   </div>
                 }
               >
@@ -322,6 +412,7 @@ export default function HistoryPage() {
                                     <th style={thStyle}>Created</th>
                                     <th style={thStyle}>Served</th>
                                     <th style={thStyle}>Finished</th>
+                                    <th style={thStyle}></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -329,7 +420,7 @@ export default function HistoryPage() {
                                     Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
                                 ) : history.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} style={{ padding: "64px 24px", textAlign: "center" }}>
+                                        <td colSpan={8} style={{ padding: "64px 24px", textAlign: "center" }}>
                                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
                                             <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#f8fafc", border: "0.5px solid #e8edf2", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                               <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
@@ -353,30 +444,53 @@ export default function HistoryPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    history.map((item) => (
-                                        <tr key={item.id} className="hover:bg-[#fafbfe] dark:hover:bg-slate-800/50 transition-colors">
-                                            <td className="text-indigo-600 dark:text-indigo-400" style={{ ...tdStyle, fontWeight: 700 }}>{item.queue_prefix}{item.token_number}</td>
+                                    history.map((h) => (
+                                        <tr key={h.id} className="hover:bg-[#fafbfe] dark:hover:bg-slate-800/50 transition-colors">
+                                            <td className="text-indigo-600 dark:text-indigo-400" style={{ ...tdStyle, fontWeight: 700 }}>{h.queue_prefix}{h.token_number}</td>
                                             <td style={tdStyle}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                                  <Avatar name={item.customer_name ? item.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : ""} />
+                                                  <Avatar name={h.customer_name ? h.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : ""} />
                                                   <div style={{ display: "flex", flexDirection: "column" }}>
                                                     <span style={{ fontWeight: 600 }}>
-                                                      {item.customer_name ? item.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : '-'}
-                                                      {(item.companion_names && item.companion_names.length > 0) && (
+                                                      {h.customer_name ? h.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : '-'}
+                                                      {(h.companion_names && h.companion_names.length > 0) && (
                                                           <span style={{ fontWeight: 400, color: "#6366f1", marginLeft: 4, textTransform: "none" }}>
-                                                              (+ {item.companion_names.join(", ")})
+                                                              (+ {h.companion_names.join(", ")})
                                                           </span>
                                                       )}
                                                     </span>
-                                                    <span style={{ fontSize: 11, color: "#94a3b8" }}>{item.customer_phone}</span>
+                                                    <span style={{ fontSize: 11, color: "#94a3b8" }}>{h.customer_phone}</span>
                                                   </div>
                                                 </div>
                                             </td>
-                                            <td style={{ ...tdStyle, color: "#64748b" }}>{item.queue_name}</td>
-                                            <td style={tdStyle}><StatusBadge status={item.status} /></td>
-                                            <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(item.created_at)}</td>
-                                            <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(item.served_at)}</td>
-                                            <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(item.completed_at)}</td>
+                                            <td style={{ ...tdStyle, color: "#64748b" }}>{h.queue_name}</td>
+                                            <td style={tdStyle}><StatusBadge status={h.status} /></td>
+                                            <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(h.created_at)}</td>
+                                            <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(h.served_at)}</td>
+                                            <td style={tdStyle}>{formatTime(h.completed_at)}</td>
+                                            <td style={{ ...tdStyle, textAlign: "right" }}>
+                                                <button
+                                                    onClick={() => setSelectedToken({
+                                                        token_number: h.token_number,
+                                                        prefix: h.queue_prefix || "",
+                                                        customer_name: h.customer_name,
+                                                        customer_age: h.customer_age,
+                                                        customer_phone: h.customer_phone,
+                                                        companion_names: h.companion_names || [],
+                                                        status: h.status,
+                                                        created_at: h.created_at,
+                                                        served_at: h.served_at,
+                                                        completed_at: h.completed_at,
+                                                        entry_type: "qr", // Fallback for history
+                                                        queue_name: h.queue_name
+                                                    })}
+                                                    style={{ padding: "6px", background: "transparent", border: "1px solid #e2e8f0", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
+                                                    onMouseEnter={e => { e.currentTarget.style.color = "#4f46e5"; e.currentTarget.style.borderColor = "#4f46e5"; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.color = "inherit"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+                                                >
+                                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))
                                 )}
@@ -386,6 +500,11 @@ export default function HistoryPage() {
                     <Pagination total={total} limit={PAGE_SIZE} offset={offset} onChange={setOffset} />
                 </div>
             </div>
+
+            <TokenDetailModal 
+                token={selectedToken} 
+                onClose={() => setSelectedToken(null)} 
+            />
             <style>{`
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 @keyframes pulse {

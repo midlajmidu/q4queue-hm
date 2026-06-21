@@ -15,10 +15,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.deps import get_db
-from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.auth import LoginRequest, TokenResponse, ChangeFirstPasswordRequest
 from app.services.auth_service import authenticate_user
 from app.middleware.rate_limiter import login_rate_limit
 from app.audit.service import record_event
+from app.core.deps import get_current_user
+from app.core.security import hash_password, create_access_token
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +51,7 @@ async def login(
     user_agent = request.headers.get("user-agent", "unknown")
 
     try:
-        token = await authenticate_user(
+        token, user = await authenticate_user(
             db,
             email=body.email,
             plain_password=body.password,
@@ -71,4 +74,60 @@ async def login(
         ip_address=client_ip,
         details={"email": body.email, "org_slug": body.organization_slug, "user_agent": user_agent},
     )
-    return TokenResponse(access_token=token)
+    return TokenResponse(
+        access_token=token,
+        force_password_change=user.is_first_login
+    )
+
+
+@router.post(
+    "/change-first-password",
+    response_model=TokenResponse,
+    summary="Change First-Time Password",
+)
+async def change_first_password(
+    body: ChangeFirstPasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Allows a user whose is_first_login == True to set their new password.
+    After this, is_first_login is set to False, and a new JWT is issued.
+    """
+    if not current_user.is_first_login:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password has already been changed."
+        )
+
+    current_user.password_hash = hash_password(body.new_password)
+    current_user.is_first_login = False
+    
+    await db.commit()
+    
+    # Issue a fresh token because the old one has `is_first_login=True` in payload
+    # Let's load organization explicitly
+    from app.models.organization import Organization
+    from sqlalchemy import select
+    org_slug, org_name, org_logo_url = None, None, None
+    if current_user.org_id:
+        org_res = await db.execute(select(Organization).where(Organization.id == current_user.org_id))
+        org = org_res.scalar_one_or_none()
+        if org:
+            org_slug, org_name, org_logo_url = org.slug, org.name, org.logo_url
+            
+    token = create_access_token(
+        user_id=str(current_user.id),
+        org_id=str(current_user.org_id) if current_user.org_id else None,
+        role=current_user.role,
+        email=current_user.email,
+        org_slug=org_slug,
+        org_name=org_name,
+        org_logo_url=org_logo_url,
+        is_first_login=False,
+    )
+    
+    return TokenResponse(
+        access_token=token,
+        force_password_change=False
+    )

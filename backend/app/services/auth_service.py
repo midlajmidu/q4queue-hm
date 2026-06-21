@@ -28,9 +28,9 @@ async def authenticate_user(
     email: str,
     plain_password: str,
     org_slug: str,
-) -> str:
+) -> tuple[str, User]:
     """
-    Validate credentials for a specific organization and return a JWT.
+    Validate credentials for a specific organization and return a JWT and User.
 
     Flow:
       1. Find org by slug
@@ -90,12 +90,11 @@ async def authenticate_user(
         org_slug=org.slug,
         org_name=org.name,
         org_logo_url=org.logo_url,
+        is_first_login=user.is_first_login,
     )
 
     logger.info("Login successful | user_id=%s org=%s role=%s", user.id, org_slug, user.role)
-    return token
-
-
+    return token, user
 
 
 async def authenticate_super_admin(
@@ -103,7 +102,7 @@ async def authenticate_super_admin(
     *,
     email: str,
     plain_password: str,
-) -> str:
+) -> tuple[str, User]:
     """
     Authenticate a global super admin (no organization attached).
     Super admins are identified by role == 'super_admin' and org_id IS NULL.
@@ -139,6 +138,7 @@ async def authenticate_super_admin(
         org_id=None,
         role=user.role,
         email=user.email,
+        is_first_login=user.is_first_login,
     )
     logger.info("Super-admin login successful | user_id=%s", user.id)
-    return token
+    return token, user
