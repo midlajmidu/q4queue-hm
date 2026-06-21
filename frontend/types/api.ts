@@ -76,6 +76,8 @@ export interface SessionResponse {
     created_at: string;
     queue_count: number;
     queue_names: string[];
+    total_served: number;
+    total_issued: number;
 }
 
 export interface PaginatedSessionResponse {

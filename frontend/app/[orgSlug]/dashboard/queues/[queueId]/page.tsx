@@ -277,6 +277,12 @@ const QD_STYLES = `
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
 
+  /* ── Empty state ── */
+  @keyframes float-gentle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
   /* ── Control Panels ── */
   .qd-control-panel {
     border-radius: 8px;
@@ -377,7 +383,7 @@ export default function QueueDetailPage({ params }: PageProps) {
         });
     }, []);
 
-    const { state, status } = useQueueSocket(queueId, { 
+    const { state, status, refresh } = useQueueSocket(queueId, { 
         token: token || undefined,
         onNewCustomer: handleNewCustomer 
     });
@@ -827,6 +833,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                                 Reset
                                             </button>
+                                            <button
+                                                onClick={refresh}
+                                                className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+                                                title="Manually fetch latest state"
+                                            >
+                                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5" /></svg>
+                                                Refresh
+                                            </button>
                                             <a
                                                 href={`/display/${queueId}`}
                                                 target="_blank"
@@ -861,9 +875,37 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
 
                                             {/* Token Number */}
-                                            <div className="serving-num text-slate-900 dark:text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]" style={{ fontSize: "clamp(72px,11vw,116px)", position: "relative", zIndex: 1 }} aria-live="polite" aria-atomic="true">
-                                                {state?.prefix || ""}{state?.current_serving || 0}
-                                            </div>
+                                            {(!state?.current_serving || state.current_serving === 0) ? (
+                                                <div className="relative z-10 flex flex-col items-center justify-center py-4" style={{ minHeight: 140 }}>
+
+                                                    {/* Floating ticket icon */}
+                                                    <div style={{ animation: 'float-gentle 3s ease-in-out infinite', marginBottom: 20 }}>
+                                                        <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(145deg, #eef2ff, #e0e7ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(99,102,241,0.12), 0 8px 24px rgba(99,102,241,0.06)' }}>
+                                                            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" style={{ color: '#6366f1' }}>
+                                                                <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Title + subtitle */}
+                                                    <span className="text-slate-800 dark:text-slate-200" style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 6 }}>
+                                                        No one is being served
+                                                    </span>
+                                                    <span className="text-slate-400 dark:text-slate-500" style={{ fontSize: 13, fontWeight: 500, marginBottom: 16 }}>
+                                                        Your counter is ready for the next customer
+                                                    </span>
+
+                                                    {/* Shortcut hint */}
+                                                    <div className="flex items-center gap-1.5" style={{ fontSize: 12, fontWeight: 500 }}>
+                                                        <span className="text-slate-400">Shortcut:</span>
+                                                        <kbd className="text-slate-600 dark:text-slate-300" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '2px 8px', borderRadius: 5, background: '#f1f5f9', border: '1px solid #e2e8f0', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', boxShadow: '0 1px 0 #e2e8f0' }}>Enter ↵</kbd>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="serving-num text-slate-900 dark:text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]" style={{ fontSize: "clamp(72px,11vw,116px)", position: "relative", zIndex: 1 }} aria-live="polite" aria-atomic="true">
+                                                    {`${state.prefix || ""}${state.current_serving}`}
+                                                </div>
+                                            )}
 
                                             {/* Customer Details */}
                                             {state?.serving_details && (

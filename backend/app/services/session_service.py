@@ -9,11 +9,12 @@ import uuid
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.session import Session
 from app.models.queue import Queue
+from app.models.token import Token, TokenStatus
 from app.models.organization import Organization
 from app.schemas.session import SessionCreate, SessionResponse
 from app.schemas.queue import QueueCreate
@@ -79,7 +80,7 @@ async def list_sessions(
     offset: int = 0,
     session_date: Optional[date] = None,
 ) -> dict:
-    """List all sessions for an org, newest first, with queue counts."""
+    """List all sessions for an org, newest first, with queue counts and real stats."""
     # Subquery: count queues and collect names per session
     queue_agg_sq = (
         select(
@@ -87,6 +88,20 @@ async def list_sessions(
             func.count(Queue.id).label("queue_count"),
             func.array_agg(Queue.name).label("queue_names")
         )
+        .where(Queue.org_id == org_id)
+        .group_by(Queue.session_id)
+        .subquery()
+    )
+
+    # Subquery: token stats per session (via queue)
+    token_agg_sq = (
+        select(
+            Queue.session_id.label("session_id"),
+            func.sum(case((Token.status == TokenStatus.done, 1), else_=0)).label("total_served"),
+            func.count(Token.id).label("total_issued"),
+        )
+        .select_from(Queue)
+        .join(Token, Token.queue_id == Queue.id)
         .where(Queue.org_id == org_id)
         .group_by(Queue.session_id)
         .subquery()
@@ -103,9 +118,12 @@ async def list_sessions(
     base_query = select(
         Session, 
         func.coalesce(queue_agg_sq.c.queue_count, 0).label("queue_count"),
-        queue_agg_sq.c.queue_names.label("queue_names")
+        queue_agg_sq.c.queue_names.label("queue_names"),
+        func.coalesce(token_agg_sq.c.total_served, 0).label("total_served"),
+        func.coalesce(token_agg_sq.c.total_issued, 0).label("total_issued"),
     )
     base_query = base_query.outerjoin(queue_agg_sq, queue_agg_sq.c.session_id == Session.id)
+    base_query = base_query.outerjoin(token_agg_sq, token_agg_sq.c.session_id == Session.id)
     base_query = base_query.where(Session.org_id == org_id)
     if session_date:
         base_query = base_query.where(Session.session_date == session_date)
@@ -124,6 +142,8 @@ async def list_sessions(
             created_at=row.Session.created_at,
             queue_count=row.queue_count,
             queue_names=row.queue_names or [],
+            total_served=row.total_served,
+            total_issued=row.total_issued,
         )
         for row in rows
     ]

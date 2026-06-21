@@ -22,6 +22,8 @@ class SessionResponse(BaseModel):
     created_at: datetime
     queue_count: int = 0
     queue_names: list[str] = []
+    total_served: int = 0
+    total_issued: int = 0
 
     model_config = {"from_attributes": True}
 

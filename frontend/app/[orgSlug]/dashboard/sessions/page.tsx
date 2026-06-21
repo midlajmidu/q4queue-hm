@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, Plus, Layers, Users, Clock } from "lucide-react";
+import { ChevronRight, Plus, Layers, Users } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -302,8 +302,7 @@ export default function SessionsPage() {
                                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                         {group.sessions.map((session) => {
                                             const today = isToday(session.session_date);
-                                            const served = session.queue_count > 0 ? (session.queue_count * 15 + 12) : 0;
-                                            const avgWait = session.queue_count > 0 ? "12m" : "—";
+                                            const served = session.total_served ?? 0;
                                             return (
                                                 <Link
                                                     key={session.id}
@@ -351,11 +350,6 @@ export default function SessionsPage() {
                                                             <span className="flex items-center gap-1.5">
                                                                 <Users className="w-4 h-4 text-sky-500" strokeWidth={2} />
                                                                 <span>{served} Served</span>
-                                                            </span>
-                                                            {/* Avg Wait */}
-                                                            <span className="flex items-center gap-1.5">
-                                                                <Clock className="w-4 h-4 text-violet-500" strokeWidth={2} />
-                                                                <span>{avgWait}</span>
                                                             </span>
                                                         </div>
 

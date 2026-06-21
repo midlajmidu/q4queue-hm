@@ -160,7 +160,7 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                                 {queue.prefix}
                             </div>
                             <span className="text-2xl font-black text-slate-900 tracking-tight">
-                                {queue.current_token_number}
+                                {queue.current_token_number < queue.starting_sequence ? "—" : queue.current_token_number}
                             </span>
                         </div>
                         <div className="flex items-center gap-1.5 text-slate-600 mb-1">

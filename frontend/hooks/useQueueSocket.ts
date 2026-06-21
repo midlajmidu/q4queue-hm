@@ -14,6 +14,7 @@ interface UseQueueSocketReturn {
     state: QueueSnapshot | null;
     status: ConnectionStatus;
     error: string | null;
+    refresh: () => void;
 }
 
 export function useQueueSocket(
@@ -46,6 +47,12 @@ export function useQueueSocket(
         setError("Connection error. Reconnecting...");
     }, []);
 
+    const refresh = useCallback(() => {
+        if (wsRef.current) {
+            wsRef.current.connect();
+        }
+    }, []);
+
     useEffect(() => {
         if (!queueId || !enabled) return;
 
@@ -67,5 +74,5 @@ export function useQueueSocket(
         };
     }, [queueId, token, enabled, onNewCustomer, handleSnapshot, handleUpdate, handleStatus, handleError]);
 
-    return { state, status, error };
+    return { state, status, error, refresh };
 }
