@@ -364,7 +364,7 @@ async def create_token(
             # WhatsApp notification: customer joined via QR
             background_tasks.add_task(
                 notify_queue_event,
-                event_type="queue_joined_v2",
+                event_type="queue_joined_v4",
                 org_id=queue.org_id,
                 token_id=result.id,
                 queue_id=queue_id,
@@ -436,7 +436,7 @@ async def admin_join(
         if body.send_whatsapp:
             background_tasks.add_task(
                 notify_queue_event,
-                event_type="queue_joined_v2",
+                event_type="queue_joined_v4",
                 org_id=queue.org_id,
                 token_id=result.id,
                 queue_id=queue.id,

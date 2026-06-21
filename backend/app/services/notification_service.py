@@ -35,22 +35,18 @@ def build_template_variables(
     organization_name: str,
     token_number: str,
     current_position: str,
+    display_url: str,
     tracking_url: str,
-    org_display_url: str,
 ) -> list[str]:
-    # Replace empty values with a single space
-    c_name = customer_name or " "
-    q_name = queue_name or " "
-    o_name = organization_name or " "
-    t_num = token_number or " "
-    pos = str(current_position) if current_position else "0"
-    
-    # URL strings
-    t_url = tracking_url if tracking_url else " "
-    o_url = org_display_url if org_display_url else " "
-
-    # 1: Customer Name, 2: Queue Name, 3: Org Name, 4: Token Number, 5: Position, 6: Org Display URL, 7: Tracking URL
-    return [c_name, q_name, o_name, t_num, pos, o_url, t_url]
+    return [
+        customer_name or "",
+        queue_name or "",
+        organization_name or "",
+        token_number or "",
+        str(current_position) if current_position else "0",
+        display_url or "",
+        tracking_url or ""
+    ]
 
 
 # ── Main Dispatcher ───────────────────────────────────────────────────────────
@@ -75,8 +71,9 @@ async def notify_queue_event(
     Dispatch a WhatsApp notification for a queue event.
     Fire-and-forget — call with BackgroundTasks.add_task().
 
-    event_type values (v2):
-      queue_joined_v2
+    event_type values (v4):
+      queue_joined_v4
+      queue_nearby_5_v2
       queue_nearby_3_v2
       queue_called_v2
       queue_skipped_v2
@@ -94,7 +91,7 @@ async def notify_queue_event(
             return
 
         # Check granular toggles based on event type
-        if event_type == "queue_joined_v2" and not cfg.get("notify_queue_joined", True):
+        if event_type == "queue_joined_v4" and not cfg.get("notify_queue_joined", True):
             return
         if event_type == "queue_nearby_3_v2" and not cfg.get("notify_position_3", True):
             return
@@ -103,6 +100,21 @@ async def notify_queue_event(
         if event_type == "queue_completed_v2" and not cfg.get("notify_completed", True):
             return
         # skipped and removed don't have toggles yet, we just allow them if globally enabled
+
+        # 1.5 Check 24-hour service window opt-in (skip alerts if not opted-in)
+        if event_type != "queue_joined_v4" and event_type != "test_notification_v2" and token_id:
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(select(Token).where(Token.id == token_id))
+                token_obj = result.scalar_one_or_none()
+                if not token_obj:
+                    return
+                if not token_obj.whatsapp_alerts_active:
+                    logger.debug("Skipping %s: token %s has not opted into WhatsApp alerts", event_type, token_id)
+                    return
+                now = datetime.now(timezone.utc)
+                if not token_obj.whatsapp_window_expires_at or token_obj.whatsapp_window_expires_at < now:
+                    logger.debug("Skipping %s: WhatsApp 24h window expired for token %s", event_type, token_id)
+                    return
 
         # 2. Validate phone
         phone = customer_phone.strip()
@@ -118,7 +130,7 @@ async def notify_queue_event(
         raw_body = None
         variables = []
 
-        if event_type == "queue_joined_v2":
+        if event_type == "queue_joined_v4":
             # Primary Welcome Template (Template 1)
             # Need to get org_display_id (which could be the org_id or slug). Here we'll just use org_id as slug placeholder.
             org_display_id = str(org_id)
@@ -127,17 +139,19 @@ async def notify_queue_event(
             from app.core.config import get_settings
             settings = get_settings()
             frontend_url = getattr(settings, "FRONTEND_URL", "https://q4q.in").rstrip("/")
-            track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else " "
+            track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
             display_url = f"{frontend_url}/d/{org_display_id}"
+            
+            org_name_to_use = organization_name if organization_name else queue_name
             
             variables = build_template_variables(
                 customer_name=customer_name,
                 queue_name=queue_name,
-                organization_name=organization_name,
+                organization_name=org_name_to_use,
                 token_number=token_str,
                 current_position=str(position),
                 tracking_url=track_url,
-                org_display_url=display_url,
+                display_url=display_url,
             )
         else:
             # Events B, C, D, E require whatsapp_alerts_active check

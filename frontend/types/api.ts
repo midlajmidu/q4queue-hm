@@ -162,6 +162,8 @@ export interface JoinResponse {
     queue_prefix: string;
     session_id: string;  // session the token was created in
     is_existing?: boolean; // True if this was an already-active token (duplicate phone)
+    tracking_id?: string;
+
 }
 
 export interface TokenRestoreResponse {
@@ -175,6 +177,7 @@ export interface TokenRestoreResponse {
     customer_age: number | null;
     customer_phone: string;
     companion_names: string[];
+    tracking_id: string;
     created_at: string;
     served_at: string | null;
     completed_at: string | null;
@@ -599,9 +602,9 @@ export interface PaginatedHistoryResponse {
     limit: number;
     offset: number;
 }
-export interface GlobalQueueDetail { id: string; organization: string; queue_name: string; current_position: number; customers_waiting: number; average_wait_time: string; staff_handling: number; status: string; } 
-export interface GlobalQueueResponse { 
-    items: GlobalQueueDetail[]; 
+export interface GlobalQueueDetail { id: string; organization: string; queue_name: string; current_position: number; customers_waiting: number; average_wait_time: string; staff_handling: number; status: string; }
+export interface GlobalQueueResponse {
+    items: GlobalQueueDetail[];
     total: number;
     page: number;
     pages: number;
@@ -780,10 +783,11 @@ export interface TrackingResponse {
     tracking_id: string;
     token_number: number;
     token_prefix: string;
-    status: string;
+    status: TokenStatus;
     position: number;
     queue_name: string;
     org_name: string;
+    queue_id: string;
     queue_is_active: boolean;
     queue_is_paused: boolean;
     open_time?: string | null;
