@@ -259,3 +259,26 @@ async def get_token_for_org(
             detail="Token not found",
         )
     return token
+
+async def get_admin_or_staff_queue_for_org(
+    queue_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_or_staff),
+) -> "Queue":
+    """
+    Same as get_queue_for_org but restricted to admin or staff users.
+    """
+    from app.models.queue import Queue as QueueModel
+    result = await db.execute(
+        select(QueueModel).where(
+            QueueModel.id == queue_id,
+            QueueModel.org_id == current_user.org_id,
+        )
+    )
+    queue = result.scalar_one_or_none()
+    if queue is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Queue not found",
+        )
+    return queue

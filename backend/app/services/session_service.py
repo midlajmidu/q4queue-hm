@@ -44,6 +44,10 @@ async def create_session(
                 f"Please delete old sessions to free up space or contact support to upgrade your plan."
             )
 
+    # ── Future date validation ──
+    if data.session_date > date.today():
+        raise ValueError("Cannot create sessions for future dates.")
+
     session = Session(
         org_id=org_id,
         session_date=data.session_date,

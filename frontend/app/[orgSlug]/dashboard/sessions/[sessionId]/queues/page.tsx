@@ -6,30 +6,39 @@ import { api, ApiError } from "@/lib/api";
 import type { QueueResponse, SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
 import QueueCard from "@/components/QueueCard";
-import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays } from "lucide-react";
+import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays, CalendarOff } from "lucide-react";
+import { toast } from "sonner";
 
 interface PageProps {
     params: Promise<{ sessionId: string }>;
 }
 
 function formatMonthDayYear(dateStr: string): string {
-    const d = new Date(dateStr + "T00:00:00");
+    const d = new Date(dateStr + "T12:00:00");
     return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
 function formatWeekday(dateStr: string): string {
-    const d = new Date(dateStr + "T00:00:00");
+    const d = new Date(dateStr + "T12:00:00");
     return d.toLocaleDateString("en-US", { weekday: "long" });
 }
 
 function isToday(dateStr: string): boolean {
-    return dateStr === new Date().toISOString().slice(0, 10);
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+    return dateStr === todayStr;
 }
 
 function shiftDate(dateStr: string, days: number): string {
-    const d = new Date(dateStr + "T00:00:00");
+    const d = new Date(dateStr + "T12:00:00");
     d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
 }
 
 export default function SessionQueuesPage({ params }: PageProps) {
@@ -77,13 +86,13 @@ export default function SessionQueuesPage({ params }: PageProps) {
         if (!isInitialLoading && queues.length >= 0) {
             const action = searchParams.get("action");
             if (action === "create") {
-                if (!isStaff) setShowCreate(true);
+                setShowCreate(true);
                 // Clear the URL
                 router.replace(`${dashBase}/sessions/${sessionId}/queues`);
             } else if (action === "qr") {
                 // For QR, we could show an alert or highlight the first queue's QR
                 // But if there are no queues, maybe show the create modal instead?
-                if (queues.length === 0 && !isStaff) {
+                if (queues.length === 0) {
                     setShowCreate(true);
                 }
                 router.replace(`${dashBase}/sessions/${sessionId}/queues`);
@@ -139,9 +148,22 @@ export default function SessionQueuesPage({ params }: PageProps) {
             const res = await api.listSessions(1, 0, targetDate);
             if (res.items.length > 0) {
                 router.push(`${dashBase}/sessions/${res.items[0].id}/queues`);
+            } else {
+                toast.custom((t) => (
+                    <div className="flex w-max max-w-[400px] mx-auto items-center gap-3 rounded-full bg-white px-4 py-2.5 shadow-[0_4px_24px_rgb(0,0,0,0.08)] border border-slate-200/60">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-400 border border-slate-100">
+                            <CalendarOff className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[13px] tracking-tight">
+                            <span className="font-semibold text-slate-700">No sessions scheduled</span>
+                            <span className="text-slate-400">for</span>
+                            <span className="font-semibold text-slate-700">{formatMonthDayYear(targetDate)}</span>
+                        </div>
+                    </div>
+                ), { duration: 3500, position: 'top-center' });
             }
         } catch {
-            // No session found for that date
+            toast.error(`Failed to load session for ${formatMonthDayYear(targetDate)}`);
         } finally {
             setDateNavLoading(false);
         }
@@ -318,7 +340,6 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                     </button>
                                 )}
                             </div>
-                            {!isStaff && (
                                 <button
                                     onClick={() => setShowCreate(true)}
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl h-9 px-4 shadow-sm shadow-indigo-500/10 transition-all duration-200 active:scale-[0.98] flex items-center gap-2 flex-shrink-0"
@@ -326,7 +347,6 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                     <Plus className="w-4 h-4" />
                                     New Queue
                                 </button>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -353,7 +373,6 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             <p className="text-sm text-gray-500 font-medium mb-8 max-w-xs mx-auto leading-relaxed">
                                 Add your first queue to start serving customers in this session.
                             </p>
-                            {!isStaff && (
                                 <button
                                     onClick={() => setShowCreate(true)}
                                     className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors duration-200 shadow-sm shadow-indigo-500/10 text-sm"
@@ -363,7 +382,6 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                     </svg>
                                     Create First Queue
                                 </button>
-                            )}
                         </div>
                     ) : (
                         <div className="flex flex-col gap-8">

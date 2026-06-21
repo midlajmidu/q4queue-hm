@@ -354,6 +354,13 @@ export const api = {
         });
     },
 
+    updateQueue(queueId: string, data: Partial<QueueCreate>): Promise<QueueResponse> {
+        return request<QueueResponse>(`/queues/${queueId}`, {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+
     toggleQueue(queueId: string, isActive: boolean): Promise<QueueResponse> {
         return request<QueueResponse>(`/queues/${queueId}/active?is_active=${isActive}`, {
             method: "PATCH",

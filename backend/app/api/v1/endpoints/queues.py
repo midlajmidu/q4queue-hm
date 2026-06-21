@@ -34,6 +34,7 @@ from app.core.deps import (
     get_current_admin,
     get_queue_for_org,
     get_admin_queue_for_org,
+    get_admin_or_staff_queue_for_org,
 )
 from app.db.deps import get_db
 from app.models.queue import Queue
@@ -44,6 +45,7 @@ from app.schemas.queue import (
     NextResponse,
     NoTokenResponse,
     QueueCreate,
+    QueueUpdate,
     QueueResponse,
     TokenResponse,
     AnnouncementUpdate,
@@ -146,6 +148,38 @@ async def list_tokens(
     return [TokenResponse.model_validate(t) for t in tokens]
 
 
+@router.put(
+    "/{queue_id}",
+    response_model=QueueResponse,
+    summary="Update Queue Details",
+)
+async def update_queue_details(
+    queue_id: uuid.UUID,
+    data: QueueUpdate,
+    db: AsyncSession = Depends(get_db),
+    queue: Queue = Depends(get_admin_or_staff_queue_for_org),
+) -> QueueResponse:
+    """
+    Update queue details like name, prefix, and timings.
+    SECURITY: queue ownership verified by dependency.
+    """
+    update_data = data.model_dump(exclude_unset=True)
+    if not update_data:
+        return QueueResponse.model_validate(queue)
+        
+    try:
+        updated = await queue_service.update_queue(
+            db,
+            queue_id=queue.id,
+            org_id=queue.org_id,
+            **update_data
+        )
+        return QueueResponse.model_validate(updated)
+    except Exception as e:
+        logger.error("Failed to update queue: %s", e)
+        raise HTTPException(status_code=400, detail="Failed to update queue")
+
+
 @router.patch(
     "/{queue_id}/active",
     response_model=QueueResponse,
@@ -154,7 +188,7 @@ async def list_tokens(
 async def toggle_queue_active(
     is_active: bool,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_admin_queue_for_org),
+    queue: Queue = Depends(get_admin_or_staff_queue_for_org),
 ) -> QueueResponse:
     """
     Activate or deactivate a queue.
@@ -178,7 +212,7 @@ async def toggle_queue_paused(
     is_paused: bool,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_admin_queue_for_org),
+    queue: Queue = Depends(get_admin_or_staff_queue_for_org),
 ) -> QueueResponse:
     """
     Pause or resume a queue.

@@ -1034,7 +1034,7 @@ export default function OverviewPage() {
                     <option value="">All Sessions</option>
                     {sessions.map(s => (
                       <option key={s.id} value={s.id}>
-                        {new Date(s.session_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {new Date(s.session_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         {s.title ? ` — ${s.title}` : ""}
                       </option>
                     ))}

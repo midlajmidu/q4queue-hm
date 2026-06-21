@@ -378,19 +378,19 @@ export default function QueueDetailPage({ params }: PageProps) {
                 </div>
             </div>
         ), {
-            duration: 6000,
+            duration: 4000,
             id: `customer-${data.token}`
         });
     }, []);
 
-    const { state, status, refresh } = useQueueSocket(queueId, { 
+    const { state, status, refresh } = useQueueSocket(queueId, {
         token: token || undefined,
-        onNewCustomer: handleNewCustomer 
+        onNewCustomer: handleNewCustomer
     });
 
     const [isMounted, setIsMounted] = useState(false);
-    useEffect(() => { 
-        setIsMounted(true); 
+    useEffect(() => {
+        setIsMounted(true);
     }, []);
 
     const [activeSection, setActiveSection] = useState<ActiveSection>("queues");
@@ -465,7 +465,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                 t.customer_phone?.includes(recentSearch)
             )
             : [...state.recent_tokens];
-            
+
         // Sort by most recently served (or completed/created) to show latest activity at the top
         return filtered.sort((a, b) => {
             const timeA = new Date(a.served_at || a.completed_at || a.created_at || 0).getTime();
@@ -725,10 +725,10 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                 {/* ── Refactored Sidebar ─────────────────────────────────── */}
                 <aside className="hidden md:flex flex-col bg-white border-r border-slate-200" style={{ width: 260, flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}>
-                    
+
                     {/* Top Container */}
                     <div className="p-4 flex flex-col h-full">
-                        
+
                         {/* 1. Top Action */}
                         <div className="pb-4 border-b border-slate-200 mb-4">
                             <Link
@@ -763,11 +763,10 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <button
                                         key={item.id}
                                         onClick={() => setActiveSection(item.id)}
-                                        className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all text-left ${
-                                            isActiveItem 
-                                                ? "font-bold text-indigo-700 bg-indigo-50" 
+                                        className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all text-left ${isActiveItem
+                                                ? "font-bold text-indigo-700 bg-indigo-50"
                                                 : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                                        }`}
+                                            }`}
                                     >
                                         <span className={`flex-shrink-0 ${isActiveItem ? "text-indigo-600" : "text-slate-400"}`}>
                                             {item.icon}
@@ -801,7 +800,16 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 {/* Header */}
                                 <div className="flex flex-row justify-between items-center w-full">
                                     <div>
-                                        <h1 className="qd-section-title text-gray-900 dark:text-white capitalize">{queueName}</h1>
+                                        <div className="flex items-center gap-3">
+                                            <h1 className="qd-section-title text-gray-900 dark:text-white capitalize">{queueName}</h1>
+                                            <button
+                                                onClick={refresh}
+                                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-all"
+                                                title="Refresh queue data"
+                                            >
+                                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5" /></svg>
+                                            </button>
+                                        </div>
                                         <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
                                             Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
                                         </p>
@@ -813,18 +821,18 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         )}
                                     </div>
 
-                                    {!isStaff && (
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                                            {isActive && (
-                                                <button
-                                                    onClick={handlePauseToggle}
-                                                    disabled={isDisabled || pausing}
-                                                    className={`bg-white border ${isPaused ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-50"} shadow-sm ring-1 ring-slate-900/5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2`}
-                                                >
-                                                    {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                                                    {isPaused ? "Resume" : "Take a Break"}
-                                                </button>
-                                            )}
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                        {isActive && (
+                                            <button
+                                                onClick={handlePauseToggle}
+                                                disabled={isDisabled || pausing}
+                                                className={`bg-white border ${isPaused ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-50"} shadow-sm ring-1 ring-slate-900/5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2`}
+                                            >
+                                                {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                                                {isPaused ? "Resume" : "Take a Break"}
+                                            </button>
+                                        )}
+                                        {!isStaff && (
                                             <button
                                                 onClick={() => setShowResetConfirm(true)}
                                                 disabled={isDisabled || resetting}
@@ -833,23 +841,18 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                                 Reset
                                             </button>
-                                            <button
-                                                onClick={refresh}
-                                                className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
-                                                title="Manually fetch latest state"
-                                            >
-                                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5" /></svg>
-                                                Refresh
-                                            </button>
-                                            <a
-                                                href={`/display/${queueId}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
-                                            >
-                                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                                                Display
-                                            </a>
+                                        )}
+
+                                        <a
+                                            href={`/display/${queueId}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+                                        >
+                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                            Display
+                                        </a>
+                                        {!isStaff && (
                                             <button
                                                 onClick={() => setShowDeleteConfirm(true)}
                                                 className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
@@ -857,8 +860,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                 Delete
                                             </button>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Main 2-col Grid */}
@@ -937,7 +940,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Issued</span>
                                                     </div>
                                                 </div>
-                                                
+
                                                 {/* Remaining (Waiting) */}
                                                 <div className="flex flex-col items-center justify-center bg-indigo-50/50 rounded-xl py-2 border border-indigo-50/50">
                                                     <span className="text-xl font-bold text-indigo-600">{state?.waiting_count ?? 0}</span>
@@ -1114,15 +1117,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             <div style={{ padding: "14px 18px 10px", borderBottom: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
                                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                                     <div className="flex gap-5 pt-1">
-                                                        <button 
-                                                            onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }} 
+                                                        <button
+                                                            onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }}
                                                             className={`flex items-center gap-2 text-[13px] font-bold pb-2 transition-colors ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                                         >
                                                             Waiting
                                                             <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.waiting_count ?? 0}</span>
                                                         </button>
-                                                        <button 
-                                                            onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }} 
+                                                        <button
+                                                            onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }}
                                                             className={`flex items-center gap-2 text-[13px] font-bold pb-2 transition-colors ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                                         >
                                                             Skipped
@@ -1370,6 +1373,10 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 historyPageSize={HISTORY_PAGE_SIZE}
                                 manuallyAddedTokens={manuallyAddedTokens}
                                 onViewToken={setSelectedToken}
+                                onRecallToken={(num, pfx) => performAction("recall", async () => {
+                                    const res = await api.serveSpecificToken(queueId, num);
+                                    toast(`Recalled ${pfx || ""}${res.serving}`, "success");
+                                })}
                             />
                         )}
 
@@ -1379,18 +1386,18 @@ export default function QueueDetailPage({ params }: PageProps) {
                         {activeSection === "waiting_list" && (
                             <div className="fade-in bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 p-6 shadow-sm min-h-[calc(100vh-120px)] flex flex-col">
                                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Waiting List</h2>
-                                
+
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                                     <div className="flex gap-5">
-                                        <button 
-                                            onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }} 
+                                        <button
+                                            onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }}
                                             className={`flex items-center gap-2 text-[14px] font-bold pb-2 transition-colors ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Waiting
                                             <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.waiting_count ?? 0}</span>
                                         </button>
-                                        <button 
-                                            onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }} 
+                                        <button
+                                            onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }}
                                             className={`flex items-center gap-2 text-[14px] font-bold pb-2 transition-colors ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Skipped
@@ -1404,7 +1411,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34 }} />
                                     </div>
                                 </div>
-                                
+
                                 <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden flex-1 flex flex-col">
                                     <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 px-4 py-3 grid grid-cols-12 gap-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                         <div className="col-span-3">Token</div>
@@ -1412,10 +1419,10 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div className="col-span-3">Wait Time</div>
                                         <div className="col-span-2 text-right">Actions</div>
                                     </div>
-                                    
+
                                     <div className="flex-1 overflow-y-auto min-h-[300px]">
                                         {(activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).map((t: WaitingToken, idx: number) => {
-                                            const waitMins = Math.floor((Date.now() - new Date(t.created_at).getTime()) / 60000);
+                                            const waitMins = Math.floor((Date.now() - new Date(t.created_at || Date.now()).getTime()) / 60000);
                                             return (
                                                 <div key={t.id} className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-slate-100 dark:border-white/5 items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                                     <div className="col-span-3 flex items-center gap-3">
@@ -1484,7 +1491,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
                                         )}
                                     </div>
-                                    
+
                                     {(activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length > PAGE_SIZE && (
                                         <div className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-white/10 px-4 py-3 flex items-center justify-between text-xs text-slate-500">
                                             <span>Showing {(activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).length} of {(activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length} tokens</span>
@@ -1504,7 +1511,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                         {activeSection === "recent_activity" && (
                             <div className="fade-in bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 p-6 shadow-sm min-h-[calc(100vh-120px)] flex flex-col">
                                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Recent Activity</h2>
-                                
+
                                 <div className="mb-4">
                                     <div style={{ position: "relative", maxWidth: 350 }}>
                                         <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 12, pointerEvents: "none" }}>
@@ -1528,7 +1535,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div className="py-12 text-center text-slate-500">No recent activity found.</div>
                                     )}
                                 </div>
-                                
+
                                 {filteredRecent.length > RECENT_PAGE_SIZE && (
                                     <div className="mt-6 pt-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between text-sm text-slate-500">
                                         <span>Showing {paginatedRecent.length} of {filteredRecent.length}</span>
@@ -1566,7 +1573,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="e.g. Jane Doe" maxLength={50} className={`w-full h-11 bg-slate-50 dark:bg-slate-950 border ${debouncedAddName.length > 0 && !/^[A-Za-z\\s'-]{2,50}$/.test(debouncedAddName.trim()) ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-indigo-500 focus:border-indigo-500'} rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 transition-all outline-none`} />
                                     {debouncedAddName.length > 0 && !/^[A-Za-z\\s'-]{2,50}$/.test(debouncedAddName.trim()) && (
                                         <p className="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01" /></svg>
                                             Please enter a valid name (letters only, min 2 chars).
                                         </p>
                                     )}
@@ -1602,9 +1609,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions(""); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
                                     Cancel
                                 </button>
-                                <button 
-                                    onClick={handleAddCustomer} 
-                                    disabled={!isAddNameValid || !addPhone.trim() || actionLoading === "add" || isPaused} 
+                                <button
+                                    onClick={handleAddCustomer}
+                                    disabled={!isAddNameValid || !addPhone.trim() || actionLoading === "add" || isPaused}
                                     className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
                                     {actionLoading === "add" ? (
@@ -1617,9 +1624,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                         </div>
                     </div>
                 )}
-                <TokenDetailModal 
-                    token={selectedToken} 
-                    onClose={() => setSelectedToken(null)} 
+                <TokenDetailModal
+                    token={selectedToken}
+                    onClose={() => setSelectedToken(null)}
                     onRecall={selectedToken ? () => performAction("recall", async () => {
                         const res = await api.serveSpecificToken(queueId, selectedToken.token_number);
                         toast(`Recalled ${state?.prefix || ""}${res.serving}`, "success");
@@ -1682,7 +1689,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {onView && (
                     <button
-                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queueName })}
+                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
                         style={{ padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
                         onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                         onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
@@ -1705,7 +1712,7 @@ function QueueHistory({
     historyTotal, setHistoryTotal,
     historyPage, setHistoryPage,
     historyLoading, setHistoryLoading,
-    historyPageSize, manuallyAddedTokens, onViewToken,
+    historyPageSize, manuallyAddedTokens, onViewToken, onRecallToken
 }: {
     queueId: string; queueName: string; prefix: string;
     queueHistory: TokenHistoryItem[]; setQueueHistory: (d: TokenHistoryItem[]) => void;
@@ -1714,6 +1721,7 @@ function QueueHistory({
     historyLoading: boolean; setHistoryLoading: (l: boolean) => void;
     historyPageSize: number; manuallyAddedTokens: Set<number>;
     onViewToken: (t: TokenDetailData) => void;
+    onRecallToken: (tokenNumber: number, prefix: string) => void;
 }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -1883,10 +1891,7 @@ function QueueHistory({
                                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                 {item.status === "skipped" && (
                                                     <button
-                                                        onClick={() => performAction("recall", async () => {
-                                                            const res = await api.serveSpecificToken(queueId, item.token_number);
-                                                            toast(`Recalled ${item.queue_prefix || ""}${res.serving}`, "success");
-                                                        })}
+                                                        onClick={() => onRecallToken(item.token_number, item.queue_prefix || "")}
                                                         style={{ fontSize: 10, fontWeight: 700, padding: "4px 8px", color: "#4f46e5", border: `1px solid #4f46e5`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
                                                         className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
                                                     >

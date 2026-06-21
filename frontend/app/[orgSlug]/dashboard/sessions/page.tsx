@@ -32,7 +32,7 @@ function isTomorrow(dateStr: string): boolean {
 }
 
 function isThisWeek(dateStr: string): boolean {
-    const d = new Date(dateStr + "T00:00:00");
+    const d = new Date(dateStr + "T12:00:00");
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
@@ -44,21 +44,21 @@ function isThisWeek(dateStr: string): boolean {
 }
 
 function formatFullDate(dateStr: string): string {
-    const d = new Date(dateStr + "T00:00:00");
+    const d = new Date(dateStr + "T12:00:00");
     return d.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
 function formatShortDate(dateStr: string): string {
-    const d = new Date(dateStr + "T00:00:00");
+    const d = new Date(dateStr + "T12:00:00");
     return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" });
 }
 
 function getDayNumber(dateStr: string): string {
-    return new Date(dateStr + "T00:00:00").getDate().toString();
+    return new Date(dateStr + "T12:00:00").getDate().toString();
 }
 
 function getMonthShort(dateStr: string): string {
-    return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+    return new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", { month: "short" }).toUpperCase();
 }
 
 type TimelineLabel = "Today" | "Tomorrow" | "Yesterday" | "This Week" | "Earlier";
@@ -140,7 +140,7 @@ export default function SessionsPage() {
 
     useEffect(() => {
         if (searchParams.get("alert") === "no_session") {
-            if (!isStaff) setShowCreate(true);
+            setShowCreate(true);
             router.replace(`${dashBase}/sessions`);
         }
     }, [searchParams, isStaff, user, router, dashBase]);
@@ -156,7 +156,16 @@ export default function SessionsPage() {
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newDate) return;
+        if (!newDate) {
+            setCreateError("Please select a session date.");
+            return;
+        }
+        if (newDate > toLocalDateStr()) {
+            const parts = toLocalDateStr().split('-');
+            const formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            setCreateError(`Value must be ${formattedDate} or earlier.`);
+            return;
+        }
         setCreateLoading(true);
         setCreateError(null);
         try {
@@ -240,15 +249,14 @@ export default function SessionsPage() {
                         )}
                     </div>
                     {/* Create */}
-                    {!isStaff && (
-                        <button
-                            onClick={() => setShowCreate(true)}
+                    <button
+                        onClick={() => setShowCreate(true)}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg h-10 px-4 transition-all duration-200 active:scale-[0.98] flex items-center gap-2"
                         >
                             <Plus className="w-4 h-4" />
                             New Session
                         </button>
-                    )}
+
                 </div>
             </div>
 
@@ -277,7 +285,7 @@ export default function SessionsPage() {
                     <p style={{ fontSize: 14, color: "#94A3B8", marginBottom: 32, maxWidth: 320, marginLeft: "auto", marginRight: "auto" }}>
                         {selectedQueue ? `No sessions recorded for ${selectedQueue}.` : "Create your first session to start organizing queues by date."}
                     </p>
-                    {!isStaff && !selectedQueue && (
+                    {!selectedQueue && (
                         <button onClick={() => setShowCreate(true)} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", background: "#2563EB", color: "#fff", fontWeight: 500, borderRadius: 8, border: "none", fontSize: 14, cursor: "pointer" }}>
                             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v16m8-8H4" /></svg>
                             Create First Session
@@ -409,7 +417,7 @@ export default function SessionsPage() {
                             <h3 style={{ fontSize: 18, fontWeight: 600, color: "#0F172A", letterSpacing: "-0.02em", margin: 0, marginBottom: 4 }}>New Session</h3>
                             <p style={{ fontSize: 13, color: "#94A3B8", margin: 0 }}>Select a date and optional title for the new session.</p>
                         </div>
-                        <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        <form onSubmit={handleCreate} noValidate style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                             <div>
                                 <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const, letterSpacing: "0.07em", marginBottom: 8 }}>
                                     Session Date <span style={{ color: "#EF4444" }}>*</span>
@@ -419,6 +427,7 @@ export default function SessionsPage() {
                                     type="date"
                                     value={newDate}
                                     onChange={(e) => setNewDate(e.target.value)}
+                                    max={toLocalDateStr()}
                                     required
                                     style={{ width: "100%", borderRadius: 8, border: "1px solid #E2E8F0", padding: "10px 14px", fontSize: 14, color: "#0F172A", fontWeight: 500, background: "#F8FAFC", outline: "none", boxSizing: "border-box" }}
                                 />

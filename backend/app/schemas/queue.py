@@ -21,6 +21,12 @@ class QueueCreate(BaseModel):
     open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
 
+class QueueUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=150)
+    prefix: Optional[str] = Field(None, min_length=1, max_length=10)
+    starting_sequence: Optional[int] = Field(None, ge=1)
+    open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+    close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
 
 class AnnouncementUpdate(BaseModel):
     announcement: Optional[str] = Field(None, max_length=500)

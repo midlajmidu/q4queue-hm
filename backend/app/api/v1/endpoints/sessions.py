@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_active_user, get_current_admin
+from app.core.deps import get_current_active_user, get_current_admin, get_current_admin_or_staff
 from app.db.deps import get_db
 from app.models.user import User
 from app.schemas.session import SessionCreate, SessionResponse, PaginatedSessionResponse
@@ -55,7 +55,7 @@ def _raise_400(exc: Exception) -> NoReturn:
 async def create_session(
     body: SessionCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(get_current_admin_or_staff),
 ) -> SessionResponse:
     """Create a new date-based session for the authenticated organization."""
     try:
@@ -197,7 +197,7 @@ async def create_session_queue(
     session_id: uuid.UUID,
     body: QueueCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(get_current_admin_or_staff),
 ) -> QueueResponse:
     """Create a queue within a specific session."""
     try:
