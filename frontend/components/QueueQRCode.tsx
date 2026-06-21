@@ -24,9 +24,10 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
     useEffect(() => {
         if (!isMounted) return;
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const safeName = queueName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setJoinUrl(`${baseUrl}/j/${queueId}`);
-    }, [queueId, isMounted]);
+        setJoinUrl(`${baseUrl}/join/${safeName}-${queueId}`);
+    }, [queueId, queueName, isMounted]);
 
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation();

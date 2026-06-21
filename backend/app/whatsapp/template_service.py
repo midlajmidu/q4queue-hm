@@ -17,24 +17,150 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_TEMPLATES = [
     {
-        "template_name": "q4q_welcome_hybrid_v2",
-        "event_type": "queue_joined_v2",
+        "template_name": "queue_joined_v4",
+        "event_type": "queue_joined_v4",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Sent when a customer joins a queue (via QR or manual entry)",
         "body_text": (
-            "Hello *{{1}}*, you're in the *{{2}}* queue at *{{3}}*.\n\n"
-            "🎫 Your Ticket: *{{4}}*\n"
-            "👥 Current Position: *{{5}}*\n\n"
-            "📺 Display: *{{6}}*\n\n"
-            "📱 Tracking: *{{7}}*\n\n"
-            "Tap below to receive live queue updates directly in WhatsApp."
+            "Hello {{1}}, you're in the {{2}} queue at {{3}}.\n\n"
+            "🎫 Your Ticket: {{4}}\n"
+            "👥 Current Position: {{5}}\n\n"
+            "📺 Display: {{6}}\n\n"
+            "📱 Tracking: {{7}}\n\n"
+            "Tap below to receive live queue updates directly in WhatsApp.\n\n"
+            "Powered by Q4Queue"
         ),
         "variables": {
             "1": "Customer Name",
             "2": "Queue Name",
-            "3": "Organisation Name",
+            "3": "Organization Name",
             "4": "Token Number",
-            "5": "Current Queue Position",
-            "6": "Organisation Display URL",
-            "7": "Personal Queue Tracking URL",
+            "5": "Current Position",
+            "6": "Display URL",
+            "7": "Tracking URL",
+        },
+        "status": WhatsAppTemplateStatus.approved,
+    },
+    {
+        "template_name": "queue_nearby_5_v2",
+        "event_type": "queue_nearby_5_v2",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Reminder sent when customer's position reaches 5",
+        "body_text": (
+            "⏰ *Almost your turn, {{1}}!*\n\n"
+            "You are now *position {{4}}* at *{{2}}*.\n\n"
+            "Token: *{{3}}*\n\n"
+            "Track your position live: {{5}}\n\n"
+            "Visit us at: {{6}}\n\n"
+            "Please start heading towards the counter! 🙏"
+        ),
+        "variables": {
+            "1": "Customer Name",
+            "2": "Organization Name",
+            "3": "Token Number",
+            "4": "Current Position",
+            "5": "Tracking URL",
+            "6": "Display URL",
+        },
+        "status": WhatsAppTemplateStatus.approved,
+    },
+    {
+        "template_name": "queue_nearby_3_v2",
+        "event_type": "queue_nearby_3_v2",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Reminder sent when customer's position reaches 3",
+        "body_text": (
+            "⏰ *Get Ready, {{1}}!*\n\n"
+            "You are now *position {{4}}* at *{{2}}*.\n\n"
+            "Token: *{{3}}*\n\n"
+            "Track your position live: {{5}}\n\n"
+            "Visit us at: {{6}}\n\n"
+            "Please be ready — you will be called very soon! 🙏"
+        ),
+        "variables": {
+            "1": "Customer Name",
+            "2": "Organization Name",
+            "3": "Token Number",
+            "4": "Current Position",
+            "5": "Tracking URL",
+            "6": "Display URL",
+        },
+        "status": WhatsAppTemplateStatus.approved,
+    },
+    {
+        "template_name": "queue_called_v2",
+        "event_type": "queue_called_v2",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Sent when a customer's token is called to be served",
+        "body_text": (
+            "🔔 *It's your turn, {{1}}!*\n\n"
+            "Token *{{3}}* is now being called at *{{2}}*.\n\n"
+            "Current Position: {{4}}\n\n"
+            "Please proceed to the counter immediately.\n\n"
+            "Track your position live: {{5}}\n\n"
+            "Visit us at: {{6}}\n\n"
+            "If you are not present, your token may be skipped."
+        ),
+        "variables": {
+            "1": "Customer Name",
+            "2": "Organization Name",
+            "3": "Token Number",
+            "4": "Current Position",
+            "5": "Tracking URL",
+            "6": "Display URL",
+        },
+        "status": WhatsAppTemplateStatus.approved,
+    },
+    {
+        "template_name": "queue_completed_v2",
+        "event_type": "queue_completed_v2",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Sent when a customer's service is completed",
+        "body_text": (
+            "🎉 Thank you, {{1}}!\n\n"
+            "Your service for token *{{3}}* at *{{2}}* has been completed.\n\n"
+            "Current Position: {{4}}\n\n"
+            "Track your position live: {{5}}\n\n"
+            "Visit us at: {{6}}\n\n"
+            "We hope you had a great experience. Have a wonderful day! 😊"
+        ),
+        "variables": {
+            "1": "Customer Name",
+            "2": "Organization Name",
+            "3": "Token Number",
+            "4": "Current Position",
+            "5": "Tracking URL",
+            "6": "Display URL",
+        },
+        "status": WhatsAppTemplateStatus.approved,
+    },
+    {
+        "template_name": "test_notification_v2",
+        "event_type": "test_notification_v2",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Test notification template",
+        "body_text": (
+            "🧪 Test Notification for {{1}}\n\n"
+            "Organization: *{{2}}*\n"
+            "Token: {{3}}\n"
+            "Position: {{4}}\n\n"
+            "Tracking URL: {{5}}\n"
+            "Display URL: {{6}}\n\n"
+            "This is a system test."
+        ),
+        "variables": {
+            "1": "Customer Name",
+            "2": "Organization Name",
+            "3": "Token Number",
+            "4": "Current Position",
+            "5": "Tracking URL",
+            "6": "Display URL",
         },
         "status": WhatsAppTemplateStatus.approved,
     },

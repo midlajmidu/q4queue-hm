@@ -9,7 +9,8 @@ interface PageProps {
 }
 
 export default function DisplayQueuePage({ params }: PageProps) {
-    const { queueId } = use(params);
+    const rawQueueId = use(params).queueId;
+    const queueId = rawQueueId.length >= 36 ? rawQueueId.slice(-36) : rawQueueId;
     const { state, status } = useQueueSocket(queueId);
 
     const prefix = state?.prefix || "";
