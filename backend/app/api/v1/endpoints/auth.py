@@ -124,6 +124,8 @@ async def change_first_password(
         org_slug=org_slug,
         org_name=org_name,
         org_logo_url=org_logo_url,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
         is_first_login=False,
     )
     

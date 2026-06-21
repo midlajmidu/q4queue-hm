@@ -61,6 +61,8 @@ export interface JwtPayload {
     is_first_login?: boolean;
     exp: number;       // UNIX timestamp
     email: string;
+    first_name: string | null;
+    last_name: string | null;
 }
 
 // ── Queue ────────────────────────────────────────────────────────

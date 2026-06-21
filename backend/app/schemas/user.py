@@ -26,6 +26,12 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UserUpdateMe(BaseModel):
+    """Payload for a user updating their own profile."""
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+
+
 class OrganizationResponse(BaseModel):
     """Safe public representation of an organization."""
 

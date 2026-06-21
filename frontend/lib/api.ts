@@ -40,6 +40,7 @@ import type {
     StaffListParams,
     StaffMember,
     StaffUpdate,
+    User,
     SuperAdminLoginRequest,
     TokenDetail,
     TokenResponse,
@@ -648,6 +649,17 @@ export const api = {
     },
 
     // ── Organization Settings ────────────────────────────────────────
+
+    getMyProfile(): Promise<User> {
+        return request<User>("/users/me");
+    },
+
+    updateMyProfile(data: { first_name?: string, last_name?: string }): Promise<User> {
+        return request<User>("/users/me", {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        });
+    },
 
     getOrganizationSettings(): Promise<OrganizationSettingsResponse> {
         return request<OrganizationSettingsResponse>("/organization/settings");

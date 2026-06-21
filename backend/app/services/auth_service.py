@@ -90,6 +90,8 @@ async def authenticate_user(
         org_slug=org.slug,
         org_name=org.name,
         org_logo_url=org.logo_url,
+        first_name=user.first_name,
+        last_name=user.last_name,
         is_first_login=user.is_first_login,
     )
 
@@ -138,6 +140,8 @@ async def authenticate_super_admin(
         org_id=None,
         role=user.role,
         email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
         is_first_login=user.is_first_login,
     )
     logger.info("Super-admin login successful | user_id=%s", user.id)

@@ -45,6 +45,8 @@ def create_access_token(
     org_slug: str | None = None,
     org_name: str | None = None,
     org_logo_url: str | None = None,
+    first_name: str | None = None,
+    last_name: str | None = None,
     is_first_login: bool = False,
     expires_delta: timedelta | None = None,
 ) -> str:
@@ -71,6 +73,8 @@ def create_access_token(
         "org_logo_url": org_logo_url,
         "role": role,
         "email": email,
+        "first_name": first_name,
+        "last_name": last_name,
         "is_first_login": is_first_login,
         "exp": expire,
     }

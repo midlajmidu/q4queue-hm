@@ -1144,6 +1144,8 @@ async def impersonate_organization(
         org_name=org.name,
         role=admin.role,
         email=admin.email,
+        first_name=admin.first_name,
+        last_name=admin.last_name,
     )
 
     # Log the impersonation event

@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { OrganizationSettingsResponse } from "@/types/api";
-import { Lock, CheckCircle } from "lucide-react";
+import { Lock, CheckCircle, AlertCircle } from "lucide-react";
 import { PageWrapper } from "@/components/PageWrapper";
 import { useParams } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 const C = {
     // bg
@@ -166,13 +167,18 @@ export default function SettingsPage() {
     const [pendingTab, setPendingTab] = useState<'profile' | 'security' | 'operations' | null>(null);
     const params = useParams();
     const orgSlug = params?.orgSlug as string;
+    const { user } = useAuth();
+    const isAdmin = user?.role === "admin";
 
     // Clinic Info State
     const [settings, setSettings] = useState<OrganizationSettingsResponse | null>(null);
+    const [myProfile, setMyProfile] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSavingInfo, setIsSavingInfo] = useState(false);
 
     const [name, setName] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [address, setAddress] = useState("");
     const [phone, setPhone] = useState("");
     const [brandColor, setBrandColor] = useState("");
@@ -228,13 +234,20 @@ export default function SettingsPage() {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const data = await api.getOrganizationSettings();
+                const [data, profile] = await Promise.all([
+                    api.getOrganizationSettings(),
+                    api.getMyProfile()
+                ]);
                 setSettings(data);
+                setMyProfile(profile);
                 setName(data.name);
                 setAddress(data.address || "");
                 setPhone(data.phone_number || "");
                 setBrandColor(data.brand_color || "");
                 setLogoUrl(data.logo_url || "");
+                
+                setFirstName(profile.first_name || "");
+                setLastName(profile.last_name || "");
             } catch (err) {
                 setInfoError(err instanceof ApiError ? err.detail : "Failed to load settings.");
             } finally {
@@ -245,11 +258,16 @@ export default function SettingsPage() {
     }, []);
 
     const hasProfileChanges = settings ? (
-        name !== settings.name ||
-        address !== (settings.address || "") ||
-        phone !== (settings.phone_number || "") ||
-        brandColor !== (settings.brand_color || "") ||
-        logoFile !== null
+        isAdmin ? (
+            name !== settings.name ||
+            address !== (settings.address || "") ||
+            phone !== (settings.phone_number || "") ||
+            brandColor !== (settings.brand_color || "") ||
+            logoFile !== null
+        ) : (
+            firstName !== (myProfile?.first_name || "") ||
+            lastName !== (myProfile?.last_name || "")
+        )
     ) : false;
 
     const hasSecurityChanges = pwdStep === 2 || currentPassword !== "" || newPassword !== "" || confirmPassword !== "" || otp !== "";
@@ -274,6 +292,10 @@ export default function SettingsPage() {
             setBrandColor(settings.brand_color || "");
             setLogoFile(null);
             setLogoPreview(null);
+            if (myProfile) {
+                setFirstName(myProfile.first_name || "");
+                setLastName(myProfile.last_name || "");
+            }
         }
     };
 
@@ -310,26 +332,36 @@ export default function SettingsPage() {
         setIsSavingInfo(true);
 
         try {
-            const didUploadLogo = !!logoFile;
+            if (isAdmin) {
+                const didUploadLogo = !!logoFile;
 
-            if (logoFile) {
-                await api.uploadOrganizationLogo(logoFile);
-            }
-            const data = await api.updateOrganizationSettings({
-                name,
-                address: address || null,
-                phone_number: phone || null,
-                brand_color: brandColor || null,
-            });
-            setSettings(data);
-            setLogoUrl(data.logo_url || "");
-            setLogoFile(null);
-            setLogoPreview(null);
-            
-            if (didUploadLogo) {
-                setShowSuccessModal("Logo uploaded and branding settings updated successfully!");
+                if (logoFile) {
+                    await api.uploadOrganizationLogo(logoFile);
+                }
+                const data = await api.updateOrganizationSettings({
+                    name,
+                    address: address || null,
+                    phone_number: phone || null,
+                    brand_color: brandColor || null,
+                });
+                setSettings(data);
+                setLogoUrl(data.logo_url || "");
+                setLogoFile(null);
+                setLogoPreview(null);
+                
+                if (didUploadLogo) {
+                    setShowSuccessModal("Logo uploaded and branding settings updated successfully!");
+                } else {
+                    setShowSuccessModal("Settings updated successfully!");
+                }
             } else {
-                setShowSuccessModal("Settings updated successfully!");
+                await api.updateMyProfile({
+                    first_name: firstName,
+                    last_name: lastName,
+                });
+                setMyProfile(prev => prev ? { ...prev, first_name: firstName, last_name: lastName } : null);
+                setShowSuccessModal("Profile updated successfully! Refreshing...");
+                setTimeout(() => window.location.reload(), 1500);
             }
         } catch (err) {
             setInfoError(err instanceof ApiError ? err.detail : "Failed to update settings.");
@@ -442,12 +474,14 @@ export default function SettingsPage() {
                             >
                                 <span style={{ fontSize: '18px' }}>🛡️</span> Security
                             </button>
-                            <button
-                                onClick={() => handleTabChange('operations')}
-                                className={`tab-btn ${activeTab === 'operations' ? 'active' : ''}`}
-                            >
-                                <span style={{ fontSize: '18px' }}>⚙️</span> Operations
-                            </button>
+                            {isAdmin && (
+                                <button
+                                    onClick={() => handleTabChange('operations')}
+                                    className={`tab-btn ${activeTab === 'operations' ? 'active' : ''}`}
+                                >
+                                    <span style={{ fontSize: '18px' }}>⚙️</span> Operations
+                                </button>
+                            )}
                         </div>
 
                         {/* Content Area */}
@@ -456,140 +490,189 @@ export default function SettingsPage() {
                                 <div className="card">
                                     <div className="card-header">
                                         <div>
-                                            <h2 style={{ fontSize: '15px', fontWeight: 700, color: C.text, margin: 0 }}>Organization Details</h2>
-                                            <p style={{ fontSize: '13px', color: C.textSub, marginTop: 4 }}>Update contact and profile information globally displayed to customers.</p>
+                                            <h2 style={{ fontSize: '15px', fontWeight: 700, color: C.text, margin: 0 }}>
+                                                {isAdmin ? "Organization Details" : "Your Profile Details"}
+                                            </h2>
+                                            <p style={{ fontSize: '13px', color: C.textSub, marginTop: 4 }}>
+                                                {isAdmin ? "Update contact and profile information globally displayed to customers." : "Update your personal profile information."}
+                                            </p>
                                         </div>
                                     </div>
 
                                     <form onSubmit={handleSaveInfo} style={{ padding: '32px 24px' }}>
                                         {infoSuccess && (
-                                            <div style={{ background: C.greenBg, color: C.green, padding: '12px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 500, marginBottom: 24, border: `1px solid ${C.greenBorder}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                                                {infoSuccess}
+                                            <div style={{ background: '#f0fdf4', color: '#166534', padding: '16px', borderRadius: 8, fontSize: '14px', fontWeight: 500, marginBottom: 24, border: '1px solid #bbf7d0', borderLeft: '4px solid #22c55e', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                                <CheckCircle size={20} color="#22c55e" />
+                                                <span style={{ flex: 1, lineHeight: 1.5 }}>{infoSuccess}</span>
                                             </div>
                                         )}
                                         {infoError && (
-                                            <div style={{ background: C.redBg, color: C.red, padding: '12px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 500, marginBottom: 24, border: `1px solid ${C.redBorder}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="m21 21-4.3-4.3" /><circle cx="11" cy="11" r="8" /></svg>
-                                                {infoError}
+                                            <div style={{ background: '#fef2f2', color: '#991b1b', padding: '16px', borderRadius: 8, fontSize: '14px', fontWeight: 500, marginBottom: 24, border: '1px solid #fecaca', borderLeft: '4px solid #ef4444', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                                <AlertCircle size={20} color="#ef4444" />
+                                                <span style={{ flex: 1, lineHeight: 1.5 }}>{infoError}</span>
                                             </div>
                                         )}
 
                                         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 24 }}>
-                                            <div style={{ gridColumn: '1 / -1' }}>
-                                                <label className="lbl">Organization Name</label>
-                                                <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="premium-input" placeholder="e.g. Acme Health Clinic" />
-                                            </div>
-
-                                            <div style={{ gridColumn: '1 / -1' }}>
-                                                <label className="lbl">Address</label>
-                                                <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={3} className="premium-input" style={{ resize: 'vertical' }} placeholder="123 Main Street..." />
-                                            </div>
-
-                                            <div>
-                                                <label className="lbl">Contact Phone</label>
-                                                <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="premium-input" placeholder="(555) 123-4567" />
-                                            </div>
-
-                                            <div>
-                                                <label className="lbl" style={{ display: "flex", alignItems: "center", gap: 6 }} title="Slug cannot be changed after creation">
-                                                    Public URL Slug
-                                                    <Lock size={12} color={C.textMuted} style={{ cursor: "help" }} />
-                                                </label>
-                                                <input type="text" disabled value={settings?.slug || ""} className="premium-input" />
-                                            </div>
-
-                                            <div style={{ gridColumn: '1 / -1' }}>
-                                                <label className="lbl" style={{ display: "flex", alignItems: "center", gap: 6 }} title="Modifying the system owner email requires contacting administrative support.">
-                                                    Owner Email Address
-                                                    <Lock size={12} color={C.textMuted} style={{ cursor: "help" }} />
-                                                </label>
-                                                <input type="email" disabled value={settings?.email || ""} className="premium-input" />
-                                            </div>
-
-                                            <div style={{ gridColumn: '1 / -1' }}>
-                                                <h3 style={{ fontSize: '14px', fontWeight: 600, color: C.text, marginBottom: '16px', marginTop: '8px', borderBottom: `1px solid ${C.borderLight}`, paddingBottom: '8px' }}>Branding</h3>
-                                            </div>
-
-                                            <div>
-                                                <label className="lbl">Brand Color</label>
-                                                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                                                    <input 
-                                                        type="color" 
-                                                        value={brandColor || "#2563eb"} 
-                                                        onChange={(e) => setBrandColor(e.target.value)}
-                                                        style={{ width: 44, height: 44, padding: 0, border: `1px solid ${C.borderLight}`, borderRadius: 8, cursor: 'pointer', background: 'transparent' }}
-                                                    />
-                                                    <input 
-                                                        type="text" 
-                                                        value={brandColor} 
-                                                        onChange={(e) => setBrandColor(e.target.value)} 
-                                                        placeholder="#2563eb"
-                                                        className="premium-input" 
-                                                        style={{ flex: 1 }}
-                                                        pattern="^#[0-9A-Fa-f]{6}$"
-                                                    />
+                                            {isAdmin ? (
+                                                <div style={{ gridColumn: '1 / -1' }}>
+                                                    <label className="lbl">Organization Name</label>
+                                                    <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="premium-input" placeholder="e.g. Acme Health Clinic" />
                                                 </div>
-                                                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Used as the primary color on the public ticket page.</p>
-                                            </div>
-
-                                            <div>
-                                                <label className="lbl">Organization Logo</label>
-                                                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                                                    <div style={{ 
-                                                        width: 64, height: 64, borderRadius: 12, border: `1px solid ${C.borderLight}`, 
-                                                        background: C.cardBgAlt, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' 
-                                                    }}>
-                                                        {(logoPreview || logoUrl) ? (
-                                                            <img src={logoPreview || (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `http://localhost:8000${logoUrl}`)} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                                        ) : (
-                                                            <span style={{ fontSize: 24, color: C.textMuted }}>🏢</span>
-                                                        )}
+                                            ) : (
+                                                <>
+                                                    <div style={{ gridColumn: '1 / -1' }}>
+                                                        <label className="lbl">Organization</label>
+                                                        <div style={{ 
+                                                            display: 'flex', alignItems: 'center', gap: 16, padding: '16px', 
+                                                            background: C.bgAlt, border: `1px solid ${C.borderLight}`, borderRadius: 12 
+                                                        }}>
+                                                            <div style={{ 
+                                                                width: 48, height: 48, borderRadius: 10, border: `1px solid ${C.borderLight}`, 
+                                                                background: '#fff', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                                            }}>
+                                                                {logoUrl ? (
+                                                                    <img src={logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `http://localhost:8000${logoUrl}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                                ) : (
+                                                                    <span style={{ fontSize: 20, color: C.textMuted }}>🏢</span>
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{name}</div>
+                                                                <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted, marginTop: 2 }}>{settings?.address || '123 Business Avenue, Suite 100, Tech City'}</div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                     <div>
-                                                        <input 
-                                                            type="file" 
-                                                            id="logo-upload" 
-                                                            accept="image/*" 
-                                                            style={{ display: 'none' }}
-                                                            onChange={(e) => {
-                                                                if (e.target.files && e.target.files[0]) {
-                                                                    const file = e.target.files[0];
-                                                                    const objectUrl = URL.createObjectURL(file);
-                                                                    const img = new Image();
-                                                                    img.onload = () => {
-                                                                        if (img.width > 1024 || img.height > 1024) {
-                                                                            alert("Image resolution too high. Please upload a profile picture that is 1024x1024 pixels or smaller.");
-                                                                            e.target.value = ''; // Reset the input
-                                                                        } else {
-                                                                            setLogoFile(file);
-                                                                            setLogoPreview(objectUrl);
-                                                                        }
-                                                                    };
-                                                                    img.src = objectUrl;
-                                                                }
-                                                            }}
-                                                        />
-                                                        <label htmlFor="logo-upload" style={{ display: 'inline-block', padding: '6px 12px', fontSize: 13, fontWeight: 600, color: C.text, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                                                            Choose Image
-                                                        </label>
-                                                        {logoFile && (
-                                                            <button 
-                                                                type="button" 
-                                                                onClick={() => { setLogoFile(null); setLogoPreview(null); }}
-                                                                style={{ marginLeft: 8, fontSize: 12, color: C.red, background: 'none', border: 'none', cursor: 'pointer' }}
-                                                            >
-                                                                Clear
-                                                            </button>
-                                                        )}
-                                                        <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Recommended: PNG or JPG, max 2MB.</p>
+                                                        <label className="lbl">First Name</label>
+                                                        <input type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="premium-input" placeholder="e.g. John" />
                                                     </div>
-                                                </div>
-                                            </div>
+                                                    <div>
+                                                        <label className="lbl">Last Name</label>
+                                                        <input type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="premium-input" placeholder="e.g. Doe" />
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {isAdmin && (
+                                                <>
+                                                    <div style={{ gridColumn: '1 / -1' }}>
+                                                        <label className="lbl">Address</label>
+                                                        <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={3} className="premium-input" style={{ resize: 'vertical' }} placeholder="123 Main Street..." />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="lbl">Contact Phone</label>
+                                                        <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="premium-input" placeholder="(555) 123-4567" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="lbl" style={{ display: "flex", alignItems: "center", gap: 6 }} title="Slug cannot be changed after creation">
+                                                            Public URL Slug
+                                                            <Lock size={12} color={C.textMuted} style={{ cursor: "help" }} />
+                                                        </label>
+                                                        <input type="text" disabled value={settings?.slug || ""} className="premium-input" />
+                                                    </div>
+
+                                                    <div style={{ gridColumn: '1 / -1' }}>
+                                                        <label className="lbl" style={{ display: "flex", alignItems: "center", gap: 6 }} title="Modifying the system owner email requires contacting administrative support.">
+                                                            Owner Email Address
+                                                            <Lock size={12} color={C.textMuted} style={{ cursor: "help" }} />
+                                                        </label>
+                                                        <input type="email" disabled value={settings?.email || ""} className="premium-input" />
+                                                    </div>
+
+                                                    <div style={{ gridColumn: '1 / -1' }}>
+                                                        <h3 style={{ fontSize: '14px', fontWeight: 600, color: C.text, marginBottom: '16px', marginTop: '8px', borderBottom: `1px solid ${C.borderLight}`, paddingBottom: '8px' }}>Branding</h3>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="lbl">Brand Color</label>
+                                                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                                            <input 
+                                                                type="color" 
+                                                                value={brandColor || "#2563eb"} 
+                                                                onChange={(e) => setBrandColor(e.target.value)}
+                                                                style={{ width: 44, height: 44, padding: 0, border: `1px solid ${C.borderLight}`, borderRadius: 8, cursor: 'pointer', background: 'transparent' }}
+                                                            />
+                                                            <input 
+                                                                type="text" 
+                                                                value={brandColor} 
+                                                                onChange={(e) => setBrandColor(e.target.value)} 
+                                                                placeholder="#2563eb"
+                                                                className="premium-input" 
+                                                                style={{ flex: 1 }}
+                                                                pattern="^#[0-9A-Fa-f]{6}$"
+                                                            />
+                                                        </div>
+                                                        <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Used as the primary color on the public ticket page.</p>
+                                                    </div>
+
+                                                    <div style={{ gridColumn: '1 / -1' }}>
+                                                        <label className="lbl">Organization Logo</label>
+                                                        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                                                            <div style={{ 
+                                                                width: 64, height: 64, borderRadius: 12, border: `1px solid ${C.borderLight}`, 
+                                                                background: C.cardBgAlt, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                                                            }}>
+                                                                {(logoPreview || logoUrl) ? (
+                                                                    <img src={logoPreview || (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `http://localhost:8000${logoUrl}`)} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                                ) : (
+                                                                    <span style={{ fontSize: 24, color: C.textMuted }}>🏢</span>
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <input 
+                                                                    type="file" 
+                                                                    id="logo-upload" 
+                                                                    accept="image/*" 
+                                                                    style={{ display: 'none' }}
+                                                                    onChange={(e) => {
+                                                                        if (e.target.files && e.target.files[0]) {
+                                                                            const file = e.target.files[0];
+                                                                            const objectUrl = URL.createObjectURL(file);
+                                                                            const img = new Image();
+                                                                            img.onload = () => {
+                                                                                if (img.width > 1024 || img.height > 1024) {
+                                                                                    alert("Image resolution too high. Please upload a profile picture that is 1024x1024 pixels or smaller.");
+                                                                                    e.target.value = ''; // Reset the input
+                                                                                } else {
+                                                                                    setLogoFile(file);
+                                                                                    setLogoPreview(objectUrl);
+                                                                                }
+                                                                            };
+                                                                            img.src = objectUrl;
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <label htmlFor="logo-upload" style={{ display: 'inline-block', padding: '6px 12px', fontSize: 13, fontWeight: 600, color: C.text, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                                                                    Choose Image
+                                                                </label>
+                                                                {logoFile && (
+                                                                    <button 
+                                                                        type="button" 
+                                                                        onClick={() => { setLogoFile(null); setLogoPreview(null); }}
+                                                                        style={{ marginLeft: 8, fontSize: 12, color: C.red, background: 'none', border: 'none', cursor: 'pointer' }}
+                                                                    >
+                                                                        Clear
+                                                                    </button>
+                                                                )}
+                                                                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Recommended: PNG or JPG, max 2MB.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
 
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.borderLight}` }}>
-                                            <button type="submit" disabled={isSavingInfo || !name.trim()} className="qa-btn">
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.borderLight}` }}>
+                                            {hasProfileChanges && (
+                                                <button type="button" onClick={handleDiscardChanges} style={{ padding: '10px 20px', fontSize: '13.5px', fontWeight: 600, color: C.textSub, background: C.cardBgAlt, border: `1px solid ${C.border}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }} className="hover:bg-slate-100">
+                                                    Discard Changes
+                                                </button>
+                                            )}
+                                            <button type="submit" disabled={isSavingInfo || !hasProfileChanges || (isAdmin ? !name.trim() : (!firstName.trim() || !lastName.trim()))} className="qa-btn">
                                                 {isSavingInfo ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Saving...</> : "Save Details"}
                                             </button>
                                         </div>
@@ -608,15 +691,15 @@ export default function SettingsPage() {
 
                                     <form onSubmit={pwdStep === 1 ? handleRequestOtp : handleUpdatePassword} style={{ padding: '32px 24px' }}>
                                         {pwdSuccess && (
-                                            <div style={{ background: C.greenBg, color: C.green, padding: '12px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 500, marginBottom: 24, border: `1px solid ${C.greenBorder}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                                                {pwdSuccess}
+                                            <div style={{ background: '#f0fdf4', color: '#166534', padding: '16px', borderRadius: 8, fontSize: '14px', fontWeight: 500, marginBottom: 24, border: '1px solid #bbf7d0', borderLeft: '4px solid #22c55e', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                                <CheckCircle size={20} color="#22c55e" />
+                                                <span style={{ flex: 1, lineHeight: 1.5 }}>{pwdSuccess}</span>
                                             </div>
                                         )}
                                         {pwdError && (
-                                            <div style={{ background: C.redBg, color: C.red, padding: '12px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 500, marginBottom: 24, border: `1px solid ${C.redBorder}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <svg width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-                                                {pwdError}
+                                            <div style={{ background: '#fef2f2', color: '#991b1b', padding: '16px', borderRadius: 8, fontSize: '14px', fontWeight: 500, marginBottom: 24, border: '1px solid #fecaca', borderLeft: '4px solid #ef4444', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                                <AlertCircle size={20} color="#ef4444" />
+                                                <span style={{ flex: 1, lineHeight: 1.5 }}>{pwdError}</span>
                                             </div>
                                         )}
 
@@ -728,20 +811,7 @@ export default function SettingsPage() {
                     </div>
                 </PageWrapper>
 
-                {hasProfileChanges && activeTab === 'profile' && (
-                    <div style={{
-                        position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-                        background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12,
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.12)', padding: '16px 24px',
-                        display: 'flex', alignItems: 'center', gap: 24, zIndex: 100
-                    }}>
-                        <span style={{ fontSize: 14, fontWeight: 500, color: C.text }}>You have unsaved changes.</span>
-                        <div style={{ display: 'flex', gap: 12 }}>
-                            <button onClick={handleDiscardChanges} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: C.textSub, background: C.borderLight, border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>Discard/Reset</button>
-                            <button onClick={handleSaveInfo} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#fff', background: C.brand, border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>Save Changes</button>
-                        </div>
-                    </div>
-                )}
+
 
                 {/* Success Modal */}
                 {showSuccessModal && (
