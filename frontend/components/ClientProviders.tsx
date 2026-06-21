@@ -23,7 +23,7 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
             <AlertProvider>
                 <ToastProvider>
                     {children}
-                    <Toaster position="bottom-right" expand={false} />
+                    <Toaster position="bottom-right" expand={false} richColors closeButton theme="light" />
                 </ToastProvider>
             </AlertProvider>
         </ThemeProvider>

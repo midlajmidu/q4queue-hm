@@ -610,6 +610,24 @@ export default function StaffPage() {
     background: "#fafbfe", outline: "none", appearance: "none", cursor: "pointer",
   };
 
+  if (user && !isAdmin) {
+    return (
+      <div style={{ padding: "80px 20px", textAlign: "center" }}>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fef2f2", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
+          <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+        </div>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: "var(--q-text)", marginBottom: 12 }}>Access Restricted</h2>
+        <p style={{ fontSize: 15, color: "var(--q-text-muted)", maxWidth: 400, margin: "0 auto 32px", lineHeight: 1.6 }}>
+          You do not have permission to view or manage staff members. This section is restricted to administrators.
+        </p>
+        <Link href={`/${orgSlug}/dashboard`} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", background: "var(--q-brand)", color: "#fff", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <>
       <style>{FONT_IMPORT}</style>

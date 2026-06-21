@@ -161,22 +161,25 @@ function LiveClock() {
         return () => clearInterval(interval);
     }, []);
 
-    if (!time) return <div className="hidden md:block w-[140px] h-[32px] animate-pulse bg-gray-100 dark:bg-white/5 rounded-full" />;
+    if (!time) return <div className="hidden md:block w-[150px] h-[32px] animate-pulse bg-slate-100 dark:bg-slate-800/50 rounded-lg" />;
 
-    const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const dateStr = time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeStr = time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const dateStr = time.toLocaleDateString([], { month: 'short', day: 'numeric', weekday: 'short' });
 
     return (
-        <div className="hidden md:flex items-center gap-2.5 px-3.5 py-1.5 bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-white/10 rounded-full shadow-sm select-none">
-            {/* Live Pulsing Dot */}
-            <div className="relative flex h-2 w-2 items-center justify-center">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-                <span className="text-[12.5px] font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none">{timeStr}</span>
-                <span className="text-[10.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mt-[1px]">{dateStr}</span>
+        <div className="hidden md:flex items-center h-8 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors select-none cursor-default group">
+            <div className="flex items-center gap-2.5">
+                {/* Premium subtle indicator dot */}
+                <div className="relative flex items-center justify-center w-2 h-2">
+                    <div className="absolute w-full h-full bg-emerald-400/40 rounded-full animate-ping opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="w-1.5 h-1.5 bg-emerald-500 dark:bg-emerald-400 rounded-full shadow-[0_0_4px_rgba(16,185,129,0.6)]"></div>
+                </div>
+                
+                <div className="flex items-center gap-1.5 tracking-tight">
+                    <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">{timeStr}</span>
+                    <span className="text-[13px] font-medium text-slate-300 dark:text-slate-600">/</span>
+                    <span className="text-[13px] font-medium text-slate-500 dark:text-slate-400">{dateStr}</span>
+                </div>
             </div>
         </div>
     );

@@ -439,6 +439,15 @@ const STYLES = `
     box-shadow: 0 1px 2px rgba(0,0,0,.03);
   }
 
+  /* ── Scrollbar Hide ── */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
   /* ── Hourly bar ── */
   .hbar { transition: opacity .15s; }
   .hbar:hover { opacity: .75; cursor: default; }
@@ -918,21 +927,21 @@ export default function OverviewPage() {
     <>
       <style>{STYLES}</style>
       <div className="ov">
-        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+        <div className="flex flex-col gap-4 md:gap-7">
 
           {/* ══ HEADER CARD ═════════════════════════════════════════════════ */}
-          <div className="fade-in card" style={{
-            position: "relative", zIndex: 1, marginBottom: 24,
-            padding: "32px 36px", borderRadius: 24,
+          <div className="fade-in card p-4 md:py-8 md:px-9 mb-4 md:mb-6" style={{
+            position: "relative", zIndex: 1,
+            borderRadius: 24,
             background: C.cardBg,
             backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
             border: `1px solid ${C.border}`,
             boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)",
           }}>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 32 }}>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-8">
               {/* Left: title */}
               <div style={{ maxWidth: 480 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+                <div className="flex items-center gap-3.5 mb-2.5 md:mb-4">
                   {/* brand icon */}
                   <div className="icon-badge" style={{
                     width: 42, height: 42,
@@ -949,15 +958,15 @@ export default function OverviewPage() {
                     color: C.textSub,
                   }}>Analytics Dashboard</span>
                 </div>
-                <h1 style={{
-                  fontSize: "clamp(26px,2.8vw,32px)", fontWeight: 800,
+                <h1 className="text-2xl md:text-[clamp(26px,2.8vw,32px)]" style={{
+                  fontWeight: 800,
                   color: C.text, letterSpacing: "-.02em",
                   lineHeight: 1.1, margin: 0,
                 }}>
                   Organization Overview
                 </h1>
-                <p style={{
-                  marginTop: 10, fontSize: 14.5, color: C.textSub,
+                <p className="text-xs md:text-[14.5px] mt-1.5 md:mt-2.5" style={{
+                  color: C.textSub,
                   lineHeight: 1.6, marginBottom: 0, fontWeight: 400,
                 }}>
                   Real time performance metrics across all queues and sessions.
@@ -965,71 +974,77 @@ export default function OverviewPage() {
               </div>
 
               {/* Right: Global Controls */}
-              {/* ── Auto-refresh bar ── */}
-              <div className="refresh-bar" style={{ flexShrink: 0, marginTop: 4 }}>
+              <div className="refresh-bar flex items-center justify-between w-full md:w-auto p-2 md:py-[7px] md:px-[14px]" style={{ flexShrink: 0 }}>
                 {/* live indicator */}
-                {autoRefresh && !isRefreshing && (
-                  <span className="live-dot" style={{ display: "block", width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
-                )}
-                {isRefreshing && (
-                  <span className="spin" style={{ display: "inline-flex" }}>
-                    <Icons.RefreshCw size={12} color={C.brand} />
-                  </span>
-                )}
-                {/* updated label */}
-                {updatedLabel && (
-                  <span style={{ color: C.textMuted, fontSize: 11.5 }}>
-                    Updated <strong style={{ color: C.textSub, fontWeight: 600 }}>{updatedLabel}</strong>
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {autoRefresh && !isRefreshing && (
+                    <span className="live-dot" style={{ display: "block", width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
+                  )}
+                  {isRefreshing && (
+                    <span className="spin" style={{ display: "inline-flex" }}>
+                      <Icons.RefreshCw size={12} color={C.brand} />
+                    </span>
+                  )}
+                  {/* updated label */}
+                  {updatedLabel && (
+                    <span style={{ color: C.textMuted, fontSize: 11 }}>
+                      Updated <strong style={{ color: C.textSub, fontWeight: 600 }}>{updatedLabel}</strong>
+                    </span>
+                  )}
+                </div>
                 {/* divider */}
-                <span style={{ width: 1, height: 12, background: C.border, flexShrink: 0 }} />
-                {/* manual refresh */}
-                <button
-                  onClick={() => loadData(false)}
-                  disabled={isLoading}
-                  title="Refresh now"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 8px", fontSize: 11.5, fontWeight: 600, color: C.textSub, background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: isLoading ? "not-allowed" : "pointer", opacity: isLoading ? .4 : 1, transition: "color .15s" }}
-                  onMouseEnter={e => (e.currentTarget.style.color = C.brand)}
-                  onMouseLeave={e => (e.currentTarget.style.color = C.textSub)}
-                >
-                  <span className={isLoading ? "spin" : ""} style={{ display: "inline-flex" }}>
-                    <Icons.RefreshCw size={11} color="currentColor" />
-                  </span>
-                  Refresh
-                </button>
-                {/* divider */}
-                <span style={{ width: 1, height: 12, background: C.border, flexShrink: 0 }} />
-                {/* auto-refresh toggle */}
-                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", userSelect: "none" }}>
-                  <span
-                    role="switch"
-                    aria-checked={autoRefresh}
-                    onClick={() => setAutoRefresh(v => !v)}
-                    style={{
-                      display: "inline-block", width: 28, height: 16, borderRadius: 99,
-                      background: autoRefresh ? C.brand : C.border,
-                      position: "relative", transition: "background .2s", flexShrink: 0,
-                    }}
+                <span className="hidden md:block" style={{ width: 1, height: 12, background: C.border, flexShrink: 0 }} />
+                
+                {/* Action Controls */}
+                <div className="flex items-center gap-3">
+                  {/* manual refresh */}
+                  <button
+                    onClick={() => loadData(false)}
+                    disabled={isLoading}
+                    title="Refresh now"
+                    className="inline-flex items-center justify-center gap-1.5 p-1.5 md:p-0 rounded-md md:rounded-none bg-slate-50 md:bg-transparent border border-gray-200 md:border-none hover:bg-slate-100 md:hover:bg-transparent transition-colors"
+                    style={{ fontSize: 11, fontWeight: 600, color: C.textSub, cursor: isLoading ? "not-allowed" : "pointer", opacity: isLoading ? .4 : 1, transition: "color .15s" }}
+                    onMouseEnter={e => { if (window.innerWidth >= 768) e.currentTarget.style.color = C.brand; }}
+                    onMouseLeave={e => { if (window.innerWidth >= 768) e.currentTarget.style.color = C.textSub; }}
                   >
-                    <span style={{
-                      position: "absolute", top: 2, left: autoRefresh ? 14 : 2,
-                      width: 12, height: 12, borderRadius: "50%", background: "#fff",
-                      transition: "left .2s", boxShadow: "0 1px 2px rgba(0,0,0,.2)",
-                    }} />
-                  </span>
-                  <span style={{ fontSize: 11.5, color: C.textMuted, whiteSpace: "nowrap" }}>
-                    Auto ({REFRESH_SECS}s)
-                  </span>
-                </label>
+                    <span className={isLoading ? "spin" : ""} style={{ display: "inline-flex" }}>
+                      <Icons.RefreshCw size={11} color="currentColor" />
+                    </span>
+                    <span className="hidden md:inline">Refresh</span>
+                  </button>
+                  {/* divider */}
+                  <span className="hidden md:block" style={{ width: 1, height: 12, background: C.border, flexShrink: 0 }} />
+                  {/* auto-refresh toggle */}
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <span
+                      role="switch"
+                      aria-checked={autoRefresh}
+                      onClick={() => setAutoRefresh(v => !v)}
+                      style={{
+                        display: "inline-block", width: 28, height: 16, borderRadius: 99,
+                        background: autoRefresh ? C.brand : C.border,
+                        position: "relative", transition: "background .2s", flexShrink: 0,
+                      }}
+                    >
+                      <span style={{
+                        position: "absolute", top: 2, left: autoRefresh ? 14 : 2,
+                        width: 12, height: 12, borderRadius: "50%", background: "#fff",
+                        transition: "left .2s", boxShadow: "0 1px 2px rgba(0,0,0,.2)",
+                      }} />
+                    </span>
+                    <span className="hidden md:inline" style={{ fontSize: 11, color: C.textMuted, whiteSpace: "nowrap" }}>
+                      Auto ({REFRESH_SECS}s)
+                    </span>
+                  </label>
+                </div>
               </div>
             </div>
 
             {/* Toolbar */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", marginTop: 24, paddingTop: 24, borderTop: "1px solid rgba(0, 0, 0, 0.04)" }}>
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 md:items-center mt-6 pt-6 border-t border-black/5">
               {[
                 {
-                  id: "filter-session", lbl: "Session", val: selectedSession, set: setSelectedSession, dis: false,
+                  id: "filter-session", lbl: "SESSION", val: selectedSession, set: setSelectedSession, dis: false,
                   opts: <>
                     <option value="">All Sessions</option>
                     {sessions.map(s => (
@@ -1041,17 +1056,17 @@ export default function OverviewPage() {
                   </>,
                 },
                 {
-                  id: "filter-queue", lbl: "Queue", val: selectedQueue, set: setSelectedQueue, dis: !selectedSession,
+                  id: "filter-queue", lbl: "QUEUE", val: selectedQueue, set: setSelectedQueue, dis: !selectedSession,
                   opts: <>
                     <option value="">All Queues</option>
                     {queues.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
                   </>,
                 },
               ].map(f => (
-                <div key={f.lbl} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <label htmlFor={f.id} className="lbl" style={{ fontSize: 13, color: C.textSub, fontWeight: 600 }}>{f.lbl}:</label>
-                  <div style={{ position: "relative", transition: "transform .2s ease", cursor: "pointer" }} onMouseEnter={e => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={e => e.currentTarget.style.transform = "none"}>
-                    <select id={f.id} name={f.id} value={f.val} onChange={e => f.set(e.target.value)} disabled={f.dis} className="ov-sel" style={{ padding: "8px 32px 8px 12px", background: C.cardBgAlt, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, fontWeight: 500, color: C.text, outline: "none", appearance: "none", minWidth: 160 }}>
+                <div key={f.lbl} className="flex flex-col gap-1 w-full md:w-auto">
+                  <label htmlFor={f.id} className="lbl" style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>{f.lbl}:</label>
+                  <div className="w-full md:w-auto" style={{ position: "relative", transition: "transform .2s ease", cursor: "pointer" }} onMouseEnter={e => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={e => e.currentTarget.style.transform = "none"}>
+                    <select id={f.id} name={f.id} value={f.val} onChange={e => f.set(e.target.value)} disabled={f.dis} className="ov-sel w-full md:w-[220px]" style={{ padding: "8px 32px 8px 12px", background: C.cardBgAlt, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, fontWeight: 500, color: C.text, outline: "none", appearance: "none" }} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-nordpass-ignore="true">
                       {f.opts}
                     </select>
                     <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.6 }}>
@@ -1061,12 +1076,12 @@ export default function OverviewPage() {
                 </div>
               ))}
 
-              <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-                <Link href={`${dashBase}/sessions`} className="qa-btn" style={{ background: C.brand, color: "#fff", borderColor: C.brandDark, boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
+              <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto md:ml-auto">
+                <Link href={`${dashBase}/sessions`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.brand, color: "#fff", borderColor: C.brandDark, boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
                   <Icons.Play size={13} color="currentColor" />
                   Start Session
                 </Link>
-                <Link href={`${dashBase}/queues?action=create`} className="qa-btn" style={{ background: C.cardBgAlt, color: C.brand, borderColor: C.brand }}>
+                <Link href={`${dashBase}/queues?action=create`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.cardBgAlt, color: C.brand, borderColor: C.brand }}>
                   <Icons.PlusCircle size={13} color="currentColor" />
                   Create Queue
                 </Link>
@@ -1189,7 +1204,7 @@ export default function OverviewPage() {
                     <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.brandLight, color: C.brand, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>
                       {name.substring(0, 2).toUpperCase()}
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{name}</span>
+                    <span className="capitalize" style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{name}</span>
                     <span style={{
                       marginLeft: 4,
                       display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px",
@@ -1215,20 +1230,20 @@ export default function OverviewPage() {
             const overallPct = grandTotal > 0 ? Math.round((totalServed / grandTotal) * 100) : 0;
             return (
               <div className="card" style={{ overflow: "hidden" }}>
-                <div className="card-header">
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div className="card-header" style={{ flexWrap: "wrap", gap: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                     <div className="icon-badge" style={{ width: 32, height: 32, background: C.brandLight, border: `1px solid ${C.brandBorder}` }}>
                       <Icons.Table2 size={14} color={C.brand} />
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>Queue Breakdown</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: C.brand, background: C.brandLight, padding: "2px 8px", borderRadius: 6 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em", whiteSpace: "nowrap" }}>Queue Breakdown</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: C.brand, background: C.brandLight, padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
                       {queueStats.length} queue{queueStats.length !== 1 ? "s" : ""}
                     </span>
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 500, color: C.textMuted }}>{grandTotal} total tokens</span>
+                  <span style={{ fontSize: 11, fontWeight: 500, color: C.textMuted, whiteSpace: "nowrap" }}>{grandTotal} total tokens</span>
                 </div>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <div className="overflow-x-auto scrollbar-hide w-full" style={{ overflowX: "auto" }}>
+                  <table className="hidden md:table" style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr>
                         {["Queue Name", "Served", "Waiting", "Progress", "Total"].map((h, i) => (
@@ -1297,6 +1312,75 @@ export default function OverviewPage() {
                       </tr>
                     </tfoot>
                   </table>
+
+                  {/* Mobile Stacked View */}
+                  <div className="md:hidden flex flex-col w-full divide-y divide-black/5">
+                    {queueStats.map(qs => {
+                      const pct = qs.total > 0 ? Math.round((qs.served / qs.total) * 100) : 0;
+                      return (
+                        <div key={qs.queue} className="p-4 flex flex-col gap-3">
+                          <div className="flex justify-between items-center">
+                            <span style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{qs.queue}</span>
+                            <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md border border-black/5">
+                              <span style={{ fontSize: 10, fontWeight: 600, color: C.textMuted, textTransform: "uppercase" }}>Total</span>
+                              <span className="mono tnum" style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{qs.total}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex flex-col gap-0.5">
+                              <span style={{ fontSize: 10, fontWeight: 600, color: C.textMuted, textTransform: "uppercase" }}>Served</span>
+                              <span className="mono tnum" style={{ fontSize: 14, fontWeight: 700, color: "#15803d" }}>{qs.served}</span>
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              <span style={{ fontSize: 10, fontWeight: 600, color: C.textMuted, textTransform: "uppercase" }}>Waiting</span>
+                              <span className="mono tnum" style={{ fontSize: 14, fontWeight: 700, color: "#92400e" }}>{qs.waiting}</span>
+                            </div>
+                            
+                            <div className="flex-1 flex flex-col items-end gap-1">
+                              <span style={{ fontSize: 10, fontWeight: 600, color: C.textMuted, textTransform: "uppercase" }}>Progress</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", maxWidth: 100, justifyContent: "flex-end" }}>
+                                <div style={{ flex: 1, height: 5, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
+                                  <div style={{ height: "100%", width: `${pct}%`, borderRadius: 99, background: C.green, transition: "width .4s ease" }} />
+                                </div>
+                                <span className="mono tnum" style={{ fontSize: 11, fontWeight: 600, color: C.textMuted }}>{pct}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {/* Mobile Overall Total Footer */}
+                    <div className="p-4" style={{ background: "var(--q-slate-bg)" }}>
+                      <div className="flex justify-between items-center mb-3">
+                        <span style={{ fontWeight: 700, fontSize: 11, color: C.textMuted, textTransform: "uppercase", letterSpacing: ".05em" }}>Overall Total</span>
+                        <div className="flex items-center gap-1.5 bg-white px-2.5 py-0.5 rounded-md border border-black/5 shadow-sm">
+                          <span style={{ fontSize: 10, fontWeight: 600, color: C.textMuted, textTransform: "uppercase" }}>Total</span>
+                          <span className="mono tnum" style={{ fontSize: 14, fontWeight: 800, color: C.brand }}>{grandTotal}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span style={{ fontSize: 10, fontWeight: 600, color: C.textMuted, textTransform: "uppercase" }}>Served</span>
+                          <span className="mono tnum" style={{ fontSize: 14, fontWeight: 700, color: "#15803d" }}>{totalServed}</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span style={{ fontSize: 10, fontWeight: 600, color: C.textMuted, textTransform: "uppercase" }}>Waiting</span>
+                          <span className="mono tnum" style={{ fontSize: 14, fontWeight: 700, color: "#92400e" }}>{totalWaiting}</span>
+                        </div>
+                        <div className="flex-1 flex flex-col items-end gap-1">
+                          <span style={{ fontSize: 10, fontWeight: 600, color: C.textMuted, textTransform: "uppercase" }}>Overall Progress</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", maxWidth: 100, justifyContent: "flex-end" }}>
+                            <div style={{ flex: 1, height: 5, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${overallPct}%`, borderRadius: 99, background: C.brand }} />
+                            </div>
+                            <span className="mono tnum" style={{ fontSize: 11, fontWeight: 600, color: C.textMuted }}>{overallPct}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
@@ -1365,81 +1449,83 @@ export default function OverviewPage() {
                   </div>
                 </div>
 
-                {/* Column headers */}
-                <div style={{
-                  display: "grid", gridTemplateColumns: "1fr auto auto",
-                  gap: "0 16px", padding: "8px 20px",
-                  borderBottom: `1px solid ${C.borderLight}`,
-                }}>
-                  {["Details", "Status", "Time"].map((h, i) => (
-                    <span key={h} style={{
-                      fontSize: 10, fontWeight: 600, color: C.textMuted,
-                      letterSpacing: ".06em", textTransform: "uppercase" as const,
-                      textAlign: i >= 1 ? "center" as const : "left" as const,
-                    }}>{h}</span>
-                  ))}
-                </div>
+                <div className="overflow-x-auto whitespace-nowrap scrollbar-hide w-full">
+                  {/* Column headers */}
+                  <div style={{
+                    display: "grid", gridTemplateColumns: "1fr auto auto",
+                    gap: "0 16px", padding: "8px 20px",
+                    borderBottom: `1px solid ${C.borderLight}`,
+                  }}>
+                    {["Details", "Status", "Time"].map((h, i) => (
+                      <span key={h} style={{
+                        fontSize: 10, fontWeight: 600, color: C.textMuted,
+                        letterSpacing: ".06em", textTransform: "uppercase" as const,
+                        textAlign: i >= 1 ? "center" as const : "left" as const,
+                      }}>{h}</span>
+                    ))}
+                  </div>
 
-                {/* Activity rows */}
-                <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                  {overview.recent_activity.filter(a => feedFilter === "all" || a.status === feedFilter).map((act, idx) => {
-                    const statusColors: Record<string, { bg: string; color: string; dot: string }> = {
-                      waiting: { bg: "#fffbeb", color: "#92400e", dot: C.amber },
-                      serving: { bg: "#eff6ff", color: "#1e40af", dot: C.blue },
-                      done: { bg: "#ecfdf5", color: "#065f46", dot: C.green },
-                    };
-                    const sc = statusColors[act.status] ?? { bg: "#f8fafc", color: C.textSub, dot: C.textMuted };
+                  {/* Activity rows */}
+                  <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                    {overview.recent_activity.filter(a => feedFilter === "all" || a.status === feedFilter).map((act, idx) => {
+                      const statusColors: Record<string, { bg: string; color: string; dot: string }> = {
+                        waiting: { bg: "#fffbeb", color: "#92400e", dot: C.amber },
+                        serving: { bg: "#eff6ff", color: "#1e40af", dot: C.blue },
+                        done: { bg: "#ecfdf5", color: "#065f46", dot: C.green },
+                      };
+                      const sc = statusColors[act.status] ?? { bg: "#f8fafc", color: C.textSub, dot: C.textMuted };
 
-                    return (
-                      <li
-                        key={idx}
-                        className="fade-in hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                        onClick={() => setDrawerAct(act)}
-                        style={{
-                          display: "grid", gridTemplateColumns: "1fr auto auto",
-                          gap: "0 16px", alignItems: "center",
-                          padding: "12px 20px",
-                          borderBottom: `1px solid ${C.borderLight}`,
-                          cursor: "pointer",
-                          transition: "background .1s ease",
-                          animationDelay: `${idx * 15}ms`,
-                        }}
-                      >
-                        {/* Details */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                          <div style={{
-                            width: 28, height: 28, borderRadius: "50%",
-                            background: C.brandLight, color: C.brand,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 11, fontWeight: 700, flexShrink: 0
-                          }}>
-                            {statusLabel(act).substring(0, 2).toUpperCase()}
+                      return (
+                        <li
+                          key={idx}
+                          className="fade-in hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          onClick={() => setDrawerAct(act)}
+                          style={{
+                            display: "grid", gridTemplateColumns: "1fr auto auto",
+                            gap: "0 16px", alignItems: "center",
+                            padding: "12px 20px",
+                            borderBottom: `1px solid ${C.borderLight}`,
+                            cursor: "pointer",
+                            transition: "background .1s ease",
+                            animationDelay: `${idx * 15}ms`,
+                          }}
+                        >
+                          {/* Details */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                            <div style={{
+                              width: 28, height: 28, borderRadius: "50%",
+                              background: C.brandLight, color: C.brand,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 11, fontWeight: 700, flexShrink: 0
+                            }}>
+                              {statusLabel(act).substring(0, 2).toUpperCase()}
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <p className="capitalize" style={{ margin: 0, fontSize: 13, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
+                                {statusLabel(act)}
+                              </p>
+                              <p style={{ margin: "2px 0 0", fontSize: 11, color: C.textMuted, lineHeight: 1.3 }}>{toTitleCase(act.queue)}</p>
+                            </div>
                           </div>
-                          <div style={{ minWidth: 0 }}>
-                            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
-                              {statusLabel(act)}
-                            </p>
-                            <p style={{ margin: "2px 0 0", fontSize: 11, color: C.textMuted, lineHeight: 1.3 }}>{toTitleCase(act.queue)}</p>
-                          </div>
-                        </div>
-                        {/* Status */}
-                        <span style={{
-                          background: act.status === 'done' ? 'var(--q-green-bg)' : act.status === 'waiting' ? 'var(--q-amber-bg)' : act.status === 'serving' ? 'var(--q-blue-bg)' : 'var(--q-slate-bg)',
-                          color: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
-                        }} className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full capitalize">
+                          {/* Status */}
                           <span style={{
-                            background: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
-                          }} className="w-1.5 h-1.5 rounded-full" />
-                          {act.status}
-                        </span>
-                        {/* Time */}
-                        <span className="mono tnum" style={{ fontSize: 11.5, color: C.textMuted, textAlign: "right", minWidth: 44, fontWeight: 500 }}>
-                          {new Date(act.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
+                            background: act.status === 'done' ? 'var(--q-green-bg)' : act.status === 'waiting' ? 'var(--q-amber-bg)' : act.status === 'serving' ? 'var(--q-blue-bg)' : 'var(--q-slate-bg)',
+                            color: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
+                          }} className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full capitalize">
+                            <span style={{
+                              background: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
+                            }} className="w-1.5 h-1.5 rounded-full" />
+                            {act.status}
+                          </span>
+                          {/* Time */}
+                          <span className="mono tnum" style={{ fontSize: 11.5, color: C.textMuted, textAlign: "right", minWidth: 44, fontWeight: 500 }}>
+                            {new Date(act.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
 
                 {/* Pagination */}
                 <div style={{

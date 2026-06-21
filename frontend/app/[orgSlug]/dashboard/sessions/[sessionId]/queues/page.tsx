@@ -240,7 +240,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
 
     return (
         <div className="min-h-screen bg-slate-50 pb-16 w-full">
-            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 flex flex-col gap-4 md:gap-6">
 
                 {/* ── Background loading bar ── */}
                 {isBackgroundLoading && (
@@ -258,31 +258,31 @@ export default function SessionQueuesPage({ params }: PageProps) {
 
                 {/* ── Header Card ── */}
                 <div className="p-4 md:py-4 md:px-6 bg-white border border-slate-100 rounded-xl shadow-sm ring-1 ring-slate-900/5 w-full">
-                    <div className="flex items-center justify-between gap-4 w-full">
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-5 w-full">
                         {/* Left: Interactive Date Navigator + Meta */}
-                        <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 w-full xl:w-auto">
                             {/* Date Navigator Pill */}
-                            <div className={`flex items-center gap-1 bg-white border border-slate-200 rounded-lg shadow-sm p-1 ${dateNavLoading ? 'opacity-60 pointer-events-none' : ''}`}>
+                            <div className={`flex items-center justify-between md:justify-start gap-1 bg-white border border-slate-200 rounded-lg shadow-sm p-1 w-full md:w-auto ${dateNavLoading ? 'opacity-60 pointer-events-none' : ''}`}>
                                 <button
                                     onClick={handlePrevDay}
-                                    className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"
+                                    className="p-2 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"
                                     aria-label="Previous day"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={() => datePickerRef.current?.showPicker()}
-                                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 rounded-md cursor-pointer text-sm font-bold text-slate-900 transition-colors"
+                                    className="flex flex-1 md:flex-none justify-center items-center gap-2 px-3 py-1.5 hover:bg-slate-50 rounded-md cursor-pointer text-sm font-bold text-slate-900 transition-colors"
                                 >
                                     <Calendar className="w-4 h-4 text-indigo-600" />
                                     {session ? formatMonthDayYear(session.session_date) : "Session Queues"}
                                     {session && isToday(session.session_date) && (
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">Today</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md hidden sm:inline-block">Today</span>
                                     )}
                                 </button>
                                 <button
                                     onClick={handleNextDay}
-                                    className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"
+                                    className="p-2 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"
                                     aria-label="Next day"
                                 >
                                     <ChevronRight className="w-4 h-4" />
@@ -299,20 +299,20 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             </div>
 
                             {/* Metadata outside the pill */}
-                            <div className="flex items-center gap-2 text-xs font-medium text-slate-400 ml-1">
+                            <div className="flex items-center gap-2 flex-wrap text-xs font-medium text-slate-400 w-full md:w-auto">
                                 {session && (
                                     <span className="text-indigo-500 font-semibold">{formatWeekday(session.session_date)}</span>
                                 )}
                                 <span className="text-slate-300">·</span>
-                                <span>{queues.length} {queues.length === 1 ? "queue" : "queues"}</span>
+                                <span className="whitespace-nowrap">{queues.length} {queues.length === 1 ? "queue" : "queues"}</span>
                                 {activeQueues.length > 0 && (
-                                    <span className="inline-flex items-center gap-1 bg-sky-50 text-sky-700 border border-sky-100 font-bold px-2 py-0.5 rounded-full text-[11px] uppercase tracking-wider">
+                                    <span className="inline-flex items-center gap-1 bg-sky-50 text-sky-700 border border-sky-100 font-bold px-2 py-0.5 rounded-full text-[11px] uppercase tracking-wider whitespace-nowrap">
                                         <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
                                         {activeQueues.length} active
                                     </span>
                                 )}
                                 {inactiveQueues.length > 0 && (
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-md">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-md whitespace-nowrap">
                                         {inactiveQueues.length} inactive
                                     </span>
                                 )}
@@ -320,8 +320,8 @@ export default function SessionQueuesPage({ params }: PageProps) {
                         </div>
 
                         {/* Right: Search & Create */}
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                            <div className="flex items-center gap-2 bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-xl px-3 h-9 focus-within:ring-2 focus-within:ring-indigo-950/10 focus-within:border-indigo-900 transition-all w-44">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto">
+                            <div className="flex items-center gap-2 bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-xl px-3 h-9 focus-within:ring-2 focus-within:ring-indigo-950/10 focus-within:border-indigo-900 transition-all w-full sm:w-44 xl:w-56">
                                 <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
@@ -342,7 +342,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             </div>
                                 <button
                                     onClick={() => setShowCreate(true)}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl h-9 px-4 shadow-sm shadow-indigo-500/10 transition-all duration-200 active:scale-[0.98] flex items-center gap-2 flex-shrink-0"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl h-9 px-4 shadow-sm shadow-indigo-500/10 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 flex-shrink-0 w-full sm:w-auto"
                                 >
                                     <Plus className="w-4 h-4" />
                                     New Queue

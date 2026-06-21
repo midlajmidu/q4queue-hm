@@ -112,6 +112,7 @@ export default function SessionsPage() {
 
     // Delete
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [sessionToDelete, setSessionToDelete] = useState<SessionResponse | null>(null);
 
     const loadData = useCallback(async () => {
         setIsLoading(true);
@@ -180,10 +181,16 @@ export default function SessionsPage() {
         }
     };
 
-    const handleDelete = async (sessionId: string, e: React.MouseEvent) => {
+    const handleDelete = (session: SessionResponse, e: React.MouseEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        if (!confirm("Delete this session and ALL its queues and tokens? This cannot be undone.")) return;
+        setSessionToDelete(session);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!sessionToDelete) return;
+        const sessionId = sessionToDelete.id;
+        setSessionToDelete(null);
         setDeletingId(sessionId);
         try {
             await api.deleteSession(sessionId);
@@ -207,87 +214,90 @@ export default function SessionsPage() {
     return (
         <div>
             {/* ── Page Header ── */}
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 32 }}>
+            <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
                 <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: "#94A3B8", marginBottom: 8 }}>
-                        <Link href={dashBase} style={{ color: "inherit", textDecoration: "none" }}>Organization</Link>
-                        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-                        <span style={{ color: "#475569" }}>Sessions</span>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 mb-2 tracking-wide uppercase">
+                        <Link href={dashBase} className="hover:text-indigo-600 transition-colors">Organization</Link>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-300" strokeWidth={3} />
+                        <span className="text-slate-600">Sessions</span>
                     </div>
-                    <h1 style={{ fontSize: 22, fontWeight: 600, color: "#0F172A", margin: 0, letterSpacing: "-0.025em" }}>Sessions</h1>
-                    <p style={{ fontSize: 13, color: "#94A3B8", margin: "4px 0 0", fontWeight: 400 }}>Your service timeline — organised by date.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight m-0">Sessions</h1>
+                    <p className="text-sm text-slate-500 mt-1 font-medium">Your service timeline — organised by date.</p>
                 </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    {/* Queue filter */}
-                    <div style={{ position: "relative" }}>
-                        <select
-                            value={selectedQueue}
-                            onChange={(e) => setSelectedQueue(e.target.value)}
-                            style={{ height: 36, paddingLeft: 12, paddingRight: 32, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 13, color: "#374151", appearance: "none" as const, outline: "none", cursor: "pointer" }}
-                        >
-                            <option value="">All Queues</option>
-                            {queueList.map(name => (
-                                <option key={name} value={name}>{name}</option>
-                            ))}
-                        </select>
-                        <svg style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
-                    </div>
-                    {/* Date filter */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, height: 36, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8, paddingLeft: 10, paddingRight: 10, fontSize: 13, color: "#374151" }}>
-                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={4} width={18} height={18} rx={2} /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-                        <input
-                            type="date"
-                            value={filterDate}
-                            max={toLocalDateStr()}
-                            onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
-                            style={{ background: "transparent", border: "none", outline: "none", fontSize: 13, color: "#374151", fontWeight: 500 }}
-                        />
-                        {filterDate && (
-                            <button onClick={() => { setFilterDate(""); setPage(1); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" }}>
-                                <svg width={14} height={14} viewBox="0 0 20 20" fill="#94A3B8"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
-                            </button>
-                        )}
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full sm:w-auto">
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        {/* Queue filter */}
+                        <div className="relative flex-1 sm:flex-initial">
+                            <select
+                                value={selectedQueue}
+                                onChange={(e) => setSelectedQueue(e.target.value)}
+                                className="w-full h-10 pl-3 pr-8 bg-white border border-slate-200 shadow-sm rounded-xl text-sm text-slate-700 font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer transition-all"
+                            >
+                                <option value="">All Queues</option>
+                                {queueList.map(name => (
+                                    <option key={name} value={name}>{name}</option>
+                                ))}
+                            </select>
+                            <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                        </div>
+                        {/* Date filter */}
+                        <div className="flex-1 sm:flex-initial flex items-center gap-2 h-10 bg-white border border-slate-200 shadow-sm rounded-xl px-3 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
+                            <svg className="w-4 h-4 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={4} width={18} height={18} rx={2} /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+                            <input
+                                type="date"
+                                value={filterDate}
+                                max={toLocalDateStr()}
+                                onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
+                                className="bg-transparent border-none outline-none text-sm text-slate-700 font-medium w-full"
+                            />
+                            {filterDate && (
+                                <button onClick={() => { setFilterDate(""); setPage(1); }} className="p-0.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors shrink-0">
+                                    <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                                </button>
+                            )}
+                        </div>
                     </div>
                     {/* Create */}
                     <button
                         onClick={() => setShowCreate(true)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg h-10 px-4 transition-all duration-200 active:scale-[0.98] flex items-center gap-2"
-                        >
-                            <Plus className="w-4 h-4" />
-                            New Session
-                        </button>
-
+                        className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 shadow-md shadow-indigo-500/20 text-white font-semibold text-sm rounded-xl h-10 px-5 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] flex items-center justify-center gap-2 w-full sm:w-auto"
+                    >
+                        <Plus className="w-4 h-4" strokeWidth={2.5} />
+                        <span>New Session</span>
+                    </button>
                 </div>
             </div>
 
             {/* ── Error ── */}
             {error && (
-                <div role="alert" style={{ marginBottom: 24, background: "#FEF2F2", color: "#B91C1C", padding: "12px 16px", borderRadius: 8, border: "1px solid #FECACA", fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span>{error}</span>
-                    <button onClick={loadData} style={{ background: "none", border: "none", textDecoration: "underline", fontWeight: 600, color: "inherit", cursor: "pointer" }}>Retry</button>
+                <div role="alert" className="mb-6 bg-red-50 text-red-700 px-4 py-3 rounded-xl border border-red-200 text-sm font-medium flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span>{error}</span>
+                    </div>
+                    <button onClick={loadData} className="text-red-700 hover:text-red-800 font-bold underline decoration-red-300 hover:decoration-red-700 transition-colors">Retry</button>
                 </div>
             )}
 
             {/* ── Loading ── */}
             {isLoading ? (
-                <div style={{ textAlign: "center", padding: "96px 0" }}>
-                    <div style={{ width: 32, height: 32, border: "3px solid #F1F5F9", borderTopColor: "#2563EB", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-                    <p style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>Loading sessions...</p>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                <div className="text-center py-24">
+                    <div className="w-10 h-10 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4 shadow-sm" />
+                    <p className="text-sm text-slate-500 font-medium">Loading your timeline...</p>
                 </div>
             ) : filteredSessions.length === 0 ? (
                 /* ── Empty state ── */
-                <div style={{ background: "#fff", borderRadius: 12, border: "2px dashed #E2E8F0", textAlign: "center", padding: "96px 24px" }}>
-                    <div style={{ width: 56, height: 56, background: "#F8FAFC", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", border: "1px solid #F1F5F9" }}>
-                        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={4} width={18} height={18} rx={2} /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm text-center py-24 px-6 flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-5 border border-slate-100 shadow-sm ring-1 ring-slate-900/5">
+                        <svg className="w-8 h-8 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={4} width={18} height={18} rx={2} /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
                     </div>
-                    <h3 style={{ fontSize: 16, fontWeight: 600, color: "#0F172A", marginBottom: 8 }}>{selectedQueue ? "No sessions found" : "No sessions yet"}</h3>
-                    <p style={{ fontSize: 14, color: "#94A3B8", marginBottom: 32, maxWidth: 320, marginLeft: "auto", marginRight: "auto" }}>
-                        {selectedQueue ? `No sessions recorded for ${selectedQueue}.` : "Create your first session to start organizing queues by date."}
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">{selectedQueue ? "No sessions found" : "Your timeline is empty"}</h3>
+                    <p className="text-sm text-slate-500 mb-8 max-w-sm mx-auto leading-relaxed">
+                        {selectedQueue ? `No sessions recorded for ${selectedQueue}. Try adjusting your filters.` : "Create your first session to start organizing your queues and tracking performance by date."}
                     </p>
                     {!selectedQueue && (
-                        <button onClick={() => setShowCreate(true)} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", background: "#2563EB", color: "#fff", fontWeight: 500, borderRadius: 8, border: "none", fontSize: 14, cursor: "pointer" }}>
-                            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v16m8-8H4" /></svg>
+                        <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all duration-200 hover:-translate-y-0.5 shadow-md shadow-indigo-500/20 active:translate-y-0">
+                            <Plus className="w-4 h-4" strokeWidth={2.5} />
                             Create First Session
                         </button>
                     )}
@@ -295,15 +305,17 @@ export default function SessionsPage() {
             ) : (
                 /* ── Timeline ── */
                 <div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+                    <div className="flex flex-col gap-8">
                         {grouped.map((group) => {
                             return (
-                                <div key={group.label}>
+                                <div key={group.label} className="relative">
                                     {/* ── Group header ── */}
-                                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                                        <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.07em", color: "#94A3B8", textTransform: "uppercase" as const, whiteSpace: "nowrap" as const }}>{group.label}</span>
-                                        <div style={{ flex: 1, height: 1, background: "#F1F5F9" }} />
-                                        <span style={{ fontSize: 11, color: "#CBD5E1", whiteSpace: "nowrap" as const }}>{group.sessions.length} {group.sessions.length === 1 ? "session" : "sessions"}</span>
+                                    <div className="flex items-center gap-4 mb-4 sticky top-0 bg-slate-50/80 backdrop-blur-md z-10 py-2">
+                                        <div className="px-3 py-1 bg-white border border-slate-200 shadow-sm rounded-lg">
+                                            <span className="text-[11px] font-extrabold tracking-widest text-slate-500 uppercase whitespace-nowrap">{group.label}</span>
+                                        </div>
+                                        <div className="flex-1 h-px bg-slate-200" />
+                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">{group.sessions.length} {group.sessions.length === 1 ? "session" : "sessions"}</span>
                                     </div>
 
                                     {/* ── Session cards ── */}
@@ -315,65 +327,68 @@ export default function SessionsPage() {
                                                 <Link
                                                     key={session.id}
                                                     href={`${dashBase}/sessions/${session.id}/queues`}
-                                                    className="bg-indigo-50/40 rounded-2xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 p-6 flex justify-between items-center w-full mb-4 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-950/5 hover:border-indigo-200/60 group cursor-pointer relative overflow-hidden"
+                                                    className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:shadow-indigo-500/5 hover:border-indigo-300/60 p-4 sm:p-5 flex flex-col sm:flex-row sm:justify-between sm:items-center w-full transition-all duration-300 group cursor-pointer relative overflow-hidden"
                                                 >
                                                     {/* Left Content */}
-                                                    <div className="flex items-center gap-4 min-w-0">
+                                                    <div className="flex items-center gap-4 sm:gap-5 min-w-0 w-full sm:w-auto">
                                                         {/* Absolute Left Edge Vertical Indicator Tab */}
-                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${today ? "bg-indigo-500" : "bg-slate-200"}`} />
+                                                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-300 ${today ? "bg-indigo-500" : "bg-slate-200 group-hover:bg-indigo-300"}`} />
 
                                                         {/* Date Badge */}
-                                                        <div className="flex flex-col items-center justify-center bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl w-[52px] h-[52px] shrink-0 shadow-md shadow-indigo-500/20">
-                                                            <span className="text-[10px] font-bold text-indigo-200/90 uppercase tracking-widest">{getMonthShort(session.session_date)}</span>
-                                                            <span className="text-[17px] font-extrabold text-white leading-none mt-1">{getDayNumber(session.session_date)}</span>
+                                                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-indigo-500 to-indigo-700 rounded-xl w-[54px] h-[58px] shrink-0 shadow-inner shadow-white/20 ring-1 ring-indigo-900/10">
+                                                            <span className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest leading-none mt-1">{getMonthShort(session.session_date)}</span>
+                                                            <span className="text-[20px] font-extrabold text-white leading-none mt-1">{getDayNumber(session.session_date)}</span>
                                                         </div>
 
                                                         {/* Title + badge */}
-                                                        <div className="flex flex-col gap-0.5 min-w-0">
+                                                        <div className="flex flex-col gap-1 min-w-0">
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-base font-bold text-slate-900 capitalize truncate">
+                                                                <span className="text-base font-bold text-slate-800 capitalize truncate group-hover:text-indigo-700 transition-colors">
                                                                     {session.title || (today ? "Today's Session" : formatShortDate(session.session_date))}
                                                                 </span>
                                                                 {today && (
-                                                                    <span className="bg-sky-50 text-sky-700 border border-sky-200/60 font-bold px-2.5 py-0.5 rounded-full text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-                                                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+                                                                    <span className="relative flex items-center gap-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold px-2 py-0.5 rounded-md text-[10px] uppercase tracking-widest shrink-0">
+                                                                        <span className="relative flex h-2 w-2">
+                                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                                                                        </span>
                                                                         LIVE
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <span className="text-xs text-slate-400 font-normal">No notes provided</span>
+                                                            <span className="text-[13px] text-slate-400 font-medium">No notes provided</span>
                                                         </div>
                                                     </div>
 
                                                     {/* Right Content */}
-                                                    <div className="flex items-center shrink-0">
+                                                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-4 sm:mt-0 pt-3 sm:pt-0 border-t border-slate-100 sm:border-0 shrink-0">
                                                         {/* Unified Metrics Stream Row */}
-                                                        <div className="flex items-center gap-4 bg-indigo-50/40 border border-indigo-100/60 rounded-xl px-4 py-2 text-slate-600 font-semibold text-xs mr-4">
-                                                            {/* Queues */}
-                                                            <span className="flex items-center gap-1.5">
-                                                                <Layers className="w-4 h-4 text-indigo-600" strokeWidth={2} />
-                                                                <span>{session.queue_count} {session.queue_count === 1 ? "Queue" : "Queues"}</span>
-                                                            </span>
-                                                            {/* Served */}
-                                                            <span className="flex items-center gap-1.5">
-                                                                <Users className="w-4 h-4 text-sky-500" strokeWidth={2} />
-                                                                <span>{served} Served</span>
-                                                            </span>
+                                                        <div className="flex items-center gap-2">
+                                                            {/* Queues Pill */}
+                                                            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 rounded-lg px-3 py-1.5 text-slate-600 font-semibold text-xs transition-colors group-hover:bg-white group-hover:border-slate-300">
+                                                                <Layers className="w-3.5 h-3.5 text-indigo-500" strokeWidth={2.5} />
+                                                                <span>{session.queue_count} <span className="font-medium text-slate-400">Queues</span></span>
+                                                            </div>
+                                                            {/* Served Pill */}
+                                                            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 rounded-lg px-3 py-1.5 text-slate-600 font-semibold text-xs transition-colors group-hover:bg-white group-hover:border-slate-300">
+                                                                <Users className="w-3.5 h-3.5 text-sky-500" strokeWidth={2.5} />
+                                                                <span>{served} <span className="font-medium text-slate-400">Served</span></span>
+                                                            </div>
                                                         </div>
 
                                                         {/* Delete + Chevron */}
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-1 shrink-0 ml-1">
                                                             {!isStaff && (
                                                                 <button
-                                                                    onClick={(e) => handleDelete(session.id, e)}
+                                                                    onClick={(e) => handleDelete(session, e)}
                                                                     disabled={deletingId === session.id}
-                                                                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all duration-150"
+                                                                    className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
                                                                     aria-label="Delete session"
                                                                 >
-                                                                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
+                                                                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
                                                                 </button>
                                                             )}
-                                                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-600 transition-all group-hover:translate-x-1" />
+                                                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-600 transition-all duration-300 group-hover:translate-x-1" strokeWidth={2.5} />
                                                         </div>
                                                     </div>
                                                 </Link>
@@ -387,13 +402,13 @@ export default function SessionsPage() {
 
                     {/* Pagination */}
                     {total > LIMIT && (
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", marginTop: 24, borderTop: "1px solid #F1F5F9" }}>
-                            <span style={{ fontSize: 13, fontWeight: 500, color: "#94A3B8" }}>
-                                Showing <span style={{ fontWeight: 600, color: "#334155" }}>{(page - 1) * LIMIT + 1}</span> to <span style={{ fontWeight: 600, color: "#334155" }}>{Math.min(page * LIMIT, total)}</span> of <span style={{ fontWeight: 600, color: "#334155" }}>{total}</span>
+                        <div className="flex items-center justify-between py-4 mt-8 border-t border-slate-100">
+                            <span className="text-sm font-medium text-slate-500">
+                                Showing <span className="font-bold text-slate-700">{(page - 1) * LIMIT + 1}</span> to <span className="font-bold text-slate-700">{Math.min(page * LIMIT, total)}</span> of <span className="font-bold text-slate-700">{total}</span>
                             </span>
-                            <div style={{ display: "flex", gap: 8 }}>
-                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ padding: "6px 16px", fontSize: 13, fontWeight: 500, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8, cursor: page === 1 ? "not-allowed" : "pointer", opacity: page === 1 ? 0.5 : 1, color: "#64748B" }}>Previous</button>
-                                <button onClick={() => setPage(p => p + 1)} disabled={page * LIMIT >= total} style={{ padding: "6px 16px", fontSize: 13, fontWeight: 500, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8, cursor: page * LIMIT >= total ? "not-allowed" : "pointer", opacity: page * LIMIT >= total ? 0.5 : 1, color: "#64748B" }}>Next</button>
+                            <div className="flex gap-2">
+                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-1.5 text-sm font-medium bg-white border border-slate-200 rounded-lg shadow-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">Previous</button>
+                                <button onClick={() => setPage(p => p + 1)} disabled={page * LIMIT >= total} className="px-4 py-1.5 text-sm font-medium bg-white border border-slate-200 rounded-lg shadow-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">Next</button>
                             </div>
                         </div>
                     )}
@@ -410,17 +425,17 @@ export default function SessionsPage() {
 
             {/* ── Create Session Modal ── */}
             {showCreate && (
-                <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-                    <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.4)", backdropFilter: "blur(4px)" }} onClick={() => setShowCreate(false)} />
-                    <div style={{ position: "relative", background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", maxWidth: 400, width: "100%", padding: 28 }}>
-                        <div style={{ marginBottom: 24 }}>
-                            <h3 style={{ fontSize: 18, fontWeight: 600, color: "#0F172A", letterSpacing: "-0.02em", margin: 0, marginBottom: 4 }}>New Session</h3>
-                            <p style={{ fontSize: 13, color: "#94A3B8", margin: 0 }}>Select a date and optional title for the new session.</p>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setShowCreate(false)} />
+                    <div className="relative bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="mb-6">
+                            <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1.5">New Session</h3>
+                            <p className="text-sm text-slate-500 font-medium">Select a date and optional title for the new session.</p>
                         </div>
-                        <form onSubmit={handleCreate} noValidate style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        <form onSubmit={handleCreate} noValidate className="flex flex-col gap-4">
                             <div>
-                                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const, letterSpacing: "0.07em", marginBottom: 8 }}>
-                                    Session Date <span style={{ color: "#EF4444" }}>*</span>
+                                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                    Session Date <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     ref={dateRef}
@@ -429,13 +444,13 @@ export default function SessionsPage() {
                                     onChange={(e) => setNewDate(e.target.value)}
                                     max={toLocalDateStr()}
                                     required
-                                    style={{ width: "100%", borderRadius: 8, border: "1px solid #E2E8F0", padding: "10px 14px", fontSize: 14, color: "#0F172A", fontWeight: 500, background: "#F8FAFC", outline: "none", boxSizing: "border-box" }}
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                                 />
                             </div>
                             <div>
-                                <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const, letterSpacing: "0.07em", marginBottom: 8 }}>
+                                <label className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
                                     <span>Title</span>
-                                    <span style={{ fontWeight: 400, textTransform: "none" as const, letterSpacing: "normal" }}>Optional</span>
+                                    <span className="normal-case tracking-normal font-medium">Optional</span>
                                 </label>
                                 <input
                                     type="text"
@@ -443,22 +458,45 @@ export default function SessionsPage() {
                                     onChange={(e) => setNewTitle(e.target.value)}
                                     placeholder="e.g. Morning Clinic"
                                     maxLength={200}
-                                    style={{ width: "100%", borderRadius: 8, border: "1px solid #E2E8F0", padding: "10px 14px", fontSize: 14, color: "#0F172A", fontWeight: 500, background: "#F8FAFC", outline: "none", boxSizing: "border-box" }}
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
                                 />
                             </div>
                             {createError && (
-                                <div style={{ padding: 12, borderRadius: 8, background: "#FEF2F2", color: "#B91C1C", fontSize: 13, fontWeight: 500, border: "1px solid #FECACA", display: "flex", alignItems: "flex-start", gap: 8 }}>
-                                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx={12} cy={12} r={10} /><path d="M12 8v4m0 4h.01" /></svg>
+                                <div className="p-3 rounded-xl bg-red-50 text-red-700 text-sm font-medium border border-red-200 flex items-start gap-2 shadow-sm">
+                                    <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx={12} cy={12} r={10} /><path d="M12 8v4m0 4h.01" /></svg>
                                     <span>{createError}</span>
                                 </div>
                             )}
-                            <div style={{ display: "flex", gap: 8, paddingTop: 16, marginTop: 4, borderTop: "1px solid #F1F5F9" }}>
-                                <button type="button" onClick={() => setShowCreate(false)} style={{ flex: 1, padding: "10px 16px", fontSize: 13, fontWeight: 500, color: "#64748B", background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8, cursor: "pointer" }}>Cancel</button>
-                                <button type="submit" disabled={createLoading || !newDate} style={{ flex: 1.5, padding: "10px 16px", fontSize: 13, fontWeight: 500, color: "#fff", background: "#2563EB", border: "none", borderRadius: 8, cursor: createLoading || !newDate ? "not-allowed" : "pointer", opacity: createLoading || !newDate ? 0.5 : 1 }}>
+                            <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100">
+                                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
+                                <button type="submit" disabled={createLoading || !newDate} className="flex-[1.5] py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-500/20 hover:-translate-y-0.5 transition-all active:translate-y-0">
                                     {createLoading ? "Creating..." : "Create Session"}
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Delete Confirmation Modal ── */}
+            {sessionToDelete && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setSessionToDelete(null)} />
+                    <div className="relative bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 text-red-500 shrink-0">
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 tracking-tight">Delete Session?</h3>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                            Are you sure you want to delete the session on <strong className="text-slate-800">{new Date(sessionToDelete.session_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</strong>?
+                            <span className="block mt-2 text-red-600 font-semibold bg-red-50 p-2 rounded-lg border border-red-100/50">This will delete all associated queues and tokens. This action cannot be undone.</span>
+                        </p>
+                        <div className="flex gap-3 pt-2 border-t border-slate-100">
+                            <button type="button" onClick={() => setSessionToDelete(null)} className="flex-1 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
+                            <button type="button" onClick={handleDeleteConfirm} className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm shadow-red-500/20 hover:-translate-y-0.5 transition-all active:translate-y-0">Delete</button>
+                        </div>
                     </div>
                 </div>
             )}

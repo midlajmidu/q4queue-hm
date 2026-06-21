@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { OrganizationSettingsResponse } from "@/types/api";
-import { Lock, CheckCircle, AlertCircle } from "lucide-react";
+import { Lock, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { PageWrapper } from "@/components/PageWrapper";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { useRef } from "react";
 
 const C = {
     // bg
@@ -172,7 +174,7 @@ export default function SettingsPage() {
 
     // Clinic Info State
     const [settings, setSettings] = useState<OrganizationSettingsResponse | null>(null);
-    const [myProfile, setMyProfile] = useState<User | null>(null);
+    const [myProfile, setMyProfile] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSavingInfo, setIsSavingInfo] = useState(false);
 
@@ -200,6 +202,27 @@ export default function SettingsPage() {
     const [pwdError, setPwdError] = useState<string | null>(null);
 
     const [otp, setOtp] = useState("");
+    const [otpValues, setOtpValues] = useState<string[]>(Array(6).fill(""));
+    const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+    const handleOtpChange = (index: number, value: string) => {
+        if (!/^[0-9]*$/.test(value)) return;
+        const newOtp = [...otpValues];
+        newOtp[index] = value;
+        setOtpValues(newOtp);
+        setOtp(newOtp.join(""));
+        
+        if (value && index < 5) {
+            otpRefs.current[index + 1]?.focus();
+        }
+    };
+
+    const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
+            otpRefs.current[index - 1]?.focus();
+        }
+    };
+
     const [pwdStep, setPwdStep] = useState<1 | 2>(1); // 1 = request OTP, 2 = verify and change
 
     const [showCurrent, setShowCurrent] = useState(false);
@@ -359,7 +382,7 @@ export default function SettingsPage() {
                     first_name: firstName,
                     last_name: lastName,
                 });
-                setMyProfile(prev => prev ? { ...prev, first_name: firstName, last_name: lastName } : null);
+                setMyProfile((prev: any) => prev ? { ...prev, first_name: firstName, last_name: lastName } : null);
                 setShowSuccessModal("Profile updated successfully! Refreshing...");
                 setTimeout(() => window.location.reload(), 1500);
             }
@@ -378,11 +401,11 @@ export default function SettingsPage() {
 
         try {
             await api.requestPasswordChangeOtp({ current_password: currentPassword });
-            setPwdSuccess("OTP sent to your email. Please check your inbox.");
+            toast.success("OTP sent to your email. Please check your inbox.");
             setPwdStep(2);
             setResendTimer(60);
         } catch (err) {
-            setPwdError(err instanceof ApiError ? err.detail : "Failed to verify current password and send OTP.");
+            toast.error(err instanceof ApiError ? err.detail : "Failed to verify current password and send OTP.");
         } finally {
             setIsSavingPassword(false);
         }
@@ -395,10 +418,10 @@ export default function SettingsPage() {
         setIsResending(true);
         try {
             await api.requestPasswordChangeOtp({ current_password: currentPassword });
-            setPwdSuccess("A new OTP has been sent to your email.");
+            toast.success("A new OTP has been sent to your email.");
             setResendTimer(60);
         } catch (err) {
-            setPwdError(err instanceof ApiError ? err.detail : "Failed to resend OTP.");
+            toast.error(err instanceof ApiError ? err.detail : "Failed to resend OTP.");
         } finally {
             setIsResending(false);
         }
@@ -410,11 +433,11 @@ export default function SettingsPage() {
         setPwdError(null);
 
         if (newPassword !== confirmPassword) {
-            setPwdError("New passwords do not match.");
+            toast.error("New passwords do not match.");
             return;
         }
         if (otp.length !== 6) {
-            setPwdError("OTP must be 6 digits.");
+            toast.error("OTP must be 6 digits.");
             return;
         }
 
@@ -432,7 +455,7 @@ export default function SettingsPage() {
             setPwdStep(1);
             setShowSuccessModal("Your password has been changed successfully.");
         } catch (err) {
-            setPwdError(err instanceof ApiError ? err.detail : "Failed to change password. OTP might be invalid.");
+            toast.error(err instanceof ApiError ? err.detail : "Failed to change password. OTP might be invalid.");
         } finally {
             setIsSavingPassword(false);
         }
@@ -491,10 +514,10 @@ export default function SettingsPage() {
                                     <div className="card-header">
                                         <div>
                                             <h2 style={{ fontSize: '15px', fontWeight: 700, color: C.text, margin: 0 }}>
-                                                {isAdmin ? "Organization Details" : "Your Profile Details"}
+                                                {isAdmin ? "Organization Management" : "Personal Profile Info"}
                                             </h2>
                                             <p style={{ fontSize: '13px', color: C.textSub, marginTop: 4 }}>
-                                                {isAdmin ? "Update contact and profile information globally displayed to customers." : "Update your personal profile information."}
+                                                {isAdmin ? "Manage organization details that are publicly visible to your customers across all queues." : "Update your personal staff credentials. These details are private and not visible to the public."}
                                             </p>
                                         </div>
                                     </div>
@@ -525,7 +548,7 @@ export default function SettingsPage() {
                                                         <label className="lbl">Organization</label>
                                                         <div style={{ 
                                                             display: 'flex', alignItems: 'center', gap: 16, padding: '16px', 
-                                                            background: C.bgAlt, border: `1px solid ${C.borderLight}`, borderRadius: 12 
+                                                            background: C.cardBgAlt, border: `1px solid ${C.borderLight}`, borderRadius: 12 
                                                         }}>
                                                             <div style={{ 
                                                                 width: 48, height: 48, borderRadius: 10, border: `1px solid ${C.borderLight}`, 
@@ -546,11 +569,11 @@ export default function SettingsPage() {
                                                     </div>
                                                     <div>
                                                         <label className="lbl">First Name</label>
-                                                        <input type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="premium-input" placeholder="e.g. John" />
+                                                        <input type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="premium-input capitalize" placeholder="e.g. John" />
                                                     </div>
                                                     <div>
                                                         <label className="lbl">Last Name</label>
-                                                        <input type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="premium-input" placeholder="e.g. Doe" />
+                                                        <input type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="premium-input capitalize" placeholder="e.g. Doe" />
                                                     </div>
                                                 </>
                                             )}
@@ -682,104 +705,148 @@ export default function SettingsPage() {
 
                             {activeTab === 'security' && (
                                 <div className="card" style={{ marginBottom: 40 }}>
-                                    <div className="card-header">
-                                        <div>
-                                            <h2 style={{ fontSize: '15px', fontWeight: 700, color: C.text, margin: 0 }}>Security Configuration</h2>
-                                            <p style={{ fontSize: '13px', color: C.textSub, marginTop: 4 }}>Update the password used to access this administrative dashboard.</p>
+                                    <div className="card-header border-b border-slate-200">
+                                        <div className="flex items-center gap-2.5">
+                                            <Lock size={18} className="text-slate-500" />
+                                            <div>
+                                                <h2 style={{ fontSize: '15px', fontWeight: 700, color: C.text, margin: 0 }}>Security Configuration</h2>
+                                                <p style={{ fontSize: '13px', color: C.textSub, marginTop: 4 }}>To change your password, please verify your identity by entering your current password to receive a secure OTP.</p>
+                                            </div>
                                         </div>
                                     </div>
 
                                     <form onSubmit={pwdStep === 1 ? handleRequestOtp : handleUpdatePassword} style={{ padding: '32px 24px' }}>
-                                        {pwdSuccess && (
-                                            <div style={{ background: '#f0fdf4', color: '#166534', padding: '16px', borderRadius: 8, fontSize: '14px', fontWeight: 500, marginBottom: 24, border: '1px solid #bbf7d0', borderLeft: '4px solid #22c55e', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                                                <CheckCircle size={20} color="#22c55e" />
-                                                <span style={{ flex: 1, lineHeight: 1.5 }}>{pwdSuccess}</span>
-                                            </div>
-                                        )}
-                                        {pwdError && (
-                                            <div style={{ background: '#fef2f2', color: '#991b1b', padding: '16px', borderRadius: 8, fontSize: '14px', fontWeight: 500, marginBottom: 24, border: '1px solid #fecaca', borderLeft: '4px solid #ef4444', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                                                <AlertCircle size={20} color="#ef4444" />
-                                                <span style={{ flex: 1, lineHeight: 1.5 }}>{pwdError}</span>
-                                            </div>
-                                        )}
-
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 24, maxWidth: 480 }}>
+                                        {/* Toast notifications will handle success/error popups */}
+                                        <div className="w-full">
                                             {pwdStep === 1 ? (
-                                                <div>
-                                                    <label className="lbl">Current Password</label>
-                                                    <div style={{ position: 'relative' }}>
-                                                        <input type={showCurrent ? "text" : "password"} required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
-                                                        <button type="button" onClick={() => setShowCurrent(!showCurrent)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
-                                                            {showCurrent ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" /></svg>}
+                                                <div className="max-w-md">
+                                                    <h3 className="text-base font-semibold text-slate-900 mb-1">Verify Identity with Password</h3>
+                                                    <p className="text-[14px] text-slate-500 mb-6">Enter your current password to receive a secure 6-digit OTP via email.</p>
+                                                    
+                                                    <label className="block text-[14px] font-medium text-slate-700 mb-1.5">Current Password</label>
+                                                    <div className="relative">
+                                                        <input type={showCurrent ? "text" : "password"} required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full bg-white border border-slate-300 text-slate-900 text-[14px] rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow shadow-sm placeholder:text-slate-400" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
+                                                        <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 bg-transparent border-none cursor-pointer">
+                                                            {showCurrent ? <Eye size={18} /> : <EyeOff size={18} />}
                                                         </button>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <>
+                                                <div className="flex flex-col gap-10 w-full max-w-md">
+                                                    {/* Step 1: Verify OTP */}
                                                     <div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                                            <label className="lbl" style={{ margin: 0 }}>6-Digit OTP</label>
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleResendOtp}
-                                                                disabled={resendTimer > 0 || isResending}
-                                                                style={{ fontSize: 12, fontWeight: 600, color: resendTimer > 0 ? C.textMuted : C.brand, background: 'none', border: 'none', padding: 0, cursor: resendTimer > 0 ? 'not-allowed' : 'pointer' }}
-                                                            >
-                                                                {isResending ? "Sending..." : resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : "Resend OTP"}
-                                                            </button>
-                                                        </div>
-                                                        <input type="text" required maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))} className="premium-input text-center text-lg tracking-[0.25em]" placeholder="000000" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="lbl">New Password</label>
-                                                        <div style={{ position: 'relative' }}>
-                                                            <input type={showNew ? "text" : "password"} required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
-                                                            <button type="button" onClick={() => setShowNew(!showNew)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
-                                                                {showNew ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" /></svg>}
-                                                            </button>
-                                                        </div>
-                                                        {newPassword.length > 0 && (
-                                                            <div style={{ marginTop: 8 }}>
-                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                                                    <span style={{ fontSize: 11, fontWeight: 600, color: C.textMuted }}>Password Strength</span>
-                                                                    <span style={{ fontSize: 11, fontWeight: 700, color: pwdStrength.color }}>{pwdStrength.label}</span>
-                                                                </div>
-                                                                <div style={{ height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
-                                                                    <div style={{ height: '100%', width: pwdStrength.width, background: pwdStrength.color, transition: 'all 0.3s' }} />
-                                                                </div>
+                                                        <h3 className="text-base font-semibold text-slate-900 mb-1">1. Verify Identity with OTP</h3>
+                                                        <p className="text-[14px] text-slate-500 mb-6">A 6-digit verification code has been sent to your registered email.</p>
+                                                        
+                                                        <div>
+                                                            <div className="flex justify-between items-end mb-2">
+                                                                <label className="block text-[14px] font-medium text-slate-700">6-Digit OTP</label>
+                                                                <span className="text-[13px] text-slate-500">Sent to: <span className="font-medium text-slate-700">{myProfile?.email?.replace(/(.{1}).*@/, "$1******@")}</span></span>
                                                             </div>
-                                                        )}
-                                                        <p style={{ marginTop: 8, fontSize: 12, color: C.textMuted }}>Minimum 8 characters, numbers, and capital letters recommended.</p>
+                                                            
+                                                            <div className="flex gap-3 mb-4">
+                                                                {otpValues.map((digit, index) => (
+                                                                    <input
+                                                                        key={index}
+                                                                        type="text"
+                                                                        maxLength={1}
+                                                                        value={digit}
+                                                                        ref={(el) => { otpRefs.current[index] = el; }}
+                                                                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                                                                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                                                                        className="w-12 h-14 text-center text-[24px] font-bold border border-slate-300 rounded-lg bg-white text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 transition-all shadow-sm"
+                                                                        placeholder="0"
+                                                                    />
+                                                                ))}
+                                                            </div>
+
+                                                            <div className="flex items-center text-[13px]">
+                                                                <span className="text-slate-500 mr-2">Didn't receive the code?</span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleResendOtp}
+                                                                    disabled={resendTimer > 0 || isResending}
+                                                                    className={`font-medium transition-colors border-none bg-transparent p-0 ${resendTimer > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-700 cursor-pointer'}`}
+                                                                >
+                                                                    {isResending ? "Sending..." : resendTimer > 0 ? `Resend Code (${resendTimer}s)` : "Resend Code"}
+                                                                </button>
+                                                            </div>
+                                                        </div>
                                                     </div>
 
+                                                    <div className="h-px bg-slate-200 w-full" />
+
+                                                    {/* Step 2: Set Password */}
                                                     <div>
-                                                        <label className="lbl">Confirm New Password</label>
-                                                        <div style={{ position: 'relative' }}>
-                                                            <input type={showConfirm ? "text" : "password"} required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="premium-input" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
-                                                            <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, cursor: 'pointer' }} className="hover:text-slate-700 transition-colors">
-                                                                {showConfirm ? <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg> : <svg width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" /></svg>}
-                                                            </button>
+                                                        <h3 className="text-base font-semibold text-slate-900 mb-1">2. Create a New Secure Password</h3>
+                                                        <p className="text-[14px] text-slate-500 mb-6">Once the OTP is verified, you can set your new password below.</p>
+                                                        
+                                                        <div className="space-y-6">
+                                                            <div>
+                                                                <label className="block text-[14px] font-medium text-slate-700 mb-1.5">New Password</label>
+                                                                <div className="relative">
+                                                                    <input type={showNew ? "text" : "password"} required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white border border-slate-300 text-slate-900 text-[14px] rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow shadow-sm placeholder:text-slate-400" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
+                                                                    <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 bg-transparent border-none cursor-pointer">
+                                                                        {showNew ? <Eye size={18} /> : <EyeOff size={18} />}
+                                                                    </button>
+                                                                </div>
+                                                                {newPassword.length > 0 && (
+                                                                    <div className="mt-3">
+                                                                        <div className="flex justify-between items-center mb-1.5">
+                                                                            <span className="text-[12px] font-semibold text-slate-500">Password Strength</span>
+                                                                            <span className="text-[12px] font-bold" style={{ color: pwdStrength.color }}>{pwdStrength.label}</span>
+                                                                        </div>
+                                                                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                                            <div className="h-full transition-all duration-300" style={{ width: pwdStrength.width, backgroundColor: pwdStrength.color }} />
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                <div className="mt-4 flex flex-col gap-2.5">
+                                                                    <div className={`flex items-center gap-2.5 text-[13px] ${newPassword.length >= 8 ? 'text-green-700 font-medium' : 'text-slate-500'}`}>
+                                                                        {newPassword.length >= 8 ? <CheckCircle size={16} className={newPassword.length >= 8 ? 'text-green-600' : 'text-slate-400'} /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                        At least 8 characters
+                                                                    </div>
+                                                                    <div className={`flex items-center gap-2.5 text-[13px] ${/[0-9]/.test(newPassword) ? 'text-green-700 font-medium' : 'text-slate-500'}`}>
+                                                                        {/[0-9]/.test(newPassword) ? <CheckCircle size={16} className={/[0-9]/.test(newPassword) ? 'text-green-600' : 'text-slate-400'} /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                        Contains a number
+                                                                    </div>
+                                                                    <div className={`flex items-center gap-2.5 text-[13px] ${/[A-Z]/.test(newPassword) ? 'text-green-700 font-medium' : 'text-slate-500'}`}>
+                                                                        {/[A-Z]/.test(newPassword) ? <CheckCircle size={16} className={/[A-Z]/.test(newPassword) ? 'text-green-600' : 'text-slate-400'} /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                        Contains an uppercase letter
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[14px] font-medium text-slate-700 mb-1.5">Confirm New Password</label>
+                                                                <div className="relative">
+                                                                    <input type={showConfirm ? "text" : "password"} required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-white border border-slate-300 text-slate-900 text-[14px] rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow shadow-sm placeholder:text-slate-400" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
+                                                                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 bg-transparent border-none cursor-pointer">
+                                                                        {showConfirm ? <Eye size={18} /> : <EyeOff size={18} />}
+                                                                    </button>
+                                                                </div>
+                                                                {confirmPassword && newPassword !== confirmPassword && (
+                                                                    <p className="mt-2 text-[13px] font-medium text-red-600">Passwords do not match.</p>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        {confirmPassword && newPassword !== confirmPassword && (
-                                                            <p style={{ marginTop: 8, fontSize: 12, fontWeight: 500, color: C.red }}>Passwords do not match.</p>
-                                                        )}
                                                     </div>
-                                                </>
+                                                </div>
                                             )}
                                         </div>
 
-                                        <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '16px', marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.borderLight}` }}>
+                                        <div style={{ display: 'flex', justifyContent: pwdStep === 1 ? 'flex-end' : 'space-between', alignItems: 'center', marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.borderLight}` }}>
                                             {pwdStep === 1 ? (
-                                                <button type="submit" disabled={isSavingPassword || !currentPassword} className="qa-btn">
+                                                <button type="submit" disabled={isSavingPassword || !currentPassword} className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-[14px] font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg cursor-pointer shadow-sm shadow-blue-600/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
                                                     {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Sending OTP...</> : "Send OTP"}
                                                 </button>
                                             ) : (
                                                 <>
-                                                    <button type="submit" disabled={isSavingPassword || !otp || otp.length !== 6 || !newPassword || !confirmPassword || newPassword !== confirmPassword} className="qa-btn">
-                                                        {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Updating...</> : "Verify & Update Password"}
-                                                    </button>
-                                                    <button type="button" onClick={() => setPwdStep(1)} className="qa-btn" style={{ background: '#f1f5f9', color: '#475569', boxShadow: 'none' }}>
+                                                    <button type="button" onClick={() => setPwdStep(1)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-transparent hover:bg-slate-100 border border-transparent rounded-lg transition-colors cursor-pointer">
                                                         Cancel
+                                                    </button>
+                                                    <button type="submit" disabled={isSavingPassword || !otp || otp.length !== 6 || !newPassword || !confirmPassword || newPassword !== confirmPassword} className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-[14px] font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg cursor-pointer shadow-sm shadow-blue-600/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                        {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Updating...</> : "Verify & Update Password"}
                                                     </button>
                                                 </>
                                             )}

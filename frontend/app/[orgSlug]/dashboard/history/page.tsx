@@ -169,7 +169,7 @@ export default function HistoryPage() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `Queue_History.csv`;
+            a.download = `Customer_Logs.csv`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -279,10 +279,10 @@ export default function HistoryPage() {
                 <StandardPageHeader
                   breadcrumbs={[
                     { label: "Analytics", href: `/${orgSlug}/dashboard/insights` },
-                    { label: "History" }
+                    { label: "Customers" }
                   ]}
-                  title="Queue History"
-                  subtitle="Review past sessions, tokens, and detailed performance metrics."
+                  title="Customer Logs"
+                  subtitle="Review customer logs, past interactions, and tokens."
                   icon={<svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                   action={
                     /* Filters */
@@ -395,7 +395,7 @@ export default function HistoryPage() {
                 {/* ── Table Card ── */}
                 <div style={{ background: "var(--q-card-bg)", borderRadius: 8, border: "1px solid var(--q-border-light)", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--q-border-light)" }}>
-                        <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--q-text)" }}>Historical Logs</h2>
+                        <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--q-text)" }}>Customer Logs</h2>
                         <div className="tabular-nums" style={{ fontSize: 12, fontWeight: 600, color: "var(--q-text-muted)" }}>
                           {offset + 1}-{Math.min(offset + PAGE_SIZE, total)} OF {total}
                         </div>
@@ -427,7 +427,7 @@ export default function HistoryPage() {
                                             </div>
                                             <div>
                                               <p style={{ fontSize: 15, fontWeight: 600, color: "#0f172a", marginBottom: 4 }}>
-                                                No history found
+                                                No customers found
                                               </p>
                                               <p style={{ fontSize: 13.5, color: "#94a3b8" }}>
                                                 Try adjusting the current filters.
