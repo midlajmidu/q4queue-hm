@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { OrganizationSettingsResponse, User } from "@/types/api";
-import { Lock, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Lock, CheckCircle, AlertCircle, Eye, EyeOff, Building2, Shield, Zap } from "lucide-react";
 import { PageWrapper } from "@/components/PageWrapper";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useRef } from "react";
+import { OperationsTab } from "@/components/settings/OperationsTab";
 
 const C = {
     // bg
@@ -489,15 +490,22 @@ export default function SettingsPage() {
                                 onClick={() => handleTabChange('profile')}
                                 className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
                             >
-                                <span style={{ fontSize: '18px' }}>🏢</span> Profile
+                                <Building2 size={18} /> Profile
                             </button>
                             <button
                                 onClick={() => handleTabChange('security')}
                                 className={`tab-btn ${activeTab === 'security' ? 'active' : ''}`}
                             >
-                                <span style={{ fontSize: '18px' }}>🛡️</span> Security
+                                <Shield size={18} /> Security
                             </button>
-
+                            {isAdmin && (
+                                <button
+                                    onClick={() => handleTabChange('operations')}
+                                    className={`tab-btn ${activeTab === 'operations' ? 'active' : ''}`}
+                                >
+                                    <Zap size={18} /> Workflows
+                                </button>
+                            )}
                         </div>
 
                         {/* Content Area */}
@@ -556,6 +564,7 @@ export default function SettingsPage() {
                                                             </div>
                                                             <div>
                                                                 <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{name}</div>
+
                                                             </div>
                                                         </div>
                                                     </div>
@@ -854,6 +863,9 @@ export default function SettingsPage() {
                                 </div>
                             )}
 
+                            {activeTab === 'operations' && (
+                                <OperationsTab />
+                            )}
                         </div>
                     </div>
                 </PageWrapper>

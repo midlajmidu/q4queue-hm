@@ -16,7 +16,7 @@ class MessageBase(BaseModel):
 
 class MessageCreate(MessageBase):
     org_id: uuid.UUID
-    sender_id: uuid.UUID
+    sender_id: Optional[uuid.UUID] = None
     receiver_id: Optional[uuid.UUID] = None
 
 
@@ -28,7 +28,7 @@ class MessageCreateRequest(BaseModel):
 class MessageResponse(MessageBase):
     id: uuid.UUID
     org_id: uuid.UUID
-    sender_id: uuid.UUID
+    sender_id: Optional[uuid.UUID] = None
     receiver_id: Optional[uuid.UUID]
     created_at: datetime
 

@@ -47,6 +47,8 @@ export interface AnalyticsOverview {
         customer_name?: string;
         time: string;
     }[];
+    longest_waiting_queue?: string | null;
+    longest_waiting_session?: string | null;
 }
 
 

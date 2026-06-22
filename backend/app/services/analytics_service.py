@@ -216,6 +216,27 @@ async def get_overview_metrics(
         for r in recent_res.all()
     ]
 
+    # 8. Longest waiting token for dynamic alerts
+    from app.models.session import Session
+    longest_waiting_query = select(
+        Queue.name.label('queue_name'),
+        Session.title.label('session_title'),
+        Session.session_date.label('session_date')
+    ).join(Queue, Token.queue_id == Queue.id).outerjoin(
+        Session, Queue.session_id == Session.id
+    ).where(
+        and_(*active_conditions, Token.status == TokenStatus.waiting)
+    ).order_by(Token.created_at.asc()).limit(1)
+
+    longest_res = await db.execute(longest_waiting_query)
+    longest_row = longest_res.first()
+    
+    longest_waiting_queue = None
+    longest_waiting_session = None
+    if longest_row:
+        longest_waiting_queue = longest_row.queue_name
+        longest_waiting_session = longest_row.session_title or str(longest_row.session_date)
+
     return {
         "status_counts": {
             "total": total_visits,
@@ -235,7 +256,9 @@ async def get_overview_metrics(
         },
         "daily_timings": daily_timings_data,
         "staff_performance": staff_performance_data,
-        "recent_activity": recent_activity
+        "recent_activity": recent_activity,
+        "longest_waiting_queue": longest_waiting_queue,
+        "longest_waiting_session": longest_waiting_session
     }
 
 async def get_history_details(
