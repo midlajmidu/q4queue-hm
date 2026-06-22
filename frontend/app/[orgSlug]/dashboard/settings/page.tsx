@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { OrganizationSettingsResponse } from "@/types/api";
-import { Lock, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Lock, CheckCircle, AlertCircle, Eye, EyeOff, Building2, Shield, Zap } from "lucide-react";
 import { PageWrapper } from "@/components/PageWrapper";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useRef } from "react";
+import { OperationsTab } from "@/components/settings/OperationsTab";
 
 const C = {
     // bg
@@ -489,20 +490,20 @@ export default function SettingsPage() {
                                 onClick={() => handleTabChange('profile')}
                                 className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
                             >
-                                <span style={{ fontSize: '18px' }}>🏢</span> Profile
+                                <Building2 size={18} /> Profile
                             </button>
                             <button
                                 onClick={() => handleTabChange('security')}
                                 className={`tab-btn ${activeTab === 'security' ? 'active' : ''}`}
                             >
-                                <span style={{ fontSize: '18px' }}>🛡️</span> Security
+                                <Shield size={18} /> Security
                             </button>
                             {isAdmin && (
                                 <button
                                     onClick={() => handleTabChange('operations')}
                                     className={`tab-btn ${activeTab === 'operations' ? 'active' : ''}`}
                                 >
-                                    <span style={{ fontSize: '18px' }}>⚙️</span> Operations
+                                    <Zap size={18} /> Workflows
                                 </button>
                             )}
                         </div>
@@ -860,23 +861,7 @@ export default function SettingsPage() {
                             )}
 
                             {activeTab === 'operations' && (
-                                <div className="card">
-                                    <div className="card-header">
-                                        <div>
-                                            <h2 style={{ fontSize: '15px', fontWeight: 700, color: C.text, margin: 0 }}>Operational Settings</h2>
-                                            <p style={{ fontSize: '13px', color: C.textSub, marginTop: 4 }}>Configure system-wide operational defaults.</p>
-                                        </div>
-                                    </div>
-                                    <div style={{ padding: '64px 24px', textAlign: 'center' }}>
-                                        <div style={{ background: C.brandLight, color: C.brand, width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                                            <svg width={24} height={24} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                        </div>
-                                        <h3 style={{ fontSize: '18px', fontWeight: 600, color: C.text, margin: '0 0 8px' }}>Coming Soon</h3>
-                                        <p style={{ color: C.textSub, fontSize: '14px', maxWidth: 300, margin: '0 auto' }}>
-                                            Operational settings, auto-closing times, and default metrics will be available here soon.
-                                        </p>
-                                    </div>
-                                </div>
+                                <OperationsTab />
                             )}
                         </div>
                     </div>
