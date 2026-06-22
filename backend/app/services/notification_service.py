@@ -83,52 +83,9 @@ async def notify_queue_event(
     """
     try:
         # -- DASHBOARD NOTIFICATIONS (Internal) --
-        try:
-            msg_content = None
-            msg_type = "info"
-            tok = f"{token_prefix}{token_number}"
-            name = customer_name or "Walk-in"
-            
-            if event_type == "queue_joined_v4":
-                msg_content = f"New customer {name} joined {queue_name} (Token {tok})."
-                msg_type = "info"
-            elif event_type == "queue_called_v2":
-                msg_content = f"Token {tok} ({name}) is now being served in {queue_name}."
-                msg_type = "success"
-            elif event_type == "queue_completed_v2":
-                msg_content = f"Service completed for Token {tok} ({name}) in {queue_name}."
-                msg_type = "success"
-            elif event_type == "queue_skipped_v2":
-                msg_content = f"Token {tok} ({name}) was skipped in {queue_name}."
-                msg_type = "warning"
-            elif event_type == "queue_removed_v2":
-                msg_content = f"Token {tok} ({name}) was removed from {queue_name}."
-                msg_type = "error"
-                
-            if msg_content:
-                async with AsyncSessionLocal() as db:
-                    from app.models.message import Message
-                    from app.redis.deps import get_redis
-                    import json
-                    new_msg = Message(
-                        org_id=org_id,
-                        content=msg_content,
-                        message_type=msg_type,
-                        is_read=False
-                    )
-                    db.add(new_msg)
-                    await db.commit()
-                    await db.refresh(new_msg)
-                    
-                    try:
-                        redis_client = await get_redis()
-                        channel = f"org_{str(org_id)}_notifications"
-                        payload = {"type": "new_message", "message_id": str(new_msg.id)}
-                        await redis_client.publish(channel, json.dumps(payload))
-                    except Exception as e:
-                        logger.error("Redis publish failed for dashboard notif: %s", e)
-        except Exception as e:
-            logger.error("Failed to create dashboard notification: %s", e)
+        # All internal queue event notifications (joined, skipped, removed, called, completed) 
+        # have been disabled to keep the notification tray exclusively for high wait time alerts.
+        pass
 
         # 1. Check org has WhatsApp enabled and the specific event is enabled
         cfg = await get_org_notification_config(org_id)

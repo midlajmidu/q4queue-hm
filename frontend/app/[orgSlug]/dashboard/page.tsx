@@ -716,18 +716,41 @@ export default function OverviewPage() {
   //   });
   // }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── New State ─────────────────────────────────────────────────
+  const [selectedQueue, setSelectedQueue] = useState("");
+  const [recentPage, setRecentPage] = useState(1);
+  const LIMIT = 10;
+  const [feedFilter, setFeedFilter] = useState<"all" | "waiting" | "serving" | "done">("all");
+  const [drawerAct, setDrawerAct] = useState<any | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
   useEffect(() => {
     // Monitor for high wait times
     if (overview?.timings?.max_waiting_time) {
       const waitSec = timeToSeconds(overview.timings.max_waiting_time);
-      if (waitSec > 1800) { // 30 mins
+      if (waitSec > 3600) { // 1 hour
         const todayDate = new Date().toLocaleDateString();
         const lastAlertDate = localStorage.getItem("last_high_wait_alert_date");
 
         if (lastAlertDate !== todayDate) {
+          let locationStr = "one of your queues";
+          
+          if (overview.longest_waiting_queue && overview.longest_waiting_session) {
+            locationStr = `the ${overview.longest_waiting_queue} queue in the ${overview.longest_waiting_session} session`;
+          } else if (overview.longest_waiting_queue) {
+            locationStr = `the ${overview.longest_waiting_queue} queue`;
+          } else if (selectedQueue) {
+            const qName = queues.find(q => q.id === selectedQueue)?.name || "selected queue";
+            locationStr = `the ${qName} queue`;
+          } else if (selectedSession) {
+            const sData = sessions.find(s => s.id === selectedSession);
+            const sName = sData ? (sData.title || sData.session_date) : "selected session";
+            locationStr = `a queue in the ${sName} session`;
+          }
+
           addAlert({
             type: "warning",
-            message: "⚠️ High wait times detected in queues! Consider adding more staff now.",
+            message: `⚠️ Wait times of over 1 hour detected in ${locationStr}! Consider adding more staff now.`,
             action: { label: "Manage Staff", onClick: () => window.location.href = `${dashBase}/staff` },
             db: true,
           });
@@ -735,15 +758,7 @@ export default function OverviewPage() {
         }
       }
     }
-  }, [overview?.timings?.max_waiting_time, dashBase, addAlert]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [selectedQueue, setSelectedQueue] = useState("");
-  const [recentPage, setRecentPage] = useState(1);
-  const LIMIT = 10;
-
-  // ── New State ─────────────────────────────────────────────────
-  const [feedFilter, setFeedFilter] = useState<"all" | "waiting" | "serving" | "done">("all");
-  const [drawerAct, setDrawerAct] = useState<any | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  }, [overview?.timings?.max_waiting_time, dashBase, addAlert, selectedQueue, selectedSession, queues, sessions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDownloadReport = async () => {
     try {
@@ -1605,7 +1620,7 @@ export default function OverviewPage() {
                   { lbl: "Currently Serving", time: drawerAct.served_at || (["serving", "done"].includes(drawerAct.status) ? drawerAct.time : null), active: ["serving", "done"].includes(drawerAct.status) },
                   { lbl: drawerAct.status === "deleted" ? "Cancelled" : drawerAct.status === "skipped" ? "Skipped" : "Service Completed", time: drawerAct.completed_at || (["done", "deleted", "skipped"].includes(drawerAct.status) ? drawerAct.time : null), active: ["done", "deleted", "skipped"].includes(drawerAct.status) }
                 ].map((step, i) => (
-                  <div key={i} style={{ display: "flex", gap: 18, position: "relative", marginBottom: 28, opacity: step.active ? 1 : 0.35, transition: "opacity .3s ease", display: step.active || i < 2 ? "flex" : "none" }}>
+                  <div key={i} style={{ gap: 18, position: "relative", marginBottom: 28, opacity: step.active ? 1 : 0.35, transition: "opacity .3s ease", display: step.active || i < 2 ? "flex" : "none" }}>
                     {/* Dot */}
                     <div style={{ position: "relative", zIndex: 2, width: 12, height: 12, borderRadius: "50%", background: step.active ? C.brand : C.pageBg, border: `2px solid ${step.active ? "#fff" : C.border}`, outline: `2px solid ${step.active ? C.brandBorder : "transparent"}`, marginTop: 4, boxShadow: step.active ? `0 0 8px ${C.brandGlow}` : "none", transition: "all .3s ease" }} />
 
