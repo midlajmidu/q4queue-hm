@@ -6,10 +6,11 @@ All methods receive org_id from the authenticated JWT — never from request bod
 """
 import logging
 import uuid
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from typing import Optional
 
-from sqlalchemy import func, select, case
+from sqlalchemy import func, select, case, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.session import Session
@@ -45,8 +46,15 @@ async def create_session(
             )
 
     # ── Future date validation ──
-    if data.session_date > date.today():
+    if data.session_date > datetime.now(ZoneInfo("Asia/Kolkata")).date():
         raise ValueError("Cannot create sessions for future dates.")
+
+    # ── Deactivate all active queues from previous sessions ──
+    await db.execute(
+        update(Queue)
+        .where(Queue.org_id == org_id, Queue.is_active == True)
+        .values(is_active=False)
+    )
 
     session = Session(
         org_id=org_id,

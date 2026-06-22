@@ -386,7 +386,6 @@ export default function SessionsPage() {
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <span className="text-[14px] text-slate-400 font-normal">No notes provided</span>
                                                         </div>
                                                     </div>
 

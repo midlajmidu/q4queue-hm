@@ -15,6 +15,7 @@ export interface TokenDetailData {
     completed_at?: string | null;
     entry_type?: "manual" | "qr" | "auto" | null;
     queue_name?: string;
+    removed_by?: string | null;
 }
 
 interface TokenDetailModalProps {
@@ -141,6 +142,9 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         <DetailItem label="Created" value={fmtTime(token.created_at)} />
                         <DetailItem label="Called" value={fmtTime(token.served_at)} />
                         <DetailItem label={completedLabel} value={fmtTime(token.completed_at)} />
+                        {token.status === "deleted" && token.removed_by && (
+                            <DetailItem label="Removed By" value={token.removed_by === "customer" ? "Customer" : "Admin"} highlight="amber" />
+                        )}
                         <DetailItem
                             label="Waiting Time"
                             value={waitingTime}

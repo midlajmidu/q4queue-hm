@@ -275,7 +275,7 @@ async def cancel_token_public(db: AsyncSession, *, token_id: uuid.UUID) -> Token
         raise ValueError(f"Cannot cancel token with status '{token.status}'")
 
     # Reuse the removal logic
-    return await remove_token(db, token_id=token.id, org_id=token.org_id)
+    return await remove_token(db, token_id=token.id, org_id=token.org_id, removed_by="customer")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -322,7 +322,9 @@ async def call_next(
     for currently_serving in currently_serving_tokens:
         currently_serving.status = target_status
         currently_serving.completed_at = now
-        
+        if target_status == TokenStatus.done:
+            queue.total_served += 1
+            
         # If the action was 'done', trigger the completed notification immediately
         if action in ["done", "skipped", "deleted"]:
             try:
@@ -428,23 +430,28 @@ async def complete_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.
     if token.status != TokenStatus.serving:
         raise ValueError(f"Cannot complete token with status '{token.status}'")
 
+    queue = await _lock_queue_for_org(db, token.queue_id, org_id)
+
     token.status = TokenStatus.done
     token.served_at = token.served_at or datetime.now(timezone.utc)
     token.completed_at = datetime.now(timezone.utc)
+    queue.total_served += 1
     await db.flush()
     return token
 
 
-async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID) -> Token:
+async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID, removed_by: str = "admin") -> Token:
     token = await _get_token_for_org(db, token_id=token_id, org_id=org_id)
     # SECURITY FIX: use org-scoped lock to avoid cross-tenant DoS
     queue = await _lock_queue_for_org(db, token.queue_id, org_id)
 
     if token.status == TokenStatus.waiting:
         token.status = TokenStatus.deleted
+        token.removed_by = removed_by
         token.completed_at = datetime.now(timezone.utc)
         await db.flush()
     elif token.status == TokenStatus.serving:
+        token.removed_by = removed_by
         await call_next(db, queue_id=queue.id, org_id=org_id, action="deleted")
         await db.refresh(token)
     else:

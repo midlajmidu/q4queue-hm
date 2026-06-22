@@ -441,6 +441,38 @@ function ConfirmDeactivateModal({ member, onClose, onConfirm, isLoading }: {
   );
 }
 
+// ─── Confirm Delete Modal ─────────────────────────────────────────────────
+
+function ConfirmDeleteModal({ member, onClose, onConfirm, isLoading }: {
+  member: StaffMember; onClose: () => void; onConfirm: () => void; isLoading: boolean;
+}) {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} role="dialog" aria-modal="true">
+      <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,41,.45)", backdropFilter: "blur(4px)" }} onClick={!isLoading ? onClose : undefined} />
+      <div style={{ position: "relative", width: "100%", maxWidth: 400, background: "#fff", borderRadius: 20, boxShadow: "0 24px 48px rgba(0,0,0,.12), 0 0 0 0.5px rgba(0,0,0,.06)", padding: 28 }}>
+        <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
+          <div style={{ width: 46, height: 46, borderRadius: "50%", background: "#fef2f2", border: "0.5px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+          </div>
+          <div>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", letterSpacing: "-.02em" }}>Delete staff member?</h2>
+            <p style={{ fontSize: 13.5, color: "#64748b", marginTop: 4, lineHeight: 1.5 }}>This will permanently remove the user from the system. This action cannot be undone.</p>
+          </div>
+        </div>
+        <div style={{ background: "#fafbfe", border: "0.5px solid #f1f5f9", borderRadius: 10, padding: "12px 14px", marginBottom: 22 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>{member.email}</span>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} disabled={isLoading} style={{ flex: 1, height: 42, fontSize: 13.5, fontWeight: 600, color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0", borderRadius: 10, cursor: "pointer" }}>Cancel</button>
+          <button onClick={onConfirm} disabled={isLoading} style={{ flex: 1.5, height: 42, fontSize: 13.5, fontWeight: 600, color: "#fff", background: isLoading ? "#fca5a5" : "#dc2626", border: "none", borderRadius: 10, cursor: isLoading ? "not-allowed" : "pointer", transition: "background .15s" }}>
+            {isLoading ? "Deleting…" : "Delete permanently"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Pagination ───────────────────────────────────────────────────────────────
 
 function Pagination({ total, limit, offset, onChange }: { total: number; limit: number; offset: number; onChange: (o: number) => void }) {
@@ -504,7 +536,9 @@ export default function StaffPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editMember, setEditMember] = useState<StaffMember | null>(null);
   const [deactivateMember, setDeactivateMember] = useState<StaffMember | null>(null);
+  const [deleteMember, setDeleteMember] = useState<StaffMember | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const toastId = useRef(0);
@@ -580,6 +614,22 @@ export default function StaffPage() {
     }
   }, [toast]);
 
+  const handleDelete = useCallback(async () => {
+    if (!deleteMember) return;
+    setIsDeleting(true);
+    try {
+      await api.deleteStaff(deleteMember.id);
+      setMembers(prev => prev.filter(m => m.id !== deleteMember.id));
+      setTotal(t => Math.max(0, t - 1));
+      setDeleteMember(null);
+      toast("success", `${deleteMember.email} has been deleted permanently.`);
+    } catch (err) {
+      toast("error", err instanceof ApiError ? err.detail : "Failed to delete.");
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteMember, toast]);
+
   const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   const activeCount = members.filter(m => m.is_active).length;
@@ -636,6 +686,7 @@ export default function StaffPage() {
       {showCreate && <StaffModal mode="create" onClose={() => setShowCreate(false)} onSaved={handleSaved} />}
       {editMember && <StaffModal mode="edit" member={editMember} onClose={() => setEditMember(null)} onSaved={handleSaved} />}
       {deactivateMember && <ConfirmDeactivateModal member={deactivateMember} onClose={() => setDeactivateMember(null)} onConfirm={handleDeactivate} isLoading={isDeactivating} />}
+      {deleteMember && <ConfirmDeleteModal member={deleteMember} onClose={() => setDeleteMember(null)} onConfirm={handleDelete} isLoading={isDeleting} />}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 28, WebkitFontSmoothing: "antialiased" }}>
 
@@ -842,6 +893,16 @@ export default function StaffPage() {
                                         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={m.is_active ? "#10b981" : "#94a3b8"} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
                                     )}
                                 </span>
+                              </button>
+                              <button
+                                onClick={() => setDeleteMember(m)}
+                                aria-label={`Delete ${m.email}`}
+                                title="Delete"
+                                style={{ ...actionBtnBase, marginLeft: 2 }}
+                                onMouseEnter={e => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.borderColor = "#fecaca"; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; e.currentTarget.style.borderColor = "#e8edf2"; }}
+                              >
+                                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
                               </button>
                             </div>
                           </td>

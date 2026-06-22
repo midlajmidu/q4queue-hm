@@ -110,6 +110,7 @@ export interface QueueResponse {
     announcement: string | null;
     starting_sequence: number;
     current_token_number: number;
+    total_served: number;
     is_active: boolean;
     is_paused: boolean;
     open_time?: string;
@@ -227,6 +228,7 @@ export interface WaitingToken {
     customer_age: number | null;
     customer_phone: string;
     companion_names: string[];
+    removed_by?: string | null;
 }
 
 export interface QueueSnapshot {
@@ -256,6 +258,7 @@ export interface QueueSnapshot {
     recent_tokens: RecentToken[];
     waiting_tokens?: WaitingToken[];
     skipped_tokens?: WaitingToken[];
+    deleted_tokens?: WaitingToken[];
     org_logo_url?: string | null;
     org_brand_color?: string | null;
 }

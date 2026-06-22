@@ -526,6 +526,12 @@ export const api = {
         });
     },
 
+    deleteStaff(staffId: string): Promise<void> {
+        return request<void>(`/staff/${staffId}/hard`, {
+            method: "DELETE",
+        });
+    },
+
     // ── Super Admin ───────────────────────────────────
     superAdminLogin(data: SuperAdminLoginRequest): Promise<TokenResponse> {
         return request<TokenResponse>("/super-admin/auth/login", {

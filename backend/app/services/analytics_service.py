@@ -34,16 +34,29 @@ async def get_overview_metrics(
         
     if start_date:
         try:
-            conditions.append(Token.created_at >= parse_date(start_date))
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo("Asia/Kolkata")
+            dt = parse_date(start_date)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=tz)
+            else:
+                dt = dt.astimezone(tz)
+            conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
         except Exception:
             pass
             
     if end_date:
         try:
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo("Asia/Kolkata")
             ed = parse_date(end_date)
+            if ed.tzinfo is None:
+                ed = ed.replace(tzinfo=tz)
+            else:
+                ed = ed.astimezone(tz)
             if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
                 ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
-            conditions.append(Token.created_at <= ed)
+            conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
         except Exception:
             pass
     
@@ -345,16 +358,29 @@ async def get_analytics_csv_data(
 
     if start_date:
         try:
-            conditions.append(Token.created_at >= parse_date(start_date))
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo("Asia/Kolkata")
+            dt = parse_date(start_date)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=tz)
+            else:
+                dt = dt.astimezone(tz)
+            conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
         except Exception:
             pass
             
     if end_date:
         try:
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo("Asia/Kolkata")
             ed = parse_date(end_date)
+            if ed.tzinfo is None:
+                ed = ed.replace(tzinfo=tz)
+            else:
+                ed = ed.astimezone(tz)
             if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
                 ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
-            conditions.append(Token.created_at <= ed)
+            conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
         except Exception:
             pass
 

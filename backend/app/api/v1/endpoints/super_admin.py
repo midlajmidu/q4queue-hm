@@ -824,6 +824,14 @@ async def create_organization(
             detail=f"Organization slug '{body.org_slug}' is already taken.",
         )
 
+    # Ensure admin email is unique globally
+    existing_user = await db.execute(select(User).where(func.lower(User.email) == body.admin_email.lower()))
+    if existing_user.scalars().first() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Email '{body.admin_email}' is already in use by another organization.",
+        )
+
     org = Organization(
         name=body.org_name, 
         slug=body.org_slug,

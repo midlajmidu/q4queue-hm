@@ -53,10 +53,10 @@ export default function ActivityFeed() {
 
     const formatTime = (isoString: string) => {
         const date = new Date(isoString);
-        return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-            Math.round((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-            "day"
-        ).replace("0 days ago", date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        const today = new Date();
+        const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return isToday ? timeStr : `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${timeStr}`;
     };
 
     return (

@@ -556,7 +556,6 @@ export default function SettingsPage() {
                                                             </div>
                                                             <div>
                                                                 <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{name}</div>
-                                                                <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted, marginTop: 2 }}>{settings?.address || '123 Business Avenue, Suite 100, Tech City'}</div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -567,6 +566,13 @@ export default function SettingsPage() {
                                                     <div>
                                                         <label className="lbl">Last Name</label>
                                                         <input type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="premium-input capitalize" placeholder="e.g. Doe" />
+                                                    </div>
+                                                    <div style={{ gridColumn: '1 / -1' }}>
+                                                        <label className="lbl" style={{ display: "flex", alignItems: "center", gap: 6 }} title="Your email address used for login.">
+                                                            Email Address
+                                                            <Lock size={12} color={C.textMuted} style={{ cursor: "help" }} />
+                                                        </label>
+                                                        <input type="email" disabled value={myProfile?.email || ""} className="premium-input" />
                                                     </div>
                                                 </>
                                             )}

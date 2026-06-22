@@ -133,16 +133,14 @@ async def create_staff(
     db: AsyncSession = Depends(get_db),
 ) -> StaffResponse:
     """Admin-only: create a staff member scoped to the current org."""
-    # Enforce unique(email, org_id)
+    # Enforce globally unique email
     clash = await db.execute(
-        select(User).where(
-            and_(User.email == body.email, User.org_id == current_admin.org_id)
-        )
+        select(User).where(func.lower(User.email) == body.email.lower())
     )
-    if clash.scalar_one_or_none() is not None:
+    if clash.scalars().first() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"A user with email '{body.email}' already exists in this organization.",
+            detail=f"A user with email '{body.email}' already exists in the system.",
         )
         
     from app.models.organization import Organization
@@ -197,16 +195,15 @@ async def update_staff(
         clash = await db.execute(
             select(User).where(
                 and_(
-                    User.email == body.email,
-                    User.org_id == current_admin.org_id,
+                    func.lower(User.email) == body.email.lower(),
                     User.id != staff_id,
                 )
             )
         )
-        if clash.scalar_one_or_none() is not None:
+        if clash.scalars().first() is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Email '{body.email}' is already in use in this organization.",
+                detail=f"Email '{body.email}' is already in use by another user in the system.",
             )
         member.email = body.email
 
@@ -252,3 +249,29 @@ async def deactivate_staff(
 
     logger.info("Admin deactivated staff | admin=%s staff=%s org=%s", current_admin.id, member.id, current_admin.org_id)
     return StaffResponse.model_validate(member)
+
+
+@router.delete(
+    "/{staff_id}/hard",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Permanently Delete Staff Member",
+    description="Hard-delete a staff member from the database.",
+)
+async def hard_delete_staff(
+    staff_id: _uuid.UUID,
+    current_admin: User = Depends(get_current_org_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Admin-only: permanently delete a staff member in the same org."""
+    member = await _get_staff_or_404(db, staff_id=staff_id, org_id=current_admin.org_id)
+
+    if member.id == current_admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot delete your own account.",
+        )
+
+    await db.delete(member)
+    await db.commit()
+    logger.info("Admin hard-deleted staff | admin=%s staff=%s org=%s", current_admin.id, staff_id, current_admin.org_id)
+

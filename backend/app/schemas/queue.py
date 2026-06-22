@@ -41,6 +41,7 @@ class QueueResponse(BaseModel):
     announcement: Optional[str] = None
     starting_sequence: int
     current_token_number: int
+    total_served: int
     is_active: bool
     is_paused: bool = False
     open_time: Optional[str] = None
@@ -160,6 +161,7 @@ class TokenResponse(BaseModel):
     customer_phone: str
     tracking_id: Optional[uuid.UUID] = None
     companion_names: list[str]
+    removed_by: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

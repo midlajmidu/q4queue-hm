@@ -352,14 +352,14 @@ async def create_token(
                 queue_id=queue_id,
                 org_id=queue.org_id,
             )
-            from datetime import datetime
+            from datetime import datetime, timezone
             background_tasks.add_task(
                 token_service.notify_new_customer,
                 queue_id=queue_id,
                 org_id=queue.org_id,
                 token=f"{queue.prefix or ''}{result.token_number}",
                 name=body.name,
-                time_str=datetime.now().strftime("%I:%M %p")
+                time_str=datetime.now(timezone.utc).isoformat()
             )
             # WhatsApp notification: customer joined via QR
             background_tasks.add_task(
@@ -423,14 +423,14 @@ async def admin_join(
             queue_id=queue.id,
             org_id=queue.org_id,
         )
-        from datetime import datetime
+        from datetime import datetime, timezone
         background_tasks.add_task(
             token_service.notify_new_customer,
             queue_id=queue.id,
             org_id=queue.org_id,
             token=f"{queue.prefix or ''}{result.token_number}",
             name=body.name,
-            time_str=datetime.now().strftime("%I:%M %p")
+            time_str=datetime.now(timezone.utc).isoformat()
         )
         # WhatsApp notification: staff manually added customer
         if body.send_whatsapp:

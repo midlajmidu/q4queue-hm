@@ -14,7 +14,7 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem } from "@/types/api";
-import { Pause, Play, Clock, QrCode, UserPlus } from "lucide-react";
+import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 
 const formatTime12 = (time24?: string | null) => {
@@ -364,7 +364,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                     <div className="flex items-center justify-between w-full">
                         <span className="text-sm font-bold tracking-wide text-white">New Customer</span>
                         <span className="rounded-md bg-indigo-900/30 px-2 py-0.5 text-[10px] font-bold tracking-widest text-indigo-100">
-                            {data.time}
+                            {data.time ? new Date(data.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
                         </span>
                     </div>
                     <div className="text-3xl font-black tracking-tight text-white leading-none drop-shadow-sm mt-1">
@@ -394,6 +394,27 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, []);
 
     const [activeSection, setActiveSection] = useState<ActiveSection>("queues");
+    
+    // ── "Updated Ns ago" ticker ───────────────────────────────────
+    const [secondsAgo, setSecondsAgo] = useState(0);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+    useEffect(() => {
+        if (state) {
+            setLastUpdated(new Date());
+            setSecondsAgo(0);
+        }
+    }, [state]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (lastUpdated) {
+                setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [lastUpdated]);
+
     const [selectedToken, setSelectedToken] = useState<TokenDetailData | null>(null);
     const [manuallyAddedTokens, setManuallyAddedTokens] = useState<Set<number>>(new Set());
     const [queueHistory, setQueueHistory] = useState<TokenHistoryItem[]>([]);
@@ -420,7 +441,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     const RECENT_PAGE_SIZE = 20;
     const router = useRouter();
 
-    const [activeListTab, setActiveListTab] = useState<"waiting" | "skipped">("waiting");
+    const [activeListTab, setActiveListTab] = useState<"waiting" | "skipped" | "deleted">("waiting");
 
     const filteredWaiting = React.useMemo(() => {
         if (!state?.waiting_tokens) return [];
@@ -431,7 +452,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                 t.customer_phone?.includes(waitingSearch)
             )
             : state.waiting_tokens;
-        return filtered;
+        return filtered.sort((a, b) => (a.token_number ?? 0) - (b.token_number ?? 0));
     }, [state?.waiting_tokens, waitingSearch]);
 
     const paginatedWaiting = React.useMemo(() => {
@@ -444,17 +465,34 @@ export default function QueueDetailPage({ params }: PageProps) {
         const filtered = waitingSearch
             ? state.skipped_tokens.filter(t =>
                 String(t.token_number).includes(waitingSearch) ||
-                t.customer_name?.toLowerCase().includes(waitingSearch.toLowerCase()) ||
-                t.customer_phone?.includes(waitingSearch)
+                (t.customer_name || "").toLowerCase().includes(waitingSearch.toLowerCase()) ||
+                (t.customer_phone || "").includes(waitingSearch)
             )
             : state.skipped_tokens;
-        return filtered;
+        return filtered.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
     }, [state?.skipped_tokens, waitingSearch]);
 
     const paginatedSkipped = React.useMemo(() => {
         const start = (waitingPage - 1) * PAGE_SIZE;
         return filteredSkipped.slice(start, start + PAGE_SIZE);
     }, [filteredSkipped, waitingPage]);
+
+    const filteredDeleted = React.useMemo(() => {
+        if (!state?.deleted_tokens) return [];
+        const filtered = waitingSearch
+            ? state.deleted_tokens.filter(t =>
+                String(t.token_number).includes(waitingSearch) ||
+                (t.customer_name || "").toLowerCase().includes(waitingSearch.toLowerCase()) ||
+                (t.customer_phone || "").includes(waitingSearch)
+            )
+            : state.deleted_tokens;
+        return filtered.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    }, [state?.deleted_tokens, waitingSearch]);
+
+    const paginatedDeleted = React.useMemo(() => {
+        const start = (waitingPage - 1) * PAGE_SIZE;
+        return filteredDeleted.slice(start, start + PAGE_SIZE);
+    }, [filteredDeleted, waitingPage]);
 
     const filteredRecent = React.useMemo(() => {
         if (!state?.recent_tokens) return [];
@@ -811,17 +849,10 @@ export default function QueueDetailPage({ params }: PageProps) {
                             <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
 
                                 {/* Header */}
-                                <div className="flex flex-row justify-between items-center w-full">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center w-full gap-4">
                                     <div>
                                         <div className="flex items-center gap-3">
                                             <h1 className="qd-section-title text-gray-900 dark:text-white capitalize">{queueName}</h1>
-                                            <button
-                                                onClick={refresh}
-                                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-all"
-                                                title="Refresh queue data"
-                                            >
-                                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5" /></svg>
-                                            </button>
                                         </div>
                                         <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
                                             Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
@@ -834,7 +865,56 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         )}
                                     </div>
 
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                                        {/* REFRESH PILL */}
+                                        <div className="flex items-center justify-between p-2 md:py-[7px] md:px-[14px]" style={{ flexShrink: 0, border: `1px solid ${T.cardBorder}`, borderRadius: 12, background: T.cardBg, boxShadow: "0 1px 3px rgba(0,0,0,.02)" }}>
+                                            <div className="flex items-center gap-2">
+                                                <span style={{ display: "block", width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
+                                                <span style={{ color: T.textMuted, fontSize: 11 }}>
+                                                    Updated <strong style={{ color: T.textSub, fontWeight: 600 }}>
+                                                        {lastUpdated ? (secondsAgo < 10 ? "Just now" : secondsAgo < 60 ? `${secondsAgo}s ago` : `${Math.floor(secondsAgo / 60)}m ago`) : "Updating..."}
+                                                    </strong>
+                                                </span>
+                                            </div>
+                                            <span className="hidden md:block mx-3" style={{ width: 1, height: 12, background: T.cardBorder, flexShrink: 0 }} />
+                                            
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    onClick={refresh}
+                                                    title="Refresh now"
+                                                    className="inline-flex items-center justify-center gap-1.5 p-1.5 md:p-0 rounded-md md:rounded-none bg-slate-50 md:bg-transparent border border-gray-200 md:border-none hover:bg-slate-100 md:hover:bg-transparent transition-colors"
+                                                    style={{ fontSize: 11, fontWeight: 600, color: T.textSub, cursor: "pointer", transition: "color .15s" }}
+                                                    onMouseEnter={e => { if (window.innerWidth >= 768) e.currentTarget.style.color = T.brand; }}
+                                                    onMouseLeave={e => { if (window.innerWidth >= 768) e.currentTarget.style.color = T.textSub; }}
+                                                >
+                                                    <RefreshCw size={11} color="currentColor" style={{ marginTop: -1 }} />
+                                                    <span className="hidden md:inline">Refresh</span>
+                                                </button>
+                                                <span className="hidden md:block" style={{ width: 1, height: 12, background: T.cardBorder, flexShrink: 0 }} />
+                                                <label className="inline-flex items-center gap-2 select-none">
+                                                    <span
+                                                        role="switch"
+                                                        aria-checked={true}
+                                                        style={{
+                                                            display: "inline-block", width: 28, height: 16, borderRadius: 99,
+                                                            background: T.brand,
+                                                            position: "relative", flexShrink: 0,
+                                                        }}
+                                                    >
+                                                        <span style={{
+                                                            position: "absolute", top: 2, left: 14,
+                                                            width: 12, height: 12, borderRadius: "50%", background: "#fff",
+                                                            boxShadow: "0 1px 2px rgba(0,0,0,.2)",
+                                                        }} />
+                                                    </span>
+                                                    <span className="hidden md:inline" style={{ fontSize: 11, color: T.textMuted, whiteSpace: "nowrap" }}>
+                                                        Auto (Live)
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ width: 1, height: 24, background: T.cardBorder, margin: "0 4px" }} />
                                         {isActive && (
                                             <button
                                                 onClick={handlePauseToggle}
@@ -1423,6 +1503,13 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             Skipped
                                             <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.skipped_count ?? 0}</span>
                                         </button>
+                                        <button
+                                            onClick={() => { setActiveListTab("deleted"); setWaitingPage(1); }}
+                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors ${activeListTab === "deleted" ? "text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                        >
+                                            Removed
+                                            <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.deleted_tokens?.length ?? 0}</span>
+                                        </button>
                                     </div>
                                     <div style={{ position: "relative", width: 300 }}>
                                         <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 12, pointerEvents: "none" }}>
@@ -1441,7 +1528,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto min-h-[300px]">
-                                        {(activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).map((t: WaitingToken, idx: number) => {
+                                        {(activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).map((t: WaitingToken, idx: number) => {
                                             const waitMins = Math.floor((Date.now() - new Date(t.created_at || Date.now()).getTime()) / 60000);
                                             return (
                                                 <div key={t.id} className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-slate-100 dark:border-white/5 items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
@@ -1486,7 +1573,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                             >
                                                                 Remove
                                                             </button>
-                                                        ) : (
+                                                        ) : activeListTab === "skipped" ? (
                                                             <button
                                                                 onClick={() => performAction("recall", async () => {
                                                                     const res = await api.serveSpecificToken(queueId, t.token_number);
@@ -1496,6 +1583,10 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                             >
                                                                 Recall
                                                             </button>
+                                                        ) : (
+                                                            <span className="text-xs font-bold text-slate-400">
+                                                                {t.removed_by === "customer" ? "By Customer" : "By Admin"}
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -1506,18 +1597,18 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <svg width="24" height="24" fill="none" stroke="currentColor" className="text-slate-400" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                 </div>
                                                 <p className="text-slate-500 font-medium">
-                                                    {waitingSearch ? "No tokens match your search" : activeListTab === "waiting" ? "No one is waiting right now" : "No skipped tokens"}
+                                                    {waitingSearch ? "No tokens match your search" : activeListTab === "waiting" ? "No one is waiting right now" : activeListTab === "skipped" ? "No skipped tokens" : "No removed tokens"}
                                                 </p>
                                             </div>
                                         )}
                                     </div>
 
-                                    {(activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length > PAGE_SIZE && (
+                                    {(activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length > PAGE_SIZE && (
                                         <div className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-white/10 px-4 py-3 flex items-center justify-between text-xs text-slate-500">
-                                            <span>Showing {(activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).length} of {(activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length} tokens</span>
+                                            <span>Showing {(activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length} of {(activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length} tokens</span>
                                             <div className="flex gap-2">
                                                 <button onClick={() => setWaitingPage(p => Math.max(1, p - 1))} disabled={waitingPage === 1} className="px-3 py-1.5 rounded-md bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
-                                                <button onClick={() => setWaitingPage(p => p + 1)} disabled={waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length} className="px-3 py-1.5 rounded-md bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+                                                <button onClick={() => setWaitingPage(p => p + 1)} disabled={waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length} className="px-3 py-1.5 rounded-md bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
                                             </div>
                                         </div>
                                     )}
@@ -1921,15 +2012,6 @@ function QueueHistory({
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                {item.status === "skipped" && (
-                                                    <button
-                                                        onClick={() => onRecallToken(item.token_number, item.queue_prefix || "")}
-                                                        style={{ fontSize: 10, fontWeight: 700, padding: "4px 8px", color: "#4f46e5", border: `1px solid #4f46e5`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
-                                                        className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
-                                                    >
-                                                        Recall
-                                                    </button>
-                                                )}
                                                 <button
                                                     onClick={() => onViewToken({ token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name, customer_age: item.customer_age, customer_phone: item.customer_phone, companion_names: item.companion_names || [], status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
                                                     style={{ padding: "6px", background: "transparent", border: "#e5e7eb", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
