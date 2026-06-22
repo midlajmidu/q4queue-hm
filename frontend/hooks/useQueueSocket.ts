@@ -49,7 +49,7 @@ export function useQueueSocket(
 
     const refresh = useCallback(() => {
         if (wsRef.current) {
-            wsRef.current.connect();
+            wsRef.current.reconnect();
         }
     }, []);
 

@@ -125,6 +125,12 @@ export class QueueWebSocket {
         this.reconnectAttempts = 0;
     }
 
+    reconnect(): void {
+        this.disconnect();
+        this.intentionalClose = false;
+        this.connect();
+    }
+
     /** Clean up all timers and socket handlers to prevent memory leaks */
     private cleanup(): void {
         this.stopPing();

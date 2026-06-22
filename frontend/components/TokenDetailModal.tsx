@@ -36,8 +36,11 @@ function fmtTime(iso: string | null | undefined): string {
     return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function calcWaitingTime(created?: string | null, served?: string | null): string {
-    if (!served) return "Waiting…";
+function calcWaitingTime(created?: string | null, served?: string | null, status?: string): string {
+    if (!served) {
+        if (status === 'deleted' || status === 'skipped') return "—";
+        return "Waiting…";
+    }
     if (!created) return "—";
     const diffMs = new Date(served).getTime() - new Date(created).getTime();
     if (diffMs < 0) return "—";
@@ -65,7 +68,9 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
 
     const statusInfo = STATUS_STYLES[token.status] ?? { badge: "bg-gray-100 text-gray-500", label: token.status };
     const entryType = token.entry_type ?? "manual";
-    const waitingTime = calcWaitingTime(token.created_at, token.served_at);
+    const waitingTime = calcWaitingTime(token.created_at, token.served_at, token.status);
+    
+    const completedLabel = token.status === 'deleted' ? 'Cancelled' : token.status === 'skipped' ? 'Skipped' : 'Completed';
 
     // Close on backdrop click
     const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -131,11 +136,11 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         {token.companion_names && token.companion_names.length > 0 && (
                             <DetailItem label="Companions" value={token.companion_names.join(", ")} highlight="emerald" />
                         )}
-                        <DetailItem label="Age" value={token.customer_age != null ? `${token.customer_age} yrs` : "—"} />
+                        <DetailItem label="Age" value={token.customer_age != null ? `${token.customer_age} yrs` : "Not Provided"} />
                         <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
                         <DetailItem label="Created" value={fmtTime(token.created_at)} />
                         <DetailItem label="Called" value={fmtTime(token.served_at)} />
-                        <DetailItem label="Completed" value={fmtTime(token.completed_at)} />
+                        <DetailItem label={completedLabel} value={fmtTime(token.completed_at)} />
                         <DetailItem
                             label="Waiting Time"
                             value={waitingTime}
@@ -160,7 +165,7 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                                 )}
                                 {token.completed_at && (
                                     <div className="flex justify-between">
-                                        <span className="text-gray-400">Completed</span>
+                                        <span className="text-gray-400">{completedLabel}</span>
                                         <span className="font-medium text-gray-700">{fmt(token.completed_at)}</span>
                                     </div>
                                 )}
