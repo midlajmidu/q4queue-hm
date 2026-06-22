@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { OrganizationSettingsResponse } from "@/types/api";
+import type { OrganizationSettingsResponse, User } from "@/types/api";
 import { Lock, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { PageWrapper } from "@/components/PageWrapper";
 import { useParams } from "next/navigation";
@@ -164,9 +164,9 @@ const STYLES = `
 
 export default function SettingsPage() {
     // Layout State
-    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'operations'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
-    const [pendingTab, setPendingTab] = useState<'profile' | 'security' | 'operations' | null>(null);
+    const [pendingTab, setPendingTab] = useState<'profile' | 'security' | null>(null);
     const params = useParams();
     const orgSlug = params?.orgSlug as string;
     const { user } = useAuth();
@@ -268,7 +268,7 @@ export default function SettingsPage() {
                 setPhone(data.phone_number || "");
                 setBrandColor(data.brand_color || "");
                 setLogoUrl(data.logo_url || "");
-                
+
                 setFirstName(profile.first_name || "");
                 setLastName(profile.last_name || "");
             } catch (err) {
@@ -322,7 +322,7 @@ export default function SettingsPage() {
         }
     };
 
-    const handleTabChange = (tab: 'profile' | 'security' | 'operations') => {
+    const handleTabChange = (tab: 'profile' | 'security') => {
         if (hasUnsavedChanges) {
             setPendingTab(tab);
             setShowUnsavedModal(true);
@@ -371,7 +371,7 @@ export default function SettingsPage() {
                 setLogoUrl(data.logo_url || "");
                 setLogoFile(null);
                 setLogoPreview(null);
-                
+
                 if (didUploadLogo) {
                     setShowSuccessModal("Logo uploaded and branding settings updated successfully!");
                 } else {
@@ -497,14 +497,7 @@ export default function SettingsPage() {
                             >
                                 <span style={{ fontSize: '18px' }}>🛡️</span> Security
                             </button>
-                            {isAdmin && (
-                                <button
-                                    onClick={() => handleTabChange('operations')}
-                                    className={`tab-btn ${activeTab === 'operations' ? 'active' : ''}`}
-                                >
-                                    <span style={{ fontSize: '18px' }}>⚙️</span> Operations
-                                </button>
-                            )}
+
                         </div>
 
                         {/* Content Area */}
@@ -546,12 +539,12 @@ export default function SettingsPage() {
                                                 <>
                                                     <div style={{ gridColumn: '1 / -1' }}>
                                                         <label className="lbl">Organization</label>
-                                                        <div style={{ 
-                                                            display: 'flex', alignItems: 'center', gap: 16, padding: '16px', 
-                                                            background: C.cardBgAlt, border: `1px solid ${C.borderLight}`, borderRadius: 12 
+                                                        <div style={{
+                                                            display: 'flex', alignItems: 'center', gap: 16, padding: '16px',
+                                                            background: C.cardBgAlt, border: `1px solid ${C.borderLight}`, borderRadius: 12
                                                         }}>
-                                                            <div style={{ 
-                                                                width: 48, height: 48, borderRadius: 10, border: `1px solid ${C.borderLight}`, 
+                                                            <div style={{
+                                                                width: 48, height: 48, borderRadius: 10, border: `1px solid ${C.borderLight}`,
                                                                 background: '#fff', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                 boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                                                             }}>
@@ -613,18 +606,18 @@ export default function SettingsPage() {
                                                     <div>
                                                         <label className="lbl">Brand Color</label>
                                                         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                                                            <input 
-                                                                type="color" 
-                                                                value={brandColor || "#2563eb"} 
+                                                            <input
+                                                                type="color"
+                                                                value={brandColor || "#2563eb"}
                                                                 onChange={(e) => setBrandColor(e.target.value)}
                                                                 style={{ width: 44, height: 44, padding: 0, border: `1px solid ${C.borderLight}`, borderRadius: 8, cursor: 'pointer', background: 'transparent' }}
                                                             />
-                                                            <input 
-                                                                type="text" 
-                                                                value={brandColor} 
-                                                                onChange={(e) => setBrandColor(e.target.value)} 
+                                                            <input
+                                                                type="text"
+                                                                value={brandColor}
+                                                                onChange={(e) => setBrandColor(e.target.value)}
                                                                 placeholder="#2563eb"
-                                                                className="premium-input" 
+                                                                className="premium-input"
                                                                 style={{ flex: 1 }}
                                                                 pattern="^#[0-9A-Fa-f]{6}$"
                                                             />
@@ -635,9 +628,9 @@ export default function SettingsPage() {
                                                     <div style={{ gridColumn: '1 / -1' }}>
                                                         <label className="lbl">Organization Logo</label>
                                                         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                                                            <div style={{ 
-                                                                width: 64, height: 64, borderRadius: 12, border: `1px solid ${C.borderLight}`, 
-                                                                background: C.cardBgAlt, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                                                            <div style={{
+                                                                width: 64, height: 64, borderRadius: 12, border: `1px solid ${C.borderLight}`,
+                                                                background: C.cardBgAlt, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center'
                                                             }}>
                                                                 {(logoPreview || logoUrl) ? (
                                                                     <img src={logoPreview || (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `http://localhost:8000${logoUrl}`)} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -646,10 +639,10 @@ export default function SettingsPage() {
                                                                 )}
                                                             </div>
                                                             <div>
-                                                                <input 
-                                                                    type="file" 
-                                                                    id="logo-upload" 
-                                                                    accept="image/*" 
+                                                                <input
+                                                                    type="file"
+                                                                    id="logo-upload"
+                                                                    accept="image/*"
                                                                     style={{ display: 'none' }}
                                                                     onChange={(e) => {
                                                                         if (e.target.files && e.target.files[0]) {
@@ -673,8 +666,8 @@ export default function SettingsPage() {
                                                                     Choose Image
                                                                 </label>
                                                                 {logoFile && (
-                                                                    <button 
-                                                                        type="button" 
+                                                                    <button
+                                                                        type="button"
                                                                         onClick={() => { setLogoFile(null); setLogoPreview(null); }}
                                                                         style={{ marginLeft: 8, fontSize: 12, color: C.red, background: 'none', border: 'none', cursor: 'pointer' }}
                                                                     >
@@ -855,25 +848,6 @@ export default function SettingsPage() {
                                 </div>
                             )}
 
-                            {activeTab === 'operations' && (
-                                <div className="card">
-                                    <div className="card-header">
-                                        <div>
-                                            <h2 style={{ fontSize: '15px', fontWeight: 700, color: C.text, margin: 0 }}>Operational Settings</h2>
-                                            <p style={{ fontSize: '13px', color: C.textSub, marginTop: 4 }}>Configure system-wide operational defaults.</p>
-                                        </div>
-                                    </div>
-                                    <div style={{ padding: '64px 24px', textAlign: 'center' }}>
-                                        <div style={{ background: C.brandLight, color: C.brand, width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                                            <svg width={24} height={24} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                        </div>
-                                        <h3 style={{ fontSize: '18px', fontWeight: 600, color: C.text, margin: '0 0 8px' }}>Coming Soon</h3>
-                                        <p style={{ color: C.textSub, fontSize: '14px', maxWidth: 300, margin: '0 auto' }}>
-                                            Operational settings, auto-closing times, and default metrics will be available here soon.
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </PageWrapper>

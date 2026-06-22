@@ -94,7 +94,7 @@ export default function JoinQueuePage({ params }: PageProps) {
             const payload = {
                 name: customerName.trim(),
                 age: customerAge ? parseInt(customerAge, 10) : undefined,
-                phone: customerPhone,
+                phone: `${countryCode}${customerPhone}`,
                 companion_names: companionNames.filter(n => n.trim() !== "")
             };
 
