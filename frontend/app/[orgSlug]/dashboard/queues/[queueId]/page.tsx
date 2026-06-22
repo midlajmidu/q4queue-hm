@@ -883,113 +883,94 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <div className="lg:col-span-2 space-y-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1">
 
                                         {/* Hero – Now Serving */}
-                                        <div className="serving-card relative overflow-hidden backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 border border-white/70 dark:border-white/10 shadow-[0_8px_40px_rgba(99,102,241,0.08),0_1px_0_rgba(255,255,255,0.8)_inset] dark:shadow-[0_8px_40px_rgba(0,0,0,0.3)]" style={{ padding: "44px 32px 36px", textAlign: "center", minHeight: 300, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: "1.5rem" }}>
-                                            {/* Ambient Glow (contained inside overflow-hidden card) */}
-                                            <div className="absolute -top-20 -left-20 w-[420px] h-[420px] bg-gradient-to-br from-indigo-400/25 to-violet-400/15 rounded-full filter blur-3xl opacity-60 pointer-events-none" style={{ animation: "float-gentle 8s ease-in-out infinite" }} />
-                                            <div className="absolute top-16 -right-16 w-[340px] h-[340px] bg-gradient-to-br from-cyan-400/20 to-blue-400/15 rounded-full filter blur-3xl opacity-60 pointer-events-none" style={{ animation: "float-gentle 10s ease-in-out infinite reverse" }} />
-                                            <div className="absolute bottom-0 left-1/3 w-[280px] h-[280px] bg-gradient-to-br from-emerald-400/10 to-teal-400/10 rounded-full filter blur-3xl opacity-50 pointer-events-none" style={{ animation: "float-gentle 12s ease-in-out infinite" }} />
-
-                                            {/* Inner shimmer highlight */}
-                                            <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.1) 100%)", borderRadius: "inherit" }} />
+                                        <div className="serving-card relative overflow-hidden bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/80 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]" style={{ padding: "48px 32px", textAlign: "center", minHeight: 320, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: "1.5rem" }}>
+                                            
+                                            {/* Minimal, Professional Ambient Background */}
+                                            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-50/50 via-transparent to-indigo-50/30 dark:from-slate-800/50 dark:to-indigo-900/20 pointer-events-none" />
+                                            <div className="absolute -top-[100px] -right-[100px] w-[300px] h-[300px] bg-indigo-100/40 dark:bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
+                                            <div className="absolute -bottom-[100px] -left-[100px] w-[300px] h-[300px] bg-blue-50/40 dark:bg-blue-500/10 rounded-full blur-[80px] pointer-events-none" />
 
                                             {/* Label */}
-                                            <div className="relative z-10 backdrop-blur-sm bg-white/60 dark:bg-white/10" style={{ display: "inline-flex", alignItems: "center", gap: 8, border: "1px solid rgba(99,102,241,0.2)", borderRadius: 99, padding: "6px 18px", marginBottom: 22, boxShadow: "0 1px 8px rgba(99,102,241,0.08)" }}>
+                                            <div className="relative z-10 inline-flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-700/50 shadow-sm rounded-full px-4 py-1.5 mb-8">
                                                 <span className="relative flex h-2 w-2">
                                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
                                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
                                                 </span>
-                                                <span className="text-indigo-600 dark:text-indigo-400" style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Now Serving</span>
+                                                <span className="text-slate-600 dark:text-slate-300 text-[10px] font-bold tracking-widest uppercase">Now Serving</span>
                                             </div>
 
                                             {/* Token Number */}
                                             {(!state?.current_serving || state.current_serving === 0) ? (
-                                                <div className="relative z-10 flex flex-col items-center justify-center py-4" style={{ minHeight: 140 }}>
-
-                                                    {/* Floating ticket icon */}
-                                                    <div style={{ animation: 'float-gentle 3s ease-in-out infinite', marginBottom: 20 }}>
-                                                        <div className="backdrop-blur-sm" style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(145deg, rgba(238,242,255,0.8), rgba(224,231,255,0.8))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(99,102,241,0.12), 0 8px 24px rgba(99,102,241,0.06), 0 0 0 1px rgba(99,102,241,0.08)' }}>
-                                                            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" style={{ color: '#6366f1' }}>
-                                                                <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>
-                                                        </div>
+                                                <div className="relative z-10 flex flex-col items-center justify-center py-4" style={{ minHeight: 120 }}>
+                                                    <div className="w-12 h-12 mb-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center border border-slate-200/50 dark:border-slate-700/50">
+                                                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                                            <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                        </svg>
                                                     </div>
-
-                                                    {/* Title + subtitle */}
-                                                    <span className="text-slate-800 dark:text-slate-200" style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 6 }}>
+                                                    <span className="text-slate-800 dark:text-slate-200 text-base font-semibold mb-1">
                                                         No one is being served
                                                     </span>
-                                                    <span className="text-slate-400 dark:text-slate-500" style={{ fontSize: 13, fontWeight: 500, marginBottom: 16 }}>
+                                                    <span className="text-slate-500 dark:text-slate-400 text-sm mb-6">
                                                         Your counter is ready for the next customer
                                                     </span>
-
-                                                    {/* Shortcut hint */}
-                                                    <div className="flex items-center gap-1.5" style={{ fontSize: 12, fontWeight: 500 }}>
+                                                    <div className="flex items-center gap-1.5 text-xs font-medium">
                                                         <span className="text-slate-400">Shortcut:</span>
-                                                        <kbd className="text-slate-600 dark:text-slate-300 backdrop-blur-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '2px 8px', borderRadius: 5, background: 'rgba(241,245,249,0.7)', border: '1px solid rgba(226,232,240,0.8)', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', boxShadow: '0 1px 0 rgba(226,232,240,0.8)' }}>Enter ↵</kbd>
+                                                        <kbd className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-mono text-[10px] font-bold">Enter ↵</kbd>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="serving-num relative z-10" style={{ fontSize: "clamp(72px,11vw,120px)", lineHeight: 1, fontWeight: 900, letterSpacing: "-0.03em", background: "linear-gradient(135deg, #1e293b 0%, #334155 40%, #6366f1 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.06))" }} aria-live="polite" aria-atomic="true">
+                                                <div className="serving-num relative z-10 text-[110px] leading-none font-extrabold tracking-tight text-slate-900 dark:text-white mb-2" aria-live="polite" aria-atomic="true">
                                                     {`${state.prefix || ""}${state.current_serving}`}
                                                 </div>
                                             )}
 
-                                            {/* Customer Details */}
+                                            {/* Customer Details - Clean Minimalist Alignment */}
                                             {state?.serving_details && (
-                                                <div className="fade-in relative z-10" style={{ marginTop: 16, textAlign: "center" }}>
-                                                    <p className="text-slate-900 dark:text-white" style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                                                        {state.serving_details.customer_name}
+                                                <div className="fade-in relative z-10 flex flex-col items-center mt-2">
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <h3 className="text-slate-800 dark:text-slate-100 text-lg font-semibold m-0">
+                                                            {state.serving_details.customer_name}
+                                                        </h3>
                                                         {(state.serving_details.companion_names && state.serving_details.companion_names.length > 0) && (
-                                                            <span className="bg-indigo-100/80 text-indigo-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1 font-bold backdrop-blur-sm" title={state.serving_details.companion_names.join(", ")}>
-                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                                            <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-semibold border border-slate-200 dark:border-slate-700" title={state.serving_details.companion_names.join(", ")}>
                                                                 +{state.serving_details.companion_names.length}
                                                             </span>
                                                         )}
-                                                    </p>
-                                                    <div className="text-slate-500 dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "3px 8px", marginTop: 5, fontSize: 13, fontWeight: 500 }}>
-                                                        {state.serving_details.customer_age != null && <span>Age {state.serving_details.customer_age}</span>}
-                                                        {state.serving_details.customer_age != null && <span className="text-slate-300">·</span>}
+                                                    </div>
+                                                    <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 text-sm">
+                                                        {state.serving_details.customer_age != null && (
+                                                            <span>Age {state.serving_details.customer_age}</span>
+                                                        )}
+                                                        {state.serving_details.customer_age != null && <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />}
                                                         <span>{state.serving_details.customer_phone}</span>
                                                     </div>
                                                 </div>
                                             )}
 
                                             {/* Live Statistics Grid */}
-                                            <div className="grid grid-cols-4 gap-3 w-full mt-8 pt-6 border-t border-slate-200/40 dark:border-white/5 relative z-10">
+                                            <div className="grid grid-cols-4 gap-4 w-full mt-10 relative z-10">
                                                 {/* Total Customers (Issued) */}
-                                                <div className="flex flex-col items-center justify-center backdrop-blur-sm bg-white/40 dark:bg-white/5 rounded-xl py-3 border border-white/50 dark:border-white/5 transition-all hover:bg-white/60 hover:shadow-sm">
-                                                    <span className="text-xl font-extrabold text-slate-800 dark:text-white tabular-nums">{state?.total_issued ?? 0}</span>
-                                                    <div className="flex items-center gap-1.5 mt-1">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Issued</span>
-                                                    </div>
+                                                <div className="flex flex-col items-center justify-center bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl py-4 border border-white dark:border-slate-700 shadow-sm transition-all hover:bg-white dark:hover:bg-slate-800">
+                                                    <span className="text-xl font-bold text-slate-800 dark:text-white tabular-nums leading-none">{state?.total_issued ?? 0}</span>
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mt-2">Issued</span>
                                                 </div>
 
                                                 {/* Remaining (Waiting) */}
-                                                <div className="flex flex-col items-center justify-center backdrop-blur-sm bg-indigo-50/50 dark:bg-indigo-500/10 rounded-xl py-3 border border-indigo-100/50 dark:border-indigo-500/20 transition-all hover:bg-indigo-50/80 hover:shadow-sm">
-                                                    <span className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400 tabular-nums">{state?.waiting_count ?? 0}</span>
-                                                    <div className="flex items-center gap-1.5 mt-1">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
-                                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Waiting</span>
-                                                    </div>
+                                                <div className="flex flex-col items-center justify-center bg-indigo-50/50 dark:bg-indigo-900/20 backdrop-blur-md rounded-xl py-4 border border-white dark:border-indigo-500/20 shadow-sm transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
+                                                    <span className="text-xl font-bold text-indigo-700 dark:text-indigo-300 tabular-nums leading-none">{state?.waiting_count ?? 0}</span>
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-600/80 dark:text-indigo-300/80 mt-2">Waiting</span>
                                                 </div>
 
                                                 {/* Served */}
-                                                <div className="flex flex-col items-center justify-center backdrop-blur-sm bg-emerald-50/50 dark:bg-emerald-500/10 rounded-xl py-3 border border-emerald-100/50 dark:border-emerald-500/20 transition-all hover:bg-emerald-50/80 hover:shadow-sm">
-                                                    <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">{state?.done_count ?? 0}</span>
-                                                    <div className="flex items-center gap-1.5 mt-1">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Served</span>
-                                                    </div>
+                                                <div className="flex flex-col items-center justify-center bg-emerald-50/50 dark:bg-emerald-900/20 backdrop-blur-md rounded-xl py-4 border border-white dark:border-emerald-500/20 shadow-sm transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/30">
+                                                    <span className="text-xl font-bold text-emerald-700 dark:text-emerald-300 tabular-nums leading-none">{state?.done_count ?? 0}</span>
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600/80 dark:text-emerald-300/80 mt-2">Served</span>
                                                 </div>
 
                                                 {/* Skipped */}
-                                                <div className="flex flex-col items-center justify-center backdrop-blur-sm bg-amber-50/50 dark:bg-amber-500/10 rounded-xl py-3 border border-amber-100/50 dark:border-amber-500/20 transition-all hover:bg-amber-50/80 hover:shadow-sm">
-                                                    <span className="text-xl font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">{state?.skipped_count ?? 0}</span>
-                                                    <div className="flex items-center gap-1.5 mt-1">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Skipped</span>
-                                                    </div>
+                                                <div className="flex flex-col items-center justify-center bg-amber-50/50 dark:bg-amber-900/20 backdrop-blur-md rounded-xl py-4 border border-white dark:border-amber-500/20 shadow-sm transition-all hover:bg-amber-50 dark:hover:bg-amber-900/30">
+                                                    <span className="text-xl font-bold text-amber-700 dark:text-amber-300 tabular-nums leading-none">{state?.skipped_count ?? 0}</span>
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600/80 dark:text-amber-300/80 mt-2">Skipped</span>
                                                 </div>
                                             </div>
                                         </div>
