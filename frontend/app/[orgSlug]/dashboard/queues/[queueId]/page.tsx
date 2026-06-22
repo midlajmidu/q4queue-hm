@@ -777,7 +777,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         key={item.id}
                                         onClick={() => setActiveSection(item.id)}
                                         className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all text-left ${isActiveItem
-                                                ? "font-bold text-indigo-700 bg-indigo-50"
+                                                ? "font-semibold text-indigo-700 bg-indigo-50"
                                                 : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                                             }`}
                                     >
@@ -1132,14 +1132,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <div className="flex gap-5 pt-1">
                                                         <button
                                                             onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }}
-                                                            className={`flex items-center gap-2 text-[13px] font-bold pb-2 transition-colors ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                            className={`flex items-center gap-2 text-[13px] font-semibold pb-2 transition-colors ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                                         >
                                                             Waiting
                                                             <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.waiting_count ?? 0}</span>
                                                         </button>
                                                         <button
                                                             onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }}
-                                                            className={`flex items-center gap-2 text-[13px] font-bold pb-2 transition-colors ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                            className={`flex items-center gap-2 text-[13px] font-semibold pb-2 transition-colors ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                                         >
                                                             Skipped
                                                             <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.skipped_count ?? 0}</span>
@@ -1406,14 +1406,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <div className="flex gap-5">
                                         <button
                                             onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }}
-                                            className={`flex items-center gap-2 text-[14px] font-bold pb-2 transition-colors ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Waiting
                                             <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.waiting_count ?? 0}</span>
                                         </button>
                                         <button
                                             onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }}
-                                            className={`flex items-center gap-2 text-[14px] font-bold pb-2 transition-colors ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Skipped
                                             <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.skipped_count ?? 0}</span>

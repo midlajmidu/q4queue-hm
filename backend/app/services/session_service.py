@@ -220,7 +220,7 @@ async def list_session_queues(
         select_query = select_query.where(Queue.name.ilike(f"%{name}%"))
     
     result = await db.execute(
-        select_query.order_by(Queue.created_at.asc()).limit(limit).offset(offset)
+        select_query.order_by(Queue.created_at.desc()).limit(limit).offset(offset)
     )
     items = list(result.scalars().all())
     return {

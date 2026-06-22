@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, Plus, Layers, Users } from "lucide-react";
+import { ChevronRight, Plus, Layers, Users, CalendarClock } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -310,7 +310,7 @@ export default function SessionsPage() {
                             return (
                                 <div key={group.label} className="relative">
                                     {/* ── Group header ── */}
-                                    <div className="flex items-center gap-4 mb-4 sticky top-0 bg-slate-50/80 backdrop-blur-md z-10 py-2">
+                                    <div className="flex items-center gap-4 mb-4 pt-4 pb-2">
                                         <div className="px-3 py-1 bg-white border border-slate-200 shadow-sm rounded-lg">
                                             <span className="text-[11px] font-extrabold tracking-widest text-slate-500 uppercase whitespace-nowrap">{group.label}</span>
                                         </div>
@@ -327,23 +327,32 @@ export default function SessionsPage() {
                                                 <Link
                                                     key={session.id}
                                                     href={`${dashBase}/sessions/${session.id}/queues`}
-                                                    className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:shadow-indigo-500/5 hover:border-indigo-300/60 p-4 sm:p-5 flex flex-col sm:flex-row sm:justify-between sm:items-center w-full transition-all duration-300 group cursor-pointer relative overflow-hidden"
+                                                    className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100 p-4 sm:p-5 flex flex-col sm:flex-row sm:justify-between sm:items-center w-full transition-all duration-300 group cursor-pointer relative overflow-hidden"
                                                 >
+                                                    {/* Sinusoidal Wave Texture */}
+                                                    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl z-0">
+                                                        <svg className="absolute right-0 bottom-0 w-full h-full" viewBox="0 0 400 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                                                            {/* Wave 1 — deep navy, bottom */}
+                                                            <path d="M0,70 C40,50 80,90 120,70 C160,50 200,90 240,70 C280,50 320,90 360,70 C380,62 390,60 400,60 L400,100 L0,100 Z" fill="#1e40af" fillOpacity="0.06" />
+                                                            {/* Wave 2 — mid blue, slightly above */}
+                                                            <path d="M0,80 C50,62 100,95 150,78 C200,60 250,95 300,78 C340,65 370,68 400,65 L400,100 L0,100 Z" fill="#3b82f6" fillOpacity="0.05" />
+                                                            {/* Wave 3 — lightest, top crest */}
+                                                            <path d="M0,88 C60,74 120,98 180,85 C240,72 300,98 360,85 C380,80 390,80 400,78 L400,100 L0,100 Z" fill="#93c5fd" fillOpacity="0.06" />
+                                                        </svg>
+                                                    </div>
+                                                    
                                                     {/* Left Content */}
-                                                    <div className="flex items-center gap-4 sm:gap-5 min-w-0 w-full sm:w-auto">
-                                                        {/* Absolute Left Edge Vertical Indicator Tab */}
-                                                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-300 ${today ? "bg-indigo-500" : "bg-slate-200 group-hover:bg-indigo-300"}`} />
-
+                                                    <div className="flex items-center gap-4 sm:gap-5 min-w-0 w-full sm:w-auto relative z-10">
                                                         {/* Date Badge */}
-                                                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-indigo-500 to-indigo-700 rounded-xl w-[54px] h-[58px] shrink-0 shadow-inner shadow-white/20 ring-1 ring-indigo-900/10">
-                                                            <span className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest leading-none mt-1">{getMonthShort(session.session_date)}</span>
-                                                            <span className="text-[20px] font-extrabold text-white leading-none mt-1">{getDayNumber(session.session_date)}</span>
+                                                        <div className="flex flex-col items-center justify-center bg-gradient-to-b from-indigo-500 to-indigo-700 rounded-lg w-[54px] h-[58px] shrink-0 shadow-sm shadow-indigo-500/30">
+                                                            <span className="text-[10px] font-semibold text-indigo-200 uppercase tracking-widest leading-none mt-1">{getMonthShort(session.session_date)}</span>
+                                                            <span className="text-[20px] font-bold text-white leading-none mt-1">{getDayNumber(session.session_date)}</span>
                                                         </div>
 
                                                         {/* Title + badge */}
                                                         <div className="flex flex-col gap-1 min-w-0">
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-base font-bold text-slate-800 capitalize truncate group-hover:text-indigo-700 transition-colors">
+                                                                <span className="text-base font-semibold text-slate-900 capitalize truncate">
                                                                     {session.title || (today ? "Today's Session" : formatShortDate(session.session_date))}
                                                                 </span>
                                                                 {today && (
@@ -356,21 +365,21 @@ export default function SessionsPage() {
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <span className="text-[13px] text-slate-400 font-medium">No notes provided</span>
+                                                            <span className="text-[14px] text-slate-400 font-normal">No notes provided</span>
                                                         </div>
                                                     </div>
 
                                                     {/* Right Content */}
-                                                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-4 sm:mt-0 pt-3 sm:pt-0 border-t border-slate-100 sm:border-0 shrink-0">
+                                                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-4 sm:mt-0 pt-3 sm:pt-0 border-t border-slate-100 sm:border-0 shrink-0 relative z-10 flex-wrap sm:flex-nowrap">
                                                         {/* Unified Metrics Stream Row */}
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                                                             {/* Queues Pill */}
-                                                            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 rounded-lg px-3 py-1.5 text-slate-600 font-semibold text-xs transition-colors group-hover:bg-white group-hover:border-slate-300">
-                                                                <Layers className="w-3.5 h-3.5 text-indigo-500" strokeWidth={2.5} />
+                                                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5 text-slate-600 font-semibold text-xs transition-colors group-hover:bg-white group-hover:border-slate-200">
+                                                                <Layers className="w-3.5 h-3.5 text-blue-500" strokeWidth={2.5} />
                                                                 <span>{session.queue_count} <span className="font-medium text-slate-400">Queues</span></span>
                                                             </div>
                                                             {/* Served Pill */}
-                                                            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 rounded-lg px-3 py-1.5 text-slate-600 font-semibold text-xs transition-colors group-hover:bg-white group-hover:border-slate-300">
+                                                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5 text-slate-600 font-semibold text-xs transition-colors group-hover:bg-white group-hover:border-slate-200">
                                                                 <Users className="w-3.5 h-3.5 text-sky-500" strokeWidth={2.5} />
                                                                 <span>{served} <span className="font-medium text-slate-400">Served</span></span>
                                                             </div>
@@ -388,7 +397,7 @@ export default function SessionsPage() {
                                                                     <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
                                                                 </button>
                                                             )}
-                                                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-600 transition-all duration-300 group-hover:translate-x-1" strokeWidth={2.5} />
+                                                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-600 transition-colors duration-300 group-hover:translate-x-1" strokeWidth={2.5} />
                                                         </div>
                                                     </div>
                                                 </Link>

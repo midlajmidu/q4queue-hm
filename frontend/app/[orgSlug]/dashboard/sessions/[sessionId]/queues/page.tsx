@@ -6,7 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import type { QueueResponse, SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
 import QueueCard from "@/components/QueueCard";
-import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays, CalendarOff } from "lucide-react";
+import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays, CalendarOff, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface PageProps {
@@ -216,10 +216,46 @@ export default function SessionQueuesPage({ params }: PageProps) {
                 close_time: newCloseTime || undefined,
             });
             setShowCreate(false);
+            setPage(1); // Reset to page 1 to see the newly created queue at the top
             loadQueues(false);
+            
+            // Professional Success Toast
+            toast.custom((t) => (
+                <div className="pointer-events-auto w-[356px] overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black/5">
+                    <div className="p-4">
+                        <div className="flex items-start">
+                            <div className="flex-shrink-0">
+                                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                            </div>
+                            <div className="ml-3 w-0 flex-1 pt-0.5">
+                                <p className="text-sm font-medium text-gray-900 leading-none mb-1.5">Queue Created</p>
+                                <p className="text-sm text-gray-500 leading-snug">The queue <span className="font-semibold text-gray-700">"{newName.trim()}"</span> is now active.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ), { duration: 3000, position: 'top-center' });
+
         } catch (err: unknown) {
-            if (err instanceof ApiError) setCreateError(err.detail);
-            else setCreateError("Failed to create queue");
+            const errMessage = err instanceof ApiError ? err.detail : "Failed to create queue";
+            setCreateError(errMessage);
+            
+            // Professional Error Toast
+            toast.custom((t) => (
+                <div className="pointer-events-auto w-[356px] overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black/5">
+                    <div className="p-4">
+                        <div className="flex items-start">
+                            <div className="flex-shrink-0">
+                                <AlertCircle className="h-5 w-5 text-red-500" />
+                            </div>
+                            <div className="ml-3 w-0 flex-1 pt-0.5">
+                                <p className="text-sm font-medium text-gray-900 leading-none mb-1.5">Creation Failed</p>
+                                <p className="text-sm text-gray-500 leading-snug">{errMessage}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ), { duration: 4000, position: 'top-center' });
         } finally {
             setCreateLoading(false);
         }
@@ -548,11 +584,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         />
                                     </div>
                                 </div>
-                                {createError && (
-                                    <div className="px-4 py-3 rounded-xl bg-red-50 text-red-600 text-xs font-semibold border border-red-100">
-                                        {createError}
-                                    </div>
-                                )}
+                                {/* Error message is now handled globally via toast notification */}
                                 <div className="flex gap-3 pt-2">
                                     <button
                                         type="button"

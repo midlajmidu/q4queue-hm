@@ -7,7 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import type { QueueResponse } from "@/types/api";
 import ConfirmModal from "@/components/ConfirmModal";
 import EditQueueModal from "@/components/EditQueueModal";
-import { Hash, UserCheck, Activity, Trash2, Square, Clock, CalendarDays, Ticket, Pause, Play, Pencil } from "lucide-react";
+import { Hash, UserCheck, Activity, Trash2, Square, Clock, CalendarDays, Ticket, TicketSlash, Pause, Play, Pencil } from "lucide-react";
 
 interface Props {
     queue: QueueResponse;
@@ -114,7 +114,24 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
     return (
         <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-sm ring-1 ring-slate-900/5 flex flex-col justify-between w-full transition-all duration-200 hover:shadow-md relative overflow-hidden group">
             {/* Slanted Ticket Watermark */}
-            <Ticket className="absolute -bottom-6 -right-6 w-40 h-40 text-slate-900 opacity-[0.07] -rotate-45 pointer-events-none select-none z-0 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-[40deg]" />
+            {isActive ? (
+                <Ticket className="absolute -bottom-10 -right-6 w-56 h-56 text-slate-900 opacity-[0.06] -rotate-45 pointer-events-none select-none z-0 transition-all duration-500 group-hover:scale-110 group-hover:-rotate-[40deg]" />
+            ) : (
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="absolute -bottom-10 -right-6 w-56 h-56 text-slate-900 opacity-[0.08] -rotate-45 pointer-events-none select-none z-0 transition-all duration-500 group-hover:scale-110 group-hover:-rotate-[40deg]"
+                >
+                    {/* Left piece (clean lightning bolt tear) */}
+                    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h6 L12 14 L8 9 L12 5 H4a2 2 0 0 0-2 2Z" />
+                    {/* Right piece (matching tear, detached by 3 units) */}
+                    <path d="M22 9a3 3 0 0 0 0 6v2a2 2 0 0 1-2 2h-7 L15 14 L11 9 L15 5 h5a2 2 0 0 1 2 2Z" />
+                </svg>
+            )}
 
             {/* Foreground Content */}
             <div className="relative z-10 flex flex-col flex-1">
