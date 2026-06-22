@@ -883,18 +883,18 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <div className="lg:col-span-2 space-y-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1">
 
                                         {/* Hero – Now Serving */}
-                                        <div className="serving-card relative overflow-hidden bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/80 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]" style={{ padding: "48px 32px", textAlign: "center", minHeight: 320, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: "1.5rem" }}>
+                                        <div className="serving-card relative overflow-hidden bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/80 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.06)]" style={{ padding: "48px 32px", textAlign: "center", minHeight: 320, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: "1.5rem" }}>
                                             
-                                            {/* Minimal, Professional Ambient Background */}
-                                            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-50/50 via-transparent to-indigo-50/30 dark:from-slate-800/50 dark:to-indigo-900/20 pointer-events-none" />
-                                            <div className="absolute -top-[100px] -right-[100px] w-[300px] h-[300px] bg-indigo-100/40 dark:bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
-                                            <div className="absolute -bottom-[100px] -left-[100px] w-[300px] h-[300px] bg-blue-50/40 dark:bg-blue-500/10 rounded-full blur-[80px] pointer-events-none" />
+                                            {/* Professional Corporate Slate & Soft Blue Ambient Background */}
+                                            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-50/60 via-transparent to-blue-50/30 dark:from-slate-800/40 dark:to-slate-900/80 pointer-events-none" />
+                                            <div className="absolute -top-[100px] -right-[100px] w-[400px] h-[400px] bg-slate-300/15 dark:bg-slate-500/10 rounded-full blur-[100px] pointer-events-none" style={{ animation: "float-gentle 10s ease-in-out infinite" }} />
+                                            <div className="absolute -bottom-[100px] -left-[100px] w-[400px] h-[400px] bg-blue-300/15 dark:bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" style={{ animation: "float-gentle 12s ease-in-out infinite reverse" }} />
 
                                             {/* Label */}
-                                            <div className="relative z-10 inline-flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-700/50 shadow-sm rounded-full px-4 py-1.5 mb-8">
+                                            <div className="relative z-10 inline-flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/60 shadow-sm rounded-full px-4 py-1.5 mb-8">
                                                 <span className="relative flex h-2 w-2">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
                                                 </span>
                                                 <span className="text-slate-600 dark:text-slate-300 text-[10px] font-bold tracking-widest uppercase">Now Serving</span>
                                             </div>
@@ -902,7 +902,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             {/* Token Number */}
                                             {(!state?.current_serving || state.current_serving === 0) ? (
                                                 <div className="relative z-10 flex flex-col items-center justify-center py-4" style={{ minHeight: 120 }}>
-                                                    <div className="w-12 h-12 mb-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center border border-slate-200/50 dark:border-slate-700/50">
+                                                    <div className="w-12 h-12 mb-4 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60">
                                                         <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
                                                             <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                                         </svg>
@@ -915,11 +915,11 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     </span>
                                                     <div className="flex items-center gap-1.5 text-xs font-medium">
                                                         <span className="text-slate-400">Shortcut:</span>
-                                                        <kbd className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-mono text-[10px] font-bold">Enter ↵</kbd>
+                                                        <kbd className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-mono text-[10px] font-bold">Enter ↵</kbd>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="serving-num relative z-10 text-[110px] leading-none font-extrabold tracking-tight text-slate-900 dark:text-white mb-2" aria-live="polite" aria-atomic="true">
+                                                <div className="serving-num relative z-10 text-[110px] leading-none font-extrabold tracking-tight text-slate-900 dark:text-white mb-2" style={{ background: "linear-gradient(135deg, #0f172a 0%, #334155 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }} aria-live="polite" aria-atomic="true">
                                                     {`${state.prefix || ""}${state.current_serving}`}
                                                 </div>
                                             )}
@@ -947,30 +947,38 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 </div>
                                             )}
 
-                                            {/* Live Statistics Grid */}
-                                            <div className="grid grid-cols-4 gap-4 w-full mt-10 relative z-10">
+                                            {/* Live Statistics - Unified Bar */}
+                                            <div className="w-full mt-10 relative z-10 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md rounded-2xl border border-white/80 dark:border-slate-700/60 shadow-[0_2px_10px_rgb(0,0,0,0.02)] flex items-stretch divide-x divide-slate-200/50 dark:divide-slate-700/50">
                                                 {/* Total Customers (Issued) */}
-                                                <div className="flex flex-col items-center justify-center bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-xl py-4 border border-white dark:border-slate-700 shadow-sm transition-all hover:bg-white dark:hover:bg-slate-800">
-                                                    <span className="text-xl font-bold text-slate-800 dark:text-white tabular-nums leading-none">{state?.total_issued ?? 0}</span>
-                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mt-2">Issued</span>
+                                                <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 transition-colors hover:bg-white/40 dark:hover:bg-slate-700/40 rounded-l-2xl">
+                                                    <span className="text-2xl font-bold text-slate-800 dark:text-white tabular-nums leading-none">{state?.total_issued ?? 0}</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-wider flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span> Issued
+                                                    </span>
                                                 </div>
 
                                                 {/* Remaining (Waiting) */}
-                                                <div className="flex flex-col items-center justify-center bg-indigo-50/50 dark:bg-indigo-900/20 backdrop-blur-md rounded-xl py-4 border border-white dark:border-indigo-500/20 shadow-sm transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
-                                                    <span className="text-xl font-bold text-indigo-700 dark:text-indigo-300 tabular-nums leading-none">{state?.waiting_count ?? 0}</span>
-                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-600/80 dark:text-indigo-300/80 mt-2">Waiting</span>
+                                                <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 transition-colors hover:bg-white/40 dark:hover:bg-slate-700/40">
+                                                    <span className="text-2xl font-bold text-slate-800 dark:text-white tabular-nums leading-none">{state?.waiting_count ?? 0}</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-wider flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Waiting
+                                                    </span>
                                                 </div>
 
                                                 {/* Served */}
-                                                <div className="flex flex-col items-center justify-center bg-emerald-50/50 dark:bg-emerald-900/20 backdrop-blur-md rounded-xl py-4 border border-white dark:border-emerald-500/20 shadow-sm transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/30">
-                                                    <span className="text-xl font-bold text-emerald-700 dark:text-emerald-300 tabular-nums leading-none">{state?.done_count ?? 0}</span>
-                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600/80 dark:text-emerald-300/80 mt-2">Served</span>
+                                                <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 transition-colors hover:bg-white/40 dark:hover:bg-slate-700/40">
+                                                    <span className="text-2xl font-bold text-slate-800 dark:text-white tabular-nums leading-none">{state?.done_count ?? 0}</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-wider flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Served
+                                                    </span>
                                                 </div>
 
                                                 {/* Skipped */}
-                                                <div className="flex flex-col items-center justify-center bg-amber-50/50 dark:bg-amber-900/20 backdrop-blur-md rounded-xl py-4 border border-white dark:border-amber-500/20 shadow-sm transition-all hover:bg-amber-50 dark:hover:bg-amber-900/30">
-                                                    <span className="text-xl font-bold text-amber-700 dark:text-amber-300 tabular-nums leading-none">{state?.skipped_count ?? 0}</span>
-                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600/80 dark:text-amber-300/80 mt-2">Skipped</span>
+                                                <div className="flex-1 flex flex-col items-center justify-center py-4 px-2 transition-colors hover:bg-white/40 dark:hover:bg-slate-700/40 rounded-r-2xl">
+                                                    <span className="text-2xl font-bold text-slate-800 dark:text-white tabular-nums leading-none">{state?.skipped_count ?? 0}</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-wider flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Skipped
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1009,7 +1017,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         })}
                                                         disabled={isDisabled || isPaused}
                                                         title={isPaused ? "Queue is currently on a break" : undefined}
-                                                        className="w-full flex justify-center items-center h-12 rounded-2xl bg-amber-500 text-white text-[14px] font-semibold shadow-lg shadow-amber-500/20 border border-transparent hover:bg-amber-600 hover:shadow-amber-500/30 hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        className="w-full flex justify-center items-center h-12 rounded-2xl bg-amber-500 text-white text-[14px] font-semibold shadow-lg shadow-amber-500/20 border border-transparent hover:bg-amber-600 hover:shadow-amber-500/30 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         {actionLoading === "skipped" ? (
                                                             <>
@@ -1032,7 +1040,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         })}
                                                         disabled={isDisabled || isPaused}
                                                         title={isPaused ? "Queue is currently on a break" : undefined}
-                                                        className="w-full flex justify-center items-center h-12 rounded-2xl bg-emerald-600 text-white text-[14px] font-semibold shadow-lg shadow-emerald-500/20 border border-transparent hover:bg-emerald-700 hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        className="w-full flex justify-center items-center h-12 rounded-2xl bg-emerald-600 text-white text-[14px] font-semibold shadow-lg shadow-emerald-500/20 border border-transparent hover:bg-emerald-700 hover:shadow-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         {actionLoading === "done" ? (
                                                             <>

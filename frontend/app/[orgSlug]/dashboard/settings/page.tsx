@@ -563,7 +563,11 @@ export default function SettingsPage() {
                                                             </div>
                                                             <div>
                                                                 <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{name}</div>
-                                                                <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted, marginTop: 2 }}>{settings?.address || '123 Business Avenue, Suite 100, Tech City'}</div>
+                                                                {settings?.address && (
+                                                                    <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted, marginTop: 2 }}>
+                                                                        {settings.address}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
