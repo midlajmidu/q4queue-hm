@@ -1605,7 +1605,7 @@ export default function OverviewPage() {
                   { lbl: "Currently Serving", time: drawerAct.served_at || (["serving", "done"].includes(drawerAct.status) ? drawerAct.time : null), active: ["serving", "done"].includes(drawerAct.status) },
                   { lbl: drawerAct.status === "deleted" ? "Cancelled" : drawerAct.status === "skipped" ? "Skipped" : "Service Completed", time: drawerAct.completed_at || (["done", "deleted", "skipped"].includes(drawerAct.status) ? drawerAct.time : null), active: ["done", "deleted", "skipped"].includes(drawerAct.status) }
                 ].map((step, i) => (
-                  <div key={i} style={{ display: "flex", gap: 18, position: "relative", marginBottom: 28, opacity: step.active ? 1 : 0.35, transition: "opacity .3s ease", display: step.active || i < 2 ? "flex" : "none" }}>
+                  <div key={i} style={{ gap: 18, position: "relative", marginBottom: 28, opacity: step.active ? 1 : 0.35, transition: "opacity .3s ease", display: step.active || i < 2 ? "flex" : "none" }}>
                     {/* Dot */}
                     <div style={{ position: "relative", zIndex: 2, width: 12, height: 12, borderRadius: "50%", background: step.active ? C.brand : C.pageBg, border: `2px solid ${step.active ? "#fff" : C.border}`, outline: `2px solid ${step.active ? C.brandBorder : "transparent"}`, marginTop: 4, boxShadow: step.active ? `0 0 8px ${C.brandGlow}` : "none", transition: "all .3s ease" }} />
 
