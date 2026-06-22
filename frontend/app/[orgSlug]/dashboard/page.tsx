@@ -1452,11 +1452,11 @@ export default function OverviewPage() {
                 <div className="overflow-x-auto whitespace-nowrap scrollbar-hide w-full">
                   {/* Column headers */}
                   <div style={{
-                    display: "grid", gridTemplateColumns: "1fr auto auto",
+                    display: "grid", gridTemplateColumns: "1fr auto",
                     gap: "0 16px", padding: "8px 20px",
                     borderBottom: `1px solid ${C.borderLight}`,
                   }}>
-                    {["Details", "Status", "Time"].map((h, i) => (
+                    {["Details", "Status"].map((h, i) => (
                       <span key={h} style={{
                         fontSize: 10, fontWeight: 600, color: C.textMuted,
                         letterSpacing: ".06em", textTransform: "uppercase" as const,
@@ -1481,7 +1481,7 @@ export default function OverviewPage() {
                           className="fade-in hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           onClick={() => setDrawerAct(act)}
                           style={{
-                            display: "grid", gridTemplateColumns: "1fr auto auto",
+                            display: "grid", gridTemplateColumns: "1fr auto",
                             gap: "0 16px", alignItems: "center",
                             padding: "12px 20px",
                             borderBottom: `1px solid ${C.borderLight}`,
@@ -1516,10 +1516,6 @@ export default function OverviewPage() {
                               background: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
                             }} className="w-1.5 h-1.5 rounded-full" />
                             {act.status}
-                          </span>
-                          {/* Time */}
-                          <span className="mono tnum" style={{ fontSize: 11.5, color: C.textMuted, textAlign: "right", minWidth: 44, fontWeight: 500 }}>
-                            {new Date(act.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </span>
                         </li>
                       );
@@ -1606,10 +1602,10 @@ export default function OverviewPage() {
                 {[
                   { lbl: "Token Issued", time: drawerAct.time, active: true },
                   { lbl: "Waiting in Queue", time: drawerAct.time, active: ["waiting", "serving", "done"].includes(drawerAct.status) },
-                  { lbl: "Currently Serving", time: drawerAct.status === "serving" || drawerAct.status === "done" ? drawerAct.time : null, active: ["serving", "done"].includes(drawerAct.status) },
-                  { lbl: "Service Completed", time: drawerAct.status === "done" ? drawerAct.time : null, active: drawerAct.status === "done" }
+                  { lbl: "Currently Serving", time: drawerAct.served_at || (["serving", "done"].includes(drawerAct.status) ? drawerAct.time : null), active: ["serving", "done"].includes(drawerAct.status) },
+                  { lbl: drawerAct.status === "deleted" ? "Cancelled" : drawerAct.status === "skipped" ? "Skipped" : "Service Completed", time: drawerAct.completed_at || (["done", "deleted", "skipped"].includes(drawerAct.status) ? drawerAct.time : null), active: ["done", "deleted", "skipped"].includes(drawerAct.status) }
                 ].map((step, i) => (
-                  <div key={i} style={{ display: "flex", gap: 18, position: "relative", marginBottom: 28, opacity: step.active ? 1 : 0.35, transition: "opacity .3s ease" }}>
+                  <div key={i} style={{ display: "flex", gap: 18, position: "relative", marginBottom: 28, opacity: step.active ? 1 : 0.35, transition: "opacity .3s ease", display: step.active || i < 2 ? "flex" : "none" }}>
                     {/* Dot */}
                     <div style={{ position: "relative", zIndex: 2, width: 12, height: 12, borderRadius: "50%", background: step.active ? C.brand : C.pageBg, border: `2px solid ${step.active ? "#fff" : C.border}`, outline: `2px solid ${step.active ? C.brandBorder : "transparent"}`, marginTop: 4, boxShadow: step.active ? `0 0 8px ${C.brandGlow}` : "none", transition: "all .3s ease" }} />
 

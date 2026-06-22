@@ -179,6 +179,8 @@ async def get_overview_metrics(
         Token.token_number,
         Token.status,
         Token.created_at,
+        Token.served_at,
+        Token.completed_at,
         Token.customer_name,
         Queue.name.label('queue_name')
     ).join(Queue, Token.queue_id == Queue.id).where(
@@ -194,7 +196,9 @@ async def get_overview_metrics(
             "status": r.status.value,
             "queue": r.queue_name,
             "customer_name": r.customer_name or "Walk-in",
-            "time": r.created_at.isoformat()
+            "time": r.created_at.isoformat(),
+            "served_at": r.served_at.isoformat() if r.served_at else None,
+            "completed_at": r.completed_at.isoformat() if r.completed_at else None,
         }
         for r in recent_res.all()
     ]

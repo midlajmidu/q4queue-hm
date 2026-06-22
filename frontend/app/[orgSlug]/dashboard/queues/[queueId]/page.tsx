@@ -883,11 +883,22 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <div className="lg:col-span-2 space-y-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1">
 
                                         {/* Hero – Now Serving */}
-                                        <div className="serving-card bg-white dark:bg-slate-900 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 dark:border-white/10 dark:shadow-none" style={{ padding: "40px 32px 36px", textAlign: "center", minHeight: 280, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                                        <div className="serving-card relative overflow-hidden backdrop-blur-2xl bg-white/50 dark:bg-slate-900/50 border border-white/70 dark:border-white/10 shadow-[0_8px_40px_rgba(99,102,241,0.08),0_1px_0_rgba(255,255,255,0.8)_inset] dark:shadow-[0_8px_40px_rgba(0,0,0,0.3)]" style={{ padding: "44px 32px 36px", textAlign: "center", minHeight: 300, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: "1.5rem" }}>
+                                            {/* Ambient Glow (contained inside overflow-hidden card) */}
+                                            <div className="absolute -top-20 -left-20 w-[420px] h-[420px] bg-gradient-to-br from-indigo-400/25 to-violet-400/15 rounded-full filter blur-3xl opacity-60 pointer-events-none" style={{ animation: "float-gentle 8s ease-in-out infinite" }} />
+                                            <div className="absolute top-16 -right-16 w-[340px] h-[340px] bg-gradient-to-br from-cyan-400/20 to-blue-400/15 rounded-full filter blur-3xl opacity-60 pointer-events-none" style={{ animation: "float-gentle 10s ease-in-out infinite reverse" }} />
+                                            <div className="absolute bottom-0 left-1/3 w-[280px] h-[280px] bg-gradient-to-br from-emerald-400/10 to-teal-400/10 rounded-full filter blur-3xl opacity-50 pointer-events-none" style={{ animation: "float-gentle 12s ease-in-out infinite" }} />
+
+                                            {/* Inner shimmer highlight */}
+                                            <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.1) 100%)", borderRadius: "inherit" }} />
+
                                             {/* Label */}
-                                            <div className="dark:bg-primary/10 dark:border-primary/30" style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid ${T.brandBorder}`, borderRadius: 99, padding: "5px 16px", marginBottom: 20, position: "relative", zIndex: 1 }}>
-                                                <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.brand, display: "inline-block", animation: "pulse-dot 2s infinite" }} />
-                                                <span className="text-blue-600 dark:text-blue-400" style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" }}>Now Serving</span>
+                                            <div className="relative z-10 backdrop-blur-sm bg-white/60 dark:bg-white/10" style={{ display: "inline-flex", alignItems: "center", gap: 8, border: "1px solid rgba(99,102,241,0.2)", borderRadius: 99, padding: "6px 18px", marginBottom: 22, boxShadow: "0 1px 8px rgba(99,102,241,0.08)" }}>
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
+                                                </span>
+                                                <span className="text-indigo-600 dark:text-indigo-400" style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Now Serving</span>
                                             </div>
 
                                             {/* Token Number */}
@@ -896,7 +907,7 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                                                     {/* Floating ticket icon */}
                                                     <div style={{ animation: 'float-gentle 3s ease-in-out infinite', marginBottom: 20 }}>
-                                                        <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(145deg, #eef2ff, #e0e7ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(99,102,241,0.12), 0 8px 24px rgba(99,102,241,0.06)' }}>
+                                                        <div className="backdrop-blur-sm" style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(145deg, rgba(238,242,255,0.8), rgba(224,231,255,0.8))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(99,102,241,0.12), 0 8px 24px rgba(99,102,241,0.06), 0 0 0 1px rgba(99,102,241,0.08)' }}>
                                                             <svg width="26" height="26" fill="none" viewBox="0 0 24 24" style={{ color: '#6366f1' }}>
                                                                 <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                                             </svg>
@@ -914,70 +925,70 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     {/* Shortcut hint */}
                                                     <div className="flex items-center gap-1.5" style={{ fontSize: 12, fontWeight: 500 }}>
                                                         <span className="text-slate-400">Shortcut:</span>
-                                                        <kbd className="text-slate-600 dark:text-slate-300" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '2px 8px', borderRadius: 5, background: '#f1f5f9', border: '1px solid #e2e8f0', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', boxShadow: '0 1px 0 #e2e8f0' }}>Enter ↵</kbd>
+                                                        <kbd className="text-slate-600 dark:text-slate-300 backdrop-blur-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: '2px 8px', borderRadius: 5, background: 'rgba(241,245,249,0.7)', border: '1px solid rgba(226,232,240,0.8)', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', boxShadow: '0 1px 0 rgba(226,232,240,0.8)' }}>Enter ↵</kbd>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="serving-num text-slate-900 dark:text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]" style={{ fontSize: "clamp(72px,11vw,116px)", position: "relative", zIndex: 1 }} aria-live="polite" aria-atomic="true">
+                                                <div className="serving-num relative z-10" style={{ fontSize: "clamp(72px,11vw,120px)", lineHeight: 1, fontWeight: 900, letterSpacing: "-0.03em", background: "linear-gradient(135deg, #1e293b 0%, #334155 40%, #6366f1 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.06))" }} aria-live="polite" aria-atomic="true">
                                                     {`${state.prefix || ""}${state.current_serving}`}
                                                 </div>
                                             )}
 
                                             {/* Customer Details */}
                                             {state?.serving_details && (
-                                                <div className="fade-in" style={{ marginTop: 16, position: "relative", zIndex: 1, textAlign: "center" }}>
-                                                    <p style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                                                <div className="fade-in relative z-10" style={{ marginTop: 16, textAlign: "center" }}>
+                                                    <p className="text-slate-900 dark:text-white" style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em", margin: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                                                         {state.serving_details.customer_name}
                                                         {(state.serving_details.companion_names && state.serving_details.companion_names.length > 0) && (
-                                                            <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1 font-bold" title={state.serving_details.companion_names.join(", ")}>
+                                                            <span className="bg-indigo-100/80 text-indigo-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1 font-bold backdrop-blur-sm" title={state.serving_details.companion_names.join(", ")}>
                                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                                                                 +{state.serving_details.companion_names.length}
                                                             </span>
                                                         )}
                                                     </p>
-                                                    <div className="text-gray-600 dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "3px 8px", marginTop: 4, fontSize: 13, fontWeight: 500 }}>
+                                                    <div className="text-slate-500 dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "3px 8px", marginTop: 5, fontSize: 13, fontWeight: 500 }}>
                                                         {state.serving_details.customer_age != null && <span>Age {state.serving_details.customer_age}</span>}
-                                                        {state.serving_details.customer_age != null && <span>·</span>}
+                                                        {state.serving_details.customer_age != null && <span className="text-slate-300">·</span>}
                                                         <span>{state.serving_details.customer_phone}</span>
                                                     </div>
                                                 </div>
                                             )}
 
                                             {/* Live Statistics Grid */}
-                                            <div className="grid grid-cols-4 gap-4 w-full mt-8 pt-6 border-t border-slate-100 relative z-10">
+                                            <div className="grid grid-cols-4 gap-3 w-full mt-8 pt-6 border-t border-slate-200/40 dark:border-white/5 relative z-10">
                                                 {/* Total Customers (Issued) */}
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <span className="text-xl font-bold text-slate-900">{state?.total_issued ?? 0}</span>
+                                                <div className="flex flex-col items-center justify-center backdrop-blur-sm bg-white/40 dark:bg-white/5 rounded-xl py-3 border border-white/50 dark:border-white/5 transition-all hover:bg-white/60 hover:shadow-sm">
+                                                    <span className="text-xl font-extrabold text-slate-800 dark:text-white tabular-nums">{state?.total_issued ?? 0}</span>
                                                     <div className="flex items-center gap-1.5 mt-1">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                                                        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Issued</span>
+                                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Issued</span>
                                                     </div>
                                                 </div>
 
                                                 {/* Remaining (Waiting) */}
-                                                <div className="flex flex-col items-center justify-center bg-indigo-50/50 rounded-xl py-2 border border-indigo-50/50">
-                                                    <span className="text-xl font-bold text-indigo-600">{state?.waiting_count ?? 0}</span>
+                                                <div className="flex flex-col items-center justify-center backdrop-blur-sm bg-indigo-50/50 dark:bg-indigo-500/10 rounded-xl py-3 border border-indigo-100/50 dark:border-indigo-500/20 transition-all hover:bg-indigo-50/80 hover:shadow-sm">
+                                                    <span className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400 tabular-nums">{state?.waiting_count ?? 0}</span>
                                                     <div className="flex items-center gap-1.5 mt-1">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
-                                                        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Waiting</span>
+                                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Waiting</span>
                                                     </div>
                                                 </div>
 
                                                 {/* Served */}
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <span className="text-xl font-bold text-emerald-600">{state?.done_count ?? 0}</span>
+                                                <div className="flex flex-col items-center justify-center backdrop-blur-sm bg-emerald-50/50 dark:bg-emerald-500/10 rounded-xl py-3 border border-emerald-100/50 dark:border-emerald-500/20 transition-all hover:bg-emerald-50/80 hover:shadow-sm">
+                                                    <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">{state?.done_count ?? 0}</span>
                                                     <div className="flex items-center gap-1.5 mt-1">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                                        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Served</span>
+                                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Served</span>
                                                     </div>
                                                 </div>
 
                                                 {/* Skipped */}
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <span className="text-xl font-bold text-rose-600">{state?.skipped_count ?? 0}</span>
+                                                <div className="flex flex-col items-center justify-center backdrop-blur-sm bg-amber-50/50 dark:bg-amber-500/10 rounded-xl py-3 border border-amber-100/50 dark:border-amber-500/20 transition-all hover:bg-amber-50/80 hover:shadow-sm">
+                                                    <span className="text-xl font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">{state?.skipped_count ?? 0}</span>
                                                     <div className="flex items-center gap-1.5 mt-1">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                                                        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Skipped</span>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Skipped</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -990,18 +1001,18 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     onClick={handleNext}
                                                     disabled={isDisabled || isPaused}
                                                     title={isPaused ? "Queue is currently on a break" : undefined}
-                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm shadow-indigo-500/10 transition-colors duration-200 w-full flex justify-center items-center h-[52px] rounded-xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg shadow-indigo-500/20 transition-all duration-200 w-full flex justify-center items-center h-[52px] rounded-2xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
                                                 >
                                                     {actionLoading === "next" ? (
                                                         <>
-                                                            <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                             Calling…
                                                         </>
                                                     ) : (
                                                         <>
                                                             <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                                                             Call Next
-                                                            <kbd style={{ fontSize: 10, opacity: .5, marginLeft: 2, padding: "1px 6px", borderRadius: 4, background: "rgba(255,255,255,.15)" }}>↵</kbd>
+                                                            <kbd className="text-[10px] opacity-50 ml-1 px-1.5 py-0.5 rounded bg-white/15">↵</kbd>
                                                         </>
                                                     )}
                                                 </button>
@@ -1017,11 +1028,11 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         })}
                                                         disabled={isDisabled || isPaused}
                                                         title={isPaused ? "Queue is currently on a break" : undefined}
-                                                        className="w-full flex justify-center items-center h-12 rounded-xl bg-rose-600 text-white text-[14px] font-semibold shadow-sm border border-transparent hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 transition-colors gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        className="w-full flex justify-center items-center h-12 rounded-2xl bg-amber-500 text-white text-[14px] font-semibold shadow-lg shadow-amber-500/20 border border-transparent hover:bg-amber-600 hover:shadow-amber-500/30 hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         {actionLoading === "skipped" ? (
                                                             <>
-                                                                <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                                 Skipping…
                                                             </>
                                                         ) : (
@@ -1040,11 +1051,11 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         })}
                                                         disabled={isDisabled || isPaused}
                                                         title={isPaused ? "Queue is currently on a break" : undefined}
-                                                        className="w-full flex justify-center items-center h-12 rounded-xl bg-emerald-600 text-white text-[14px] font-semibold shadow-sm border border-transparent hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 transition-colors gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        className="w-full flex justify-center items-center h-12 rounded-2xl bg-emerald-600 text-white text-[14px] font-semibold shadow-lg shadow-emerald-500/20 border border-transparent hover:bg-emerald-700 hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         {actionLoading === "done" ? (
                                                             <>
-                                                                <span style={{ width: 16, height: 16, borderRadius: "50%", border: "#e5e7eb", borderTopColor: "#fff", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                                                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                                 Completing…
                                                             </>
                                                         ) : (
@@ -1059,17 +1070,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         </div>
 
                                         {/* Manual Controls Row */}
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 bg-white/60 dark:bg-slate-800/40 backdrop-blur-lg border border-white/50 dark:border-white/10 rounded-2xl p-5 shadow-sm">
                                             {/* Manual Entry */}
-                                            <div className="flex flex-col gap-3">
-                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                    <p className="text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Manual Entry</p>
-                                                </div>
+                                            <div className="flex flex-col gap-2.5">
+                                                <p className="text-slate-400 dark:text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Manual Entry</p>
                                                 <button
                                                     onClick={() => setShowAddForm(true)}
                                                     disabled={isDisabled || isPaused}
                                                     title={isPaused ? "Queue is currently on a break" : undefined}
-                                                    className="h-10 px-4 w-full text-sm font-medium bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/10 shadow-sm ring-1 ring-slate-900/5 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    className="h-10 px-4 w-full text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 shadow-sm text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                                                     Add Customer
@@ -1077,26 +1086,22 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
 
                                             {/* Invite by Number */}
-                                            <div className="flex flex-col gap-3">
-                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                    <p className="text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Invite by Number</p>
-                                                </div>
+                                            <div className="flex flex-col gap-2.5">
+                                                <p className="text-slate-400 dark:text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Invite by Number</p>
                                                 <form onSubmit={handleInvite} style={{ display: "flex", gap: 7 }}>
-                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Token #" disabled={isDisabled || isPaused} className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
-                                                    <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} title={isPaused ? "Queue is currently on a break" : undefined} className="h-10 px-4 text-sm font-medium bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Token #" disabled={isDisabled || isPaused} className="h-10 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 shadow-sm rounded-xl px-3 text-sm text-slate-800 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 transition-all w-full" />
+                                                    <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} title={isPaused ? "Queue is currently on a break" : undefined} className="h-10 px-4 text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 shadow-sm text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                                                         Call
                                                     </button>
                                                 </form>
                                             </div>
 
                                             {/* Remove by Number */}
-                                            <div className="flex flex-col gap-3">
-                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                    <p className="text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Remove by Number</p>
-                                                </div>
+                                            <div className="flex flex-col gap-2.5">
+                                                <p className="text-slate-400 dark:text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Remove by Number</p>
                                                 <form onSubmit={handleRemoveByNumber} style={{ display: "flex", gap: 7 }}>
-                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Token #" disabled={isDisabled || isPaused} className="h-10 bg-slate-50/60 border border-slate-100 shadow-sm ring-1 ring-slate-900/5 rounded-lg px-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all w-full" />
-                                                    <button type="submit" disabled={!removeNumber || isDisabled || isPaused} title={isPaused ? "Queue is currently on a break" : undefined} className="h-10 px-4 text-sm font-medium bg-red-50 text-red-700 border border-red-100/80 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Token #" disabled={isDisabled || isPaused} className="h-10 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 shadow-sm rounded-xl px-3 text-sm text-slate-800 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-red-500/20 focus:border-red-300 transition-all w-full" />
+                                                    <button type="submit" disabled={!removeNumber || isDisabled || isPaused} title={isPaused ? "Queue is currently on a break" : undefined} className="h-10 px-4 text-sm font-medium bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200/80 dark:border-red-800/50 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                                                         Remove
                                                     </button>
                                                 </form>

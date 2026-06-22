@@ -2,7 +2,8 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, Plus, Layers, Users, CalendarClock } from "lucide-react";
+import { ChevronRight, Plus, Layers, Users, CalendarClock, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import type { SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -172,6 +173,26 @@ export default function SessionsPage() {
         try {
             const created = await api.createSession({ session_date: newDate, title: newTitle.trim() || undefined });
             setShowCreate(false);
+            
+            const titleText = newTitle.trim() ? `"${newTitle.trim()}"` : `for ${formatShortDate(newDate)}`;
+            
+            // Professional Success Toast matching "Queue Created" design
+            toast.custom((t) => (
+                <div className="pointer-events-auto w-[356px] overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black/5">
+                    <div className="p-4">
+                        <div className="flex items-start">
+                            <div className="flex-shrink-0">
+                                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                            </div>
+                            <div className="ml-3 w-0 flex-1 pt-0.5">
+                                <p className="text-sm font-medium text-gray-900 leading-none mb-1.5">Session Created</p>
+                                <p className="text-sm text-gray-500 leading-snug">The session <span className="font-semibold text-gray-700">{titleText}</span> is now active.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ), { duration: 3000, position: 'top-center' });
+
             router.push(`${dashBase}/sessions/${created.id}/queues`);
         } catch (err: unknown) {
             if (err instanceof ApiError) setCreateError(err.detail);

@@ -317,9 +317,9 @@ async def call_next(
             Token.status == TokenStatus.serving,
         )
     )
-    currently_serving = serving_result.scalar_one_or_none()
+    currently_serving_tokens = serving_result.scalars().all()
     
-    if currently_serving:
+    for currently_serving in currently_serving_tokens:
         currently_serving.status = target_status
         currently_serving.completed_at = now
         

@@ -32,11 +32,11 @@ class Message(Base):
         index=True,
         nullable=False,
     )
-    sender_id: Mapped[uuid.UUID] = mapped_column(
+    sender_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         index=True,
-        nullable=False,
+        nullable=True,
     )
     # receiver_id can be null if it's an org-wide broadcast
     receiver_id: Mapped[uuid.UUID | None] = mapped_column(
