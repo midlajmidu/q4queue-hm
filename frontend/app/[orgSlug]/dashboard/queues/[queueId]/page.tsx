@@ -883,8 +883,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <div className="lg:col-span-2 space-y-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1">
 
                                         {/* Hero – Now Serving (Apple Wallet Ticket Style) */}
-                                        <div className="py-6 px-4 sm:px-6 lg:px-8 w-full flex justify-center">
-                                            <div className="relative w-full max-w-2xl flex flex-col filter drop-shadow-[0_0_30px_rgba(0,0,0,0.08)] dark:drop-shadow-[0_0_30px_rgba(0,0,0,0.25)]">
+                                        <div className="pt-4 pb-1 px-4 sm:px-6 lg:px-8 w-full flex justify-center">
+                                            <div className="relative w-full max-w-2xl flex flex-col filter drop-shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
                                             
                                             {/* 2. The Top Half (Content) */}
                                             <div className="bg-white dark:bg-slate-900 pt-10 pb-8 px-8 flex flex-col items-center justify-center rounded-t-[1.5rem] relative overflow-hidden">
