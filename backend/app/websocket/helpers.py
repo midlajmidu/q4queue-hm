@@ -63,12 +63,36 @@ async def build_queue_snapshot(
         serving_details = {
             "token_number": serving_token.token_number,
             "customer_name": serving_token.customer_name,
+            "assigned_line": serving_token.assigned_line,
         }
         if is_admin:
             # Mask sensitive data for public screens
             serving_details["customer_age"] = serving_token.customer_age
             serving_details["customer_phone"] = serving_token.customer_phone
             serving_details["companion_names"] = serving_token.companion_names
+
+    # ── All serving tokens (multi-lane: all N lanes) ───────────────
+    all_serving_result = await db.execute(
+        select(Token)
+        .where(
+            Token.queue_id == queue_id,
+            Token.status == TokenStatus.serving,
+        )
+        .order_by(Token.assigned_line.asc().nullsfirst(), Token.token_number.asc())
+    )
+    all_serving_tokens = []
+    for t in all_serving_result.scalars().all():
+        sd = {
+            "id": str(t.id),
+            "token_number": t.token_number,
+            "customer_name": t.customer_name,
+            "assigned_line": t.assigned_line,
+            "served_at": t.served_at.isoformat() if t.served_at else None,
+        }
+        if is_admin:
+            sd["customer_phone"] = t.customer_phone
+            sd["customer_age"] = t.customer_age
+        all_serving_tokens.append(sd)
 
     # ── Waiting count ──────────────────────────────────────────────
     waiting_result = await db.execute(
@@ -120,11 +144,13 @@ async def build_queue_snapshot(
             "served_at": t.served_at.isoformat() if t.served_at else None,
             "completed_at": t.completed_at.isoformat() if t.completed_at else None,
             "customer_name": t.customer_name,
+            "assigned_line": t.assigned_line,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
             token_data["customer_phone"] = t.customer_phone
             token_data["companion_names"] = t.companion_names
+            token_data["removed_by"] = getattr(t, "removed_by", None)
         recent_tokens.append(token_data)
 
     # ── Waiting tokens (all of them, or limit 50 for large queues) ──
@@ -148,11 +174,13 @@ async def build_queue_snapshot(
             "served_at": t.served_at.isoformat() if t.served_at else None,
             "completed_at": t.completed_at.isoformat() if t.completed_at else None,
             "customer_name": t.customer_name,
+            "assigned_line": t.assigned_line,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
             token_data["customer_phone"] = t.customer_phone
             token_data["companion_names"] = t.companion_names
+            token_data["removed_by"] = getattr(t, "removed_by", None)
         waiting_tokens.append(token_data)
 
     # ── Skipped tokens (all of them, or limit 50) ──
@@ -182,21 +210,54 @@ async def build_queue_snapshot(
             token_data["customer_age"] = t.customer_age
             token_data["customer_phone"] = t.customer_phone
             token_data["companion_names"] = t.companion_names
+            token_data["removed_by"] = getattr(t, "removed_by", None)
         skipped_tokens.append(token_data)
+
+    # ── Deleted tokens (all of them, or limit 50) ──
+    deleted_tokens_result = await db.execute(
+        select(Token)
+        .where(
+            Token.queue_id == queue_id,
+            Token.session_id == queue.token_session_id,
+            Token.status == TokenStatus.deleted,
+        )
+        .order_by(Token.token_number.desc())
+        .limit(50)
+    )
+    
+    deleted_tokens = []
+    for t in deleted_tokens_result.scalars().all():
+        token_data = {
+            "id": str(t.id),
+            "token_number": t.token_number,
+            "status": t.status.value,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+            "served_at": t.served_at.isoformat() if t.served_at else None,
+            "completed_at": t.completed_at.isoformat() if t.completed_at else None,
+            "customer_name": t.customer_name,
+        }
+        if is_admin:
+            token_data["customer_age"] = t.customer_age
+            token_data["customer_phone"] = t.customer_phone
+            token_data["companion_names"] = t.companion_names
+            token_data["removed_by"] = getattr(t, "removed_by", None)
+        deleted_tokens.append(token_data)
 
     return {
         "type": "queue_snapshot",
         "queue_id": str(queue_id),
-        "session_id": str(queue.token_session_id),   # ← token session isolation key
+        "session_id": str(queue.token_session_id),
         "queue_name": queue.name,
         "prefix": queue.prefix,
         "announcement": queue.announcement,
         "is_active": queue.is_active,
         "is_paused": queue.is_paused,
+        "service_lines": queue.service_lines,
         "open_time": queue.open_time,
         "close_time": queue.close_time,
         "current_serving": current_serving,
         "serving_details": serving_details,
+        "all_serving_tokens": all_serving_tokens,
         "waiting_count": waiting_count,
         "done_count": done_count,
         "skipped_count": skipped_count,
@@ -205,6 +266,7 @@ async def build_queue_snapshot(
         "recent_tokens": recent_tokens,
         "waiting_tokens": waiting_tokens,
         "skipped_tokens": skipped_tokens,
+        "deleted_tokens": deleted_tokens,
         "org_logo_url": org.logo_url if org else None,
         "org_brand_color": org.brand_color if org else None,
     }

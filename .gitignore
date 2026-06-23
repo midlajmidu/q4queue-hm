@@ -8,3 +8,4 @@ frontend/dist
 backend/prisma/migrations
 .DS_Store
 local_backups/
+ngrok.yml

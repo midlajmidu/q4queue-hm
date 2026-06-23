@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { OrganizationSettingsResponse } from "@/types/api";
+import type { OrganizationSettingsResponse, User } from "@/types/api";
 import { Lock, CheckCircle, AlertCircle, Eye, EyeOff, Building2, Shield, Zap } from "lucide-react";
 import { PageWrapper } from "@/components/PageWrapper";
 import { useParams } from "next/navigation";
@@ -269,7 +269,7 @@ export default function SettingsPage() {
                 setPhone(data.phone_number || "");
                 setBrandColor(data.brand_color || "");
                 setLogoUrl(data.logo_url || "");
-                
+
                 setFirstName(profile.first_name || "");
                 setLastName(profile.last_name || "");
             } catch (err) {
@@ -364,15 +364,15 @@ export default function SettingsPage() {
                 }
                 const data = await api.updateOrganizationSettings({
                     name,
-                    address: address || null,
-                    phone_number: phone || null,
-                    brand_color: brandColor || null,
+                    address: address || undefined,
+                    phone_number: phone || undefined,
+                    brand_color: brandColor || undefined,
                 });
                 setSettings(data);
                 setLogoUrl(data.logo_url || "");
                 setLogoFile(null);
                 setLogoPreview(null);
-                
+
                 if (didUploadLogo) {
                     setShowSuccessModal("Logo uploaded and branding settings updated successfully!");
                 } else {
@@ -547,12 +547,12 @@ export default function SettingsPage() {
                                                 <>
                                                     <div style={{ gridColumn: '1 / -1' }}>
                                                         <label className="lbl">Organization</label>
-                                                        <div style={{ 
-                                                            display: 'flex', alignItems: 'center', gap: 16, padding: '16px', 
-                                                            background: C.cardBgAlt, border: `1px solid ${C.borderLight}`, borderRadius: 12 
+                                                        <div style={{
+                                                            display: 'flex', alignItems: 'center', gap: 16, padding: '16px',
+                                                            background: C.cardBgAlt, border: `1px solid ${C.borderLight}`, borderRadius: 12
                                                         }}>
-                                                            <div style={{ 
-                                                                width: 48, height: 48, borderRadius: 10, border: `1px solid ${C.borderLight}`, 
+                                                            <div style={{
+                                                                width: 48, height: 48, borderRadius: 10, border: `1px solid ${C.borderLight}`,
                                                                 background: '#fff', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                 boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                                                             }}>
@@ -564,11 +564,7 @@ export default function SettingsPage() {
                                                             </div>
                                                             <div>
                                                                 <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{name}</div>
-                                                                {settings?.address && (
-                                                                    <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted, marginTop: 2 }}>
-                                                                        {settings.address}
-                                                                    </div>
-                                                                )}
+
                                                             </div>
                                                         </div>
                                                     </div>
@@ -579,6 +575,13 @@ export default function SettingsPage() {
                                                     <div>
                                                         <label className="lbl">Last Name</label>
                                                         <input type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="premium-input capitalize" placeholder="e.g. Doe" />
+                                                    </div>
+                                                    <div style={{ gridColumn: '1 / -1' }}>
+                                                        <label className="lbl" style={{ display: "flex", alignItems: "center", gap: 6 }} title="Your email address used for login.">
+                                                            Email Address
+                                                            <Lock size={12} color={C.textMuted} style={{ cursor: "help" }} />
+                                                        </label>
+                                                        <input type="email" disabled value={myProfile?.email || ""} className="premium-input" />
                                                     </div>
                                                 </>
                                             )}
@@ -618,18 +621,18 @@ export default function SettingsPage() {
                                                     <div>
                                                         <label className="lbl">Brand Color</label>
                                                         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                                                            <input 
-                                                                type="color" 
-                                                                value={brandColor || "#2563eb"} 
+                                                            <input
+                                                                type="color"
+                                                                value={brandColor || "#2563eb"}
                                                                 onChange={(e) => setBrandColor(e.target.value)}
                                                                 style={{ width: 44, height: 44, padding: 0, border: `1px solid ${C.borderLight}`, borderRadius: 8, cursor: 'pointer', background: 'transparent' }}
                                                             />
-                                                            <input 
-                                                                type="text" 
-                                                                value={brandColor} 
-                                                                onChange={(e) => setBrandColor(e.target.value)} 
+                                                            <input
+                                                                type="text"
+                                                                value={brandColor}
+                                                                onChange={(e) => setBrandColor(e.target.value)}
                                                                 placeholder="#2563eb"
-                                                                className="premium-input" 
+                                                                className="premium-input"
                                                                 style={{ flex: 1 }}
                                                                 pattern="^#[0-9A-Fa-f]{6}$"
                                                             />
@@ -640,9 +643,9 @@ export default function SettingsPage() {
                                                     <div style={{ gridColumn: '1 / -1' }}>
                                                         <label className="lbl">Organization Logo</label>
                                                         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                                                            <div style={{ 
-                                                                width: 64, height: 64, borderRadius: 12, border: `1px solid ${C.borderLight}`, 
-                                                                background: C.cardBgAlt, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                                                            <div style={{
+                                                                width: 64, height: 64, borderRadius: 12, border: `1px solid ${C.borderLight}`,
+                                                                background: C.cardBgAlt, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center'
                                                             }}>
                                                                 {(logoPreview || logoUrl) ? (
                                                                     <img src={logoPreview || (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `http://localhost:8000${logoUrl}`)} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -651,10 +654,10 @@ export default function SettingsPage() {
                                                                 )}
                                                             </div>
                                                             <div>
-                                                                <input 
-                                                                    type="file" 
-                                                                    id="logo-upload" 
-                                                                    accept="image/*" 
+                                                                <input
+                                                                    type="file"
+                                                                    id="logo-upload"
+                                                                    accept="image/*"
                                                                     style={{ display: 'none' }}
                                                                     onChange={(e) => {
                                                                         if (e.target.files && e.target.files[0]) {
@@ -678,8 +681,8 @@ export default function SettingsPage() {
                                                                     Choose Image
                                                                 </label>
                                                                 {logoFile && (
-                                                                    <button 
-                                                                        type="button" 
+                                                                    <button
+                                                                        type="button"
                                                                         onClick={() => { setLogoFile(null); setLogoPreview(null); }}
                                                                         style={{ marginLeft: 8, fontSize: 12, color: C.red, background: 'none', border: 'none', cursor: 'pointer' }}
                                                                     >
@@ -863,6 +866,7 @@ export default function SettingsPage() {
                             {activeTab === 'operations' && (
                                 <OperationsTab />
                             )}
+
                         </div>
                     </div>
                 </PageWrapper>

@@ -9,7 +9,7 @@ Design:
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, DateTime, String, func, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -47,6 +47,9 @@ class Organization(Base):
     max_queues_per_session: Mapped[int] = mapped_column(default=20, nullable=False)
     max_tokens: Mapped[int] = mapped_column(default=5000, nullable=False)
     max_staff: Mapped[int] = mapped_column(default=5, nullable=False)
+
+    # ── Templates ──────────────────────────────────────────────────
+    queue_templates: Mapped[list[dict]] = mapped_column(JSON, server_default='[]', nullable=False)
 
     # ── Branding ───────────────────────────────────────────────────
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

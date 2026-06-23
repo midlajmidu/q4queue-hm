@@ -15,6 +15,8 @@ export interface TokenDetailData {
     completed_at?: string | null;
     entry_type?: "manual" | "qr" | "auto" | null;
     queue_name?: string;
+    removed_by?: string | null;
+    assigned_line?: number | null;
 }
 
 interface TokenDetailModalProps {
@@ -136,11 +138,17 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         {token.companion_names && token.companion_names.length > 0 && (
                             <DetailItem label="Companions" value={token.companion_names.join(", ")} highlight="emerald" />
                         )}
+                        {token.assigned_line != null && (
+                            <DetailItem label="Line Number" value={String(token.assigned_line)} highlight="emerald" />
+                        )}
                         <DetailItem label="Age" value={token.customer_age != null ? `${token.customer_age} yrs` : "Not Provided"} />
                         <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
                         <DetailItem label="Created" value={fmtTime(token.created_at)} />
                         <DetailItem label="Called" value={fmtTime(token.served_at)} />
                         <DetailItem label={completedLabel} value={fmtTime(token.completed_at)} />
+                        {token.status === "deleted" && token.removed_by && (
+                            <DetailItem label="Removed By" value={token.removed_by === "customer" ? "Customer" : "Admin"} highlight="amber" />
+                        )}
                         <DetailItem
                             label="Waiting Time"
                             value={waitingTime}

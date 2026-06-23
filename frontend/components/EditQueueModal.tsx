@@ -17,6 +17,8 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
     const [startingSequence, setStartingSequence] = useState<number>(1);
     const [openTime, setOpenTime] = useState("");
     const [closeTime, setCloseTime] = useState("");
+    const [queueType, setQueueType] = useState<"normal" | "service_lines">("normal");
+    const [serviceLines, setServiceLines] = useState(2);
     
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,13 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
             setStartingSequence(queue.starting_sequence || 1);
             setOpenTime(queue.open_time || "");
             setCloseTime(queue.close_time || "");
+            if ((queue.service_lines || 0) > 0) {
+                setQueueType("service_lines");
+                setServiceLines(queue.service_lines || 2);
+            } else {
+                setQueueType("normal");
+                setServiceLines(2);
+            }
             setError(null);
             setTimeout(() => inputRef.current?.focus(), 100);
         }
@@ -55,6 +64,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                 starting_sequence: startingSequence || 1,
                 open_time: openTime || undefined,
                 close_time: closeTime || undefined,
+                service_lines: queueType === "service_lines" ? serviceLines : 0,
             });
             onUpdated();
             onClose();
@@ -140,6 +150,60 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                 disabled={isLoading}
                             />
                         </div>
+                    </div>
+
+                    {/* Queue Type */}
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Queue Mode</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {/* Normal */}
+                            <button
+                                type="button"
+                                onClick={() => setQueueType("normal")}
+                                className={`flex flex-col items-start gap-2 p-3 rounded-xl border-2 text-left transition-all ${queueType === "normal"
+                                    ? "border-blue-500 bg-blue-50"
+                                    : "border-slate-200 hover:border-slate-300 bg-white"
+                                    }`}
+                            >
+                                <div>
+                                    <div className={`text-sm font-semibold ${queueType === "normal" ? "text-blue-700" : "text-slate-700"}`}>
+                                        Single Counter
+                                    </div>
+                                    <div className="text-xs text-slate-500 mt-0.5">One serving station</div>
+                                </div>
+                            </button>
+
+                            {/* Service Lines */}
+                            <button
+                                type="button"
+                                onClick={() => setQueueType("service_lines")}
+                                className={`flex flex-col items-start gap-2 p-3 rounded-xl border-2 text-left transition-all ${queueType === "service_lines"
+                                    ? "border-purple-500 bg-purple-50"
+                                    : "border-slate-200 hover:border-slate-300 bg-white"
+                                    }`}
+                            >
+                                <div>
+                                    <div className={`text-sm font-semibold ${queueType === "service_lines" ? "text-purple-700" : "text-slate-700"}`}>
+                                        Service Lines
+                                    </div>
+                                    <div className="text-xs text-slate-500 mt-0.5">Multiple lanes / counters</div>
+                                </div>
+                            </button>
+                        </div>
+                        {queueType === "service_lines" && (
+                            <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100 animate-in fade-in slide-in-from-top-2">
+                                <label className="block text-sm font-semibold text-purple-900 mb-1.5">Number of Service Lines</label>
+                                <input
+                                    type="number"
+                                    min="2"
+                                    max="20"
+                                    value={serviceLines}
+                                    onChange={(e) => setServiceLines(parseInt(e.target.value) || 2)}
+                                    className="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 text-sm text-purple-900 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                    disabled={isLoading}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {error && (

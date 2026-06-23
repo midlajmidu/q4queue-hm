@@ -34,6 +34,7 @@ class OrganizationSettingsResponse(BaseModel):
     phone_number: Optional[str] = None
     logo_url: Optional[str] = None
     brand_color: Optional[str] = None
+    queue_templates: list[dict] = []
 
     model_config = {"from_attributes": True}
 
@@ -42,6 +43,7 @@ class OrganizationSettingsUpdate(BaseModel):
     address: Optional[str] = Field(None, max_length=1000)
     phone_number: Optional[str] = Field(None, max_length=30)
     brand_color: Optional[str] = Field(None, max_length=20)
+    queue_templates: Optional[list[dict]] = None
 
 class ChangePasswordRequest(BaseModel):
     otp: str = Field(..., min_length=6, max_length=6)
@@ -86,7 +88,8 @@ async def get_organization_settings(
         address=org.address,
         phone_number=org.phone_number,
         logo_url=org.logo_url,
-        brand_color=org.brand_color
+        brand_color=org.brand_color,
+        queue_templates=org.queue_templates if org.queue_templates is not None else []
     )
 
 @router.put("/settings", response_model=OrganizationSettingsResponse)
@@ -112,6 +115,8 @@ async def update_organization_settings(
     org.address = data.address
     org.phone_number = data.phone_number
     org.brand_color = data.brand_color
+    if data.queue_templates is not None:
+        org.queue_templates = data.queue_templates
     
     await db.flush()
 
@@ -127,7 +132,8 @@ async def update_organization_settings(
         address=org.address,
         phone_number=org.phone_number,
         logo_url=org.logo_url,
-        brand_color=org.brand_color
+        brand_color=org.brand_color,
+        queue_templates=org.queue_templates if org.queue_templates is not None else []
     )
 
 class LogoUploadRequest(BaseModel):
@@ -191,7 +197,8 @@ async def upload_organization_logo(
         address=org.address,
         phone_number=org.phone_number,
         logo_url=org.logo_url,
-        brand_color=org.brand_color
+        brand_color=org.brand_color,
+        queue_templates=org.queue_templates if org.queue_templates is not None else []
     )
 
 @router.post("/request-password-change-otp", response_model=SuccessResponse)

@@ -188,12 +188,12 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                                 {queue.prefix}
                             </div>
                             <span className="text-2xl font-black text-slate-900 tracking-tight">
-                                {queue.current_token_number < queue.starting_sequence ? "—" : queue.current_token_number}
+                                {queue.total_served}
                             </span>
                         </div>
                         <div className="flex items-center gap-1.5 text-slate-600 mb-1">
                             <UserCheck className="w-3 h-3" />
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Serving</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Served</p>
                         </div>
                     </div>
                 </div>

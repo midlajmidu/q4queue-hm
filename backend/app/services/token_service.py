@@ -275,7 +275,7 @@ async def cancel_token_public(db: AsyncSession, *, token_id: uuid.UUID) -> Token
         raise ValueError(f"Cannot cancel token with status '{token.status}'")
 
     # Reuse the removal logic
-    return await remove_token(db, token_id=token.id, org_id=token.org_id)
+    return await remove_token(db, token_id=token.id, org_id=token.org_id, removed_by="customer")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -289,6 +289,7 @@ async def call_next(
     org_id: uuid.UUID,
     user_id: uuid.UUID,
     action: str = "done",
+    line_number: int | None = None,
 ) -> NextResponse | None:
     now = datetime.now(timezone.utc)
 
@@ -308,21 +309,36 @@ async def call_next(
     else:
         target_status = TokenStatus.skipped
 
-    # Mark currently-serving token
-    serving_result = await db.execute(
-        select(Token)
-        .where(
-            Token.queue_id == queue_id,
-            Token.org_id == org_id,           # ← TENANT ISOLATION
-            Token.status == TokenStatus.serving,
+    # ── In multi-lane mode, only mark the token on the specified line as done ──
+    if line_number is not None:
+        serving_query = (
+            select(Token)
+            .where(
+                Token.queue_id == queue_id,
+                Token.org_id == org_id,
+                Token.status == TokenStatus.serving,
+                Token.assigned_line == line_number,
+            )
         )
-    )
+    else:
+        # Single counter: mark all serving tokens as done
+        serving_query = (
+            select(Token)
+            .where(
+                Token.queue_id == queue_id,
+                Token.org_id == org_id,
+                Token.status == TokenStatus.serving,
+            )
+        )
+    serving_result = await db.execute(serving_query)
     currently_serving_tokens = serving_result.scalars().all()
     
     for currently_serving in currently_serving_tokens:
         currently_serving.status = target_status
         currently_serving.completed_at = now
-        
+        if target_status == TokenStatus.done:
+            queue.total_served += 1
+            
         # If the action was 'done', trigger the completed notification immediately
         if action in ["done", "skipped", "deleted"]:
             try:
@@ -374,6 +390,9 @@ async def call_next(
         next_token.status = TokenStatus.serving
         next_token.served_at = now
         next_token.served_by_id = user_id
+        # In multi-lane mode, assign the token to the specified line
+        if line_number is not None:
+            next_token.assigned_line = line_number
 
     await db.flush()
 
@@ -385,6 +404,47 @@ async def call_next(
         serving=next_token.token_number,
         remaining=remaining,
     )
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin API — Clear a specific service line (multi-lane mode)
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def clear_line(
+    db: AsyncSession,
+    *,
+    queue_id: uuid.UUID,
+    org_id: uuid.UUID,
+    line_number: int,
+) -> bool:
+    """
+    Mark the currently-serving token on a specific service line as 'done',
+    WITHOUT automatically calling the next customer. Frees the lane.
+    Returns True if a token was cleared, False if the line was already empty.
+    """
+    now = datetime.now(timezone.utc)
+    result = await db.execute(
+        select(Token)
+        .where(
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,
+            Token.status == TokenStatus.serving,
+            Token.assigned_line == line_number,
+        )
+    )
+    token = result.scalar_one_or_none()
+    if token is None:
+        return False
+    token.status = TokenStatus.done
+    token.completed_at = now
+    # Find the queue to update total_served
+    q_res = await db.execute(select(Queue).where(Queue.id == queue_id))
+    queue = q_res.scalar_one_or_none()
+    if queue:
+        queue.total_served += 1
+    await db.flush()
+    return True
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -428,23 +488,28 @@ async def complete_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.
     if token.status != TokenStatus.serving:
         raise ValueError(f"Cannot complete token with status '{token.status}'")
 
+    queue = await _lock_queue_for_org(db, token.queue_id, org_id)
+
     token.status = TokenStatus.done
     token.served_at = token.served_at or datetime.now(timezone.utc)
     token.completed_at = datetime.now(timezone.utc)
+    queue.total_served += 1
     await db.flush()
     return token
 
 
-async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID) -> Token:
+async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID, removed_by: str = "admin") -> Token:
     token = await _get_token_for_org(db, token_id=token_id, org_id=org_id)
     # SECURITY FIX: use org-scoped lock to avoid cross-tenant DoS
     queue = await _lock_queue_for_org(db, token.queue_id, org_id)
 
     if token.status == TokenStatus.waiting:
         token.status = TokenStatus.deleted
+        token.removed_by = removed_by
         token.completed_at = datetime.now(timezone.utc)
         await db.flush()
     elif token.status == TokenStatus.serving:
+        token.removed_by = removed_by
         await call_next(db, queue_id=queue.id, org_id=org_id, action="deleted")
         await db.refresh(token)
     else:

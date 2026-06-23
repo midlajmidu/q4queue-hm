@@ -451,8 +451,18 @@ export const api = {
         return request<TokenRestoreResponse>(`/tokens/${tokenId}`);
     },
 
-    callNext(queueId: string, action: "done" | "skipped" = "done"): Promise<NextResponse | NoTokenResponse> {
-        return request<NextResponse | NoTokenResponse>(`/queues/${queueId}/next?action=${action}`, {
+    callNext(queueId: string, action: "done" | "skipped" = "done", line_number?: number): Promise<NextResponse | NoTokenResponse> {
+        let url = `/queues/${queueId}/next?action=${action}`;
+        if (line_number !== undefined) {
+            url += `&line_number=${line_number}`;
+        }
+        return request<NextResponse | NoTokenResponse>(url, {
+            method: "POST",
+        });
+    },
+
+    clearLine(queueId: string, line_number: number): Promise<any> {
+        return request(`/queues/${queueId}/clear-line?line_number=${line_number}`, {
             method: "POST",
         });
     },
@@ -522,6 +532,12 @@ export const api = {
 
     deactivateStaff(staffId: string): Promise<StaffMember> {
         return request<StaffMember>(`/staff/${staffId}`, {
+            method: "DELETE",
+        });
+    },
+
+    deleteStaff(staffId: string): Promise<void> {
+        return request<void>(`/staff/${staffId}/hard`, {
             method: "DELETE",
         });
     },

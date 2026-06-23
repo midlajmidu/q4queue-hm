@@ -161,6 +161,7 @@ async def reset_queue(
     # Rotate the session and reset counters
     queue.token_session_id = uuid.uuid4()
     queue.current_token_number = queue.starting_sequence - 1
+    queue.total_served = 0
     await db.commit()
     logger.info(
         "Queue reset | id=%s org=%s new_token_session=%s",

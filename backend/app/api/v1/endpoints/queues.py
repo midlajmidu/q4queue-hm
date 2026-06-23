@@ -352,14 +352,14 @@ async def create_token(
                 queue_id=queue_id,
                 org_id=queue.org_id,
             )
-            from datetime import datetime
+            from datetime import datetime, timezone
             background_tasks.add_task(
                 token_service.notify_new_customer,
                 queue_id=queue_id,
                 org_id=queue.org_id,
                 token=f"{queue.prefix or ''}{result.token_number}",
                 name=body.name,
-                time_str=datetime.now().strftime("%I:%M %p")
+                time_str=datetime.now(timezone.utc).isoformat()
             )
             # WhatsApp notification: customer joined via QR
             background_tasks.add_task(
@@ -423,14 +423,14 @@ async def admin_join(
             queue_id=queue.id,
             org_id=queue.org_id,
         )
-        from datetime import datetime
+        from datetime import datetime, timezone
         background_tasks.add_task(
             token_service.notify_new_customer,
             queue_id=queue.id,
             org_id=queue.org_id,
             token=f"{queue.prefix or ''}{result.token_number}",
             name=body.name,
-            time_str=datetime.now().strftime("%I:%M %p")
+            time_str=datetime.now(timezone.utc).isoformat()
         )
         # WhatsApp notification: staff manually added customer
         if body.send_whatsapp:
@@ -517,14 +517,14 @@ async def serve_specific_token(
 async def call_next(
     background_tasks: BackgroundTasks,
     action: str = "done",
+    line_number: int | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_admin_or_staff),
     queue: Queue = Depends(get_queue_for_org),
 ) -> Union[NextResponse, NoTokenResponse]:
     """
     Admin endpoint — move to the next waiting token.
-    Concurrency-safe: row-level lock in token_service includes org_id,
-    preventing cross-tenant DoS.
+    Pass line_number for multi-lane queues to call next on a specific service line.
     """
     try:
         result = await token_service.call_next(
@@ -533,6 +533,7 @@ async def call_next(
             org_id=current_user.org_id,
             user_id=current_user.id,
             action=action,
+            line_number=line_number,
         )
         background_tasks.add_task(
             token_service.notify_queue_update,
@@ -558,3 +559,36 @@ async def call_next(
     if result is None:
         return NoTokenResponse()
     return result
+
+
+@router.post(
+    "/{queue_id}/clear-line",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Clear a service line (multi-lane mode)",
+)
+async def clear_line(
+    line_number: int,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin_or_staff),
+    queue: Queue = Depends(get_queue_for_org),
+) -> None:
+    """
+    Mark the token on a specific service line as done without calling the next customer.
+    Used in multi-lane mode when a lane finishes and staff wants to manually clear it.
+    """
+    try:
+        await token_service.clear_line(
+            db,
+            queue_id=queue.id,
+            org_id=current_user.org_id,
+            line_number=line_number,
+        )
+        await db.commit()
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=queue.id,
+            org_id=queue.org_id,
+        )
+    except ValueError as exc:
+        _raise_400(exc)

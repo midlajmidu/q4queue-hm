@@ -1,56 +1,38 @@
 "use client";
 
-import React, { useState } from "react";
-import { Play, Plus, Clock, Globe, X, Zap, ChevronDown, Check } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Play, Plus, Clock, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
 import { api } from "@/lib/api";
-
-interface Template {
-    id: string;
-    name: string;
-    description: string;
-    defaultPrefix: string;
-    autoPilot: boolean;
-}
-
-const MOCK_TEMPLATES: Template[] = [
-    {
-        id: "1",
-        name: "Morning General",
-        description: "Standard morning walk-ins. Starts at prefix A.",
-        defaultPrefix: "A",
-        autoPilot: true,
-    },
-    {
-        id: "2",
-        name: "Dr. Smith Consultations",
-        description: "Specialized queue for Dr. Smith's booked appointments.",
-        defaultPrefix: "S",
-        autoPilot: false,
-    },
-    {
-        id: "3",
-        name: "Evening Fast-Track",
-        description: "Quick renewals and fast-track services for the evening.",
-        defaultPrefix: "E",
-        autoPilot: false,
-    }
-];
-
-const TIMEZONES = [
-    "Asia/Kolkata (IST)"
-];
+import { QueueTemplate } from "@/types/api";
 
 export function OperationsTab() {
-    const [templates, setTemplates] = useState<Template[]>(MOCK_TEMPLATES);
+    const [templates, setTemplates] = useState<QueueTemplate[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
     const params = useParams();
+
+    useEffect(() => {
+        loadTemplates();
+    }, []);
+
+    const loadTemplates = async () => {
+        try {
+            const settings = await api.getOrganizationSettings();
+            setTemplates(settings.queue_templates || []);
+        } catch (err) {
+            toast.error("Failed to load templates");
+        } finally {
+            setIsLoading(false);
+        }
+    };
     
     // Modal A State (Launch)
-    const [launchTemplate, setLaunchTemplate] = useState<Template | null>(null);
+    const [launchTemplate, setLaunchTemplate] = useState<QueueTemplate | null>(null);
     const [launchQueueName, setLaunchQueueName] = useState("");
     const [launchPrefix, setLaunchPrefix] = useState("");
+    const [launchStartingNumber, setLaunchStartingNumber] = useState("1");
     const [isLaunching, setIsLaunching] = useState(false);
 
     // Modal B State (Create)
@@ -58,16 +40,16 @@ export function OperationsTab() {
     const [createName, setCreateName] = useState("");
     const [createQueueName, setCreateQueueName] = useState("");
     const [createPrefix, setCreatePrefix] = useState("");
-    const [isAutoPilot, setIsAutoPilot] = useState(false);
-    const [timezone, setTimezone] = useState(TIMEZONES[0]);
+    const [createStartingNumber, setCreateStartingNumber] = useState("1");
 
     // Handle Launch Click
-    const handleLaunchClick = (template: Template) => {
+    const handleLaunchClick = (template: QueueTemplate) => {
         setLaunchTemplate(template);
         // Pre-fill
         const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         setLaunchQueueName(`${template.name} - ${today}`);
         setLaunchPrefix(template.defaultPrefix);
+        setLaunchStartingNumber(template.startingNumber.toString());
     };
 
     const handleConfirmLaunch = async (e: React.FormEvent) => {
@@ -93,6 +75,7 @@ export function OperationsTab() {
             const queue = await api.createSessionQueue(sessionId, {
                 name: launchQueueName,
                 prefix: launchPrefix,
+                starting_sequence: parseInt(launchStartingNumber) || 1,
             });
 
             toast.success(`Session "${launchQueueName}" launched successfully!`);
@@ -105,30 +88,59 @@ export function OperationsTab() {
         }
     };
 
-    const handleConfirmCreate = (e: React.FormEvent) => {
+    const handleConfirmCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        const newTemplate: Template = {
+        const newTemplate: QueueTemplate = {
             id: Math.random().toString(36).substr(2, 9),
             name: createName,
             description: `Default Queue: ${createQueueName}`,
             defaultPrefix: createPrefix,
-            autoPilot: isAutoPilot,
+            startingNumber: parseInt(createStartingNumber) || 1,
         };
         
-        setTemplates([newTemplate, ...templates]);
-        toast.success("New template created successfully!");
-        
-        if (isAutoPilot) {
-            toast.success(`Auto-Pilot scheduled for Midnight in ${timezone}`);
+        const updatedTemplates = [newTemplate, ...templates];
+        setTemplates(updatedTemplates);
+        try {
+            const currentSettings = await api.getOrganizationSettings();
+            await api.updateOrganizationSettings({
+                name: currentSettings.name,
+                address: currentSettings.address || undefined,
+                phone_number: currentSettings.phone_number || undefined,
+                brand_color: currentSettings.brand_color || undefined,
+                queue_templates: updatedTemplates
+            });
+            toast.success("New template created successfully!");
+            // Reset
+            setIsCreating(false);
+            setCreateName("");
+            setCreateQueueName("");
+            setCreatePrefix("");
+            setCreateStartingNumber("1");
+        } catch (err) {
+            toast.error("Failed to save template");
+            setTemplates(templates); // revert
         }
+    };
 
-        // Reset
-        setIsCreating(false);
-        setCreateName("");
-        setCreateQueueName("");
-        setCreatePrefix("");
-        setIsAutoPilot(false);
+    const handleDeleteTemplate = async (templateId: string) => {
+        if (!window.confirm("Are you sure you want to delete this template?")) return;
+        const updatedTemplates = templates.filter(t => t.id !== templateId);
+        setTemplates(updatedTemplates);
+        try {
+            const currentSettings = await api.getOrganizationSettings();
+            await api.updateOrganizationSettings({
+                name: currentSettings.name,
+                address: currentSettings.address || undefined,
+                phone_number: currentSettings.phone_number || undefined,
+                brand_color: currentSettings.brand_color || undefined,
+                queue_templates: updatedTemplates
+            });
+            toast.success("Template deleted.");
+        } catch (err) {
+            toast.error("Failed to delete template");
+            setTemplates(templates);
+        }
     };
 
     return (
@@ -160,15 +172,15 @@ export function OperationsTab() {
                         <div className="flex justify-between items-start mb-4">
                             <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700/50">
                                 <span className="text-xl font-bold text-slate-700 dark:text-slate-300">
-                                    {template.defaultPrefix}
+                                    {template.defaultPrefix || "#"}
                                 </span>
                             </div>
-                            {template.autoPilot && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-semibold border border-indigo-100 dark:border-indigo-500/20">
-                                    <Zap size={12} className="fill-indigo-600 dark:fill-indigo-400" />
-                                    Auto-Pilot
-                                </span>
-                            )}
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(template.id); }}
+                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                            >
+                                <Trash2 size={16} />
+                            </button>
                         </div>
                         
                         <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1.5 line-clamp-1">
@@ -221,15 +233,25 @@ export function OperationsTab() {
                                 
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Starting Token Prefix</label>
-                                    <input 
-                                        type="text" 
-                                        value={launchPrefix}
-                                        onChange={e => setLaunchPrefix(e.target.value)}
-                                        maxLength={3}
-                                        className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
-                                        placeholder="e.g. A"
-                                    />
-                                    <p className="text-xs text-slate-500 mt-2">Maximum 3 characters. Leave empty for numbers only.</p>
+                                    <div className="flex gap-3">
+                                        <input 
+                                            type="text" 
+                                            value={launchPrefix}
+                                            onChange={e => setLaunchPrefix(e.target.value)}
+                                            maxLength={3}
+                                            className="w-1/2 px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
+                                            placeholder="Prefix (e.g. A)"
+                                        />
+                                        <input 
+                                            type="number" 
+                                            value={launchStartingNumber}
+                                            onChange={e => setLaunchStartingNumber(e.target.value)}
+                                            min="1"
+                                            className="w-1/2 px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
+                                            placeholder="Starting Num (e.g. 1)"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-2">Example: Prefix 'A' and Number '1' creates A1.</p>
                                 </div>
                             </div>
 
@@ -309,54 +331,18 @@ export function OperationsTab() {
                                             />
                                         </div>
                                     </div>
-                                </div>
-
-                                {/* The Hero Feature: Daily Auto-Pilot */}
-                                <div className={`relative overflow-hidden rounded-2xl transition-all duration-300 ${isAutoPilot ? 'bg-indigo-50/50 dark:bg-indigo-500/5 border-indigo-200 dark:border-indigo-500/20 ring-1 ring-indigo-500/20' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} border p-5`}>
-                                    
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex gap-4">
-                                            <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isAutoPilot ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
-                                                <Zap size={20} className={isAutoPilot ? 'fill-indigo-600/20' : ''} />
-                                            </div>
-                                            <div>
-                                                <h4 className="text-base font-bold text-slate-900 dark:text-white mb-0.5">Daily Auto-Pilot</h4>
-                                                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm">
-                                                    Automatically generate and launch a fresh session for this queue every day at 12:00 AM Midnight.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Premium iOS-style Toggle */}
-                                        <button 
-                                            type="button"
-                                            onClick={() => setIsAutoPilot(!isAutoPilot)}
-                                            className={`relative shrink-0 w-12 h-6 rounded-full transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${isAutoPilot ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                                        >
-                                            <span className={`inline-block w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ease-in-out absolute top-0.5 left-0.5 ${isAutoPilot ? 'translate-x-6' : 'translate-x-0'}`} />
-                                        </button>
-                                    </div>
-
-                                    {/* Expanded State: Timezone */}
-                                    <div className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ease-in-out ${isAutoPilot ? 'grid-rows-[1fr] opacity-100 mt-5 pt-5 border-t border-indigo-100 dark:border-indigo-500/20' : 'grid-rows-[0fr] opacity-0 mt-0 pt-0 border-transparent'}`}>
-                                        <div className="overflow-hidden">
-                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Select Your Timezone</label>
-                                            <p className="text-xs text-slate-500 mb-3">We need to know whose midnight it is to schedule the generation correctly.</p>
-                                            
-                                            <div className="relative">
-                                                <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                                <select 
-                                                    value={timezone}
-                                                    onChange={e => setTimezone(e.target.value)}
-                                                    className="w-full pl-10 pr-10 py-3 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-500/30 rounded-xl text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all appearance-none cursor-pointer shadow-sm shadow-indigo-500/5"
-                                                >
-                                                    {TIMEZONES.map(tz => (
-                                                        <option key={tz} value={tz}>{tz}</option>
-                                                    ))}
-                                                </select>
-                                                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
-                                            </div>
-                                        </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Starting Number</label>
+                                        <input 
+                                            type="number" 
+                                            required
+                                            min="1"
+                                            value={createStartingNumber}
+                                            onChange={e => setCreateStartingNumber(e.target.value)}
+                                            className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
+                                            placeholder="e.g. 1"
+                                        />
+                                        <p className="text-xs text-slate-500 mt-2">The very first token number assigned when using this template.</p>
                                     </div>
                                 </div>
                                 

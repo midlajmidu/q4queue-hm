@@ -62,8 +62,14 @@ class Queue(Base):
     current_token_number: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0
     )
+    total_served: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_paused: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    service_lines: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     open_time: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
     close_time: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

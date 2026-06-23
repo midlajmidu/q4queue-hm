@@ -108,8 +108,18 @@ export default function InsightsPage() {
   const [loading, setLoading] = useState(true);
 
   // Date Filters
-  const today = new Date().toISOString().split('T')[0];
-  const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const getLocalDateStr = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+  };
+
+  const now = new Date();
+  const today = getLocalDateStr(now);
+  const lastWeek = getLocalDateStr(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000));
+  const thirtyDays = getLocalDateStr(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000));
+
   const [startDate, setStartDate] = useState(lastWeek);
   const [endDate, setEndDate] = useState(today);
 
@@ -193,7 +203,7 @@ export default function InsightsPage() {
                 {[
                   { l: "Today", s: today, e: today },
                   { l: "7D", s: lastWeek, e: today },
-                  { l: "30D", s: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], e: today }
+                  { l: "30D", s: thirtyDays, e: today }
                 ].map(b => {
                   const active = startDate === b.s && endDate === b.e;
                   return (
