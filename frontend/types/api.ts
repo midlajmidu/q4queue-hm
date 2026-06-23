@@ -100,6 +100,7 @@ export interface QueueCreate {
     starting_sequence?: number;
     open_time?: string;
     close_time?: string;
+    service_lines?: number;
 }
 
 export interface QueueResponse {
@@ -115,6 +116,7 @@ export interface QueueResponse {
     total_served: number;
     is_active: boolean;
     is_paused: boolean;
+    service_lines: number;          // 0 = single counter, >0 = multi-lane
     open_time?: string;
     close_time?: string;
     created_at: string;
@@ -217,6 +219,7 @@ export interface RecentToken {
     customer_age: number | null;
     customer_phone: string;
     companion_names: string[];
+    assigned_line?: number | null;
 }
 
 export interface WaitingToken {
@@ -231,17 +234,29 @@ export interface WaitingToken {
     customer_phone: string;
     companion_names: string[];
     removed_by?: string | null;
+    assigned_line?: number | null;
+}
+
+export interface ServingToken {
+    id: string;
+    token_number: number;
+    customer_name: string;
+    customer_phone?: string;
+    customer_age?: number | null;
+    assigned_line: number | null;
+    served_at: string | null;
 }
 
 export interface QueueSnapshot {
-    type?: string;                 // "queue_snapshot" on initial, "queue_update" on update
+    type?: string;
     queue_id: string;
-    session_id: string;            // rotates on every queue reset
+    session_id: string;
     queue_name: string;
     prefix: string;
     announcement: string | null;
     is_active: boolean;
     is_paused: boolean;
+    service_lines: number;           // 0 = single counter, >0 = multi-lane
     open_time?: string;
     close_time?: string;
     current_serving: number;
@@ -251,7 +266,9 @@ export interface QueueSnapshot {
         customer_age: number | null;
         customer_phone: string;
         companion_names?: string[];
+        assigned_line?: number | null;
     } | null;
+    all_serving_tokens: ServingToken[];  // all lanes currently serving
     waiting_count: number;
     done_count: number;
     skipped_count: number;
@@ -557,16 +574,26 @@ export interface OrganizationSettingsResponse {
     slug: string;
     email: string;
     address: string | null;
-    phone_number: string | null;
-    logo_url?: string | null;
-    brand_color?: string | null;
+    phone_number?: string;
+    logo_url?: string;
+    brand_color?: string;
+    queue_templates: QueueTemplate[];
 }
 
 export interface OrganizationSettingsUpdate {
     name: string;
-    address: string | null;
-    phone_number: string | null;
-    brand_color?: string | null;
+    address?: string;
+    phone_number?: string;
+    brand_color?: string;
+    queue_templates?: QueueTemplate[];
+}
+
+export interface QueueTemplate {
+    id: string;
+    name: string;
+    description: string;
+    defaultPrefix: string;
+    startingNumber: number;
 }
 
 export interface RequestOtpRequest {

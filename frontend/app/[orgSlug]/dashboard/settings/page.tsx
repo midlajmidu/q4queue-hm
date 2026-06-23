@@ -165,9 +165,9 @@ const STYLES = `
 
 export default function SettingsPage() {
     // Layout State
-    const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'operations'>('profile');
     const [showUnsavedModal, setShowUnsavedModal] = useState(false);
-    const [pendingTab, setPendingTab] = useState<'profile' | 'security' | null>(null);
+    const [pendingTab, setPendingTab] = useState<'profile' | 'security' | 'operations' | null>(null);
     const params = useParams();
     const orgSlug = params?.orgSlug as string;
     const { user } = useAuth();
@@ -323,7 +323,7 @@ export default function SettingsPage() {
         }
     };
 
-    const handleTabChange = (tab: 'profile' | 'security') => {
+    const handleTabChange = (tab: 'profile' | 'security' | 'operations') => {
         if (hasUnsavedChanges) {
             setPendingTab(tab);
             setShowUnsavedModal(true);
@@ -364,9 +364,9 @@ export default function SettingsPage() {
                 }
                 const data = await api.updateOrganizationSettings({
                     name,
-                    address: address || null,
-                    phone_number: phone || null,
-                    brand_color: brandColor || null,
+                    address: address || undefined,
+                    phone_number: phone || undefined,
+                    brand_color: brandColor || undefined,
                 });
                 setSettings(data);
                 setLogoUrl(data.logo_url || "");
@@ -866,6 +866,7 @@ export default function SettingsPage() {
                             {activeTab === 'operations' && (
                                 <OperationsTab />
                             )}
+
                         </div>
                     </div>
                 </PageWrapper>

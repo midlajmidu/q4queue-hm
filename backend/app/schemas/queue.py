@@ -20,6 +20,7 @@ class QueueCreate(BaseModel):
     starting_sequence: int = Field(default=1, ge=1)
     open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+    service_lines: int = Field(default=0, ge=0, description="0=single counter, >0=multi-lane mode")
 
 class QueueUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=150)
@@ -27,6 +28,7 @@ class QueueUpdate(BaseModel):
     starting_sequence: Optional[int] = Field(None, ge=1)
     open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+    service_lines: Optional[int] = Field(None, ge=0)
 
 class AnnouncementUpdate(BaseModel):
     announcement: Optional[str] = Field(None, max_length=500)
@@ -44,6 +46,7 @@ class QueueResponse(BaseModel):
     total_served: int
     is_active: bool
     is_paused: bool = False
+    service_lines: int = 0
     open_time: Optional[str] = None
     close_time: Optional[str] = None
     created_at: datetime
@@ -162,6 +165,7 @@ class TokenResponse(BaseModel):
     tracking_id: Optional[uuid.UUID] = None
     companion_names: list[str]
     removed_by: Optional[str] = None
+    assigned_line: Optional[int] = None
 
     model_config = {"from_attributes": True}
 

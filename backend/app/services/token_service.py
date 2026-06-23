@@ -289,6 +289,7 @@ async def call_next(
     org_id: uuid.UUID,
     user_id: uuid.UUID,
     action: str = "done",
+    line_number: int | None = None,
 ) -> NextResponse | None:
     now = datetime.now(timezone.utc)
 
@@ -308,15 +309,28 @@ async def call_next(
     else:
         target_status = TokenStatus.skipped
 
-    # Mark currently-serving token
-    serving_result = await db.execute(
-        select(Token)
-        .where(
-            Token.queue_id == queue_id,
-            Token.org_id == org_id,           # ← TENANT ISOLATION
-            Token.status == TokenStatus.serving,
+    # ── In multi-lane mode, only mark the token on the specified line as done ──
+    if line_number is not None:
+        serving_query = (
+            select(Token)
+            .where(
+                Token.queue_id == queue_id,
+                Token.org_id == org_id,
+                Token.status == TokenStatus.serving,
+                Token.assigned_line == line_number,
+            )
         )
-    )
+    else:
+        # Single counter: mark all serving tokens as done
+        serving_query = (
+            select(Token)
+            .where(
+                Token.queue_id == queue_id,
+                Token.org_id == org_id,
+                Token.status == TokenStatus.serving,
+            )
+        )
+    serving_result = await db.execute(serving_query)
     currently_serving_tokens = serving_result.scalars().all()
     
     for currently_serving in currently_serving_tokens:
@@ -376,6 +390,9 @@ async def call_next(
         next_token.status = TokenStatus.serving
         next_token.served_at = now
         next_token.served_by_id = user_id
+        # In multi-lane mode, assign the token to the specified line
+        if line_number is not None:
+            next_token.assigned_line = line_number
 
     await db.flush()
 
@@ -387,6 +404,47 @@ async def call_next(
         serving=next_token.token_number,
         remaining=remaining,
     )
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin API — Clear a specific service line (multi-lane mode)
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def clear_line(
+    db: AsyncSession,
+    *,
+    queue_id: uuid.UUID,
+    org_id: uuid.UUID,
+    line_number: int,
+) -> bool:
+    """
+    Mark the currently-serving token on a specific service line as 'done',
+    WITHOUT automatically calling the next customer. Frees the lane.
+    Returns True if a token was cleared, False if the line was already empty.
+    """
+    now = datetime.now(timezone.utc)
+    result = await db.execute(
+        select(Token)
+        .where(
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,
+            Token.status == TokenStatus.serving,
+            Token.assigned_line == line_number,
+        )
+    )
+    token = result.scalar_one_or_none()
+    if token is None:
+        return False
+    token.status = TokenStatus.done
+    token.completed_at = now
+    # Find the queue to update total_served
+    q_res = await db.execute(select(Queue).where(Queue.id == queue_id))
+    queue = q_res.scalar_one_or_none()
+    if queue:
+        queue.total_served += 1
+    await db.flush()
+    return True
 
 
 # ─────────────────────────────────────────────────────────────────────────────

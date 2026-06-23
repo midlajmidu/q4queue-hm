@@ -13,9 +13,10 @@ import ConfirmModal from "@/components/ConfirmModal";
 import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
-import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem } from "@/types/api";
+import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken } from "@/types/api";
 import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
+import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 
 const formatTime12 = (time24?: string | null) => {
     if (!time24) return "";
@@ -962,7 +963,27 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     {/* Left: Serving + Actions */}
                                     <div className="lg:col-span-2 space-y-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1">
 
-                                        {/* Hero – Now Serving (Apple Wallet Ticket Style) */}
+                                        {/* Hero – Now Serving or Service Lines Grid */}
+                                        {(() => {
+                                            const numLines = state?.service_lines ?? initialQueue?.service_lines ?? 0;
+                                            if (numLines > 0) {
+                                                return (
+                                                    <ServiceLinesGrid
+                                                        queueId={queueId}
+                                                        serviceLines={numLines}
+                                                        allServingTokens={(state?.all_serving_tokens ?? []) as ServingToken[]}
+                                                        prefix={state?.prefix ?? initialQueue?.prefix ?? ""}
+                                                        onUpdate={refresh}
+                                                    />
+                                                );
+                                            }
+                                            // Single counter mode: render the original serving card below
+                                            return null;
+                                        })()}
+
+                                        {/* Original single-counter serving hero (only when service_lines === 0) */}
+                                        {(state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && (
+                                        <>
                                         <div className="pt-4 pb-1 px-4 sm:px-6 lg:px-8 w-full flex justify-center">
                                             <div className="relative w-full max-w-2xl flex flex-col filter drop-shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
                                             
@@ -1215,6 +1236,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 Reconnecting to live updates…
                                             </div>
                                         )}
+                                    </>
+                                        )} {/* end service_lines === 0 single-counter section */}
                                     </div>
 
                                     {/* Right: Lists */}
@@ -1803,6 +1826,21 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                         ? <span className="bg-slate-50 text-slate-700 border border-slate-200/60 rounded-full font-medium px-2 py-0.5 text-[9px] tracking-wider uppercase">Manual</span>
                         : <span className="bg-slate-50 text-slate-700 border border-slate-200/60 rounded-full font-medium px-2 py-0.5 text-[9px] tracking-wider uppercase inline-flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
                     }
+                    {t.assigned_line != null && (
+                        <span style={{
+                            background: "#f0fdf4",
+                            color: "#16a34a",
+                            border: "1px solid #bbf7d0",
+                            borderRadius: 999,
+                            fontSize: 9,
+                            fontWeight: 700,
+                            padding: "1px 7px",
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                        }}>
+                            Line {t.assigned_line}
+                        </span>
+                    )}
                 </div>
                 {t.customer_name && (
                     <div className="dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: 11.5, paddingLeft: 56 }}>
@@ -2014,7 +2052,14 @@ function QueueHistory({
                                             </div>
                                         </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
-                                            <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: ss.bg, color: ss.color }}>{ss.label}</span>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                                <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: ss.bg, color: ss.color }}>{ss.label}</span>
+                                                {(item as any).assigned_line != null && (
+                                                    <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0" }}>
+                                                        Line {(item as any).assigned_line}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                             <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: isManual ? T.violetBg : T.cyanBg, color: isManual ? T.violet : T.cyan, display: "inline-flex", alignItems: "center", gap: 3 }}>{!isManual && <QrCode className="w-2.5 h-2.5" />}{isManual ? "Manual" : "QR"}</span>

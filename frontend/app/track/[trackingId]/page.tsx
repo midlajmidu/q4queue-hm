@@ -297,7 +297,7 @@ export default function TrackingPage({ params }: PageProps) {
 
     let positionMessage = "";
     if (myNumber !== null) {
-        if (isMyTurn) positionMessage = "It's your turn! Please proceed.";
+        if (isMyTurn) positionMessage = "It\u2019s your turn! Please proceed.";
         else if (isDeleted) positionMessage = "Your token was removed.";
         else if (isSkipped) positionMessage = "Your token was skipped.";
         else if (alreadyServed) positionMessage = "Your token has been served.";
@@ -305,6 +305,14 @@ export default function TrackingPage({ params }: PageProps) {
         else if (peopleAhead === 1) positionMessage = "1 person ahead of you";
         else positionMessage = `${peopleAhead} people ahead of you`;
     }
+
+    // Derive the assigned service line for this customer (multi-lane queues)
+    const myAssignedLine = React.useMemo(() => {
+        if (!myNumber || !isMyTurn) return null;
+        const allServing = (live?.all_serving_tokens ?? []) as { token_number: number; assigned_line: number | null }[];
+        const mine = allServing.find(t => t.token_number === myNumber);
+        return mine?.assigned_line ?? null;
+    }, [myNumber, isMyTurn, live?.all_serving_tokens]);
 
     const brandColor = live?.org_brand_color || '#2563eb';
     const logoUrl = live?.org_logo_url;
@@ -423,7 +431,14 @@ export default function TrackingPage({ params }: PageProps) {
 
                             {isMyTurn && (
                                 <div role="alert" className="bg-emerald-50 text-emerald-800 p-4 rounded-xl border-2 border-emerald-300 text-center font-bold text-lg animate-pulse">
-                                    🎉 It&apos;s your turn! Please proceed.
+                                    🎉 It&apos;s your turn!
+                                    {myAssignedLine != null ? (
+                                        <div className="mt-2 text-2xl font-black text-emerald-700">
+                                            Proceed to <span className="bg-emerald-700 text-white px-3 py-1 rounded-lg">Line {myAssignedLine}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-1 text-base font-semibold text-emerald-700">Please proceed to the counter.</div>
+                                    )}
                                 </div>
                             )}
                             {isNext && !isMyTurn && (

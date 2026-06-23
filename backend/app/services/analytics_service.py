@@ -222,7 +222,7 @@ async def get_overview_metrics(
         Queue.name.label('queue_name'),
         Session.title.label('session_title'),
         Session.session_date.label('session_date')
-    ).join(Queue, Token.queue_id == Queue.id).outerjoin(
+    ).select_from(Token).join(Queue, Token.queue_id == Queue.id).outerjoin(
         Session, Queue.session_id == Session.id
     ).where(
         and_(*active_conditions, Token.status == TokenStatus.waiting)

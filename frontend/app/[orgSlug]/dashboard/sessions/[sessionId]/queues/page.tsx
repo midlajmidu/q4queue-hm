@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import QueueCard from "@/components/QueueCard";
 import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays, CalendarOff, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Bookmark } from "lucide-react";
+import type { QueueTemplate } from "@/types/api";
 
 interface PageProps {
     params: Promise<{ sessionId: string }>;
@@ -71,6 +73,8 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const [newCloseTime, setNewCloseTime] = useState("");
     const [createLoading, setCreateLoading] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
+    const [templates, setTemplates] = useState<QueueTemplate[]>([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
     const nameRef = useRef<HTMLInputElement>(null);
 
     // Debounce search input
@@ -198,6 +202,12 @@ export default function SessionQueuesPage({ params }: PageProps) {
             setNewOpenTime("");
             setNewCloseTime("");
             setCreateError(null);
+            setSelectedTemplateId("");
+            api.getOrganizationSettings()
+                .then(res => {
+                    if (res.queue_templates) setTemplates(res.queue_templates);
+                })
+                .catch(console.error);
             setTimeout(() => nameRef.current?.focus(), 100);
         }
     }, [showCreate]);
@@ -528,6 +538,42 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             <p className="text-sm text-gray-500 font-medium mb-6">Define a new service line for this session.</p>
 
                             <form onSubmit={handleCreate} className="flex flex-col gap-4">
+                                {/* Templates */}
+                                {templates.length > 0 && (
+                                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-2">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                                            <Bookmark size={16} className="text-blue-500" />
+                                            Use a Template (Optional)
+                                        </label>
+                                        <select
+                                            value={selectedTemplateId}
+                                            onChange={(e) => {
+                                                const id = e.target.value;
+                                                setSelectedTemplateId(id);
+                                                if (id) {
+                                                    const t = templates.find(x => x.id === id);
+                                                    if (t) {
+                                                        setNewName(t.name);
+                                                        setNewPrefix(t.defaultPrefix || "");
+                                                        setNewStartingSequence(t.startingNumber || 1);
+                                                    }
+                                                } else {
+                                                    setNewName("");
+                                                    setNewPrefix("A");
+                                                    setNewStartingSequence(1);
+                                                }
+                                            }}
+                                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                                            disabled={createLoading}
+                                        >
+                                            <option value="">-- No Template --</option>
+                                            {templates.map(t => (
+                                                <option key={t.id} value={t.id}>{t.name} (Prefix: {t.defaultPrefix || 'None'}, Starts at: {t.startingNumber || 1})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
                                 <div>
                                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Queue Name</label>
                                     <input

@@ -18,6 +18,8 @@ export default function DisplayQueuePage({ params }: PageProps) {
     const queueName = state?.queue_name || "Loading…";
     const waiting = state?.waiting_count ?? 0;
     const recentTokens = state?.recent_tokens || [];
+    const serviceLines = state?.service_lines ?? 0;
+    const allServingTokens = (state?.all_serving_tokens ?? []) as { token_number: number; assigned_line: number | null; customer_name?: string }[];
 
     const recentlyCalled = recentTokens
         .filter((t: RecentToken) => t.status === "serving" || t.status === "done")
@@ -186,42 +188,81 @@ export default function DisplayQueuePage({ params }: PageProps) {
                 <div className="display-grid px-10 py-6 lg:px-10 lg:py-6">
 
                     {/* ════════════════════════════════════════════════ */}
-                    {/* LEFT — Now Serving Hero Card                    */}
+                    {/* LEFT — Now Serving Hero Card or Service Lines   */}
                     {/* ════════════════════════════════════════════════ */}
-                    <div className="relative flex items-center justify-center" key={servingKey}>
-                        {/* Subtle radial glow behind the card */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
-                            <div className="w-[600px] h-[600px] rounded-full bg-indigo-100/40 blur-[100px]" />
-                        </div>
-
-                        <div className="relative bg-white border border-slate-200/60 rounded-3xl shadow-2xl shadow-slate-200/50 w-full max-w-2xl flex flex-col items-center justify-center py-16 lg:py-20 px-10 overflow-hidden"
-                             style={{ minHeight: "420px" }}>
-
-                            {/* Concentric circles — large & faint */}
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
-                                <div className="absolute w-[320px] h-[320px] lg:w-[440px] lg:h-[440px] rounded-full border border-slate-100"
-                                     style={{ left: "50%", top: "50%", animation: "concentricBreath 4s ease-in-out infinite" }} />
-                                <div className="absolute w-[440px] h-[440px] lg:w-[580px] lg:h-[580px] rounded-full border border-slate-100/60"
-                                     style={{ left: "50%", top: "50%", animation: "concentricBreath 4s ease-in-out infinite 0.5s" }} />
-                                <div className="absolute w-[560px] h-[560px] lg:w-[720px] lg:h-[720px] rounded-full border border-slate-100/30"
-                                     style={{ left: "50%", top: "50%", animation: "concentricBreath 4s ease-in-out infinite 1s" }} />
+                    <div className="relative flex items-center justify-center w-full" key={servingKey}>
+                        {serviceLines > 0 ? (
+                            /* Multi-Lane Grid Display */
+                            <div className="w-full bg-white border border-slate-200/60 rounded-3xl shadow-2xl shadow-slate-200/50 p-8 lg:p-12 overflow-y-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
+                                <p className="text-sm font-bold tracking-[0.2em] text-slate-400 uppercase mb-8 text-center">
+                                    Now Serving
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 w-full">
+                                    {Array.from({ length: serviceLines }, (_, i) => i + 1).map(lineNum => {
+                                        const token = allServingTokens.find(t => t.assigned_line === lineNum);
+                                        const isOccupied = !!token;
+                                        return (
+                                            <div key={lineNum} className={`relative overflow-hidden rounded-2xl border-2 p-6 flex flex-col justify-center items-center text-center transition-all ${isOccupied ? "border-emerald-400 bg-gradient-to-b from-emerald-50 to-white shadow-lg shadow-emerald-100" : "border-slate-100 bg-slate-50"}`} style={{ minHeight: "180px" }}>
+                                                <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
+                                                    <span className={`text-sm font-bold tracking-widest uppercase ${isOccupied ? "text-emerald-700" : "text-slate-400"}`}>Line {lineNum}</span>
+                                                </div>
+                                                {isOccupied && token ? (
+                                                    <div className="mt-6 flex flex-col items-center animate-in zoom-in duration-300">
+                                                        <span className="text-6xl font-black text-emerald-700 tabular-nums leading-none tracking-tight">
+                                                            {prefix}{token.token_number}
+                                                        </span>
+                                                        {token.customer_name && (
+                                                            <span className="mt-3 text-lg font-bold text-emerald-900 bg-emerald-100/50 px-4 py-1 rounded-full max-w-[200px] truncate">
+                                                                {token.customer_name}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="mt-4 text-lg font-medium text-slate-400 tracking-wide">Available</span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
+                        ) : (
+                            /* Single Counter Hero */
+                            <>
+                                {/* Subtle radial glow behind the card */}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+                                    <div className="w-[600px] h-[600px] rounded-full bg-indigo-100/40 blur-[100px]" />
+                                </div>
 
-                            {/* NOW SERVING eyebrow */}
-                            <p className="text-sm font-bold tracking-[0.2em] text-slate-400 uppercase mb-4 relative z-10">
-                                Now Serving
-                            </p>
+                                <div className="relative bg-white border border-slate-200/60 rounded-3xl shadow-2xl shadow-slate-200/50 w-full max-w-2xl flex flex-col items-center justify-center py-16 lg:py-20 px-10 overflow-hidden"
+                                     style={{ minHeight: "420px" }}>
 
-                            {/* Token Number */}
-                            <div
-                                className="token-enter text-9xl lg:text-[11rem] font-extrabold text-slate-900 tracking-tight leading-none tabular-nums relative z-10"
-                                aria-live="assertive"
-                                aria-atomic="true"
-                                aria-label={`Now serving token ${prefix}${serving}`}
-                            >
-                                {serving === 0 ? "—" : `${prefix}${serving}`}
-                            </div>
-                        </div>
+                                    {/* Concentric circles — large & faint */}
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+                                        <div className="absolute w-[320px] h-[320px] lg:w-[440px] lg:h-[440px] rounded-full border border-slate-100"
+                                             style={{ left: "50%", top: "50%", animation: "concentricBreath 4s ease-in-out infinite" }} />
+                                        <div className="absolute w-[440px] h-[440px] lg:w-[580px] lg:h-[580px] rounded-full border border-slate-100/60"
+                                             style={{ left: "50%", top: "50%", animation: "concentricBreath 4s ease-in-out infinite 0.5s" }} />
+                                        <div className="absolute w-[560px] h-[560px] lg:w-[720px] lg:h-[720px] rounded-full border border-slate-100/30"
+                                             style={{ left: "50%", top: "50%", animation: "concentricBreath 4s ease-in-out infinite 1s" }} />
+                                    </div>
+
+                                    {/* NOW SERVING eyebrow */}
+                                    <p className="text-sm font-bold tracking-[0.2em] text-slate-400 uppercase mb-4 relative z-10">
+                                        Now Serving
+                                    </p>
+
+                                    {/* Token Number */}
+                                    <div
+                                        className="token-enter text-9xl lg:text-[11rem] font-extrabold text-slate-900 tracking-tight leading-none tabular-nums relative z-10"
+                                        aria-live="assertive"
+                                        aria-atomic="true"
+                                        aria-label={`Now serving token ${prefix}${serving}`}
+                                    >
+                                        {serving === 0 ? "—" : `${prefix}${serving}`}
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* ════════════════════════════════════════════════ */}

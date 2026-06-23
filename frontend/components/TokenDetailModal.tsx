@@ -16,6 +16,7 @@ export interface TokenDetailData {
     entry_type?: "manual" | "qr" | "auto" | null;
     queue_name?: string;
     removed_by?: string | null;
+    assigned_line?: number | null;
 }
 
 interface TokenDetailModalProps {
@@ -136,6 +137,9 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                     <div className="grid grid-cols-2 gap-3">
                         {token.companion_names && token.companion_names.length > 0 && (
                             <DetailItem label="Companions" value={token.companion_names.join(", ")} highlight="emerald" />
+                        )}
+                        {token.assigned_line != null && (
+                            <DetailItem label="Line Number" value={String(token.assigned_line)} highlight="emerald" />
                         )}
                         <DetailItem label="Age" value={token.customer_age != null ? `${token.customer_age} yrs` : "Not Provided"} />
                         <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
