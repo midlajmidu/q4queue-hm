@@ -17,7 +17,8 @@ class UserResponse(BaseModel):
     email: EmailStr
     first_name: str | None
     last_name: str | None
-    org_id: uuid.UUID
+    org_id: uuid.UUID | None = None
+    parent_organization_id: uuid.UUID | None = None
     role: str
     is_active: bool
     is_first_login: bool
@@ -30,6 +31,14 @@ class UserUpdateMe(BaseModel):
     """Payload for a user updating their own profile."""
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+
+
+class SuperAdminUserUpdate(BaseModel):
+    """Payload for super admin updating any user profile."""
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    new_password: Optional[str] = Field(default=None, min_length=8)
 
 
 class OrganizationResponse(BaseModel):

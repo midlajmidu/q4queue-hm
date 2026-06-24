@@ -88,6 +88,7 @@ import type {
     ParentOrganization,
     ParentOrganizationCreate,
     ParentOrganizationUpdate,
+    ParentOrganizationPage,
     AssignBranchesRequest,
     OrgAdminCreate,
     BranchStatItem,
@@ -697,8 +698,18 @@ export const api = {
     },
 
     // ── Parent Organizations ─────────────────────────────────────────
-    listParentOrganizations(): Promise<ParentOrganization[]> {
-        return request<ParentOrganization[]>("/parent-organizations");
+    listParentOrganizations(params?: { search?: string; status?: string; skip?: number; limit?: number }): Promise<ParentOrganizationPage> {
+        let queryStr = "";
+        if (params) {
+            const searchParams = new URLSearchParams();
+            if (params.search) searchParams.append("search", params.search);
+            if (params.status) searchParams.append("status", params.status);
+            if (params.skip !== undefined) searchParams.append("skip", params.skip.toString());
+            if (params.limit !== undefined) searchParams.append("limit", params.limit.toString());
+            const qs = searchParams.toString();
+            if (qs) queryStr = `?${qs}`;
+        }
+        return request<ParentOrganizationPage>(`/parent-organizations${queryStr}`);
     },
     
     createParentOrganization(data: ParentOrganizationCreate): Promise<ParentOrganization> {
@@ -1029,8 +1040,15 @@ export const api = {
         return request<PaginatedGlobalUsers>(`/super-admin/users/search?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);
     },
 
-    toggleUserStatus(userId: string): Promise<SuccessResponse> {
+    updateUserStatus(userId: string): Promise<SuccessResponse> {
         return request<SuccessResponse>(`/super-admin/users/${userId}/status`, { method: "PUT" });
+    },
+
+    updateUser(userId: string, data: { first_name?: string; last_name?: string; email?: string; new_password?: string }): Promise<User> {
+        return request<User>(`/super-admin/users/${userId}`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        });
     },
 
     resetUserPassword(userId: string): Promise<ResetPasswordResponse> {

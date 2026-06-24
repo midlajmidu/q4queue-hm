@@ -91,6 +91,13 @@ export interface ParentOrganization {
     is_active: boolean;
     created_at: string;
     updated_at: string;
+    branch_count: number;
+    admin_count: number;
+}
+
+export interface ParentOrganizationPage {
+    items: ParentOrganization[];
+    total: number;
 }
 
 export interface ParentOrganizationCreate {

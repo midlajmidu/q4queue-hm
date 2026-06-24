@@ -38,54 +38,54 @@ export default function CreateOrgAdminModal({ parentOrg, isOpen, onClose }: Prop
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6" style={{ maxHeight: "90vh", overflowY: "auto" }}>
-                <h3 className="text-lg font-bold text-slate-900 mb-4">Add Admin to {parentOrg.name}</h3>
+            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative bg-slate-900 border border-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200" style={{ maxHeight: "90vh", overflowY: "auto" }}>
+                <h3 className="text-lg font-bold text-white mb-4">Add Admin to {parentOrg.name}</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <p className="text-sm text-slate-600 mb-4">
+                    <p className="text-sm text-slate-300 mb-4">
                         Organization Admins can view analytics across all branches assigned to {parentOrg.name}, but they cannot manage individual branch settings.
                     </p>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">First Name</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">First Name</label>
                             <input
                                 type="text"
                                 required
                                 value={formData.first_name}
                                 onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                                className="w-full px-3 py-2 bg-slate-950/50 border border-slate-800 rounded-lg text-sm text-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Last Name</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Last Name</label>
                             <input
                                 type="text"
                                 required
                                 value={formData.last_name}
                                 onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                                className="w-full px-3 py-2 bg-slate-950/50 border border-slate-800 rounded-lg text-sm text-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                             />
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                        <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
                         <input
                             type="email"
                             required
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 bg-slate-950/50 border border-slate-800 rounded-lg text-sm text-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                        <label className="block text-sm font-medium text-slate-300 mb-1">Password</label>
                         <input
                             type="password"
                             required
                             minLength={8}
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 bg-slate-950/50 border border-slate-800 rounded-lg text-sm text-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                         />
                     </div>
                     
@@ -93,14 +93,14 @@ export default function CreateOrgAdminModal({ parentOrg, isOpen, onClose }: Prop
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+                            className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={saving}
-                            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 disabled:opacity-50 transition-all duration-200"
                         >
                             {saving ? "Creating..." : "Create Admin"}
                         </button>

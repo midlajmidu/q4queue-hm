@@ -38,8 +38,14 @@ class ParentOrganizationResponse(ParentOrganizationBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    branch_count: int = 0
+    admin_count: int = 0
     
     model_config = ConfigDict(from_attributes=True)
+
+class ParentOrganizationPage(BaseModel):
+    items: list[ParentOrganizationResponse]
+    total: int
 
 class AssignBranchesRequest(BaseModel):
     branch_ids: list[uuid.UUID]
