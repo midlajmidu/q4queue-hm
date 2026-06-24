@@ -36,6 +36,7 @@ from app.models.system_announcement import SystemAnnouncement
 from app.audit.models import AuditLog
 from app.core.security import hash_password, create_access_token
 from app.schemas.auth import TokenResponse
+from app.schemas.user import UserResponse, SuperAdminUserUpdate
 from app.services.auth_service import authenticate_super_admin
 from app.audit.service import record_event
 
@@ -1511,6 +1512,57 @@ async def search_global_users(
         limit=limit,
         offset=offset
     )
+
+
+@router.patch(
+    "/users/{user_id}",
+    response_model=UserResponse,
+    summary="Update User Profile",
+)
+async def update_user(
+    user_id: str,
+    payload: SuperAdminUserUpdate,
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
+    """Super Admin updating any user profile."""
+    import uuid as _uuid
+    try:
+        u_uuid = _uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid user ID")
+
+    result = await db.execute(select(User).where(User.id == u_uuid))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if payload.first_name is not None:
+        user.first_name = payload.first_name
+    if payload.last_name is not None:
+        user.last_name = payload.last_name
+    if payload.email is not None:
+        if payload.email != user.email:
+            existing = await db.execute(select(User).where(User.email == payload.email))
+            if existing.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail="Email already registered")
+        user.email = payload.email
+        
+    if payload.new_password is not None:
+        user.password_hash = hash_password(payload.new_password)
+
+    await db.commit()
+    await db.refresh(user)
+    
+    await record_event(
+        event_type="user.updated",
+        user_id=_super_admin.id,
+        org_id=user.org_id,
+        details={"target_user_id": str(user.id)}
+    )
+    
+    return UserResponse.model_validate(user)
 
 
 @router.put(

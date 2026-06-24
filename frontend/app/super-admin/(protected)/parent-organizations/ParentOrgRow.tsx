@@ -10,6 +10,8 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import AssignBranchesModal from "./AssignBranchesModal";
 import CreateOrgAdminModal from "./CreateOrgAdminModal";
 import EditParentOrgModal from "./EditParentOrgModal";
+import { EditOrgModal } from "@/components/super-admin/OrgModals";
+import EditAdminModal from "@/components/super-admin/EditAdminModal";
 
 interface Props {
     parent: ParentOrganization;
@@ -28,6 +30,22 @@ export default function ParentOrgRow({ parent, onRefresh }: Props) {
     const [isAssignBranchesModalOpen, setIsAssignBranchesModalOpen] = useState(false);
     const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedBranch, setSelectedBranch] = useState<OrgDetail | null>(null);
+    const [selectedAdmin, setSelectedAdmin] = useState<User | null>(null);
+    const [resettingPasswordId, setResettingPasswordId] = useState<string | null>(null);
+
+    const handleResetPassword = async (admin: User) => {
+        if (!confirm(`Are you sure you want to reset the password for ${admin.first_name}?`)) return;
+        setResettingPasswordId(admin.id);
+        try {
+            const res = await api.resetUserPassword(admin.id);
+            alert(`Password Reset Successful!\n\nUser: ${admin.email}\nNew Password: ${res.temporary_password}\n\nPlease copy this and send it securely.`);
+        } catch (err: any) {
+            toast.error(err.detail || "Failed to reset password");
+        } finally {
+            setResettingPasswordId(null);
+        }
+    };
 
     const toggleExpand = async () => {
         if (!expanded) {
@@ -151,7 +169,7 @@ export default function ParentOrgRow({ parent, onRefresh }: Props) {
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <button 
-                                                                onClick={(e) => { e.stopPropagation(); alert("Test Case: Edit Branch functionality will go here"); }}
+                                                                onClick={(e) => { e.stopPropagation(); setSelectedBranch(b); }}
                                                                 className="p-1 text-slate-400 hover:text-indigo-400 transition-colors"
                                                                 title="Edit Branch"
                                                             >
@@ -187,15 +205,16 @@ export default function ParentOrgRow({ parent, onRefresh }: Props) {
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <button 
-                                                                onClick={(e) => { e.stopPropagation(); alert("Test Case: Edit Admin functionality will go here"); }}
+                                                                onClick={(e) => { e.stopPropagation(); setSelectedAdmin(a); }}
                                                                 className="p-1 text-slate-400 hover:text-indigo-400 transition-colors"
                                                                 title="Edit Admin"
                                                             >
                                                                 <Edit2 size={14} />
                                                             </button>
                                                             <button 
-                                                                onClick={(e) => { e.stopPropagation(); alert("Test Case: Reset Admin Password functionality will go here"); }}
-                                                                className="p-1 text-slate-400 hover:text-indigo-400 transition-colors"
+                                                                onClick={(e) => { e.stopPropagation(); handleResetPassword(a); }}
+                                                                disabled={resettingPasswordId === a.id}
+                                                                className={`p-1 transition-colors ${resettingPasswordId === a.id ? "text-indigo-400 animate-pulse" : "text-slate-400 hover:text-indigo-400"}`}
                                                                 title="Reset Password"
                                                             >
                                                                 <Key size={14} />
@@ -235,11 +254,37 @@ export default function ParentOrgRow({ parent, onRefresh }: Props) {
             )}
 
             {isEditModalOpen && typeof document !== 'undefined' && createPortal(
-                <EditParentOrgModal
+                <EditParentOrgModal 
                     parentOrg={parent}
                     isOpen={isEditModalOpen}
-                    onClose={() => setIsEditModalOpen(false)}
+                    onClose={() => setIsEditModalOpen(false)} 
                     onSuccess={onRefresh}
+                />,
+                document.body
+            )}
+
+            {selectedBranch && typeof document !== 'undefined' && createPortal(
+                <EditOrgModal 
+                    org={selectedBranch}
+                    onClose={() => setSelectedBranch(null)} 
+                    onSaved={() => {
+                        setSelectedBranch(null);
+                        onRefresh();
+                        // Also refresh the expanded data
+                        api.getParentBranches(parent.id).then(setBranches).catch(console.error);
+                    }}
+                />,
+                document.body
+            )}
+
+            {selectedAdmin && typeof document !== 'undefined' && createPortal(
+                <EditAdminModal 
+                    admin={selectedAdmin}
+                    onClose={() => setSelectedAdmin(null)} 
+                    onSaved={() => {
+                        setSelectedAdmin(null);
+                        api.getParentAdmins(parent.id).then(setOrgAdmins).catch(console.error);
+                    }}
                 />,
                 document.body
             )}

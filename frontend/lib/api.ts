@@ -999,8 +999,15 @@ export const api = {
         return request<PaginatedGlobalUsers>(`/super-admin/users/search?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);
     },
 
-    toggleUserStatus(userId: string): Promise<SuccessResponse> {
+    updateUserStatus(userId: string): Promise<SuccessResponse> {
         return request<SuccessResponse>(`/super-admin/users/${userId}/status`, { method: "PUT" });
+    },
+
+    updateUser(userId: string, data: { first_name?: string; last_name?: string; email?: string; new_password?: string }): Promise<User> {
+        return request<User>(`/super-admin/users/${userId}`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        });
     },
 
     resetUserPassword(userId: string): Promise<ResetPasswordResponse> {
