@@ -1000,7 +1000,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 </div>
 
                                                 {/* The Main Token (A1) */}
-                                                {(!state?.current_serving || state.current_serving === 0) ? (
+                                                {(!state?.serving_details) ? (
                                                     <div className="relative z-10 flex flex-col items-center justify-center py-2" style={{ minHeight: 100 }}>
                                                         <div className="w-12 h-12 mb-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60">
                                                             <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
@@ -1106,8 +1106,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
 
                                         {/* Action buttons */}
-                                        <div className={`grid gap-3 w-full ${(!state?.current_serving || state.current_serving === 0) ? "grid-cols-1" : "grid-cols-2"}`} role="toolbar">
-                                            {(!state?.current_serving || state.current_serving === 0) && (
+                                        <div className={`grid gap-3 w-full ${(!state?.serving_details) ? "grid-cols-1" : "grid-cols-2"}`} role="toolbar">
+                                            {(!state?.serving_details) && (
                                                 <button
                                                     onClick={handleNext}
                                                     disabled={isDisabled || isPaused}
@@ -1129,7 +1129,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 </button>
                                             )}
 
-                                            {(state?.current_serving ?? 0) > 0 && (
+                                            {(!!state?.serving_details) && (
                                                 <>
                                                     <button
                                                         onClick={() => performAction("skipped", async () => {
@@ -1301,7 +1301,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         </div>
                                                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                                             <button
-                                                                onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName })}
+                                                                onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
                                                                 className="text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400" style={{ padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
                                                                 onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                                                                 onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
@@ -1593,7 +1593,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     </div>
                                                     <div className="col-span-2 flex items-center justify-end gap-2">
                                                         <button
-                                                            onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName })}
+                                                            onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
                                                             className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-1.5 rounded-md transition-colors"
                                                             title="View Details"
                                                         >
@@ -1841,6 +1841,21 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                             Line {t.assigned_line}
                         </span>
                     )}
+                    {t.called_via_invite && (
+                        <span style={{
+                            background: "#fdf4ff",
+                            color: "#c026d3",
+                            border: "1px solid #f5d0fe",
+                            borderRadius: 999,
+                            fontSize: 9,
+                            fontWeight: 700,
+                            padding: "1px 7px",
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                        }}>
+                            Invited
+                        </span>
+                    )}
                 </div>
                 {t.customer_name && (
                     <div className="dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: 11.5, paddingLeft: 56 }}>
@@ -1861,7 +1876,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {onView && (
                     <button
-                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
+                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
                         style={{ padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
                         onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                         onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
@@ -1959,7 +1974,7 @@ function QueueHistory({
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
                 <div>
                     <h1 className="qd-section-title text-gray-900 dark:text-white">Queue History</h1>
-                    <p className="qd-section-sub">View past tokens and patient records for this queue.</p>
+                    <p className="qd-section-sub">View past tokens and customer records for this queue.</p>
                 </div>
                 {historyTotal > 0 && <span style={{ fontSize: 12.5, fontWeight: 500 }}>{historyTotal} record{historyTotal !== 1 ? "s" : ""} found</span>}
             </div>
@@ -1968,7 +1983,7 @@ function QueueHistory({
             <div className="qd-card" style={{ padding: "16px 20px" }}>
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 12 }}>
                     <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 6 }}>
-                        <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", }}>Search Patients</label>
+                        <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", }}>Search Customers</label>
                         <div style={{ position: "relative" }}>
                             <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 11, pointerEvents: "none" }}>
                                 <svg width="14" height="14" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -2012,7 +2027,7 @@ function QueueHistory({
                     <table style={{ width: "100%", textAlign: "left", fontSize: 13.5, borderCollapse: "collapse" }}>
                         <thead>
                             <tr style={{ background: "#fafbfc", borderBottom: `1px solid ${T.cardBorder}` }}>
-                                {["Token", "Patient", "Status", "Type", "Wait Time", "Actions"].map(h => (
+                                {["Token", "Customer", "Status", "Type", "Wait Time", "Actions"].map(h => (
                                     <th key={h} style={{ padding: "11px 18px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".09em", whiteSpace: "nowrap" }}>{h}</th>
                                 ))}
                             </tr>
@@ -2087,7 +2102,7 @@ function QueueHistory({
                 {historyTotal > historyPageSize && (
                     <div style={{ background: "#fafbfc", padding: "14px 20px", borderTop: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 10, alignItems: "center", justifyContent: "space-between" }} className="sm:flex-row">
                         <p style={{ fontSize: 12.5, margin: 0 }}>
-                            Showing <strong style={{}}>{(historyPage - 1) * historyPageSize + 1}</strong>–<strong style={{}}>{Math.min(historyPage * historyPageSize, historyTotal)}</strong> of <strong style={{}}>{historyTotal}</strong> patients
+                            Showing <strong style={{}}>{(historyPage - 1) * historyPageSize + 1}</strong>–<strong style={{}}>{Math.min(historyPage * historyPageSize, historyTotal)}</strong> of <strong style={{}}>{historyTotal}</strong> customers
                         </p>
                         <div style={{ display: "flex", gap: 4 }}>
                             {[

@@ -89,7 +89,7 @@ function StatusBadge({ status }: { status: string }) {
 function SkeletonRow() {
   return (
     <tr>
-      {[80, 180, 120, 80, 80, 80, 80].map((w, i) => (
+      {[80, 180, 120, 90, 80, 80, 80, 80].map((w, i) => (
         <td key={i} style={{ padding: "16px 20px", borderBottom: "0.5px solid #f1f5f9" }}>
           <div style={{ height: 14, width: w, borderRadius: 6, background: "#f1f5f9" }} />
         </td>
@@ -408,6 +408,7 @@ export default function HistoryPage() {
                                     <th style={thStyle}>Token</th>
                                     <th style={thStyle}>Customer</th>
                                     <th style={thStyle}>Queue</th>
+                                    <th style={thStyle}>Method</th>
                                     <th style={thStyle}>Status</th>
                                     <th style={thStyle}>Created</th>
                                     <th style={thStyle}>Served</th>
@@ -464,6 +465,13 @@ export default function HistoryPage() {
                                                 </div>
                                             </td>
                                             <td style={{ ...tdStyle, color: "#64748b" }}>{h.queue_name}</td>
+                                            <td style={{ ...tdStyle, color: "#64748b" }}>
+                                                {h.called_via_invite ? (
+                                                    <span style={{ fontSize: 11, background: "#fdf4ff", color: "#c026d3", padding: "2px 6px", borderRadius: 4, border: "1px solid #f5d0fe", fontWeight: 600 }}>Invited</span>
+                                                ) : (
+                                                    <span style={{ fontSize: 11, background: "#f1f5f9", color: "#64748b", padding: "2px 6px", borderRadius: 4, border: "1px solid #e2e8f0", fontWeight: 600 }}>Call Next</span>
+                                                )}
+                                            </td>
                                             <td style={tdStyle}><StatusBadge status={h.status} /></td>
                                             <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(h.created_at)}</td>
                                             <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(h.served_at)}</td>
@@ -482,7 +490,8 @@ export default function HistoryPage() {
                                                         served_at: h.served_at,
                                                         completed_at: h.completed_at,
                                                         entry_type: "qr", // Fallback for history
-                                                        queue_name: h.queue_name
+                                                        queue_name: h.queue_name,
+                                                        called_via_invite: h.called_via_invite
                                                     })}
                                                     style={{ padding: "6px", background: "transparent", border: "1px solid #e2e8f0", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
                                                     onMouseEnter={e => { e.currentTarget.style.color = "#4f46e5"; e.currentTarget.style.borderColor = "#4f46e5"; }}

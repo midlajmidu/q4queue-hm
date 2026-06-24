@@ -101,6 +101,7 @@ class Token(Base):
     companion_names: Mapped[list[str]] = mapped_column(JSON, nullable=False, server_default='[]')
     whatsapp_alerts_active: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
     whatsapp_window_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    called_via_invite: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
 
     # ── WhatsApp / Tracking ────────────────────────────────────
     # Separate UUID used in public tracking URLs — keeps internal ID private

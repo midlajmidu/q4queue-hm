@@ -390,6 +390,7 @@ async def call_next(
         next_token.status = TokenStatus.serving
         next_token.served_at = now
         next_token.served_by_id = user_id
+        next_token.called_via_invite = False
         # In multi-lane mode, assign the token to the specified line
         if line_number is not None:
             next_token.assigned_line = line_number
@@ -568,6 +569,7 @@ async def serve_specific_token(
     specific_token.status = TokenStatus.serving
     specific_token.served_at = now
     specific_token.served_by_id = user_id
+    specific_token.called_via_invite = True
 
     await db.flush()
 

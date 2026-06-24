@@ -39,7 +39,7 @@ const features = [
     icon: Users,
     title: "Multi Queue Support",
     description:
-      "Manage multiple queues across counters, doctors, or services from one simple dashboard.",
+      "Manage multiple queues across counters, staff, or services from one simple dashboard.",
     accent: "#f59e0b",
     accentRing: "rgba(245,158,11,0.15)",
     gradFrom: "#fffbeb",

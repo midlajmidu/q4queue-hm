@@ -180,7 +180,7 @@ export default function InsightsPage() {
       hourly, totalV, avgV, peakPct,
       peakHour: peak?.hour ?? "—", peakVisits: peak?.visits ?? 0,
       wA, sA,
-      waiting: sc?.waiting ?? 0, served: sc?.served ?? 0, total: sc?.total ?? 0, cancelled: sc?.cancelled ?? 0,
+      waiting: sc?.waiting ?? 0, served: sc?.served ?? 0, total: sc?.total ?? 0, cancelled: sc?.cancelled ?? 0, invited: sc?.invited ?? 0,
       dailyTimings,
       staffPerformance: overview.staff_performance || []
     };
@@ -289,6 +289,7 @@ export default function InsightsPage() {
                 {([
                   { label: "Total Tokens", val: d.total.toLocaleString() },
                   { label: "Served", val: d.served.toLocaleString() },
+                  { label: "Invited", val: d.invited.toLocaleString() },
                   { label: "Avg Wait", val: formatDuration(d.wA) },
                   { label: "Avg Service", val: formatDuration(d.sA) },
                   { label: "Drop-off Rate", val: d.total > 0 ? `${Math.round((d.cancelled / d.total) * 100)}%` : "0%" },

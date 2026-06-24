@@ -162,12 +162,12 @@ export default function SuperAdminLoginPage() {
                             <code 
                                 className="text-violet-300 font-mono bg-violet-500/10 px-1.5 py-0.5 rounded cursor-pointer hover:bg-violet-500/20 transition-colors"
                                 onClick={() => {
-                                    navigator.clipboard.writeText("superadmin@qrq.internal");
-                                    setEmail("superadmin@qrq.internal");
+                                    navigator.clipboard.writeText("superadmin@q4queue.internal");
+                                    setEmail("superadmin@q4queue.internal");
                                 }}
                                 title="Click to copy and fill"
                             >
-                                superadmin@qrq.internal
+                                superadmin@q4queue.internal
                             </code>
                         </div>
                         <div className="flex justify-between items-center text-[13px]">

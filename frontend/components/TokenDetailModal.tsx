@@ -17,6 +17,7 @@ export interface TokenDetailData {
     queue_name?: string;
     removed_by?: string | null;
     assigned_line?: number | null;
+    called_via_invite?: boolean;
 }
 
 interface TokenDetailModalProps {
@@ -115,9 +116,9 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                     </div>
                 </div>
 
-                {/* Patient profile */}
+                {/* Customer profile */}
                 <div className="px-6 py-5 space-y-4">
-                    {/* Patient info */}
+                    {/* Customer info */}
                     <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
                         <div className="w-12 h-12 rounded-full bg-blue-50 border-2 border-blue-100 flex items-center justify-center flex-shrink-0">
                             <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,6 +144,9 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         )}
                         <DetailItem label="Age" value={token.customer_age != null ? `${token.customer_age} yrs` : "Not Provided"} />
                         <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
+                        {token.called_via_invite !== undefined && (
+                            <DetailItem label="Call Method" value={token.called_via_invite ? "Invited by No." : "Call Next"} highlight={token.called_via_invite ? "amber" : undefined} />
+                        )}
                         <DetailItem label="Created" value={fmtTime(token.created_at)} />
                         <DetailItem label="Called" value={fmtTime(token.served_at)} />
                         <DetailItem label={completedLabel} value={fmtTime(token.completed_at)} />

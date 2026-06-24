@@ -23,7 +23,7 @@ from app.core.security import hash_password
 # Use os.getenv but REMOVE the hard-coded insecure fallback password.
 # In a real app, it's safer to pull this from your Pydantic settings:
 # from app.core.config import get_settings; settings = get_settings()
-SUPER_ADMIN_EMAIL = os.getenv("SUPER_ADMIN_EMAIL", "superadmin@qrq.internal")
+SUPER_ADMIN_EMAIL = os.getenv("SUPER_ADMIN_EMAIL", "superadmin@q4queue.internal")
 SUPER_ADMIN_PASSWORD = os.getenv("SUPER_ADMIN_PASSWORD")
 
 async def seed_superadmin() -> None:

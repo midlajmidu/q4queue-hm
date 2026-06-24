@@ -6,6 +6,7 @@ All methods receive org_id from the authenticated JWT — never from request bod
 """
 import logging
 import uuid
+from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,20 +26,23 @@ async def create_queue(
     db: AsyncSession,
     *,
     org_id: uuid.UUID,
+    session_id: Optional[uuid.UUID] = None,
     data: QueueCreate,
 ) -> Queue:
     """Create a new queue under the given org."""
     queue = Queue(
         org_id=org_id,
+        session_id=session_id,
         name=data.name,
         prefix=data.prefix,
         starting_sequence=data.starting_sequence,
         current_token_number=data.starting_sequence - 1,
+        service_lines=data.service_lines,
     )
     db.add(queue)
     await db.commit()
     await db.refresh(queue)
-    logger.info("Queue created | id=%s org=%s name=%r", queue.id, org_id, queue.name)
+    logger.info("Queue created | id=%s org=%s session=%s name=%r", queue.id, org_id, session_id, queue.name)
     return queue
 
 

@@ -1437,7 +1437,7 @@ async def perform_queue_action(
 async def search_global_users(
     q: str = Query("", description="Search by name or email"),
     org_id: Optional[str] = Query(None, description="Filter by Organization ID"),
-    role: Optional[str] = Query(None, description="Filter by role (admin, receptionist, doctor)"),
+    role: Optional[str] = Query(None, description="Filter by role (admin, receptionist, staff)"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     _super_admin: User = Depends(get_current_super_admin),

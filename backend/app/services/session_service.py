@@ -73,7 +73,31 @@ async def create_session(
             f"Please manage the existing session or choose a different date."
         ) from exc
 
-    logger.info("Session created | id=%s org=%s date=%s", session.id, org_id, session.session_date)
+    # ── Auto-Inject Active Templates ──
+    from app.services.queue_service import create_queue
+    created_queues = 0
+    if org and org.queue_templates:
+        for tpl in org.queue_templates:
+            if tpl.get("isActive") is True:
+                try:
+                    await create_queue(
+                        db,
+                        org_id=org_id,
+                        session_id=session.id,
+                        data=QueueCreate(
+                            name=tpl.get("name", "Queue"),
+                            prefix=tpl.get("defaultPrefix", "A"),
+                            starting_sequence=tpl.get("startingNumber", 1),
+                            service_lines=tpl.get("serviceLines", 0),
+                            open_time=tpl.get("openTime"),
+                            close_time=tpl.get("closeTime")
+                        )
+                    )
+                    created_queues += 1
+                except Exception as e:
+                    logger.error(f"Failed to auto-inject template {tpl.get('id')} for session {session.id}: {e}")
+
+    logger.info("Session created | id=%s org=%s date=%s templates_injected=%d", session.id, org_id, session.session_date, created_queues)
     return SessionResponse(
         id=session.id,
         org_id=session.org_id,

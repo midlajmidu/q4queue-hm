@@ -28,7 +28,7 @@ async def bootstrap_db() -> None:
 
             # Create Global Super Admin User
             super_admin = User(
-                email="superadmin@qrq.internal",
+                email="superadmin@q4queue.internal",
                 password_hash=hash_password("SuperAdmin@2026!!!"),
                 role="super_admin",
                 is_active=True,
@@ -38,7 +38,7 @@ async def bootstrap_db() -> None:
             
             await session.commit()
             logger.warning("✅ Bootstrap: Global super_admin created.")
-            logger.warning("   Email:    superadmin@qrq.internal")
+            logger.warning("   Email:    superadmin@q4queue.internal")
             logger.warning("   Password: SuperAdmin@2026!!!")
             
         except Exception as e:

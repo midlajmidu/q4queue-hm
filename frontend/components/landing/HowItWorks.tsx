@@ -30,7 +30,7 @@ const steps = [
   {
     number: "03",
     title: "Arrive at your turn",
-    description: "Get notified and arrive exactly when it's your turn. A professional, stress-free queue experience that keeps patients and shoppers happy.",
+    description: "Get notified and arrive exactly when it's your turn. A professional, stress-free queue experience that keeps customers and shoppers happy.",
     icon: BellRing,
     iconBg: "bg-emerald-500",
     iconShadow: "shadow-xl shadow-emerald-500/25",

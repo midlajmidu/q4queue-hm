@@ -69,6 +69,8 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const [newName, setNewName] = useState("");
     const [newPrefix, setNewPrefix] = useState("A");
     const [newStartingSequence, setNewStartingSequence] = useState<number>(1);
+    const [newQueueType, setNewQueueType] = useState<"normal" | "service_lines">("normal");
+    const [newServiceLines, setNewServiceLines] = useState<number>(2);
     const [newOpenTime, setNewOpenTime] = useState("");
     const [newCloseTime, setNewCloseTime] = useState("");
     const [createLoading, setCreateLoading] = useState(false);
@@ -133,9 +135,15 @@ export default function SessionQueuesPage({ params }: PageProps) {
         }
     }, [sessionId, page, debouncedFilterName]);
 
-    // Initial load: Session + Queues
+    // Initial load: Session + Queues + Templates
     useEffect(() => {
-        Promise.all([loadSession(), loadQueues(true)]);
+        Promise.all([
+            loadSession(), 
+            loadQueues(true),
+            api.getOrganizationSettings().then(res => {
+                if (res.queue_templates) setTemplates(res.queue_templates);
+            }).catch(console.error)
+        ]);
     }, [sessionId]);
 
     // Background updates: Search/Pagination
@@ -194,20 +202,18 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const inactiveQueues = useMemo(() => queues.filter(q => !q.is_active), [queues]);
     const [inactiveCollapsed, setInactiveCollapsed] = useState(false);
 
+    // When modal opens, clear form. Templates are already loaded.
     useEffect(() => {
         if (showCreate) {
             setNewName("");
             setNewPrefix("A");
             setNewStartingSequence(1);
+            setNewQueueType("normal");
+            setNewServiceLines(2);
             setNewOpenTime("");
             setNewCloseTime("");
             setCreateError(null);
             setSelectedTemplateId("");
-            api.getOrganizationSettings()
-                .then(res => {
-                    if (res.queue_templates) setTemplates(res.queue_templates);
-                })
-                .catch(console.error);
             setTimeout(() => nameRef.current?.focus(), 100);
         }
     }, [showCreate]);
@@ -222,6 +228,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                 name: newName.trim(),
                 prefix: newPrefix.trim() || "A",
                 starting_sequence: newStartingSequence || 1,
+                service_lines: newQueueType === "service_lines" ? newServiceLines : 0,
                 open_time: newOpenTime || undefined,
                 close_time: newCloseTime || undefined,
             });
@@ -405,6 +412,8 @@ export default function SessionQueuesPage({ params }: PageProps) {
                     </div>
                 )}
 
+
+
                 {/* ── Queues Content ── */}
                 <div className={`transition-opacity duration-200 ${isBackgroundLoading ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
                     {queues.length === 0 ? (
@@ -538,41 +547,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             <p className="text-sm text-gray-500 font-medium mb-6">Define a new service line for this session.</p>
 
                             <form onSubmit={handleCreate} className="flex flex-col gap-4">
-                                {/* Templates */}
-                                {templates.length > 0 && (
-                                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-2">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                            <Bookmark size={16} className="text-blue-500" />
-                                            Use a Template (Optional)
-                                        </label>
-                                        <select
-                                            value={selectedTemplateId}
-                                            onChange={(e) => {
-                                                const id = e.target.value;
-                                                setSelectedTemplateId(id);
-                                                if (id) {
-                                                    const t = templates.find(x => x.id === id);
-                                                    if (t) {
-                                                        setNewName(t.name);
-                                                        setNewPrefix(t.defaultPrefix || "");
-                                                        setNewStartingSequence(t.startingNumber || 1);
-                                                    }
-                                                } else {
-                                                    setNewName("");
-                                                    setNewPrefix("A");
-                                                    setNewStartingSequence(1);
-                                                }
-                                            }}
-                                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
-                                            disabled={createLoading}
-                                        >
-                                            <option value="">-- No Template --</option>
-                                            {templates.map(t => (
-                                                <option key={t.id} value={t.id}>{t.name} (Prefix: {t.defaultPrefix || 'None'}, Starts at: {t.startingNumber || 1})</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
+
 
                                 <div>
                                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Queue Name</label>
@@ -581,7 +556,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         type="text"
                                         value={newName}
                                         onChange={(e) => setNewName(e.target.value)}
-                                        placeholder="e.g. Doctor A, Counter 1"
+                                        placeholder="e.g. Counter 1, Desk A"
                                         required
                                         className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all placeholder:text-slate-400"
                                     />
@@ -615,8 +590,14 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                             onChange={(e) => setNewPrefix(e.target.value.toUpperCase())}
                                             placeholder="A"
                                             maxLength={5}
-                                            className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all placeholder:text-slate-400"
+                                            className={`w-full rounded-xl border shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:ring-4 focus:outline-none transition-all placeholder:text-slate-400 ${queues.some(q => (q.prefix || "").toUpperCase() === (newPrefix.trim().toUpperCase() || "A")) ? "border-red-300 focus:border-red-500 focus:ring-red-500/20 text-red-900" : "border-slate-100 focus:border-indigo-500 focus:ring-indigo-500/20"}`}
                                         />
+                                        {queues.some(q => (q.prefix || "").toUpperCase() === (newPrefix.trim().toUpperCase() || "A")) && (
+                                            <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                Prefix already used in this session.
+                                            </p>
+                                        )}
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Starting Number</label>
@@ -630,6 +611,50 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         />
                                     </div>
                                 </div>
+                                
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Queue Type</label>
+                                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                                        <button
+                                            type="button"
+                                            onClick={() => setNewQueueType("normal")}
+                                            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+                                                newQueueType === "normal"
+                                                    ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-900/5"
+                                                    : "text-slate-500 hover:text-slate-700"
+                                            }`}
+                                        >
+                                            Normal Queue
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setNewQueueType("service_lines")}
+                                            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+                                                newQueueType === "service_lines"
+                                                    ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-900/5"
+                                                    : "text-slate-500 hover:text-slate-700"
+                                            }`}
+                                        >
+                                            Service Lines
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {newQueueType === "service_lines" && (
+                                    <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Number of Service Lines</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={20}
+                                            value={newServiceLines}
+                                            onChange={(e) => setNewServiceLines(parseInt(e.target.value) || 2)}
+                                            className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all"
+                                            required={newQueueType === "service_lines"}
+                                            disabled={createLoading}
+                                        />
+                                    </div>
+                                )}
                                 {/* Error message is now handled globally via toast notification */}
                                 <div className="flex gap-3 pt-2">
                                     <button
@@ -641,7 +666,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={createLoading || !newName.trim()}
+                                        disabled={createLoading || !newName.trim() || queues.some(q => (q.prefix || "").toUpperCase() === (newPrefix.trim().toUpperCase() || "A"))}
                                         className="flex-1 px-4 py-3 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm shadow-indigo-500/10"
                                     >
                                         {createLoading ? "Building…" : "Build Queue"}

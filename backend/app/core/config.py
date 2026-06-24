@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # ── Application ───────────────────────────────────────────────
-    APP_NAME: str = "qrq"
+    APP_NAME: str = "q4queue"
     VERSION: str = "0.5.0"
     ENVIRONMENT: str = "development"
 
@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = ""
-    SMTP_FROM_NAME: str = "QRQ Queue System"
+    SMTP_FROM_NAME: str = "Q4Queue System"
 
     # ── Meta WhatsApp Cloud API ───────────────────────────────────
     WHATSAPP_ACCESS_TOKEN: str = ""

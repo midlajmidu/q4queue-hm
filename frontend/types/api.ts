@@ -18,6 +18,7 @@ export interface AnalyticsOverview {
         served: number;
         cancelled: number;
         waiting: number;
+        invited: number;
     };
     timings: {
         avg_waiting_time: string;
@@ -148,6 +149,7 @@ export interface TokenDetail {
     customer_age: number | null;
     customer_phone: string;
     companion_names: string[];
+    called_via_invite?: boolean;
 }
 
 // ── Join ─────────────────────────────────────────────────────────
@@ -220,6 +222,7 @@ export interface RecentToken {
     customer_phone: string;
     companion_names: string[];
     assigned_line?: number | null;
+    called_via_invite?: boolean;
 }
 
 export interface WaitingToken {
@@ -235,6 +238,7 @@ export interface WaitingToken {
     companion_names: string[];
     removed_by?: string | null;
     assigned_line?: number | null;
+    called_via_invite?: boolean;
 }
 
 export interface ServingToken {
@@ -245,6 +249,7 @@ export interface ServingToken {
     customer_age?: number | null;
     assigned_line: number | null;
     served_at: string | null;
+    called_via_invite?: boolean;
 }
 
 export interface QueueSnapshot {
@@ -267,6 +272,7 @@ export interface QueueSnapshot {
         customer_phone: string;
         companion_names?: string[];
         assigned_line?: number | null;
+        called_via_invite?: boolean;
     } | null;
     all_serving_tokens: ServingToken[];  // all lanes currently serving
     waiting_count: number;
@@ -578,6 +584,8 @@ export interface OrganizationSettingsResponse {
     logo_url?: string;
     brand_color?: string;
     queue_templates: QueueTemplate[];
+    auto_session_enabled: boolean;
+    auto_session_time: string | null;
 }
 
 export interface OrganizationSettingsUpdate {
@@ -586,6 +594,8 @@ export interface OrganizationSettingsUpdate {
     phone_number?: string;
     brand_color?: string;
     queue_templates?: QueueTemplate[];
+    auto_session_enabled?: boolean;
+    auto_session_time?: string | null;
 }
 
 export interface QueueTemplate {
@@ -594,6 +604,10 @@ export interface QueueTemplate {
     description: string;
     defaultPrefix: string;
     startingNumber: number;
+    serviceLines?: number;
+    isActive?: boolean;
+    openTime?: string;
+    closeTime?: string;
 }
 
 export interface RequestOtpRequest {
@@ -626,6 +640,7 @@ export interface TokenHistoryItem {
     created_at: string;
     served_at: string | null;
     completed_at: string | null;
+    called_via_invite?: boolean;
 }
 
 export interface PaginatedHistoryResponse {

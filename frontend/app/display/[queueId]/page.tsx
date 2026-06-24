@@ -258,7 +258,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
                                         aria-atomic="true"
                                         aria-label={`Now serving token ${prefix}${serving}`}
                                     >
-                                        {serving === 0 ? "—" : `${prefix}${serving}`}
+                                        {!state?.serving_details ? "—" : `${prefix}${serving}`}
                                     </div>
                                 </div>
                             </>

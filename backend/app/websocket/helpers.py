@@ -56,7 +56,7 @@ async def build_queue_snapshot(
         .limit(1)
     )
     serving_token = serving_result.scalar_one_or_none()
-    current_serving = serving_token.token_number if serving_token else 0
+    current_serving = serving_token.token_number if serving_token else (queue.starting_sequence - 1)
     
     serving_details = None
     if serving_token:
@@ -64,6 +64,7 @@ async def build_queue_snapshot(
             "token_number": serving_token.token_number,
             "customer_name": serving_token.customer_name,
             "assigned_line": serving_token.assigned_line,
+            "called_via_invite": serving_token.called_via_invite,
         }
         if is_admin:
             # Mask sensitive data for public screens
@@ -87,6 +88,7 @@ async def build_queue_snapshot(
             "token_number": t.token_number,
             "customer_name": t.customer_name,
             "assigned_line": t.assigned_line,
+            "called_via_invite": t.called_via_invite,
             "served_at": t.served_at.isoformat() if t.served_at else None,
         }
         if is_admin:
@@ -145,6 +147,7 @@ async def build_queue_snapshot(
             "completed_at": t.completed_at.isoformat() if t.completed_at else None,
             "customer_name": t.customer_name,
             "assigned_line": t.assigned_line,
+            "called_via_invite": t.called_via_invite,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -175,6 +178,7 @@ async def build_queue_snapshot(
             "completed_at": t.completed_at.isoformat() if t.completed_at else None,
             "customer_name": t.customer_name,
             "assigned_line": t.assigned_line,
+            "called_via_invite": t.called_via_invite,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -205,6 +209,7 @@ async def build_queue_snapshot(
             "served_at": t.served_at.isoformat() if t.served_at else None,
             "completed_at": t.completed_at.isoformat() if t.completed_at else None,
             "customer_name": t.customer_name,
+            "called_via_invite": t.called_via_invite,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -235,6 +240,7 @@ async def build_queue_snapshot(
             "served_at": t.served_at.isoformat() if t.served_at else None,
             "completed_at": t.completed_at.isoformat() if t.completed_at else None,
             "customer_name": t.customer_name,
+            "called_via_invite": t.called_via_invite,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -262,7 +268,7 @@ async def build_queue_snapshot(
         "done_count": done_count,
         "skipped_count": skipped_count,
         "last_called": current_serving,
-        "total_issued": queue.current_token_number,
+        "total_issued": queue.current_token_number - queue.starting_sequence + 1 if queue.current_token_number >= queue.starting_sequence else 0,
         "recent_tokens": recent_tokens,
         "waiting_tokens": waiting_tokens,
         "skipped_tokens": skipped_tokens,

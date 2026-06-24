@@ -55,6 +55,10 @@ class Organization(Base):
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     brand_color: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
+    # ── Automation ──────────────────────────────────────────────────
+    auto_session_enabled: Mapped[bool] = mapped_column(Boolean, server_default='false', nullable=False)
+    auto_session_time: Mapped[str | None] = mapped_column(String(5), nullable=True) # HH:MM format
+
     # ── Relationships ──────────────────────────────────────────────
     users: Mapped[list["User"]] = relationship(  # noqa: F821
         "User", back_populates="organization", lazy="noload"

@@ -50,7 +50,7 @@ function getDynamicTitle(content: string, type: string): string {
         if (type === "error") return "Export Failed";
         return "Export Info";
     }
-    if (text.includes("joined") || text.includes("checked in") || text.includes("patient")) {
+    if (text.includes("joined") || text.includes("checked in") || text.includes("customer")) {
         return "Customer Activity";
     }
     if (text.includes("called") || text.includes("served") || text.includes("completed")) {

@@ -91,6 +91,13 @@ async def get_overview_metrics(
     cancelled_visits = counts[TokenStatus.skipped.value] + counts[TokenStatus.deleted.value]
     waiting_visits = counts[TokenStatus.waiting.value]
 
+    # Calculate invited tokens
+    invited_query = select(func.count(Token.id)).where(and_(*active_conditions, Token.called_via_invite == True))
+    if join_queue:
+        invited_query = invited_query.join(Queue, Token.queue_id == Queue.id)
+    invited_res = await db.execute(invited_query)
+    invited_visits = invited_res.scalar_one()
+
     # 2. Timing Aggregations - Exclude deleted
     timing_query = select(
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
@@ -243,6 +250,7 @@ async def get_overview_metrics(
             "served": served_visits,
             "cancelled": cancelled_visits,
             "waiting": waiting_visits,
+            "invited": invited_visits,
         },
         "timings": {
             "avg_waiting_time": format_time(row.avg_wait_sec),
@@ -331,6 +339,7 @@ async def get_history_details(
             "created_at": token.created_at.isoformat(),
             "served_at": token.served_at.isoformat() if token.served_at else None,
             "completed_at": token.completed_at.isoformat() if token.completed_at else None,
+            "called_via_invite": token.called_via_invite,
         })
 
     return {
@@ -425,7 +434,7 @@ async def get_analytics_csv_data(
     writer.writerow([
         "Date", "Token Number", "Queue", "Customer Name", "Customer Phone", 
         "Status", "Created At", "Served At", "Completed At", 
-        "Wait Time (mins)", "Serve Time (mins)", "Served By"
+        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Call Method"
     ])
 
     for row in result.all():
@@ -457,7 +466,8 @@ async def get_analytics_csv_data(
             token.completed_at.isoformat() if token.completed_at else "",
             wait_time_mins,
             serve_time_mins,
-            served_by
+            served_by,
+            "Invite by Number" if token.called_via_invite else "Call Next"
         ])
 
     return output.getvalue()

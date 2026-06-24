@@ -94,6 +94,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Start backup scheduler
     from app.utils.backup import start_scheduler
     start_scheduler()
+    
+    # Start auto session scheduler
+    from app.utils.auto_session import auto_session_task
+    import asyncio
+    app.state.auto_session_task = asyncio.create_task(auto_session_task())
 
     # Init metrics
     from app.monitoring.metrics import init_app_info

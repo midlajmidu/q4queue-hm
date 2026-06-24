@@ -41,7 +41,7 @@ const values = [
 ];
 
 const stats = [
-  { value: "99.9%", label: "Target uptime", sublabel: "For patient & customer-critical queues" },
+  { value: "99.9%", label: "Target uptime", sublabel: "For mission & customer-critical queues" },
   { value: "< 5 min", label: "Typical setup", sublabel: "New location ready in minutes" },
   { value: "Real-time", label: "Updates", sublabel: "Live position and notifications" },
 ];

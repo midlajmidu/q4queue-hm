@@ -35,6 +35,8 @@ class OrganizationSettingsResponse(BaseModel):
     logo_url: Optional[str] = None
     brand_color: Optional[str] = None
     queue_templates: list[dict] = []
+    auto_session_enabled: bool = False
+    auto_session_time: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -44,6 +46,8 @@ class OrganizationSettingsUpdate(BaseModel):
     phone_number: Optional[str] = Field(None, max_length=30)
     brand_color: Optional[str] = Field(None, max_length=20)
     queue_templates: Optional[list[dict]] = None
+    auto_session_enabled: Optional[bool] = None
+    auto_session_time: Optional[str] = None
 
 class ChangePasswordRequest(BaseModel):
     otp: str = Field(..., min_length=6, max_length=6)
@@ -89,7 +93,9 @@ async def get_organization_settings(
         phone_number=org.phone_number,
         logo_url=org.logo_url,
         brand_color=org.brand_color,
-        queue_templates=org.queue_templates if org.queue_templates is not None else []
+        queue_templates=org.queue_templates if org.queue_templates is not None else [],
+        auto_session_enabled=org.auto_session_enabled,
+        auto_session_time=org.auto_session_time,
     )
 
 @router.put("/settings", response_model=OrganizationSettingsResponse)
@@ -115,10 +121,56 @@ async def update_organization_settings(
     org.address = data.address
     org.phone_number = data.phone_number
     org.brand_color = data.brand_color
+
+    old_active_templates = {t["id"] for t in (org.queue_templates or []) if t.get("isActive") is True}
+
     if data.queue_templates is not None:
         org.queue_templates = data.queue_templates
+    if data.auto_session_enabled is not None:
+        org.auto_session_enabled = data.auto_session_enabled
+    if data.auto_session_time is not None:
+        org.auto_session_time = data.auto_session_time
     
     await db.flush()
+
+    new_active_templates = {t["id"] for t in (org.queue_templates or []) if t.get("isActive") is True}
+    newly_activated = new_active_templates - old_active_templates
+
+    if newly_activated:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        from app.models.session import Session
+        from app.services.queue_service import create_queue
+        from app.schemas.queue import QueueCreate
+
+        local_now = datetime.now(ZoneInfo("Asia/Kolkata"))
+        active_sessions_result = await db.execute(
+            select(Session).where(
+                Session.org_id == org.id,
+                Session.session_date >= local_now.date()
+            )
+        )
+        active_sessions = active_sessions_result.scalars().all()
+
+        for session in active_sessions:
+            for tpl in org.queue_templates:
+                if tpl["id"] in newly_activated:
+                    try:
+                        await create_queue(
+                            db,
+                            org_id=org.id,
+                            session_id=session.id,
+                            data=QueueCreate(
+                                name=tpl.get("name", "Queue"),
+                                prefix=tpl.get("defaultPrefix", "A"),
+                                starting_sequence=tpl.get("startingNumber", 1),
+                                service_lines=tpl.get("serviceLines", 0),
+                                open_time=tpl.get("openTime"),
+                                close_time=tpl.get("closeTime")
+                            )
+                        )
+                    except Exception:
+                        pass # Ignore errors (e.g. queue already exists in this session)
 
     # Notify all active queues to refresh branding
     active_queues = await db.execute(select(Queue).where(Queue.org_id == org.id, Queue.is_active == True))
@@ -133,7 +185,9 @@ async def update_organization_settings(
         phone_number=org.phone_number,
         logo_url=org.logo_url,
         brand_color=org.brand_color,
-        queue_templates=org.queue_templates if org.queue_templates is not None else []
+        queue_templates=org.queue_templates if org.queue_templates is not None else [],
+        auto_session_enabled=org.auto_session_enabled,
+        auto_session_time=org.auto_session_time,
     )
 
 class LogoUploadRequest(BaseModel):

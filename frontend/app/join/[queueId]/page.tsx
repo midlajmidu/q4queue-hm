@@ -191,7 +191,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                     </p>
 
                     <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${serving}`}>
-                        {prefix}{serving}
+                        {!live?.serving_details ? "—" : `${prefix}${serving}`}
                     </div>
 
                     <div className="mt-3 flex justify-center gap-6 text-xs text-blue-200">
