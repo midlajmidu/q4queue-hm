@@ -9,7 +9,7 @@ Design:
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, func, JSON
+from sqlalchemy import Boolean, DateTime, String, func, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -41,6 +41,9 @@ class Organization(Base):
     # ── Clinic Information ─────────────────────────────────────────
     address: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     phone_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    manager_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    manager_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
 
     # ── Limits ─────────────────────────────────────────────────────
     max_sessions: Mapped[int] = mapped_column(default=10, nullable=False)
@@ -60,6 +63,16 @@ class Organization(Base):
     auto_session_time: Mapped[str | None] = mapped_column(String(5), nullable=True) # HH:MM format
 
     # ── Relationships ──────────────────────────────────────────────
+    parent_organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("parent_organizations.id"),
+        nullable=True,
+    )
+
+    parent_organization: Mapped["ParentOrganization | None"] = relationship(  # noqa: F821
+        "ParentOrganization", back_populates="organizations", lazy="noload"
+    )
+
     users: Mapped[list["User"]] = relationship(  # noqa: F821
         "User", back_populates="organization", lazy="noload"
     )

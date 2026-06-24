@@ -106,6 +106,7 @@ class OrgDetail(BaseModel):
     admin_initial_password: str | None = None
     admin_password_changed_at: str | None = None
     logo_url: str | None = None
+    parent_organization_id: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -300,6 +301,7 @@ def _org_to_detail(o: Organization, admin_user: User | None = None) -> OrgDetail
         admin_email=admin_user.email if admin_user else None,
         admin_password_changed_at=admin_user.password_changed_at.isoformat() if admin_user and admin_user.password_changed_at else None,
         logo_url=o.logo_url,
+        parent_organization_id=str(o.parent_organization_id) if o.parent_organization_id else None,
     )
 
 
@@ -733,7 +735,7 @@ async def update_global_settings(
 async def list_organizations(
     search: str = Query(default="", description="Case-insensitive search by name or slug"),
     is_test: Optional[bool] = Query(default=False, description="If True, only show test orgs. If False, hide test orgs."),
-    limit: int = Query(default=10, ge=1, le=100),
+    limit: int = Query(default=10, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     sort_by: Literal["name", "created_at", "is_active"] = Query(default="created_at"),
     sort_order: Literal["asc", "desc"] = Query(default="desc"),

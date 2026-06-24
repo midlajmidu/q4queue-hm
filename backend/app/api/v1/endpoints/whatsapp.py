@@ -33,7 +33,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status, B
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
-from app.core.deps import get_current_super_admin, get_current_admin
+from app.core.deps import get_current_super_admin, require_branch_admin
 from app.db.deps import get_db
 from app.models.user import User
 from app.whatsapp import config_service, template_service, analytics_service, webhook_service
@@ -286,7 +286,7 @@ async def send_test_notification(
     body: TestMessageRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_branch_admin()),
 ) -> dict:
     """Send a test WhatsApp message to verify connectivity."""
     if current_user.org_id is None:
@@ -318,7 +318,7 @@ async def send_test_notification(
 async def get_token_whatsapp_status(
     token_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    _: User = Depends(require_branch_admin()),
 ) -> list:
     """Return WhatsApp delivery statuses for a specific token (queue monitoring icons)."""
     return await analytics_service.get_token_message_status(db, token_id)

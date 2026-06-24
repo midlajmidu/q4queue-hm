@@ -6,7 +6,7 @@ import Sidebar from "@/components/UserSidebar";
 import { TopBar } from "@/components/TopBar";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 
 import { AlertBannerContainer } from "@/components/AlertBannerContainer";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -19,7 +19,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const { user, logout } = useAuth();
     const pathname = usePathname();
-    const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
+    const params = useParams();
+    const orgSlug = params?.orgSlug || user?.org_slug;
+    const dashBase = orgSlug ? `/${orgSlug}/dashboard` : "/dashboard";
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
     const handleCloseSidebar = useCallback(() => {

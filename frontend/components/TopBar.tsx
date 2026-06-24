@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/context/NotificationContext";
 import { createPortal } from "react-dom";
@@ -17,7 +17,9 @@ function NotificationSystem() {
     const btnRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const { user } = useAuth();
-    const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
+    const params = useParams();
+    const orgSlug = params?.orgSlug || user?.org_slug;
+    const dashBase = orgSlug ? `/${orgSlug}/dashboard` : "/dashboard";
     const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
     const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
 

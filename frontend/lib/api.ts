@@ -85,6 +85,20 @@ import type {
     WhatsAppEventStat,
     WhatsAppQueueStat,
     WhatsAppSessionStat,
+    ParentOrganization,
+    ParentOrganizationCreate,
+    ParentOrganizationUpdate,
+    AssignBranchesRequest,
+    OrgAdminCreate,
+    BranchStatItem,
+    OrgAdminDashboardResponse,
+    BranchCreateRequest,
+    BranchUpdateRequest,
+    BranchStatusUpdate,
+    BranchAdminCreateRequest,
+    BranchAdminResetPasswordRequest,
+    BranchDetailResponse,
+    BranchAdminResponse,
 } from "@/types/api";
 
 // ── Error class ──────────────────────────────────────────────────
@@ -135,6 +149,20 @@ async function request<T>(
     // Default content type for JSON bodies
     if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
         headers.set("Content-Type", "application/json");
+    }
+
+    // Try to attach X-Org-Slug from URL pathname for organization_admin branch access
+    if (typeof window !== "undefined") {
+        const pathParts = window.location.pathname.split('/');
+        // Path structure: /[orgSlug]/dashboard
+        if (pathParts.length >= 2) {
+            const potentialSlug = pathParts[1];
+            // Exclude known non-org prefixes
+            const excludedPrefixes = ['super-admin', 'organization-admin', 'login', 'get-started', 'auth'];
+            if (!excludedPrefixes.includes(potentialSlug)) {
+                headers.set("X-Org-Slug", potentialSlug);
+            }
+        }
     }
 
     let resp: Response;
@@ -664,6 +692,222 @@ export const api = {
         });
     },
 
+    // ── Parent Organizations ─────────────────────────────────────────
+    listParentOrganizations(): Promise<ParentOrganization[]> {
+        return request<ParentOrganization[]>("/parent-organizations");
+    },
+    
+    createParentOrganization(data: ParentOrganizationCreate): Promise<ParentOrganization> {
+        return request<ParentOrganization>("/parent-organizations", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+    
+    getParentOrganization(id: string): Promise<ParentOrganization> {
+        return request<ParentOrganization>(`/parent-organizations/${id}`);
+    },
+    
+    updateParentOrganization(id: string, data: ParentOrganizationUpdate): Promise<ParentOrganization> {
+        return request<ParentOrganization>(`/parent-organizations/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+    
+    deleteParentOrganization(id: string): Promise<{ message: string }> {
+        return request<{ message: string }>(`/parent-organizations/${id}`, {
+            method: "DELETE",
+        });
+    },
+    
+    assignBranchesToParent(id: string, data: AssignBranchesRequest): Promise<{ message: string }> {
+        return request<{ message: string }>(`/parent-organizations/${id}/assign-branches`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+    
+    getParentBranches(id: string): Promise<OrgDetail[]> {
+        return request<OrgDetail[]>(`/parent-organizations/${id}/branches`);
+    },
+    
+    createOrganizationAdmin(id: string, data: OrgAdminCreate): Promise<User> {
+        return request<User>(`/parent-organizations/${id}/admins`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    getParentAdmins(id: string): Promise<User[]> {
+        return request<User[]>(`/parent-organizations/${id}/admins`);
+    },
+    
+    // ── Organization Admin Dashboard ──────────────────────────────────
+    getOrgAdminDashboard: (branchId?: string) => {
+        const query = branchId ? `?branch_id=${branchId}` : '';
+        return request<any>(`/organization-admin/dashboard${query}`);
+    },
+    getOrgAdminBranchesOverview: () => {
+        return request<any[]>("/organization-admin/branches");
+    },
+    getOrgAdminBranchSummary: (orgId: string) => {
+        return request<any>(`/organization-admin/branch/${orgId}/summary`);
+    },
+    getOrgAdminAnalytics: (branchId?: string) => {
+        const query = branchId ? `?branch_id=${branchId}` : '';
+        return request<any>(`/organization-admin/analytics${query}`);
+    },
+    getOrgAdminSessions: (branchId?: string) => {
+        const query = branchId ? `?branch_id=${branchId}` : '';
+        return request<any[]>(`/organization-admin/monitoring/sessions${query}`);
+    },
+    getOrgAdminQueues: (branchId?: string) => {
+        const query = branchId ? `?branch_id=${branchId}` : '';
+        return request<any[]>(`/organization-admin/monitoring/queues${query}`);
+    },
+    getOrgAdminStaff: (branchId?: string) => {
+        const query = branchId ? `?branch_id=${branchId}` : '';
+        return request<any[]>(`/organization-admin/monitoring/staff${query}`);
+    },
+    deleteOrgAdminStaff: (userId: string) => {
+        return request<any>(`/organization-admin/operations/staff/${userId}`, {
+            method: "DELETE"
+        });
+    },
+    getOrgAdminWhatsApp: (branchId?: string) => {
+        const query = branchId ? `?branch_id=${branchId}` : '';
+        return request<any[]>(`/organization-admin/monitoring/whatsapp${query}`);
+    },
+    getOrgAdminAudit: (branchId?: string) => {
+        const query = branchId ? `?branch_id=${branchId}` : '';
+        return request<any[]>(`/organization-admin/monitoring/audit${query}`);
+    },
+
+    // ── Phase 4: Enterprise Operations ──────────────────────────────────
+    getOrgAdminSettings: () => {
+        return request<any>("/organization-admin/settings");
+    },
+    updateOrgAdminSettings: (data: any) => {
+        return request<any>("/organization-admin/settings", {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+    getOrgAdminAnnouncements: () => {
+        return request<any[]>("/organization-admin/announcements");
+    },
+    createOrgAdminAnnouncement: (data: any) => {
+        return request<any>("/organization-admin/announcements", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+    triggerOrgAdminExport: (data: any) => {
+        return request<any>("/organization-admin/exports", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+    triggerOrgAdminBackup: () => {
+        return request<any>("/organization-admin/backups", {
+            method: "POST",
+        });
+    },
+    globalOrgAdminSearch: (query: string) => {
+        return request<any[]>(`/organization-admin/search?q=${encodeURIComponent(query)}`);
+    },
+    getOrgAdminHealth: () => {
+        return request<any>("/organization-admin/health");
+    },
+    getOrgAdminBranchOperations: (branchId: string) => {
+        return request<any>(`/organization-admin/operations/${branchId}`);
+    },
+    updateOrgAdminBranchStatus: (branchId: string, isActive: boolean) => {
+        return request<any>(`/organization-admin/operations/${branchId}/status`, {
+            method: "PATCH",
+            body: JSON.stringify({ is_active: isActive }),
+        });
+    },
+    listBranches: () => {
+        return request<BranchStatItem[]>("/organization-admin/branches"); // (Needs to call the older endpoint or maybe it was overwritten. Actually I overwrote /organization-admin/branches)
+    },
+    createBranch: (data: BranchCreateRequest) => {
+        return request<BranchStatItem>("/organization-admin/branches", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+    getBranchDetails: (id: string) => {
+        return request<BranchDetailResponse>(`/organization-admin/branches/${id}`);
+    },
+
+    // ── Enterprise Branch Details (Operations Center) ───────────
+    getBranchSummary: (branchId: string) => {
+        return request<any>(`/organization-admin/operations/${branchId}/summary`);
+    },
+    getBranchPerformance: (branchId: string) => {
+        return request<any>(`/organization-admin/operations/${branchId}/performance`);
+    },
+    getBranchQueuesOverview: (branchId: string) => {
+        return request<any[]>(`/organization-admin/operations/${branchId}/queues`);
+    },
+    getBranchSessionsOverview: (branchId: string) => {
+        return request<any[]>(`/organization-admin/operations/${branchId}/sessions`);
+    },
+    getBranchStaffOverview: (branchId: string) => {
+        return request<any[]>(`/organization-admin/operations/${branchId}/staff`);
+    },
+    getBranchAdminsOverview: (branchId: string) => {
+        return request<any[]>(`/organization-admin/operations/${branchId}/admins`);
+    },
+    getBranchWhatsAppStats: (branchId: string) => {
+        return request<any>(`/organization-admin/operations/${branchId}/whatsapp`);
+    },
+    getBranchHealth: (branchId: string) => {
+        return request<any>(`/organization-admin/operations/${branchId}/health`);
+    },
+    getBranchTimeline: (branchId: string) => {
+        return request<any[]>(`/organization-admin/operations/${branchId}/timeline`);
+    },
+    getBranchAlerts: (branchId: string) => {
+        return request<any[]>(`/organization-admin/operations/${branchId}/alerts`);
+    },
+    getBranchContactDetails: (branchId: string) => {
+        return request<any>(`/organization-admin/operations/${branchId}/contact`);
+    },
+    updateBranchContactDetails: (branchId: string, data: any) => {
+        return request<any>(`/organization-admin/operations/${branchId}/contact`, {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateBranch: (id: string, data: BranchUpdateRequest) => {
+        return request<BranchStatItem>(`/organization-admin/branches/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+    updateBranchStatus: (id: string, is_active: boolean) => {
+        return request<BranchStatItem>(`/organization-admin/branches/${id}/status`, {
+            method: "PATCH",
+            body: JSON.stringify({ is_active }),
+        });
+    },
+    createBranchAdmin: (id: string, data: BranchAdminCreateRequest) => {
+        return request<BranchAdminResponse>(`/organization-admin/branches/${id}/admins`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+    resetBranchAdminPassword: (id: string, adminId: string, data: BranchAdminResetPasswordRequest) => {
+        return request<{message: string}>(`/organization-admin/branches/${id}/reset-password?admin_id=${adminId}`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
     // ── Organization Settings ────────────────────────────────────────
 
     getMyProfile(): Promise<User> {
@@ -840,3 +1084,67 @@ export const api = {
         return request(`/track/${trackingId}`, { method: "DELETE" });
     },
 } as const;
+
+
+// ==========================================
+// Organization Exports APIs
+// ==========================================
+
+
+export const requestExport = async (payload: { report_type: string, format: string, date_range: string, custom_start_date?: string, custom_end_date?: string, branch_ids?: string[] }, token: string) => {
+    const response = await fetch(`${config.apiBaseUrl}/organization-admin/exports`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to request export');
+    }
+    return response.json();
+};
+
+export const getExports = async (token: string) => {
+    const response = await fetch(`${config.apiBaseUrl}/organization-admin/exports`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    if (!response.ok) throw new Error('Failed to fetch exports');
+    return response.json();
+};
+
+export const downloadExport = async (jobId: string, filename: string, token: string) => {
+    const response = await fetch(`${config.apiBaseUrl}/organization-admin/exports/${jobId}/download`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to download export');
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'export_file';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+};
+
+
+export const getDistinctQueues = async (branchId: string, token: string) => {
+    const response = await fetch(`${config.apiBaseUrl}/organization-admin/branches/${branchId}/queues/distinct`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    if (!response.ok) throw new Error('Failed to fetch distinct queues');
+    return response.json();
+};

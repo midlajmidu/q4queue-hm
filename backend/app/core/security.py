@@ -40,6 +40,7 @@ def create_access_token(
     *,
     user_id: str,
     org_id: str | None,
+    parent_org_id: str | None = None,
     role: str,
     email: str,
     org_slug: str | None = None,
@@ -68,6 +69,7 @@ def create_access_token(
     payload: dict[str, Any] = {
         "sub": user_id,
         "org_id": org_id,
+        "parent_org_id": parent_org_id,
         "org_slug": org_slug,
         "org_name": org_name,
         "org_logo_url": org_logo_url,

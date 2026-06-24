@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
-from app.core.deps import get_current_admin, get_current_super_admin
+from app.core.deps import require_branch_admin, get_current_super_admin
 from app.db.deps import get_db
 from app.models.user import User
 from app.whatsapp import config_service, analytics_service
@@ -33,7 +33,7 @@ class NotificationSettingsUpdate(BaseModel):
 async def update_org_settings(
     body: NotificationSettingsUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_branch_admin()),
 ) -> dict:
     if current_user.org_id is None:
         raise HTTPException(status_code=403, detail="No organization context")
@@ -72,7 +72,7 @@ async def update_org_settings(
 @router.get("/settings", summary="Get Org WhatsApp Settings")
 async def get_org_settings(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_branch_admin()),
 ) -> dict:
     if current_user.org_id is None:
         raise HTTPException(status_code=403, detail="No organization context")
@@ -84,7 +84,7 @@ async def get_org_settings(
 @router.get("/overview", summary="WhatsApp Analytics Overview")
 async def get_analytics_overview(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_branch_admin()),
 ) -> dict:
     """Return overall sent, delivered, read, failed counts."""
     if current_user.org_id is None:
@@ -95,7 +95,7 @@ async def get_analytics_overview(
 @router.get("/events", summary="Analytics Grouped by Event")
 async def get_analytics_events(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_branch_admin()),
 ) -> list:
     """Return counts grouped by event_type."""
     if current_user.org_id is None:
@@ -106,7 +106,7 @@ async def get_analytics_events(
 @router.get("/queues", summary="Analytics Grouped by Queue")
 async def get_analytics_queues(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_branch_admin()),
 ) -> list:
     """Return counts grouped by queue."""
     if current_user.org_id is None:
@@ -117,7 +117,7 @@ async def get_analytics_queues(
 @router.get("/sessions", summary="Analytics Grouped by Session")
 async def get_analytics_sessions(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_branch_admin()),
 ) -> list:
     """Return counts grouped by session."""
     if current_user.org_id is None:
@@ -138,7 +138,7 @@ async def get_analytics_history(
     queue_id: Optional[uuid.UUID] = Query(None),
     session_id: Optional[uuid.UUID] = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_branch_admin()),
 ) -> dict:
     """Paginated detailed message log with advanced filtering."""
     if current_user.org_id is None:

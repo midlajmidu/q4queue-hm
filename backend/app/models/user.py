@@ -44,6 +44,12 @@ class User(Base):
         nullable=True,
         index=True,           # mandatory: ALL queries filter by org_id (unless super_admin)
     )
+    parent_organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("parent_organizations.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     first_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(50), nullable=True)

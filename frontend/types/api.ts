@@ -70,6 +70,125 @@ export interface JwtPayload {
 
 // ── Queue ────────────────────────────────────────────────────────
 // ── Session ──────────────────────────────────────────────────────
+export interface SystemMonitoringResponse {
+    status: string;
+    services: {
+        database: string;
+        redis: string;
+        storage: string;
+    };
+    version: string;
+    environment: string;
+}
+
+// ── Parent Organizations ──────────────────────────────────────────
+export interface ParentOrganization {
+    id: string;
+    name: string;
+    slug: string;
+    contact_email?: string;
+    contact_phone?: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ParentOrganizationCreate {
+    name: string;
+    slug: string;
+    contact_email?: string;
+    contact_phone?: string;
+    is_active?: boolean;
+}
+
+export interface ParentOrganizationUpdate {
+    name?: string;
+    slug?: string;
+    contact_email?: string;
+    contact_phone?: string;
+    is_active?: boolean;
+}
+
+export interface AssignBranchesRequest {
+    branch_ids: string[];
+}
+
+export interface OrgAdminCreate {
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+}
+
+export interface BranchStatItem {
+    id: string;
+    name: string;
+    slug: string;
+    is_active: boolean;
+    created_at: string;
+}
+
+export interface OrgAdminDashboardResponse {
+    organization_name: string;
+    branch_count: number;
+    active_branches: number;
+    inactive_branches: number;
+    admin_count: number;
+    staff_count: number;
+    branches: BranchStatItem[];
+}
+
+export interface BranchCreateRequest {
+    name: string;
+    slug: string;
+    address?: string | null;
+    phone_number?: string | null;
+    brand_color?: string | null;
+}
+
+export interface BranchUpdateRequest {
+    name?: string | null;
+    address?: string | null;
+    phone_number?: string | null;
+    brand_color?: string | null;
+}
+
+export interface BranchStatusUpdate {
+    is_active: boolean;
+}
+
+export interface BranchAdminCreateRequest {
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+}
+
+export interface BranchAdminResetPasswordRequest {
+    new_password: string;
+}
+
+export interface BranchAdminResponse {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    created_at: string;
+    is_active: boolean;
+}
+
+export interface BranchDetailResponse extends BranchStatItem {
+    address?: string | null;
+    phone_number?: string | null;
+    brand_color?: string | null;
+    logo_url?: string | null;
+    admin_count: number;
+    staff_count: number;
+    queue_count: number;
+    session_count: number;
+    admins: BranchAdminResponse[];
+}
+
 export interface SessionResponse {
     id: string;
     org_id: string;
@@ -411,6 +530,7 @@ export interface OrgDetail {
     admin_initial_password?: string | null;
     admin_password_changed_at?: string | null;
     logo_url?: string | null;
+    parent_organization_id?: string | null;
 }
 
 export interface OrgDetailExtended extends OrgDetail {

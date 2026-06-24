@@ -100,12 +100,16 @@ export function useAuth(): UseAuthReturn {
                 setUser(currentUser);
                 
                 if (response.force_password_change) {
-                    if (!currentUser || !currentUser.org_slug) {
+                    if (currentUser && currentUser.role === "organization_admin") {
+                        router.push(`/organization-admin/change-password`);
+                    } else if (currentUser && (currentUser.role === "admin" || currentUser.role === "staff")) {
                         router.push('/super-admin/change-password');
                     } else {
-                        router.push(`/${currentUser.org_slug}/change-password`);
+                        router.push(`/${currentUser?.org_slug}/change-password`);
                     }
-                } else if (currentUser && currentUser.org_slug) {
+                } else if (currentUser && currentUser.role === "organization_admin") {
+                    router.push(`/organization-admin`);
+                } else if (currentUser && (currentUser.role === "admin" || currentUser.role === "staff")) {
                     router.push(`/${currentUser.org_slug}/dashboard`);
                 } else {
                     router.push("/dashboard");

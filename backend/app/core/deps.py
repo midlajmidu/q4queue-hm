@@ -81,6 +81,10 @@ async def get_current_user(
         if org_id_raw is not None:
             logger.warning("Super admin token provided with org_id")
             raise _CREDENTIALS_EXCEPTION
+    elif role_raw == "organization_admin":
+        if org_id_raw is not None:
+            logger.warning("Org admin token provided with org_id")
+            raise _CREDENTIALS_EXCEPTION
     else:
         if org_id_raw is None:
             logger.warning("Normal token missing org_id claim")
@@ -99,6 +103,17 @@ async def get_current_user(
             select(User).where(
                 User.id == user_id,
                 User.org_id == org_id,    # ← TENANT ISOLATION enforced
+            )
+        )
+    elif role_raw == "organization_admin":
+        parent_org_id_raw = payload.get("parent_org_id")
+        if not parent_org_id_raw:
+            raise _CREDENTIALS_EXCEPTION
+        parent_org_id = uuid.UUID(parent_org_id_raw)
+        result = await db.execute(
+            select(User).where(
+                User.id == user_id,
+                User.parent_organization_id == parent_org_id,
             )
         )
     else:
@@ -121,8 +136,12 @@ async def get_current_user(
     return user
 
 
+from fastapi import Request
+
 async def get_current_active_user(
+    request: Request,
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """
     Convenience alias — handy for routes that want an explicit
@@ -134,6 +153,25 @@ async def get_current_active_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="force_password_change"
         )
+        
+    # If organization_admin, allow them to view a branch by providing X-Org-Slug
+    if current_user.role == "organization_admin":
+        x_org_slug = request.headers.get("x-org-slug")
+        if x_org_slug:
+            from app.models.organization import Organization
+            from sqlalchemy import select
+            res = await db.execute(
+                select(Organization).where(
+                    Organization.slug == x_org_slug,
+                    Organization.parent_organization_id == current_user.parent_organization_id
+                )
+            )
+            branch = res.scalar_one_or_none()
+            if branch:
+                # We dynamically set org_id on this request's user instance
+                # This works because we don't commit this user instance back to the DB
+                current_user.org_id = branch.id
+                
     return current_user
 
 
@@ -176,6 +214,18 @@ async def get_current_super_admin(
     return current_user
 
 
+async def get_current_org_admin(
+    current_user: User = Depends(get_current_active_user),
+) -> User:
+    """Allows access only to organization_admin."""
+    if current_user.role != "organization_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Organization Admin access required",
+        )
+    return current_user
+
+
 def require_super_admin() -> Callable:
     """
     Dependency that enforces the user has the 'super_admin' role.
@@ -183,6 +233,26 @@ def require_super_admin() -> Callable:
         user = Depends(require_super_admin())
     """
     return get_current_super_admin
+
+def require_organization_admin() -> Callable:
+    """
+    Dependency that enforces the user has the 'organization_admin' role.
+    Usage:
+        user = Depends(require_organization_admin())
+    """
+    return get_current_org_admin
+
+def require_branch_admin() -> Callable:
+    """
+    Dependency that enforces the user has the 'admin' role at a branch level.
+    """
+    return get_current_admin
+
+def require_branch_admin_or_staff() -> Callable:
+    """
+    Dependency that enforces the user has 'admin' or 'staff' role at a branch level.
+    """
+    return get_current_admin_or_staff
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -202,12 +272,21 @@ async def get_queue_for_org(
     whether the resource exists in another tenant.
     """
     from app.models.queue import Queue as QueueModel
-    result = await db.execute(
-        select(QueueModel).where(
-            QueueModel.id == queue_id,
-            QueueModel.org_id == current_user.org_id,  # TENANT ISOLATION
+    from app.models.organization import Organization
+    if current_user.role == "organization_admin":
+        result = await db.execute(
+            select(QueueModel).join(Organization, Organization.id == QueueModel.org_id).where(
+                QueueModel.id == queue_id,
+                Organization.parent_organization_id == current_user.parent_organization_id
+            )
         )
-    )
+    else:
+        result = await db.execute(
+            select(QueueModel).where(
+                QueueModel.id == queue_id,
+                QueueModel.org_id == current_user.org_id,  # TENANT ISOLATION
+            )
+        )
     queue = result.scalar_one_or_none()
     if queue is None:
         raise HTTPException(

@@ -30,6 +30,7 @@ async def record_event(
     *,
     event_type: str,
     org_id: Optional[uuid.UUID] = None,
+    parent_org_id: Optional[uuid.UUID] = None,
     user_id: Optional[uuid.UUID] = None,
     ip_address: Optional[str] = None,
     resource_type: Optional[str] = None,
@@ -45,6 +46,7 @@ async def record_event(
             log = AuditLog(
                 event_type=event_type,
                 org_id=org_id,
+                parent_organization_id=parent_org_id,
                 user_id=user_id,
                 ip_address=ip_address,
                 resource_type=resource_type,

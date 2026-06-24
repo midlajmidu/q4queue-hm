@@ -9,7 +9,7 @@ Security rules enforced here:
 """
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import select, or_, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token, verify_password
@@ -44,7 +44,40 @@ async def authenticate_user(
     """
     logger.info("Login attempt | org_slug=%s email=%s", org_slug, email)
 
-    # ── 1. Resolve organization ────────────────────────────────────
+    # ── 1. Check if org_slug is a ParentOrganization (Organization Admin Login) ──
+    from app.models.parent_organization import ParentOrganization
+    parent_org_result = await db.execute(
+        select(ParentOrganization).where(ParentOrganization.slug == org_slug)
+    )
+    parent_org: ParentOrganization | None = parent_org_result.scalar_one_or_none()
+
+    if parent_org and parent_org.is_active:
+        user_result = await db.execute(
+            select(User).where(
+                User.email == email,
+                User.parent_organization_id == parent_org.id,
+                User.role == "organization_admin"
+            )
+        )
+        user: User | None = user_result.scalar_one_or_none()
+        
+        if user and user.is_active and verify_password(plain_password, user.password_hash):
+            token = create_access_token(
+                user_id=str(user.id),
+                org_id=None,
+                parent_org_id=str(parent_org.id),
+                role=user.role,
+                email=user.email,
+                org_slug=parent_org.slug,
+                org_name=parent_org.name,
+                org_logo_url=None,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                is_first_login=user.is_first_login,
+            )
+            return token, user
+
+    # ── 2. Resolve organization (Branch Login) ────────────────────────────────────
     org_result = await db.execute(
         select(Organization).where(Organization.slug == org_slug)
     )
@@ -58,11 +91,18 @@ async def authenticate_user(
         logger.warning("Login failed: org inactive | slug=%s", org_slug)
         raise ValueError(_INVALID_CREDENTIALS)
 
-    # ── 2. Find user scoped to THIS org only ───────────────────────
+    # ── 3. Find user scoped to THIS org only ───────────────────────
     user_result = await db.execute(
         select(User).where(
             User.email == email,
-            User.org_id == org.id,        # ← TENANT ISOLATION
+            or_(
+                User.org_id == org.id,        # ← TENANT ISOLATION
+                and_(
+                    User.role == "organization_admin",
+                    User.parent_organization_id == org.parent_organization_id,
+                    User.parent_organization_id.is_not(None)
+                )
+            )
         )
     )
     user: User | None = user_result.scalar_one_or_none()
@@ -71,20 +111,21 @@ async def authenticate_user(
         logger.warning("Login failed: user not found | email=%s org=%s", email, org_slug)
         raise ValueError(_INVALID_CREDENTIALS)
 
-    # ── 3. Verify password (constant-time bcrypt) ──────────────────
+    # ── 4. Verify password (constant-time bcrypt) ──────────────────
     if not verify_password(plain_password, user.password_hash):
         logger.warning("Login failed: bad password | email=%s org=%s", email, org_slug)
         raise ValueError(_INVALID_CREDENTIALS)
 
-    # ── 4. Active check ────────────────────────────────────────────
+    # ── 5. Active check ────────────────────────────────────────────
     if not user.is_active:
         logger.warning("Login failed: user inactive | email=%s org=%s", email, org_slug)
         raise ValueError(_INVALID_CREDENTIALS)
 
-    # ── 5. Issue JWT ───────────────────────────────────────────────
+    # ── 6. Issue JWT ───────────────────────────────────────────────
     token = create_access_token(
         user_id=str(user.id),
-        org_id=str(org.id),
+        org_id=str(org.id) if user.role != "organization_admin" else None,
+        parent_org_id=str(user.parent_organization_id) if user.parent_organization_id else None,
         role=user.role,
         email=user.email,
         org_slug=org.slug,

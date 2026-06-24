@@ -16,13 +16,16 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [loginType, setLoginType] = useState<"staff" | "org_admin">("staff");
 
     // Redirect to dashboard if already logged in
     useEffect(() => {
         if (isHydrated && isAuthenticated && user) {
             if (user.role === "super_admin") {
                 router.replace("/super-admin");
-            } else if (user.org_slug) {
+            } else if (user.role === "organization_admin") {
+                router.replace(`/organization-admin`);
+            } else if (user.role === "admin" || user.role === "staff") {
                 router.replace(`/${user.org_slug}/dashboard`);
             } else {
                 router.replace("/dashboard");
@@ -69,6 +72,31 @@ export default function LoginPage() {
                         <p className="text-sm text-muted-foreground mt-1.5">Enter your credentials to continue</p>
                     </div>
 
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-6">
+                        <button
+                            type="button"
+                            onClick={() => setLoginType("staff")}
+                            className={`flex-1 text-sm font-medium py-2 rounded-lg transition-colors ${
+                                loginType === "staff" 
+                                ? "bg-white dark:bg-slate-900 shadow-sm text-indigo-600" 
+                                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+                            }`}
+                        >
+                            Branch Staff
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setLoginType("org_admin")}
+                            className={`flex-1 text-sm font-medium py-2 rounded-lg transition-colors ${
+                                loginType === "org_admin" 
+                                ? "bg-white dark:bg-slate-900 shadow-sm text-indigo-600" 
+                                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+                            }`}
+                        >
+                            Org Admin
+                        </button>
+                    </div>
+
                     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                         <AnimatePresence>
                             {error && (
@@ -86,13 +114,15 @@ export default function LoginPage() {
                         </AnimatePresence>
 
                         <div>
-                            <label htmlFor="org-slug" className="block text-sm font-semibold text-foreground mb-1.5">Organization Slug</label>
+                            <label htmlFor="org-slug" className="block text-sm font-semibold text-foreground mb-1.5">
+                                {loginType === "staff" ? "Branch Slug" : "Organization Slug"}
+                            </label>
                             <input
                                 id="org-slug"
                                 type="text"
                                 value={orgSlug}
                                 onChange={(e) => setOrgSlug(e.target.value)}
-                                placeholder="your-org"
+                                placeholder={loginType === "staff" ? "branch-slug" : "organization-slug"}
                                 required
                                 autoComplete="organization"
                                 className="w-full rounded-xl border border-input bg-white/50 px-4 py-2.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-muted-foreground"

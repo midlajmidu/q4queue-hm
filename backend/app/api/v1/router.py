@@ -12,6 +12,14 @@ from app.api.v1.endpoints import (
     super_admin,
     staff,
     organization,
+    parent_organizations,
+    organization_admin,
+    organization_admin_monitoring,
+    organization_admin_settings,
+    organization_admin_announcements,
+    organization_admin_exports,
+    organization_admin_backups,
+    organization_admin_operations,
     sessions,
     analytics,
     messages,
@@ -55,6 +63,14 @@ api_router.include_router(messages.router, prefix="/messages", tags=["Messages"]
 
 # ── Organization ───────────────────────────────────────────────────
 api_router.include_router(organization.router, prefix="/organization", tags=["Organization"])
+api_router.include_router(parent_organizations.router, prefix="/parent-organizations", tags=["Parent Organizations"])
+api_router.include_router(organization_admin.router, prefix="/organization-admin", tags=["Organization Admin"])
+api_router.include_router(organization_admin_monitoring.router, prefix="/organization-admin", tags=["Organization Admin Monitoring"])
+api_router.include_router(organization_admin_settings.router, prefix="/organization-admin", tags=["Organization Admin Settings"])
+api_router.include_router(organization_admin_announcements.router, prefix="/organization-admin", tags=["Organization Admin Announcements"])
+api_router.include_router(organization_admin_exports.router, prefix="/organization-admin", tags=["Organization Admin Exports"])
+api_router.include_router(organization_admin_backups.router, prefix="/organization-admin", tags=["Organization Admin Backups"])
+api_router.include_router(organization_admin_operations.router, prefix="/organization-admin", tags=["Organization Admin Operations"])
 
 # ── Super Admin ────────────────────────────────────────────────────
 api_router.include_router(super_admin.router, prefix="/super-admin", tags=["Super Admin"])

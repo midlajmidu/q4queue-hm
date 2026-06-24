@@ -108,6 +108,7 @@ async def change_first_password(
     # Issue a fresh token because the old one has `is_first_login=True` in payload
     # Let's load organization explicitly
     from app.models.organization import Organization
+    from app.models.parent_organization import ParentOrganization
     from sqlalchemy import select
     org_slug, org_name, org_logo_url = None, None, None
     if current_user.org_id:
@@ -115,6 +116,11 @@ async def change_first_password(
         org = org_res.scalar_one_or_none()
         if org:
             org_slug, org_name, org_logo_url = org.slug, org.name, org.logo_url
+    elif current_user.parent_organization_id:
+        parent_org_res = await db.execute(select(ParentOrganization).where(ParentOrganization.id == current_user.parent_organization_id))
+        parent_org = parent_org_res.scalar_one_or_none()
+        if parent_org:
+            org_slug, org_name = parent_org.slug, parent_org.name
             
     token = create_access_token(
         user_id=str(current_user.id),

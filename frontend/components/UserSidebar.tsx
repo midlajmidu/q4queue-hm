@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/ui/Logo";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -33,8 +33,10 @@ function Tip({ label, show, children }: { label: string; show: boolean; children
 export default function UserSidebar({ isOpen, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
     const { user, logout } = useAuth();
     const pathname = usePathname();
+    const params = useParams();
+    const orgSlug = params?.orgSlug || user?.org_slug;
+    const dashBase = orgSlug ? `/${orgSlug}/dashboard` : "/dashboard";
     const isAdmin = user?.role === "admin";
-    const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [supportContact, setSupportContact] = useState<{support_email: string, support_phone: string} | null>(null);
     const { unreadCount } = useNotifications();

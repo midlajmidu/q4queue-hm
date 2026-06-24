@@ -30,8 +30,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import (
     get_current_active_user,
-    get_current_admin_or_staff,
-    get_current_admin,
+    require_branch_admin_or_staff,
+    require_branch_admin,
     get_queue_for_org,
     get_admin_queue_for_org,
     get_admin_or_staff_queue_for_org,
@@ -87,7 +87,7 @@ def _raise_403(exc: Exception) -> None:
 async def create_queue(
     body: QueueCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_branch_admin()),
 ) -> QueueResponse:
     """Create a new queue for the authenticated organization."""
     try:
@@ -135,7 +135,7 @@ async def get_queue(
 )
 async def list_tokens(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin_or_staff),
+    current_user: User = Depends(require_branch_admin_or_staff()),
     queue: Queue = Depends(get_queue_for_org),
 ) -> list[TokenResponse]:
     """
@@ -471,7 +471,7 @@ async def serve_specific_token(
     token_number: int,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin_or_staff),
+    current_user: User = Depends(require_branch_admin_or_staff()),
     queue: Queue = Depends(get_queue_for_org),
 ) -> NextResponse:
     """
@@ -519,7 +519,7 @@ async def call_next(
     action: str = "done",
     line_number: int | None = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin_or_staff),
+    current_user: User = Depends(require_branch_admin_or_staff()),
     queue: Queue = Depends(get_queue_for_org),
 ) -> Union[NextResponse, NoTokenResponse]:
     """
@@ -570,7 +570,7 @@ async def clear_line(
     line_number: int,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin_or_staff),
+    current_user: User = Depends(require_branch_admin_or_staff()),
     queue: Queue = Depends(get_queue_for_org),
 ) -> None:
     """

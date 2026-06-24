@@ -22,7 +22,11 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
             if (currentUser && currentUser.is_first_login) {
                 const isAlreadyOnChangePassword = pathname.endsWith("/change-password");
                 if (!isAlreadyOnChangePassword) {
-                    if (currentUser.org_slug) {
+                    if (currentUser.role === "organization_admin") {
+                        router.replace(`/organization-admin/change-password`);
+                    } else if (currentUser.role === "super_admin") {
+                        router.replace(`/${currentUser.org_slug}/change-password`);
+                    } else if (currentUser.org_slug) {
                         router.replace(`/${currentUser.org_slug}/change-password`);
                     } else {
                         router.replace('/super-admin/change-password');
