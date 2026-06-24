@@ -68,18 +68,23 @@ export default function AssignBranchesModal({ parentOrg, isOpen, onClose }: Prop
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6" style={{ maxHeight: "90vh", overflowY: "auto" }}>
-                <h3 className="text-lg font-bold text-slate-900 mb-4">Assign Branches to {parentOrg.name}</h3>
+            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative bg-slate-900 border border-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200" style={{ maxHeight: "90vh", overflowY: "auto" }}>
+                <h3 className="text-lg font-bold text-white mb-4">Assign Branches to {parentOrg.name}</h3>
                 
                 {loading ? (
-                    <div className="py-8 flex justify-center text-slate-500">Loading branches...</div>
+                    <div className="py-8 flex justify-center text-slate-400">Loading branches...</div>
                 ) : (
                     <div className="space-y-4">
-                        <p className="text-sm text-slate-600">Select which branches belong to this parent organization. You can assign multiple branches, but a branch can only belong to one parent at a time.</p>
+                        <p className="text-sm text-slate-300">Select which branches belong to this parent organization. You can assign multiple branches, but a branch can only belong to one parent at a time.</p>
                         
-                        <div className="border border-slate-200 rounded-lg overflow-y-auto max-h-64 divide-y divide-slate-100">
-                            <div className="space-y-2 max-h-96 overflow-y-auto mt-2 pr-2">
+                        {allBranches.length === 0 ? (
+                            <div className="border border-slate-800 rounded-lg p-8 text-center bg-slate-900/50">
+                                <p className="text-sm font-medium text-slate-300">No branches available</p>
+                                <p className="text-xs text-slate-500 mt-1">There are no branches in the system to assign.</p>
+                            </div>
+                        ) : (
+                            <div className="border border-slate-800 rounded-lg overflow-y-auto max-h-72 bg-slate-950/30 p-2 space-y-2 custom-scrollbar">
                                 {allBranches.map((branch) => {
                                     const isAssignedToOther = branch.parent_organization_id && branch.parent_organization_id !== parentOrg.id;
                                     
@@ -88,8 +93,8 @@ export default function AssignBranchesModal({ parentOrg, isOpen, onClose }: Prop
                                             key={branch.id} 
                                             className={`flex items-center px-4 py-3 border rounded-lg transition-colors ${
                                                 isAssignedToOther 
-                                                    ? "opacity-60 cursor-not-allowed bg-slate-50 border-slate-200" 
-                                                    : "hover:bg-slate-50 cursor-pointer border-slate-200"
+                                                    ? "opacity-60 cursor-not-allowed bg-slate-950/50 border-slate-800/50" 
+                                                    : "hover:bg-white/5 cursor-pointer bg-slate-900 border-slate-800"
                                             }`}
                                         >
                                             <input
@@ -97,30 +102,30 @@ export default function AssignBranchesModal({ parentOrg, isOpen, onClose }: Prop
                                                 checked={selectedBranchIds.has(branch.id)}
                                                 disabled={!!isAssignedToOther}
                                                 onChange={() => toggleBranch(branch.id)}
-                                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 disabled:opacity-50 rounded"
+                                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500/20 bg-slate-950 border-slate-700 disabled:opacity-50 rounded cursor-pointer"
                                             />
                                             <div className="ml-3 flex-1">
                                                 <div className="flex justify-between items-center">
-                                                    <div className="text-sm font-medium text-slate-900">{branch.name}</div>
+                                                    <div className="text-sm font-medium text-slate-200">{branch.name}</div>
                                                     {isAssignedToOther && (
-                                                        <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase bg-slate-200 text-slate-600">
+                                                        <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase border bg-slate-800 text-slate-400 border-slate-700">
                                                             Already Assigned
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="text-xs text-slate-500">Slug: {branch.slug}</div>
+                                                <div className="text-xs text-slate-400">Slug: {branch.slug}</div>
                                             </div>
                                         </label>
                                     );
                                 })}
                             </div>
-                        </div>
+                        )}
 
                         <div className="pt-4 flex justify-end gap-3">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+                                className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition-colors"
                             >
                                 Cancel
                             </button>
@@ -128,7 +133,7 @@ export default function AssignBranchesModal({ parentOrg, isOpen, onClose }: Prop
                                 type="button"
                                 onClick={handleSave}
                                 disabled={saving}
-                                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 disabled:opacity-50 transition-all duration-200"
                             >
                                 {saving ? "Saving..." : "Save Assignments"}
                             </button>

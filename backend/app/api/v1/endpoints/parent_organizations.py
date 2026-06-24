@@ -1,6 +1,7 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, update
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import select, update, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
@@ -13,6 +14,7 @@ from app.schemas.parent_organization import (
     ParentOrganizationCreate,
     ParentOrganizationUpdate,
     ParentOrganizationResponse,
+    ParentOrganizationPage,
     AssignBranchesRequest,
     OrgAdminCreate
 )
@@ -22,7 +24,7 @@ from app.core.security import hash_password
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@router.post("/", response_model=ParentOrganizationResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ParentOrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def create_parent_organization(
     data: ParentOrganizationCreate,
     db: AsyncSession = Depends(get_db),
@@ -45,13 +47,68 @@ async def create_parent_organization(
     await db.refresh(parent_org)
     return parent_org
 
-@router.get("/", response_model=list[ParentOrganizationResponse])
+@router.get("", response_model=ParentOrganizationPage)
 async def list_parent_organizations(
+    search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _=Depends(require_super_admin()),
 ):
-    result = await db.execute(select(ParentOrganization).order_by(ParentOrganization.name))
-    return result.scalars().all()
+    query = (
+        select(
+            ParentOrganization,
+            func.count(Organization.id.distinct()).label("branch_count"),
+            func.count(User.id.distinct()).label("admin_count")
+        )
+        .outerjoin(Organization, Organization.parent_organization_id == ParentOrganization.id)
+        .outerjoin(User, (User.parent_organization_id == ParentOrganization.id) & (User.role == "organization_admin"))
+        .group_by(ParentOrganization.id)
+    )
+
+    if search:
+        search_term = f"%{search}%"
+        query = query.where(
+            or_(
+                ParentOrganization.name.ilike(search_term),
+                ParentOrganization.slug.ilike(search_term)
+            )
+        )
+
+    if status == "active":
+        query = query.where(ParentOrganization.is_active == True)
+    elif status == "inactive":
+        query = query.where(ParentOrganization.is_active == False)
+
+    total_query = select(func.count(ParentOrganization.id))
+    if search:
+        total_query = total_query.where(
+            or_(
+                ParentOrganization.name.ilike(search_term),
+                ParentOrganization.slug.ilike(search_term)
+            )
+        )
+    if status == "active":
+        total_query = total_query.where(ParentOrganization.is_active == True)
+    elif status == "inactive":
+        total_query = total_query.where(ParentOrganization.is_active == False)
+        
+    total_result = await db.execute(total_query)
+    total = total_result.scalar_one()
+
+    query = query.order_by(ParentOrganization.name).offset(skip).limit(limit)
+    result = await db.execute(query)
+    
+    items = []
+    for row in result.all():
+        parent_org = row[0]
+        parent_org_dict = ParentOrganizationResponse.model_validate(parent_org).model_dump()
+        parent_org_dict["branch_count"] = row[1]
+        parent_org_dict["admin_count"] = row[2]
+        items.append(ParentOrganizationResponse(**parent_org_dict))
+
+    return {"items": items, "total": total}
 
 @router.get("/{id}", response_model=ParentOrganizationResponse)
 async def get_parent_organization(
