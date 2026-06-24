@@ -109,9 +109,9 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                             <input
                                 type="text"
                                 value={prefix}
-                                onChange={(e) => setPrefix(e.target.value.toUpperCase())}
+                                onChange={(e) => setPrefix(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase())}
                                 placeholder="A"
-                                maxLength={10}
+                                maxLength={3}
                                 className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
                                 disabled={isLoading}
                             />

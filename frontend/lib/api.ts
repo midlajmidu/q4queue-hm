@@ -469,8 +469,12 @@ export const api = {
         });
     },
 
-    serveSpecificToken(queueId: string, tokenNumber: number): Promise<NextResponse> {
-        return request<NextResponse>(`/queues/${queueId}/serve/${tokenNumber}`, {
+    serveSpecificToken(queueId: string, tokenNumber: number, lineNumber?: number): Promise<NextResponse> {
+        let url = `/queues/${queueId}/serve/${tokenNumber}`;
+        if (lineNumber !== undefined) {
+            url += `?line_number=${lineNumber}`;
+        }
+        return request<NextResponse>(url, {
             method: "POST",
         });
     },

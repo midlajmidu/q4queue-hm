@@ -529,6 +529,7 @@ async def serve_specific_token(
     org_id: uuid.UUID,
     user_id: uuid.UUID,
     token_number: int,
+    line_number: int | None = None,
 ) -> NextResponse:
     now = datetime.now(timezone.utc)
 
@@ -555,14 +556,18 @@ async def serve_specific_token(
     if specific_token.status not in (TokenStatus.waiting, TokenStatus.skipped):
         raise ValueError("Token is not waiting or skipped")
 
-    # Mark currently-serving token as skipped
+    # Mark currently-serving token as skipped on the target line (or all if single-counter)
+    where_clause = [
+        Token.queue_id == queue_id,
+        Token.org_id == org_id,
+        Token.status == TokenStatus.serving,
+    ]
+    if line_number is not None:
+        where_clause.append(Token.assigned_line == line_number)
+        
     await db.execute(
         update(Token)
-        .where(
-            Token.queue_id == queue_id,
-            Token.org_id == org_id,            # ← TENANT ISOLATION
-            Token.status == TokenStatus.serving,
-        )
+        .where(*where_clause)
         .values(status=TokenStatus.skipped, completed_at=now)
     )
 
@@ -570,6 +575,8 @@ async def serve_specific_token(
     specific_token.served_at = now
     specific_token.served_by_id = user_id
     specific_token.called_via_invite = True
+    if line_number is not None:
+        specific_token.assigned_line = line_number
 
     await db.flush()
 

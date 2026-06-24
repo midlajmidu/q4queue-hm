@@ -558,6 +558,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         onChange={(e) => setNewName(e.target.value)}
                                         placeholder="e.g. Counter 1, Desk A"
                                         required
+                                        maxLength={30}
                                         className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all placeholder:text-slate-400"
                                     />
                                 </div>
@@ -587,9 +588,9 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         <input
                                             type="text"
                                             value={newPrefix}
-                                            onChange={(e) => setNewPrefix(e.target.value.toUpperCase())}
+                                            onChange={(e) => setNewPrefix(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase())}
                                             placeholder="A"
-                                            maxLength={5}
+                                            maxLength={3}
                                             className={`w-full rounded-xl border shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:ring-4 focus:outline-none transition-all placeholder:text-slate-400 ${queues.some(q => (q.prefix || "").toUpperCase() === (newPrefix.trim().toUpperCase() || "A")) ? "border-red-300 focus:border-red-500 focus:ring-red-500/20 text-red-900" : "border-slate-100 focus:border-indigo-500 focus:ring-indigo-500/20"}`}
                                         />
                                         {queues.some(q => (q.prefix || "").toUpperCase() === (newPrefix.trim().toUpperCase() || "A")) && (
@@ -604,8 +605,12 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         <input
                                             type="number"
                                             min={1}
+                                            max={9999}
                                             value={newStartingSequence}
-                                            onChange={(e) => setNewStartingSequence(parseInt(e.target.value) || 1)}
+                                            onChange={(e) => {
+                                                const valStr = e.target.value.slice(0, 4);
+                                                setNewStartingSequence(parseInt(valStr) || 1);
+                                            }}
                                             placeholder="1"
                                             className="w-full rounded-xl border border-slate-100 shadow-sm ring-1 ring-slate-900/5 bg-white px-4 py-3 text-sm font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all placeholder:text-slate-400"
                                         />

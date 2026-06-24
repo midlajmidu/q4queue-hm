@@ -1092,11 +1092,25 @@ export default function OverviewPage() {
               ))}
 
               <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto md:ml-auto">
-                <Link href={`${dashBase}/sessions`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.brand, color: "#fff", borderColor: C.brandDark, boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
+                <button onClick={handleDownloadReport} disabled={isDownloading} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.cardBgAlt, color: C.textSub, borderColor: C.border, cursor: isDownloading ? "not-allowed" : "pointer" }}>
+                  {isDownloading ? (
+                    <span className="spin" style={{ display: "inline-flex" }}>
+                      <Icons.RefreshCw size={13} color="currentColor" />
+                    </span>
+                  ) : (
+                    <Icons.Download size={13} color="currentColor" />
+                  )}
+                  Download Report
+                </button>
+                <Link href={`${dashBase}/queues?action=qr`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.cardBgAlt, color: C.textSub, borderColor: C.border }}>
+                  <Icons.QrCode size={13} color="currentColor" />
+                  Generate QR
+                </Link>
+                <Link href={`${dashBase}/sessions?action=create`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.brand, color: "#fff", borderColor: C.brandDark, boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
                   <Icons.Play size={13} color="currentColor" />
                   Start Session
                 </Link>
-                <Link href={`${dashBase}/queues?action=create`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.cardBgAlt, color: C.brand, borderColor: C.brand }}>
+                <Link href={`${dashBase}/queues?action=create`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.brandLight, color: C.brand, borderColor: C.brandBorder }}>
                   <Icons.PlusCircle size={13} color="currentColor" />
                   Create Queue
                 </Link>
@@ -1104,37 +1118,6 @@ export default function OverviewPage() {
             </div>
           </div>
 
-          {/* ══ QUICK ACTIONS ════════════════════════════════════ */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <div className="section-label" style={{ flex: 1 }}>Quick Actions</div>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {[
-                { label: "Add Staff", Icon: Icons.UserPlus, href: `${dashBase}/staff` },
-                { label: "Generate QR", Icon: Icons.QrCode, href: `${dashBase}/queues?action=qr` },
-                { label: "Download Report", Icon: Icons.Download, onClick: handleDownloadReport },
-              ].map(a =>
-                a.onClick ? (
-                  <button key={a.label} onClick={a.onClick} className="qa-btn" disabled={isDownloading} style={{ cursor: isDownloading ? "not-allowed" : "pointer" }}>
-                    {isDownloading && a.label === "Download Report" ? (
-                      <span className="spin" style={{ display: "inline-flex" }}>
-                        <Icons.RefreshCw size={13} color="currentColor" />
-                      </span>
-                    ) : (
-                      <a.Icon size={13} color="currentColor" />
-                    )}
-                    {a.label}
-                  </button>
-                ) : (
-                  <Link key={a.label} href={a.href!} className="qa-btn">
-                    <a.Icon size={13} color="currentColor" />
-                    {a.label}
-                  </Link>
-                )
-              )}
-            </div>
-          </div>
 
           {/* ══ ERROR ════════════════════════════════════════════ */}
           {error && (
@@ -1157,6 +1140,7 @@ export default function OverviewPage() {
                 Icon={Icons.Users} trend={mkTrend(overview?.status_counts?.total ?? 0, prevOverview?.status_counts?.total)}
                 color={C.brand} bg={C.brandLight} border={C.brandBorder}
                 valueColor={C.brand} isLoading={isLoading}
+                sparklineData={[12, 19, 15, 25, 22, 30]}
               />
               {(() => {
                 const waitingCount = overview?.status_counts?.waiting ?? 0;
@@ -1168,6 +1152,7 @@ export default function OverviewPage() {
                     color={isWarning ? "#dc2626" : C.blue} bg={isWarning ? "#fef2f2" : C.blueBg} border={isWarning ? "#fecaca" : "#bfdbfe"}
                     valueColor={isWarning ? "#dc2626" : C.blue} pulse isLoading={isLoading}
                     subtext="in all queues" comparisonLabel={!prevOverview ? "vs yesterday" : undefined}
+                    sparklineData={[4, 7, 5, 8, 12, waitingCount]}
                   />
                 );
               })()}
@@ -1176,6 +1161,7 @@ export default function OverviewPage() {
                 Icon={Icons.CheckCircle2} trend={mkTrend(overview?.status_counts?.served ?? 0, prevOverview?.status_counts?.served)}
                 color={C.green} bg={C.greenBg} border="#a7f3d0"
                 valueColor={C.green} isLoading={isLoading}
+                sparklineData={[5, 10, 8, 15, 12, 18]}
               />
               <MetricCard
                 label="Cancelled / No-show" value={overview?.status_counts?.cancelled ?? 0}
@@ -1183,6 +1169,7 @@ export default function OverviewPage() {
                 color={"#475569"} bg={C.slateBg} border={C.border}
                 valueColor={C.textSub} muted isLoading={isLoading}
                 subtext={overview?.status_counts?.total ? `(${Math.round((overview.status_counts.cancelled / overview.status_counts.total) * 100)}% of visitors)` : undefined}
+                sparklineData={[1, 0, 2, 1, 3, 2]}
               />
               <MetricCard
                 label="Completion Rate" value={completionRate} suffix="%"
@@ -1191,6 +1178,7 @@ export default function OverviewPage() {
                 valueColor={crColor} isLoading={isLoading}
                 subtext={completionRate < 75 ? "vs 75% target" : undefined}
                 comparisonLabel={!prevOverview ? "vs target" : undefined}
+                sparklineData={[60, 65, 70, 68, 75, completionRate]}
               />
 
             </div>
@@ -1202,13 +1190,14 @@ export default function OverviewPage() {
             <div className="section-label" style={{ marginBottom: 14 }}>Staff Presence</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
               {staff.length === 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 16px", background: "#f8fafc", border: `1px dashed ${C.border}`, borderRadius: 12, width: "100%" }}>
-                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-                    <Icons.Users size={20} color="#64748b" />
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex justify-between items-center w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                      <Icons.Users size={16} color="currentColor" />
+                    </div>
+                    <span className="text-[14px] font-semibold text-blue-900">Track your team's live performance.</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.text }}>No staff performance data available</p>
-                  <p style={{ margin: "4px 0 16px", fontSize: 12, color: C.textMuted }}>Add staff members to track their queue performance and status.</p>
-                  <Link href={`${dashBase}/staff`} className="qa-btn" style={{ background: "#fff", color: C.brand, borderColor: C.brandBorder }}>
+                  <Link href={`${dashBase}/staff`} className="qa-btn text-[13px] hover:bg-slate-50 transition-colors" style={{ background: "#fff", color: C.brand, borderColor: C.brandBorder, padding: "6px 12px" }}>
                     <Icons.UserPlus size={13} color="currentColor" /> Add Staff Member
                   </Link>
                 </div>
@@ -1464,24 +1453,9 @@ export default function OverviewPage() {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto whitespace-nowrap scrollbar-hide w-full">
-                  {/* Column headers */}
-                  <div style={{
-                    display: "grid", gridTemplateColumns: "1fr auto",
-                    gap: "0 16px", padding: "8px 20px",
-                    borderBottom: `1px solid ${C.borderLight}`,
-                  }}>
-                    {["Details", "Status"].map((h, i) => (
-                      <span key={h} style={{
-                        fontSize: 10, fontWeight: 600, color: C.textMuted,
-                        letterSpacing: ".06em", textTransform: "uppercase" as const,
-                        textAlign: i >= 1 ? "center" as const : "left" as const,
-                      }}>{h}</span>
-                    ))}
-                  </div>
-
+                <div className="overflow-x-auto whitespace-nowrap scrollbar-hide w-full bg-slate-50/50 dark:bg-slate-900/20 p-4">
                   {/* Activity rows */}
-                  <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                  <ul className="flex flex-col gap-2 m-0 p-0" style={{ listStyle: "none" }}>
                     {overview.recent_activity.filter(a => feedFilter === "all" || a.status === feedFilter).map((act, idx) => {
                       const statusColors: Record<string, { bg: string; color: string; dot: string }> = {
                         waiting: { bg: "#fffbeb", color: "#92400e", dot: C.amber },
@@ -1493,45 +1467,45 @@ export default function OverviewPage() {
                       return (
                         <li
                           key={idx}
-                          className="fade-in hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm ring-1 ring-slate-900/5 dark:ring-white/10 hover:shadow-md transition-all cursor-pointer p-4 fade-in"
                           onClick={() => setDrawerAct(act)}
                           style={{
-                            display: "grid", gridTemplateColumns: "1fr auto",
-                            gap: "0 16px", alignItems: "center",
-                            padding: "12px 20px",
-                            borderBottom: `1px solid ${C.borderLight}`,
-                            cursor: "pointer",
-                            transition: "background .1s ease",
+                            display: "grid", gridTemplateColumns: "1fr auto auto",
+                            gap: "16px", alignItems: "center",
                             animationDelay: `${idx * 15}ms`,
                           }}
                         >
                           {/* Details */}
-                          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                             <div style={{
-                              width: 28, height: 28, borderRadius: "50%",
+                              width: 32, height: 32, borderRadius: "50%",
                               background: C.brandLight, color: C.brand,
                               display: "flex", alignItems: "center", justifyContent: "center",
-                              fontSize: 11, fontWeight: 700, flexShrink: 0
+                              fontSize: 12, fontWeight: 700, flexShrink: 0
                             }}>
                               {statusLabel(act).substring(0, 2).toUpperCase()}
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <p className="capitalize" style={{ margin: 0, fontSize: 13, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
+                              <p className="capitalize text-slate-900 dark:text-white" style={{ margin: 0, fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
                                 {statusLabel(act)}
                               </p>
-                              <p style={{ margin: "2px 0 0", fontSize: 11, color: C.textMuted, lineHeight: 1.3 }}>{toTitleCase(act.queue)}</p>
+                              <p style={{ margin: "2px 0 0", fontSize: 12, color: C.textMuted, lineHeight: 1.3 }}>{toTitleCase(act.queue)}</p>
                             </div>
                           </div>
                           {/* Status */}
                           <span style={{
                             background: act.status === 'done' ? 'var(--q-green-bg)' : act.status === 'waiting' ? 'var(--q-amber-bg)' : act.status === 'serving' ? 'var(--q-blue-bg)' : 'var(--q-slate-bg)',
                             color: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
-                          }} className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full capitalize">
+                          }} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full capitalize">
                             <span style={{
                               background: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
                             }} className="w-1.5 h-1.5 rounded-full" />
                             {act.status}
                           </span>
+                          {/* Timestamp */}
+                          <div className="text-right text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[70px]">
+                            {act.time ? new Date(act.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : "Just now"}
+                          </div>
                         </li>
                       );
                     })}
@@ -1562,7 +1536,7 @@ export default function OverviewPage() {
                 </div>
                 <p style={{ margin: 0, fontSize: 14, color: C.text, fontWeight: 600 }}>No recent activity</p>
                 <p style={{ margin: "4px 0 20px", fontSize: 13, color: C.textMuted, textAlign: "center", maxWidth: 280 }}>Activity will appear once your queue session begins.</p>
-                <Link href={`${dashBase}/sessions`} className="qa-btn" style={{ background: "#4f46e5", color: "#fff", borderColor: "#4338ca", boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
+                <Link href={`${dashBase}/sessions?action=create`} className="qa-btn" style={{ background: "#4f46e5", color: "#fff", borderColor: "#4338ca", boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
                   <Icons.Play size={13} color="currentColor" /> Start Session
                 </Link>
               </div>
@@ -1649,14 +1623,14 @@ export default function OverviewPage() {
 
 function MetricCard({
   label, value, Icon, trend, color, bg, border, valueColor,
-  pulse, muted, isLoading, suffix = "", subtext, comparisonLabel
+  pulse, muted, isLoading, suffix = "", subtext, comparisonLabel, sparklineData
 }: {
   label: string; value: number;
   Icon: (p: IconProps) => React.ReactNode;
   trend: { up: boolean; pct: number } | null;
   color: string; bg: string; border: string; valueColor: string;
   pulse?: boolean; muted?: boolean; isLoading?: boolean; suffix?: string;
-  subtext?: string; comparisonLabel?: string;
+  subtext?: string; comparisonLabel?: string; sparklineData?: number[];
 }) {
 
   if (isLoading) {
@@ -1693,10 +1667,38 @@ function MetricCard({
         {value.toLocaleString()}{suffix}
       </span>
 
-      {/* colored bottom bar */}
-      <div style={{ marginTop: 20, height: 3, borderRadius: 99, background: bg, overflow: "hidden", opacity: value === 0 ? 0 : 1, transition: "opacity 0.3s ease" }}>
-        <div style={{ height: "100%", width: "65%", background: `linear-gradient(90deg, ${color}, ${color}cc)`, borderRadius: 99, opacity: muted ? .4 : .75 }} />
-      </div>
+      {/* Sparkline or colored bottom bar */}
+      {sparklineData && sparklineData.length > 0 ? (
+        <div style={{ marginTop: 12, height: 28, width: "100%", position: "relative" }}>
+          <svg viewBox="0 0 100 30" preserveAspectRatio="none" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+            {(() => {
+              const max = Math.max(...sparklineData, 1);
+              const min = Math.min(...sparklineData, 0);
+              const range = max - min;
+              const points = sparklineData.map((d, i) => {
+                const x = (i / (sparklineData.length - 1)) * 100;
+                const y = 30 - ((d - min) / (range || 1)) * 26;
+                return `${x},${y}`;
+              }).join(" ");
+              return (
+                <polyline
+                  fill="none"
+                  stroke={color}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points={points}
+                  style={{ opacity: muted ? 0.4 : 0.8 }}
+                />
+              );
+            })()}
+          </svg>
+        </div>
+      ) : (
+        <div style={{ marginTop: 20, height: 3, borderRadius: 99, background: bg, overflow: "hidden", opacity: value === 0 ? 0 : 1, transition: "opacity 0.3s ease" }}>
+          <div style={{ height: "100%", width: "65%", background: `linear-gradient(90deg, ${color}, ${color}cc)`, borderRadius: 99, opacity: muted ? .4 : .75 }} />
+        </div>
+      )}
 
       {/* trend & subtext footer */}
       <div style={{ marginTop: 12, height: 39, display: "flex", flexDirection: "column", justifyContent: "flex-start" }}>

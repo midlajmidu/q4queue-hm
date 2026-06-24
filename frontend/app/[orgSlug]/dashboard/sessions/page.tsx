@@ -132,6 +132,13 @@ export default function SessionsPage() {
 
     useEffect(() => { loadData(); }, [loadData]);
 
+    useEffect(() => {
+        const action = searchParams.get("action");
+        if (action === "create" && !isStaff) {
+            setShowCreate(true);
+        }
+    }, [searchParams, isStaff]);
+
     // Fetch unique queue names for the dropdown
     useEffect(() => {
         api.listQueues().then(queues => {
@@ -163,9 +170,7 @@ export default function SessionsPage() {
             return;
         }
         if (newDate > toLocalDateStr()) {
-            const parts = toLocalDateStr().split('-');
-            const formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
-            setCreateError(`Value must be ${formattedDate} or earlier.`);
+            setCreateError("Future dates are not allowed. Please select today or a past date.");
             return;
         }
         setCreateLoading(true);
@@ -243,7 +248,7 @@ export default function SessionsPage() {
                         <span className="text-slate-600">Sessions</span>
                     </div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight m-0">Sessions</h1>
-                    <p className="text-sm text-slate-500 mt-1 font-medium">Your service timeline — organised by date.</p>
+                    <p className="text-sm text-slate-500 mt-1 font-medium">Monitor and manage your daily queue operations.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full sm:w-auto">
                     <div className="flex gap-2 w-full sm:w-auto">
@@ -492,7 +497,7 @@ export default function SessionsPage() {
                             </div>
                             {createError && (
                                 <div className="p-3 rounded-xl bg-red-50 text-red-700 text-sm font-medium border border-red-200 flex items-start gap-2 shadow-sm">
-                                    <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx={12} cy={12} r={10} /><path d="M12 8v4m0 4h.01" /></svg>
+                                    <svg className="w-4 h-4 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx={12} cy={12} r={10} /><path d="M12 8v4m0 4h.01" /></svg>
                                     <span>{createError}</span>
                                 </div>
                             )}
