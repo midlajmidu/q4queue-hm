@@ -115,29 +115,30 @@ def _generate_pdf(df, file_path, title):
 
 async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, filename: str) -> str:
     # Build Query
+    date_col = func.coalesce(Session.session_date, func.date(Token.created_at))
+    
     stmt = (
         select(
             Organization.name.label("branch_name"),
-            Session.session_date.label("date"),
+            date_col.label("date"),
             Queue.name.label("queue_name"),
             Token.token_number,
             Token.customer_name,
             Token.customer_phone,
             Token.status,
             Token.created_at,
-            Token.called_at,
             Token.served_at,
             Token.completed_at,
-            Token.call_method,
-            Session.name.label("session_name"),
+            Token.called_via_invite,
+            Session.title.label("session_name"),
             User.first_name.label("staff_first"),
             User.last_name.label("staff_last")
         )
         .select_from(Token)
         .join(Organization, Token.org_id == Organization.id)
-        .join(Session, Token.session_id == Session.id)
+        .outerjoin(Session, Token.session_id == Session.id)
         .join(Queue, Token.queue_id == Queue.id)
-        .outerjoin(User, Token.served_by == User.id)
+        .outerjoin(User, Token.served_by_id == User.id)
         .where(Organization.parent_organization_id == job.parent_org_id)
     )
 
@@ -159,33 +160,33 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
     today = now.date()
     
     if date_range == "Today":
-        stmt = stmt.where(Session.session_date == today)
+        stmt = stmt.where(date_col == today)
     elif date_range == "Yesterday":
-        stmt = stmt.where(Session.session_date == today - timedelta(days=1))
+        stmt = stmt.where(date_col == today - timedelta(days=1))
     elif date_range == "Last 7 Days":
-        stmt = stmt.where(Session.session_date >= today - timedelta(days=7))
+        stmt = stmt.where(date_col >= today - timedelta(days=7))
     elif date_range == "Last 30 Days":
-        stmt = stmt.where(Session.session_date >= today - timedelta(days=30))
+        stmt = stmt.where(date_col >= today - timedelta(days=30))
     elif date_range == "This Month":
         start_of_month = today.replace(day=1)
-        stmt = stmt.where(Session.session_date >= start_of_month)
+        stmt = stmt.where(date_col >= start_of_month)
     elif date_range == "Last Month":
         start_of_this_month = today.replace(day=1)
         end_of_last_month = start_of_this_month - timedelta(days=1)
         start_of_last_month = end_of_last_month.replace(day=1)
-        stmt = stmt.where(Session.session_date.between(start_of_last_month, end_of_last_month))
+        stmt = stmt.where(date_col.between(start_of_last_month, end_of_last_month))
     elif date_range == "Custom Date Range":
         c_start = filters.get("custom_start_date")
         c_end = filters.get("custom_end_date")
         if c_start:
-            stmt = stmt.where(Session.session_date >= datetime.strptime(c_start, "%Y-%m-%d").date())
+            stmt = stmt.where(date_col >= datetime.strptime(c_start, "%Y-%m-%d").date())
         if c_end:
-            stmt = stmt.where(Session.session_date <= datetime.strptime(c_end, "%Y-%m-%d").date())
+            stmt = stmt.where(date_col <= datetime.strptime(c_end, "%Y-%m-%d").date())
 
     # Order by hierarchy
     stmt = stmt.order_by(
         Organization.name,
-        Session.session_date.desc(),
+        date_col.desc(),
         Queue.name,
         Token.created_at
     )
@@ -211,8 +212,8 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         
         # Calculate Wait Time
         wait_mins = None
-        if r.called_at and r.created_at:
-            w_secs = (r.called_at - r.created_at).total_seconds()
+        if r.served_at and r.created_at:
+            w_secs = (r.served_at - r.created_at).total_seconds()
             wait_mins = round(w_secs / 60, 2)
             if r.status in ["served", "completed"]:
                 total_wait_secs += w_secs
@@ -241,17 +242,52 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             "Customer Phone": r.customer_phone or "",
             "Status": r.status.title(),
             "Created At": r.created_at.strftime("%H:%M:%S") if r.created_at else "",
-            "Called At": r.called_at.strftime("%H:%M:%S") if r.called_at else "",
             "Served At": r.served_at.strftime("%H:%M:%S") if r.served_at else "",
             "Completed At": r.completed_at.strftime("%H:%M:%S") if r.completed_at else "",
             "Wait Time (Minutes)": wait_mins,
             "Service Time (Minutes)": serve_mins,
             "Served By": staff_name,
-            "Call Method": r.call_method or "",
+            "Call Method": "Invite" if r.called_via_invite else "Walk-in",
             "Session Name": r.session_name or ""
         })
 
-    df = pd.DataFrame(formatted_data)
+    # Add Called At back as empty
+    for row in formatted_data:
+        # insert Called At after Created At
+        # Since dictionaries are ordered in Python 3.7+, we'll rebuild the dict to ensure column order
+        pass
+
+    # We will build the dataframe with exact columns required
+    exact_columns = [
+        "Branch Name", "Date", "Queue Name", "Token Number", "Customer Name", 
+        "Customer Phone", "Status", "Created At", "Called At", "Served At", 
+        "Completed At", "Wait Time (Minutes)", "Service Time (Minutes)", 
+        "Served By", "Call Method", "Session Name"
+    ]
+    
+    # Rebuild data to ensure exact columns
+    final_data = []
+    for r in formatted_data:
+        final_data.append({
+            "Branch Name": r.get("Branch Name", ""),
+            "Date": r.get("Date", ""),
+            "Queue Name": r.get("Queue Name", ""),
+            "Token Number": r.get("Token Number", ""),
+            "Customer Name": r.get("Customer Name", ""),
+            "Customer Phone": r.get("Customer Phone", ""),
+            "Status": r.get("Status", ""),
+            "Created At": r.get("Created At", ""),
+            "Called At": "",  # Empty as discussed
+            "Served At": r.get("Served At", ""),
+            "Completed At": r.get("Completed At", ""),
+            "Wait Time (Minutes)": r.get("Wait Time (Minutes)", ""),
+            "Service Time (Minutes)": r.get("Service Time (Minutes)", ""),
+            "Served By": r.get("Served By", ""),
+            "Call Method": r.get("Call Method", ""),
+            "Session Name": r.get("Session Name", "")
+        })
+
+    df = pd.DataFrame(final_data, columns=exact_columns)
 
     # Compute Summary
     total_customers = len(formatted_data)
@@ -268,27 +304,153 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         {"Metric": "Average Service Time (Mins)", "Value": avg_serve},
     ])
 
+    # Fetch Parent Org Name
+    from app.models.parent_organization import ParentOrganization
+    parent_org = await db.scalar(select(ParentOrganization).where(ParentOrganization.id == job.parent_org_id))
+    parent_org_name = parent_org.name if parent_org else "Parent Organization"
+    report_title = f"{parent_org_name} Customer Report"
+
+    if df.empty:
+        # Fallback for empty data
+        if job.format.upper() == "EXCEL":
+            file_path = os.path.join(EXPORTS_DIR, f"{filename}.xlsx")
+            import openpyxl
+            from openpyxl.styles import Font, PatternFill, Alignment
+            with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+                # Write an empty dataframe so we can grab the sheet and edit it
+                pd.DataFrame().to_excel(writer, sheet_name='Report', index=False)
+                wb = writer.book
+                ws = wb.active
+                
+                # Title
+                ws.append([report_title])
+                ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=16)
+                ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=5)
+                ws.append([])
+                
+                # Summary
+                ws.append(["Report Summary"])
+                ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=14)
+                ws.append(["Metric", "Value"])
+                ws.cell(row=ws.max_row, column=1).font = Font(bold=True)
+                ws.cell(row=ws.max_row, column=2).font = Font(bold=True)
+                
+                for _, row in summary_df.iterrows():
+                    ws.append([row['Metric'], row['Value']])
+            return file_path
+        elif job.format.upper() == "CSV":
+            file_path = os.path.join(EXPORTS_DIR, f"{filename}.csv")
+            with open(file_path, 'w') as f:
+                summary_df.to_csv(f, index=False)
+            return file_path
+        else:
+            file_path = os.path.join(EXPORTS_DIR, f"{filename}.pdf")
+            _generate_detailed_pdf(df, summary_df, file_path, report_title)
+            return file_path
+
+    # Grouping logic
+    cols_to_drop = ['Branch Name', 'Date', 'Queue Name']
+
     if job.format.upper() == "EXCEL":
         file_path = os.path.join(EXPORTS_DIR, f"{filename}.xlsx")
-        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-            summary_df.to_excel(writer, sheet_name='Summary', index=False)
-            if not df.empty:
-                df.to_excel(writer, sheet_name='Customer Records', index=False)
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Report"
+        
+        # Write Title
+        ws.append([report_title])
+        ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=16)
+        ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=6)
+        ws.append([])
+        
+        # Write Summary
+        ws.append(["Report Summary"])
+        ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=14)
+        ws.append(["Metric", "Value"])
+        ws.cell(row=ws.max_row, column=1).font = Font(bold=True)
+        ws.cell(row=ws.max_row, column=2).font = Font(bold=True)
+        
+        for _, row in summary_df.iterrows():
+            ws.append([row['Metric'], row['Value']])
+            
+        ws.append([])
+        ws.append(["--- Detailed Records ---"])
+        ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=14)
+        ws.append([])
+        
+        grouped = df.groupby(['Branch Name', 'Date', 'Queue Name'])
+        for (branch, date, queue), group in grouped:
+            # Append headers
+            ws.append([f"Branch: {branch}"])
+            ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=14)
+            ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=6)
+            
+            ws.append([f"Date: {date}"])
+            ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=12)
+            ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=6)
+            
+            ws.append([f"Queue: {queue}"])
+            ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=11, italic=True)
+            ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=6)
+            
+            group_clean = group.drop(columns=cols_to_drop)
+            
+            # Table headers
+            row_idx = ws.max_row + 1
+            ws.append(list(group_clean.columns))
+            for col_idx in range(1, len(group_clean.columns) + 1):
+                cell = ws.cell(row=row_idx, column=col_idx)
+                cell.font = Font(bold=True)
+                cell.fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
+            
+            for _, row in group_clean.iterrows():
+                ws.append(list(row))
+                
+            ws.append([]) # Empty row for spacing
+            
+        # Adjust column widths for readability
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(cell.value)
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            if adjusted_width > 50:
+                adjusted_width = 50 # Cap maximum width
+            ws.column_dimensions[column].width = adjusted_width
+
+        wb.save(file_path)
         return file_path
         
     elif job.format.upper() == "CSV":
-        # CSV doesn't support sheets, prepend summary with empty rows
         file_path = os.path.join(EXPORTS_DIR, f"{filename}.csv")
         with open(file_path, 'w') as f:
+            f.write(f"# {report_title}\n\n")
             f.write("--- REPORT SUMMARY ---\n")
             summary_df.to_csv(f, index=False)
             f.write("\n\n--- DETAILED RECORDS ---\n")
-            df.to_csv(f, index=False)
+            
+            grouped = df.groupby(['Branch Name', 'Date', 'Queue Name'])
+            for (branch, date, queue), group in grouped:
+                f.write(f"\n## Branch: {branch}\n")
+                f.write(f"### Date: {date}\n")
+                f.write(f"#### Queue: {queue}\n")
+                
+                group_clean = group.drop(columns=cols_to_drop)
+                group_clean.to_csv(f, index=False)
+                
         return file_path
         
     elif job.format.upper() == "PDF":
         file_path = os.path.join(EXPORTS_DIR, f"{filename}.pdf")
-        _generate_detailed_pdf(df, summary_df, file_path, "Customer Detailed Report")
+        _generate_detailed_pdf(df, summary_df, file_path, report_title)
         return file_path
         
     else:
@@ -324,37 +486,43 @@ def _generate_detailed_pdf(df, summary_df, file_path, title):
     elements.append(sum_t)
     elements.append(Spacer(1, 30))
     
-    # Data Table - limit to 1000 rows to prevent massive PDF crashes if no other limit
-    MAX_ROWS = 1000
-    if len(df) > MAX_ROWS:
-        elements.append(Paragraph(f"WARNING: Data truncated to {MAX_ROWS} rows to prevent PDF generation failure. Use Excel for full dataset.", styles['Normal']))
+    if df.empty:
+        elements.append(Paragraph("No customer records found for the selected criteria.", styles['Normal']))
+        doc.build(elements)
+        return
+        
+    # Limit rows for PDF to avoid memory issues
+    if len(df) > 1000:
+        elements.append(Paragraph("Note: PDF output is limited to 1000 rows. Please export to Excel/CSV for the full dataset.", styles['Normal']))
         elements.append(Spacer(1, 10))
-        df = df.head(MAX_ROWS)
+        df = df.head(1000)
         
-    if not df.empty:
-        # Hierarchical grouping visual approach in PDF is hard, we just print the flat table nicely.
-        # Ensure we only pick most important columns if table too wide
-        pdf_cols = ["Branch Name", "Date", "Queue Name", "Token Number", "Customer Name", "Status", "Wait Time (Minutes)", "Service Time (Minutes)"]
-        pdf_df = df[pdf_cols]
-        data = [pdf_df.columns.values.astype(str).tolist()] + pdf_df.values.tolist()
+    # Group hierarchical data
+    cols_to_drop = ['Branch Name', 'Date', 'Queue Name']
+    grouped = df.groupby(['Branch Name', 'Date', 'Queue Name'])
+    
+    for (branch, date, queue), group in grouped:
+        elements.append(Paragraph(f"Branch: {branch}", styles['Heading3']))
+        elements.append(Paragraph(f"Date: {date}", styles['Normal']))
+        elements.append(Paragraph(f"Queue: {queue}", styles['Normal']))
+        elements.append(Spacer(1, 10))
         
-        # Calculate optimal column widths (A3 landscape is ~1190 points wide)
-        col_widths = [120, 80, 150, 80, 150, 80, 100, 120]
+        group_clean = group.drop(columns=cols_to_drop)
+        data = [group_clean.columns.values.astype(str).tolist()] + group_clean.astype(str).values.tolist()
         
-        t = Table(data, colWidths=col_widths, repeatRows=1)
+        t = Table(data, repeatRows=1)
         t.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e293b')),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#6b7280')),
             ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
             ('ALIGN', (0,0), (-1,-1), 'LEFT'),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('FONTSIZE', (0,0), (-1,0), 9),
+            ('FONTSIZE', (0,1), (-1,-1), 8),
             ('BOTTOMPADDING', (0,0), (-1,0), 8),
-            ('TOPPADDING', (0,0), (-1,-1), 4),
-            ('BOTTOMPADDING', (0,1), (-1,-1), 4),
             ('BACKGROUND', (0,1), (-1,-1), colors.white),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
-            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f8fafc')])
+            ('GRID', (0,0), (-1,-1), 1, colors.lightgrey)
         ]))
         elements.append(t)
-    
+        elements.append(Spacer(1, 20))
+        
     doc.build(elements)

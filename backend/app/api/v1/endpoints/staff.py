@@ -166,6 +166,7 @@ async def create_staff(
         password_hash=hash_password(body.password),
         role="staff",  # always fixed — no role escalation via this endpoint
         is_active=True,
+        parent_organization_id=current_admin.parent_organization_id,
     )
     db.add(member)
     await db.commit()

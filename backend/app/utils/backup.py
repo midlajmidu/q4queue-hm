@@ -142,15 +142,49 @@ async def restore_backup(filename: str, session):
         logger.error(f"Exception during pg_restore: {e}")
         raise
 
+def _run_async_org_backups():
+    """Wrapper to run async org backups in a separate thread/loop."""
+    import asyncio
+    from app.db.session import AsyncSessionLocal
+    from app.services.org_backup_service import create_org_backup, cleanup_old_org_backups
+    from sqlalchemy import select
+    from app.models.parent_organization import ParentOrganization
+    
+    async def _do_backups():
+        async with AsyncSessionLocal() as db:
+            # 1. Trigger backup for every Parent Org
+            pos = await db.scalars(select(ParentOrganization.id).where(ParentOrganization.is_active == True))
+            for po_id in pos:
+                try:
+                    await create_org_backup(po_id, db)
+                except Exception as e:
+                    logger.error(f"Scheduled backup failed for ParentOrg {po_id}: {e}")
+            
+            # 2. Cleanup old backups
+            try:
+                await cleanup_old_org_backups(db)
+            except Exception as e:
+                logger.error(f"Scheduled cleanup failed: {e}")
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+        
+    if loop and loop.is_running():
+        # If we are in an active event loop (which we shouldn't be since BackgroundScheduler uses threads)
+        asyncio.create_task(_do_backups())
+    else:
+        asyncio.run(_do_backups())
+
 def start_scheduler():
     scheduler = BackgroundScheduler()
     
-    # ── For local testing: Run 2 minutes from server start ──
-    run_date = datetime.now() + timedelta(minutes=2)
-    scheduler.add_job(perform_backup, 'date', run_date=run_date)
-    
-    # ── For production: Swap to daily cron at 2:00 AM ──
+    # Global DB backup (kept for legacy/infrastructure reasons, but we add Org backups)
     # scheduler.add_job(perform_backup, 'cron', hour=2, minute=0)
     
+    # Org-level backups scheduled at 3:00 AM
+    scheduler.add_job(_run_async_org_backups, 'cron', hour=3, minute=0)
+    
     scheduler.start()
-    logger.info(f"Backup scheduler started. First backup at: {run_date}")
+    logger.info("Backup scheduler started. Tenant backups scheduled for 03:00 AM daily.")

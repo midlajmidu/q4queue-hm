@@ -20,8 +20,7 @@ from app.models.message import Message
 from app.schemas.organization_admin_monitoring import (
     DashboardMetricsResponse, GlobalKPIs, DynamicInsights, ExecutiveInsights,
     WhatsAppOverview, BranchHealthOverview, DashboardAlert, BranchPerformanceRow,
-    BranchOverviewItem, AnalyticsResponse,
-    TimeRangeMetrics, BranchComparisonItem, SessionMonitorItem, QueueMonitorItem, StaffMonitorItem,
+    BranchOverviewItem, AnalyticsResponse, SessionMonitorItem, QueueMonitorItem, StaffMonitorItem,
     WhatsAppMonitorItem, AuditMonitorItem
 )
 
@@ -262,21 +261,62 @@ async def get_analytics(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_organization_admin()),
     branch_id: Optional[uuid.UUID] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
 ):
-    org_ids = await get_org_ids(db, current_user.parent_organization_id, branch_id)
-    # Dummy data until full aggregation logic is implemented
-    def dummy_metrics():
-        return TimeRangeMetrics(
-            total_customers=0, total_tokens=0, completed_tokens=0, cancelled_tokens=0,
-            avg_wait_time="0m", avg_service_time="0m", peak_hour="12:00 PM",
-            busiest_branch="-", least_busy_branch="-"
-        )
-    return AnalyticsResponse(
-        today=dummy_metrics(),
-        this_week=dummy_metrics(),
-        this_month=dummy_metrics(),
-        branch_comparison=[]
+    from app.services.analytics_service import get_cross_branch_analytics
+    
+    analytics_data = await get_cross_branch_analytics(
+        db=db,
+        parent_org_id=current_user.parent_organization_id,
+        branch_id=branch_id,
+        start_date=start_date,
+        end_date=end_date
     )
+    
+    if not analytics_data:
+        # Return empty safe defaults
+        from app.schemas.organization_admin_monitoring import (
+            CustomerMetrics, TimeMetrics, OperationsMetrics
+        )
+        return AnalyticsResponse(
+            customer_metrics=CustomerMetrics(total_customers=0, customers_served=0, customers_waiting=0, completion_rate="0%"),
+            time_metrics=TimeMetrics(avg_wait_time="00:00:00", avg_service_time="00:00:00", peak_hour="-"),
+            operations_metrics=OperationsMetrics(active_branches=0, active_sessions=0, active_queues=0),
+            volume_trend=[], branch_ranking=[], queue_analytics=[], peak_traffic=[], staff_performance=[], insights=[]
+        )
+        
+    return AnalyticsResponse(**analytics_data)
+
+@router.get("/analytics/export")
+async def export_analytics(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_organization_admin()),
+    branch_id: Optional[uuid.UUID] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+):
+    from fastapi.responses import StreamingResponse
+    from app.services.analytics_service import get_cross_branch_csv_data
+    
+    org_ids = await get_org_ids(db, current_user.parent_organization_id, branch_id)
+    if not org_ids:
+        raise HTTPException(status_code=404, detail="No branches found")
+        
+    csv_data = await get_cross_branch_csv_data(
+        db=db,
+        org_ids=org_ids,
+        start_date=start_date,
+        end_date=end_date
+    )
+    
+    import io
+    response = StreamingResponse(
+        iter([csv_data]),
+        media_type="text/csv"
+    )
+    response.headers["Content-Disposition"] = "attachment; filename=cross_branch_analytics.csv"
+    return response
 
 @router.get("/monitoring/sessions", response_model=List[SessionMonitorItem])
 async def monitor_sessions(

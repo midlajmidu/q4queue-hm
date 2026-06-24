@@ -758,9 +758,12 @@ export const api = {
     getOrgAdminBranchSummary: (orgId: string) => {
         return request<any>(`/organization-admin/branch/${orgId}/summary`);
     },
-    getOrgAdminAnalytics: (branchId?: string) => {
-        const query = branchId ? `?branch_id=${branchId}` : '';
-        return request<any>(`/organization-admin/analytics${query}`);
+    getOrgAdminAnalytics: (branchId?: string, startDate?: string, endDate?: string) => {
+        const ps = new URLSearchParams();
+        if (branchId) ps.append("branch_id", branchId);
+        if (startDate) ps.append("start_date", startDate);
+        if (endDate) ps.append("end_date", endDate);
+        return request<any>(`/organization-admin/analytics${ps.toString() ? `?${ps.toString()}` : ''}`);
     },
     getOrgAdminSessions: (branchId?: string) => {
         const query = branchId ? `?branch_id=${branchId}` : '';
@@ -813,10 +816,48 @@ export const api = {
             body: JSON.stringify(data),
         });
     },
-    triggerOrgAdminBackup: () => {
-        return request<any>("/organization-admin/backups", {
+    getOrgAdminBackups: () => {
+        return request<any[]>("/organization-admin/backups");
+    },
+    restoreOrgAdminBackup: (file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return request<any>("/organization-admin/backups/restore", {
             method: "POST",
+            body: formData,
         });
+    },
+    downloadOrgAdminBackup: async (backupId: string) => {
+        const token = getToken();
+        if (!token) throw new Error("No token");
+        
+        // Cannot use standard generic `request` here easily because we need to parse blob.
+        // I will just use fetch manually.
+        const res = await fetch(`${config.apiBaseUrl}/organization-admin/backups/${backupId}/download`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        if (!res.ok) throw new Error("Failed to download backup");
+        
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Extract filename from headers if possible
+        let filename = `backup-${backupId}.q4backup`;
+        const disposition = res.headers.get("content-disposition");
+        if (disposition && disposition.includes("filename=")) {
+            filename = disposition.split("filename=")[1].replace(/"/g, "");
+        }
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
     },
     globalOrgAdminSearch: (query: string) => {
         return request<any[]>(`/organization-admin/search?q=${encodeURIComponent(query)}`);

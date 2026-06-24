@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { DownloadCloud, Plus, FileText, CheckCircle2, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { DownloadCloud, Plus, FileText, CheckCircle2, Clock, AlertCircle, Loader2, Database } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { getExports, downloadExport } from '@/lib/api';
+import { getExports, downloadExport, api } from '@/lib/api';
 import RequestExportModal from '@/components/organization-admin/exports/RequestExportModal';
 import { getToken } from '@/lib/auth';
 
@@ -13,14 +13,18 @@ export default function ExportsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
+    const [backups, setBackups] = useState<any[]>([]);
 
     const fetchJobs = async () => {
         try {
             if (!token) return;
             const data = await getExports(token);
             setJobs(data);
+            
+            const backupData = await api.getOrgAdminBackups();
+            setBackups(backupData);
         } catch (err) {
-            console.error('Failed to fetch exports', err);
+            console.error('Failed to fetch exports/backups', err);
         } finally {
             setIsLoading(false);
         }
@@ -81,6 +85,42 @@ export default function ExportsPage() {
                 </button>
             </div>
 
+            <div className="bg-slate-900 rounded-2xl shadow-sm border border-slate-800 p-6 mb-8 text-white">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <Database className="text-indigo-400" />
+                            Backup Center
+                        </h2>
+                        <p className="text-slate-400 text-sm mt-1">Tenant-isolated organization backups run daily at 03:00 AM.</p>
+                    </div>
+                    <a href="/organization-admin/backups" className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Open Backup Center
+                    </a>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+                        <div className="text-slate-400 text-xs uppercase font-semibold mb-1">Last Backup</div>
+                        <div className="font-medium">
+                            {backups.length > 0 ? new Date(backups[0].created_at).toLocaleString() : "Never"}
+                        </div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+                        <div className="text-slate-400 text-xs uppercase font-semibold mb-1">Status</div>
+                        <div className="font-medium">
+                            {backups.length > 0 ? (
+                                <span className="capitalize text-emerald-400">{backups[0].status}</span>
+                            ) : "N/A"}
+                        </div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+                        <div className="text-slate-400 text-xs uppercase font-semibold mb-1">Stored Backups</div>
+                        <div className="font-medium">{backups.length}</div>
+                    </div>
+                </div>
+            </div>
+
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Export History</h2>
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[800px]">

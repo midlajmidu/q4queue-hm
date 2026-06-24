@@ -9,6 +9,7 @@ import BranchSelector from "@/components/organization-admin/BranchSelector";
 import { Building2, LogOut, LayoutDashboard, Users, UserCog, Settings, Megaphone, Download, Database, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Logo } from "@/components/ui/Logo";
 
 export default function OrgAdminLayout({ children }: { children: ReactNode }) {
     const { user, logout } = useAuth();
@@ -22,13 +23,9 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                     {/* Simplified Sidebar */}
                     <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex h-full">
                         <div className="p-4 flex items-center gap-3 border-b border-slate-100">
-                            <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold">
-                                O
-                            </div>
-                            <div>
-                                <h1 className="font-bold text-slate-900 leading-none">Organization</h1>
-                                <span className="text-xs text-slate-500">Admin Portal</span>
-                            </div>
+                            <Link href="/organization-admin" className="flex items-center gap-3 focus:outline-none py-1 pl-1">
+                                <Logo size="sm" />
+                            </Link>
                         </div>
 
                         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -219,10 +216,9 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                         {/* Header for both Desktop & Mobile to hold BranchSelector */}
                         <header className="flex items-center justify-between p-4 bg-white border-b border-slate-200">
                             <div className="flex items-center gap-2 md:hidden">
-                                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
-                                    O
-                                </div>
-                                <span className="font-bold text-slate-900">Org Admin</span>
+                                <Link href="/organization-admin" className="flex items-center focus:outline-none">
+                                    <Logo size="sm" />
+                                </Link>
                             </div>
                             <div className="hidden md:block">
                                 {/* Empty space for desktop alignment */}

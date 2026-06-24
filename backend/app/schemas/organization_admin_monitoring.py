@@ -85,29 +85,65 @@ class BranchOverviewItem(BaseModel):
     whatsapp_failed_today: int = 0
     alerts: List[str] = []
 
-class TimeRangeMetrics(BaseModel):
+class CustomerMetrics(BaseModel):
     total_customers: int
-    total_tokens: int
-    completed_tokens: int
-    cancelled_tokens: int
+    customers_served: int
+    customers_waiting: int
+    completion_rate: str
+
+class TimeMetrics(BaseModel):
     avg_wait_time: str
     avg_service_time: str
     peak_hour: str
-    busiest_branch: str
-    least_busy_branch: str
 
-class BranchComparisonItem(BaseModel):
+class OperationsMetrics(BaseModel):
+    active_branches: int
+    active_sessions: int
+    active_queues: int
+
+class DailyVolumeTrendItem(BaseModel):
+    date: str
+    customers_served: int
+
+class BranchRankingItem(BaseModel):
+    rank: int
     branch: str
-    customers: int
-    wait_time: str
+    customers_served: int
+    avg_wait_time: str
+    avg_service_time: str
     completion_rate: str
+    health_score: int
+    health_status: str
+
+class QueueAnalyticsItem(BaseModel):
+    queue_name: str
+    branch: str
+    customers_served: int
+    avg_wait_time: str
+    avg_service_time: str
+
+class PeakTrafficItem(BaseModel):
+    time_block: str
+    customers_arrived: int
+    customers_served: int
+    is_peak: bool = False
+
+class StaffPerformanceItem(BaseModel):
+    staff_name: str
+    branch: str
+    customers_served: int
     avg_service_time: str
 
 class AnalyticsResponse(BaseModel):
-    today: TimeRangeMetrics
-    this_week: TimeRangeMetrics
-    this_month: TimeRangeMetrics
-    branch_comparison: List[BranchComparisonItem]
+    customer_metrics: CustomerMetrics
+    time_metrics: TimeMetrics
+    operations_metrics: OperationsMetrics
+    volume_trend: List[DailyVolumeTrendItem]
+    branch_ranking: List[BranchRankingItem]
+    queue_analytics: List[QueueAnalyticsItem]
+    peak_traffic: List[PeakTrafficItem]
+    staff_performance: List[StaffPerformanceItem]
+    insights: List[str]
 
 class SessionMonitorItem(BaseModel):
     id: uuid.UUID
