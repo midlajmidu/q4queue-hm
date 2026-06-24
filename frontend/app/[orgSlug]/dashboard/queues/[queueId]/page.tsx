@@ -14,7 +14,7 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken } from "@/types/api";
-import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw } from "lucide-react";
+import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 
@@ -395,6 +395,8 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, []);
 
     const [activeSection, setActiveSection] = useState<ActiveSection>("queues");
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
     
     // ── "Updated Ns ago" ticker ───────────────────────────────────
     const [secondsAgo, setSecondsAgo] = useState(0);
@@ -429,8 +431,9 @@ export default function QueueDetailPage({ params }: PageProps) {
     const [deleting, setDeleting] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [resetting, setResetting] = useState(false);
-    const [inviteNumber, setInviteNumber] = useState("");
     const [removeNumber, setRemoveNumber] = useState("");
+    const [inviteNumber, setInviteNumber] = useState("");
+    const [showInviteLineModal, setShowInviteLineModal] = useState(false);
     const [tokenToRemove, setTokenToRemove] = useState<{ id: string, number: number } | null>(null);
     const [announcementInput, setAnnouncementInput] = useState("");
     const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false);
@@ -617,6 +620,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, [queueId, state?.is_paused, initialQueue?.is_paused, toast]);
 
     const [showAddForm, setShowAddForm] = useState(false);
+    const [mobileQuickExpanded, setMobileQuickExpanded] = useState(false);
     const [addName, setAddName] = useState("");
     const [debouncedAddName, setDebouncedAddName] = useState("");
     useEffect(() => {
@@ -660,22 +664,37 @@ export default function QueueDetailPage({ params }: PageProps) {
         } finally { setActionLoading(null); }
     }, [queueId, addName, addPhone, addAge, addCountryCode, addCompanions, state?.prefix, toast]);
 
+    const executeInvite = useCallback(async (lineNum?: number) => {
+        const num = parseInt(inviteNumber, 10);
+        if (isNaN(num)) return;
+        
+        setActionLoading("invite");
+        setActionError(null);
+        try {
+            await api.serveSpecificToken(queueId, num, lineNum);
+            toast(`Token ${state?.prefix || ""}${num} is now serving${lineNum ? ` on Line ${lineNum}` : ''}`, "success");
+            setInviteNumber("");
+            setShowInviteLineModal(false);
+        } catch (err: unknown) {
+            if (err instanceof ApiError) setActionError(err.detail);
+            else setActionError("Failed to invite token: it might not be waiting or doesn't exist.");
+            setShowInviteLineModal(false);
+        } finally { setActionLoading(null); }
+    }, [inviteNumber, queueId, state?.prefix, toast]);
+
     const handleInvite = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inviteNumber) return;
         const num = parseInt(inviteNumber, 10);
         if (isNaN(num)) return;
-        setActionLoading("invite");
-        setActionError(null);
-        try {
-            await api.serveSpecificToken(queueId, num);
-            toast(`Token ${state?.prefix || ""}${num} is now serving`, "success");
-            setInviteNumber("");
-        } catch (err: unknown) {
-            if (err instanceof ApiError) setActionError(err.detail);
-            else setActionError("Failed to invite token: it might not be waiting or doesn't exist.");
-        } finally { setActionLoading(null); }
-    }, [queueId, inviteNumber, state?.prefix, toast]);
+
+        if ((state?.service_lines || 0) > 0) {
+            setShowInviteLineModal(true);
+            return;
+        }
+
+        executeInvite(undefined);
+    }, [inviteNumber, state?.service_lines, executeInvite]);
 
     const handleRemoveByNumber = useCallback((e: React.FormEvent) => {
         e.preventDefault();
@@ -774,6 +793,42 @@ export default function QueueDetailPage({ params }: PageProps) {
         <>
             <style>{QD_STYLES}</style>
             <div className="qd-root bg-gray-50 dark:bg-transparent" style={{ display: "flex", width: "100%", height: "100%" }}>
+                {/* Mobile Sidebar Overlay */}
+                <div className={`md:hidden fixed inset-0 z-[99999] transition-opacity duration-300 ${mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+                    <div className={`absolute top-0 left-0 bottom-0 w-[280px] bg-white shadow-2xl transition-transform duration-300 ease-in-out ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+                        <div className="p-4 flex flex-col h-full">
+                            <div className="flex justify-between items-center pb-4 border-b border-slate-200 mb-4">
+                                <Link href={`${dashBase}/sessions`} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
+                                    Back to Sessions
+                                </Link>
+                                <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 -mr-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={20}/></button>
+                            </div>
+                            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Managing</div>
+                                <div className="text-sm font-bold text-slate-900 truncate" title={queueName}>{queueName}</div>
+                                <div className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-[pulse-dot_2s_infinite]" />
+                                    {isPaused ? <span className="text-amber-600">Paused</span> : isActive ? "Active" : <span className="text-red-600">Inactive</span>}
+                                </div>
+                            </div>
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-2">Queue Management</div>
+                            <nav className="px-3 flex flex-col gap-1 flex-1 overflow-y-auto">
+                                {navItems.map((item) => {
+                                    const isActiveItem = activeSection === item.id;
+                                    return (
+                                        <button key={item.id} onClick={() => { setActiveSection(item.id); setMobileMenuOpen(false); }} className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all text-left ${isActiveItem ? "font-semibold text-indigo-700 bg-indigo-50" : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                                            <span className={`flex-shrink-0 ${isActiveItem ? "text-indigo-600" : "text-slate-400"}`}>{item.icon}</span>
+                                            <span className="truncate flex-1">{item.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+
 
                 {/* ── Refactored Sidebar ─────────────────────────────────── */}
                 <aside className="hidden md:flex flex-col bg-white border-r border-slate-200" style={{ width: 260, flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}>
@@ -850,20 +905,59 @@ export default function QueueDetailPage({ params }: PageProps) {
                             <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
 
                                 {/* Header */}
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center w-full gap-4">
-                                    <div>
-                                        <div className="flex items-center gap-3">
-                                            <h1 className="qd-section-title text-gray-900 dark:text-white capitalize">{queueName}</h1>
-                                        </div>
-                                        <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
-                                            Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
-                                        </p>
-                                        {(state?.open_time || initialQueue?.open_time) && (state?.close_time || initialQueue?.close_time) && (
-                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold shadow-sm mt-2">
-                                                <Clock className="w-3.5 h-3.5 text-blue-500" />
-                                                <span>{formatTime12(state?.open_time || initialQueue?.open_time)} - {formatTime12(state?.close_time || initialQueue?.close_time)}</span>
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center w-full gap-4 relative">
+                                    <div className="flex w-full md:w-auto items-start md:items-center gap-3">
+                                        <button className="md:hidden mt-1 p-1 -ml-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0" onClick={() => setMobileMenuOpen(true)}>
+                                            <Menu size={24} />
+                                        </button>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3">
+                                                <h1 className="qd-section-title text-gray-900 dark:text-white capitalize">{queueName}</h1>
                                             </div>
-                                        )}
+                                            <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
+                                                Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
+                                            </p>
+                                            {(state?.open_time || initialQueue?.open_time) && (state?.close_time || initialQueue?.close_time) && (
+                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold shadow-sm mt-2">
+                                                    <Clock className="w-3.5 h-3.5 text-blue-500" />
+                                                    <span>{formatTime12(state?.open_time || initialQueue?.open_time)} - {formatTime12(state?.close_time || initialQueue?.close_time)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative md:hidden flex-shrink-0 mt-1">
+                                            <button className="p-1 -mr-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors" onClick={() => setMobileActionsOpen(prev => !prev)}>
+                                                <MoreVertical size={24} />
+                                            </button>
+                                            {mobileActionsOpen && (
+                                                <>
+                                                    <div className="fixed inset-0 z-[40]" onClick={() => setMobileActionsOpen(false)} />
+                                                    <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 shadow-xl rounded-xl p-2 z-[50] flex flex-col gap-1 text-left">
+                                                        {isActive && (
+                                                            <button onClick={() => { handlePauseToggle(); setMobileActionsOpen(false); }} disabled={isDisabled || pausing} className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2">
+                                                                {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                                                                {isPaused ? "Resume" : "Take a Break"}
+                                                            </button>
+                                                        )}
+                                                        {!isStaff && (
+                                                            <button onClick={() => { setShowResetConfirm(true); setMobileActionsOpen(false); }} disabled={isDisabled || resetting} className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2">
+                                                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                                Reset Queue
+                                                            </button>
+                                                        )}
+                                                        <a href={`/display/${queueId}`} target="_blank" rel="noopener noreferrer" onClick={() => setMobileActionsOpen(false)} className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2">
+                                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                                            Display Screen
+                                                        </a>
+                                                        {!isStaff && (
+                                                            <button onClick={() => { setShowDeleteConfirm(true); setMobileActionsOpen(false); }} className="text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg flex items-center gap-2">
+                                                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                                Delete Queue
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -883,7 +977,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <button
                                                     onClick={refresh}
                                                     title="Refresh now"
-                                                    className="inline-flex items-center justify-center gap-1.5 p-1.5 md:p-0 rounded-md md:rounded-none bg-slate-50 md:bg-transparent border border-gray-200 md:border-none hover:bg-slate-100 md:hover:bg-transparent transition-colors"
+                                                    className="hidden md:inline-flex items-center justify-center gap-1.5 p-1.5 md:p-0 rounded-md md:rounded-none bg-slate-50 md:bg-transparent border border-gray-200 md:border-none hover:bg-slate-100 md:hover:bg-transparent transition-colors"
                                                     style={{ fontSize: 11, fontWeight: 600, color: T.textSub, cursor: "pointer", transition: "color .15s" }}
                                                     onMouseEnter={e => { if (window.innerWidth >= 768) e.currentTarget.style.color = T.brand; }}
                                                     onMouseLeave={e => { if (window.innerWidth >= 768) e.currentTarget.style.color = T.textSub; }}
@@ -915,53 +1009,56 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
                                         </div>
 
-                                        <div style={{ width: 1, height: 24, background: T.cardBorder, margin: "0 4px" }} />
-                                        {isActive && (
-                                            <button
-                                                onClick={handlePauseToggle}
-                                                disabled={isDisabled || pausing}
-                                                className={`bg-white border ${isPaused ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-50"} shadow-sm ring-1 ring-slate-900/5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2`}
-                                            >
-                                                {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                                                {isPaused ? "Resume" : "Take a Break"}
-                                            </button>
-                                        )}
-                                        {!isStaff && (
-                                            <button
-                                                onClick={() => setShowResetConfirm(true)}
-                                                disabled={isDisabled || resetting}
+                                        <div style={{ width: 1, height: 24, background: T.cardBorder, margin: "0 4px" }} className="hidden md:block" />
+                                        
+                                        <div className="hidden md:flex items-center gap-2">
+                                            {isActive && (
+                                                <button
+                                                    onClick={handlePauseToggle}
+                                                    disabled={isDisabled || pausing}
+                                                    className={`bg-white border ${isPaused ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-50"} shadow-sm ring-1 ring-slate-900/5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2`}
+                                                >
+                                                    {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                                                    {isPaused ? "Resume" : "Take a Break"}
+                                                </button>
+                                            )}
+                                            {!isStaff && (
+                                                <button
+                                                    onClick={() => setShowResetConfirm(true)}
+                                                    disabled={isDisabled || resetting}
+                                                    className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+                                                >
+                                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                    Reset
+                                                </button>
+                                            )}
+
+                                            <a
+                                                href={`/display/${queueId}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                                 className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
                                             >
-                                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                                Reset
-                                            </button>
-                                        )}
-
-                                        <a
-                                            href={`/display/${queueId}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
-                                        >
-                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                                            Display
-                                        </a>
-                                        {!isStaff && (
-                                            <button
-                                                onClick={() => setShowDeleteConfirm(true)}
-                                                className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
-                                            >
-                                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                Delete
-                                            </button>
-                                        )}
+                                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                                Display
+                                            </a>
+                                            {!isStaff && (
+                                                <button
+                                                    onClick={() => setShowDeleteConfirm(true)}
+                                                    className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+                                                >
+                                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    Delete
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Main 2-col Grid */}
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:h-[calc(100vh-theme(spacing.36))]">
                                     {/* Left: Serving + Actions */}
-                                    <div className="lg:col-span-2 space-y-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1">
+                                    <div className="lg:col-span-2 flex flex-col gap-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1 pb-4 relative">
 
                                         {/* Hero – Now Serving or Service Lines Grid */}
                                         {(() => {
@@ -1180,44 +1277,49 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             )}
                                         </div>
 
-                                        {/* Manual Controls Row */}
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 bg-white/60 dark:bg-slate-800/40 backdrop-blur-lg border border-white/50 dark:border-white/10 rounded-2xl p-5 shadow-sm">
+                                    </>
+                                        )} {/* end service_lines === 0 single-counter section */}
+
+                                        {/* Quick Actions Toolbar — Desktop (horizontal bar) */}
+                                        <div className="sticky bottom-0 z-30 mt-auto hidden sm:flex items-center gap-2 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_-4px_20px_rgb(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgb(0,0,0,0.4)] transition-all">
                                             {/* Manual Entry */}
-                                            <div className="flex flex-col gap-2.5">
-                                                <p className="text-slate-400 dark:text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Manual Entry</p>
-                                                <button
-                                                    onClick={() => setShowAddForm(true)}
-                                                    disabled={isDisabled || isPaused}
-                                                    title={isPaused ? "Queue is currently on a break" : undefined}
-                                                    className="h-10 px-4 w-full text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 shadow-sm text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                                                    Add Customer
-                                                </button>
-                                            </div>
+                                            <button
+                                                onClick={() => setShowAddForm(true)}
+                                                disabled={isDisabled || isPaused}
+                                                title={isPaused ? "Queue is currently on a break" : undefined}
+                                                className="w-auto h-10 px-5 text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] shadow-[0_4px_12px_rgba(79,70,229,0.25)] hover:shadow-[0_6px_16px_rgba(79,70,229,0.35)] transition-all flex justify-center items-center gap-2 flex-shrink-0 disabled:opacity-50 disabled:shadow-none"
+                                            >
+                                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                                                Add Customer
+                                            </button>
+
+                                            <div className="w-[1px] h-7 bg-slate-200 dark:bg-slate-700/50 mx-1" />
 
                                             {/* Invite by Number */}
-                                            <div className="flex flex-col gap-2.5">
-                                                <p className="text-slate-400 dark:text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Invite by Number</p>
-                                                <form onSubmit={handleInvite} style={{ display: "flex", gap: 7 }}>
-                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Token #" disabled={isDisabled || isPaused} className="h-10 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 shadow-sm rounded-xl px-3 text-sm text-slate-800 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 transition-all w-full" />
-                                                    <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} title={isPaused ? "Queue is currently on a break" : undefined} className="h-10 px-4 text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 shadow-sm text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                                                        Call
-                                                    </button>
-                                                </form>
-                                            </div>
+                                            <form onSubmit={handleInvite} className="flex-1 relative flex items-center group">
+                                                <div className="absolute left-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                                </div>
+                                                <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[70px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
+                                                <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-400 dark:hover:border-indigo-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    Call
+                                                </button>
+                                            </form>
+
+                                            <div className="w-[1px] h-7 bg-slate-200 dark:bg-slate-700/50 mx-1" />
 
                                             {/* Remove by Number */}
-                                            <div className="flex flex-col gap-2.5">
-                                                <p className="text-slate-400 dark:text-slate-500" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", margin: 0 }}>Remove by Number</p>
-                                                <form onSubmit={handleRemoveByNumber} style={{ display: "flex", gap: 7 }}>
-                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Token #" disabled={isDisabled || isPaused} className="h-10 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 shadow-sm rounded-xl px-3 text-sm text-slate-800 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-red-500/20 focus:border-red-300 transition-all w-full" />
-                                                    <button type="submit" disabled={!removeNumber || isDisabled || isPaused} title={isPaused ? "Queue is currently on a break" : undefined} className="h-10 px-4 text-sm font-medium bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200/80 dark:border-red-800/50 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                                                        Remove
-                                                    </button>
-                                                </form>
-                                            </div>
+                                            <form onSubmit={handleRemoveByNumber} className="flex-1 relative flex items-center group">
+                                                <div className="absolute left-3.5 text-slate-400 group-focus-within:text-rose-500 transition-colors">
+                                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </div>
+                                                <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[80px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 dark:focus:border-rose-500/50 transition-all outline-none" />
+                                                <button type="submit" disabled={!removeNumber || isDisabled || isPaused} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-500/20 dark:hover:text-rose-400 dark:hover:border-rose-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    Remove
+                                                </button>
+                                            </form>
                                         </div>
+
 
                                         {/* Status banners */}
                                         {actionError && (
@@ -1236,17 +1338,21 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 Reconnecting to live updates…
                                             </div>
                                         )}
-                                    </>
-                                        )} {/* end service_lines === 0 single-counter section */}
                                     </div>
 
                                     {/* Right: Lists */}
                                     <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
 
                                         {/* Waiting/Skipped List */}
-                                        <aside className="qd-card bg-white dark:bg-slate-900 dark:border-white/10 flex-1 min-h-0" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }} aria-label="Waiting list">
-                                            <div style={{ padding: "14px 18px 10px", borderBottom: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
-                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                        <aside className="flex flex-col flex-1 min-h-0 bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none overflow-hidden" aria-label="Waiting list">
+                                            <div className="px-4 pt-4 pb-3 border-b border-slate-200/80 dark:border-white/10 flex flex-col gap-3">
+                                                <div className="flex items-center gap-2 text-slate-800 dark:text-white">
+                                                    <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                                        <List size={14} strokeWidth={2.5} />
+                                                    </div>
+                                                    <h2 className="text-[14px] font-bold m-0">Waiting List</h2>
+                                                </div>
+                                                <div className="flex items-center justify-between">
                                                     <div className="flex gap-5 pt-1">
                                                         <button
                                                             onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }}
@@ -1264,32 +1370,35 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <div style={{ position: "relative" }}>
-                                                    <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
-                                                        <svg width="13" height="13" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                    </span>
-                                                    <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 30, fontSize: 12.5 }} />
+                                                <div className="relative group">
+                                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                    </div>
+                                                    <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="w-full h-9 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-xl pl-9 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
                                                 </div>
                                             </div>
                                             <div className="scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700" style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                                                 {(activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).map((t: WaitingToken, idx: number) => (
-                                                    <div key={t.id} className="group border-b border-slate-200/60 dark:border-white/10" style={{ padding: "10px 18px", background: idx % 2 === 1 ? "var(--q-row-alt)" : "transparent", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                                <span className="dark:text-white" style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", minWidth: 48 }}>{state?.prefix || ""}{t.token_number}</span>
-                                                                <span style={{ padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: activeListTab === "waiting" ? T.amber : T.red }}>{activeListTab}</span>
+                                                    <div key={t.id} className={`group border-b border-slate-100 dark:border-white/5 px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${idx % 2 === 1 ? "bg-slate-50/30 dark:bg-slate-900/20" : "bg-transparent"}`}>
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[15px] font-black tabular-nums text-slate-900 dark:text-white min-w-[48px]">
+                                                                    <span className="text-emerald-500">{state?.prefix || ""}</span>{t.token_number}
+                                                                </span>
+                                                                <span className={`px-2 py-0.5 rounded-[5px] text-[9.5px] font-bold uppercase tracking-wider ${activeListTab === "waiting" ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400"}`}>
+                                                                    {activeListTab}
+                                                                </span>
                                                                 {manuallyAddedTokens.has(t.token_number)
-                                                                    ? <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.violetBg, color: T.violet }}>Manual</span>
-                                                                    : <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.cyanBg, color: T.cyan, display: "inline-flex", alignItems: "center", gap: 3 }}><QrCode className="w-2.5 h-2.5" />QR</span>
+                                                                    ? <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">Manual</span>
+                                                                    : <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
                                                                 }
-
                                                             </div>
                                                             {t.customer_name && (
-                                                                <div className="dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: 11.5, paddingLeft: 56 }}>
-                                                                    <span className="dark:text-white" style={{ fontWeight: 600 }}>
+                                                                <div className="text-[11.5px] text-slate-500 dark:text-slate-400 pl-[56px] flex flex-wrap gap-x-2 gap-y-0.5">
+                                                                    <span className="font-semibold text-slate-700 dark:text-slate-300">
                                                                         {t.customer_name}
                                                                         {(t.companion_names && t.companion_names.length > 0) && (
-                                                                            <span style={{ fontWeight: 400, color: "#6366f1", marginLeft: 4 }}>
+                                                                            <span className="font-normal text-indigo-500 ml-1">
                                                                                 (+ {t.companion_names.join(", ")})
                                                                             </span>
                                                                         )}
@@ -1299,20 +1408,18 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                        <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <button
                                                                 onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
-                                                                className="text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400" style={{ padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
-                                                                onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
-                                                                onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+                                                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-[8px] transition-colors"
+                                                                title="View Details"
                                                             >
                                                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                             </button>
                                                             {activeListTab === "waiting" ? (
                                                                 <button
                                                                     onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
-                                                                    style={{ fontSize: 11, fontWeight: 700, padding: "4px 9px", color: T.red, border: `1px solid ${T.redBorder}`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
-                                                                    className="hover:bg-red-50 dark:hover:bg-red-900/30"
+                                                                    className="px-2.5 h-8 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-500/30 rounded-[8px] hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shadow-sm"
                                                                 >
                                                                     Remove
                                                                 </button>
@@ -1322,8 +1429,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                         const res = await api.serveSpecificToken(queueId, t.token_number);
                                                                         toast(`Recalled ${state?.prefix || ""}${res.serving}`, "success");
                                                                     })}
-                                                                    style={{ fontSize: 11, fontWeight: 700, padding: "4px 9px", color: "#4f46e5", border: `1px solid #4f46e5`, borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
-                                                                    className="hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                                                                    className="px-2.5 h-8 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 rounded-[8px] hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors shadow-sm"
                                                                 >
                                                                     Recall
                                                                 </button>
@@ -1331,11 +1437,16 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         </div>
                                                     </div>
                                                 )) : (
-                                                    <div style={{ padding: "40px 18px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                                        <div style={{ width: 42, height: 42, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-                                                            <svg width="20" height="20" fill="none" stroke={T.brand} viewBox="0 0 24 24" style={{ opacity: .4 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                                                        <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-slate-100 dark:ring-white/5 shadow-sm">
+                                                            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-slate-400 dark:text-slate-500"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                         </div>
-                                                        <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{waitingSearch ? "No tokens match" : activeListTab === "waiting" ? "No one is waiting" : "No skipped tokens"}</p>
+                                                        <p className="text-[14px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                                            {waitingSearch ? "No matching tokens" : activeListTab === "waiting" ? "Queue is clear" : "No skipped tokens"}
+                                                        </p>
+                                                        <p className="text-[12.5px] font-medium text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">
+                                                            {waitingSearch ? "Try a different search term" : activeListTab === "waiting" ? "There are no customers currently waiting in line." : "No customers have been skipped recently."}
+                                                        </p>
                                                     </div>
                                                 )}
                                             </div>
@@ -1351,19 +1462,19 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         </aside>
 
                                         {/* Recent Activity */}
-                                        <aside className="qd-card bg-white dark:bg-slate-900 dark:border-white/10 flex-1 min-h-0" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }} aria-label="Recent activity">
-                                            <div style={{ padding: "14px 18px 10px", borderBottom: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                    <span className="text-slate-500" style={{ width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                        <aside className="flex flex-col flex-1 min-h-0 bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none overflow-hidden" aria-label="Recent activity">
+                                            <div className="px-4 pt-4 pb-3 border-b border-slate-200/80 dark:border-white/10 flex flex-col gap-3">
+                                                <div className="flex items-center gap-2 text-slate-800 dark:text-white">
+                                                    <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                                                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
-                                                    </span>
-                                                    <h2 style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Recent Activity</h2>
+                                                    </div>
+                                                    <h2 className="text-[14px] font-bold m-0">Recent Activity</h2>
                                                 </div>
-                                                <div style={{ position: "relative" }}>
-                                                    <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 10, pointerEvents: "none" }}>
-                                                        <svg width="13" height="13" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                    </span>
-                                                    <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 30, fontSize: 12.5 }} />
+                                                <div className="relative group">
+                                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                    </div>
+                                                    <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="w-full h-9 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-xl pl-9 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
                                                 </div>
                                             </div>
                                             <div className="scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700" style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
@@ -1377,11 +1488,16 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         onView={setSelectedToken}
                                                     />
                                                 )) : (
-                                                    <div style={{ padding: "40px 18px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                                        <div style={{ width: 42, height: 42, borderRadius: 10, background: T.greenBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-                                                            <svg width="20" height="20" fill="none" stroke={T.green} viewBox="0 0 24 24" style={{ opacity: .4 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                                                        <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-emerald-100 dark:ring-emerald-500/10 shadow-sm">
+                                                            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-emerald-500 dark:text-emerald-600"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                                         </div>
-                                                        <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{recentSearch ? "No tokens match" : "No recent activity"}</p>
+                                                        <p className="text-[14px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                                            {recentSearch ? "No matching activity" : "No recent activity"}
+                                                        </p>
+                                                        <p className="text-[12.5px] font-medium text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">
+                                                            {recentSearch ? "Try a different search term" : "Your queue's recent actions will appear here."}
+                                                        </p>
                                                     </div>
                                                 )}
                                             </div>
@@ -1397,6 +1513,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         </aside>
                                     </div>
                                 </div>
+
+                                {/* Mobile bottom spacer so content isn't hidden behind the fixed dock */}
+                                <div className="md:hidden h-[160px] w-full flex-shrink-0" />
                             </div>
                         )}
 
@@ -1781,6 +1900,37 @@ export default function QueueDetailPage({ params }: PageProps) {
                         </div>
                     </div>
                 )}
+
+                {/* Invite Line Selection Modal */}
+                {showInviteLineModal && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setShowInviteLineModal(false); }}>
+                        <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-white/10">
+                            <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Select Service Line</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Which line is calling Token {state?.prefix || ""}{inviteNumber}?</p>
+                                </div>
+                                <button onClick={() => setShowInviteLineModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-900/5 p-2 rounded-full">
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <div className="grid grid-cols-2 gap-3">
+                                    {Array.from({ length: state?.service_lines || 0 }).map((_, i) => (
+                                        <button 
+                                            key={i + 1} 
+                                            onClick={() => executeInvite(i + 1)}
+                                            className="px-4 py-3 rounded-xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 dark:border-white/10 dark:hover:border-indigo-500 dark:hover:bg-indigo-900/20 text-slate-700 dark:text-slate-200 font-bold text-sm transition-all text-center"
+                                        >
+                                            Line {i + 1}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <TokenDetailModal
                     token={selectedToken}
                     onClose={() => setSelectedToken(null)}
@@ -1789,6 +1939,63 @@ export default function QueueDetailPage({ params }: PageProps) {
                         toast(`Recalled ${state?.prefix || ""}${res.serving}`, "success");
                     }) : undefined}
                 />
+            </div>
+
+            {/* Mobile Bottom Dock — rendered at root level to avoid overflow clipping */}
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[9999]">
+                {/* Expandable Panel (slides up from bottom) */}
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${mobileQuickExpanded ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"}`}>
+                    <div className="mx-3 mb-2 flex flex-col gap-2">
+                        {/* Invite by Number */}
+                        <form onSubmit={(e) => { handleInvite(e); setMobileQuickExpanded(false); }} className="relative flex items-center group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-1">
+                            <div className="absolute left-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                            </div>
+                            <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused} className="w-full h-11 bg-transparent pl-11 pr-[70px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl" />
+                            <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all hover:bg-indigo-100 disabled:opacity-40">
+                                Call
+                            </button>
+                        </form>
+                        {/* Remove by Number */}
+                        <form onSubmit={(e) => { handleRemoveByNumber(e); setMobileQuickExpanded(false); }} className="relative flex items-center group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-1">
+                            <div className="absolute left-4 text-slate-400 group-focus-within:text-rose-500 transition-colors">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </div>
+                            <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused} className="w-full h-11 bg-transparent pl-11 pr-[85px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl" />
+                            <button type="submit" disabled={!removeNumber || isDisabled || isPaused} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl transition-all hover:bg-rose-100 disabled:opacity-40">
+                                Remove
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {/* Bottom Dock Bar */}
+                <div className="flex items-center gap-2 px-4 py-3 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgb(0,0,0,0.04)]" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+                    {/* Add Customer — primary CTA */}
+                    <button
+                        onClick={() => setShowAddForm(true)}
+                        disabled={isDisabled || isPaused}
+                        className="flex-1 w-full h-11 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:shadow-none"
+                    >
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                        Add Customer
+                    </button>
+
+                    {/* More Actions Toggle */}
+                    <button
+                        type="button"
+                        onClick={() => setMobileQuickExpanded(prev => !prev)}
+                        className={`w-11 h-11 flex items-center justify-center rounded-xl border transition-all flex-shrink-0 ${
+                            mobileQuickExpanded
+                                ? "bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400"
+                                : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400"
+                        }`}
+                    >
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </>
     );
@@ -1805,81 +2012,58 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
     onView?: (data: TokenDetailData) => void;
 }) {
     const statusClasses: Record<string, string> = {
-        serving: "bg-blue-50 text-blue-700 border border-blue-100/80 rounded-full font-medium px-2.5 py-0.5",
-        done: "bg-emerald-50 text-emerald-700 border border-emerald-100/80 rounded-full font-medium px-2.5 py-0.5",
-        skipped: "bg-amber-50 text-amber-700 border border-amber-100/80 rounded-full font-medium px-2.5 py-0.5",
-        deleted: "bg-red-50 text-red-700 border border-red-100/80 rounded-full font-medium px-2.5 py-0.5",
-        waiting: "bg-amber-50 text-amber-700 border border-amber-100/80 rounded-full font-medium px-2.5 py-0.5",
+        serving: "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
+        done: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
+        skipped: "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
+        deleted: "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20",
+        waiting: "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
     };
-    const sClass = statusClasses[t.status] || "bg-slate-50 text-slate-700 border border-slate-100/80 rounded-full font-medium px-2.5 py-0.5";
+    const sClass = statusClasses[t.status] || "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20";
 
     return (
-        <div style={{ padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "background .15s" }} className="group border-b border-slate-200/60 dark:border-white/10"
-            onMouseEnter={e => (e.currentTarget.style.background = "var(--q-row-alt)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-        >
-            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <span className="dark:text-white" style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", minWidth: 48 }}>{prefix}{t.token_number}</span>
-                    <span className={`text-[10px] tracking-wider uppercase ${sClass}`}>{t.status}</span>
+        <div className="group border-b border-slate-100 dark:border-white/5 px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors bg-transparent">
+            <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                    <span className="text-[15px] font-black tabular-nums text-slate-900 dark:text-white min-w-[48px]">
+                        <span className="text-emerald-500">{prefix}</span>{t.token_number}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-[5px] text-[9.5px] font-bold uppercase tracking-wider border ${sClass}`}>{t.status}</span>
                     {isManual
-                        ? <span className="bg-slate-50 text-slate-700 border border-slate-200/60 rounded-full font-medium px-2 py-0.5 text-[9px] tracking-wider uppercase">Manual</span>
-                        : <span className="bg-slate-50 text-slate-700 border border-slate-200/60 rounded-full font-medium px-2 py-0.5 text-[9px] tracking-wider uppercase inline-flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
+                        ? <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">Manual</span>
+                        : <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
                     }
                     {t.assigned_line != null && (
-                        <span style={{
-                            background: "#f0fdf4",
-                            color: "#16a34a",
-                            border: "1px solid #bbf7d0",
-                            borderRadius: 999,
-                            fontSize: 9,
-                            fontWeight: 700,
-                            padding: "1px 7px",
-                            letterSpacing: "0.06em",
-                            textTransform: "uppercase",
-                        }}>
+                        <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                             Line {t.assigned_line}
                         </span>
                     )}
                     {t.called_via_invite && (
-                        <span style={{
-                            background: "#fdf4ff",
-                            color: "#c026d3",
-                            border: "1px solid #f5d0fe",
-                            borderRadius: 999,
-                            fontSize: 9,
-                            fontWeight: 700,
-                            padding: "1px 7px",
-                            letterSpacing: "0.06em",
-                            textTransform: "uppercase",
-                        }}>
+                        <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400">
                             Invited
                         </span>
                     )}
                 </div>
                 {t.customer_name && (
-                    <div className="dark:text-slate-400" style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", fontSize: 11.5, paddingLeft: 56 }}>
-                        <span className="font-medium text-slate-900 dark:text-white capitalize">
+                    <div className="text-[11.5px] text-slate-500 dark:text-slate-400 pl-[56px] flex flex-wrap gap-x-2 gap-y-0.5">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300 capitalize">
                             {t.customer_name}
                             {(t.companion_names && t.companion_names.length > 0) && (
-                                <span style={{ fontWeight: 400, color: "#6366f1", marginLeft: 4, textTransform: "none" }}>
+                                <span className="font-normal text-indigo-500 ml-1 normal-case">
                                     (+ {t.companion_names.join(", ")})
                                 </span>
                             )}
                         </span>
-
                         {t.customer_age != null && <span>Age: {t.customer_age}</span>}
                         <span>{t.customer_phone}</span>
                     </div>
                 )}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                 {onView && (
                     <button
                         onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
-                        style={{ padding: "5px", background: "transparent", border: "#e5e7eb", borderRadius: 6, cursor: "pointer", transition: "all .15s" }}
-                        onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-[8px] transition-colors"
+                        title="View Details"
                     >
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                     </button>

@@ -147,9 +147,9 @@ export default function CreateQueueModal({ isOpen, onClose, onCreated }: Props) 
                             <input
                                 type="text"
                                 value={prefix}
-                                onChange={(e) => setPrefix(e.target.value.toUpperCase())}
+                                onChange={(e) => setPrefix(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase())}
                                 placeholder="A"
-                                maxLength={10}
+                                maxLength={3}
                                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                 disabled={isLoading}
                             />

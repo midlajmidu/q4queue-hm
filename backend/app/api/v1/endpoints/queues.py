@@ -25,7 +25,7 @@ import logging
 import uuid
 from typing import Union
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import (
@@ -423,15 +423,6 @@ async def admin_join(
             queue_id=queue.id,
             org_id=queue.org_id,
         )
-        from datetime import datetime, timezone
-        background_tasks.add_task(
-            token_service.notify_new_customer,
-            queue_id=queue.id,
-            org_id=queue.org_id,
-            token=f"{queue.prefix or ''}{result.token_number}",
-            name=body.name,
-            time_str=datetime.now(timezone.utc).isoformat()
-        )
         # WhatsApp notification: staff manually added customer
         if body.send_whatsapp:
             background_tasks.add_task(
@@ -470,6 +461,7 @@ async def admin_join(
 async def serve_specific_token(
     token_number: int,
     background_tasks: BackgroundTasks,
+    line_number: int | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_admin_or_staff),
     queue: Queue = Depends(get_queue_for_org),
@@ -485,6 +477,7 @@ async def serve_specific_token(
             org_id=current_user.org_id,
             user_id=current_user.id,
             token_number=token_number,
+            line_number=line_number,
         )
         background_tasks.add_task(
             token_service.notify_queue_update,
