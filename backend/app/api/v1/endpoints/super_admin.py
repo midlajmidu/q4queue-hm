@@ -68,8 +68,9 @@ def _validate_slug(v: str) -> str:
 class OrgCreateRequest(BaseModel):
     org_name: str
     org_slug: str
-    admin_email: str
-    admin_password: str
+    parent_organization_id: _uuid.UUID
+    admin_email: str | None = None
+    admin_password: str | None = None
     max_sessions: int | None = Field(None, ge=1)
     max_queues_per_session: int | None = Field(None, ge=1)
     max_staff: int | None = Field(None, ge=1)
@@ -203,7 +204,7 @@ IN_MEMORY_SETTINGS = {
 
 class OrgCreateResponse(BaseModel):
     organization: OrgDetail
-    admin_email: str
+    admin_email: str | None = None
     message: str
 
 
@@ -822,19 +823,12 @@ async def create_organization(
     db: AsyncSession = Depends(get_db),
 ) -> OrgCreateResponse:
     """Atomically create a new organization and provision an admin user for it."""
+    import uuid as _uuid
     existing = await db.execute(select(Organization).where(Organization.slug == body.org_slug))
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Organization slug '{body.org_slug}' is already taken.",
-        )
-
-    # Ensure admin email is unique globally
-    existing_user = await db.execute(select(User).where(func.lower(User.email) == body.admin_email.lower()))
-    if existing_user.scalars().first() is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Email '{body.admin_email}' is already in use by another organization.",
         )
 
     org = Organization(
@@ -843,35 +837,58 @@ async def create_organization(
         max_sessions=body.max_sessions if body.max_sessions is not None else IN_MEMORY_SETTINGS.get("default_session_limit", 10),
         max_queues_per_session=body.max_queues_per_session if body.max_queues_per_session is not None else IN_MEMORY_SETTINGS.get("default_queue_limit", 20),
         max_staff=body.max_staff if body.max_staff is not None else 5,
+        parent_organization_id=body.parent_organization_id,
     )
     db.add(org)
     await db.flush()
 
-    admin = User(
-        org_id=org.id,
-        email=body.admin_email,
-        password_hash=hash_password(body.admin_password),
-        role="admin",
-    )
-    db.add(admin)
-    await db.commit()
-    await db.refresh(org)
+    admin = None
+    if body.admin_email and body.admin_password:
+        existing_user = await db.execute(select(User).where(func.lower(User.email) == body.admin_email.lower()))
+        if existing_user.scalars().first() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Email '{body.admin_email}' is already in use by another organization.",
+            )
 
-    await record_event(
-        event_type="organization_created",
-        org_id=org.id,
-        user_id=_super_admin.id,
-        ip_address=request.client.host if request.client else None,
-        resource_type="organization",
-        resource_id=str(org.id),
-        details={"slug": body.org_slug, "admin_email": body.admin_email},
-    )
+        admin = User(
+            id=_uuid.uuid4(),
+            email=body.admin_email,
+            password_hash=hash_password(body.admin_password),
+            org_id=org.id,
+            role="admin",
+            is_active=True,
+        )
+        db.add(admin)
+        await db.flush()
+
+        await record_event(
+            event_type="organization_created",
+            org_id=org.id,
+            user_id=_super_admin.id,
+            ip_address=request.client.host if request.client else None,
+            resource_type="organization",
+            resource_id=str(org.id),
+            details={"slug": body.org_slug, "admin_email": body.admin_email},
+        )
+    else:
+        await record_event(
+            event_type="organization_created",
+            org_id=org.id,
+            user_id=_super_admin.id,
+            ip_address=request.client.host if request.client else None,
+            resource_type="organization",
+            resource_id=str(org.id),
+            details={"slug": body.org_slug, "admin_email": None},
+        )
+
+    await db.commit()
 
     logger.info("Super admin created org | org=%s admin=%s", org.slug, body.admin_email)
     return OrgCreateResponse(
         organization=_org_to_detail(org, admin),
-        admin_email=body.admin_email,
-        message=f"Organization '{org.name}' created with admin '{body.admin_email}'.",
+        admin_email=body.admin_email if body.admin_email else None,
+        message=f"Organization '{org.name}' created" + (f" with admin '{body.admin_email}'." if body.admin_email else "."),
     )
 
 

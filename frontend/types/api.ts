@@ -558,6 +558,7 @@ export interface OrgUsageResponse {
 export interface OrgCreateRequest {
     org_name: string;
     org_slug: string;
+    parent_organization_id: string;
     admin_email: string;
     admin_password: string;
     max_sessions: number;

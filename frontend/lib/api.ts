@@ -1036,6 +1036,13 @@ export const api = {
     },
 
     // Global User Management
+    searchGlobalUsers(q: string = "", limit: number = 20, offset: number = 0, role: string = ""): Promise<PaginatedGlobalUsers> {
+        let url = `/super-admin/users/search?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`;
+        if (role) {
+            url += `&role=${encodeURIComponent(role)}`;
+        }
+        return request<PaginatedGlobalUsers>(url);
+    },
 
 
     updateUser(userId: string, data: { first_name?: string; last_name?: string; email?: string; new_password?: string }): Promise<User> {

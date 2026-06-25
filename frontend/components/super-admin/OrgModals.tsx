@@ -202,10 +202,11 @@ export function ConfirmStatusModal({ org, onClose, onConfirm, isUpdating }: { or
 
 // ── Create Modal ────────────────────────────────────────────────────────────────
 export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void; }) {
-    const [form, setForm] = useState<OrgCreateRequest>({ org_name: "", org_slug: "", admin_email: "", admin_password: "", max_sessions: 10, max_queues_per_session: 20, max_staff: 5 });
+    const [form, setForm] = useState<OrgCreateRequest>({ org_name: "", org_slug: "", admin_email: "", admin_password: "", parent_organization_id: "", max_sessions: 10, max_queues_per_session: 20, max_staff: 5 });
     const [showAdminPassword, setShowAdminPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [parentOrgs, setParentOrgs] = useState<any[]>([]);
 
     useEffect(() => {
         const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -221,6 +222,10 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                 max_queues_per_session: settings.default_queue_limit || 20,
             }));
         }).catch(err => console.error("Failed to load global limits:", err));
+        
+        api.listParentOrganizations({ limit: 100 }).then(res => {
+            setParentOrgs(res.items || []);
+        }).catch(err => console.error("Failed to load parent orgs:", err));
     }, []);
 
     const handleNameChange = (name: string) => {
@@ -258,6 +263,22 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                         <input id="org-name" type="text" value={form.org_name} onChange={(e) => handleNameChange(e.target.value)} placeholder="Sunrise Clinic" required disabled={isSubmitting} className="w-full rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
                     </div>
                     <div>
+                        <label htmlFor="parent-org" className="block text-sm font-medium text-slate-300 mb-1.5">Parent Organization</label>
+                        <select 
+                            id="parent-org" 
+                            value={form.parent_organization_id} 
+                            onChange={(e) => setForm(f => ({ ...f, parent_organization_id: e.target.value }))} 
+                            required 
+                            disabled={isSubmitting} 
+                            className="w-full rounded-xl bg-slate-950 border border-slate-800 text-white px-3.5 py-2.5 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors"
+                        >
+                            <option value="" disabled>Select a Parent Organization</option>
+                            {parentOrgs.map(org => (
+                                <option key={org.id} value={org.id}>{org.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
                         <label htmlFor="org-slug" className="block text-sm font-medium text-slate-300 mb-1.5">Slug <span className="text-slate-500 text-xs">(auto-generated)</span></label>
                         <input id="org-slug" type="text" value={form.org_slug} onChange={(e) => setForm(f => ({ ...f, org_slug: e.target.value.toLowerCase() }))} placeholder="sunrise-clinic" required disabled={isSubmitting} className="w-full rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm font-mono focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
                     </div>
@@ -276,13 +297,14 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                         </div>
                     </div>
                     <hr className="border-slate-700" />
-                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Admin Account</p>
+                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Branch Manager Login</p>
+                    <p className="text-xs text-slate-500 mb-2">These are the credentials the manager will use to log into this branch.</p>
                     <div>
-                        <label htmlFor="admin-email" className="block text-sm font-medium text-slate-300 mb-1.5">Admin Email</label>
-                        <input id="admin-email" type="email" value={form.admin_email} onChange={(e) => setForm(f => ({ ...f, admin_email: e.target.value }))} placeholder="admin@sunrise-clinic.com" required autoComplete="off" disabled={isSubmitting} className="w-full rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
+                        <label htmlFor="admin-email" className="block text-sm font-medium text-slate-300 mb-1.5">Manager Email Address</label>
+                        <input id="admin-email" type="email" value={form.admin_email} onChange={(e) => setForm(f => ({ ...f, admin_email: e.target.value }))} placeholder="manager@sunrise-clinic.com" required autoComplete="off" disabled={isSubmitting} className="w-full rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
                     </div>
                     <div>
-                        <label htmlFor="admin-password" title="Password" className="block text-sm font-medium text-slate-300 mb-1.5">Admin Password</label>
+                        <label htmlFor="admin-password" title="Password" className="block text-sm font-medium text-slate-300 mb-1.5">Manager Password</label>
                         <div className="relative">
                             <input
                                 id="admin-password"
@@ -307,7 +329,7 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                     </div>
                     <div className="flex gap-3 pt-1">
                         <button type="button" onClick={onClose} disabled={isSubmitting} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl transition-colors">Cancel</button>
-                        <button type="submit" disabled={isSubmitting || !form.org_name || !form.org_slug || !form.admin_email || !form.admin_password} className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button type="submit" disabled={isSubmitting || !form.org_name || !form.org_slug || !form.admin_email || !form.admin_password || !form.parent_organization_id} className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
                             {isSubmitting ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creating...</span> : "Create Branch"}
                         </button>
                     </div>
