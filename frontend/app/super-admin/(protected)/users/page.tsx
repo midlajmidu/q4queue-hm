@@ -4,10 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import type { GlobalUserDetail } from "@/types/api";
 
-export default function GlobalStaffSearchPage() {
+export default function GlobalStaffPage() {
     const [q, setQ] = useState("");
     const [debouncedQ, setDebouncedQ] = useState("");
-    const [role, setRole] = useState("");
     const [logs, setLogs] = useState<GlobalUserDetail[]>([]);
     const [loading, setLoading] = useState(true);
     const [total, setTotal] = useState(0);
@@ -23,20 +22,12 @@ export default function GlobalStaffSearchPage() {
         return () => clearTimeout(timer);
     }, [q]);
 
-    const loadData = useCallback(async (currentOffset: number, searchQ: string, filterRole: string) => {
+    const loadData = useCallback(async (currentOffset: number, searchQ: string) => {
         setLoading(true);
         try {
-            const res = await api.searchGlobalUsers(searchQ, limit, currentOffset);
-            // If API didn't support role filtering we could filter client side, but since it does:
-            // Actually our API supports role but we need to pass it.
-            // Wait, we didn't add role to the api.ts client method signature!
-            // Let's filter client side for now, or just let them search. 
-            // We'll filter client-side just in case if role is set.
-            let items = res.items || [];
-            if (filterRole) {
-                items = items.filter(u => u.role === filterRole);
-            }
-            setLogs(items);
+            // We always want to filter for role=staff here
+            const res = await api.searchGlobalUsers(searchQ, limit, currentOffset, "staff");
+            setLogs(res.items || []);
             setTotal(res.total || 0);
         } catch (error) {
             console.error("Failed to load users", error);
@@ -47,15 +38,15 @@ export default function GlobalStaffSearchPage() {
 
     useEffect(() => {
         setOffset(0); // reset offset on search change
-        loadData(0, debouncedQ, role);
-    }, [debouncedQ, role, loadData]);
+        loadData(0, debouncedQ);
+    }, [debouncedQ, loadData]);
 
     useEffect(() => {
         // Just for pagination
         if (offset > 0) {
-            loadData(offset, debouncedQ, role);
+            loadData(offset, debouncedQ);
         }
-    }, [offset, debouncedQ, role, loadData]);
+    }, [offset, debouncedQ, loadData]);
 
     const handleResetPassword = async (user: GlobalUserDetail) => {
         if (!confirm(`Are you sure you want to reset the password for ${user.first_name || user.email}?`)) return;
@@ -153,18 +144,6 @@ export default function GlobalStaffSearchPage() {
                             placeholder="Search by name or email address..."
                             className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none transition-colors"
                         />
-                    </div>
-
-                    <div className="flex bg-slate-950 p-1 rounded-xl shrink-0 border border-slate-800">
-                        {['', 'admin', 'staff'].map(r => (
-                            <button
-                                key={r}
-                                onClick={() => setRole(r)}
-                                className={`px-4 py-1.5 text-xs font-semibold rounded-lg capitalize transition-colors ${role === r ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-300"}`}
-                            >
-                                {r || "All Roles"}
-                            </button>
-                        ))}
                     </div>
                 </div>
 
