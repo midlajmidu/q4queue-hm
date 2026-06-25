@@ -567,10 +567,8 @@ async def get_branch_timeline(
     from app.audit.models import AuditLog
     logs_res = await db.execute(
         select(AuditLog)
-        .where(AuditLog.parent_org_id == current_user.parent_organization_id)
-        # Using cast to text since details is JSONB, this is a bit hacky but works for timeline.
-        # A proper implementation would filter by org_id natively in AuditLog if the column existed.
-        .where(AuditLog.details.cast(String).like(f"%{str(branch_id)}%"))
+        .where(AuditLog.parent_organization_id == current_user.parent_organization_id)
+        .where(AuditLog.org_id == branch_id)
         .order_by(AuditLog.created_at.desc())
         .limit(20)
     )
