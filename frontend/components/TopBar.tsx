@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/context/NotificationContext";
+import { api } from "@/lib/api";
+import type { SystemAnnouncementDetail } from "@/types/api";
 import { createPortal } from "react-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Bell, ChevronRight, Search, Menu, ArrowRight } from "lucide-react";
@@ -17,17 +19,59 @@ function NotificationSystem() {
     const btnRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const { user } = useAuth();
+    const pathname = usePathname();
     const params = useParams();
     const orgSlug = params?.orgSlug || user?.org_slug;
-    const dashBase = orgSlug ? `/${orgSlug}/dashboard` : "/dashboard";
+    let dashBase = orgSlug ? `/${orgSlug}/dashboard` : "/dashboard";
+    if (orgSlug && pathname.startsWith(`/org-admin/${orgSlug}`)) {
+        dashBase = `/org-admin/${orgSlug}/dashboard`;
+    } else if (orgSlug) {
+        const superAdminMatch = pathname.match(new RegExp(`^/super-admin/([^/]+)/${orgSlug}`));
+        if (superAdminMatch) {
+            dashBase = `/super-admin/${superAdminMatch[1]}/${orgSlug}/dashboard`;
+        }
+    }
     const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
     const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
+    const [activeTab, setActiveTab] = useState<"notifications" | "announcements">("notifications");
+    const [announcements, setAnnouncements] = useState<SystemAnnouncementDetail[]>([]);
+    const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(false);
 
     const notifIcons: Record<string, string> = {
         warning: "⚠️",
         success: "✅",
         info: "ℹ️",
         error: "🚨",
+    };
+
+    const loadAnnouncements = async () => {
+        setIsLoadingAnnouncements(true);
+        try {
+            const sysData = await api.getActiveSystemAnnouncements();
+            let orgData: any[] = [];
+            try {
+                orgData = await api.getActiveOrgAnnouncements();
+            } catch (orgErr) {
+                console.error("Failed to load org announcements", orgErr);
+            }
+            
+            // Map both to a common format
+            const sysMapped = sysData.map(a => ({ ...a, source: 'Global System' }));
+            const orgMapped = orgData.map(a => ({ ...a, source: 'Organization' }));
+            
+            // Combine and sort so Org announcements come first, then sort by date descending
+            const combined = [...orgMapped, ...sysMapped].sort((a, b) => {
+                if (a.source === 'Organization' && b.source !== 'Organization') return -1;
+                if (b.source === 'Organization' && a.source !== 'Organization') return 1;
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            });
+            
+            setAnnouncements(combined as any);
+        } catch (error) {
+            console.error("Failed to load announcements", error);
+        } finally {
+            setIsLoadingAnnouncements(false);
+        }
     };
 
     const toggleOpen = () => {
@@ -37,6 +81,7 @@ function NotificationSystem() {
                 top: rect.bottom + 10,
                 right: window.innerWidth - rect.right,
             });
+            loadAnnouncements();
         }
         setIsOpen(prev => !prev);
     };
@@ -68,56 +113,114 @@ function NotificationSystem() {
             }}
         >
             {/* Header */}
-            <div className="px-4 py-3.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                    <span className="font-bold text-[13.5px] text-gray-900 tracking-tight">Notifications</span>
-                    {unreadCount > 0 && (
-                        <span className="bg-indigo-50 text-indigo-600 text-[10.5px] font-bold px-2 py-0.5 rounded-md tracking-wide">
-                            {unreadCount} new
-                        </span>
+            <div className="px-4 pt-3.5 pb-2 border-b border-gray-200 bg-gray-50/50">
+                <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-[13.5px] text-gray-900 tracking-tight">Updates</span>
+                    </div>
+                    {activeTab === "notifications" && unreadCount > 0 && (
+                        <button
+                            onClick={markAllAsRead}
+                            className="text-indigo-600 hover:bg-indigo-50 text-[11.5px] font-semibold px-2.5 py-1 rounded-md transition-colors"
+                        >
+                            Mark all read
+                        </button>
                     )}
                 </div>
-                {unreadCount > 0 && (
-                    <button
-                        onClick={markAllAsRead}
-                        className="text-indigo-600 hover:bg-indigo-50 text-[11.5px] font-semibold px-2.5 py-1 rounded-md transition-colors"
+                {/* Tabs */}
+                <div className="flex gap-4">
+                    <button 
+                        onClick={() => setActiveTab("notifications")}
+                        className={`text-[12.5px] font-semibold pb-1.5 border-b-2 transition-colors ${activeTab === "notifications" ? "border-indigo-500 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
                     >
-                        Mark all read
+                        Alerts
+                        {unreadCount > 0 && (
+                            <span className="ml-1.5 bg-indigo-100 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>
+                        )}
                     </button>
-                )}
+                    <button 
+                        onClick={() => setActiveTab("announcements")}
+                        className={`text-[12.5px] font-semibold pb-1.5 border-b-2 transition-colors ${activeTab === "announcements" ? "border-indigo-500 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                    >
+                        Announcements
+                        {announcements.length > 0 && (
+                            <span className="ml-1.5 bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-full">{announcements.length}</span>
+                        )}
+                    </button>
+                </div>
             </div>
 
             {/* Items */}
             <div className="max-h-[340px] overflow-y-auto">
-                {notifications.length > 0 ? (
-                    notifications.map((n) => (
-                        <div
-                            key={n.id}
-                            className={`flex items-start gap-3 p-3 cursor-pointer transition-colors border-b border-gray-100 last:border-none ${!n.isRead ? "bg-indigo-50/30 hover:bg-indigo-50/50" : "hover:bg-gray-50"}`}
-                            onClick={() => markAsRead(n.id)}
-                        >
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm ${n.type === "warning" ? "bg-amber-50" : n.type === "success" ? "bg-emerald-50" : n.type === "error" ? "bg-red-50" : "bg-blue-50"}`}>
-                                {notifIcons[n.type] || "ℹ️"}
+                {activeTab === "notifications" && (
+                    notifications.length > 0 ? (
+                        notifications.map((n) => (
+                            <div
+                                key={n.id}
+                                className={`flex items-start gap-3 p-3 cursor-pointer transition-colors border-b border-gray-100 last:border-none ${!n.isRead ? "bg-indigo-50/30 hover:bg-indigo-50/50" : "hover:bg-gray-50"}`}
+                                onClick={() => markAsRead(n.id)}
+                            >
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm ${n.type === "warning" ? "bg-amber-50" : n.type === "success" ? "bg-emerald-50" : n.type === "error" ? "bg-red-50" : "bg-blue-50"}`}>
+                                    {notifIcons[n.type] || "ℹ️"}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className={`m-0 text-[13px] leading-snug tracking-tight ${n.isRead ? "font-medium text-gray-700" : "font-semibold text-gray-900"}`}>
+                                        {n.message}
+                                    </p>
+                                    <p className="mt-1 text-[11px] font-medium text-gray-500">
+                                        {n.time}
+                                    </p>
+                                </div>
+                                {!n.isRead && <div className="w-2 h-2 bg-indigo-500 rounded-full shrink-0 mt-1.5 shadow-[0_0_0_3px_rgba(238,242,255,1)]" />}
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <p className={`m-0 text-[13px] leading-snug tracking-tight ${n.isRead ? "font-medium text-gray-700" : "font-semibold text-gray-900"}`}>
-                                    {n.message}
-                                </p>
-                                <p className="mt-1 text-[11px] font-medium text-gray-500">
-                                    {n.time}
-                                </p>
+                        ))
+                    ) : (
+                        <div className="py-12 px-5 text-center text-gray-500">
+                            <div className="w-12 h-12 rounded-xl bg-gray-100 inline-flex items-center justify-center mb-3.5">
+                                <Icons.Bell size={22} className="text-gray-400" />
                             </div>
-                            {!n.isRead && <div className="w-2 h-2 bg-indigo-500 rounded-full shrink-0 mt-1.5 shadow-[0_0_0_3px_rgba(238,242,255,1)]" />}
+                            <p className="m-0 text-[13.5px] font-semibold text-gray-600">All caught up!</p>
+                            <p className="mt-1 text-[12px] text-gray-400">No new alerts</p>
                         </div>
-                    ))
-                ) : (
-                    <div className="py-12 px-5 text-center text-gray-500">
-                        <div className="w-12 h-12 rounded-xl bg-gray-100 inline-flex items-center justify-center mb-3.5">
-                            <Icons.Bell size={22} className="text-gray-400" />
+                    )
+                )}
+
+                {activeTab === "announcements" && (
+                    isLoadingAnnouncements ? (
+                        <div className="py-12 px-5 flex justify-center text-gray-400">Loading...</div>
+                    ) : announcements.length > 0 ? (
+                        announcements.map((a) => (
+                            <div key={a.id} className="flex items-start gap-3 p-3 border-b border-gray-100 last:border-none hover:bg-gray-50 transition-colors">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm ${(a as any).type === "warning" ? "bg-amber-50" : (a as any).type === "success" ? "bg-emerald-50" : (a as any).type === "error" ? "bg-red-50" : "bg-blue-50"}`}>
+                                    {notifIcons[(a as any).type] || "📣"}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="m-0 text-[13px] font-semibold leading-snug tracking-tight text-gray-900">
+                                        {(a as any).title ? (a as any).title : (a as any).message}
+                                    </p>
+                                    {(a as any).title && (
+                                        <p className="m-0 text-[12px] text-gray-600 mt-0.5">
+                                            {(a as any).message}
+                                        </p>
+                                    )}
+                                    <p className="mt-1 text-[11px] font-medium text-gray-500 flex items-center gap-1.5">
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider ${(a as any).source === 'Organization' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                                            {(a as any).source}
+                                        </span>
+                                        • {new Date(a.created_at).toLocaleDateString()}
+                                    </p>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="py-12 px-5 text-center text-gray-500">
+                            <div className="w-12 h-12 rounded-xl bg-gray-100 inline-flex items-center justify-center mb-3.5">
+                                <span className="text-xl">📣</span>
+                            </div>
+                            <p className="m-0 text-[13.5px] font-semibold text-gray-600">No Announcements</p>
+                            <p className="mt-1 text-[12px] text-gray-400">You're all caught up!</p>
                         </div>
-                        <p className="m-0 text-[13.5px] font-semibold text-gray-600">All caught up!</p>
-                        <p className="mt-1 text-[12px] text-gray-400">No new notifications</p>
-                    </div>
+                    )
                 )}
             </div>
 
@@ -141,10 +244,10 @@ function NotificationSystem() {
                 ref={btnRef}
                 className={`relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors focus:outline-none`}
                 onClick={toggleOpen}
-                aria-label="Notifications"
+                aria-label="Updates"
             >
                 <Icons.Bell size={20} />
-                {unreadCount > 0 && (
+                {(unreadCount > 0 || announcements.length > 0) && (
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_0_2px_#fff]" />
                 )}
             </button>
@@ -193,8 +296,13 @@ export function TopBar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
 
     // Simple breadcrumb logic based on pathname segments
     const segments = pathname.split("/").filter(Boolean);
-    // Ignore first segment if it's the orgSlug, unless it's the only one
-    const breadcrumbSegments = segments.length > 2 ? segments.slice(2) : segments.slice(1);
+    const dashIndex = segments.indexOf("dashboard");
+    let breadcrumbSegments: string[] = [];
+    if (dashIndex !== -1) {
+        breadcrumbSegments = segments.slice(dashIndex + 1);
+    } else {
+        breadcrumbSegments = segments.length > 2 ? segments.slice(2) : segments.slice(1);
+    }
     
     const formatSegment = (seg: string) => {
         if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(seg)) {

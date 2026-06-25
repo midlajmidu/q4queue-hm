@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { getExports, downloadExport, api } from '@/lib/api';
 import RequestExportModal from '@/components/organization-admin/exports/RequestExportModal';
 import { getToken } from '@/lib/auth';
+import { config } from '@/lib/config';
 
 export default function ExportsPage() {
     const token = getToken();
@@ -38,13 +39,23 @@ export default function ExportsPage() {
     }, [token]);
 
     const handleDownload = async (job: any) => {
+        if (!token) return;
         setDownloadingId(job.id);
+        
         try {
-            await downloadExport(job.id, job.file_path ? job.file_path.split('/').pop() : 'export', token!);
+            if (job.format === 'pdf') {
+                // Open the backend download endpoint in a new tab.
+                // We pass the token in the query params which is now supported by the backend auth deps.
+                const url = `${config.apiBaseUrl}/organization-admin/exports/${job.id}/download?token=${token}`;
+                window.open(url, '_blank');
+            } else {
+                await downloadExport(job.id, job.file_path ? job.file_path.split('/').pop() : 'export', token!);
+            }
         } catch (error) {
             alert('Failed to download file.');
         } finally {
-            setDownloadingId(null);
+            // Clear loading state after a brief delay
+            setTimeout(() => setDownloadingId(null), 1000);
         }
     };
 

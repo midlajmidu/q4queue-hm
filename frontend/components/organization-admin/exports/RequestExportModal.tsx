@@ -50,15 +50,18 @@ export default function RequestExportModal({ isOpen, onClose, onExportRequested 
 
     // Fetch branches when Customer Detailed Report is selected
     useEffect(() => {
-        if (reportType === "Customer Detailed Report" && branches.length === 0) {
-            api.listBranches()
-                .then(data => {
-                    setBranches(data);
-                    if (data.length > 0) setSelectedBranchId(data[0].id);
-                })
-                .catch(err => console.error("Failed to load branches", err));
+        if (reportType === "Customer Detailed Report") {
+            setFormat("EXCEL"); // Enforce EXCEL for this report
+            if (branches.length === 0) {
+                api.listBranches()
+                    .then(data => {
+                        setBranches(data);
+                        if (data.length > 0) setSelectedBranchId(data[0].id);
+                    })
+                    .catch(err => console.error("Failed to load branches", err));
+            }
         }
-    }, [reportType]);
+    }, [reportType, branches.length]);
 
     // Fetch queues when specific branch is selected
     useEffect(() => {
@@ -258,10 +261,13 @@ export default function RequestExportModal({ isOpen, onClose, onExportRequested 
                                         type="button"
                                         key={fmt}
                                         onClick={() => setFormat(fmt)}
+                                        disabled={reportType === "Customer Detailed Report" && fmt !== "EXCEL"}
                                         className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                                             format === fmt 
                                                 ? 'bg-indigo-50 text-indigo-700 border-2 border-indigo-200' 
-                                                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                                                : (reportType === "Customer Detailed Report" && fmt !== "EXCEL")
+                                                    ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50'
+                                                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                                         }`}
                                     >
                                         {fmt}
@@ -284,15 +290,15 @@ export default function RequestExportModal({ isOpen, onClose, onExportRequested 
                     <button
                         form="export-form"
                         type="submit"
-                        disabled={isLoading}
-                        className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        disabled={isLoading || reportType !== "Customer Detailed Report"}
+                        className={`px-5 py-2.5 text-sm font-medium text-white rounded-xl transition-colors flex items-center gap-2 ${reportType !== "Customer Detailed Report" ? 'bg-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed'}`}
                     >
-                        {isLoading ? (
+                        {reportType !== "Customer Detailed Report" ? 'Coming Soon' : (isLoading ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 Processing...
                             </>
-                        ) : 'Request Export'}
+                        ) : 'Request Export')}
                     </button>
                 </div>
             </div>

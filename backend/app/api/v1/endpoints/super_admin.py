@@ -25,6 +25,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import asc, desc, func, or_, select, and_, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.core.deps import get_current_super_admin
 from app.db.deps import get_db
@@ -303,6 +304,7 @@ def _org_to_detail(o: Organization, admin_user: User | None = None) -> OrgDetail
         admin_password_changed_at=admin_user.password_changed_at.isoformat() if admin_user and admin_user.password_changed_at else None,
         logo_url=o.logo_url,
         parent_organization_id=str(o.parent_organization_id) if o.parent_organization_id else None,
+        parent_slug=o.parent_organization.slug if getattr(o, "parent_organization", None) else None,
     )
 
 
@@ -779,7 +781,7 @@ async def list_organizations(
             base_filter = and_(base_filter, ~test_pattern)
 
     count_q = select(func.count(Organization.id))
-    data_q = select(Organization)
+    data_q = select(Organization).options(joinedload(Organization.parent_organization))
 
     if base_filter is not None:
         count_q = count_q.where(base_filter)
@@ -890,7 +892,7 @@ async def get_organization_detail(
     except ValueError:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid org_id.")
 
-    result = await db.execute(select(Organization).where(Organization.id == org_uuid))
+    result = await db.execute(select(Organization).options(joinedload(Organization.parent_organization)).where(Organization.id == org_uuid))
     org: Organization | None = result.scalar_one_or_none()
     if org is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found.")
@@ -938,7 +940,7 @@ async def get_organization_usage(
     except ValueError:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid org_id.")
 
-    result = await db.execute(select(Organization).where(Organization.id == org_uuid))
+    result = await db.execute(select(Organization).options(joinedload(Organization.parent_organization)).where(Organization.id == org_uuid))
     org: Organization | None = result.scalar_one_or_none()
     if org is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found.")
@@ -996,7 +998,7 @@ async def update_organization(
     except ValueError:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid org_id.")
 
-    result = await db.execute(select(Organization).where(Organization.id == org_uuid))
+    result = await db.execute(select(Organization).options(joinedload(Organization.parent_organization)).where(Organization.id == org_uuid))
     org: Organization | None = result.scalar_one_or_none()
     if org is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found.")
@@ -1063,7 +1065,7 @@ async def delete_organization(
     except ValueError:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid org_id.")
 
-    result = await db.execute(select(Organization).where(Organization.id == org_uuid))
+    result = await db.execute(select(Organization).options(joinedload(Organization.parent_organization)).where(Organization.id == org_uuid))
     org: Organization | None = result.scalar_one_or_none()
     if org is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found.")
@@ -1130,7 +1132,7 @@ async def impersonate_organization(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid org_id.")
 
     # Find the org
-    result = await db.execute(select(Organization).where(Organization.id == org_uuid))
+    result = await db.execute(select(Organization).options(joinedload(Organization.parent_organization)).where(Organization.id == org_uuid))
     org: Organization | None = result.scalar_one_or_none()
     if not org:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found.")
@@ -1157,6 +1159,7 @@ async def impersonate_organization(
         email=admin.email,
         first_name=admin.first_name,
         last_name=admin.last_name,
+        is_impersonating=True,
     )
 
     # Log the impersonation event
@@ -1432,87 +1435,6 @@ async def perform_queue_action(
     return SuccessResponse(message=f"Queue {action}d successfully")
 
 
-@router.get(
-    "/users/search",
-    response_model=PaginatedGlobalUsers,
-    summary="Global Staff Search",
-)
-async def search_global_users(
-    q: str = Query("", description="Search by name or email"),
-    org_id: Optional[str] = Query(None, description="Filter by Organization ID"),
-    role: Optional[str] = Query(None, description="Filter by role (admin, receptionist, staff)"),
-    limit: int = Query(20, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-    _super_admin: User = Depends(get_current_super_admin),
-    db: AsyncSession = Depends(get_db),
-) -> PaginatedGlobalUsers:
-    """Search all users across the platform."""
-    # Base query for counting
-    count_stmt = select(func.count(User.id)).outerjoin(Organization, User.org_id == Organization.id)
-    
-    # Data query
-    stmt = (
-        select(
-            User,
-            Organization.name.label("org_name"),
-            Organization.slug.label("org_slug")
-        )
-        .outerjoin(Organization, User.org_id == Organization.id)
-    )
-
-    # Filters
-    filters = []
-    if q:
-        search_pattern = f"%{q}%"
-        filters.append(or_(
-            User.first_name.ilike(search_pattern),
-            User.last_name.ilike(search_pattern),
-            User.email.ilike(search_pattern)
-        ))
-    
-    if org_id:
-        try:
-            filters.append(User.org_id == _uuid.UUID(org_id))
-        except ValueError:
-            pass
-
-    if role:
-        filters.append(User.role == role)
-
-    if filters:
-        count_stmt = count_stmt.where(and_(*filters))
-        stmt = stmt.where(and_(*filters))
-
-    # Get total count
-    total = await db.scalar(count_stmt) or 0
-
-    # Get paginated data
-    stmt = stmt.order_by(desc(User.created_at)).limit(limit).offset(offset)
-    result = await db.execute(stmt)
-    rows = result.all()
-
-    items = []
-    for user, org_name, org_slug in rows:
-        items.append(GlobalUserDetail(
-            id=str(user.id),
-            first_name=user.first_name,
-            last_name=user.last_name,
-            email=user.email,
-            role=user.role,
-            is_active=user.is_active,
-            org_id=str(user.org_id) if user.org_id else None,
-            org_name=org_name,
-            org_slug=org_slug,
-            created_at=user.created_at
-        ))
-
-    return PaginatedGlobalUsers(
-        items=items,
-        total=total,
-        limit=limit,
-        offset=offset
-    )
-
 
 @router.patch(
     "/users/{user_id}",
@@ -1564,41 +1486,6 @@ async def update_user(
     
     return UserResponse.model_validate(user)
 
-
-@router.put(
-    "/users/{user_id}/status",
-    response_model=SuccessResponse,
-    summary="Toggle User Status",
-)
-async def toggle_user_status(
-    user_id: str,
-    _super_admin: User = Depends(get_current_super_admin),
-    db: AsyncSession = Depends(get_db),
-) -> SuccessResponse:
-    """Toggle a user's is_active status globally."""
-    try:
-        u_uuid = _uuid.UUID(user_id)
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid user ID")
-
-    result = await db.execute(select(User).where(User.id == u_uuid))
-    user = result.scalar_one_or_none()
-    
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-        
-    user.is_active = not user.is_active
-    await db.commit()
-    
-    await record_event(
-        event_type="user.status_changed",
-        user_id=_super_admin.id,
-        org_id=user.org_id,
-        details={"target_user_id": str(user.id), "new_status": user.is_active}
-    )
-    
-    action = "Activated" if user.is_active else "Suspended"
-    return SuccessResponse(message=f"User {action} successfully")
 
 
 @router.post(

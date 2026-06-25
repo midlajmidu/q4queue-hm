@@ -133,9 +133,7 @@ export default function SuperAdminSidebar({ isOpen, onClose, collapsed = false, 
                         <NavLink href="/super-admin/branches" label="Branches" icon={
                             <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>
                         } />
-                        <NavLink href="/super-admin/users" label="Staff" icon={
-                            <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                        } />
+
 
                         {sectionLabel("Monitoring & Audit")}
                         <NavLink href="/super-admin/system-monitoring" label="System Health" icon={

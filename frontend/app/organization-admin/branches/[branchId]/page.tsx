@@ -105,7 +105,7 @@ export default function BranchDetailsPage() {
                         {branch.is_active ? 'Deactivate Branch' : 'Activate Branch'}
                     </button>
                     <Link
-                        href={`/${branch.slug}/dashboard`}
+                        href={`/org-admin/${branch.slug}/dashboard`}
                         target="_blank"
                         className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors"
                     >

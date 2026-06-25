@@ -538,6 +538,7 @@ export interface OrgDetail {
     admin_password_changed_at?: string | null;
     logo_url?: string | null;
     parent_organization_id?: string | null;
+    parent_slug?: string | null;
 }
 
 export interface OrgDetailExtended extends OrgDetail {

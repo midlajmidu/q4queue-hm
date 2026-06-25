@@ -91,6 +91,7 @@ export default function SessionsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const isStaff = user?.role === "staff";
+    const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
 
     const [sessions, setSessions] = useState<SessionResponse[]>([]);
@@ -284,13 +285,15 @@ export default function SessionsPage() {
                         </div>
                     </div>
                     {/* Create */}
-                    <button
-                        onClick={() => setShowCreate(true)}
-                        className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 shadow-md shadow-indigo-500/20 text-white font-semibold text-sm rounded-xl h-10 px-5 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] flex items-center justify-center gap-2 w-full sm:w-auto"
-                    >
-                        <Plus className="w-4 h-4" strokeWidth={2.5} />
-                        <span>New Session</span>
-                    </button>
+                    {!isGlobalOrOrgAdmin && (
+                        <button
+                            onClick={() => setShowCreate(true)}
+                            className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 shadow-md shadow-indigo-500/20 text-white font-semibold text-sm rounded-xl h-10 px-5 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] flex items-center justify-center gap-2 w-full sm:w-auto"
+                        >
+                            <Plus className="w-4 h-4" strokeWidth={2.5} />
+                            <span>New Session</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -412,7 +415,7 @@ export default function SessionsPage() {
 
                                                         {/* Delete + Chevron */}
                                                         <div className="flex items-center gap-1 shrink-0 ml-1">
-                                                            {!isStaff && (
+                                                            {!isStaff && !isGlobalOrOrgAdmin && (
                                                                 <button
                                                                     onClick={(e) => handleDelete(session, e)}
                                                                     disabled={deletingId === session.id}

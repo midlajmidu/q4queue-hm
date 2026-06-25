@@ -35,8 +35,17 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
     const pathname = usePathname();
     const params = useParams();
     const orgSlug = params?.orgSlug || user?.org_slug;
-    const dashBase = orgSlug ? `/${orgSlug}/dashboard` : "/dashboard";
+    let dashBase = orgSlug ? `/${orgSlug}/dashboard` : "/dashboard";
+    if (orgSlug && pathname.startsWith(`/org-admin/${orgSlug}`)) {
+        dashBase = `/org-admin/${orgSlug}/dashboard`;
+    } else if (orgSlug) {
+        const superAdminMatch = pathname.match(new RegExp(`^/super-admin/([^/]+)/${orgSlug}`));
+        if (superAdminMatch) {
+            dashBase = `/super-admin/${superAdminMatch[1]}/${orgSlug}/dashboard`;
+        }
+    }
     const isAdmin = user?.role === "admin";
+    const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [supportContact, setSupportContact] = useState<{support_email: string, support_phone: string} | null>(null);
     const { unreadCount } = useNotifications();
@@ -135,19 +144,23 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                         <NavLink href={`${dashBase}/sessions`} label="Sessions" icon={
                             <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         } />
-                        <NavLink href={`${dashBase}/notifications`} label="Notifications" icon={
-                            <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
-                        } badge={
-                            unreadCount > 0 ? (
-                                <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white">{unreadCount}</span>
-                            ) : undefined
-                        } />
-                        <NavLink href={`${dashBase}/whatsapp`} label="WhatsApp" icon={
-                            <svg className={iconCls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9" />
-                                <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1" />
-                            </svg>
-                        } />
+                        {!isGlobalOrOrgAdmin && (
+                            <>
+                                <NavLink href={`${dashBase}/notifications`} label="Notifications" icon={
+                                    <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                                } badge={
+                                    unreadCount > 0 ? (
+                                        <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white">{unreadCount}</span>
+                                    ) : undefined
+                                } />
+                                <NavLink href={`${dashBase}/whatsapp`} label="WhatsApp" icon={
+                                    <svg className={iconCls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9" />
+                                        <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1" />
+                                    </svg>
+                                } />
+                            </>
+                        )}
 
                         {sectionLabel("Analytics & Reports")}
                         <NavLink href={`${dashBase}/insights`} label="Insights" icon={
@@ -156,11 +169,13 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                         <NavLink href={`${dashBase}/history`} label="Customers" icon={
                             <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                         } />
-                        <NavLink href={`${dashBase}/settings`} label="Settings" icon={
-                            <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        } />
+                        {!isGlobalOrOrgAdmin && (
+                            <NavLink href={`${dashBase}/settings`} label="Settings" icon={
+                                <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            } />
+                        )}
 
-                        {isAdmin && (
+                        {(isAdmin || isGlobalOrOrgAdmin) && (
                             <>
                                 {sectionLabel("Management")}
                                 <NavLink href={`${dashBase}/staff`} label="Staff" icon={

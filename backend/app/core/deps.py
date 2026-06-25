@@ -12,7 +12,7 @@ import logging
 import uuid
 from typing import Callable, TYPE_CHECKING
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy import select
@@ -44,6 +44,7 @@ _INACTIVE_USER_EXCEPTION = HTTPException(
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
     db: AsyncSession = Depends(get_db),
 ) -> User:
@@ -59,13 +60,20 @@ async def get_current_user(
     Fails with 403 if:
       - User.is_active == False (deactivated after token issuance)
     """
-    if credentials is None:
+    token_str = None
+    if credentials:
+        token_str = credentials.credentials
+    elif "token" in request.query_params:
+        token_str = request.query_params["token"]
+
+    if not token_str:
         logger.warning("Request with no Bearer token")
         raise _CREDENTIALS_EXCEPTION
 
     # ── Decode & validate signature / expiry ──────────────────────
     try:
-        payload = decode_access_token(credentials.credentials)
+        payload = decode_access_token(token_str)
+        request.state.is_impersonating = payload.get("is_impersonating", False)
     except JWTError:
         raise _CREDENTIALS_EXCEPTION
 
@@ -148,7 +156,7 @@ async def get_current_active_user(
     active-user dependency without the inline is_active check.
     Also blocks access if the user has not completed first-time password change.
     """
-    if current_user.is_first_login:
+    if current_user.is_first_login and not getattr(request.state, "is_impersonating", False):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="force_password_change"

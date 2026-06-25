@@ -660,7 +660,10 @@ export default function StaffPage() {
     background: "#fafbfe", outline: "none", appearance: "none", cursor: "pointer",
   };
 
-  if (user && !isAdmin) {
+  const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
+  const canView = isAdmin || isGlobalOrOrgAdmin;
+
+  if (user && !canView) {
     return (
       <div style={{ padding: "80px 20px", textAlign: "center" }}>
         <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fef2f2", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>

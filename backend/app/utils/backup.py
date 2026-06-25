@@ -151,20 +151,27 @@ def _run_async_org_backups():
     from app.models.parent_organization import ParentOrganization
     
     async def _do_backups():
+        now_time = datetime.now().strftime("%H:%M")
         async with AsyncSessionLocal() as db:
-            # 1. Trigger backup for every Parent Org
-            pos = await db.scalars(select(ParentOrganization.id).where(ParentOrganization.is_active == True))
+            # 1. Trigger backup for every Parent Org matching current time
+            pos = await db.scalars(
+                select(ParentOrganization.id).where(
+                    ParentOrganization.is_active == True,
+                    ParentOrganization.backup_time == now_time
+                )
+            )
             for po_id in pos:
                 try:
                     await create_org_backup(po_id, db)
                 except Exception as e:
                     logger.error(f"Scheduled backup failed for ParentOrg {po_id}: {e}")
             
-            # 2. Cleanup old backups
-            try:
-                await cleanup_old_org_backups(db)
-            except Exception as e:
-                logger.error(f"Scheduled cleanup failed: {e}")
+            # 2. Cleanup old backups (only run once daily to avoid unnecessary DB queries)
+            if now_time == "03:00":
+                try:
+                    await cleanup_old_org_backups(db)
+                except Exception as e:
+                    logger.error(f"Scheduled cleanup failed: {e}")
 
     try:
         loop = asyncio.get_running_loop()
@@ -183,8 +190,8 @@ def start_scheduler():
     # Global DB backup (kept for legacy/infrastructure reasons, but we add Org backups)
     # scheduler.add_job(perform_backup, 'cron', hour=2, minute=0)
     
-    # Org-level backups scheduled at 3:00 AM
-    scheduler.add_job(_run_async_org_backups, 'cron', hour=3, minute=0)
+    # Org-level backups check every minute if there are any scheduled backups
+    scheduler.add_job(_run_async_org_backups, 'cron', minute='*')
     
     scheduler.start()
-    logger.info("Backup scheduler started. Tenant backups scheduled for 03:00 AM daily.")
+    logger.info("Backup scheduler started. Tenant backups will trigger based on their custom backup_time setting.")

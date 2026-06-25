@@ -12,6 +12,8 @@ from app.db.deps import get_db
 from app.models.organization import Organization
 from app.models.user import User
 from app.models.queue import Queue
+from app.models.organization_announcement import OrganizationAnnouncement
+from app.schemas.organization_announcement import OrganizationAnnouncementResponse
 from app.redis.client import get_redis
 from app.services.email_service import send_otp_email
 from app.services.token_service import notify_queue_update
@@ -311,3 +313,40 @@ async def change_password(
     await redis.delete(otp_key)
 
     return SuccessResponse(message="Password changed successfully")
+
+@router.get("/announcements/active", response_model=list[OrganizationAnnouncementResponse])
+async def get_active_organization_announcements(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Get active announcements from the parent organization for this branch."""
+    if not current_user.org_id:
+        return []
+        
+    org_result = await db.execute(select(Organization).where(Organization.id == current_user.org_id))
+    org = org_result.scalar_one_or_none()
+    
+    if not org or not org.parent_organization_id:
+        return []
+        
+    from datetime import datetime
+    now = datetime.utcnow()
+    
+    query = select(OrganizationAnnouncement).where(
+        OrganizationAnnouncement.parent_organization_id == org.parent_organization_id,
+        OrganizationAnnouncement.is_active == True
+    )
+    
+    result = await db.execute(query)
+    announcements = result.scalars().all()
+    
+    # Filter by start_time and end_time
+    valid_announcements = []
+    for ann in announcements:
+        if ann.start_time and ann.start_time.replace(tzinfo=None) > now:
+            continue
+        if ann.end_time and ann.end_time.replace(tzinfo=None) < now:
+            continue
+        valid_announcements.append(ann)
+        
+    return valid_announcements

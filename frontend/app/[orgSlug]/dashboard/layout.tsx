@@ -12,6 +12,7 @@ import { AlertBannerContainer } from "@/components/AlertBannerContainer";
 import ConfirmModal from "@/components/ConfirmModal";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+import { AdminViewBanner } from "@/components/AdminViewBanner";
 import SystemBanner from "@/components/SystemBanner";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -67,6 +68,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className={`flex-1 flex flex-col min-w-0 h-full overflow-hidden ${!isManageQueuePage ? 'sb-offset' : ''}`}>
                         <SystemBanner />
                         <ImpersonationBanner />
+                        <AdminViewBanner />
                         {/* Global Top Bar */}
                         {!isManageQueuePage && (
                             <TopBar onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />

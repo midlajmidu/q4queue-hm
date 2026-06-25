@@ -132,17 +132,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                             <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Enterprise Ops</h2>
                         </div>
                         <nav className="flex-1 px-3 space-y-1 overflow-y-auto mb-4">
-                            <Link 
-                                href="/organization-admin/search"
-                                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                    pathname.startsWith("/organization-admin/search") 
-                                    ? "bg-indigo-50 text-indigo-700" 
-                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                                }`}
-                            >
-                                <Search size={18} />
-                                Global Search
-                            </Link>
+
                             <Link 
                                 href="/organization-admin/announcements"
                                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${

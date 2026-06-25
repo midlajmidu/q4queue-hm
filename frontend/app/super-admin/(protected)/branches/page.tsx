@@ -263,12 +263,13 @@ export default function BranchesPage() {
         } finally { setIsUpdatingStatus(false); }
     }, [statusOrg]);
 
-    const handleImpersonate = async (orgId: string, orgSlug: string) => {
+    const handleImpersonate = async (orgId: string, orgSlug: string, parentSlug: string | null) => {
         try {
             const res = await api.impersonateOrganization(orgId);
             const currentToken = getToken();
             if (currentToken) setSuperAdminToken(currentToken);
-            window.location.href = `/${orgSlug}/dashboard#token=${res.access_token}&saToken=${currentToken || ""}`;
+            const pSlug = parentSlug || "system";
+            window.location.href = `/super-admin/${pSlug}/${orgSlug}/dashboard#token=${res.access_token}&saToken=${currentToken || ""}`;
         } catch (err) {
             console.error("Impersonation failed:", err);
             alert("Failed to impersonate branch.");
@@ -372,7 +373,7 @@ export default function BranchesPage() {
                                                     <button onClick={() => setUsageOrg(o)} aria-label={`View Usage ${o.name}`} title="Usage Monitoring" className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors">
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                                                     </button>
-                                                    <button onClick={() => handleImpersonate(o.id, o.slug)} className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-md transition-colors" title="Impersonate (Login as)">
+                                                    <button onClick={() => handleImpersonate(o.id, o.slug, o.parent_slug || null)} className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-md transition-colors" title="Impersonate (Login as)">
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                     </button>
                                                     <button onClick={() => setDeleteOrg(o)} className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors" title="Delete">

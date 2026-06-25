@@ -125,6 +125,7 @@ async def change_first_password(
     token = create_access_token(
         user_id=str(current_user.id),
         org_id=str(current_user.org_id) if current_user.org_id else None,
+        parent_org_id=str(current_user.parent_organization_id) if current_user.parent_organization_id else None,
         role=current_user.role,
         email=current_user.email,
         org_slug=org_slug,

@@ -30,7 +30,7 @@ export default function SuperAdminChangePasswordPage() {
         }
         // If the user has already changed their password (is_first_login is false), redirect to dashboard
         if (user.is_first_login === false) {
-            router.replace("/super-admin/dashboard");
+            router.replace("/super-admin");
             return;
         }
         
@@ -59,8 +59,8 @@ export default function SuperAdminChangePasswordPage() {
             // We must update our local storage to clear the "first login" state
             setToken(resp.access_token);
             
-            // Redirect to dashboard
-            router.push("/super-admin/dashboard");
+            // Redirect to dashboard with hard reload to clear stale useAuth state
+            window.location.href = "/super-admin";
         } catch (err) {
             if (err instanceof ApiError) {
                 setError(err.detail);

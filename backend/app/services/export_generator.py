@@ -130,6 +130,7 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             Token.served_at,
             Token.completed_at,
             Token.called_via_invite,
+            Token.served_by_id,
             Session.title.label("session_name"),
             User.first_name.label("staff_first"),
             User.last_name.label("staff_last")
@@ -244,11 +245,11 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             "Created At": r.created_at.strftime("%H:%M:%S") if r.created_at else "",
             "Served At": r.served_at.strftime("%H:%M:%S") if r.served_at else "",
             "Completed At": r.completed_at.strftime("%H:%M:%S") if r.completed_at else "",
-            "Wait Time (Minutes)": wait_mins,
-            "Service Time (Minutes)": serve_mins,
+            "Wait Time (mins)": wait_mins,
+            "Service Time (mins)": serve_mins,
             "Served By": staff_name,
-            "Call Method": "Invite" if r.called_via_invite else "Walk-in",
-            "Session Name": r.session_name or ""
+            "Call Method": "Called" if r.status == "serving" else ("Skipped" if r.status == "skipped" else ("Cancelled" if r.status in ["cancelled", "no_show"] else ("Completed" if r.status == "done" else "Normal"))),
+            "Entry Method": "Manual Entry" if r.served_by_id else "QR Code"
         })
 
     # Add Called At back as empty
@@ -259,35 +260,35 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
 
     # We will build the dataframe with exact columns required
     exact_columns = [
-        "Branch Name", "Date", "Queue Name", "Token Number", "Customer Name", 
-        "Customer Phone", "Status", "Created At", "Called At", "Served At", 
-        "Completed At", "Wait Time (Minutes)", "Service Time (Minutes)", 
-        "Served By", "Call Method", "Session Name"
+        "Date", "Token Number", "Queue", "Customer Name", 
+        "Customer Phone", "Status", "Created At", "Served At", 
+        "Completed At", "Wait Time (mins)", "Service Time (mins)", 
+        "Served By", "Call Method", "Entry Method"
     ]
     
     # Rebuild data to ensure exact columns
     final_data = []
     for r in formatted_data:
         final_data.append({
-            "Branch Name": r.get("Branch Name", ""),
+            "Branch Name": r.get("Branch Name", ""),  # Keep for grouping
+            "Queue Name": r.get("Queue Name", ""),    # Keep for grouping
             "Date": r.get("Date", ""),
-            "Queue Name": r.get("Queue Name", ""),
             "Token Number": r.get("Token Number", ""),
+            "Queue": r.get("Queue Name", ""),
             "Customer Name": r.get("Customer Name", ""),
             "Customer Phone": r.get("Customer Phone", ""),
             "Status": r.get("Status", ""),
             "Created At": r.get("Created At", ""),
-            "Called At": "",  # Empty as discussed
             "Served At": r.get("Served At", ""),
             "Completed At": r.get("Completed At", ""),
-            "Wait Time (Minutes)": r.get("Wait Time (Minutes)", ""),
-            "Service Time (Minutes)": r.get("Service Time (Minutes)", ""),
+            "Wait Time (mins)": r.get("Wait Time (mins)", ""),
+            "Service Time (mins)": r.get("Service Time (mins)", ""),
             "Served By": r.get("Served By", ""),
             "Call Method": r.get("Call Method", ""),
-            "Session Name": r.get("Session Name", "")
+            "Entry Method": r.get("Entry Method", "")
         })
 
-    df = pd.DataFrame(final_data, columns=exact_columns)
+    df = pd.DataFrame(final_data)
 
     # Compute Summary
     total_customers = len(formatted_data)
@@ -349,16 +350,18 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             return file_path
 
     # Grouping logic
-    cols_to_drop = ['Branch Name', 'Date', 'Queue Name']
+    cols_to_drop = ['Branch Name', 'Queue Name']
 
     if job.format.upper() == "EXCEL":
         file_path = os.path.join(EXPORTS_DIR, f"{filename}.xlsx")
         import openpyxl
-        from openpyxl.styles import Font, PatternFill, Alignment
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
         
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Report"
+        
+        thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
         
         # Write Title
         ws.append([report_title])
@@ -377,54 +380,77 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             ws.append([row['Metric'], row['Value']])
             
         ws.append([])
-        ws.append(["--- Detailed Records ---"])
-        ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=14)
-        ws.append([])
         
-        grouped = df.groupby(['Branch Name', 'Date', 'Queue Name'])
-        for (branch, date, queue), group in grouped:
-            # Append headers
-            ws.append([f"Branch: {branch}"])
+        # Nested hierarchical grouping: Branch -> Date -> Queue
+        branches = df['Branch Name'].unique()
+        for branch in branches:
+            branch_df = df[df['Branch Name'] == branch]
+            
+            ws.append([f"BRANCH: {branch}"])
             ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=14)
             ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=6)
+            ws.append([])
+            ws.append(["---"])
             
-            ws.append([f"Date: {date}"])
-            ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=12)
-            ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=6)
-            
-            ws.append([f"Queue: {queue}"])
-            ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=11, italic=True)
-            ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=6)
-            
-            group_clean = group.drop(columns=cols_to_drop)
-            
-            # Table headers
-            row_idx = ws.max_row + 1
-            ws.append(list(group_clean.columns))
-            for col_idx in range(1, len(group_clean.columns) + 1):
-                cell = ws.cell(row=row_idx, column=col_idx)
-                cell.font = Font(bold=True)
-                cell.fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
-            
-            for _, row in group_clean.iterrows():
-                ws.append(list(row))
+            dates = branch_df['Date'].unique()
+            for date in dates:
+                date_df = branch_df[branch_df['Date'] == date]
                 
-            ws.append([]) # Empty row for spacing
+                ws.append([f"DATE: {date}"])
+                ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=12)
+                ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=6)
+                ws.append([])
+                ws.append(["---"])
+                
+                queues = date_df['Queue Name'].unique()
+                for queue in queues:
+                    queue_df = date_df[date_df['Queue Name'] == queue]
+                    
+                    ws.append([f"QUEUE: {queue}"])
+                    ws.cell(row=ws.max_row, column=1).font = Font(bold=True, size=11)
+                    ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=6)
+                    ws.append([])
+                    
+                    group_clean = queue_df[exact_columns]
+                    
+                    # Table headers
+                    row_idx = ws.max_row + 1
+                    ws.append(list(group_clean.columns))
+                    for col_idx in range(1, len(group_clean.columns) + 1):
+                        cell = ws.cell(row=row_idx, column=col_idx)
+                        cell.font = Font(bold=True)
+                        cell.fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
+                        cell.border = thin_border
+                    
+                    for _, row in group_clean.iterrows():
+                        ws.append(list(row))
+                        # apply border to data rows
+                        r_idx = ws.max_row
+                        for c_idx in range(1, len(group_clean.columns) + 1):
+                            ws.cell(row=r_idx, column=c_idx).border = thin_border
+                        
+                    ws.append([]) # Empty row for spacing
+                    ws.append(["---"])
+                    ws.append([])
             
         # Adjust column widths for readability
-        for col in ws.columns:
+        from openpyxl.utils import get_column_letter
+        for col_idx in range(1, ws.max_column + 1):
             max_length = 0
-            column = col[0].column_letter
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(cell.value)
-                except:
-                    pass
+            column_letter = get_column_letter(col_idx)
+            for row_idx in range(1, ws.max_row + 1):
+                cell = ws.cell(row=row_idx, column=col_idx)
+                if type(cell).__name__ != 'MergedCell':
+                    try:
+                        val = str(cell.value)
+                        if cell.value is not None and len(val) > max_length:
+                            max_length = len(val)
+                    except:
+                        pass
             adjusted_width = (max_length + 2)
             if adjusted_width > 50:
                 adjusted_width = 50 # Cap maximum width
-            ws.column_dimensions[column].width = adjusted_width
+            ws.column_dimensions[column_letter].width = adjusted_width
 
         wb.save(file_path)
         return file_path

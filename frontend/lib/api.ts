@@ -1036,13 +1036,7 @@ export const api = {
     },
 
     // Global User Management
-    searchGlobalUsers(q: string = "", limit: number = 20, offset: number = 0): Promise<PaginatedGlobalUsers> {
-        return request<PaginatedGlobalUsers>(`/super-admin/users/search?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);
-    },
 
-    updateUserStatus(userId: string): Promise<SuccessResponse> {
-        return request<SuccessResponse>(`/super-admin/users/${userId}/status`, { method: "PUT" });
-    },
 
     updateUser(userId: string, data: { first_name?: string; last_name?: string; email?: string; new_password?: string }): Promise<User> {
         return request<User>(`/super-admin/users/${userId}`, {
@@ -1146,6 +1140,23 @@ export const api = {
     leaveQueue(trackingId: string): Promise<{ status: string; token_number: number }> {
         return request(`/track/${trackingId}`, { method: "DELETE" });
     },
+
+    updateOrgAdminAnnouncement: (id: string, data: Partial<Omit<OrganizationAnnouncement, "id" | "parent_organization_id" | "created_at" | "updated_at">>) => {
+        return request<OrganizationAnnouncement>(`/organization-admin/announcements/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteOrgAdminAnnouncement: (id: string) => {
+        return request<void>(`/organization-admin/announcements/${id}`, {
+            method: "DELETE",
+        });
+    },
+
+    getActiveOrgAnnouncements: () => {
+        return request<OrganizationAnnouncement[]>("/organization/announcements/active");
+    },
 } as const;
 
 
@@ -1153,6 +1164,20 @@ export const api = {
 // Organization Exports APIs
 // ==========================================
 
+
+export interface OrganizationAnnouncement {
+    id: string;
+    parent_organization_id: string;
+    title: string;
+    message: string;
+    type: string;
+    target_branches: string[] | null;
+    start_time: string | null;
+    end_time: string | null;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
 
 export const requestExport = async (payload: { report_type: string, format: string, date_range: string, custom_start_date?: string, custom_end_date?: string, branch_ids?: string[] }, token: string) => {
     const response = await fetch(`${config.apiBaseUrl}/organization-admin/exports`, {

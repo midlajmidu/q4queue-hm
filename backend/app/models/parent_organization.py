@@ -52,6 +52,7 @@ class ParentOrganization(Base):
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     brand_color: Mapped[str | None] = mapped_column(String(20), nullable=True)
     timezone: Mapped[str] = mapped_column(String(50), default="UTC", server_default="UTC", nullable=False)
+    backup_time: Mapped[str] = mapped_column(String(5), default="03:00", server_default="03:00", nullable=False)
     
     # ── Defaults for New Branches ──────────────────────────────────
     from sqlalchemy import JSON

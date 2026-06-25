@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useNotifications, DashboardNotification } from "@/context/NotificationContext";
 import { PageWrapper } from "@/components/PageWrapper";
+import { api } from "@/lib/api";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -54,13 +55,61 @@ export default function NotificationsPage() {
 
   // Track IDs of rows currently animating out their "New" badge
   const [fadingIds, setFadingIds] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<TabFilter>("all");
+  const [activeTab, setActiveTab] = useState<TabFilter | "announcements">("all");
+  
+  const [apiAnnouncements, setApiAnnouncements] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        const sysData = await api.getActiveSystemAnnouncements();
+        let orgData: any[] = [];
+        try {
+            orgData = await api.getActiveOrgAnnouncements();
+        } catch (orgErr) {
+            console.error("Failed to load org announcements", orgErr);
+        }
+        
+        const sysMapped = sysData.map(a => ({ ...a, source: 'Global System' }));
+        const orgMapped = orgData.map(a => ({ ...a, source: 'Organization' }));
+        
+        const combined = [...orgMapped, ...sysMapped].sort((a, b) => {
+            if (a.source === 'Organization' && b.source !== 'Organization') return -1;
+            if (b.source === 'Organization' && a.source !== 'Organization') return 1;
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+        
+        setApiAnnouncements(combined);
+      } catch (error) {
+        console.error("Failed to load announcements", error);
+      }
+    };
+    fetchAnnouncements();
+  }, []);
+
+  const combinedItems = useMemo(() => {
+      const mappedAnnouncements = apiAnnouncements.map(ann => ({
+          id: ann.id,
+          title: ann.title || ann.message,
+          message: ann.title ? ann.message : `${ann.source} Announcement`,
+          type: ann.type,
+          time: new Date(ann.created_at).toLocaleDateString(),
+          isRead: true, // Announcements don't have read state in this context
+          isAnnouncement: true,
+          source: ann.source,
+      }));
+      
+      // Combine local notifications and API announcements, then sort by date if possible, but local notifications usually have just "HH:MM" for time.
+      // We'll put announcements at the top for visibility.
+      return [...mappedAnnouncements, ...notifications];
+  }, [notifications, apiAnnouncements]);
 
   const filtered = useMemo(() => {
-    if (activeTab === "all") return notifications;
-    if (activeTab === "unread") return notifications.filter(n => !n.isRead);
-    return notifications.filter(n => n.type === activeTab);
-  }, [notifications, activeTab]);
+    if (activeTab === "all") return combinedItems;
+    if (activeTab === "unread") return combinedItems.filter((n: any) => !n.isRead && !n.isAnnouncement);
+    if (activeTab === "announcements") return combinedItems.filter((n: any) => n.isAnnouncement);
+    return combinedItems.filter(n => n.type === activeTab);
+  }, [combinedItems, activeTab]);
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
@@ -78,8 +127,9 @@ export default function NotificationsPage() {
 
   // ── Tab config ────────────────────────────────────────────────────────────
 
-  const tabs: { key: TabFilter; label: string; count?: number }[] = [
-    { key: "all", label: "All", count: notifications.length },
+  const tabs: { key: TabFilter | "announcements"; label: string; count?: number }[] = [
+    { key: "all", label: "All", count: combinedItems.length },
+    { key: "announcements", label: "Announcements", count: apiAnnouncements.length },
     { key: "unread", label: "Unread", count: unreadCount },
     { key: "warning", label: "Warnings" },
     { key: "info", label: "Info" },
@@ -192,18 +242,25 @@ export default function NotificationsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className={`text-[14.5px] tracking-tight truncate ${n.isRead ? "font-semibold text-slate-700 dark:text-slate-300" : "font-bold text-slate-900 dark:text-white"}`}>
-                            {n.title.replace(/^(⚠️|✅|ℹ️|🚨)\s*/, '')}
+                            {n.title?.replace(/^(⚠️|✅|ℹ️|🚨)\s*/, '')}
                           </h3>
-                          {!n.isRead && (
+                          {!n.isRead && !(n as any).isAnnouncement && (
                             <span
                               className={`${isFading ? "new-badge-fading" : ""} bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full`}
                             >
                               New
                             </span>
                           )}
+                          {(n as any).isAnnouncement && (
+                            <span
+                                className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${(n as any).source === 'Organization' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}
+                            >
+                                {(n as any).source}
+                            </span>
+                          )}
                         </div>
                         <p className="text-[13.5px] text-slate-500 dark:text-slate-400 leading-snug max-w-[90%]">
-                          {n.message.replace(/^(⚠️|✅|ℹ️|🚨)\s*/, '')}
+                          {n.message?.replace(/^(⚠️|✅|ℹ️|🚨)\s*/, '')}
                         </p>
                       </div>
                     </div>
@@ -217,9 +274,9 @@ export default function NotificationsPage() {
           )}
         </div>
 
-        {notifications.length > 0 && (
+        {combinedItems.length > 0 && (
           <div style={{ textAlign: "center", padding: "16px 0 40px", fontSize: 12, fontWeight: 500, color: "#94a3b8" }}>
-            Showing {filtered.length} of {notifications.length} notifications
+            Showing {filtered.length} of {combinedItems.length} notifications
           </div>
         )}
       </div>

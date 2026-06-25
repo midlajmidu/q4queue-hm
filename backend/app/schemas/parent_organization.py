@@ -13,6 +13,7 @@ class ParentOrganizationBase(BaseModel):
     logo_url: Optional[str] = Field(None, max_length=500)
     brand_color: Optional[str] = Field(None, max_length=20)
     timezone: str = "UTC"
+    backup_time: str = Field("03:00", max_length=5)
     default_queue_settings: Optional[Dict[str, Any]] = Field(default_factory=dict)
     default_session_settings: Optional[Dict[str, Any]] = Field(default_factory=dict)
     whatsapp_preferences: Optional[Dict[str, Any]] = Field(default_factory=dict)
@@ -30,6 +31,7 @@ class ParentOrganizationUpdate(BaseModel):
     logo_url: Optional[str] = Field(None, max_length=500)
     brand_color: Optional[str] = Field(None, max_length=20)
     timezone: str | None = None
+    backup_time: str | None = Field(None, max_length=5)
     default_queue_settings: Optional[Dict[str, Any]] = None
     default_session_settings: Optional[Dict[str, Any]] = None
     whatsapp_preferences: Optional[Dict[str, Any]] = None

@@ -10,22 +10,43 @@ export default function OrganizationBackupsPage() {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [restoreConfirmText, setRestoreConfirmText] = useState("");
+    const [backupTime, setBackupTime] = useState("03:00");
+    const [isSavingTime, setIsSavingTime] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const fetchBackups = async () => {
+    const fetchData = async () => {
         try {
-            const data = await api.getOrgAdminBackups();
-            setBackups(data);
+            const [backupData, settingsData] = await Promise.all([
+                api.getOrgAdminBackups(),
+                api.getOrgAdminSettings()
+            ]);
+            setBackups(backupData);
+            if (settingsData?.backup_time) {
+                setBackupTime(settingsData.backup_time);
+            }
         } catch (err: any) {
-            toast.error("Failed to load backups");
+            toast.error("Failed to load backups or settings");
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchBackups();
+        fetchData();
     }, []);
+
+    const handleTimeChange = async (newTime: string) => {
+        setBackupTime(newTime);
+        setIsSavingTime(true);
+        try {
+            await api.updateOrgAdminSettings({ backup_time: newTime });
+            toast.success("Backup time updated");
+        } catch (err: any) {
+            toast.error("Failed to update backup time");
+        } finally {
+            setIsSavingTime(false);
+        }
+    };
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -53,6 +74,7 @@ export default function OrganizationBackupsPage() {
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
+            fetchData();
         }
     };
 
@@ -72,6 +94,15 @@ export default function OrganizationBackupsPage() {
         const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+    };
+
+    // Helper to format 24h to 12h for display
+    const formatTimeDisplay = (time24: string) => {
+        const [hours, minutes] = time24.split(':');
+        const h = parseInt(hours, 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${h12.toString().padStart(2, '0')}:${minutes} ${ampm}`;
     };
 
     return (
@@ -119,11 +150,23 @@ export default function OrganizationBackupsPage() {
                         </div>
                         <div className="flex justify-between items-center py-2 border-b border-slate-100">
                             <span className="text-slate-500">Next Scheduled</span>
-                            <span className="font-medium text-slate-900">Tomorrow at 03:00 AM</span>
+                            <span className="font-medium text-slate-900">Today at {formatTimeDisplay(backupTime)}</span>
                         </div>
-                        <div className="flex justify-between items-center py-2">
+                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
                             <span className="text-slate-500">Stored Backups</span>
                             <span className="font-medium text-slate-900">{backups.length} (Max 30)</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2">
+                            <span className="text-slate-500">Daily Backup Time</span>
+                            <div className="flex items-center gap-2">
+                                {isSavingTime && <span className="text-xs text-indigo-500 font-medium animate-pulse">Saving...</span>}
+                                <input 
+                                    type="time" 
+                                    value={backupTime}
+                                    onChange={(e) => handleTimeChange(e.target.value)}
+                                    className="px-2 py-1 border border-slate-200 rounded-md text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -184,7 +227,7 @@ export default function OrganizationBackupsPage() {
                         <History size={20} className="text-slate-600" />
                         Backup History
                     </h2>
-                    <button onClick={fetchBackups} className="text-indigo-600 text-sm hover:underline font-medium">
+                    <button onClick={fetchData} className="text-indigo-600 text-sm hover:underline font-medium">
                         Refresh
                     </button>
                 </div>

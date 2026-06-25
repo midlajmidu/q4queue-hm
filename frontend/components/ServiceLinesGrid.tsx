@@ -12,6 +12,7 @@ interface Props {
     allServingTokens: ServingToken[];
     prefix: string;
     onUpdate: () => void; // refresh after action
+    isGlobalOrOrgAdmin?: boolean;
 }
 
 export default function ServiceLinesGrid({
@@ -20,6 +21,7 @@ export default function ServiceLinesGrid({
     allServingTokens,
     prefix,
     onUpdate,
+    isGlobalOrOrgAdmin = false,
 }: Props) {
     const [loadingLine, setLoadingLine] = React.useState<number | null>(null);
     const [expandedLine, setExpandedLine] = React.useState<number | null>(null);
@@ -150,32 +152,34 @@ export default function ServiceLinesGrid({
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex items-center gap-1.5 mt-auto">
-                                        <button
-                                            onClick={() => callNext(lineNum, "skipped")}
-                                            disabled={isLoading}
-                                            title="Skip & Next"
-                                            className="flex-[1] flex items-center justify-center gap-1 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 text-[11px] font-bold transition-colors disabled:opacity-50 px-1"
-                                        >
-                                            <FastForward size={11} /> <span className="hidden sm:inline">Skip</span>
-                                        </button>
-                                        <button
-                                            onClick={() => callNext(lineNum, "done")}
-                                            disabled={isLoading}
-                                            title="Complete & Next"
-                                            className="flex-[1.5] flex items-center justify-center gap-1 h-8 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold shadow-md shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 disabled:opacity-50 px-2"
-                                        >
-                                            <PhoneCall size={11} /> Next
-                                        </button>
-                                        <button
-                                            onClick={() => clearLine(lineNum)}
-                                            disabled={isLoading}
-                                            title="Clear Line"
-                                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors disabled:opacity-50 flex-shrink-0"
-                                        >
-                                            <Check size={14} />
-                                        </button>
-                                    </div>
+                                    {!isGlobalOrOrgAdmin && (
+                                        <div className="flex items-center gap-1.5 mt-auto">
+                                            <button
+                                                onClick={() => callNext(lineNum, "skipped")}
+                                                disabled={isLoading}
+                                                title="Skip & Next"
+                                                className="flex-[1] flex items-center justify-center gap-1 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 text-[11px] font-bold transition-colors disabled:opacity-50 px-1"
+                                            >
+                                                <FastForward size={11} /> <span className="hidden sm:inline">Skip</span>
+                                            </button>
+                                            <button
+                                                onClick={() => callNext(lineNum, "done")}
+                                                disabled={isLoading}
+                                                title="Complete & Next"
+                                                className="flex-[1.5] flex items-center justify-center gap-1 h-8 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold shadow-md shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 disabled:opacity-50 px-2"
+                                            >
+                                                <PhoneCall size={11} /> Next
+                                            </button>
+                                            <button
+                                                onClick={() => clearLine(lineNum)}
+                                                disabled={isLoading}
+                                                title="Clear Line"
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors disabled:opacity-50 flex-shrink-0"
+                                            >
+                                                <Check size={14} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <>
@@ -186,14 +190,16 @@ export default function ServiceLinesGrid({
                                         <span className="text-[12px] font-medium text-slate-400 dark:text-slate-500">Empty Slot</span>
                                     </div>
                                     <div className="mt-auto relative z-10">
-                                        <button
-                                            onClick={() => callNext(lineNum)}
-                                            disabled={isLoading}
-                                            className="w-full flex items-center justify-center gap-1.5 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-600 dark:bg-indigo-500/10 dark:hover:bg-indigo-500 text-indigo-600 hover:text-white dark:text-indigo-400 text-[11px] font-bold transition-all duration-300 opacity-0 transform translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 disabled:opacity-50"
-                                        >
-                                            <PhoneCall size={13} />
-                                            {isLoading ? "Calling..." : "Call Next"}
-                                        </button>
+                                        {!isGlobalOrOrgAdmin && (
+                                            <button
+                                                onClick={() => callNext(lineNum)}
+                                                disabled={isLoading}
+                                                className="w-full flex items-center justify-center gap-1.5 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-600 dark:bg-indigo-500/10 dark:hover:bg-indigo-500 text-indigo-600 hover:text-white dark:text-indigo-400 text-[11px] font-bold transition-all duration-300 opacity-0 transform translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 disabled:opacity-50"
+                                            >
+                                                <PhoneCall size={13} />
+                                                {isLoading ? "Calling..." : "Call Next"}
+                                            </button>
+                                        )}
                                     </div>
                                 </>
                             )}
@@ -259,22 +265,24 @@ export default function ServiceLinesGrid({
 
                                 {/* Right: Inline Actions */}
                                 <div className="flex items-center gap-2 pl-2">
-                                    {isOccupied ? (
-                                        <button
-                                            onClick={() => callNext(lineNum, "done")}
-                                            disabled={isLoading}
-                                            className="h-7 px-3 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold shadow-sm transition-all disabled:opacity-50 flex items-center gap-1"
-                                        >
-                                            <PhoneCall size={11} /> Next
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => callNext(lineNum)}
-                                            disabled={isLoading}
-                                            className="h-7 px-3 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[11px] font-bold transition-colors disabled:opacity-50 flex items-center gap-1"
-                                        >
-                                            <PhoneCall size={11} /> {isLoading ? "..." : "Call"}
-                                        </button>
+                                    {!isGlobalOrOrgAdmin && (
+                                        isOccupied ? (
+                                            <button
+                                                onClick={() => callNext(lineNum, "done")}
+                                                disabled={isLoading}
+                                                className="h-7 px-3 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold shadow-sm transition-all disabled:opacity-50 flex items-center gap-1"
+                                            >
+                                                <PhoneCall size={11} /> Next
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => callNext(lineNum)}
+                                                disabled={isLoading}
+                                                className="h-7 px-3 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[11px] font-bold transition-colors disabled:opacity-50 flex items-center gap-1"
+                                            >
+                                                <PhoneCall size={11} /> {isLoading ? "..." : "Call"}
+                                            </button>
+                                        )
                                     )}
                                     <button onClick={() => toggleExpand(lineNum)} className="p-1 -mr-1 text-slate-400 dark:text-slate-500">
                                         <ChevronDown
@@ -316,29 +324,31 @@ export default function ServiceLinesGrid({
                                             </div>
 
                                             {/* Actions */}
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); callNext(lineNum, "skipped"); }}
-                                                    disabled={isLoading}
-                                                    className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[12px] font-bold transition-colors disabled:opacity-50"
-                                                >
-                                                    <FastForward size={13} /> Skip
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); callNext(lineNum, "done"); }}
-                                                    disabled={isLoading}
-                                                    className="flex-[1.5] flex items-center justify-center gap-1.5 h-10 rounded-xl bg-emerald-500 text-white text-[12px] font-bold shadow-md shadow-emerald-500/20 transition-all disabled:opacity-50"
-                                                >
-                                                    <PhoneCall size={13} /> Next
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); clearLine(lineNum); }}
-                                                    disabled={isLoading}
-                                                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-emerald-500 transition-colors disabled:opacity-50 flex-shrink-0"
-                                                >
-                                                    <Check size={16} />
-                                                </button>
-                                            </div>
+                                            {!isGlobalOrOrgAdmin && (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); callNext(lineNum, "skipped"); }}
+                                                        disabled={isLoading}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[12px] font-bold transition-colors disabled:opacity-50"
+                                                    >
+                                                        <FastForward size={13} /> Skip
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); callNext(lineNum, "done"); }}
+                                                        disabled={isLoading}
+                                                        className="flex-[1.5] flex items-center justify-center gap-1.5 h-10 rounded-xl bg-emerald-500 text-white text-[12px] font-bold shadow-md shadow-emerald-500/20 transition-all disabled:opacity-50"
+                                                    >
+                                                        <PhoneCall size={13} /> Next
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); clearLine(lineNum); }}
+                                                        disabled={isLoading}
+                                                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-emerald-500 transition-colors disabled:opacity-50 flex-shrink-0"
+                                                    >
+                                                        <Check size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="flex flex-col gap-3">
@@ -350,14 +360,16 @@ export default function ServiceLinesGrid({
                                                     No customer assigned
                                                 </span>
                                             </div>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); callNext(lineNum); }}
-                                                disabled={isLoading}
-                                                className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-indigo-600 text-white text-[12px] font-bold shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50"
-                                            >
-                                                <PhoneCall size={14} />
-                                                {isLoading ? "Calling..." : "Call Next"}
-                                            </button>
+                                            {!isGlobalOrOrgAdmin && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); callNext(lineNum); }}
+                                                    disabled={isLoading}
+                                                    className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-indigo-600 text-white text-[12px] font-bold shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50"
+                                                >
+                                                    <PhoneCall size={14} />
+                                                    {isLoading ? "Calling..." : "Call Next"}
+                                                </button>
+                                            )}
                                         </div>
                                     )}
                                 </div>

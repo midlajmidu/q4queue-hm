@@ -349,6 +349,8 @@ export default function QueueDetailPage({ params }: PageProps) {
     const token = getToken();
     const user = getCurrentUser();
     const isStaff = user?.role === "staff";
+    const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
+    const canManageQueue = !isGlobalOrOrgAdmin;
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
     const { toast } = useToast();
 
@@ -753,7 +755,7 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     useEffect(() => { return () => { if (errorTimerRef.current) clearTimeout(errorTimerRef.current); }; }, []);
 
-    const navItems: { id: ActiveSection; label: string; icon: React.ReactNode }[] = [
+    const baseNavItems: { id: ActiveSection; label: string; icon: React.ReactNode }[] = [
         {
             id: "queues", label: "Dashboard / Queues",
             icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
@@ -779,6 +781,11 @@ export default function QueueDetailPage({ params }: PageProps) {
             icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
         },
     ];
+
+    const navItems = baseNavItems.filter(item => {
+        if (!canManageQueue && item.id === "qrcode") return false;
+        return true;
+    });
 
     if (!isMounted) {
         return (
@@ -932,13 +939,13 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <>
                                                     <div className="fixed inset-0 z-[40]" onClick={() => setMobileActionsOpen(false)} />
                                                     <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 shadow-xl rounded-xl p-2 z-[50] flex flex-col gap-1 text-left">
-                                                        {isActive && (
+                                                        {isActive && canManageQueue && (
                                                             <button onClick={() => { handlePauseToggle(); setMobileActionsOpen(false); }} disabled={isDisabled || pausing} className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2">
                                                                 {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
                                                                 {isPaused ? "Resume" : "Take a Break"}
                                                             </button>
                                                         )}
-                                                        {!isStaff && (
+                                                        {!isStaff && canManageQueue && (
                                                             <button onClick={() => { setShowResetConfirm(true); setMobileActionsOpen(false); }} disabled={isDisabled || resetting} className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2">
                                                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                                                 Reset Queue
@@ -948,7 +955,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                                             Display Screen
                                                         </a>
-                                                        {!isStaff && (
+                                                        {!isStaff && canManageQueue && (
                                                             <button onClick={() => { setShowDeleteConfirm(true); setMobileActionsOpen(false); }} className="text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg flex items-center gap-2">
                                                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                                 Delete Queue
@@ -1012,7 +1019,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div style={{ width: 1, height: 24, background: T.cardBorder, margin: "0 4px" }} className="hidden md:block" />
                                         
                                         <div className="hidden md:flex items-center gap-2">
-                                            {isActive && (
+                                            {isActive && canManageQueue && (
                                                 <button
                                                     onClick={handlePauseToggle}
                                                     disabled={isDisabled || pausing}
@@ -1022,7 +1029,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     {isPaused ? "Resume" : "Take a Break"}
                                                 </button>
                                             )}
-                                            {!isStaff && (
+                                            {!isStaff && canManageQueue && (
                                                 <button
                                                     onClick={() => setShowResetConfirm(true)}
                                                     disabled={isDisabled || resetting}
@@ -1042,7 +1049,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                                 Display
                                             </a>
-                                            {!isStaff && (
+                                            {!isStaff && canManageQueue && (
                                                 <button
                                                     onClick={() => setShowDeleteConfirm(true)}
                                                     className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
@@ -1071,6 +1078,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         allServingTokens={(state?.all_serving_tokens ?? []) as ServingToken[]}
                                                         prefix={state?.prefix ?? initialQueue?.prefix ?? ""}
                                                         onUpdate={refresh}
+                                                        isGlobalOrOrgAdmin={isGlobalOrOrgAdmin}
                                                     />
                                                 );
                                             }
@@ -1203,84 +1211,86 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
 
                                         {/* Action buttons */}
-                                        <div className={`grid gap-3 w-full ${(!state?.serving_details) ? "grid-cols-1" : "grid-cols-2"}`} role="toolbar">
-                                            {(!state?.serving_details) && (
-                                                <button
-                                                    onClick={handleNext}
-                                                    disabled={isDisabled || isPaused}
-                                                    title={isPaused ? "Queue is currently on a break" : undefined}
-                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg shadow-indigo-500/20 transition-all duration-200 w-full flex justify-center items-center h-[52px] rounded-2xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
-                                                >
-                                                    {actionLoading === "next" ? (
-                                                        <>
-                                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                            Calling…
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                                                            Call Next
-                                                            <kbd className="text-[10px] opacity-50 ml-1 px-1.5 py-0.5 rounded bg-white/15">↵</kbd>
-                                                        </>
-                                                    )}
-                                                </button>
-                                            )}
-
-                                            {(!!state?.serving_details) && (
-                                                <>
+                                        {canManageQueue && (
+                                            <div className={`grid gap-3 w-full ${(!state?.serving_details) ? "grid-cols-1" : "grid-cols-2"}`} role="toolbar">
+                                                {(!state?.serving_details) && (
                                                     <button
-                                                        onClick={() => performAction("skipped", async () => {
-                                                            const res = await api.callNext(queueId, "skipped");
-                                                            if ("message" in res) toast(res.message, "info");
-                                                            else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
-                                                        })}
+                                                        onClick={handleNext}
                                                         disabled={isDisabled || isPaused}
                                                         title={isPaused ? "Queue is currently on a break" : undefined}
-                                                        className="w-full flex justify-center items-center h-12 rounded-2xl bg-amber-500 text-white text-[14px] font-semibold shadow-lg shadow-amber-500/20 border border-transparent hover:bg-amber-600 hover:shadow-amber-500/30 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg shadow-indigo-500/20 transition-all duration-200 w-full flex justify-center items-center h-[52px] rounded-2xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
                                                     >
-                                                        {actionLoading === "skipped" ? (
+                                                        {actionLoading === "next" ? (
                                                             <>
                                                                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                                Skipping…
+                                                                Calling…
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg>
-                                                                Skip & Next
+                                                                <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                                                                Call Next
+                                                                <kbd className="text-[10px] opacity-50 ml-1 px-1.5 py-0.5 rounded bg-white/15">↵</kbd>
                                                             </>
                                                         )}
                                                     </button>
+                                                )}
 
-                                                    <button
-                                                        onClick={() => performAction("done", async () => {
-                                                            const res = await api.callNext(queueId, "done");
-                                                            if ("message" in res) toast(res.message, "info");
-                                                            else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
-                                                        })}
-                                                        disabled={isDisabled || isPaused}
-                                                        title={isPaused ? "Queue is currently on a break" : undefined}
-                                                        className="w-full flex justify-center items-center h-12 rounded-2xl bg-emerald-600 text-white text-[14px] font-semibold shadow-lg shadow-emerald-500/20 border border-transparent hover:bg-emerald-700 hover:shadow-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        {actionLoading === "done" ? (
-                                                            <>
-                                                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                                Completing…
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
-                                                                Done & Next
-                                                            </>
-                                                        )}
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
+                                                {(!!state?.serving_details) && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => performAction("skipped", async () => {
+                                                                const res = await api.callNext(queueId, "skipped");
+                                                                if ("message" in res) toast(res.message, "info");
+                                                                else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
+                                                            })}
+                                                            disabled={isDisabled || isPaused}
+                                                            title={isPaused ? "Queue is currently on a break" : undefined}
+                                                            className="w-full flex justify-center items-center h-12 rounded-2xl bg-amber-500 text-white text-[14px] font-semibold shadow-lg shadow-amber-500/20 border border-transparent hover:bg-amber-600 hover:shadow-amber-500/30 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            {actionLoading === "skipped" ? (
+                                                                <>
+                                                                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                                    Skipping…
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg>
+                                                                    Skip & Next
+                                                                </>
+                                                            )}
+                                                        </button>
 
-                                    </>
+                                                        <button
+                                                            onClick={() => performAction("done", async () => {
+                                                                const res = await api.callNext(queueId, "done");
+                                                                if ("message" in res) toast(res.message, "info");
+                                                                else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
+                                                            })}
+                                                            disabled={isDisabled || isPaused}
+                                                            title={isPaused ? "Queue is currently on a break" : undefined}
+                                                            className="w-full flex justify-center items-center h-12 rounded-2xl bg-emerald-600 text-white text-[14px] font-semibold shadow-lg shadow-emerald-500/20 border border-transparent hover:bg-emerald-700 hover:shadow-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            {actionLoading === "done" ? (
+                                                                <>
+                                                                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                                    Completing…
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                                                                    Done & Next
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                        </>
                                         )} {/* end service_lines === 0 single-counter section */}
 
                                         {/* Quick Actions Toolbar — Desktop (horizontal bar) */}
+                                        {canManageQueue && (
                                         <div className="sticky bottom-0 z-30 mt-auto hidden sm:flex items-center gap-2 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_-4px_20px_rgb(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgb(0,0,0,0.4)] transition-all">
                                             {/* Manual Entry */}
                                             <button
@@ -1319,6 +1329,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 </button>
                                             </form>
                                         </div>
+                                        )}
 
 
                                         {/* Status banners */}
@@ -1416,14 +1427,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                             >
                                                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                             </button>
-                                                            {activeListTab === "waiting" ? (
+                                                            {canManageQueue && activeListTab === "waiting" ? (
                                                                 <button
                                                                     onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
                                                                     className="px-2.5 h-8 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-500/30 rounded-[8px] hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shadow-sm"
                                                                 >
                                                                     Remove
                                                                 </button>
-                                                            ) : (
+                                                            ) : canManageQueue ? (
                                                                 <button
                                                                     onClick={() => performAction("recall", async () => {
                                                                         const res = await api.serveSpecificToken(queueId, t.token_number);
@@ -1433,7 +1444,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                 >
                                                                     Recall
                                                                 </button>
-                                                            )}
+                                                            ) : null}
                                                         </div>
                                                     </div>
                                                 )) : (

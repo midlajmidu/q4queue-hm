@@ -61,8 +61,8 @@ export default function ChangePasswordPage() {
             // We must update our local storage to clear the "first login" state
             setToken(resp.access_token);
             
-            // Redirect to dashboard
-            router.push(`/${orgSlug}/dashboard`);
+            // Redirect to dashboard with hard reload to clear stale useAuth state
+            window.location.href = `/${orgSlug}/dashboard`;
         } catch (err) {
             if (err instanceof ApiError) {
                 setError(err.detail);

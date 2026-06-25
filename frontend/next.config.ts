@@ -20,6 +20,22 @@ const nextConfig: NextConfig = {
         source: "/uploads/:path*",
         destination: `${backendUrl}/uploads/:path*`,
       },
+      {
+        source: "/org-admin/:orgSlug/dashboard",
+        destination: "/:orgSlug/dashboard",
+      },
+      {
+        source: "/org-admin/:orgSlug/dashboard/:path*",
+        destination: "/:orgSlug/dashboard/:path*",
+      },
+      {
+        source: "/super-admin/:parentSlug/:orgSlug/dashboard",
+        destination: "/:orgSlug/dashboard",
+      },
+      {
+        source: "/super-admin/:parentSlug/:orgSlug/dashboard/:path*",
+        destination: "/:orgSlug/dashboard/:path*",
+      },
     ];
   },
   async redirects() {
