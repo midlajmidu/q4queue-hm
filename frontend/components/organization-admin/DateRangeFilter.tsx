@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Calendar } from "lucide-react";
+import { Calendar, ChevronDown } from "lucide-react";
 
 export type DateRange = {
     start_date: string | null;
@@ -91,15 +91,21 @@ export default function DateRangeFilter({ onChange, initialPreset = "today" }: D
     ];
 
     const currentLabel = PRESETS.find(p => p.id === preset)?.label || "Select Date";
+    
+    const todayStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const displayLabel = preset === "today" ? `Today, ${todayStr}` : currentLabel;
 
     return (
         <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+                className="flex items-center justify-between gap-3 min-w-[180px] bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:text-slate-900 hover:border-slate-300 hover:shadow-sm transition-all shadow-sm"
             >
-                <Calendar size={16} className="text-slate-400" />
-                {preset === "custom" && customStart && customEnd ? `${customStart} to ${customEnd}` : currentLabel}
+                <div className="flex items-center gap-2">
+                    <Calendar size={16} className="text-slate-400" />
+                    <span className="truncate">{preset === "custom" && customStart && customEnd ? `${customStart} to ${customEnd}` : displayLabel}</span>
+                </div>
+                <ChevronDown size={14} className="text-slate-400" />
             </button>
 
             {isOpen && (

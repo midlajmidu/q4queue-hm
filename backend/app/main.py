@@ -92,9 +92,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await start_pool_monitor()
 
     # Start backup scheduler
-    from app.utils.backup import start_scheduler
-    start_scheduler()
-    
+    from app.utils.backup import backup_task
+    import asyncio
+    app.state.backup_task = asyncio.create_task(backup_task())
     # Start auto session scheduler
     from app.utils.auto_session import auto_session_task
     import asyncio

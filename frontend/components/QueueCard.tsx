@@ -18,6 +18,7 @@ interface Props {
 const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
     const { user } = useAuth();
     const isStaff = user?.role === "staff";
+    const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
 
     const [isActive, setIsActive] = React.useState(queue.is_active);
@@ -140,13 +141,15 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                 <div className="flex items-start justify-between mb-1 gap-2">
                     <h3 className="text-sm font-bold text-slate-900 truncate capitalize flex-1">{queue.name}</h3>
                     <div className="flex items-center gap-1 shrink-0">
-                        <button
-                            onClick={() => setShowEdit(true)}
-                            className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                            aria-label="Edit Settings"
-                        >
-                            <Pencil className="w-3.5 h-3.5" />
-                        </button>
+                        {!isGlobalOrOrgAdmin && (
+                            <button
+                                onClick={() => setShowEdit(true)}
+                                className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                                aria-label="Edit Settings"
+                            >
+                                <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                        )}
                         <span className={`ml-1 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             queue.is_paused
                                 ? "bg-amber-100 text-amber-800 border-amber-200/60"
@@ -208,61 +211,63 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                     href={`${dashBase}/queues/${queue.id}`}
                     className="w-full h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center justify-center gap-2"
                 >
-                    Manage Queue
+                    {isGlobalOrOrgAdmin ? "View Queue" : "Manage Queue"}
                 </Link>
-                {isActive ? (
-                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 w-full">
-                        <button
-                            onClick={handleToggle}
-                            disabled={toggling || deleting || pausing}
-                            className="h-9 flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-lg text-[11px] sm:text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                        >
-                            <Square className="w-3 h-3 fill-slate-400 text-slate-400 shrink-0" />
-                            {toggling ? "..." : "End Queue"}
-                        </button>
-                        <button
-                            onClick={handlePauseToggle}
-                            disabled={toggling || deleting || pausing}
-                            className={`h-9 flex-1 ${queue.is_paused ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'} border rounded-lg text-[11px] sm:text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap`}
-                        >
-                            {queue.is_paused ? (
-                                <><Play className="w-3.5 h-3.5 shrink-0" /> Resume</>
-                            ) : (
-                                <><Pause className="w-3.5 h-3.5 shrink-0" /> Take a Break</>
+                {!isGlobalOrOrgAdmin && (
+                    isActive ? (
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 w-full">
+                            <button
+                                onClick={handleToggle}
+                                disabled={toggling || deleting || pausing}
+                                className="h-9 flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-lg text-[11px] sm:text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                            >
+                                <Square className="w-3 h-3 fill-slate-400 text-slate-400 shrink-0" />
+                                {toggling ? "..." : "End Queue"}
+                            </button>
+                            <button
+                                onClick={handlePauseToggle}
+                                disabled={toggling || deleting || pausing}
+                                className={`h-9 flex-1 ${queue.is_paused ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'} border rounded-lg text-[11px] sm:text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap`}
+                            >
+                                {queue.is_paused ? (
+                                    <><Play className="w-3.5 h-3.5 shrink-0" /> Resume</>
+                                ) : (
+                                    <><Pause className="w-3.5 h-3.5 shrink-0" /> Take a Break</>
+                                )}
+                            </button>
+                            {!isStaff && (
+                                <button
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    disabled={toggling || deleting}
+                                    className="h-9 w-9 shrink-0 flex items-center justify-center bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-lg transition-all duration-150 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    aria-label="Delete Queue"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             )}
-                        </button>
-                        {!isStaff && (
+                        </div>
+                    ) : (
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 w-full">
                             <button
-                                onClick={() => setShowDeleteConfirm(true)}
-                                disabled={toggling || deleting}
-                                className="h-9 w-9 shrink-0 flex items-center justify-center bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-lg transition-all duration-150 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                aria-label="Delete Queue"
+                                onClick={handleToggle}
+                                disabled={toggling || deleting || pausing}
+                                className="h-9 flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <Play className="w-3.5 h-3.5 shrink-0" />
+                                {toggling ? "Starting..." : "Start Queue"}
                             </button>
-                        )}
-                    </div>
-                ) : (
-                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 w-full">
-                        <button
-                            onClick={handleToggle}
-                            disabled={toggling || deleting || pausing}
-                            className="h-9 flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Play className="w-3.5 h-3.5 shrink-0" />
-                            {toggling ? "Starting..." : "Start Queue"}
-                        </button>
-                        {!isStaff && (
-                            <button
-                                onClick={() => setShowDeleteConfirm(true)}
-                                disabled={toggling || deleting}
-                                className="h-9 w-9 shrink-0 flex items-center justify-center bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-lg transition-all duration-150 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                aria-label="Delete Queue"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
+                            {!isStaff && (
+                                <button
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    disabled={toggling || deleting}
+                                    className="h-9 w-9 shrink-0 flex items-center justify-center bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-lg transition-all duration-150 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    aria-label="Delete Queue"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    )
                 )}
             </div>
 

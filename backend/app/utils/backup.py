@@ -142,56 +142,46 @@ async def restore_backup(filename: str, session):
         logger.error(f"Exception during pg_restore: {e}")
         raise
 
-def _run_async_org_backups():
-    """Wrapper to run async org backups in a separate thread/loop."""
+async def backup_task():
+    """Background task that runs every minute to check for scheduled backups."""
     import asyncio
     from app.db.session import AsyncSessionLocal
     from app.services.org_backup_service import create_org_backup, cleanup_old_org_backups
     from sqlalchemy import select
     from app.models.parent_organization import ParentOrganization
+
+    logger.info("Backup task started. Tenant backups will trigger based on their custom backup_time setting.")
     
-    async def _do_backups():
-        now_time = datetime.now().strftime("%H:%M")
-        async with AsyncSessionLocal() as db:
-            # 1. Trigger backup for every Parent Org matching current time
-            pos = await db.scalars(
-                select(ParentOrganization.id).where(
-                    ParentOrganization.is_active == True,
-                    ParentOrganization.backup_time == now_time
+    while True:
+        try:
+            now_time = datetime.now().strftime("%H:%M")
+            async with AsyncSessionLocal() as db:
+                # 1. Trigger backup for every Parent Org matching current time
+                pos = await db.scalars(
+                    select(ParentOrganization.id).where(
+                        ParentOrganization.is_active == True,
+                        ParentOrganization.backup_time == now_time
+                    )
                 )
-            )
-            for po_id in pos:
-                try:
-                    await create_org_backup(po_id, db)
-                except Exception as e:
-                    logger.error(f"Scheduled backup failed for ParentOrg {po_id}: {e}")
+                for po_id in pos:
+                    try:
+                        await create_org_backup(po_id, db)
+                    except Exception as e:
+                        logger.error(f"Scheduled backup failed for ParentOrg {po_id}: {e}")
+                
+                # 2. Cleanup old backups (only run once daily to avoid unnecessary DB queries)
+                if now_time == "03:00":
+                    try:
+                        await cleanup_old_org_backups(db)
+                    except Exception as e:
+                        logger.error(f"Scheduled cleanup failed: {e}")
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Error in backup_task: {e}")
             
-            # 2. Cleanup old backups (only run once daily to avoid unnecessary DB queries)
-            if now_time == "03:00":
-                try:
-                    await cleanup_old_org_backups(db)
-                except Exception as e:
-                    logger.error(f"Scheduled cleanup failed: {e}")
-
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-        
-    if loop and loop.is_running():
-        # If we are in an active event loop (which we shouldn't be since BackgroundScheduler uses threads)
-        asyncio.create_task(_do_backups())
-    else:
-        asyncio.run(_do_backups())
-
-def start_scheduler():
-    scheduler = BackgroundScheduler()
-    
-    # Global DB backup (kept for legacy/infrastructure reasons, but we add Org backups)
-    # scheduler.add_job(perform_backup, 'cron', hour=2, minute=0)
-    
-    # Org-level backups check every minute if there are any scheduled backups
-    scheduler.add_job(_run_async_org_backups, 'cron', minute='*')
-    
-    scheduler.start()
-    logger.info("Backup scheduler started. Tenant backups will trigger based on their custom backup_time setting.")
+        # Sleep until the start of the next minute
+        now = datetime.now()
+        sleep_seconds = 60 - now.second
+        await asyncio.sleep(sleep_seconds)

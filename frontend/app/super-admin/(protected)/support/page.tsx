@@ -39,7 +39,7 @@ export default function SupportToolsPage() {
                 setSuperAdminToken(currentToken);
             }
             // Set the new org token locally just in case
-            setToken(response.access_token);
+            setToken(response.access_token, "staff");
             
             // Construct the app subdomain URL to cross the domain boundary
             const protocol = window.location.protocol;

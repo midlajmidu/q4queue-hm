@@ -26,9 +26,7 @@ export default function LoginPage() {
             }
             if (user.role === "super_admin") {
                 router.replace("/super-admin");
-            } else if (user.role === "organization_admin") {
-                router.replace(`/organization-admin`);
-            } else if (user.role === "admin" || user.role === "staff") {
+            } else if (user.role === "admin" || user.role === "branch_admin" || user.role === "staff") {
                 router.replace(`/${user.org_slug}/dashboard`);
             } else {
                 router.replace("/dashboard");
@@ -46,7 +44,7 @@ export default function LoginPage() {
     }, [login, orgSlug, email, password]);
 
     return (
-        <main className="force-light force-light min-h-screen h-screen relative flex flex-col items-center justify-center bg-hero-glow overflow-hidden px-4">
+        <main className="force-light min-h-screen relative flex flex-col items-center justify-center bg-hero-glow p-4 sm:p-8 overflow-y-auto">
             {/* Background grid */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(220_16%_90%/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(220_16%_90%/0.5)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black_70%,transparent_100%)] pointer-events-none" />
             <div className="absolute top-20 left-[10%] w-72 h-72 bg-primary/8 rounded-full blur-[120px] animate-pulse pointer-events-none" />
@@ -59,10 +57,9 @@ export default function LoginPage() {
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 className="w-full max-w-[420px] relative z-10"
             >
-                {/* Logo */}
                 <div className="text-center mb-8 flex justify-center">
                     <Link href="/" className="inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-1" aria-label="Go to home page">
-                        <Image src="/newLogo2.png" alt="Q4Queue Logo" width={642} height={543} className="h-24 w-auto object-contain" priority />
+                        <Image src="/newLogo2.png" alt="Q4Queue Logo" width={642} height={543} className="h-16 md:h-20 w-auto object-contain" priority />
                     </Link>
                 </div>
 
@@ -75,30 +72,7 @@ export default function LoginPage() {
                         <p className="text-sm text-muted-foreground mt-1.5">Enter your credentials to continue</p>
                     </div>
 
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-6">
-                        <button
-                            type="button"
-                            onClick={() => setLoginType("staff")}
-                            className={`flex-1 text-sm font-medium py-2 rounded-lg transition-colors ${
-                                loginType === "staff" 
-                                ? "bg-white dark:bg-slate-900 shadow-sm text-indigo-600" 
-                                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
-                            }`}
-                        >
-                            Branch Staff
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setLoginType("org_admin")}
-                            className={`flex-1 text-sm font-medium py-2 rounded-lg transition-colors ${
-                                loginType === "org_admin" 
-                                ? "bg-white dark:bg-slate-900 shadow-sm text-indigo-600" 
-                                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
-                            }`}
-                        >
-                            Org Admin
-                        </button>
-                    </div>
+
 
                     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                         <AnimatePresence>
@@ -202,13 +176,18 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    <div className="pt-5 border-t border-border/50 text-center">
-                        <p className="text-sm text-muted-foreground">
-                            Don&apos;t have an account?{" "}
-                            <Link href="/get-started" className="text-primary hover:text-primary/80 font-semibold ml-1 transition-colors">
-                                Get Started
-                            </Link>
-                        </p>
+                    <div className="pt-6 border-t border-border/50 flex flex-col items-center">
+                        <Link 
+                            href="/organization-login" 
+                            className="group flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-50/50 hover:bg-slate-50 border border-slate-200/50 hover:border-slate-300 transition-all duration-300"
+                        >
+                            <span className="text-[13px] font-medium text-slate-500 group-hover:text-slate-600 transition-colors">
+                                Parent Organization Admin?
+                            </span>
+                            <span className="text-[13px] font-bold text-indigo-600 group-hover:text-indigo-700 transition-colors flex items-center gap-1">
+                                Login Here <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                            </span>
+                        </Link>
                     </div>
                 </div>
             </motion.div>

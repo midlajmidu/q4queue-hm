@@ -75,13 +75,23 @@ export function useAuth(): UseAuthReturn {
     // Periodically check token validity — auto-logout if expired mid-session
     useEffect(() => {
         const interval = setInterval(() => {
-            // Don't redirect if already on /login (prevents loops)
-            if (typeof window !== "undefined" && window.location.pathname.startsWith("/login")) return;
+            // Don't redirect if already on a login page (prevents loops)
+            if (typeof window !== "undefined") {
+                const path = window.location.pathname;
+                if (path === "/login" || path.endsWith("/login") || path === "/organization-login") return;
+            }
             if (isAuthed && !checkAuth()) {
                 removeToken();
                 setIsAuthed(false);
                 setUser(null);
-                router.replace("/login");
+                const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+                if (currentPath.startsWith("/organization-admin")) {
+                    router.replace("/organization-login");
+                } else if (currentPath.startsWith("/super-admin")) {
+                    router.replace("/super-admin/login");
+                } else {
+                    router.replace("/login");
+                }
             }
         }, 30_000); // check every 30 seconds
         return () => clearInterval(interval);
@@ -102,14 +112,14 @@ export function useAuth(): UseAuthReturn {
                 if (response.force_password_change) {
                     if (currentUser && currentUser.role === "organization_admin") {
                         router.push(`/organization-admin/change-password`);
-                    } else if (currentUser && currentUser.role === "super_admin") {
+                    } else if (currentUser && (currentUser.role === "admin" || currentUser.role === "branch_admin" || currentUser.role === "staff")) {
                         router.push('/super-admin/change-password');
                     } else {
                         router.push(`/${currentUser?.org_slug}/change-password`);
                     }
                 } else if (currentUser && currentUser.role === "organization_admin") {
                     router.push(`/organization-admin`);
-                } else if (currentUser && (currentUser.role === "admin" || currentUser.role === "staff")) {
+                } else if (currentUser && (currentUser.role === "admin" || currentUser.role === "branch_admin" || currentUser.role === "staff")) {
                     router.push(`/${currentUser.org_slug}/dashboard`);
                 } else {
                     router.push("/dashboard");
@@ -136,11 +146,19 @@ export function useAuth(): UseAuthReturn {
 
     const logout = useCallback(() => {
         removeToken();
-        removeSuperAdminToken();
+        // removeSuperAdminToken(); // Removed this so logging out of one doesn't clear SA token unnecessarily
         setIsAuthed(false);
         setUser(null);
         setIsImpersonating(false);
-        router.push("/login");
+        
+        const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+        if (currentPath.startsWith("/organization-admin")) {
+            router.push("/organization-login");
+        } else if (currentPath.startsWith("/super-admin")) {
+            router.push("/super-admin/login");
+        } else {
+            router.push("/login");
+        }
     }, [router]);
 
     const stopImpersonating = useCallback(() => {

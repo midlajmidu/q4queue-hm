@@ -186,11 +186,17 @@ async def get_current_active_user(
 async def get_current_admin_or_staff(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
-    """Allows access only to admins, staff, or super_admins."""
-    if current_user.role not in ["admin", "staff", "super_admin"]:
+    """Allows access only to admins, staff, super_admins, or organization_admins impersonating a branch."""
+    if current_user.role not in ["admin", "branch_admin", "staff", "super_admin", "organization_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Staff or Admin access required",
+        )
+    # If it's an org admin, they MUST have successfully injected an org_id via x-org-slug
+    if current_user.role == "organization_admin" and not current_user.org_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Branch context required for organization admin",
         )
     return current_user
 
@@ -198,11 +204,16 @@ async def get_current_admin_or_staff(
 async def get_current_admin(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
-    """Allows access only to admins or super_admins."""
-    if current_user.role not in ["admin", "super_admin"]:
+    """Allows access only to admins, super_admins, or organization_admins impersonating a branch."""
+    if current_user.role not in ["admin", "branch_admin", "super_admin", "organization_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
+        )
+    if current_user.role == "organization_admin" and not current_user.org_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Branch context required for organization admin",
         )
     return current_user
 

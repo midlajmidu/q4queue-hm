@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { 
     Users, Clock, Building2, TrendingUp, Zap, Server, 
     BarChart3, Activity, Download, ChevronRight, LayoutDashboard,
-    AlertCircle, CheckCircle2, TrendingDown, Star
+    AlertCircle, CheckCircle2, TrendingDown, Star, Sparkles, Lightbulb
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useBranchFilter } from "@/context/BranchFilterContext";
@@ -66,17 +66,27 @@ export default function AnalyticsPage() {
 
     return (
         <div className="space-y-6 pb-20">
-            {/* Header & Controls */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+            {/* Premium Header & Controls */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-6 pb-6 border-b border-slate-200/60">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Executive Dashboard</h1>
-                    <p className="text-sm text-slate-500 mt-1">Cross-branch operational insights and performance metrics.</p>
+                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Executive Dashboard</h1>
+                    <div className="flex items-center flex-wrap gap-2 text-sm text-slate-500 mt-2">
+                        <span>Historical data, operational insights, and performance metrics.</span>
+                        <span className="hidden sm:inline text-slate-300">•</span>
+                        <div className="flex items-center gap-2 text-slate-500 font-mono text-[10px] tracking-widest uppercase font-semibold bg-slate-100/50 px-2 py-0.5 rounded-md border border-slate-200/50">
+                            <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                            </span>
+                            Updated just now
+                        </div>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-3 w-full lg:w-auto shrink-0">
                     <DateRangeFilter onChange={setDateRange} initialPreset={dateRange.preset} />
                     <button 
                         onClick={handleExportCSV}
-                        className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                        className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 hover:shadow-sm px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm"
                     >
                         <Download size={16} />
                         <span className="hidden sm:inline">Export CSV</span>
@@ -84,99 +94,100 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            {/* AI Insights Panel */}
+            {/* Premium Glassmorphism AI Insights Panel */}
             {data.insights && data.insights.length > 0 && (
-                <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-5 shadow-sm">
-                    <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0">
-                            <Zap size={20} className="text-amber-500 fill-amber-500/20" />
-                        </div>
+                <div className="relative overflow-hidden rounded-2xl">
+                    {/* Gradient Orbs (The Light Source) */}
+                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse z-0"></div>
+                    <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 z-0"></div>
+
+                    {/* The Frosted Glass Surface */}
+                    <div className="relative z-10 p-6 md:p-8 bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col md:flex-row items-center gap-6 rounded-2xl">
                         <div className="flex-1">
-                            <h3 className="font-semibold text-slate-900 mb-2">Key Insights</h3>
-                            <ul className="space-y-2">
-                                {data.insights.map((insight: string, idx: number) => (
-                                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                                        {insight}
-                                    </li>
-                                ))}
-                            </ul>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Lightbulb size={16} className="text-indigo-600 fill-indigo-600/30" />
+                                <h3 className="font-bold text-indigo-600 uppercase tracking-widest text-[10px]">AI Strategic Insight</h3>
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-900 leading-tight">
+                                {data.insights[0]}
+                            </h2>
                         </div>
+                        {data.insights.length > 1 && (
+                            <div className="w-full md:w-1/3 border-t md:border-t-0 md:border-l border-white/50 pt-4 md:pt-0 md:pl-6">
+                                <ul className="space-y-2">
+                                    {data.insights.slice(1).map((insight: string, idx: number) => (
+                                        <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
+                                            <span className="leading-snug">{insight}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Customer Metrics */}
+            {/* Merged High-Density KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Efficiency Focus */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Users size={18} /></div>
-                        <h2 className="font-semibold text-slate-900">Customer Metrics</h2>
+                    <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Activity size={16} className="text-indigo-500" />
+                            <h2 className="font-semibold text-slate-900 text-sm">Efficiency Metrics</h2>
+                        </div>
+                        <span className="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">Average</span>
                     </div>
-                    <div className="p-5 grid grid-cols-2 gap-4 flex-1">
+                    <div className="p-5 grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1 items-center">
                         <div>
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Total</p>
-                            <p className="text-2xl font-bold text-slate-900">{data.customer_metrics.total_customers}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Served</p>
-                            <p className="text-2xl font-bold text-emerald-600">{data.customer_metrics.customers_served}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Waiting</p>
-                            <p className="text-2xl font-bold text-amber-500">{data.customer_metrics.customers_waiting}</p>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Wait Time</p>
+                            <p className="text-2xl font-bold text-slate-900">{data.time_metrics.avg_wait_time}</p>
                         </div>
                         <div>
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Completion</p>
-                            <p className="text-2xl font-bold text-slate-900">{data.customer_metrics.completion_rate}</p>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Service Time</p>
+                            <p className="text-2xl font-bold text-slate-900">{data.time_metrics.avg_service_time}</p>
                         </div>
-                    </div>
-                </div>
-
-                {/* Time Metrics */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><Clock size={18} /></div>
-                        <h2 className="font-semibold text-slate-900">Time Metrics</h2>
-                    </div>
-                    <div className="p-5 grid grid-cols-2 gap-4 flex-1">
-                        <div className="col-span-2 sm:col-span-1">
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Avg Wait</p>
-                            <p className="text-xl font-bold text-slate-900">{data.time_metrics.avg_wait_time}</p>
-                        </div>
-                        <div className="col-span-2 sm:col-span-1">
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Avg Service</p>
-                            <p className="text-xl font-bold text-slate-900">{data.time_metrics.avg_service_time}</p>
-                        </div>
-                        <div className="col-span-2">
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Peak Hour</p>
-                            <p className="text-lg font-semibold text-rose-600">{data.time_metrics.peak_hour}</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Operations Metrics */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-                        <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><Activity size={18} /></div>
-                        <h2 className="font-semibold text-slate-900">Operations Status</h2>
-                    </div>
-                    <div className="p-5 grid grid-cols-2 gap-4 flex-1">
-                        <div className="col-span-2">
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Active Branches</p>
-                            <div className="flex items-center gap-2">
-                                <Building2 size={20} className="text-slate-400" />
-                                <p className="text-2xl font-bold text-slate-900">{data.operations_metrics.active_branches}</p>
+                        <div>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Completion</p>
+                            <div className="flex items-center gap-1.5">
+                                <p className="text-2xl font-bold text-slate-900">{data.customer_metrics.completion_rate}</p>
+                                {parseFloat(data.customer_metrics.completion_rate) > 90 && <span className="bg-emerald-50 text-emerald-700 px-1.5 rounded-full text-[10px] font-bold">Good</span>}
                             </div>
                         </div>
                         <div>
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Live Queues</p>
-                            <p className="text-xl font-bold text-slate-900">{data.operations_metrics.active_queues}</p>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Live Queues</p>
+                            <p className="text-2xl font-bold text-slate-900">{data.operations_metrics.active_queues}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Volume Focus */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Users size={16} className="text-indigo-500" />
+                            <h2 className="font-semibold text-slate-900 text-sm">Volume & Scale</h2>
+                        </div>
+                        <span className="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">Total</span>
+                    </div>
+                    <div className="p-5 grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1 items-center">
+                        <div>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Served</p>
+                            <p className="text-2xl font-bold text-emerald-600">{data.customer_metrics.customers_served}</p>
                         </div>
                         <div>
-                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Live Sessions</p>
-                            <p className="text-xl font-bold text-slate-900">{data.operations_metrics.active_sessions}</p>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Waiting</p>
+                            <p className="text-2xl font-bold text-indigo-600">{data.customer_metrics.customers_waiting}</p>
+                        </div>
+                        <div>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Peak Hour</p>
+                            <p className="text-xl font-bold text-rose-600">{data.time_metrics.peak_hour}</p>
+                        </div>
+                        <div>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Branches</p>
+                            <p className="text-2xl font-bold text-slate-900">{data.operations_metrics.active_branches}</p>
                         </div>
                     </div>
                 </div>
@@ -221,7 +232,8 @@ export default function AnalyticsPage() {
                                     tickLine={false}
                                 />
                                 <RechartsTooltip 
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                                    cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: 'none' }}
+                                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                     labelFormatter={(val) => new Date(val).toLocaleDateString()}
                                 />
                                 <Area 
@@ -229,9 +241,9 @@ export default function AnalyticsPage() {
                                     dataKey="customers_served" 
                                     name="Served" 
                                     stroke="#6366f1" 
-                                    strokeWidth={3}
-                                    fillOpacity={1} 
-                                    fill="url(#colorServed)" 
+                                    strokeWidth={2}
+                                    fillOpacity={0.1} 
+                                    fill="#6366f1" 
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -251,35 +263,35 @@ export default function AnalyticsPage() {
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                         <h2 className="font-bold text-slate-900 flex items-center gap-2">
-                            <Star size={18} className="text-amber-500 fill-amber-500" />
+                            <Star size={18} className="text-indigo-500 fill-indigo-500/20" />
                             Branch Performance Ranking
                         </h2>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                            <thead>
-                                <tr className="bg-white border-b border-slate-100 text-xs uppercase text-slate-500 font-semibold">
-                                    <th className="p-4">Rank</th>
-                                    <th className="p-4">Branch</th>
-                                    <th className="p-4 text-center">Served</th>
-                                    <th className="p-4 text-center">Health</th>
+                        <table className="w-full text-left text-[13px] whitespace-nowrap">
+                            <thead className="bg-slate-50/80 border-b border-slate-200">
+                                <tr className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">
+                                    <th className="py-2.5 px-4">Rank</th>
+                                    <th className="py-2.5 px-4">Branch</th>
+                                    <th className="py-2.5 px-4 text-right">Served</th>
+                                    <th className="py-2.5 px-4 text-right">Health</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-slate-100">
                                 {data.branch_ranking.length === 0 ? (
-                                    <tr><td colSpan={4} className="p-8 text-center text-slate-400">No branches found</td></tr>
+                                    <tr><td colSpan={4} className="py-8 px-4 text-center text-slate-400">No branches found</td></tr>
                                 ) : (
                                     data.branch_ranking.map((item: any) => (
-                                        <tr key={item.rank} className="hover:bg-slate-50 transition-colors">
-                                            <td className="p-4 font-medium text-slate-400">#{item.rank}</td>
-                                            <td className="p-4 font-medium text-slate-900">{item.branch}</td>
-                                            <td className="p-4 text-center font-medium">{item.customers_served}</td>
-                                            <td className="p-4 text-center">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                                                    item.health_score >= 95 ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                                                    item.health_score >= 80 ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                                    item.health_score >= 60 ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                                    "bg-rose-50 text-rose-700 border-rose-200"
+                                        <tr key={item.rank} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
+                                            <td className="py-2 px-4 font-semibold text-slate-400">#{item.rank}</td>
+                                            <td className="py-2 px-4 font-semibold text-slate-900">{item.branch}</td>
+                                            <td className="py-2 px-4 text-right font-medium text-slate-700">{item.customers_served}</td>
+                                            <td className="py-2 px-4 text-right">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                                    item.health_score >= 95 ? "bg-emerald-50 text-emerald-700" :
+                                                    item.health_score >= 80 ? "bg-indigo-50 text-indigo-700" :
+                                                    item.health_score >= 60 ? "bg-slate-100 text-slate-700" :
+                                                    "bg-rose-50 text-rose-700"
                                                 }`}>
                                                     {item.health_score} ({item.health_status})
                                                 </span>
@@ -296,30 +308,30 @@ export default function AnalyticsPage() {
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                         <h2 className="font-bold text-slate-900 flex items-center gap-2">
-                            <LayoutDashboard size={18} className="text-blue-500" />
+                            <LayoutDashboard size={18} className="text-indigo-500" />
                             Top Queues by Volume
                         </h2>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                            <thead>
-                                <tr className="bg-white border-b border-slate-100 text-xs uppercase text-slate-500 font-semibold">
-                                    <th className="p-4">Queue Name</th>
-                                    <th className="p-4">Branch</th>
-                                    <th className="p-4 text-center">Served</th>
-                                    <th className="p-4 text-right">Avg Wait</th>
+                        <table className="w-full text-left text-[13px] whitespace-nowrap">
+                            <thead className="bg-slate-50/80 border-b border-slate-200">
+                                <tr className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">
+                                    <th className="py-2.5 px-4">Queue Name</th>
+                                    <th className="py-2.5 px-4">Branch</th>
+                                    <th className="py-2.5 px-4 text-right">Served</th>
+                                    <th className="py-2.5 px-4 text-right">Avg Wait</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-slate-100">
                                 {data.queue_analytics.length === 0 ? (
-                                    <tr><td colSpan={4} className="p-8 text-center text-slate-400">No queues found</td></tr>
+                                    <tr><td colSpan={4} className="py-8 px-4 text-center text-slate-400">No queues found</td></tr>
                                 ) : (
                                     data.queue_analytics.map((item: any, idx: number) => (
-                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                            <td className="p-4 font-medium text-slate-900">{item.queue_name}</td>
-                                            <td className="p-4 text-slate-500">{item.branch}</td>
-                                            <td className="p-4 text-center font-medium">{item.customers_served}</td>
-                                            <td className="p-4 text-right font-mono text-xs text-slate-600">{item.avg_wait_time}</td>
+                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
+                                            <td className="py-2 px-4 font-semibold text-slate-900">{item.queue_name}</td>
+                                            <td className="py-2 px-4 text-slate-500">{item.branch}</td>
+                                            <td className="py-2 px-4 text-right font-medium text-slate-700">{item.customers_served}</td>
+                                            <td className="py-2 px-4 text-right font-medium text-slate-600">{item.avg_wait_time}</td>
                                         </tr>
                                     ))
                                 )}
@@ -332,35 +344,42 @@ export default function AnalyticsPage() {
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                         <h2 className="font-bold text-slate-900 flex items-center gap-2">
-                            <Users size={18} className="text-teal-500" />
+                            <Users size={18} className="text-emerald-500" />
                             Top Performing Staff
                         </h2>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                            <thead>
-                                <tr className="bg-white border-b border-slate-100 text-xs uppercase text-slate-500 font-semibold">
-                                    <th className="p-4">Staff Name</th>
-                                    <th className="p-4">Branch</th>
-                                    <th className="p-4 text-center">Served</th>
-                                    <th className="p-4 text-right">Avg Service</th>
+                        <table className="w-full text-left text-[13px] whitespace-nowrap">
+                            <thead className="bg-slate-50/80 border-b border-slate-200">
+                                <tr className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">
+                                    <th className="py-2.5 px-4">Staff Name</th>
+                                    <th className="py-2.5 px-4">Branch</th>
+                                    <th className="py-2.5 px-4 text-right">Served</th>
+                                    <th className="py-2.5 px-4 text-right">Avg Service</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-slate-100">
                                 {data.staff_performance.length === 0 ? (
-                                    <tr><td colSpan={4} className="p-8 text-center text-slate-400">No staff found</td></tr>
+                                    <tr>
+                                        <td colSpan={4} className="py-12 px-4 text-center">
+                                            <p className="text-slate-500 text-sm mb-3">No active staff data for the selected period.</p>
+                                            <button className="text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-md transition-colors">
+                                                View Staff Schedule
+                                            </button>
+                                        </td>
+                                    </tr>
                                 ) : (
                                     data.staff_performance.map((item: any, idx: number) => (
-                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                            <td className="p-4 font-medium text-slate-900 flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">
+                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
+                                            <td className="py-2 px-4 font-semibold text-slate-900 flex items-center gap-2">
+                                                <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[9px] font-bold">
                                                     {item.staff_name.charAt(0).toUpperCase()}
                                                 </div>
                                                 {item.staff_name}
                                             </td>
-                                            <td className="p-4 text-slate-500">{item.branch}</td>
-                                            <td className="p-4 text-center font-medium text-emerald-600">{item.customers_served}</td>
-                                            <td className="p-4 text-right font-mono text-xs text-slate-600">{item.avg_service_time}</td>
+                                            <td className="py-2 px-4 text-slate-500">{item.branch}</td>
+                                            <td className="py-2 px-4 text-right font-medium text-emerald-600">{item.customers_served}</td>
+                                            <td className="py-2 px-4 text-right font-medium text-slate-600">{item.avg_service_time}</td>
                                         </tr>
                                     ))
                                 )}
@@ -378,26 +397,26 @@ export default function AnalyticsPage() {
                         </h2>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                            <thead>
-                                <tr className="bg-white border-b border-slate-100 text-xs uppercase text-slate-500 font-semibold">
-                                    <th className="p-4">Time Block</th>
-                                    <th className="p-4 text-center">Arrived</th>
-                                    <th className="p-4 text-center">Served</th>
+                        <table className="w-full text-left text-[13px] whitespace-nowrap">
+                            <thead className="bg-slate-50/80 border-b border-slate-200">
+                                <tr className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">
+                                    <th className="py-2.5 px-4">Time Block</th>
+                                    <th className="py-2.5 px-4 text-right">Arrived</th>
+                                    <th className="py-2.5 px-4 text-right">Served</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-slate-100">
                                 {data.peak_traffic.length === 0 ? (
-                                    <tr><td colSpan={3} className="p-8 text-center text-slate-400">No traffic data</td></tr>
+                                    <tr><td colSpan={3} className="py-8 px-4 text-center text-slate-400">No traffic data</td></tr>
                                 ) : (
                                     data.peak_traffic.map((item: any, idx: number) => (
-                                        <tr key={idx} className={`transition-colors ${item.is_peak ? 'bg-rose-50/50 hover:bg-rose-50' : 'hover:bg-slate-50'}`}>
-                                            <td className="p-4 font-medium text-slate-900 flex items-center gap-2">
+                                        <tr key={idx} className={`transition-colors cursor-pointer ${item.is_peak ? 'bg-rose-50/50 hover:bg-rose-50' : 'hover:bg-slate-50/50'}`}>
+                                            <td className="py-2 px-4 font-semibold text-slate-900 flex items-center gap-2">
                                                 {item.time_block}
-                                                {item.is_peak && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 uppercase tracking-wider">Peak</span>}
+                                                {item.is_peak && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-100 text-rose-700 uppercase tracking-wider">Peak</span>}
                                             </td>
-                                            <td className="p-4 text-center font-medium">{item.customers_arrived}</td>
-                                            <td className="p-4 text-center text-slate-600">{item.customers_served}</td>
+                                            <td className="py-2 px-4 text-right font-medium text-indigo-600">{item.customers_arrived}</td>
+                                            <td className="py-2 px-4 text-right font-medium text-emerald-600">{item.customers_served}</td>
                                         </tr>
                                     ))
                                 )}

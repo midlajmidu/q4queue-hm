@@ -50,6 +50,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const searchParams = useSearchParams();
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
     const isStaff = user?.role === "staff";
+    const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
 
     const [session, setSession] = useState<SessionResponse | null>(null);
     const [queues, setQueues] = useState<QueueResponse[]>([]);
@@ -392,14 +393,15 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                         </svg>
                                     </button>
                                 )}
-                            </div>
-                                <button
-                                    onClick={() => setShowCreate(true)}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl h-9 px-4 shadow-sm shadow-indigo-500/10 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 flex-shrink-0 w-full sm:w-auto"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    New Queue
-                                </button>
+                                {!isStaff && !isGlobalOrOrgAdmin && (
+                                    <button
+                                        onClick={() => setShowCreate(true)}
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl h-9 px-4 shadow-sm shadow-indigo-500/10 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 flex-shrink-0 w-full sm:w-auto"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        New Queue
+                                    </button>
+                                )}
                         </div>
                     </div>
                 </div>
