@@ -10,26 +10,50 @@
 
 import type { JwtPayload } from "@/types/api";
 
-// ── In-memory token (primary) ────────────────────────────────────
-let _accessToken: string | null = null;
+export type TokenType = "staff" | "org_admin" | "super_admin";
 
-const STORAGE_KEY = "fc_access_token";
-const SA_STORAGE_KEY = "fc_sa_access_token";
+const STORAGE_KEYS: Record<TokenType, string> = {
+    staff: "fc_access_token",
+    org_admin: "fc_org_access_token",
+    super_admin: "fc_sa_access_token",
+};
+
+// ── In-memory tokens ────────────────────────────────────
+const _tokens: Record<TokenType, string | null> = {
+    staff: null,
+    org_admin: null,
+    super_admin: null,
+};
+
+/**
+ * Infer the intended token type based on the current URL path.
+ */
+export function getTokenTypeFromPath(): TokenType {
+    if (typeof window === "undefined") return "staff";
+    const path = window.location.pathname;
+    
+    // Super Admin impersonating a branch acts as a staff session
+    if (path.startsWith("/super-admin") && path.includes("/dashboard")) return "staff";
+    
+    if (path.startsWith("/super-admin")) return "super_admin";
+    if (path.startsWith("/organization-admin") || path === "/organization-login") return "org_admin";
+    return "staff";
+}
 
 /**
  * Store the access token.
  * Primary: in-memory. Backup: localStorage for cross-session persistence.
  */
-export function setToken(token: string): void {
-    _accessToken = token;
-    console.log("[auth.ts] setToken called. Saving to localStorage.");
+export function setToken(token: string, explicitType?: TokenType): void {
+    const type = explicitType || getTokenTypeFromPath();
+    _tokens[type] = token;
+    console.log(`[auth.ts] setToken called for type ${type}.`);
     try {
         if (typeof window !== "undefined") {
-            localStorage.setItem(STORAGE_KEY, token);
-            console.log("[auth.ts] Token saved to localStorage successfully.");
+            localStorage.setItem(STORAGE_KEYS[type], token);
         }
     } catch {
-        // SSR or storage unavailable — in-memory only
+        // SSR or storage unavailable
     }
 }
 
@@ -37,34 +61,52 @@ export function setToken(token: string): void {
  * Retrieve the access token.
  * Falls back to localStorage if in-memory is empty (after page refresh or browser restart).
  */
-export function getToken(): string | null {
-    if (_accessToken) {
-        console.log("[auth.ts] getToken: returning in-memory _accessToken.");
-        return _accessToken;
-    }
+export function getToken(explicitType?: TokenType): string | null {
+    const type = explicitType || getTokenTypeFromPath();
+    
+    // Primary check
+    if (_tokens[type]) return _tokens[type];
+    
+    let stored: string | null = null;
     try {
         if (typeof window !== "undefined") {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            console.log("[auth.ts] getToken: localStorage.getItem returned", stored ? "token" : "null");
+            stored = localStorage.getItem(STORAGE_KEYS[type]);
             if (stored) {
-                _accessToken = stored;
+                _tokens[type] = stored;
                 return stored;
             }
         }
     } catch (e) {
-        console.error("[auth.ts] getToken error accessing localStorage:", e);
+        console.error(`[auth.ts] getToken error accessing localStorage for ${type}:`, e);
     }
+    
+    // Fallback: If looking for staff token and it's missing, try to use the org_admin token
+    // This allows Organization Admins to view branch dashboards without a separate login
+    if (type === "staff") {
+        if (_tokens["org_admin"]) return _tokens["org_admin"];
+        try {
+            if (typeof window !== "undefined") {
+                const orgStored = localStorage.getItem(STORAGE_KEYS["org_admin"]);
+                if (orgStored) {
+                    _tokens["org_admin"] = orgStored;
+                    return orgStored;
+                }
+            }
+        } catch (e) {}
+    }
+
     return null;
 }
 
 /**
  * Clear the access token (logout).
  */
-export function removeToken(): void {
-    _accessToken = null;
+export function removeToken(explicitType?: TokenType): void {
+    const type = explicitType || getTokenTypeFromPath();
+    _tokens[type] = null;
     try {
         if (typeof window !== "undefined") {
-            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(STORAGE_KEYS[type]);
         }
     } catch {
         // SSR or storage unavailable
@@ -73,28 +115,15 @@ export function removeToken(): void {
 
 // ── Super Admin Impersonation Token ──────────────────────────────
 export function setSuperAdminToken(token: string): void {
-    try {
-        if (typeof window !== "undefined") {
-            localStorage.setItem(SA_STORAGE_KEY, token);
-        }
-    } catch {}
+    setToken(token, "super_admin");
 }
 
 export function getSuperAdminToken(): string | null {
-    try {
-        if (typeof window !== "undefined") {
-            return localStorage.getItem(SA_STORAGE_KEY);
-        }
-    } catch {}
-    return null;
+    return getToken("super_admin");
 }
 
 export function removeSuperAdminToken(): void {
-    try {
-        if (typeof window !== "undefined") {
-            localStorage.removeItem(SA_STORAGE_KEY);
-        }
-    } catch {}
+    removeToken("super_admin");
 }
 
 /**

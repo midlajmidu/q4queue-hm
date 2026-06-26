@@ -40,32 +40,44 @@ export default function QueuesMonitoringPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900">Live Queue Monitoring</h1>
-                <p className="text-sm text-slate-500 mt-1">Monitor all active queues across all branches in real-time.</p>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 pb-6 border-b border-slate-200/60 mb-6">
+                <div>
+                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Live Queue Monitoring</h1>
+                    <div className="flex items-center flex-wrap gap-2 text-sm text-slate-500 mt-2">
+                        <span>Monitor all active queues across all branches in real-time.</span>
+                        <span className="hidden sm:inline text-slate-300">•</span>
+                        <div className="flex items-center gap-2 text-slate-500 font-mono text-[10px] tracking-widest uppercase font-semibold bg-slate-100/50 px-2 py-0.5 rounded-md border border-slate-200/50">
+                            <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                            </span>
+                            Updated just now
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-4 border-b border-slate-100">
                     <h2 className="font-bold text-slate-900 flex items-center gap-2">
                         <ListFilter size={18} className="text-indigo-600" />
-                        Active Queues
+                        Customer Flow
                     </h2>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold">
-                                <th className="p-4">Branch</th>
-                                <th className="p-4">Queue Name</th>
-                                <th className="p-4 text-center">Waiting</th>
-                                <th className="p-4 text-center">Served Today</th>
-                                <th className="p-4 text-center">Avg Wait Time</th>
-                                <th className="p-4 text-center">Status</th>
-                                <th className="p-4 text-right">Actions</th>
+                            <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
+                                <th className="px-4 py-3">Branch</th>
+                                <th className="px-4 py-3">Queue Name</th>
+                                <th className="px-4 py-3 text-right">Waiting</th>
+                                <th className="px-4 py-3 text-right">Served Today</th>
+                                <th className="px-4 py-3 text-right">Avg Wait Time</th>
+                                <th className="px-4 py-3">Status</th>
+                                <th className="px-4 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 text-[13px]">
                             {queues.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="p-8 text-center text-slate-500">
@@ -74,30 +86,36 @@ export default function QueuesMonitoringPage() {
                                 </tr>
                             ) : (
                                 queues.map((q: any, idx: number) => (
-                                    <tr key={idx} className="hover:bg-slate-50">
-                                        <td className="p-4">
-                                            <div className="font-medium text-slate-900">{q.branch}</div>
+                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-4 py-2.5">
+                                            <div className="font-semibold text-slate-900">{q.branch}</div>
                                         </td>
-                                        <td className="p-4 font-medium text-slate-700">{q.queue_name}</td>
-                                        <td className="p-4 text-center font-medium text-slate-700">{q.waiting}</td>
-                                        <td className="p-4 text-center font-medium text-slate-700">{q.served_today}</td>
-                                        <td className="p-4 text-center text-slate-500">{q.avg_wait_time}</td>
-                                        <td className="p-4 text-center">
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                                q.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'
+                                        <td className="px-4 py-2.5 font-medium text-slate-700">{q.queue_name}</td>
+                                        <td className="px-4 py-2.5 text-right font-medium text-slate-700">{q.waiting || 0}</td>
+                                        <td className="px-4 py-2.5 text-right font-medium text-slate-700">{q.served_today || 0}</td>
+                                        <td className="px-4 py-2.5 text-right text-slate-500">{q.avg_wait_time || "0m"}</td>
+                                        <td className="px-4 py-2.5">
+                                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                                q.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
                                             }`}>
+                                                {q.status === 'Active' && (
+                                                    <span className="relative flex h-1.5 w-1.5">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                                    </span>
+                                                )}
                                                 {q.status}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-right">
+                                        <td className="px-4 py-2.5 text-right">
                                             <a
-                                                href={`/${q.branch_slug}/dashboard`}
+                                                href={`/${q.branch_slug}/dashboard/queues`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
                                             >
                                                 <ExternalLink size={14} />
-                                                Dashboard
+                                                Queues
                                             </a>
                                         </td>
                                     </tr>

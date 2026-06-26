@@ -207,11 +207,17 @@ async function request<T>(
         if (resp.status === 401) {
             removeToken();
             if (typeof window !== "undefined") {
-                const isSuperAdminPath = window.location.pathname.startsWith("/super-admin");
-                const isAlreadyonLogin = window.location.pathname.includes("/login");
+                const path = window.location.pathname;
+                const isSuperAdminPath = path.startsWith("/super-admin");
+                const isOrgAdminPath = path.startsWith("/organization-admin");
+                const isAlreadyonLogin = path === "/login" || path.endsWith("/login") || path === "/organization-login";
 
                 if (!isAlreadyonLogin) {
-                    window.location.href = isSuperAdminPath ? "/super-admin/login" : "/login";
+                    if (isOrgAdminPath) {
+                        window.location.href = "/organization-login";
+                    } else {
+                        window.location.href = isSuperAdminPath ? "/super-admin/login" : "/login";
+                    }
                 }
             }
         }

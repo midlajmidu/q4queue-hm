@@ -26,7 +26,7 @@ export default function BranchSelector() {
                 onChange={(e) => setSelectedBranchId(e.target.value || null)}
                 className="appearance-none pl-10 pr-10 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors shadow-sm cursor-pointer"
             >
-                <option value="">🏢 All Branches</option>
+                <option value="">All Branches</option>
                 {branches.map(b => (
                     <option key={b.id} value={b.id}>
                         {b.name}
