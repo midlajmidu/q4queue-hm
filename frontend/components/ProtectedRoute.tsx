@@ -25,7 +25,7 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
                     if (currentUser.role === "organization_admin") {
                         router.replace(`/organization-admin/change-password`);
                     } else if (currentUser.role === "super_admin") {
-                        router.replace(`/${currentUser.org_slug}/change-password`);
+                        router.replace(`/super-admin/change-password`);
                     } else if (currentUser.org_slug) {
                         router.replace(`/${currentUser.org_slug}/change-password`);
                     } else {

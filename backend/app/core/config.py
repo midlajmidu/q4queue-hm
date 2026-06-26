@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "q4queue"
     VERSION: str = "0.5.0"
     ENVIRONMENT: str = "development"
+    FRONTEND_URL: str = "http://localhost"
 
     # ── Security ──────────────────────────────────────────────────
     SECRET_KEY: str

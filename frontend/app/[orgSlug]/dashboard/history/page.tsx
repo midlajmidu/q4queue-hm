@@ -489,7 +489,7 @@ export default function HistoryPage() {
                                                         created_at: h.created_at,
                                                         served_at: h.served_at,
                                                         completed_at: h.completed_at,
-                                                        entry_type: "qr", // Fallback for history
+                                                        entry_type: h.entry_type || "qr", // Fallback for history
                                                         queue_name: h.queue_name,
                                                         called_via_invite: h.called_via_invite
                                                     })}

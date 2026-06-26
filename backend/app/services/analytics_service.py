@@ -340,6 +340,7 @@ async def get_history_details(
             "served_at": token.served_at.isoformat() if token.served_at else None,
             "completed_at": token.completed_at.isoformat() if token.completed_at else None,
             "called_via_invite": token.called_via_invite,
+            "entry_type": getattr(token, "entry_type", "qr"),
         })
 
     return {
@@ -434,7 +435,7 @@ async def get_analytics_csv_data(
     writer.writerow([
         "Date", "Token Number", "Queue", "Customer Name", "Customer Phone", 
         "Status", "Created At", "Served At", "Completed At", 
-        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Call Method"
+        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Call Method", "Entry Type"
     ])
 
     for row in result.all():
@@ -467,7 +468,8 @@ async def get_analytics_csv_data(
             wait_time_mins,
             serve_time_mins,
             served_by,
-            "Invite by Number" if token.called_via_invite else "Call Next"
+            "Invite by Number" if token.called_via_invite else "Call Next",
+            getattr(token, "entry_type", "qr").title()
         ])
 
     return output.getvalue()
@@ -795,7 +797,7 @@ async def get_cross_branch_csv_data(
     writer.writerow([
         "Date", "Branch", "Token Number", "Queue", "Customer Name", "Customer Phone", 
         "Status", "Created At", "Served At", "Completed At", 
-        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Call Method"
+        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Call Method", "Entry Type"
     ])
 
     for row in result.all():
@@ -829,7 +831,8 @@ async def get_cross_branch_csv_data(
             wait_time_mins,
             serve_time_mins,
             served_by,
-            "Invite by Number" if token.called_via_invite else "Call Next"
+            "Invite by Number" if token.called_via_invite else "Call Next",
+            getattr(token, "entry_type", "qr").title()
         ])
 
     return output.getvalue()

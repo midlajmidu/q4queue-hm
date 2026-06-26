@@ -102,7 +102,7 @@ export function useAuth(): UseAuthReturn {
                 if (response.force_password_change) {
                     if (currentUser && currentUser.role === "organization_admin") {
                         router.push(`/organization-admin/change-password`);
-                    } else if (currentUser && (currentUser.role === "admin" || currentUser.role === "staff")) {
+                    } else if (currentUser && currentUser.role === "super_admin") {
                         router.push('/super-admin/change-password');
                     } else {
                         router.push(`/${currentUser?.org_slug}/change-password`);

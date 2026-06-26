@@ -65,6 +65,7 @@ async def build_queue_snapshot(
             "customer_name": serving_token.customer_name,
             "assigned_line": serving_token.assigned_line,
             "called_via_invite": serving_token.called_via_invite,
+            "entry_type": getattr(serving_token, "entry_type", "qr"),
         }
         if is_admin:
             # Mask sensitive data for public screens
@@ -90,6 +91,7 @@ async def build_queue_snapshot(
             "assigned_line": t.assigned_line,
             "called_via_invite": t.called_via_invite,
             "served_at": t.served_at.isoformat() if t.served_at else None,
+            "entry_type": getattr(t, "entry_type", "qr"),
         }
         if is_admin:
             sd["customer_phone"] = t.customer_phone
@@ -148,6 +150,7 @@ async def build_queue_snapshot(
             "customer_name": t.customer_name,
             "assigned_line": t.assigned_line,
             "called_via_invite": t.called_via_invite,
+            "entry_type": getattr(t, "entry_type", "qr"),
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -179,6 +182,7 @@ async def build_queue_snapshot(
             "customer_name": t.customer_name,
             "assigned_line": t.assigned_line,
             "called_via_invite": t.called_via_invite,
+            "entry_type": getattr(t, "entry_type", "qr"),
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -210,6 +214,7 @@ async def build_queue_snapshot(
             "completed_at": t.completed_at.isoformat() if t.completed_at else None,
             "customer_name": t.customer_name,
             "called_via_invite": t.called_via_invite,
+            "entry_type": getattr(t, "entry_type", "qr"),
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -241,6 +246,7 @@ async def build_queue_snapshot(
             "completed_at": t.completed_at.isoformat() if t.completed_at else None,
             "customer_name": t.customer_name,
             "called_via_invite": t.called_via_invite,
+            "entry_type": getattr(t, "entry_type", "qr"),
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age

@@ -66,6 +66,7 @@ async def notify_queue_event(
     tracking_id: Optional[str] = None,
     organization_name: str = "",
     session_id: Optional[uuid.UUID] = None,
+    assigned_line: Optional[int] = None,
 ) -> None:
     """
     Dispatch a WhatsApp notification for a queue event.
@@ -196,10 +197,12 @@ async def notify_queue_event(
                     "_Powered by Q4Queue_"
                 )
             elif event_type == "queue_called_v2":
+                line_info = f"➡️ *Please go to Service Line {assigned_line}*\n\n" if assigned_line else ""
                 raw_body = (
                     "🔔 *It's Your Turn!*\n\n"
                     f"Please proceed to the counter immediately, *{c_name}*! The staff at *{o_name}* is ready to serve you now.\n\n"
-                    f"🎫 *Your Token Number:* #{token_str}\n"
+                    f"🎫 *Your Token Number:* #{token_str}\n\n"
+                    f"{line_info}"
                     "_Powered by Q4Queue_"
                 )
             elif event_type == "queue_skipped_v2":

@@ -421,7 +421,6 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, [lastUpdated]);
 
     const [selectedToken, setSelectedToken] = useState<TokenDetailData | null>(null);
-    const [manuallyAddedTokens, setManuallyAddedTokens] = useState<Set<number>>(new Set());
     const [queueHistory, setQueueHistory] = useState<TokenHistoryItem[]>([]);
     const [historyTotal, setHistoryTotal] = useState(0);
     const [historyPage, setHistoryPage] = useState(1);
@@ -613,13 +612,13 @@ export default function QueueDetailPage({ params }: PageProps) {
         setActionError(null);
         try {
             await api.toggleQueuePaused(queueId, nextState);
-            toast(nextState ? "Queue paused successfully" : "Queue resumed successfully", nextState ? "warning" : "success");
+            sonnerToast.warning(nextState ? `Queue "${queueName}" is now paused` : `Queue "${queueName}" is resumed`);
         } catch (err: unknown) {
             if (err instanceof ApiError) setActionError(err.detail);
             else setActionError("Failed to pause/resume queue");
-            toast("Action failed", "error");
+            sonnerToast.error("Action failed");
         } finally { setPausing(false); }
-    }, [queueId, state?.is_paused, initialQueue?.is_paused, toast]);
+    }, [queueId, state?.is_paused, initialQueue?.is_paused, queueName]);
 
     const [showAddForm, setShowAddForm] = useState(false);
     const [mobileQuickExpanded, setMobileQuickExpanded] = useState(false);
@@ -634,13 +633,23 @@ export default function QueueDetailPage({ params }: PageProps) {
     const [addAge, setAddAge] = useState("");
     const [addCompanions, setAddCompanions] = useState("");
     const [showWhatsappConfirm, setShowWhatsappConfirm] = useState(false);
+    const [addFormError, setAddFormError] = useState<string | null>(null);
     const isAddNameValid = /^[A-Za-z\s'-]{2,50}$/.test(addName.trim());
+
+    useEffect(() => {
+        if (addFormError) setAddFormError(null);
+    }, [addName, addPhone]);
+
+    useEffect(() => {
+        if (!showAddForm) setAddFormError(null);
+    }, [showAddForm]);
 
     const handlePreAddCustomer = useCallback(async () => {
         const phoneDigits = addPhone.replace(/\D/g, "");
-        if (!isAddNameValid || phoneDigits.length !== 10) { toast("Please enter a valid name and 10 digit phone number", "error"); return; }
+        if (!isAddNameValid || phoneDigits.length !== 10) { setAddFormError("Please enter a valid name and 10 digit phone number"); return; }
+        setAddFormError(null);
         setShowWhatsappConfirm(true);
-    }, [addPhone, toast, isAddNameValid]);
+    }, [addPhone, isAddNameValid]);
 
     const handleConfirmAddCustomer = useCallback(async (sendWhatsapp: boolean) => {
         setShowWhatsappConfirm(false);
@@ -654,15 +663,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                 phone: `${addCountryCode}${phoneDigits}`, 
                 age: addAge ? parseInt(addAge, 10) : undefined, 
                 companion_names: parsedCompanions,
-                send_whatsapp: sendWhatsapp
+                send_whatsapp: sendWhatsapp,
+                entry_type: "manual"
             });
             toast(`Token ${state?.prefix || ""}${res.token_number} created`, "success");
-            setManuallyAddedTokens(prev => new Set(prev).add(res.token_number));
             setShowAddForm(false);
             setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions("");
         } catch (err: unknown) {
-            if (err instanceof ApiError) setActionError(err.detail);
-            else setActionError("Failed to add customer");
+            if (err instanceof ApiError) toast(err.detail, "error");
+            else toast("Failed to add customer", "error");
         } finally { setActionLoading(null); }
     }, [queueId, addName, addPhone, addAge, addCountryCode, addCompanions, state?.prefix, toast]);
 
@@ -678,8 +687,8 @@ export default function QueueDetailPage({ params }: PageProps) {
             setInviteNumber("");
             setShowInviteLineModal(false);
         } catch (err: unknown) {
-            if (err instanceof ApiError) setActionError(err.detail);
-            else setActionError("Failed to invite token: it might not be waiting or doesn't exist.");
+            if (err instanceof ApiError) toast(err.detail, "error");
+            else toast("Failed to invite token: it might not be waiting or doesn't exist.", "error");
             setShowInviteLineModal(false);
         } finally { setActionLoading(null); }
     }, [inviteNumber, queueId, state?.prefix, toast]);
@@ -690,13 +699,16 @@ export default function QueueDetailPage({ params }: PageProps) {
         const num = parseInt(inviteNumber, 10);
         if (isNaN(num)) return;
 
+        const token = state?.waiting_tokens?.find((t) => t.token_number === num);
+        if (!token) { toast("Token not found", "error"); return; }
+
         if ((state?.service_lines || 0) > 0) {
             setShowInviteLineModal(true);
             return;
         }
 
         executeInvite(undefined);
-    }, [inviteNumber, state?.service_lines, executeInvite]);
+    }, [inviteNumber, state?.service_lines, state?.waiting_tokens, executeInvite, toast]);
 
     const handleRemoveByNumber = useCallback((e: React.FormEvent) => {
         e.preventDefault();
@@ -705,7 +717,7 @@ export default function QueueDetailPage({ params }: PageProps) {
         const num = parseInt(removeNumber, 10);
         if (isNaN(num)) return;
         const token = state?.waiting_tokens?.find((t) => t.token_number === num);
-        if (!token) { setActionError(`Token ${state?.prefix || ""}${num} is not currently waiting.`); return; }
+        if (!token) { toast("Token not found", "error"); return; }
         setTokenToRemove({ id: token.id, number: token.token_number });
         setRemoveNumber("");
     }, [removeNumber, state?.waiting_tokens, state?.prefix]);
@@ -718,8 +730,8 @@ export default function QueueDetailPage({ params }: PageProps) {
             await api.removeToken(tokenToRemove.id);
             toast(`Token ${state?.prefix || ""}${tokenToRemove.number} removed`, "success");
         } catch (err: unknown) {
-            if (err instanceof ApiError) setActionError(err.detail);
-            else setActionError("Failed to remove token");
+            if (err instanceof ApiError) toast(err.detail, "error");
+            else toast("Failed to remove token", "error");
         } finally { setActionLoading(null); setTokenToRemove(null); }
     }, [tokenToRemove, state?.prefix, toast]);
 
@@ -1399,7 +1411,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                 <span className={`px-2 py-0.5 rounded-[5px] text-[9.5px] font-bold uppercase tracking-wider ${activeListTab === "waiting" ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400"}`}>
                                                                     {activeListTab}
                                                                 </span>
-                                                                {manuallyAddedTokens.has(t.token_number)
+                                                                {t.entry_type === "manual"
                                                                     ? <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">Manual</span>
                                                                     : <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
                                                                 }
@@ -1421,7 +1433,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         </div>
                                                         <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <button
-                                                                onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
+                                                                onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: t.entry_type || "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
                                                                 className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-[8px] transition-colors"
                                                                 title="View Details"
                                                             >
@@ -1495,7 +1507,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         token={t}
                                                         prefix={state?.prefix || ""}
                                                         queueName={queueName}
-                                                        isManual={manuallyAddedTokens.has(t.token_number)}
+                                                        isManual={t.entry_type === "manual"}
                                                         onView={setSelectedToken}
                                                     />
                                                 )) : (
@@ -1632,7 +1644,6 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 historyLoading={historyLoading}
                                 setHistoryLoading={setHistoryLoading}
                                 historyPageSize={HISTORY_PAGE_SIZE}
-                                manuallyAddedTokens={manuallyAddedTokens}
                                 onViewToken={setSelectedToken}
                                 onRecallToken={(num, pfx) => performAction("recall", async () => {
                                     const res = await api.serveSpecificToken(queueId, num);
@@ -1698,7 +1709,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <div className="col-span-3 flex items-center gap-3">
                                                         <span className="font-bold text-slate-900 dark:text-white tabular-nums">{state?.prefix || ""}{t.token_number}</span>
                                                         <span style={{ padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: activeListTab === "waiting" ? T.amber : T.red }}>{activeListTab}</span>
-                                                        {manuallyAddedTokens.has(t.token_number)
+                                                        {t.entry_type === "manual"
                                                             ? <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.violetBg, color: T.violet }}>Manual</span>
                                                             : <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.cyanBg, color: T.cyan, display: "inline-flex", alignItems: "center", gap: 3 }}><QrCode className="w-2.5 h-2.5" />QR</span>
                                                         }
@@ -1723,7 +1734,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     </div>
                                                     <div className="col-span-2 flex items-center justify-end gap-2">
                                                         <button
-                                                            onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: manuallyAddedTokens.has(t.token_number) ? "manual" : "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
+                                                            onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: t.entry_type || "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
                                                             className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-1.5 rounded-md transition-colors"
                                                             title="View Details"
                                                         >
@@ -1802,7 +1813,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             token={t}
                                             prefix={state?.prefix || ""}
                                             queueName={queueName}
-                                            isManual={manuallyAddedTokens.has(t.token_number)}
+                                            isManual={t.entry_type === "manual"}
                                             onView={setSelectedToken}
                                         />
                                     )) : (
@@ -1892,21 +1903,31 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </div>
                                 </div>
                             </div>
-                            <div className="px-6 py-5 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-white/5 flex items-center gap-3 justify-end">
-                                <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions(""); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
-                                    Cancel
-                                </button>
-                                <button 
-                                    onClick={handlePreAddCustomer} 
-                                    disabled={!isAddNameValid || !addPhone.trim() || actionLoading === "add" || isPaused} 
-                                    className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                >
-                                    {actionLoading === "add" ? (
-                                        <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Adding...</>
-                                    ) : (
-                                        "Add to Queue"
+                            <div className="px-6 py-5 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-white/5 flex items-center gap-3 justify-between">
+                                <div className="flex-1">
+                                    {addFormError && (
+                                        <p className="text-xs text-red-500 font-medium flex items-center gap-1.5 leading-snug pr-4">
+                                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            {addFormError}
+                                        </p>
                                     )}
-                                </button>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions(""); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={handlePreAddCustomer} 
+                                        disabled={!isAddNameValid || !addPhone.trim() || actionLoading === "add" || isPaused} 
+                                        className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                        {actionLoading === "add" ? (
+                                            <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Adding...</>
+                                        ) : (
+                                            "Add to Queue"
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2091,14 +2112,14 @@ function QueueHistory({
     historyTotal, setHistoryTotal,
     historyPage, setHistoryPage,
     historyLoading, setHistoryLoading,
-    historyPageSize, manuallyAddedTokens, onViewToken, onRecallToken, performAction, toast,
+    historyPageSize, onViewToken, onRecallToken, performAction, toast,
 }: {
     queueId: string; queueName: string; prefix: string;
     queueHistory: TokenHistoryItem[]; setQueueHistory: (d: TokenHistoryItem[]) => void;
     historyTotal: number; setHistoryTotal: (t: number) => void;
     historyPage: number; setHistoryPage: (p: number | ((prev: number) => number)) => void;
     historyLoading: boolean; setHistoryLoading: (l: boolean) => void;
-    historyPageSize: number; manuallyAddedTokens: Set<number>;
+    historyPageSize: number;
     onViewToken: (t: TokenDetailData) => void;
     onRecallToken: (tokenNumber: number, prefix: string) => void;
     performAction: (action: string, fn: () => Promise<void>) => Promise<void>;
@@ -2238,7 +2259,7 @@ function QueueHistory({
                             ) : queueHistory.length === 0 ? (
                                 <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", fontSize: 13 }}>No matching history found for this queue.</td></tr>
                             ) : queueHistory.map(item => {
-                                const isManual = manuallyAddedTokens.has(item.token_number);
+                                const isManual = item.entry_type === "manual";
                                 const ss = statusStyleMap[item.status] || { bg: "#f3f4f6", color: "#6b7280", label: item.status };
                                 return (
                                     <tr key={item.id} style={{ /*border*/ borderBottom: `1px solid #f4f5f8`, transition: "background .12s" }}

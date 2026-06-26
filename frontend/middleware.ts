@@ -17,8 +17,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Bypass subdomain routing for ngrok tunnels to allow easy testing
-  if (hostname.includes('ngrok-free.app') || hostname.includes('ngrok.io')) {
+  // Bypass subdomain routing for ngrok and localtunnel tunnels to allow easy testing
+  if (hostname.includes('ngrok-free.app') || hostname.includes('ngrok.io') || hostname.includes('loca.lt')) {
     return NextResponse.next();
   }
 

@@ -242,6 +242,7 @@ async def join_queue(
         customer_age=data.age,
         customer_phone=phone_cleaned,
         companion_names=data.companion_names,
+        entry_type=data.entry_type or "qr",
     )
     db.add(token)
     await db.flush()
@@ -653,6 +654,7 @@ async def send_called_and_reminder_notifications(
                     queue_name=queue.name,
                     tracking_id=str(getattr(serving_token, "tracking_id", "")),
                     session_id=queue.session_id,
+                    assigned_line=serving_token.assigned_line,
                 )
 
             # ── 2. Check for tokens now at position == 3 ────────────────────

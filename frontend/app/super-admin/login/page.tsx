@@ -19,6 +19,10 @@ export default function SuperAdminLoginPage() {
         if (isAuthenticated()) {
             const user = getCurrentUser();
             if (user?.role === "super_admin") {
+                if (user.is_first_login) {
+                    router.replace("/super-admin/change-password");
+                    return;
+                }
                 router.replace("/super-admin");
             }
         }
@@ -31,7 +35,11 @@ export default function SuperAdminLoginPage() {
         try {
             const resp = await api.superAdminLogin({ email, password });
             setToken(resp.access_token);
-            router.push("/super-admin");
+            if (resp.force_password_change) {
+                router.push("/super-admin/change-password");
+            } else {
+                router.push("/super-admin");
+            }
         } catch (err) {
             if (err instanceof ApiError) {
                 if (err.status === 401) {

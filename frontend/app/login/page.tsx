@@ -21,6 +21,9 @@ export default function LoginPage() {
     // Redirect to dashboard if already logged in
     useEffect(() => {
         if (isHydrated && isAuthenticated && user) {
+            if (user.is_first_login) {
+                return; // Let useAuth handle redirect to change-password
+            }
             if (user.role === "super_admin") {
                 router.replace("/super-admin");
             } else if (user.role === "organization_admin") {

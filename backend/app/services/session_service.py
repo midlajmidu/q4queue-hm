@@ -299,6 +299,7 @@ async def create_session_queue(
         prefix=data.prefix,
         starting_sequence=data.starting_sequence,
         current_token_number=data.starting_sequence - 1,
+        service_lines=data.service_lines,
     )
     db.add(queue)
     try:

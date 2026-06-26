@@ -276,6 +276,7 @@ export interface TokenDetail {
     customer_phone: string;
     companion_names: string[];
     called_via_invite?: boolean;
+    entry_type?: "manual" | "qr" | "auto" | null;
 }
 
 // ── Join ─────────────────────────────────────────────────────────
@@ -285,6 +286,7 @@ export interface JoinRequest {
     phone: string;
     companion_names: string[];
     send_whatsapp?: boolean;
+    entry_type?: string;
 }
 
 export interface JoinResponse {
@@ -349,6 +351,7 @@ export interface RecentToken {
     companion_names: string[];
     assigned_line?: number | null;
     called_via_invite?: boolean;
+    entry_type?: "manual" | "qr" | "auto" | null;
 }
 
 export interface WaitingToken {
@@ -365,6 +368,7 @@ export interface WaitingToken {
     removed_by?: string | null;
     assigned_line?: number | null;
     called_via_invite?: boolean;
+    entry_type?: "manual" | "qr" | "auto" | null;
 }
 
 export interface ServingToken {
@@ -376,6 +380,7 @@ export interface ServingToken {
     assigned_line: number | null;
     served_at: string | null;
     called_via_invite?: boolean;
+    entry_type?: "manual" | "qr" | "auto" | null;
 }
 
 export interface QueueSnapshot {
@@ -770,6 +775,7 @@ export interface TokenHistoryItem {
     served_at: string | null;
     completed_at: string | null;
     called_via_invite?: boolean;
+    entry_type?: "manual" | "qr" | "auto" | null;
 }
 
 export interface PaginatedHistoryResponse {

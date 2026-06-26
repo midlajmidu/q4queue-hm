@@ -8,6 +8,7 @@ import type { QueueResponse } from "@/types/api";
 import ConfirmModal from "@/components/ConfirmModal";
 import EditQueueModal from "@/components/EditQueueModal";
 import { Hash, UserCheck, Activity, Trash2, Square, Clock, CalendarDays, Ticket, TicketSlash, Pause, Play, Pencil } from "lucide-react";
+import { toast } from "sonner";
 
 interface Props {
     queue: QueueResponse;
@@ -63,6 +64,7 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
         try {
             await api.toggleQueuePaused(queue.id, nextState);
             onToggled(); // Refresh data to get new is_paused state
+            toast.warning(nextState ? `Queue "${queue.name}" is now paused` : `Queue "${queue.name}" is resumed`);
         } catch (e: unknown) {
             if (e instanceof ApiError) setErr(e.detail);
             else setErr("Failed to pause queue");

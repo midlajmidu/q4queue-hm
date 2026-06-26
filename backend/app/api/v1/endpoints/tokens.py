@@ -124,9 +124,22 @@ async def cancel_token(
             org_id=token.org_id,
         )
 
-        # WhatsApp notification: removed because there is no approved 'cancelled' template
-        # if row:
-        #     pass
+        if row:
+            queue_name, queue_prefix, session_id = row[1], row[2], row[3]
+            background_tasks.add_task(
+                notify_queue_event,
+                event_type="queue_removed_v2",
+                org_id=token.org_id,
+                token_id=token.id,
+                queue_id=token.queue_id,
+                customer_name=token.customer_name,
+                customer_phone=token.customer_phone,
+                token_number=token.token_number,
+                token_prefix=queue_prefix,
+                queue_name=queue_name,
+                tracking_id=str(getattr(token, "tracking_id", "")),
+                session_id=session_id,
+            )
 
         return {"status": "cancelled", "token_number": token.token_number}
     except ValueError as exc:

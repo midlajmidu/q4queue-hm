@@ -63,6 +63,7 @@ class JoinRequest(BaseModel):
     phone: str = Field(..., min_length=10, max_length=15)
     companion_names: list[str] = Field(default_factory=list, max_items=9)
     send_whatsapp: bool = Field(default=True)
+    entry_type: Optional[str] = Field(default="qr")
 
     @field_validator("name", mode="before")
     @classmethod
@@ -112,6 +113,7 @@ class PublicTokenResponse(BaseModel):
     customer_phone: str
     companion_names: list[str]
     session_id: uuid.UUID
+    entry_type: Optional[str] = None
 
     model_config = {"from_attributes": True}
     
@@ -166,6 +168,7 @@ class TokenResponse(BaseModel):
     companion_names: list[str]
     removed_by: Optional[str] = None
     assigned_line: Optional[int] = None
+    entry_type: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
