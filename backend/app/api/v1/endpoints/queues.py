@@ -471,6 +471,25 @@ async def serve_specific_token(
     SECURITY: get_queue_for_org verifies org ownership before locking.
     """
     try:
+        # Pre-check: determine if this is a recall (token was previously skipped)
+        from sqlalchemy import select as sa_select
+        from app.models.token import Token as TokenModel, TokenStatus
+        pre_check = await db.execute(
+            sa_select(TokenModel.status, TokenModel.customer_name, TokenModel.customer_phone,
+                      TokenModel.tracking_id, TokenModel.id)
+            .where(
+                TokenModel.queue_id == queue.id,
+                TokenModel.token_number == token_number,
+                TokenModel.org_id == queue.org_id,
+            )
+        )
+        pre_row = pre_check.one_or_none()
+        was_recalled = pre_row and pre_row[0] == TokenStatus.skipped
+        pre_token_id = pre_row[4] if pre_row else None
+        pre_customer_name = pre_row[1] if pre_row else None
+        pre_customer_phone = pre_row[2] if pre_row else None
+        pre_tracking_id = str(pre_row[3]) if pre_row and pre_row[3] else None
+
         result = await token_service.serve_specific_token(
             db,
             queue_id=queue.id,
@@ -484,12 +503,30 @@ async def serve_specific_token(
             queue_id=queue.id,
             org_id=queue.org_id,
         )
-        background_tasks.add_task(
-            token_service.send_called_and_reminder_notifications,
-            queue_id=queue.id,
-            org_id=queue.org_id,
-            serving_token_number=token_number,
-        )
+        if was_recalled and pre_token_id:
+            # This is a recall of a skipped token — send recall notification
+            background_tasks.add_task(
+                notify_queue_event,
+                event_type="queue_recalled_v2",
+                org_id=queue.org_id,
+                token_id=pre_token_id,
+                queue_id=queue.id,
+                customer_name=pre_customer_name or "",
+                customer_phone=pre_customer_phone or "",
+                token_number=token_number,
+                token_prefix=queue.prefix,
+                queue_name=queue.name,
+                tracking_id=pre_tracking_id,
+                session_id=queue.session_id,
+                assigned_line=line_number,
+            )
+        else:
+            background_tasks.add_task(
+                token_service.send_called_and_reminder_notifications,
+                queue_id=queue.id,
+                org_id=queue.org_id,
+                serving_token_number=token_number,
+            )
     except Exception as exc:
         msg = str(exc)
         if "not found" in msg.lower() or "not waiting" in msg.lower():

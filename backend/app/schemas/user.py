@@ -23,6 +23,7 @@ class UserResponse(BaseModel):
     is_active: bool
     is_first_login: bool
     created_at: datetime
+    access_token: str | None = None
 
     model_config = {"from_attributes": True}
 

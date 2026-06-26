@@ -217,9 +217,9 @@ export default function InsightsPage() {
                 })}
               </div>
               <div style={{ width: 1, height: 24, background: C.border }} />
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="date-input bg-white dark:bg-slate-900 text-gray-900 dark:text-white" style={{ colorScheme: "light dark" }} />
+              <input type="date" max={today} value={startDate} onChange={e => setStartDate(e.target.value)} className="date-input bg-white dark:bg-slate-900 text-gray-900 dark:text-white" style={{ colorScheme: "light dark" }} />
               <span style={{ color: C.textMuted, fontSize: 13, fontWeight: 500 }}>to</span>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="date-input bg-white dark:bg-slate-900 text-gray-900 dark:text-white" style={{ colorScheme: "light dark" }} />
+              <input type="date" max={today} value={endDate} onChange={e => setEndDate(e.target.value)} className="date-input bg-white dark:bg-slate-900 text-gray-900 dark:text-white" style={{ colorScheme: "light dark" }} />
               <button onClick={load} disabled={loading} style={{
                 display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
                 fontSize: 13, fontWeight: 600, color: C.textSub,

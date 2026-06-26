@@ -63,4 +63,43 @@ async def update_me(
     await db.commit()
     await db.refresh(current_user)
 
-    return UserResponse.model_validate(current_user)
+    # Issue a new token so the frontend sees the updated name immediately
+    from sqlalchemy import select
+    from app.models.organization import Organization, ParentOrganization
+    from app.core.security import create_access_token
+
+    org_slug = None
+    org_name = None
+    org_logo_url = None
+
+    if current_user.org_id:
+        org_result = await db.execute(select(Organization).where(Organization.id == current_user.org_id))
+        org = org_result.scalar_one_or_none()
+        if org:
+            org_slug = org.slug
+            org_name = org.name
+            org_logo_url = org.logo_url
+    elif current_user.parent_organization_id:
+        parent_org_result = await db.execute(select(ParentOrganization).where(ParentOrganization.id == current_user.parent_organization_id))
+        parent_org = parent_org_result.scalar_one_or_none()
+        if parent_org:
+            org_slug = parent_org.slug
+            org_name = parent_org.name
+
+    token = create_access_token(
+        user_id=str(current_user.id),
+        org_id=str(current_user.org_id) if current_user.org_id else None,
+        parent_org_id=str(current_user.parent_organization_id) if current_user.parent_organization_id else None,
+        role=current_user.role,
+        email=current_user.email,
+        org_slug=org_slug,
+        org_name=org_name,
+        org_logo_url=org_logo_url,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
+        is_first_login=current_user.is_first_login,
+    )
+
+    resp = UserResponse.model_validate(current_user)
+    resp.access_token = token
+    return resp

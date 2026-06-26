@@ -379,7 +379,7 @@ export function OperationsTab() {
                                             <input
                                                 type="number"
                                                 min="2"
-                                                max="10"
+                                                max="20"
                                                 value={createServiceLines}
                                                 onChange={(e) => setCreateServiceLines(e.target.value)}
                                                 className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"

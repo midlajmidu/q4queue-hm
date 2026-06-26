@@ -220,7 +220,9 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                                             {user?.org_logo_url ? (
                                                 <img src={user.org_logo_url} alt="Org Logo" className="w-full h-full object-contain p-1" />
                                             ) : (
-                                                (user?.email?.[0] || "U").toUpperCase()
+                                                (user?.first_name && user?.last_name) 
+                                                    ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+                                                    : (user?.first_name ? user.first_name[0].toUpperCase() : (user?.email?.[0] || "U").toUpperCase())
                                             )}
                                         </div>
                                         <div className={`absolute -bottom-0.5 -right-0.5 ${c ? "w-[10px] h-[10px] border-2" : "w-3 h-3 border-2"} rounded-full bg-emerald-400 border-[#f4f5f8] dark:border-slate-900 group-hover:border-white dark:group-hover:border-slate-800 transition-colors duration-300`} />

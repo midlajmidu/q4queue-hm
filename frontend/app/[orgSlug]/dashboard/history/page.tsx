@@ -186,7 +186,6 @@ export default function HistoryPage() {
         api.listSessions(100, 0).then(res => {
             const data = res.items;
             setSessions(data || []);
-            if (data?.length > 0 && !selectedSessionId) setSelectedSessionId(data[0].id);
         }).finally(() => setIsLoading(false));
     }, []);
 

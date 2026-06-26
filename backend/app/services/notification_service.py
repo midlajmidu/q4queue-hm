@@ -78,6 +78,7 @@ async def notify_queue_event(
       queue_nearby_3_v2
       queue_called_v2
       queue_skipped_v2
+      queue_recalled_v2
       queue_removed_v2
       queue_completed_v2
       test_notification_v2
@@ -99,13 +100,20 @@ async def notify_queue_event(
         # Check granular toggles based on event type
         if event_type == "queue_joined_v4" and not cfg.get("notify_queue_joined", True):
             return
+        if event_type == "queue_nearby_5_v2" and not cfg.get("notify_position_5", True):
+            return
         if event_type == "queue_nearby_3_v2" and not cfg.get("notify_position_3", True):
             return
         if event_type == "queue_called_v2" and not cfg.get("notify_called", True):
             return
         if event_type == "queue_completed_v2" and not cfg.get("notify_completed", True):
             return
-        # skipped and removed don't have toggles yet, we just allow them if globally enabled
+        if event_type == "queue_skipped_v2" and not cfg.get("notify_skipped", True):
+            return
+        if event_type == "queue_recalled_v2" and not cfg.get("notify_recalled", True):
+            return
+        if event_type == "queue_removed_v2" and not cfg.get("notify_removed", True):
+            return
 
         # 1.5 Check 24-hour service window opt-in (skip alerts if not opted-in)
         if event_type != "queue_joined_v4" and event_type != "test_notification_v2" and token_id:
@@ -188,7 +196,16 @@ async def notify_queue_event(
             frontend_url = getattr(settings, "FRONTEND_URL", "https://q4q.in").rstrip("/")
             track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
 
-            if event_type == "queue_approaching_v2":
+            if event_type == "queue_nearby_5_v2":
+                raw_body = (
+                    "⏰ *Heads up, {c_name}!*\n\n"
+                    "There are only *5 customers ahead* of you at *{o_name}*. "
+                    "Please start making your way to the counter now.\n\n"
+                    f"🎫 Your Token: #{token_str}\n"
+                    f"📱 Track Live: {track_url}\n"
+                    "_Powered by Q4Queue_"
+                ).format(c_name=c_name, o_name=o_name, token_str=token_str, track_url=track_url)
+            elif event_type == "queue_approaching_v2":
                 raw_body = (
                     "⏳ *Your Turn is Near!*\n\n"
                     f"Hi *{c_name}*, quick update! There are now only 3 customers remaining ahead of you at *{o_name}*. "
@@ -196,6 +213,15 @@ async def notify_queue_event(
                     f"📱 Track Live: {track_url}\n"
                     "_Powered by Q4Queue_"
                 )
+            elif event_type == "queue_nearby_3_v2":
+                raw_body = (
+                    "⏳ *Almost Your Turn, {c_name}!*\n\n"
+                    "Only *3 customers ahead* of you at *{o_name}*. "
+                    "Please be ready — you'll be called very soon!\n\n"
+                    f"🎫 Your Token: #{token_str}\n"
+                    f"📱 Track Live: {track_url}\n"
+                    "_Powered by Q4Queue_"
+                ).format(c_name=c_name, o_name=o_name, token_str=token_str, track_url=track_url)
             elif event_type == "queue_called_v2":
                 line_info = f"➡️ *Please go to Service Line {assigned_line}*\n\n" if assigned_line else ""
                 raw_body = (
@@ -203,6 +229,17 @@ async def notify_queue_event(
                     f"Please proceed to the counter immediately, *{c_name}*! The staff at *{o_name}* is ready to serve you now.\n\n"
                     f"🎫 *Your Token Number:* #{token_str}\n\n"
                     f"{line_info}"
+                    "_Powered by Q4Queue_"
+                )
+            elif event_type == "queue_recalled_v2":
+                line_info = f"➡️ *Please go to Service Line {assigned_line}*\n\n" if assigned_line else ""
+                raw_body = (
+                    "🔁 *You Have Been Recalled!*\n\n"
+                    f"Hi *{c_name}*, the staff at *{o_name}* is calling you again. "
+                    "Please proceed to the counter immediately.\n\n"
+                    f"🎫 *Your Token Number:* #{token_str}\n\n"
+                    f"{line_info}"
+                    f"📱 Track Live: {track_url}\n"
                     "_Powered by Q4Queue_"
                 )
             elif event_type == "queue_skipped_v2":

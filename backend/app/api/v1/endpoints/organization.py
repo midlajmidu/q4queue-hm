@@ -39,6 +39,7 @@ class OrganizationSettingsResponse(BaseModel):
     queue_templates: list[dict] = []
     auto_session_enabled: bool = False
     auto_session_time: Optional[str] = None
+    access_token: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -179,6 +180,21 @@ async def update_organization_settings(
     for q in active_queues.scalars():
         await notify_queue_update(q.id, org.id)
 
+    from app.core.security import create_access_token
+    token = create_access_token(
+        user_id=str(current_user.id),
+        org_id=str(current_user.org_id) if current_user.org_id else None,
+        parent_org_id=str(current_user.parent_organization_id) if current_user.parent_organization_id else None,
+        role=current_user.role,
+        email=current_user.email,
+        org_slug=org.slug,
+        org_name=org.name,
+        org_logo_url=org.logo_url,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
+        is_first_login=current_user.is_first_login,
+    )
+
     return OrganizationSettingsResponse(
         name=org.name,
         slug=org.slug,
@@ -190,6 +206,7 @@ async def update_organization_settings(
         queue_templates=org.queue_templates if org.queue_templates is not None else [],
         auto_session_enabled=org.auto_session_enabled,
         auto_session_time=org.auto_session_time,
+        access_token=token,
     )
 
 class LogoUploadRequest(BaseModel):
@@ -246,6 +263,21 @@ async def upload_organization_logo(
     for q in active_queues.scalars():
         await notify_queue_update(q.id, org.id)
 
+    from app.core.security import create_access_token
+    token = create_access_token(
+        user_id=str(current_user.id),
+        org_id=str(current_user.org_id) if current_user.org_id else None,
+        parent_org_id=str(current_user.parent_organization_id) if current_user.parent_organization_id else None,
+        role=current_user.role,
+        email=current_user.email,
+        org_slug=org.slug,
+        org_name=org.name,
+        org_logo_url=org.logo_url,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
+        is_first_login=current_user.is_first_login,
+    )
+
     return OrganizationSettingsResponse(
         name=org.name,
         slug=org.slug,
@@ -254,7 +286,8 @@ async def upload_organization_logo(
         phone_number=org.phone_number,
         logo_url=org.logo_url,
         brand_color=org.brand_color,
-        queue_templates=org.queue_templates if org.queue_templates is not None else []
+        queue_templates=org.queue_templates if org.queue_templates is not None else [],
+        access_token=token,
     )
 
 @router.post("/request-password-change-otp", response_model=SuccessResponse)

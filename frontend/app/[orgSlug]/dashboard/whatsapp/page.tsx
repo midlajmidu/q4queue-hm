@@ -435,6 +435,39 @@ export default function OrgWhatsAppDashboard() {
                                             <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_completed ? "translate-x-4" : "translate-x-1"}`} />
                                         </div>
                                     </label>
+
+                                    <label className="flex items-center justify-between cursor-pointer">
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-700 dark:text-slate-200">Token Skipped</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Notifies customer when their token was called but they were marked unavailable.</div>
+                                        </div>
+                                        <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_skipped ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"}`}>
+                                            <input type="checkbox" className="sr-only" checked={config?.notify_skipped ?? true} onChange={(e) => handleSettingChange("notify_skipped", e.target.checked)} />
+                                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_skipped ? "translate-x-4" : "translate-x-1"}`} />
+                                        </div>
+                                    </label>
+
+                                    <label className="flex items-center justify-between cursor-pointer">
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-700 dark:text-slate-200">Token Recalled</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Notifies a previously-skipped customer when staff re-calls their token.</div>
+                                        </div>
+                                        <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_recalled ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"}`}>
+                                            <input type="checkbox" className="sr-only" checked={config?.notify_recalled ?? true} onChange={(e) => handleSettingChange("notify_recalled", e.target.checked)} />
+                                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_recalled ? "translate-x-4" : "translate-x-1"}`} />
+                                        </div>
+                                    </label>
+
+                                    <label className="flex items-center justify-between cursor-pointer">
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-700 dark:text-slate-200">Token Removed</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Notifies customer when they are removed from the queue by staff or cancel themselves.</div>
+                                        </div>
+                                        <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${config?.notify_removed ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"}`}>
+                                            <input type="checkbox" className="sr-only" checked={config?.notify_removed ?? true} onChange={(e) => handleSettingChange("notify_removed", e.target.checked)} />
+                                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_removed ? "translate-x-4" : "translate-x-1"}`} />
+                                        </div>
+                                    </label>
                                 </div>
                             </div>
                         </div>

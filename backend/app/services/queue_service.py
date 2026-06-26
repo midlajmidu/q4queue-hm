@@ -8,7 +8,7 @@ import logging
 import uuid
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.queue import Queue
@@ -159,8 +159,13 @@ async def reset_queue(
     if queue is None:
         raise ValueError(f"Queue {queue_id} not found")
 
-    # Delete all tokens from the old session
-    await db.execute(delete(Token).where(Token.queue_id == queue_id))
+    # Soft-delete all tokens from the old session so tracking links still work
+    from app.models.token import TokenStatus
+    await db.execute(
+        update(Token)
+        .where(Token.queue_id == queue_id)
+        .values(status=TokenStatus.deleted, completed_at=func.now(), removed_by="session_end")
+    )
 
     # Rotate the session and reset counters
     queue.token_session_id = uuid.uuid4()

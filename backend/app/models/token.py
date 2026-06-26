@@ -91,6 +91,9 @@ class Token(Base):
     served_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    completed_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     # ── Customer Info ─────────────────────────────────────────────
     customer_name: Mapped[str] = mapped_column(String(120), nullable=False)

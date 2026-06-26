@@ -531,6 +531,12 @@ export const api = {
             method: "PATCH",
         });
     },
+
+    undoRemoveToken(tokenId: string): Promise<TokenDetail> {
+        return request<TokenDetail>(`/tokens/${tokenId}/undo_remove`, {
+            method: "PATCH",
+        });
+    },
     
     cancelToken(tokenId: string): Promise<{ status: string; token_number: number }> {
         return request<{ status: string; token_number: number }>(`/tokens/${tokenId}/cancel`, {
