@@ -14,8 +14,10 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { AdminViewBanner } from "@/components/AdminViewBanner";
 import SystemBanner from "@/components/SystemBanner";
+import { useHeartbeat } from "@/hooks/useHeartbeat";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+    useHeartbeat();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const { user, logout } = useAuth();

@@ -93,6 +93,9 @@ class WhatsAppConfig(Base):
     notify_position_3: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     notify_called: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     notify_completed: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notify_skipped: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notify_recalled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notify_removed: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     payment_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     business_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

@@ -46,6 +46,7 @@ class TrackingResponse(BaseModel):
     created_at: datetime
     served_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    removed_by: Optional[str] = None
 
 
 @router.get(
@@ -123,6 +124,7 @@ async def track_token(
         created_at=token.created_at,
         served_at=token.served_at,
         completed_at=token.completed_at,
+        removed_by=token.removed_by,
     )
 
 

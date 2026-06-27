@@ -20,7 +20,7 @@ class QueueCreate(BaseModel):
     starting_sequence: int = Field(default=1, ge=1)
     open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
-    service_lines: int = Field(default=0, ge=0, description="0=single counter, >0=multi-lane mode")
+    service_lines: int = Field(default=0, ge=0, le=20, description="0=single counter, >0=multi-lane mode")
 
 class QueueUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=150)

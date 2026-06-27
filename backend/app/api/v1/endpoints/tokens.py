@@ -236,7 +236,7 @@ async def complete_token(
         q_row = q_result.one_or_none()
 
         updated = await token_service.complete_token(
-            db, token_id=token.id, org_id=token.org_id
+            db, token_id=token.id, org_id=token.org_id, user_id=current_user.id
         )
         background_tasks.add_task(
             token_service.notify_queue_update,
@@ -331,6 +331,36 @@ async def remove_token(
                 session_id=session_id,
             )
 
+    except ValueError as exc:
+        msg = str(exc)
+        code = 404 if "not found" in msg.lower() else 400
+        raise HTTPException(status_code=code, detail=msg)
+    return TokenResponse.model_validate(updated)
+
+@router.patch(
+    "/{token_id}/undo_remove",
+    response_model=TokenResponse,
+    summary="Undo Token Removal",
+    description="Restore a removed (deleted) token back to the waiting list.",
+)
+async def undo_remove_token(
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+    token: Token = Depends(get_token_for_org),
+) -> TokenResponse:
+    """
+    SECURITY: get_token_for_org dependency validates org ownership before mutation.
+    """
+    try:
+        updated = await token_service.undo_remove_token(
+            db, token_id=token.id, org_id=token.org_id
+        )
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=token.queue_id,
+            org_id=token.org_id,
+        )
     except ValueError as exc:
         msg = str(exc)
         code = 404 if "not found" in msg.lower() else 400

@@ -93,6 +93,7 @@ export interface ParentOrganization {
     updated_at: string;
     branch_count: number;
     admin_count: number;
+    max_branches?: number | null;
 }
 
 export interface ParentOrganizationPage {
@@ -106,6 +107,7 @@ export interface ParentOrganizationCreate {
     contact_email?: string;
     contact_phone?: string;
     is_active?: boolean;
+    max_branches?: number | null;
 }
 
 export interface ParentOrganizationUpdate {
@@ -114,6 +116,7 @@ export interface ParentOrganizationUpdate {
     contact_email?: string;
     contact_phone?: string;
     is_active?: boolean;
+    max_branches?: number | null;
 }
 
 export interface AssignBranchesRequest {
@@ -143,6 +146,7 @@ export interface OrgAdminDashboardResponse {
     admin_count: number;
     staff_count: number;
     branches: BranchStatItem[];
+    max_branches?: number | null;
 }
 
 export interface BranchCreateRequest {
@@ -298,6 +302,7 @@ export interface JoinResponse {
     session_id: string;  // session the token was created in
     is_existing?: boolean; // True if this was an already-active token (duplicate phone)
     tracking_id?: string;
+    removed_by?: string | null;
 
 }
 
@@ -776,6 +781,9 @@ export interface TokenHistoryItem {
     completed_at: string | null;
     called_via_invite?: boolean;
     entry_type?: "manual" | "qr" | "auto" | null;
+    assigned_line?: number;
+    served_by_staff_name?: string;
+    completed_by_staff_name?: string;
 }
 
 export interface PaginatedHistoryResponse {
@@ -932,6 +940,9 @@ export interface WhatsAppOrgConfig {
     notify_position_3: boolean;
     notify_called: boolean;
     notify_completed: boolean;
+    notify_skipped: boolean;
+    notify_recalled: boolean;
+    notify_removed: boolean;
 }
 
 export interface WhatsAppEventStat {
@@ -980,4 +991,5 @@ export interface TrackingResponse {
     created_at: string;
     served_at?: string | null;
     completed_at?: string | null;
+    removed_by?: string | null;
 }

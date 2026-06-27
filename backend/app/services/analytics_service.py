@@ -303,11 +303,25 @@ async def get_history_details(
         join_queue = True
         conditions.append(Queue.session_id == session_id)
 
+    from sqlalchemy.orm import aliased
+    from app.models.user import User
+    
+    ServedUser = aliased(User)
+    CompletedUser = aliased(User)
+
     query = select(
         Token,
         Queue.name.label('queue_name'),
-        Queue.prefix.label('queue_prefix')
-    ).join(Queue, Token.queue_id == Queue.id).where(
+        Queue.prefix.label('queue_prefix'),
+        ServedUser.first_name.label('served_first'),
+        ServedUser.last_name.label('served_last'),
+        CompletedUser.first_name.label('completed_first'),
+        CompletedUser.last_name.label('completed_last')
+    ).join(Queue, Token.queue_id == Queue.id).outerjoin(
+        ServedUser, Token.served_by_id == ServedUser.id
+    ).outerjoin(
+        CompletedUser, Token.completed_by_id == CompletedUser.id
+    ).where(
         and_(*conditions)
     ).order_by(Token.created_at.desc())
 
@@ -325,7 +339,10 @@ async def get_history_details(
     
     items = []
     for row in result.all():
-        token, q_name, q_prefix = row
+        token, q_name, q_prefix, served_first, served_last, completed_first, completed_last = row
+        served_name = f"{served_first or ''} {served_last or ''}".strip() if (served_first or served_last) else None
+        completed_name = f"{completed_first or ''} {completed_last or ''}".strip() if (completed_first or completed_last) else None
+        
         items.append({
             "id": str(token.id),
             "token_number": token.token_number,
@@ -341,6 +358,9 @@ async def get_history_details(
             "completed_at": token.completed_at.isoformat() if token.completed_at else None,
             "called_via_invite": token.called_via_invite,
             "entry_type": getattr(token, "entry_type", "qr"),
+            "assigned_line": getattr(token, "assigned_line", None),
+            "served_by_staff_name": served_name,
+            "completed_by_staff_name": completed_name,
         })
 
     return {
@@ -417,14 +437,20 @@ async def get_analytics_csv_data(
         except Exception:
             pass
 
+    from sqlalchemy.orm import aliased
+    ServedUser = aliased(User)
+    CompletedUser = aliased(User)
+
     query = select(
         Token,
         Queue.name.label('queue_name'),
-        User.first_name,
-        User.last_name,
-        User.email
+        ServedUser.first_name.label('served_first'),
+        ServedUser.last_name.label('served_last'),
+        CompletedUser.first_name.label('completed_first'),
+        CompletedUser.last_name.label('completed_last')
     ).outerjoin(Queue, Token.queue_id == Queue.id)\
-     .outerjoin(User, Token.served_by_id == User.id)\
+     .outerjoin(ServedUser, Token.served_by_id == ServedUser.id)\
+     .outerjoin(CompletedUser, Token.completed_by_id == CompletedUser.id)\
      .where(and_(*conditions))\
      .order_by(Token.created_at.desc())
 
@@ -433,13 +459,13 @@ async def get_analytics_csv_data(
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "Date", "Token Number", "Queue", "Customer Name", "Customer Phone", 
+        "Date", "Token Number", "Queue", "Service Line", "Customer Name", "Customer Phone", "Companions",
         "Status", "Created At", "Served At", "Completed At", 
-        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Call Method", "Entry Type"
+        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Call Method", "Entry Type"
     ])
 
     for row in result.all():
-        token, q_name, f_name, l_name, u_email = row
+        token, q_name, served_first, served_last, completed_first, completed_last = row
         
         wait_time_mins = ""
         if token.served_at and token.created_at:
@@ -450,17 +476,24 @@ async def get_analytics_csv_data(
             serve_time_mins = round((token.completed_at - token.served_at).total_seconds() / 60.0, 1)
 
         served_by = ""
-        if f_name or l_name:
-            served_by = f"{f_name or ''} {l_name or ''}".strip()
-        elif u_email:
-            served_by = u_email.split('@')[0]
+        if served_first or served_last:
+            served_by = f"{served_first or ''} {served_last or ''}".strip()
+            
+        completed_by = ""
+        if completed_first or completed_last:
+            completed_by = f"{completed_first or ''} {completed_last or ''}".strip()
+
+        companions = ", ".join(token.companion_names) if hasattr(token, 'companion_names') and token.companion_names else ""
+        service_line = str(getattr(token, 'assigned_line', "")) if getattr(token, 'assigned_line', None) is not None else ""
 
         writer.writerow([
             token.created_at.strftime("%Y-%m-%d"),
             token.token_number,
             q_name or "Unknown",
+            service_line,
             token.customer_name or "Walk-in",
             token.customer_phone or "",
+            companions,
             token.status.value,
             token.created_at.isoformat(),
             token.served_at.isoformat() if token.served_at else "",
@@ -468,6 +501,7 @@ async def get_analytics_csv_data(
             wait_time_mins,
             serve_time_mins,
             served_by,
+            completed_by,
             "Invite by Number" if token.called_via_invite else "Call Next",
             getattr(token, "entry_type", "qr").title()
         ])
@@ -643,6 +677,7 @@ async def get_cross_branch_analytics(
         func.extract('hour', func.timezone('Asia/Kolkata', Token.created_at)).label('hr'),
         func.count(Token.id).label("arrived"),
         func.sum(case((Token.status == TokenStatus.done, 1), else_=0)).label("served"),
+        func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
     ).where(and_(*token_conditions)).group_by('hr').order_by('hr')
     
     peak_res = await db.execute(peak_q)
@@ -670,11 +705,14 @@ async def get_cross_branch_analytics(
         ampm = "AM" if hr_int < 12 else "PM"
         display_hr = hr_int if hr_int <= 12 else hr_int - 12
         if display_hr == 0: display_hr = 12
+        # Convert avg wait seconds to minutes (rounded to 1dp)
+        avg_wait_min = round(float(r.avg_wait_sec) / 60, 1) if r.avg_wait_sec else 0
         
         peak_traffic.append({
             "time_block": f"{display_hr}:00 {ampm}",
             "customers_arrived": r.arrived,
             "customers_served": int(r.served or 0),
+            "avg_wait_minutes": avg_wait_min,
             "is_peak": (r.hr == peak_hr)
         })
         

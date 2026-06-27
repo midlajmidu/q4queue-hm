@@ -36,6 +36,7 @@ interface UseAuthReturn {
     isLoading: boolean;
     error: string | null;
     isImpersonating: boolean;
+    isReadOnly: boolean;
     stopImpersonating: () => void;
 }
 
@@ -113,6 +114,8 @@ export function useAuth(): UseAuthReturn {
                     if (currentUser && currentUser.role === "organization_admin") {
                         router.push(`/organization-admin/change-password`);
                     } else if (currentUser && (currentUser.role === "admin" || currentUser.role === "branch_admin" || currentUser.role === "staff")) {
+                        router.push(`/${currentUser.org_slug}/change-password`);
+                    } else if (currentUser && currentUser.role === "super_admin") {
                         router.push('/super-admin/change-password');
                     } else {
                         router.push(`/${currentUser?.org_slug}/change-password`);
@@ -187,6 +190,7 @@ export function useAuth(): UseAuthReturn {
         isLoading,
         error,
         isImpersonating,
+        isReadOnly: !!(user as any)?.is_read_only,
         stopImpersonating,
     };
 }

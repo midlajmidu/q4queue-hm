@@ -18,6 +18,8 @@ export interface TokenDetailData {
     removed_by?: string | null;
     assigned_line?: number | null;
     called_via_invite?: boolean;
+    served_by_staff_name?: string | null;
+    completed_by_staff_name?: string | null;
 }
 
 interface TokenDetailModalProps {
@@ -52,6 +54,15 @@ function calcWaitingTime(created?: string | null, served?: string | null, status
     return `${mins} min${mins !== 1 ? "s" : ""}`;
 }
 
+function calcServiceTime(served?: string | null, completed?: string | null): string {
+    if (!served || !completed) return "—";
+    const diffMs = new Date(completed).getTime() - new Date(served).getTime();
+    if (diffMs < 0) return "—";
+    const mins = Math.floor(diffMs / 60000);
+    if (mins === 0) return "< 1 min";
+    return `${mins} min${mins !== 1 ? "s" : ""}`;
+}
+
 const STATUS_STYLES: Record<string, { badge: string; label: string }> = {
     waiting: { badge: "bg-amber-100 text-amber-700", label: "Waiting" },
     serving: { badge: "bg-blue-100 text-blue-700", label: "Serving" },
@@ -72,6 +83,7 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
     const statusInfo = STATUS_STYLES[token.status] ?? { badge: "bg-gray-100 text-gray-500", label: token.status };
     const entryType = token.entry_type ?? "manual";
     const waitingTime = calcWaitingTime(token.created_at, token.served_at, token.status);
+    const serviceTime = calcServiceTime(token.served_at, token.completed_at);
     
     const completedLabel = token.status === 'deleted' ? 'Cancelled' : token.status === 'skipped' ? 'Skipped' : 'Completed';
 
@@ -153,11 +165,24 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         {token.status === "deleted" && token.removed_by && (
                             <DetailItem label="Removed By" value={token.removed_by === "customer" ? "Customer" : "Admin"} highlight="amber" />
                         )}
+                        {token.served_by_staff_name && (
+                            <DetailItem label="Served By" value={token.served_by_staff_name} />
+                        )}
+                        {token.completed_by_staff_name && (
+                            <DetailItem label="Completed By" value={token.completed_by_staff_name} />
+                        )}
                         <DetailItem
                             label="Waiting Time"
                             value={waitingTime}
                             highlight={token.served_at ? (parseInt(waitingTime) > 15 ? "amber" : "emerald") : undefined}
                         />
+                        {token.completed_at && token.served_at && (
+                            <DetailItem
+                                label="Service Time"
+                                value={serviceTime}
+                                highlight="emerald"
+                            />
+                        )}
                     </div>
 
                     {/* Full timestamps */}

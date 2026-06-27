@@ -223,6 +223,17 @@ export default function ParentOrganizationsPage() {
                                     className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-sm text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 placeholder:text-slate-500 transition-all shadow-inner"
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-300 mb-1.5">Branch Limit (Optional)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={formData.max_branches || ""}
+                                    onChange={(e) => setFormData({ ...formData, max_branches: e.target.value ? parseInt(e.target.value) : null })}
+                                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-sm text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 placeholder:text-slate-500 transition-all shadow-inner"
+                                    placeholder="Leave empty for unlimited"
+                                />
+                            </div>
                             <div className="pt-6 flex justify-end gap-3">
                                 <button
                                     type="button"

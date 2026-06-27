@@ -50,6 +50,7 @@ def create_access_token(
     last_name: str | None = None,
     is_first_login: bool = False,
     is_impersonating: bool = False,
+    is_read_only: bool = False,
     expires_delta: timedelta | None = None,
 ) -> str:
     """
@@ -80,6 +81,7 @@ def create_access_token(
         "last_name": last_name,
         "is_first_login": is_first_login,
         "is_impersonating": is_impersonating,
+        "is_read_only": is_read_only,
         "exp": expire,
     }
 

@@ -531,6 +531,12 @@ export const api = {
             method: "PATCH",
         });
     },
+
+    undoRemoveToken(tokenId: string): Promise<TokenDetail> {
+        return request<TokenDetail>(`/tokens/${tokenId}/undo_remove`, {
+            method: "PATCH",
+        });
+    },
     
     cancelToken(tokenId: string): Promise<{ status: string; token_number: number }> {
         return request<{ status: string; token_number: number }>(`/tokens/${tokenId}/cancel`, {
@@ -666,6 +672,13 @@ export const api = {
         });
     },
 
+    impersonateOrgBranch(orgId: string): Promise<TokenResponse> {
+        return request<TokenResponse>(`/organization-admin/branches/${orgId}/impersonate`, {
+            method: "POST",
+        });
+    },
+
+
     getGlobalQueues(limit: number = 20, offset: number = 0, search: string = ""): Promise<GlobalQueueResponse> {
         const query = search ? `&search=${encodeURIComponent(search)}` : "";
         return request<GlobalQueueResponse>(`/super-admin/queues?limit=${limit}&offset=${offset}${query}`);
@@ -781,6 +794,12 @@ export const api = {
         if (startDate) ps.append("start_date", startDate);
         if (endDate) ps.append("end_date", endDate);
         return request<any>(`/organization-admin/analytics${ps.toString() ? `?${ps.toString()}` : ''}`);
+    },
+    getOrgAdminTrafficChart: (branchId?: string) => {
+        const query = branchId ? `?branch_id=${branchId}` : '';
+        return request<{ peak_traffic: any[]; peak_hour: string | null }>(
+            `/organization-admin/analytics/traffic${query}`
+        );
     },
     getOrgAdminSessions: (branchId?: string) => {
         const query = branchId ? `?branch_id=${branchId}` : '';
@@ -974,6 +993,12 @@ export const api = {
 
     getMyProfile(): Promise<User> {
         return request<User>("/users/me");
+    },
+
+    sendHeartbeat(): Promise<{ status: string }> {
+        return request<{ status: string }>("/users/me/heartbeat", {
+            method: "POST"
+        });
     },
 
     updateMyProfile(data: { first_name?: string, last_name?: string }): Promise<User> {

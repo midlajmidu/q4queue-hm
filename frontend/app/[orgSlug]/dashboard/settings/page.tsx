@@ -9,6 +9,7 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useRef } from "react";
+import { setToken } from "@/lib/auth";
 import { OperationsTab } from "@/components/settings/OperationsTab";
 
 const C = {
@@ -171,7 +172,7 @@ export default function SettingsPage() {
     const params = useParams();
     const orgSlug = params?.orgSlug as string;
     const { user } = useAuth();
-    const isAdmin = user?.role === "admin";
+    const isAdmin = user?.role === "admin" || user?.role === "branch_admin";
 
     // Clinic Info State
     const [settings, setSettings] = useState<OrganizationSettingsResponse | null>(null);
@@ -360,7 +361,8 @@ export default function SettingsPage() {
                 const didUploadLogo = !!logoFile;
 
                 if (logoFile) {
-                    await api.uploadOrganizationLogo(logoFile);
+                    const logoData = await api.uploadOrganizationLogo(logoFile);
+                    if ((logoData as any).access_token) setToken((logoData as any).access_token);
                 }
                 const data = await api.updateOrganizationSettings({
                     name,
@@ -368,21 +370,27 @@ export default function SettingsPage() {
                     phone_number: phone || undefined,
                     brand_color: brandColor || undefined,
                 });
+                if ((data as any).access_token) setToken((data as any).access_token);
+                
                 setSettings(data);
                 setLogoUrl(data.logo_url || "");
                 setLogoFile(null);
                 setLogoPreview(null);
 
                 if (didUploadLogo) {
-                    setShowSuccessModal("Logo uploaded and branding settings updated successfully!");
+                    setShowSuccessModal("Logo uploaded and branding settings updated successfully! Refreshing...");
                 } else {
-                    setShowSuccessModal("Settings updated successfully!");
+                    setShowSuccessModal("Settings updated successfully! Refreshing...");
                 }
+                setTimeout(() => window.location.reload(), 1500);
             } else {
-                await api.updateMyProfile({
+                const response = await api.updateMyProfile({
                     first_name: firstName,
                     last_name: lastName,
-                });
+                }) as any;
+                if (response && response.access_token) {
+                    setToken(response.access_token);
+                }
                 setMyProfile((prev: any) => prev ? { ...prev, first_name: firstName, last_name: lastName } : null);
                 setShowSuccessModal("Profile updated successfully! Refreshing...");
                 setTimeout(() => window.location.reload(), 1500);

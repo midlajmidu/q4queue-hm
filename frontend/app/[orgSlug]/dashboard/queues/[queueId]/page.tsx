@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useQueueSocket } from "@/hooks/useQueueSocket";
 import { getToken, getCurrentUser } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/Toast";
 import ConnectionBadge from "@/components/ConnectionBadge";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -328,7 +329,7 @@ interface PageProps {
     params: Promise<{ queueId: string }>;
 }
 
-type ActiveSection = "queues" | "waiting_list" | "qrcode" | "announcement" | "history" | "recent_activity";
+type ActiveSection = "queues" | "waiting_list" | "qrcode" | "announcement" | "history";
 
 const COUNTRY_CODES = [
     { code: "+91", country: "India", flag: "🇮🇳" },
@@ -348,9 +349,10 @@ export default function QueueDetailPage({ params }: PageProps) {
     const { queueId } = use(params);
     const token = getToken();
     const user = getCurrentUser();
+    const { isReadOnly } = useAuth();
     const isStaff = user?.role === "staff";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
-    const canManageQueue = !isGlobalOrOrgAdmin;
+    const canManageQueue = !isGlobalOrOrgAdmin && !isReadOnly;
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
     const { toast } = useToast();
 
@@ -386,8 +388,11 @@ export default function QueueDetailPage({ params }: PageProps) {
         });
     }, []);
 
+    const [autoLive, setAutoLive] = useState(true);
+
     const { state, status, refresh } = useQueueSocket(queueId, {
         token: token || undefined,
+        enabled: autoLive,
         onNewCustomer: handleNewCustomer
     });
 
@@ -446,7 +451,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     const RECENT_PAGE_SIZE = 20;
     const router = useRouter();
 
-    const [activeListTab, setActiveListTab] = useState<"waiting" | "skipped" | "deleted">("waiting");
+    const [activeListTab, setActiveListTab] = useState<"recent" | "waiting" | "skipped" | "deleted">("recent");
 
     const filteredWaiting = React.useMemo(() => {
         if (!state?.waiting_tokens) return [];
@@ -675,10 +680,7 @@ export default function QueueDetailPage({ params }: PageProps) {
         } finally { setActionLoading(null); }
     }, [queueId, addName, addPhone, addAge, addCountryCode, addCompanions, state?.prefix, toast]);
 
-    const executeInvite = useCallback(async (lineNum?: number) => {
-        const num = parseInt(inviteNumber, 10);
-        if (isNaN(num)) return;
-        
+    const executeInviteWithNumber = useCallback(async (num: number, lineNum?: number) => {
         setActionLoading("invite");
         setActionError(null);
         try {
@@ -691,7 +693,13 @@ export default function QueueDetailPage({ params }: PageProps) {
             else toast("Failed to invite token: it might not be waiting or doesn't exist.", "error");
             setShowInviteLineModal(false);
         } finally { setActionLoading(null); }
-    }, [inviteNumber, queueId, state?.prefix, toast]);
+    }, [queueId, state?.prefix, toast]);
+
+    const executeInvite = useCallback((lineNum?: number) => {
+        const num = parseInt(inviteNumber, 10);
+        if (isNaN(num)) return;
+        executeInviteWithNumber(num, lineNum);
+    }, [inviteNumber, executeInviteWithNumber]);
 
     const handleInvite = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
@@ -707,8 +715,17 @@ export default function QueueDetailPage({ params }: PageProps) {
             return;
         }
 
-        executeInvite(undefined);
-    }, [inviteNumber, state?.service_lines, state?.waiting_tokens, executeInvite, toast]);
+        executeInviteWithNumber(num, undefined);
+    }, [inviteNumber, state?.service_lines, state?.waiting_tokens, executeInviteWithNumber, toast]);
+
+    const handleRecallFlow = useCallback((tokenNum: number) => {
+        setInviteNumber(tokenNum.toString());
+        if ((state?.service_lines || 0) > 0) {
+            setShowInviteLineModal(true);
+        } else {
+            executeInviteWithNumber(tokenNum, undefined);
+        }
+    }, [state?.service_lines, executeInviteWithNumber]);
 
     const handleRemoveByNumber = useCallback((e: React.FormEvent) => {
         e.preventDefault();
@@ -773,7 +790,7 @@ export default function QueueDetailPage({ params }: PageProps) {
             icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
         },
         {
-            id: "waiting_list", label: "Waiting List",
+            id: "waiting_list", label: "Queue Lists",
             icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
         },
         {
@@ -783,10 +800,6 @@ export default function QueueDetailPage({ params }: PageProps) {
         {
             id: "announcement", label: "Public Announcement",
             icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>,
-        },
-        {
-            id: "recent_activity", label: "Recent Activity",
-            icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6h16M4 12h16M4 18h7" /></svg>,
         },
         {
             id: "history", label: "History",
@@ -1005,23 +1018,25 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <span className="hidden md:inline">Refresh</span>
                                                 </button>
                                                 <span className="hidden md:block" style={{ width: 1, height: 12, background: T.cardBorder, flexShrink: 0 }} />
-                                                <label className="inline-flex items-center gap-2 select-none">
+                                                <label className="inline-flex items-center gap-2 select-none cursor-pointer" onClick={() => setAutoLive(!autoLive)}>
                                                     <span
                                                         role="switch"
-                                                        aria-checked={true}
+                                                        aria-checked={autoLive}
                                                         style={{
                                                             display: "inline-block", width: 28, height: 16, borderRadius: 99,
-                                                            background: T.brand,
+                                                            background: autoLive ? T.brand : T.cardBorder,
                                                             position: "relative", flexShrink: 0,
+                                                            transition: "background 0.2s"
                                                         }}
                                                     >
                                                         <span style={{
-                                                            position: "absolute", top: 2, left: 14,
+                                                            position: "absolute", top: 2, left: autoLive ? 14 : 2,
                                                             width: 12, height: 12, borderRadius: "50%", background: "#fff",
                                                             boxShadow: "0 1px 2px rgba(0,0,0,.2)",
+                                                            transition: "left 0.2s"
                                                         }} />
                                                     </span>
-                                                    <span className="hidden md:inline" style={{ fontSize: 11, color: T.textMuted, whiteSpace: "nowrap" }}>
+                                                    <span className="hidden md:inline" style={{ fontSize: 11, color: autoLive ? T.brand : T.textMuted, whiteSpace: "nowrap", fontWeight: autoLive ? 600 : 400 }}>
                                                         Auto (Live)
                                                     </span>
                                                 </label>
@@ -1091,6 +1106,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         prefix={state?.prefix ?? initialQueue?.prefix ?? ""}
                                                         onUpdate={refresh}
                                                         isGlobalOrOrgAdmin={isGlobalOrOrgAdmin}
+                                                        isPaused={(state?.is_paused ?? initialQueue?.is_paused) === true}
                                                     />
                                                 );
                                             }
@@ -1366,170 +1382,186 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     {/* Right: Lists */}
                                     <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
 
-                                        {/* Waiting/Skipped List */}
-                                        <aside className="flex flex-col flex-1 min-h-0 bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none overflow-hidden" aria-label="Waiting list">
-                                            <div className="px-4 pt-4 pb-3 border-b border-slate-200/80 dark:border-white/10 flex flex-col gap-3">
+                                        {/* Combined Lists */}
+                                        <aside className="flex flex-col flex-1 min-h-0 bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none overflow-hidden" aria-label="Queue Lists">
+                                            <div className="px-4 pt-4 pb-0 border-b border-slate-200/80 dark:border-white/10 flex flex-col gap-3">
                                                 <div className="flex items-center gap-2 text-slate-800 dark:text-white">
                                                     <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                                                         <List size={14} strokeWidth={2.5} />
                                                     </div>
-                                                    <h2 className="text-[14px] font-bold m-0">Waiting List</h2>
+                                                    <h2 className="text-[14px] font-bold m-0">Queue Lists</h2>
                                                 </div>
                                                 <div className="flex items-center justify-between">
-                                                    <div className="flex gap-5 pt-1">
+                                                    <div className="flex gap-4 pt-1 overflow-x-auto scrollbar-none">
+                                                        <button
+                                                            onClick={() => { setActiveListTab("recent"); setRecentPage(1); }}
+                                                            className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "recent" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                        >
+                                                            Recent
+                                                        </button>
                                                         <button
                                                             onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }}
-                                                            className={`flex items-center gap-2 text-[13px] font-semibold pb-2 transition-colors ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                            className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                                         >
                                                             Waiting
-                                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.waiting_count ?? 0}</span>
+                                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-bold">{state?.waiting_count ?? 0}</span>
                                                         </button>
                                                         <button
                                                             onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }}
-                                                            className={`flex items-center gap-2 text-[13px] font-semibold pb-2 transition-colors ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                            className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                                         >
                                                             Skipped
-                                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.skipped_count ?? 0}</span>
+                                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-bold">{state?.skipped_count ?? 0}</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => { setActiveListTab("deleted"); setWaitingPage(1); }}
+                                                            className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "deleted" ? "text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                        >
+                                                            Removed
+                                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-bold">{state?.deleted_tokens?.length ?? 0}</span>
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <div className="relative group">
-                                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                                <div className="relative group pb-3">
+                                                    <div className="absolute left-3 top-[18px] -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
                                                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                                     </div>
-                                                    <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="w-full h-9 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-xl pl-9 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
+                                                    {activeListTab === "recent" ? (
+                                                        <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="w-full h-9 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-xl pl-9 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
+                                                    ) : (
+                                                        <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="w-full h-9 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-xl pl-9 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
+                                                    )}
                                                 </div>
                                             </div>
+                                            
                                             <div className="scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700" style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-                                                {(activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).map((t: WaitingToken, idx: number) => (
-                                                    <div key={t.id} className={`group border-b border-slate-100 dark:border-white/5 px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${idx % 2 === 1 ? "bg-slate-50/30 dark:bg-slate-900/20" : "bg-transparent"}`}>
-                                                        <div className="flex flex-col gap-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-[15px] font-black tabular-nums text-slate-900 dark:text-white min-w-[48px]">
-                                                                    <span className="text-emerald-500">{state?.prefix || ""}</span>{t.token_number}
-                                                                </span>
-                                                                <span className={`px-2 py-0.5 rounded-[5px] text-[9.5px] font-bold uppercase tracking-wider ${activeListTab === "waiting" ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400"}`}>
-                                                                    {activeListTab}
-                                                                </span>
-                                                                {t.entry_type === "manual"
-                                                                    ? <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">Manual</span>
-                                                                    : <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
-                                                                }
+                                                {activeListTab === "recent" && (
+                                                    paginatedRecent.length > 0 ? paginatedRecent.map((t: RecentToken, i: number) => (
+                                                        <RecentTokenRow
+                                                            key={`${t.token_number}-${i}`}
+                                                            token={t}
+                                                            prefix={state?.prefix || ""}
+                                                            queueName={queueName}
+                                                            isManual={t.entry_type === "manual"}
+                                                            onView={setSelectedToken}
+                                                        />
+                                                    )) : (
+                                                        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                                                            <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-emerald-100 dark:ring-emerald-500/10 shadow-sm">
+                                                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-emerald-500 dark:text-emerald-600"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                                             </div>
-                                                            {t.customer_name && (
-                                                                <div className="text-[11.5px] text-slate-500 dark:text-slate-400 pl-[56px] flex flex-wrap gap-x-2 gap-y-0.5">
-                                                                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                                                        {t.customer_name}
-                                                                        {(t.companion_names && t.companion_names.length > 0) && (
-                                                                            <span className="font-normal text-indigo-500 ml-1">
-                                                                                (+ {t.companion_names.join(", ")})
-                                                                            </span>
-                                                                        )}
+                                                            <p className="text-[14px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                                                {recentSearch ? "No matching activity" : "No recent activity"}
+                                                            </p>
+                                                            <p className="text-[12.5px] font-medium text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">
+                                                                {recentSearch ? "Try a different search term" : "Your queue's recent actions will appear here."}
+                                                            </p>
+                                                        </div>
+                                                    )
+                                                )}
+                                                
+                                                {activeListTab !== "recent" && (
+                                                    (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).map((t: WaitingToken, idx: number) => (
+                                                        <div key={t.id} className={`group border-b border-slate-100 dark:border-white/5 px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${idx % 2 === 1 ? "bg-slate-50/30 dark:bg-slate-900/20" : "bg-transparent"}`}>
+                                                            <div className="flex flex-col gap-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[15px] font-black tabular-nums text-slate-900 dark:text-white min-w-[48px]">
+                                                                        <span className="text-emerald-500">{state?.prefix || ""}</span>{t.token_number}
                                                                     </span>
-                                                                    {t.customer_age != null && <span>Age: {t.customer_age}</span>}
-                                                                    <span>{t.customer_phone}</span>
+                                                                    <span className={`px-2 py-0.5 rounded-[5px] text-[9.5px] font-bold uppercase tracking-wider ${activeListTab === "waiting" ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" : activeListTab === "skipped" ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"}`}>
+                                                                        {activeListTab === "deleted" ? "Removed" : activeListTab}
+                                                                    </span>
+                                                                    {t.entry_type === "manual"
+                                                                        ? <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">Manual</span>
+                                                                        : <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
+                                                                    }
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button
-                                                                onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: t.entry_type || "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
-                                                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-[8px] transition-colors"
-                                                                title="View Details"
-                                                            >
-                                                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                            </button>
-                                                            {canManageQueue && activeListTab === "waiting" ? (
+                                                                {t.customer_name && (
+                                                                    <div className="text-[11.5px] text-slate-500 dark:text-slate-400 pl-[56px] flex flex-wrap gap-x-2 gap-y-0.5">
+                                                                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                                                            {t.customer_name}
+                                                                            {(t.companion_names && t.companion_names.length > 0) && (
+                                                                                <span className="font-normal text-indigo-500 ml-1">
+                                                                                    (+ {t.companion_names.join(", ")})
+                                                                                </span>
+                                                                            )}
+                                                                        </span>
+                                                                        {t.customer_age != null && <span>Age: {t.customer_age}</span>}
+                                                                        <span>{t.customer_phone}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                                                 <button
-                                                                    onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
-                                                                    className="px-2.5 h-8 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-500/30 rounded-[8px] hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shadow-sm"
+                                                                    onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: t.entry_type || "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
+                                                                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-[8px] transition-colors"
+                                                                    title="View Details"
                                                                 >
-                                                                    Remove
+                                                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                                 </button>
-                                                            ) : canManageQueue ? (
-                                                                <button
-                                                                    onClick={() => performAction("recall", async () => {
-                                                                        const res = await api.serveSpecificToken(queueId, t.token_number);
-                                                                        toast(`Recalled ${state?.prefix || ""}${res.serving}`, "success");
-                                                                    })}
-                                                                    className="px-2.5 h-8 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 rounded-[8px] hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors shadow-sm"
-                                                                >
-                                                                    Recall
-                                                                </button>
-                                                            ) : null}
+                                                                {canManageQueue && activeListTab === "waiting" ? (
+                                                                    <button
+                                                                        onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
+                                                                        className="px-2.5 h-8 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-500/30 rounded-[8px] hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shadow-sm"
+                                                                    >
+                                                                        Remove
+                                                                    </button>
+                                                                ) : canManageQueue && activeListTab === "deleted" ? (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            performAction(`undo_remove_${t.id}`, async () => {
+                                                                                await api.undoRemoveToken(t.id);
+                                                                                toast(`Restored ${state?.prefix || ""}${t.token_number} back to queue`, "success");
+                                                                                refresh();
+                                                                            });
+                                                                        }}
+                                                                        disabled={actionLoading === `undo_remove_${t.id}`}
+                                                                        className="px-2.5 h-8 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-[8px] hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm disabled:opacity-50"
+                                                                    >
+                                                                        {actionLoading === `undo_remove_${t.id}` ? "..." : "Undo"}
+                                                                    </button>
+                                                                ) : canManageQueue ? (
+                                                                    <button
+                                                                        onClick={() => handleRecallFlow(t.token_number)}
+                                                                        className="px-2.5 h-8 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 rounded-[8px] hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors shadow-sm"
+                                                                    >
+                                                                        Recall
+                                                                    </button>
+                                                                ) : null}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )) : (
-                                                    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                                                        <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-slate-100 dark:ring-white/5 shadow-sm">
-                                                            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-slate-400 dark:text-slate-500"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                    )) : (
+                                                        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                                                            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-slate-100 dark:ring-white/5 shadow-sm">
+                                                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-slate-400 dark:text-slate-500"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                            </div>
+                                                            <p className="text-[14px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                                                {waitingSearch ? "No matching tokens" : activeListTab === "waiting" ? "Queue is clear" : activeListTab === "skipped" ? "No skipped tokens" : "No removed tokens"}
+                                                            </p>
+                                                            <p className="text-[12.5px] font-medium text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">
+                                                                {waitingSearch ? "Try a different search term" : activeListTab === "waiting" ? "There are no customers currently waiting in line." : activeListTab === "skipped" ? "No customers have been skipped recently." : "No customers have been removed."}
+                                                            </p>
                                                         </div>
-                                                        <p className="text-[14px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                                            {waitingSearch ? "No matching tokens" : activeListTab === "waiting" ? "Queue is clear" : "No skipped tokens"}
-                                                        </p>
-                                                        <p className="text-[12.5px] font-medium text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">
-                                                            {waitingSearch ? "Try a different search term" : activeListTab === "waiting" ? "There are no customers currently waiting in line." : "No customers have been skipped recently."}
-                                                        </p>
-                                                    </div>
+                                                    )
                                                 )}
                                             </div>
-                                            {(activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length > PAGE_SIZE && (
-                                                <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
-                                                    <span>Showing {(activeListTab === "waiting" ? paginatedWaiting : paginatedSkipped).length} of {(activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length}</span>
-                                                    <div style={{ display: "flex", gap: 4 }}>
-                                                        <button onClick={() => setWaitingPage(p => Math.max(1, p - 1))} disabled={waitingPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage === 1 ? .4 : 1 }}>Prev</button>
-                                                        <button onClick={() => setWaitingPage(p => p + 1)} disabled={waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : filteredSkipped).length ? .4 : 1 }}>Next</button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </aside>
-
-                                        {/* Recent Activity */}
-                                        <aside className="flex flex-col flex-1 min-h-0 bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none overflow-hidden" aria-label="Recent activity">
-                                            <div className="px-4 pt-4 pb-3 border-b border-slate-200/80 dark:border-white/10 flex flex-col gap-3">
-                                                <div className="flex items-center gap-2 text-slate-800 dark:text-white">
-                                                    <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
-                                                    </div>
-                                                    <h2 className="text-[14px] font-bold m-0">Recent Activity</h2>
-                                                </div>
-                                                <div className="relative group">
-                                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
-                                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                    </div>
-                                                    <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="w-full h-9 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-xl pl-9 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
-                                                </div>
-                                            </div>
-                                            <div className="scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700" style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-                                                {paginatedRecent.length > 0 ? paginatedRecent.map((t: RecentToken, i: number) => (
-                                                    <RecentTokenRow
-                                                        key={`${t.token_number}-${i}`}
-                                                        token={t}
-                                                        prefix={state?.prefix || ""}
-                                                        queueName={queueName}
-                                                        isManual={t.entry_type === "manual"}
-                                                        onView={setSelectedToken}
-                                                    />
-                                                )) : (
-                                                    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                                                        <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-emerald-100 dark:ring-emerald-500/10 shadow-sm">
-                                                            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-emerald-500 dark:text-emerald-600"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                                        </div>
-                                                        <p className="text-[14px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                                            {recentSearch ? "No matching activity" : "No recent activity"}
-                                                        </p>
-                                                        <p className="text-[12.5px] font-medium text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">
-                                                            {recentSearch ? "Try a different search term" : "Your queue's recent actions will appear here."}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {filteredRecent.length > RECENT_PAGE_SIZE && (
+                                            
+                                            {activeListTab === "recent" && filteredRecent.length > RECENT_PAGE_SIZE && (
                                                 <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
                                                     <span>Showing {paginatedRecent.length} of {filteredRecent.length}</span>
                                                     <div style={{ display: "flex", gap: 4 }}>
                                                         <button onClick={() => setRecentPage(p => Math.max(1, p - 1))} disabled={recentPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: recentPage === 1 ? .4 : 1 }}>Prev</button>
                                                         <button onClick={() => setRecentPage(p => p + 1)} disabled={recentPage * RECENT_PAGE_SIZE >= filteredRecent.length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: recentPage * RECENT_PAGE_SIZE >= filteredRecent.length ? .4 : 1 }}>Next</button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {activeListTab !== "recent" && (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length > PAGE_SIZE && (
+                                                <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
+                                                    <span>Showing {(activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length} of {(activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length}</span>
+                                                    <div style={{ display: "flex", gap: 4 }}>
+                                                        <button onClick={() => setWaitingPage(p => Math.max(1, p - 1))} disabled={waitingPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage === 1 ? .4 : 1 }}>Prev</button>
+                                                        <button onClick={() => setWaitingPage(p => p + 1)} disabled={waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length ? .4 : 1 }}>Next</button>
                                                     </div>
                                                 </div>
                                             )}
@@ -1645,41 +1677,44 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 setHistoryLoading={setHistoryLoading}
                                 historyPageSize={HISTORY_PAGE_SIZE}
                                 onViewToken={setSelectedToken}
-                                onRecallToken={(num, pfx) => performAction("recall", async () => {
-                                    const res = await api.serveSpecificToken(queueId, num);
-                                    toast(`Recalled ${pfx || ""}${res.serving}`, "success");
-                                })}
+                                onRecallToken={(num, pfx) => handleRecallFlow(num)}
                                 performAction={performAction}
                                 toast={toast}
                             />
                         )}
 
                         {/* ═══════════════════════════════════════════
-                        SECTION: Waiting List (Full Page)
+                        SECTION: Queue Lists (Full Page)
                         ════════════════════════════════════════════ */}
                         {activeSection === "waiting_list" && (
                             <div className="fade-in bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 p-6 shadow-sm min-h-[calc(100vh-120px)] flex flex-col">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Waiting List</h2>
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Queue Lists</h2>
 
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                                    <div className="flex gap-5">
+                                    <div className="flex gap-5 overflow-x-auto scrollbar-none">
+                                        <button
+                                            onClick={() => { setActiveListTab("recent"); setRecentPage(1); }}
+                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "recent" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                        >
+                                            Recent
+                                        </button>
                                         <button
                                             onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }}
-                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Waiting
                                             <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.waiting_count ?? 0}</span>
                                         </button>
                                         <button
                                             onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }}
-                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Skipped
                                             <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.skipped_count ?? 0}</span>
                                         </button>
                                         <button
                                             onClick={() => { setActiveListTab("deleted"); setWaitingPage(1); }}
-                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors ${activeListTab === "deleted" ? "text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "deleted" ? "text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Removed
                                             <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.deleted_tokens?.length ?? 0}</span>
@@ -1689,95 +1724,144 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 12, pointerEvents: "none" }}>
                                             <svg width="14" height="14" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                         </span>
-                                        <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34 }} />
+                                        {activeListTab === "recent" ? (
+                                            <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34 }} />
+                                        ) : (
+                                            <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34 }} />
+                                        )}
                                     </div>
                                 </div>
 
                                 <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden flex-1 flex flex-col">
-                                    <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 px-4 py-3 grid grid-cols-12 gap-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        <div className="col-span-3">Token</div>
-                                        <div className="col-span-4">Customer</div>
-                                        <div className="col-span-3">Wait Time</div>
-                                        <div className="col-span-2 text-right">Actions</div>
-                                    </div>
+                                    {activeListTab !== "recent" && (
+                                        <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 px-4 py-3 grid grid-cols-12 gap-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            <div className="col-span-3">Token</div>
+                                            <div className="col-span-4">Customer</div>
+                                            <div className="col-span-3">Wait Time</div>
+                                            <div className="col-span-2 text-right">Actions</div>
+                                        </div>
+                                    )}
 
                                     <div className="flex-1 overflow-y-auto min-h-[300px]">
-                                        {(activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).map((t: WaitingToken, idx: number) => {
-                                            const waitMins = Math.floor((Date.now() - new Date(t.created_at || Date.now()).getTime()) / 60000);
-                                            return (
-                                                <div key={t.id} className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-slate-100 dark:border-white/5 items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                    <div className="col-span-3 flex items-center gap-3">
-                                                        <span className="font-bold text-slate-900 dark:text-white tabular-nums">{state?.prefix || ""}{t.token_number}</span>
-                                                        <span style={{ padding: "2px 7px", borderRadius: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: activeListTab === "waiting" ? T.amber : T.red }}>{activeListTab}</span>
-                                                        {t.entry_type === "manual"
-                                                            ? <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.violetBg, color: T.violet }}>Manual</span>
-                                                            : <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.cyanBg, color: T.cyan, display: "inline-flex", alignItems: "center", gap: 3 }}><QrCode className="w-2.5 h-2.5" />QR</span>
-                                                        }
+                                        {activeListTab === "recent" ? (
+                                            paginatedRecent.length > 0 ? paginatedRecent.map((t: RecentToken, i: number) => (
+                                                <RecentTokenRow
+                                                    key={`${t.token_number}-${i}`}
+                                                    token={t}
+                                                    prefix={state?.prefix || ""}
+                                                    queueName={queueName}
+                                                    isManual={t.entry_type === "manual"}
+                                                    onView={setSelectedToken}
+                                                />
+                                            )) : (
+                                                <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+                                                    <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3">
+                                                        <svg width="24" height="24" fill="none" stroke="currentColor" className="text-slate-400" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                                     </div>
-                                                    <div className="col-span-4 flex flex-col justify-center">
-                                                        <span className="text-sm font-medium text-slate-900 dark:text-white">
-                                                            {t.customer_name || "Walk-in"}
-                                                            {(t.companion_names && t.companion_names.length > 0) && (
-                                                                <span className="text-indigo-500 font-normal ml-2 text-xs">
-                                                                    (+ {t.companion_names.length} comp.)
-                                                                </span>
-                                                            )}
-                                                        </span>
-                                                        <span className="text-xs text-slate-500 truncate mt-0.5">
-                                                            {t.customer_phone || "-"} {t.customer_age ? `• Age: ${t.customer_age}` : ""}
-                                                        </span>
-                                                    </div>
-                                                    <div className="col-span-3 flex items-center">
-                                                        <span className="text-sm text-slate-600 dark:text-slate-400">
-                                                            {waitMins < 1 ? "< 1 min" : `${waitMins} min${waitMins !== 1 ? "s" : ""}`}
-                                                        </span>
-                                                    </div>
-                                                    <div className="col-span-2 flex items-center justify-end gap-2">
-                                                        <button
-                                                            onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: t.entry_type || "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
-                                                            className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-1.5 rounded-md transition-colors"
-                                                            title="View Details"
-                                                        >
-                                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                        </button>
-                                                        {activeListTab === "waiting" ? (
-                                                            <button
-                                                                onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
-                                                                className="text-xs font-bold px-2.5 py-1 text-rose-600 border border-rose-200 rounded-md hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
-                                                            >
-                                                                Remove
-                                                            </button>
-                                                        ) : activeListTab === "skipped" ? (
-                                                            <button
-                                                                onClick={() => performAction("recall", async () => {
-                                                                    const res = await api.serveSpecificToken(queueId, t.token_number);
-                                                                    toast(`Recalled ${state?.prefix || ""}${res.serving}`, "success");
-                                                                })}
-                                                                className="text-xs font-bold px-2.5 py-1 text-indigo-600 border border-indigo-200 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
-                                                            >
-                                                                Recall
-                                                            </button>
-                                                        ) : (
-                                                            <span className="text-xs font-bold text-slate-400">
-                                                                {t.removed_by === "customer" ? "By Customer" : "By Admin"}
+                                                    <p className="text-slate-500 font-medium">
+                                                        {recentSearch ? "No tokens match your search" : "No recent activity found"}
+                                                    </p>
+                                                </div>
+                                            )
+                                        ) : (
+                                            (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).map((t: WaitingToken, idx: number) => {
+                                                const waitMins = Math.floor((Date.now() - new Date(t.created_at || Date.now()).getTime()) / 60000);
+                                                return (
+                                                    <div key={t.id} className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-slate-100 dark:border-white/5 items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                        <div className="col-span-3 flex items-center gap-3">
+                                                            <span className="font-bold text-slate-900 dark:text-white tabular-nums">{state?.prefix || ""}{t.token_number}</span>
+                                                            <span className={`px-2 py-0.5 rounded-[5px] text-[9.5px] font-bold uppercase tracking-wider ${activeListTab === "waiting" ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" : activeListTab === "skipped" ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"}`}>{activeListTab === "deleted" ? "Removed" : activeListTab}</span>
+                                                            {t.entry_type === "manual"
+                                                                ? <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.violetBg, color: T.violet }}>Manual</span>
+                                                                : <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: T.cyanBg, color: T.cyan, display: "inline-flex", alignItems: "center", gap: 3 }}><QrCode className="w-2.5 h-2.5" />QR</span>
+                                                            }
+                                                        </div>
+                                                        <div className="col-span-4 flex flex-col justify-center">
+                                                            <span className="text-sm font-medium text-slate-900 dark:text-white">
+                                                                {t.customer_name || "Walk-in"}
+                                                                {(t.companion_names && t.companion_names.length > 0) && (
+                                                                    <span className="text-indigo-500 font-normal ml-2 text-xs">
+                                                                        (+ {t.companion_names.length} comp.)
+                                                                    </span>
+                                                                )}
                                                             </span>
-                                                        )}
+                                                            <span className="text-xs text-slate-500 truncate mt-0.5">
+                                                                {t.customer_phone || "-"} {t.customer_age ? `• Age: ${t.customer_age}` : ""}
+                                                            </span>
+                                                        </div>
+                                                        <div className="col-span-3 flex items-center">
+                                                            <span className="text-sm text-slate-600 dark:text-slate-400">
+                                                                {waitMins < 1 ? "< 1 min" : `${waitMins} min${waitMins !== 1 ? "s" : ""}`}
+                                                            </span>
+                                                        </div>
+                                                        <div className="col-span-2 flex items-center justify-end gap-2">
+                                                            <button
+                                                                onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: t.entry_type || "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
+                                                                className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-1.5 rounded-md transition-colors"
+                                                                title="View Details"
+                                                            >
+                                                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                            </button>
+                                                            {canManageQueue && activeListTab === "waiting" ? (
+                                                                <button
+                                                                    onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
+                                                                    className="text-xs font-bold px-2.5 py-1 text-rose-600 border border-rose-200 rounded-md hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
+                                                                >
+                                                                    Remove
+                                                                </button>
+                                                            ) : canManageQueue && activeListTab === "skipped" ? (
+                                                                <button
+                                                                    onClick={() => handleRecallFlow(t.token_number)}
+                                                                    className="text-xs font-bold px-2.5 py-1 text-indigo-600 border border-indigo-200 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
+                                                                >
+                                                                    Recall
+                                                                </button>
+                                                            ) : canManageQueue && activeListTab === "deleted" ? (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        performAction(`undo_remove_${t.id}`, async () => {
+                                                                            await api.undoRemoveToken(t.id);
+                                                                            toast(`Restored ${state?.prefix || ""}${t.token_number} back to queue`, "success");
+                                                                            refresh();
+                                                                        });
+                                                                    }}
+                                                                    disabled={actionLoading === `undo_remove_${t.id}`}
+                                                                    className="text-xs font-bold px-2.5 py-1 text-emerald-600 border border-emerald-200 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors disabled:opacity-50"
+                                                                >
+                                                                    {actionLoading === `undo_remove_${t.id}` ? "..." : "Undo"}
+                                                                </button>
+                                                            ) : activeListTab === "deleted" ? (
+                                                                <span className="text-xs font-bold text-slate-400">
+                                                                    {t.removed_by === "customer" ? "By Customer" : "By Admin"}
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
                                                     </div>
+                                                );
+                                            }) : (
+                                                <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+                                                    <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3">
+                                                        <svg width="24" height="24" fill="none" stroke="currentColor" className="text-slate-400" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                    </div>
+                                                    <p className="text-slate-500 font-medium">
+                                                        {waitingSearch ? "No tokens match your search" : activeListTab === "waiting" ? "No one is waiting right now" : activeListTab === "skipped" ? "No skipped tokens" : "No removed tokens"}
+                                                    </p>
                                                 </div>
-                                            );
-                                        }) : (
-                                            <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-                                                <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3">
-                                                    <svg width="24" height="24" fill="none" stroke="currentColor" className="text-slate-400" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                </div>
-                                                <p className="text-slate-500 font-medium">
-                                                    {waitingSearch ? "No tokens match your search" : activeListTab === "waiting" ? "No one is waiting right now" : activeListTab === "skipped" ? "No skipped tokens" : "No removed tokens"}
-                                                </p>
-                                            </div>
+                                            )
                                         )}
                                     </div>
 
-                                    {(activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length > PAGE_SIZE && (
+                                    {activeListTab === "recent" && filteredRecent.length > RECENT_PAGE_SIZE && (
+                                        <div className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-white/10 px-4 py-3 flex items-center justify-between text-xs text-slate-500">
+                                            <span>Showing {paginatedRecent.length} of {filteredRecent.length} tokens</span>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => setRecentPage(p => Math.max(1, p - 1))} disabled={recentPage === 1} className="px-3 py-1.5 rounded-md bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+                                                <button onClick={() => setRecentPage(p => p + 1)} disabled={recentPage * RECENT_PAGE_SIZE >= filteredRecent.length} className="px-3 py-1.5 rounded-md bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeListTab !== "recent" && (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length > PAGE_SIZE && (
                                         <div className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-white/10 px-4 py-3 flex items-center justify-between text-xs text-slate-500">
                                             <span>Showing {(activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length} of {(activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length} tokens</span>
                                             <div className="flex gap-2">
@@ -1787,49 +1871,6 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         </div>
                                     )}
                                 </div>
-                            </div>
-                        )}
-
-                        {/* ═══════════════════════════════════════════
-                        SECTION: Recent Activity
-                        ════════════════════════════════════════════ */}
-                        {activeSection === "recent_activity" && (
-                            <div className="fade-in bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 p-6 shadow-sm min-h-[calc(100vh-120px)] flex flex-col">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Recent Activity</h2>
-
-                                <div className="mb-4">
-                                    <div style={{ position: "relative", maxWidth: 350 }}>
-                                        <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 12, pointerEvents: "none" }}>
-                                            <svg width="14" height="14" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                        </span>
-                                        <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34, fontSize: 13 }} />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-2">
-                                    {paginatedRecent.length > 0 ? paginatedRecent.map((t: RecentToken, i: number) => (
-                                        <RecentTokenRow
-                                            key={`${t.token_number}-${i}`}
-                                            token={t}
-                                            prefix={state?.prefix || ""}
-                                            queueName={queueName}
-                                            isManual={t.entry_type === "manual"}
-                                            onView={setSelectedToken}
-                                        />
-                                    )) : (
-                                        <div className="py-12 text-center text-slate-500">No recent activity found.</div>
-                                    )}
-                                </div>
-
-                                {filteredRecent.length > RECENT_PAGE_SIZE && (
-                                    <div className="mt-6 pt-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between text-sm text-slate-500">
-                                        <span>Showing {paginatedRecent.length} of {filteredRecent.length}</span>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => setRecentPage(p => Math.max(1, p - 1))} disabled={recentPage === 1} className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 transition-colors">Prev</button>
-                                            <button onClick={() => setRecentPage(p => p + 1)} disabled={recentPage * RECENT_PAGE_SIZE >= filteredRecent.length} className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 transition-colors">Next</button>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
@@ -1966,10 +2007,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                 <TokenDetailModal
                     token={selectedToken}
                     onClose={() => setSelectedToken(null)}
-                    onRecall={selectedToken ? () => performAction("recall", async () => {
-                        const res = await api.serveSpecificToken(queueId, selectedToken.token_number);
-                        toast(`Recalled ${state?.prefix || ""}${res.serving}`, "success");
-                    }) : undefined}
+                    onRecall={selectedToken ? () => handleRecallFlow(selectedToken.token_number) : undefined}
                 />
             </div>
 
@@ -2106,6 +2144,15 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
 });
 
 // ── Queue History Section ──────────────────────────────────────────
+function calcSvcTime(served?: string | null, completed?: string | null): string {
+    if (!served || !completed) return "—";
+    const diffMs = new Date(completed).getTime() - new Date(served).getTime();
+    if (diffMs < 0) return "—";
+    const mins = Math.floor(diffMs / 60000);
+    if (mins === 0) return "< 1 min";
+    return `${mins} min${mins !== 1 ? "s" : ""}`;
+}
+
 function QueueHistory({
     queueId, queueName, prefix,
     queueHistory, setQueueHistory,
@@ -2243,21 +2290,21 @@ function QueueHistory({
                     <table style={{ width: "100%", textAlign: "left", fontSize: 13.5, borderCollapse: "collapse" }}>
                         <thead>
                             <tr style={{ background: "#fafbfc", borderBottom: `1px solid ${T.cardBorder}` }}>
-                                {["Token", "Customer", "Status", "Type", "Wait Time", "Actions"].map(h => (
+                                {["Token", "Customer", "Status", "Type", "Wait Time", "Service Time", "Staff", "Actions"].map(h => (
                                     <th key={h} style={{ padding: "11px 18px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".09em", whiteSpace: "nowrap" }}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {historyLoading ? (
-                                <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", }}>
+                                <tr><td colSpan={8} style={{ padding: "48px", textAlign: "center", }}>
                                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                                         <span style={{ width: 18, height: 18, border: `2px solid ${T.brandLight}`, borderTopColor: T.brand, borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
                                         <span style={{ fontSize: 13 }}>Loading records…</span>
                                     </div>
                                 </td></tr>
                             ) : queueHistory.length === 0 ? (
-                                <tr><td colSpan={6} style={{ padding: "48px", textAlign: "center", fontSize: 13 }}>No matching history found for this queue.</td></tr>
+                                <tr><td colSpan={8} style={{ padding: "48px", textAlign: "center", fontSize: 13 }}>No matching history found for this queue.</td></tr>
                             ) : queueHistory.map(item => {
                                 const isManual = item.entry_type === "manual";
                                 const ss = statusStyleMap[item.status] || { bg: "#f3f4f6", color: "#6b7280", label: item.status };
@@ -2296,10 +2343,31 @@ function QueueHistory({
                                             <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: isManual ? T.violetBg : T.cyanBg, color: isManual ? T.violet : T.cyan, display: "inline-flex", alignItems: "center", gap: 3 }}>{!isManual && <QrCode className="w-2.5 h-2.5" />}{isManual ? "Manual" : "QR"}</span>
                                         </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
+                                        <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums", color: "#059669" }}>
+                                            {calcSvcTime(item.served_at, item.completed_at)}
+                                        </td>
+                                        <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5 }}>
+                                            {(item.completed_by_staff_name || item.served_by_staff_name) ? (
+                                                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                                    {item.completed_by_staff_name && (
+                                                        <span style={{ color: "#374151" }} title="Completed By">C: {item.completed_by_staff_name}</span>
+                                                    )}
+                                                    {(item.served_by_staff_name && item.served_by_staff_name !== item.completed_by_staff_name) && (
+                                                        <span style={{ color: "#6b7280", fontSize: "11px" }} title="Served By">S: {item.served_by_staff_name}</span>
+                                                    )}
+                                                </div>
+                                            ) : "—"}
+                                        </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                 <button
-                                                    onClick={() => onViewToken({ token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name, customer_age: item.customer_age, customer_phone: item.customer_phone, companion_names: item.companion_names || [], status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName })}
+                                                    onClick={() => onViewToken({ 
+                                                        token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name, 
+                                                        customer_age: item.customer_age, customer_phone: item.customer_phone, companion_names: item.companion_names || [], 
+                                                        status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, 
+                                                        entry_type: isManual ? "manual" : "qr", queue_name: queueName,
+                                                        assigned_line: item.assigned_line, served_by_staff_name: item.served_by_staff_name, completed_by_staff_name: item.completed_by_staff_name
+                                                    })}
                                                     style={{ padding: "6px", background: "transparent", border: "#e5e7eb", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
                                                     onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
                                                     onMouseLeave={e => { e.currentTarget.style.color = "inherit"; e.currentTarget.style.background = "transparent"; }}

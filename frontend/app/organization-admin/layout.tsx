@@ -13,9 +13,11 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
+import { useHeartbeat } from "@/hooks/useHeartbeat";
 
 export default function OrgAdminLayout({ children }: { children: ReactNode }) {
     const { user, logout } = useAuth();
+    useHeartbeat();
     const pathname = usePathname();
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -35,21 +37,46 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const NavLink = ({ href, icon: Icon, label }: { href: string, icon: any, label: string }) => {
+    const NavLink = ({ href, icon: Icon, label, badge, badgeColor = "indigo" }: { href: string, icon: any, label: string, badge?: ReactNode | string | number, badgeColor?: "indigo" | "emerald" | "rose" | "amber" | "slate" }) => {
         const isActive = pathname === href || (href !== "/organization-admin" && pathname.startsWith(href));
+        
+        const badgeColors = {
+            indigo: "bg-indigo-100 text-indigo-700 border-indigo-200",
+            emerald: "bg-emerald-100 text-emerald-700 border-emerald-200",
+            rose: "bg-rose-100 text-rose-700 border-rose-200",
+            amber: "bg-amber-100 text-amber-700 border-amber-200",
+            slate: "bg-slate-100 text-slate-700 border-slate-200"
+        };
+        
         return (
             <Link 
                 href={href}
-                className={`flex items-center px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${
+                className={`group relative flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ${
                     isActive 
                     ? "bg-indigo-50/80 text-indigo-700" 
                     : "text-slate-600 hover:bg-slate-100/60 hover:text-slate-900"
                 }`}
             >
-                <div className="w-6 flex items-center justify-start shrink-0">
-                    <Icon size={16} className={isActive ? "text-indigo-600" : "text-slate-400"} />
+                {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-indigo-600 rounded-r-full shadow-sm" />
+                )}
+                <div className="flex items-center">
+                    <div className="w-6 flex items-center justify-start shrink-0 transition-transform duration-200 group-hover:translate-x-1">
+                        <Icon size={16} className={isActive ? "text-indigo-600" : "text-slate-400"} />
+                    </div>
+                    <span className="transition-transform duration-200 group-hover:translate-x-1">{label}</span>
                 </div>
-                <span>{label}</span>
+                {badge && (
+                    <div className="ml-auto flex items-center">
+                        {typeof badge === 'string' || typeof badge === 'number' ? (
+                            <div className={`flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold rounded-full border ${badgeColors[badgeColor]} transition-transform duration-200 group-hover:scale-105 shadow-sm`}>
+                                {badge}
+                            </div>
+                        ) : (
+                            badge
+                        )}
+                    </div>
+                )}
             </Link>
         );
     };
@@ -84,7 +111,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                         </div>
 
                         {/* Navigation */}
-                        <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-6 scrollbar-hide">
+                        <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-6 scrollbar-thin pr-1">
                             
                             {/* Core */}
                             <div className="space-y-1">
@@ -97,8 +124,19 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                             <div>
                                 <h3 className="px-3 text-xs font-semibold tracking-wider text-slate-400 uppercase mb-2">Live Operations</h3>
                                 <div className="space-y-0.5">
-                                    <NavLink href="/organization-admin/monitoring/sessions" icon={Users} label="Live Sessions" />
-                                    <NavLink href="/organization-admin/monitoring/queues" icon={Activity} label="Active Queues" />
+                                    <NavLink 
+                                        href="/organization-admin/monitoring/sessions" 
+                                        icon={Users} 
+                                        label="Live Sessions" 
+                                        badge={<div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" title="System Online" />}
+                                    />
+                                    <NavLink 
+                                        href="/organization-admin/monitoring/queues" 
+                                        icon={Activity} 
+                                        label="Active Queues" 
+                                        badge="12"
+                                        badgeColor="indigo"
+                                    />
                                     <NavLink href="/organization-admin/monitoring/staff" icon={UserCog} label="Staff Presence" />
                                 </div>
                             </div>
@@ -108,7 +146,13 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                 <h3 className="px-3 text-xs font-semibold tracking-wider text-slate-400 uppercase mb-2">Administration</h3>
                                 <div className="space-y-0.5">
                                     <NavLink href="/organization-admin/monitoring/audit" icon={Database} label="Audit Logs" />
-                                    <NavLink href="/organization-admin/announcements" icon={Megaphone} label="Announcements" />
+                                    <NavLink 
+                                        href="/organization-admin/announcements" 
+                                        icon={Megaphone} 
+                                        label="Announcements" 
+                                        badge="3"
+                                        badgeColor="amber"
+                                    />
                                     <NavLink href="/organization-admin/exports" icon={Download} label="Data Exports" />
                                     <NavLink href="/organization-admin/settings" icon={Settings} label="Organization Settings" />
                                 </div>
@@ -121,20 +165,24 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                             
                             {/* Popover Menu */}
                             {isProfileMenuOpen && (
-                                <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-xl shadow-lg p-1 animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
+                                <div className="absolute bottom-full left-4 right-4 mb-2 bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-xl shadow-xl shadow-slate-200/50 p-1 animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
+                                    <div className="px-3 py-2.5 border-b border-slate-100/60 mb-1">
+                                        <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Current Role</p>
+                                        <p className="text-xs font-semibold text-slate-700 mt-0.5">Organization Admin</p>
+                                    </div>
                                     <Link 
                                         href="/organization-admin/settings"
                                         onClick={() => setIsProfileMenuOpen(false)}
-                                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors w-full"
+                                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:scale-[1.02] transition-all duration-200 w-full group"
                                     >
-                                        <Settings size={16} className="text-slate-400" />
+                                        <Settings size={15} className="text-slate-400 group-hover:text-indigo-600 transition-colors" />
                                         Account Settings
                                     </Link>
                                     <button
                                         onClick={() => { setIsProfileMenuOpen(false); logout(); }}
-                                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                                        className="flex items-center gap-3 px-3 py-2 mt-0.5 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-rose-50 hover:text-rose-600 hover:scale-[1.02] transition-all duration-200 w-full text-left group"
                                     >
-                                        <LogOut size={16} className="text-red-500" />
+                                        <LogOut size={15} className="text-slate-400 group-hover:text-rose-500 transition-colors" />
                                         Sign Out
                                     </button>
                                 </div>
@@ -143,14 +191,19 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                             {/* Profile Trigger */}
                             <div 
                                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer select-none"
+                                className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer select-none group ${
+                                    isProfileMenuOpen 
+                                    ? 'bg-slate-50 border-slate-200 shadow-sm' 
+                                    : 'bg-white border-transparent hover:border-slate-200 hover:bg-slate-50 hover:shadow-sm'
+                                }`}
                             >
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-9 h-9 shrink-0 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold shadow-sm">
+                                <div className="flex items-center gap-3 min-w-0 pr-2">
+                                    <div className="w-9 h-9 shrink-0 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold shadow-sm relative">
                                         {user?.first_name?.charAt(0) || 'U'}
+                                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
                                     </div>
                                     <div className="flex-1 min-w-0 overflow-hidden">
-                                        <div className="text-[13px] font-semibold text-slate-900 truncate w-full">
+                                        <div className="text-[13px] font-semibold text-slate-900 truncate w-full group-hover:text-indigo-700 transition-colors">
                                             {user?.first_name} {user?.last_name}
                                         </div>
                                         <div className="text-[11px] text-slate-500 truncate font-medium w-full">
@@ -158,7 +211,13 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                         </div>
                                     </div>
                                 </div>
-                                <ChevronUp size={16} className={`text-slate-400 transition-transform duration-200 ${isProfileMenuOpen ? "rotate-180" : ""}`} />
+                                <div className={`shrink-0 flex items-center justify-center w-6 h-6 rounded-md transition-colors ${
+                                    isProfileMenuOpen 
+                                    ? 'bg-slate-200 text-slate-700' 
+                                    : 'text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600'
+                                }`}>
+                                    <ChevronUp size={14} className={`transition-transform duration-200 ${isProfileMenuOpen ? "rotate-180" : ""}`} />
+                                </div>
                             </div>
                         </div>
                     </aside>

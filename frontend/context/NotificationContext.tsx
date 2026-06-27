@@ -83,19 +83,24 @@ function mapMessageToNotification(msg: MessageResponse): DashboardNotification {
     };
 }
 
+import { useAuth } from "@/hooks/useAuth";
+
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth();
     const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
     // Load initial messages
     const loadMessages = useCallback(async () => {
+        if (!user || user.is_first_login) return;
+        
         try {
             const data = await api.getMessages();
             setNotifications(data.map(mapMessageToNotification));
         } catch (err) {
             console.error("Failed to load messages", err);
         }
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         loadMessages();
@@ -103,6 +108,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // WebSocket connection
     useEffect(() => {
+        if (!user || user.is_first_login) return;
+        
         const token = getToken();
         if (!token) return;
 

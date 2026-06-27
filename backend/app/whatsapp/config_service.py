@@ -142,6 +142,9 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
             "notify_position_3": False,
             "notify_called": False,
             "notify_completed": False,
+            "notify_skipped": False,
+            "notify_recalled": False,
+            "notify_removed": False,
         }
 
     async with AsyncSessionLocal() as db:
@@ -159,6 +162,9 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
                 "notify_position_3": True,
                 "notify_called": True,
                 "notify_completed": True,
+                "notify_skipped": True,
+                "notify_recalled": True,
+                "notify_removed": True,
             }
         
         return {
@@ -169,4 +175,7 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
             "notify_position_3": org_cfg.notify_position_3,
             "notify_called": org_cfg.notify_called,
             "notify_completed": org_cfg.notify_completed,
+            "notify_skipped": org_cfg.notify_skipped,
+            "notify_recalled": org_cfg.notify_recalled,
+            "notify_removed": org_cfg.notify_removed,
         }

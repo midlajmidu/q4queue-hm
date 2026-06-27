@@ -14,7 +14,7 @@ import BranchTodayPerformance from "@/components/organization-admin/branch-detai
 import BranchQueueBreakdown from "@/components/organization-admin/branch-details/BranchQueueBreakdown";
 import BranchSessionBreakdown from "@/components/organization-admin/branch-details/BranchSessionBreakdown";
 import BranchStaffOverview from "@/components/organization-admin/branch-details/BranchStaffOverview";
-import BranchAdminsList from "@/components/organization-admin/branch-details/BranchAdminsList";
+
 import BranchWhatsAppStats from "@/components/organization-admin/branch-details/BranchWhatsAppStats";
 import BranchHealthCenter from "@/components/organization-admin/branch-details/BranchHealthCenter";
 import BranchActivityTimeline from "@/components/organization-admin/branch-details/BranchActivityTimeline";
@@ -147,8 +147,7 @@ export default function BranchDetailsPage() {
                     {/* SECTION 10: Branch Contact Information */}
                     <BranchContactCard branchId={branchId} />
                     
-                    {/* SECTION 6: Branch Admins */}
-                    <BranchAdminsList branchId={branchId} />
+                    {/* SECTION 6: Branch Admins removed as per user request */}
                     
                     {/* SECTION 7: WhatsApp Statistics */}
                     <BranchWhatsAppStats branchId={branchId} />

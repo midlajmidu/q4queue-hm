@@ -134,14 +134,19 @@ export default function TrackingPage({ params }: PageProps) {
                         current_serving: 0, // will be updated by websocket
                         queue_prefix: info.token_prefix,
                         session_id: "", // tracking page doesn't strictly need session validation like join did, but we'll adapt
-                        tracking_id: info.tracking_id
+                        tracking_id: info.tracking_id,
+                        removed_by: info.removed_by
                     });
                     setTokenStatus(info.status as TokenStatus);
                     setIsLoading(false);
                 }
-            } catch (err) {
+            } catch (err: unknown) {
                 if (mounted) {
-                    setError("Tracking link is invalid or expired.");
+                    if (err instanceof Error && 'status' in err && (err as any).status === 404) {
+                        setError("This queue session has ended. Your token is no longer valid.");
+                    } else {
+                        setError("Tracking link is invalid or expired.");
+                    }
                     setIsLoading(false);
                 }
             }
@@ -297,8 +302,8 @@ export default function TrackingPage({ params }: PageProps) {
 
     let positionMessage = "";
     if (myNumber !== null) {
-        if (isMyTurn) positionMessage = "It\u2019s your turn! Please proceed.";
-        else if (isDeleted) positionMessage = "Your token was removed.";
+        if (isMyTurn) positionMessage = "It’s your turn! Please proceed.";
+        else if (isDeleted) positionMessage = joinData?.removed_by === "session_end" ? "Queue session ended." : "Your token was removed.";
         else if (isSkipped) positionMessage = "Your token was skipped.";
         else if (alreadyServed) positionMessage = "Your token has been served.";
         else if (isNext) positionMessage = "You are next!";
@@ -453,64 +458,60 @@ export default function TrackingPage({ params }: PageProps) {
                             )}
                             {isDeleted && !isDone && !isMyTurn && (
                                 <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-center text-sm">
-                                    {error ? error : "Your token has been removed from the waiting list."}
+                                    {error ? error : joinData?.removed_by === "session_end" ? "This queue session has ended. Your token is no longer valid." : "Your token has been removed from the waiting list."}
                                 </div>
                             )}
                             
-                            {!isDeleted && (
-                                <>
-                                    {alreadyServed && !isSkipped && (
-                                        <div className="bg-gray-50 text-gray-600 p-4 rounded-xl border border-gray-200 text-center text-sm">
-                                            Your token has already been served. Thank you for visiting!
-                                        </div>
-                                    )}
-
-                                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center shadow-inner" aria-label="Your ticket information">
-                                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
-                                            Your Ticket
-                                        </p>
-                                        <div className={`text-7xl font-black tabular-nums mb-2 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : ""}`} style={(!isMyTurn && !alreadyServed) ? { color: brandColor } : {}}>
-                                            {prefix}{myNumber}
-                                        </div>
-
-                                        <p aria-live="polite" className={`text-sm font-semibold mb-4 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : (!isNext ? "text-gray-600" : "")}`} style={isNext ? { color: brandColor } : {}}>
-                                            {positionMessage}
-                                        </p>
-
-                                        <div className="flex bg-white rounded-lg border border-gray-100 divide-x divide-gray-100 overflow-hidden text-sm shadow-sm">
-                                            <div className="flex-1 py-3">
-                                                <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Ahead</p>
-                                                <p className="text-2xl font-bold text-gray-900 mt-0.5 tabular-nums">
-                                                    {alreadyServed ? "—" : isMyTurn ? "0" : peopleAhead}
-                                                </p>
-                                            </div>
-                                            <div className="flex-1 py-3">
-                                                <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Status</p>
-                                                <p className={`text-sm font-bold mt-1 ${isMyTurn ? "text-emerald-600" : isSkipped ? "text-amber-500" : alreadyServed ? "text-gray-400" : (!isNext ? "text-amber-600" : "")}`} style={isNext ? { color: brandColor } : {}}>
-                                                    {isMyTurn ? "YOUR TURN" : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "NEXT" : "Waiting"}
-                                                </p>
-                                            </div>
-                                            <div className="flex-1 py-3">
-                                                <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Serving</p>
-                                                <p className="text-2xl font-bold text-gray-900 mt-0.5 tabular-nums">{prefix}{serving}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col items-center gap-2">
-                                        <p className="text-center text-xs text-gray-400 leading-relaxed">
-                                            This page updates automatically. No need to refresh.
-                                        </p>
-                                        <button 
-                                            onClick={refresh}
-                                            className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 text-xs font-semibold transition-colors shadow-sm"
-                                        >
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5" /></svg>
-                                            Refresh manually
-                                        </button>
-                                    </div>
-                                </>
+                            {alreadyServed && !isSkipped && !isDeleted && (
+                                <div className="bg-gray-50 text-gray-600 p-4 rounded-xl border border-gray-200 text-center text-sm">
+                                    Your token has already been served. Thank you for visiting!
+                                </div>
                             )}
+
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center shadow-inner" aria-label="Your ticket information">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
+                                    Your Ticket
+                                </p>
+                                <div className={`text-7xl font-black tabular-nums mb-2 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : ""}`} style={(!isMyTurn && !alreadyServed) ? { color: brandColor } : {}}>
+                                    {prefix}{myNumber}
+                                </div>
+
+                                <p aria-live="polite" className={`text-sm font-semibold mb-4 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : (!isNext ? "text-gray-600" : "")}`} style={isNext ? { color: brandColor } : {}}>
+                                    {positionMessage}
+                                </p>
+
+                                <div className="flex bg-white rounded-lg border border-gray-100 divide-x divide-gray-100 overflow-hidden text-sm shadow-sm">
+                                    <div className="flex-1 py-3">
+                                        <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Ahead</p>
+                                        <p className="text-2xl font-bold text-gray-900 mt-0.5 tabular-nums">
+                                            {alreadyServed ? "—" : isMyTurn ? "0" : peopleAhead}
+                                        </p>
+                                    </div>
+                                    <div className="flex-1 py-3">
+                                        <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Status</p>
+                                        <p className={`text-sm font-bold mt-1 ${isMyTurn ? "text-emerald-600" : isSkipped ? "text-amber-500" : alreadyServed ? "text-gray-400" : (!isNext ? "text-amber-600" : "")}`} style={isNext ? { color: brandColor } : {}}>
+                                            {isMyTurn ? "YOUR TURN" : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "NEXT" : "Waiting"}
+                                        </p>
+                                    </div>
+                                    <div className="flex-1 py-3">
+                                        <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Serving</p>
+                                        <p className="text-2xl font-bold text-gray-900 mt-0.5 tabular-nums">{prefix}{serving}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-center gap-2">
+                                <p className="text-center text-xs text-gray-400 leading-relaxed">
+                                    This page updates automatically. No need to refresh.
+                                </p>
+                                <button 
+                                    onClick={refresh}
+                                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 text-xs font-semibold transition-colors shadow-sm"
+                                >
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5" /></svg>
+                                    Refresh manually
+                                </button>
+                            </div>
 
                             {wsStatus === "reconnecting" && (
                                 <div role="status" className="text-center text-xs text-amber-600 flex items-center justify-center gap-1.5 py-2">

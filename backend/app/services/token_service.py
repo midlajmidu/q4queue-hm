@@ -485,7 +485,7 @@ async def skip_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID
     return token
 
 
-async def complete_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID) -> Token:
+async def complete_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID, user_id: uuid.UUID) -> Token:
     token = await _get_token_for_org(db, token_id=token_id, org_id=org_id)
     if token.status != TokenStatus.serving:
         raise ValueError(f"Cannot complete token with status '{token.status}'")
@@ -495,6 +495,7 @@ async def complete_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.
     token.status = TokenStatus.done
     token.served_at = token.served_at or datetime.now(timezone.utc)
     token.completed_at = datetime.now(timezone.utc)
+    token.completed_by_id = user_id
     queue.total_served += 1
     await db.flush()
     return token
@@ -516,6 +517,21 @@ async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UU
         await db.refresh(token)
     else:
         raise ValueError("Cannot remove completed or already skipped/deleted token")
+    return token
+
+
+async def undo_remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID) -> Token:
+    token = await _get_token_for_org(db, token_id=token_id, org_id=org_id)
+    # SECURITY FIX: use org-scoped lock to avoid cross-tenant DoS
+    await _lock_queue_for_org(db, token.queue_id, org_id)
+
+    if token.status != TokenStatus.deleted:
+        raise ValueError("Cannot undo removal for a token that is not deleted")
+
+    token.status = TokenStatus.waiting
+    token.removed_by = None
+    token.completed_at = None
+    await db.flush()
     return token
 
 
@@ -595,11 +611,14 @@ async def list_queue_tokens(
     org_id: uuid.UUID,
 ) -> list[Token]:
     """Retrieve all tokens in a queue (history/details view)."""
+    from app.models.queue import Queue
     result = await db.execute(
         select(Token)
+        .join(Queue, Queue.id == Token.queue_id)
         .where(
             Token.queue_id == queue_id,
             Token.org_id == org_id,            # ← TENANT ISOLATION
+            Token.session_id == Queue.token_session_id, # ← Only current session
         )
         .order_by(Token.token_number.asc())
     )
@@ -658,7 +677,7 @@ async def send_called_and_reminder_notifications(
                     assigned_line=serving_token.assigned_line,
                 )
 
-            # ── 2. Check for tokens now at position == 3 or position == 5 ─────
+            # ── 2. Check for tokens now at position == 5 or == 3 ──────────────
             waiting_res = await db.execute(
                 select(Token)
                 .where(

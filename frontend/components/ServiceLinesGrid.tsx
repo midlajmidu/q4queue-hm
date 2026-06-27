@@ -13,6 +13,7 @@ interface Props {
     prefix: string;
     onUpdate: () => void; // refresh after action
     isGlobalOrOrgAdmin?: boolean;
+    isPaused?: boolean;
 }
 
 export default function ServiceLinesGrid({
@@ -22,6 +23,7 @@ export default function ServiceLinesGrid({
     prefix,
     onUpdate,
     isGlobalOrOrgAdmin = false,
+    isPaused = false,
 }: Props) {
     const [loadingLine, setLoadingLine] = React.useState<number | null>(null);
     const [expandedLine, setExpandedLine] = React.useState<number | null>(null);
@@ -156,16 +158,16 @@ export default function ServiceLinesGrid({
                                         <div className="flex items-center gap-1.5 mt-auto">
                                             <button
                                                 onClick={() => callNext(lineNum, "skipped")}
-                                                disabled={isLoading}
-                                                title="Skip & Next"
+                                                disabled={isLoading || isPaused}
+                                                title={isPaused ? "Queue is on a break" : "Skip & Next"}
                                                 className="flex-[1] flex items-center justify-center gap-1 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 text-[11px] font-bold transition-colors disabled:opacity-50 px-1"
                                             >
                                                 <FastForward size={11} /> <span className="hidden sm:inline">Skip</span>
                                             </button>
                                             <button
                                                 onClick={() => callNext(lineNum, "done")}
-                                                disabled={isLoading}
-                                                title="Complete & Next"
+                                                disabled={isLoading || isPaused}
+                                                title={isPaused ? "Queue is on a break" : "Complete & Next"}
                                                 className="flex-[1.5] flex items-center justify-center gap-1 h-8 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold shadow-md shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 disabled:opacity-50 px-2"
                                             >
                                                 <PhoneCall size={11} /> Next
@@ -193,7 +195,8 @@ export default function ServiceLinesGrid({
                                         {!isGlobalOrOrgAdmin && (
                                             <button
                                                 onClick={() => callNext(lineNum)}
-                                                disabled={isLoading}
+                                                disabled={isLoading || isPaused}
+                                                title={isPaused ? "Queue is on a break" : undefined}
                                                 className="w-full flex items-center justify-center gap-1.5 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-600 dark:bg-indigo-500/10 dark:hover:bg-indigo-500 text-indigo-600 hover:text-white dark:text-indigo-400 text-[11px] font-bold transition-all duration-300 opacity-0 transform translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 disabled:opacity-50"
                                             >
                                                 <PhoneCall size={13} />
@@ -277,7 +280,8 @@ export default function ServiceLinesGrid({
                                         ) : (
                                             <button
                                                 onClick={() => callNext(lineNum)}
-                                                disabled={isLoading}
+                                                disabled={isLoading || isPaused}
+                                                title={isPaused ? "Queue is on a break" : undefined}
                                                 className="h-7 px-3 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[11px] font-bold transition-colors disabled:opacity-50 flex items-center gap-1"
                                             >
                                                 <PhoneCall size={11} /> {isLoading ? "..." : "Call"}
@@ -328,14 +332,16 @@ export default function ServiceLinesGrid({
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); callNext(lineNum, "skipped"); }}
-                                                        disabled={isLoading}
+                                                        disabled={isLoading || isPaused}
+                                                        title={isPaused ? "Queue is on a break" : "Skip & Next"}
                                                         className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[12px] font-bold transition-colors disabled:opacity-50"
                                                     >
                                                         <FastForward size={13} /> Skip
                                                     </button>
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); callNext(lineNum, "done"); }}
-                                                        disabled={isLoading}
+                                                        disabled={isLoading || isPaused}
+                                                        title={isPaused ? "Queue is on a break" : "Complete & Next"}
                                                         className="flex-[1.5] flex items-center justify-center gap-1.5 h-10 rounded-xl bg-emerald-500 text-white text-[12px] font-bold shadow-md shadow-emerald-500/20 transition-all disabled:opacity-50"
                                                     >
                                                         <PhoneCall size={13} /> Next

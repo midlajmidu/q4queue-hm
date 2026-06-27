@@ -631,10 +631,7 @@ async def get_branch_contact(
     
     return BranchContactDetails(
         address=branch.address,
-        contact_phone=branch.phone_number,
-        contact_email=branch.contact_email,
-        manager_name=branch.manager_name,
-        manager_phone=branch.manager_phone
+        contact_phone=branch.phone_number
     )
 
 @router.put("/operations/{branch_id}/contact", response_model=BranchContactDetails)
@@ -650,22 +647,13 @@ async def update_branch_contact(
         branch.address = payload.address
     if payload.contact_phone is not None:
         branch.phone_number = payload.contact_phone
-    if payload.contact_email is not None:
-        branch.contact_email = payload.contact_email
-    if payload.manager_name is not None:
-        branch.manager_name = payload.manager_name
-    if payload.manager_phone is not None:
-        branch.manager_phone = payload.manager_phone
         
     await db.commit()
     await db.refresh(branch)
     
     return BranchContactDetails(
         address=branch.address,
-        contact_phone=branch.phone_number,
-        contact_email=branch.contact_email,
-        manager_name=branch.manager_name,
-        manager_phone=branch.manager_phone
+        contact_phone=branch.phone_number
     )
 
 

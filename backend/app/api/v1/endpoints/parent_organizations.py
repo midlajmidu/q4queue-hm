@@ -142,6 +142,17 @@ async def update_parent_organization(
         if email_result.scalar_one_or_none():
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists")
 
+    if "max_branches" in update_data and update_data["max_branches"] is not None:
+        from app.models.organization import Organization
+        from sqlalchemy import func
+        branch_count_result = await db.execute(select(func.count(Organization.id)).where(Organization.parent_organization_id == parent_org.id))
+        current_branch_count = branch_count_result.scalar() or 0
+        if current_branch_count > update_data["max_branches"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot set branch limit below current branch count ({current_branch_count})"
+            )
+
     for field, value in update_data.items():
         setattr(parent_org, field, value)
 

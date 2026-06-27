@@ -9,3 +9,7 @@ backend/prisma/migrations
 .DS_Store
 local_backups/
 ngrok.yml
+venv/
+.pytest_cache/
+__pycache__/
+*.pyc

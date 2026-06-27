@@ -184,6 +184,9 @@ export default function OrgWhatsAppDashboard() {
             notify_position_3: enabled,
             notify_called: enabled,
             notify_completed: enabled,
+            notify_skipped: enabled,
+            notify_recalled: enabled,
+            notify_removed: enabled,
         };
         const previousConfig = { ...config };
         setConfig({ ...config, ...updated });
@@ -546,6 +549,54 @@ export default function OrgWhatsAppDashboard() {
                                             </div>
                                             <div className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer ${config?.notify_completed ? "bg-[#25d366]" : "bg-slate-300 dark:bg-slate-700"}`} onClick={() => handleSettingChange("notify_completed", !(config?.notify_completed ?? false))}>
                                                 <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_completed ? "translate-x-4" : "translate-x-1"}`} />
+                                            </div>
+                                        </div>
+
+                                        {/* Token Skipped */}
+                                        <div className="py-4 flex items-start justify-between gap-4">
+                                            <div className="flex gap-3">
+                                                <div className="mt-1 text-slate-400 dark:text-slate-500">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">Token Skipped</div>
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Alerts customer when their token is skipped due to unavailability.</div>
+                                                </div>
+                                            </div>
+                                            <div className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer ${config?.notify_skipped ? "bg-[#25d366]" : "bg-slate-300 dark:bg-slate-700"}`} onClick={() => handleSettingChange("notify_skipped", !(config?.notify_skipped ?? true))}>
+                                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_skipped ? "translate-x-4" : "translate-x-1"}`} />
+                                            </div>
+                                        </div>
+
+                                        {/* Token Recalled */}
+                                        <div className="py-4 flex items-start justify-between gap-4">
+                                            <div className="flex gap-3">
+                                                <div className="mt-1 text-slate-400 dark:text-slate-500">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 6H16" /></svg>
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">Token Recalled</div>
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Alerts customer when staff re-calls their previously-skipped token.</div>
+                                                </div>
+                                            </div>
+                                            <div className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer ${config?.notify_recalled ? "bg-[#25d366]" : "bg-slate-300 dark:bg-slate-700"}`} onClick={() => handleSettingChange("notify_recalled", !(config?.notify_recalled ?? true))}>
+                                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_recalled ? "translate-x-4" : "translate-x-1"}`} />
+                                            </div>
+                                        </div>
+
+                                        {/* Token Removed */}
+                                        <div className="py-4 flex items-start justify-between gap-4">
+                                            <div className="flex gap-3">
+                                                <div className="mt-1 text-slate-400 dark:text-slate-500">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">Token Removed</div>
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Alerts customer when removed from queue by staff or self-cancellation.</div>
+                                                </div>
+                                            </div>
+                                            <div className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer ${config?.notify_removed ? "bg-[#25d366]" : "bg-slate-300 dark:bg-slate-700"}`} onClick={() => handleSettingChange("notify_removed", !(config?.notify_removed ?? true))}>
+                                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${config?.notify_removed ? "translate-x-4" : "translate-x-1"}`} />
                                             </div>
                                         </div>
                                     </div>

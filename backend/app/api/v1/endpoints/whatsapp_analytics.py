@@ -28,6 +28,9 @@ class NotificationSettingsUpdate(BaseModel):
     notify_position_3: Optional[bool] = None
     notify_called: Optional[bool] = None
     notify_completed: Optional[bool] = None
+    notify_skipped: Optional[bool] = None
+    notify_recalled: Optional[bool] = None
+    notify_removed: Optional[bool] = None
 
 @router.patch("/settings", summary="Update Org WhatsApp Settings")
 async def update_org_settings(
@@ -56,6 +59,12 @@ async def update_org_settings(
         cfg.notify_called = body.notify_called
     if body.notify_completed is not None:
         cfg.notify_completed = body.notify_completed
+    if body.notify_skipped is not None:
+        cfg.notify_skipped = body.notify_skipped
+    if body.notify_recalled is not None:
+        cfg.notify_recalled = body.notify_recalled
+    if body.notify_removed is not None:
+        cfg.notify_removed = body.notify_removed
         
     await db.commit()
     await db.refresh(cfg)

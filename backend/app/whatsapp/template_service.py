@@ -169,13 +169,14 @@ DEFAULT_TEMPLATES = [
         "event_type": "queue_skipped_v2",
         "category": "UTILITY",
         "language": "en",
-        "description": "Sent when a customer is skipped",
+        "description": "Sent when a customer's token is skipped (they were unavailable when called)",
         "body_text": (
-            "⚠️ *You Have Been Skipped*\n\n"
-            "Hello {{1}}, your token was called at {{2}} but you were marked unavailable, so your turn has been skipped. "
+            "⚠️ *You Have Been Skipped, {{1}}*\n\n"
+            "Your token was called at *{{2}}* but you were marked unavailable. "
             "If you are still here, please speak to our staff immediately.\n\n"
+            "🎫 Your Token: *{{3}}*\n"
             "📱 Check Status: {{5}}\n\n"
-            "Powered by Q4Queue"
+            "_Powered by Q4Queue_"
         ),
         "variables": {
             "1": "Customer Name",
@@ -192,12 +193,13 @@ DEFAULT_TEMPLATES = [
         "event_type": "queue_removed_v2",
         "category": "UTILITY",
         "language": "en",
-        "description": "Sent when a customer is removed from the queue",
+        "description": "Sent when a customer is removed from the queue (by staff or self-cancel)",
         "body_text": (
-            "❌ *Removed From Queue*\n\n"
-            "Hello {{1}}, you have been removed from the queue at {{2}}.\n\n"
+            "❌ *Removed From Queue, {{1}}*\n\n"
+            "You have been removed from the queue at *{{2}}*. "
             "If this was a mistake, please scan the venue QR code again to rejoin.\n\n"
-            "Powered by Q4Queue"
+            "🎫 Your Token was: *{{3}}*\n\n"
+            "_Powered by Q4Queue_"
         ),
         "variables": {
             "1": "Customer Name",
@@ -214,12 +216,14 @@ DEFAULT_TEMPLATES = [
         "event_type": "queue_recalled_v2",
         "category": "UTILITY",
         "language": "en",
-        "description": "Sent when a skipped customer is recalled by staff",
+        "description": "Sent when a skipped customer is re-called by staff",
         "body_text": (
-            "🔔 *You Have Been Recalled!*\n\n"
-            "Please proceed to the counter immediately, {{1}}!\n\n"
-            "🎫 *Your Token Number:* #{{3}}\n\n"
-            "Powered by Q4Queue"
+            "🔁 *You Have Been Recalled, {{1}}!*\n\n"
+            "The staff at *{{2}}* is calling you again. "
+            "Please proceed to the counter immediately.\n\n"
+            "🎫 *Your Token Number:* {{3}}\n\n"
+            "📱 Track Live: {{5}}\n\n"
+            "_Powered by Q4Queue_"
         ),
         "variables": {
             "1": "Customer Name",
@@ -237,18 +241,27 @@ DEFAULT_TEMPLATES = [
 # ── Template CRUD ─────────────────────────────────────────────────────────────
 
 async def seed_default_templates(db: AsyncSession) -> None:
-    """Seed default templates if none exist. Called at startup."""
-    count_result = await db.execute(select(WhatsAppTemplate))
-    existing = count_result.scalars().all()
-    if existing:
-        return
+    """Seed default templates that don't yet exist. Called at startup.
+    Uses per-template upsert so new templates are added without wiping existing ones.
+    """
+    # Get all existing template names
+    existing_result = await db.execute(
+        select(WhatsAppTemplate.template_name)
+    )
+    existing_names = {row[0] for row in existing_result.fetchall()}
 
+    added = 0
     for tpl in DEFAULT_TEMPLATES:
-        template = WhatsAppTemplate(**tpl)
-        db.add(template)
+        if tpl["template_name"] not in existing_names:
+            template = WhatsAppTemplate(**tpl)
+            db.add(template)
+            added += 1
 
-    await db.commit()
-    logger.info("✓ WhatsApp default templates seeded (%d templates)", len(DEFAULT_TEMPLATES))
+    if added:
+        await db.commit()
+        logger.info("✓ WhatsApp templates seeded (%d new templates added)", added)
+    else:
+        logger.debug("WhatsApp templates: no new templates to seed")
 
 
 async def list_templates(db: AsyncSession) -> list[WhatsAppTemplate]:
