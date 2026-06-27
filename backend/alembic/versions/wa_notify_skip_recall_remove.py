@@ -7,7 +7,6 @@ Create Date: 2026-06-27
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import text
 
 # revision identifiers — depends only on the WhatsApp tables migration
 revision = 'wa_notify_skip_recall_remove'
@@ -16,26 +15,23 @@ branch_labels = None
 depends_on = None
 
 
-def _column_exists(table: str, column: str) -> bool:
-    """Return True if the column already exists (safe to re-run)."""
-    conn = op.get_bind()
-    result = conn.execute(text(
-        "SELECT 1 FROM information_schema.columns "
-        "WHERE table_name = :tbl AND column_name = :col"
-    ), {"tbl": table, "col": column})
-    return result.fetchone() is not None
-
-
 def upgrade() -> None:
-    for col in ['notify_skipped', 'notify_recalled', 'notify_removed']:
-        if not _column_exists('whatsapp_configs', col):
-            op.add_column(
-                'whatsapp_configs',
-                sa.Column(col, sa.Boolean(), server_default=sa.text('true'), nullable=False)
-            )
+    # Use ADD COLUMN IF NOT EXISTS (PostgreSQL 9.6+) — fully idempotent
+    op.execute(
+        "ALTER TABLE whatsapp_configs "
+        "ADD COLUMN IF NOT EXISTS notify_skipped BOOLEAN NOT NULL DEFAULT TRUE"
+    )
+    op.execute(
+        "ALTER TABLE whatsapp_configs "
+        "ADD COLUMN IF NOT EXISTS notify_recalled BOOLEAN NOT NULL DEFAULT TRUE"
+    )
+    op.execute(
+        "ALTER TABLE whatsapp_configs "
+        "ADD COLUMN IF NOT EXISTS notify_removed BOOLEAN NOT NULL DEFAULT TRUE"
+    )
 
 
 def downgrade() -> None:
-    for col in ['notify_removed', 'notify_recalled', 'notify_skipped']:
-        if _column_exists('whatsapp_configs', col):
-            op.drop_column('whatsapp_configs', col)
+    op.execute("ALTER TABLE whatsapp_configs DROP COLUMN IF EXISTS notify_removed")
+    op.execute("ALTER TABLE whatsapp_configs DROP COLUMN IF EXISTS notify_recalled")
+    op.execute("ALTER TABLE whatsapp_configs DROP COLUMN IF EXISTS notify_skipped")
