@@ -45,12 +45,14 @@ function shiftDate(dateStr: string, days: number): string {
 
 export default function SessionQueuesPage({ params }: PageProps) {
     const { sessionId } = use(params);
-    const { user } = useAuth();
+    const { user, isReadOnly } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
     const isStaff = user?.role === "staff";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
+    const canManageQueues = !isStaff && !isGlobalOrOrgAdmin && !isReadOnly;
+
 
     const [session, setSession] = useState<SessionResponse | null>(null);
     const [queues, setQueues] = useState<QueueResponse[]>([]);
@@ -93,19 +95,19 @@ export default function SessionQueuesPage({ params }: PageProps) {
         if (!isInitialLoading && queues.length >= 0) {
             const action = searchParams.get("action");
             if (action === "create") {
-                setShowCreate(true);
+                if (canManageQueues) setShowCreate(true);
                 // Clear the URL
                 router.replace(`${dashBase}/sessions/${sessionId}/queues`);
             } else if (action === "qr") {
                 // For QR, we could show an alert or highlight the first queue's QR
                 // But if there are no queues, maybe show the create modal instead?
-                if (queues.length === 0) {
+                if (queues.length === 0 && canManageQueues) {
                     setShowCreate(true);
                 }
                 router.replace(`${dashBase}/sessions/${sessionId}/queues`);
             }
         }
-    }, [isInitialLoading, queues.length, searchParams, isStaff, dashBase, sessionId, router]);
+    }, [isInitialLoading, queues.length, searchParams, isStaff, dashBase, sessionId, router, canManageQueues]);
 
     const loadSession = useCallback(async () => {
         setError(null);
@@ -394,7 +396,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                     </button>
                                 )}
                             </div>
-                            {!isStaff && !isGlobalOrOrgAdmin && (
+                            {canManageQueues && (
                                 <button
                                     onClick={() => setShowCreate(true)}
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl h-9 px-4 shadow-sm shadow-indigo-500/10 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 flex-shrink-0 w-full sm:w-auto"
@@ -429,8 +431,9 @@ export default function SessionQueuesPage({ params }: PageProps) {
                             </div>
                             <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">No queues in this session</h3>
                             <p className="text-sm text-gray-500 font-medium mb-8 max-w-xs mx-auto leading-relaxed">
-                                Add your first queue to start serving customers in this session.
+                                {canManageQueues ? "Add your first queue to start serving customers in this session." : "No queues have been created for this session yet."}
                             </p>
+                                {canManageQueues && (
                                 <button
                                     onClick={() => setShowCreate(true)}
                                     className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors duration-200 shadow-sm shadow-indigo-500/10 text-sm"
@@ -440,6 +443,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                     </svg>
                                     Create First Queue
                                 </button>
+                                )}
                         </div>
                     ) : (
                         <div className="flex flex-col gap-8">

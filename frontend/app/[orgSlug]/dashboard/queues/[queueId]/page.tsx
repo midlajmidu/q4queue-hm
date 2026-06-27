@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useQueueSocket } from "@/hooks/useQueueSocket";
 import { getToken, getCurrentUser } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/Toast";
 import ConnectionBadge from "@/components/ConnectionBadge";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -348,9 +349,10 @@ export default function QueueDetailPage({ params }: PageProps) {
     const { queueId } = use(params);
     const token = getToken();
     const user = getCurrentUser();
+    const { isReadOnly } = useAuth();
     const isStaff = user?.role === "staff";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
-    const canManageQueue = !isGlobalOrOrgAdmin;
+    const canManageQueue = !isGlobalOrOrgAdmin && !isReadOnly;
     const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
     const { toast } = useToast();
 

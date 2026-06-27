@@ -677,6 +677,7 @@ async def get_cross_branch_analytics(
         func.extract('hour', func.timezone('Asia/Kolkata', Token.created_at)).label('hr'),
         func.count(Token.id).label("arrived"),
         func.sum(case((Token.status == TokenStatus.done, 1), else_=0)).label("served"),
+        func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
     ).where(and_(*token_conditions)).group_by('hr').order_by('hr')
     
     peak_res = await db.execute(peak_q)
@@ -704,11 +705,14 @@ async def get_cross_branch_analytics(
         ampm = "AM" if hr_int < 12 else "PM"
         display_hr = hr_int if hr_int <= 12 else hr_int - 12
         if display_hr == 0: display_hr = 12
+        # Convert avg wait seconds to minutes (rounded to 1dp)
+        avg_wait_min = round(float(r.avg_wait_sec) / 60, 1) if r.avg_wait_sec else 0
         
         peak_traffic.append({
             "time_block": f"{display_hr}:00 {ampm}",
             "customers_arrived": r.arrived,
             "customers_served": int(r.served or 0),
+            "avg_wait_minutes": avg_wait_min,
             "is_peak": (r.hr == peak_hr)
         })
         

@@ -286,3 +286,75 @@ async def reset_branch_admin_password(
     
     await db.commit()
     return {"message": "Password updated successfully"}
+
+
+# ── Org-Admin: Impersonate Branch (read-only view) ──────────────────────────
+
+from app.core.security import create_access_token
+from app.schemas.auth import TokenResponse
+
+
+@router.post(
+    "/branches/{org_id}/impersonate",
+    response_model=TokenResponse,
+    summary="Get read-only branch access token for Org Admin",
+)
+async def org_admin_impersonate_branch(
+    org_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_org_admin),
+):
+    """
+    Issues a read-only access token for a branch that belongs to the
+    org admin's parent organization. Used so org admins can view a
+    branch dashboard without being able to modify anything.
+    """
+    import uuid as _uuid
+    try:
+        org_uuid = _uuid.UUID(org_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid org_id.")
+
+    # Verify the branch belongs to this org admin's parent org
+    result = await db.execute(
+        select(Organization).where(
+            Organization.id == org_uuid,
+            Organization.parent_organization_id == current_user.parent_organization_id,
+        )
+    )
+    branch: Organization | None = result.scalar_one_or_none()
+    if not branch:
+        raise HTTPException(status_code=404, detail="Branch not found or not in your organization.")
+
+    # Find the primary admin of that branch
+    admin_result = await db.execute(
+        select(User).where(
+            User.org_id == org_uuid,
+            User.role == "admin",
+        ).limit(1)
+    )
+    admin = admin_result.scalar_one_or_none()
+    if not admin:
+        raise HTTPException(status_code=404, detail="No admin user found for this branch.")
+
+    # Issue a read-only token
+    token = create_access_token(
+        user_id=str(admin.id),
+        org_id=str(branch.id),
+        org_slug=branch.slug,
+        org_name=branch.name,
+        role=admin.role,
+        email=admin.email,
+        first_name=admin.first_name,
+        last_name=admin.last_name,
+        is_impersonating=True,
+        is_read_only=True,
+    )
+
+    logger.info(
+        "Org admin %s obtained read-only view of branch %s",
+        current_user.email,
+        branch.slug,
+    )
+    return TokenResponse(access_token=token)
+

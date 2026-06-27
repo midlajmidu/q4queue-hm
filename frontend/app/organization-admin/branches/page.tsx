@@ -149,7 +149,7 @@ export default function BranchesPage() {
                                                     <Eye size={16} />
                                                 </Link>
                                                 <a
-                                                    href={`/${branch.slug}/dashboard`}
+                                                    href={`/organization-admin/branches/${branch.id}/admin`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors shadow-sm"

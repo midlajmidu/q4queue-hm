@@ -108,14 +108,35 @@ async def get_dashboard_metrics(
         .group_by(Token.status)
     )
     filtered_tokens = dict(filtered_tokens_res.all())
-    
+
+    # Real avg wait & service times for filtered orgs (today only)
+    time_metrics_res = await db.execute(
+        select(
+            func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
+            func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
+        ).where(
+            Token.org_id.in_(filtered_org_ids),
+            func.date(Token.created_at) == today,
+            Token.status == TokenStatus.done,
+            Token.served_at.isnot(None),
+        )
+    )
+    tm = time_metrics_res.first()
+
+    def _fmt_minutes(sec: float | None) -> str:
+        if not sec or sec <= 0:
+            return "0m"
+        m = int(sec / 60)
+        s = int(sec % 60)
+        return f"{m}m {s}s" if s else f"{m}m"
+
     dynamic_insights = DynamicInsights(
         active_sessions=filtered_sessions_res.scalar() or 0,
         active_queues=filtered_queues_res.scalar() or 0,
         customers_being_served=filtered_tokens.get(TokenStatus.serving, 0),
-        average_wait_time="0m", # Placeholder until analytics aggregation is available
-        average_service_time="0m",
-        whatsapp_success_rate=100.0 # Placeholder
+        average_wait_time=_fmt_minutes(tm.avg_wait_sec if tm else None),
+        average_service_time=_fmt_minutes(tm.avg_serve_sec if tm else None),
+        whatsapp_success_rate=100.0  # Placeholder — WhatsApp computed below
     )
 
     from app.whatsapp.models import WhatsAppMessage
@@ -153,6 +174,19 @@ async def get_dashboard_metrics(
         
         b_sessions = await db.execute(select(func.count(Session.id)).where(Session.org_id == org_id, Session.session_date == today))
         b_queues = await db.execute(select(func.count(Queue.id)).where(Queue.org_id == org_id, Queue.is_active == True))
+
+        # Real avg wait time for this branch today
+        b_wait_res = await db.execute(
+            select(
+                func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
+            ).where(
+                Token.org_id == org_id,
+                func.date(Token.created_at) == today,
+                Token.status == TokenStatus.done,
+                Token.served_at.isnot(None),
+            )
+        )
+        b_wait = b_wait_res.scalar_one_or_none()
         
         branch_performance.append(BranchPerformanceRow(
             id=branch_obj.id,
@@ -161,7 +195,7 @@ async def get_dashboard_metrics(
             waiting_customers=b_t.get(TokenStatus.waiting, 0),
             serving_customers=b_t.get(TokenStatus.serving, 0),
             customers_served_today=b_t.get(TokenStatus.done, 0),
-            avg_wait_time="0m",
+            avg_wait_time=_fmt_minutes(b_wait),
             active_sessions=b_sessions.scalar() or 0,
             active_queues=b_queues.scalar() or 0,
             status="Active" if branch_obj.is_active else "Inactive"
@@ -255,6 +289,79 @@ async def get_branch_summary(
     current_user: User = Depends(require_organization_admin()),
 ):
     return {} # Implementation pending
+
+
+@router.get("/analytics/traffic", summary="Hourly Traffic & Wait Time for Chart")
+async def get_traffic_trend(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_organization_admin()),
+    branch_id: Optional[uuid.UUID] = Query(None),
+):
+    """
+    Returns hourly traffic volume and average wait time for today.
+    Used exclusively by the TrafficChart on the org-admin dashboard.
+    """
+    from zoneinfo import ZoneInfo
+    from sqlalchemy import case as sa_case
+
+    org_ids = await get_org_ids(db, current_user.parent_organization_id, branch_id)
+    if not org_ids:
+        return {"peak_traffic": [], "peak_hour": None}
+
+    tz = ZoneInfo("Asia/Kolkata")
+    today_local = datetime.now(tz).date()
+
+    # Filter: tokens created today (local time)
+    peak_q = select(
+        func.extract('hour', func.timezone('Asia/Kolkata', Token.created_at)).label('hr'),
+        func.count(Token.id).label("arrived"),
+        func.sum(sa_case((Token.status == TokenStatus.done, 1), else_=0)).label("served"),
+        func.avg(
+            func.extract('epoch', Token.served_at - Token.created_at)
+        ).label('avg_wait_sec'),
+    ).where(
+        Token.org_id.in_(org_ids),
+        func.date(func.timezone('Asia/Kolkata', Token.created_at)) == today_local,
+    ).group_by('hr').order_by('hr')
+
+    rows = (await db.execute(peak_q)).all()
+
+    max_arrived = max((r.arrived for r in rows), default=0)
+    peak_hr = next((r.hr for r in rows if r.arrived == max_arrived), None)
+
+    result = []
+    for r in rows:
+        hr = int(r.hr)
+        ampm = "AM" if hr < 12 else "PM"
+        disp = hr if hr <= 12 else hr - 12
+        if disp == 0:
+            disp = 12
+        avg_wait_min = round(float(r.avg_wait_sec) / 60, 1) if r.avg_wait_sec else 0
+        result.append({
+            "time_block": f"{disp}:00 {ampm}",
+            "customers_arrived": r.arrived,
+            "customers_served": int(r.served or 0),
+            "avg_wait_minutes": avg_wait_min,
+            "is_peak": (r.hr == peak_hr),
+        })
+
+    # Format peak hour label
+    peak_label = None
+    if peak_hr is not None:
+        hr = int(peak_hr)
+        ampm = "AM" if hr < 12 else "PM"
+        disp = hr if hr <= 12 else hr - 12
+        if disp == 0:
+            disp = 12
+        next_hr = (hr + 1) % 24
+        next_ampm = "AM" if next_hr < 12 else "PM"
+        next_disp = next_hr if next_hr <= 12 else next_hr - 12
+        if next_disp == 0:
+            next_disp = 12
+        peak_label = f"{disp}:00 {ampm} – {next_disp}:00 {next_ampm}"
+
+    return {"peak_traffic": result, "peak_hour": peak_label}
+
 
 @router.get("/analytics", response_model=AnalyticsResponse)
 async def get_analytics(

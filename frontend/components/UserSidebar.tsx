@@ -34,9 +34,12 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
     const { user, logout } = useAuth();
     const pathname = usePathname();
     const params = useParams();
-    const orgSlug = params?.orgSlug || user?.org_slug;
+    const orgSlug = (params?.branchSlug as string) || (params?.orgSlug as string) || user?.org_slug;
     let dashBase = orgSlug ? `/${orgSlug}/dashboard` : "/dashboard";
-    if (orgSlug && pathname.startsWith(`/org-admin/${orgSlug}`)) {
+    if (orgSlug && pathname.startsWith(`/organization-admin/${orgSlug}`)) {
+        // Org-admin read-only branch view — keep links under /organization-admin/{slug}/dashboard
+        dashBase = `/organization-admin/${orgSlug}/dashboard`;
+    } else if (orgSlug && pathname.startsWith(`/org-admin/${orgSlug}`)) {
         dashBase = `/org-admin/${orgSlug}/dashboard`;
     } else if (orgSlug) {
         const superAdminMatch = pathname.match(new RegExp(`^/super-admin/([^/]+)/${orgSlug}`));

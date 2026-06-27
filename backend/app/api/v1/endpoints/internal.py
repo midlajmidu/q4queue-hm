@@ -29,6 +29,7 @@ class OrganizationCreate(BaseModel):
     slug: str = Field(..., max_length=100)
     admin_email: EmailStr
     admin_password: str = Field(..., min_length=8)
+    parent_organization_id: uuid.UUID | None = None
 
 
 class OrganizationResponse(BaseModel):
@@ -77,6 +78,7 @@ async def create_tenant(
             is_active=True,
             max_sessions=IN_MEMORY_SETTINGS.get("default_session_limit", 10),
             max_queues_per_session=IN_MEMORY_SETTINGS.get("default_queue_limit", 20),
+            parent_organization_id=data.parent_organization_id,
         )
         db.add(org)
         await db.flush()  # to get org.id

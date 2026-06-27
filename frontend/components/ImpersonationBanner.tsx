@@ -3,9 +3,9 @@
 import { useAuth } from "@/hooks/useAuth";
 
 export function ImpersonationBanner() {
-    const { isImpersonating, user, stopImpersonating } = useAuth();
+    const { isImpersonating, user, stopImpersonating, isReadOnly } = useAuth();
 
-    if (!isImpersonating) return null;
+    if (!isImpersonating || isReadOnly) return null;
 
     return (
         <div className="bg-amber-500 text-amber-950 px-4 py-2 flex items-center justify-center gap-4 text-sm font-medium z-[100] relative shadow-md">

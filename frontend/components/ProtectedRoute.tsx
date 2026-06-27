@@ -13,7 +13,7 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
         // Only redirect if hydration is complete and we know for sure they aren't authenticated
         if (isHydrated && !isLoading) {
             if (!isAuthenticated) {
-                if (pathname.startsWith("/organization-admin")) {
+                if (pathname.startsWith("/organization-admin") || pathname.startsWith("/org-admin")) {
                     router.replace(`/organization-login?redirect=${encodeURIComponent(pathname)}`);
                 } else if (pathname.startsWith("/super-admin")) {
                     router.replace(`/super-admin/login?redirect=${encodeURIComponent(pathname)}`);

@@ -698,8 +698,9 @@ export default function OverviewPage() {
   const [prevOverview, setPrevOverview] = useState<AnalyticsOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, isReadOnly } = useAuth();
   const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
+
 
   const [sessions, setSessions] = useState<SessionResponse[]>([]);
   const [queues, setQueues] = useState<QueueResponse[]>([]);

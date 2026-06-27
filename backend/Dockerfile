@@ -28,4 +28,4 @@ USER app
 EXPOSE 8000
 
 # Use gunicorn with uvicorn workers for production-grade concurrency
-CMD ["sh", "-c", "export PYTHONPATH=/app && alembic upgrade head && gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000"]
+CMD ["sh", "-c", "export PYTHONPATH=/app && alembic upgrade heads && gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000"]

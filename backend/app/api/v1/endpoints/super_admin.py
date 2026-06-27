@@ -1177,6 +1177,7 @@ async def impersonate_organization(
         first_name=admin.first_name,
         last_name=admin.last_name,
         is_impersonating=True,
+        is_read_only=True,
     )
 
     # Log the impersonation event
