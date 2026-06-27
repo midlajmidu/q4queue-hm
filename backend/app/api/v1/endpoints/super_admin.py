@@ -830,6 +830,22 @@ async def create_organization(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Organization slug '{body.org_slug}' is already taken.",
         )
+        
+    if body.parent_organization_id:
+        from app.models.parent_organization import ParentOrganization
+        parent_result = await db.execute(select(ParentOrganization).where(ParentOrganization.id == body.parent_organization_id))
+        parent_org = parent_result.scalar_one_or_none()
+        if not parent_org:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parent organization not found")
+            
+        if parent_org.max_branches is not None:
+            count_result = await db.execute(select(func.count(Organization.id)).where(Organization.parent_organization_id == parent_org.id))
+            current_count = count_result.scalar() or 0
+            if current_count >= parent_org.max_branches:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Branch limit ({parent_org.max_branches}) reached for this organization.",
+                )
 
     org = Organization(
         name=body.org_name, 

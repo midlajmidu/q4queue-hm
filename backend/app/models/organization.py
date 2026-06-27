@@ -41,15 +41,13 @@ class Organization(Base):
     # ── Clinic Information ─────────────────────────────────────────
     address: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     phone_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
-    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    manager_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
-    manager_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
 
     # ── Limits ─────────────────────────────────────────────────────
     max_sessions: Mapped[int] = mapped_column(default=10, nullable=False)
     max_queues_per_session: Mapped[int] = mapped_column(default=20, nullable=False)
     max_tokens: Mapped[int] = mapped_column(default=5000, nullable=False)
     max_staff: Mapped[int] = mapped_column(default=5, nullable=False)
+    max_waiting_capacity: Mapped[int] = mapped_column(default=50, server_default='50', nullable=False)
 
     # ── Templates ──────────────────────────────────────────────────
     queue_templates: Mapped[list[dict]] = mapped_column(JSON, server_default='[]', nullable=False)

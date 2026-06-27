@@ -17,6 +17,7 @@ class OrgAdminDashboardResponse(BaseModel):
     admin_count: int
     staff_count: int
     branches: list[BranchStatItem]
+    max_branches: int | None = None
 
 class BranchCreateRequest(BaseModel):
     name: str

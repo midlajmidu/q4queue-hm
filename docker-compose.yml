@@ -76,6 +76,7 @@ services:
       dockerfile: Dockerfile
     container_name: queue_backend
     restart: always
+    command: ["sh", "-c", "export PYTHONPATH=/app && gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000"]
     depends_on:
       postgres:
         condition: service_healthy

@@ -95,7 +95,10 @@ export default function ParentOrgRow({ parent, onRefresh }: Props) {
                     <div className="flex gap-4">
                         <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700/50 px-2.5 py-1 rounded-md shadow-sm">
                             <BuildingIcon />
-                            <span className="text-xs text-slate-300"><span className="font-bold text-slate-100">{parent.branch_count || 0}</span> {parent.branch_count === 1 ? "Branch" : "Branches"}</span>
+                            <span className="text-xs text-slate-300">
+                                <span className="font-bold text-slate-100">{parent.branch_count || 0}</span>
+                                {parent.max_branches ? ` / ${parent.max_branches}` : ""} {(parent.max_branches || parent.branch_count || 0) === 1 ? "Branch" : "Branches"}
+                            </span>
                         </div>
                         <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700/50 px-2.5 py-1 rounded-md shadow-sm">
                             <Shield size={12} className="text-indigo-400" />

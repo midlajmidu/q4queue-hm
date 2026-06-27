@@ -17,7 +17,7 @@ export function PremiumCard({
     return (
         <div 
             className={cn(
-                "bg-white rounded-lg border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden",
+                "bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden",
                 hoverEffect && "hover:shadow-md transition-shadow duration-200",
                 gradientBorder && "border-0 p-[1px] bg-gradient-to-b from-slate-200 to-slate-100",
                 className

@@ -34,6 +34,17 @@ async def create_branch(
     if not current_user.parent_organization_id:
         raise HTTPException(status_code=400, detail="Not linked to a parent organization")
 
+    from app.models.parent_organization import ParentOrganization
+    from sqlalchemy import func
+    parent_org_result = await db.execute(select(ParentOrganization).where(ParentOrganization.id == current_user.parent_organization_id))
+    parent_org = parent_org_result.scalar_one_or_none()
+    
+    if parent_org and parent_org.max_branches is not None:
+        count_result = await db.execute(select(func.count(Organization.id)).where(Organization.parent_organization_id == parent_org.id))
+        current_count = count_result.scalar() or 0
+        if current_count >= parent_org.max_branches:
+            raise HTTPException(status_code=400, detail=f"Branch limit ({parent_org.max_branches}) reached for this organization")
+
     # Check slug uniqueness
     existing_org_result = await db.execute(
         select(Organization).where(Organization.slug == request.slug)

@@ -5,7 +5,7 @@ Parent Organization model representing the top-level entity above branches.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, DateTime, String, func, Integer, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -53,9 +53,9 @@ class ParentOrganization(Base):
     brand_color: Mapped[str | None] = mapped_column(String(20), nullable=True)
     timezone: Mapped[str] = mapped_column(String(50), default="UTC", server_default="UTC", nullable=False)
     backup_time: Mapped[str] = mapped_column(String(5), default="03:00", server_default="03:00", nullable=False)
+    max_branches: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
     
     # ── Defaults for New Branches ──────────────────────────────────
-    from sqlalchemy import JSON
     default_queue_settings: Mapped[dict | None] = mapped_column(JSON, server_default='{}', nullable=True)
     default_session_settings: Mapped[dict | None] = mapped_column(JSON, server_default='{}', nullable=True)
     whatsapp_preferences: Mapped[dict | None] = mapped_column(JSON, server_default='{}', nullable=True)

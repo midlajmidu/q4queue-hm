@@ -23,7 +23,9 @@ class DynamicInsights(BaseModel):
 
 class ExecutiveInsights(BaseModel):
     top_performing_branch: Optional[str] = None
+    top_performing_branch_id: Optional[uuid.UUID] = None
     busiest_branch: Optional[str] = None
+    busiest_branch_id: Optional[uuid.UUID] = None
     best_avg_wait_time: Optional[str] = None
     most_customers_served: Optional[str] = None
     most_active_queue: Optional[str] = None
@@ -66,6 +68,7 @@ class DashboardMetricsResponse(BaseModel):
     branch_health: BranchHealthOverview
     alerts: List[DashboardAlert]
     branch_performance: List[BranchPerformanceRow]
+    max_branches: int | None = None
 
 class BranchOverviewItem(BaseModel):
     id: uuid.UUID
@@ -74,6 +77,7 @@ class BranchOverviewItem(BaseModel):
     status: str
     queues: int
     sessions: int
+    serving: int = 0
     waiting: int
     served_today: int
     avg_wait_time: str
@@ -82,6 +86,9 @@ class BranchOverviewItem(BaseModel):
     total_staff: int = 0
     online_staff: int = 0
     whatsapp_success_rate: float = 0.0
+    address: str | None = None
+    phone_number: str | None = None
+    brand_color: str | None = None
     whatsapp_failed_today: int = 0
     alerts: List[str] = []
 
@@ -155,17 +162,23 @@ class SessionMonitorItem(BaseModel):
     serving: int
     completed: int
     status: str
+    active_staff_present: Optional[str] = None
+    active_staff_total: Optional[str] = None
+    load_status: Optional[str] = None
+    load_percentage: int = 0
 
 class QueueMonitorItem(BaseModel):
     id: uuid.UUID
     branch: str
     branch_slug: str
     queue_name: str
+    session_name: Optional[str] = None
     current_token: str
-    waiting_count: int
-    avg_wait: str
+    waiting: int
+    served_today: int
+    avg_wait_time: str
     status: str
-    load_indicator: str
+    load_percentage: int
 
 class StaffMonitorItem(BaseModel):
     id: uuid.UUID
@@ -193,6 +206,8 @@ class AuditMonitorItem(BaseModel):
     timestamp: datetime
     branch: str
     branch_slug: str
-    user: str
+    user_email: str
     action: str
-    details: Dict[str, Any]
+    entity_type: Optional[str]
+    entity_id: Optional[str]
+    details: Optional[Dict[str, Any]] = None

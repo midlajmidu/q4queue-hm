@@ -51,14 +51,6 @@ export default function BranchContactCard({ branchId }: { branchId: string }) {
                     <Phone size={16} className="text-slate-400" />
                     {isEditing ? <input value={data.contact_phone || ''} onChange={e => setData({...data, contact_phone: e.target.value})} className="border rounded px-2 w-full" /> : <span>{data.contact_phone || 'No phone set'}</span>}
                 </div>
-                <div className="flex gap-2">
-                    <Mail size={16} className="text-slate-400" />
-                    {isEditing ? <input value={data.contact_email || ''} onChange={e => setData({...data, contact_email: e.target.value})} className="border rounded px-2 w-full" /> : <span>{data.contact_email || 'No email set'}</span>}
-                </div>
-                <div className="flex gap-2">
-                    <User size={16} className="text-slate-400" />
-                    {isEditing ? <div className="flex gap-2 w-full"><input placeholder="Manager Name" value={data.manager_name || ''} onChange={e => setData({...data, manager_name: e.target.value})} className="border rounded px-2 w-1/2" /><input placeholder="Manager Phone" value={data.manager_phone || ''} onChange={e => setData({...data, manager_phone: e.target.value})} className="border rounded px-2 w-1/2" /></div> : <span>Manager: {data.manager_name || 'N/A'} ({data.manager_phone || 'N/A'})</span>}
-                </div>
             </div>
         </div>
     );

@@ -93,6 +93,7 @@ export interface ParentOrganization {
     updated_at: string;
     branch_count: number;
     admin_count: number;
+    max_branches?: number | null;
 }
 
 export interface ParentOrganizationPage {
@@ -106,6 +107,7 @@ export interface ParentOrganizationCreate {
     contact_email?: string;
     contact_phone?: string;
     is_active?: boolean;
+    max_branches?: number | null;
 }
 
 export interface ParentOrganizationUpdate {
@@ -114,6 +116,7 @@ export interface ParentOrganizationUpdate {
     contact_email?: string;
     contact_phone?: string;
     is_active?: boolean;
+    max_branches?: number | null;
 }
 
 export interface AssignBranchesRequest {
@@ -143,6 +146,7 @@ export interface OrgAdminDashboardResponse {
     admin_count: number;
     staff_count: number;
     branches: BranchStatItem[];
+    max_branches?: number | null;
 }
 
 export interface BranchCreateRequest {

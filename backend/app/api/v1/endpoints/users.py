@@ -103,3 +103,18 @@ async def update_me(
     resp = UserResponse.model_validate(current_user)
     resp.access_token = token
     return resp
+
+
+@router.post(
+    "/me/heartbeat",
+    summary="User Heartbeat",
+    description="Updates the authenticated user's last_active_at timestamp to current time.",
+)
+async def user_heartbeat(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import func
+    current_user.last_active_at = func.now()
+    await db.commit()
+    return {"status": "ok"}

@@ -995,6 +995,12 @@ export const api = {
         return request<User>("/users/me");
     },
 
+    sendHeartbeat(): Promise<{ status: string }> {
+        return request<{ status: string }>("/users/me/heartbeat", {
+            method: "POST"
+        });
+    },
+
     updateMyProfile(data: { first_name?: string, last_name?: string }): Promise<User> {
         return request<User>("/users/me", {
             method: "PATCH",

@@ -88,13 +88,7 @@ class BranchAlert(BaseModel):
 class BranchContactDetails(BaseModel):
     address: Optional[str] = None
     contact_phone: Optional[str] = None
-    contact_email: Optional[str] = None
-    manager_name: Optional[str] = None
-    manager_phone: Optional[str] = None
 
 class BranchContactDetailsUpdate(BaseModel):
     address: Optional[str] = None
     contact_phone: Optional[str] = None
-    contact_email: Optional[str] = None
-    manager_name: Optional[str] = None
-    manager_phone: Optional[str] = None
