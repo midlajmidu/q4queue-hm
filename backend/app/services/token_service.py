@@ -661,8 +661,9 @@ async def send_called_and_reminder_notifications(
             serving_token = tok_res.scalar_one_or_none()
 
             if serving_token:
+                event_name = "queue_recalled_v2" if getattr(serving_token, "called_via_invite", False) else "queue_called_v2"
                 await notify_queue_event(
-                    event_type="queue_called_v2",
+                    event_type=event_name,
                     org_id=org_id,
                     token_id=serving_token.id,
                     queue_id=queue_id,
@@ -683,7 +684,6 @@ async def send_called_and_reminder_notifications(
                     Token.queue_id == queue_id,
                     Token.org_id == org_id,
                     Token.status == TokenStatus.waiting,
-                    Token.whatsapp_reminder_sent == False,  # noqa: E712
                 )
                 .order_by(Token.token_number.asc())
                 .limit(5)
@@ -692,23 +692,7 @@ async def send_called_and_reminder_notifications(
 
             for i, wt in enumerate(waiting_tokens):
                 position = i + 1  # 1-indexed position
-                if position == 5:
-                    await notify_queue_event(
-                        event_type="queue_nearby_5_v2",
-                        org_id=org_id,
-                        token_id=wt.id,
-                        queue_id=queue_id,
-                        customer_name=wt.customer_name,
-                        customer_phone=wt.customer_phone,
-                        token_number=wt.token_number,
-                        token_prefix=queue.prefix,
-                        queue_name=queue.name,
-                        position=position,
-                        tracking_id=str(getattr(wt, "tracking_id", "")),
-                        session_id=queue.session_id,
-                    )
-                    wt.whatsapp_reminder_sent = True
-                elif position == 3:
+                if position == 3 and not wt.whatsapp_reminder_sent:
                     await notify_queue_event(
                         event_type="queue_nearby_3_v2",
                         org_id=org_id,
@@ -725,6 +709,33 @@ async def send_called_and_reminder_notifications(
                     )
                     # Mark reminder as sent so we don't re-send
                     wt.whatsapp_reminder_sent = True
+                
+                elif position == 5:
+                    # Check if we already sent a position 5 reminder for this token
+                    from app.whatsapp.models import WhatsAppMessage
+                    msg_check = await db.execute(
+                        select(WhatsAppMessage).where(
+                            WhatsAppMessage.token_id == wt.id,
+                            WhatsAppMessage.event_type == "queue_nearby_5_v2"
+                        )
+                    )
+                    already_sent_5 = msg_check.scalars().first() is not None
+                    
+                    if not already_sent_5:
+                        await notify_queue_event(
+                            event_type="queue_nearby_5_v2",
+                            org_id=org_id,
+                            token_id=wt.id,
+                            queue_id=queue_id,
+                            customer_name=wt.customer_name,
+                            customer_phone=wt.customer_phone,
+                            token_number=wt.token_number,
+                            token_prefix=queue.prefix,
+                            queue_name=queue.name,
+                            position=position,
+                            tracking_id=str(getattr(wt, "tracking_id", "")),
+                            session_id=queue.session_id,
+                        )
 
             if waiting_tokens:
                 await db.commit()

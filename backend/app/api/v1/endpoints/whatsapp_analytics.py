@@ -90,48 +90,41 @@ async def get_org_settings(
 
 # ── Org Admin: Dashboard Analytics ────────────────────────────────────────────
 
-@router.get("/overview", summary="WhatsApp Analytics Overview")
+@router.get("/overview", summary="Organization Overview Stats")
 async def get_analytics_overview(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_branch_admin()),
+    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
+    queue_id: Optional[uuid.UUID] = Query(None, description="Filter by Queue ID"),
+    session_id: Optional[uuid.UUID] = Query(None, description="Filter by Session ID"),
 ) -> dict:
-    """Return overall sent, delivered, read, failed counts."""
+    """High level metrics (total sent, delivered, read, success rate)."""
     if current_user.org_id is None:
         raise HTTPException(status_code=403, detail="No organization context")
-    return await analytics_service.get_org_stats(db, current_user.org_id)
+    return await analytics_service.get_org_stats(
+        db, current_user.org_id, start_date=start_date, end_date=end_date, queue_id=queue_id, session_id=session_id
+    )
 
 
 @router.get("/events", summary="Analytics Grouped by Event")
 async def get_analytics_events(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_branch_admin()),
+    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
+    queue_id: Optional[uuid.UUID] = Query(None, description="Filter by Queue ID"),
+    session_id: Optional[uuid.UUID] = Query(None, description="Filter by Session ID"),
 ) -> list:
     """Return counts grouped by event_type."""
     if current_user.org_id is None:
         raise HTTPException(status_code=403, detail="No organization context")
-    return await analytics_service.get_stats_by_event(db, current_user.org_id)
+    return await analytics_service.get_stats_by_event(
+        db, current_user.org_id, start_date=start_date, end_date=end_date, queue_id=queue_id, session_id=session_id
+    )
 
 
-@router.get("/queues", summary="Analytics Grouped by Queue")
-async def get_analytics_queues(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
-) -> list:
-    """Return counts grouped by queue."""
-    if current_user.org_id is None:
-        raise HTTPException(status_code=403, detail="No organization context")
-    return await analytics_service.get_stats_by_queue(db, current_user.org_id)
 
-
-@router.get("/sessions", summary="Analytics Grouped by Session")
-async def get_analytics_sessions(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
-) -> list:
-    """Return counts grouped by session."""
-    if current_user.org_id is None:
-        raise HTTPException(status_code=403, detail="No organization context")
-    return await analytics_service.get_stats_by_session(db, current_user.org_id)
 
 
 @router.get("/history", summary="WhatsApp Detailed History")
@@ -169,13 +162,17 @@ async def get_analytics_history(
                 "customer_name": m.customer_name,
                 "event_type": m.event_type,
                 "template_name": m.template_name,
+                "template_variables": m.template_variables,
+                "rendered_body": m.rendered_body,
                 "status": m.status,
+                "meta_message_id": m.meta_message_id,
                 "queue_id": str(m.queue_id) if m.queue_id else None,
                 "session_id": str(m.session_id) if m.session_id else None,
                 "sent_at": m.sent_at.isoformat() if m.sent_at else None,
                 "delivered_at": m.delivered_at.isoformat() if m.delivered_at else None,
                 "read_at": m.read_at.isoformat() if m.read_at else None,
                 "failed_at": m.failed_at.isoformat() if m.failed_at else None,
+                "error_code": m.error_code,
                 "error_message": m.error_message,
                 "created_at": m.created_at.isoformat(),
             }

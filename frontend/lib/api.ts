@@ -1128,11 +1128,23 @@ export const api = {
     setOrgWhatsAppEnabled(data: Partial<WhatsAppOrgConfig>): Promise<WhatsAppOrgConfig> {
         return request<WhatsAppOrgConfig>("/whatsapp/analytics/settings", { method: "PATCH", body: JSON.stringify(data) });
     },
-    getOrgWhatsAppStats(): Promise<WhatsAppOrgStats> {
-        return request<WhatsAppOrgStats>("/whatsapp/analytics/overview");
+    getOrgWhatsAppStats(params: { startDate?: string; endDate?: string; queueId?: string; sessionId?: string } = {}): Promise<WhatsAppOrgStats> {
+        const qs = new URLSearchParams();
+        if (params.startDate) qs.set("start_date", params.startDate);
+        if (params.endDate) qs.set("end_date", params.endDate);
+        if (params.queueId) qs.set("queue_id", params.queueId);
+        if (params.sessionId) qs.set("session_id", params.sessionId);
+        const qStr = qs.toString() ? `?${qs.toString()}` : "";
+        return request<WhatsAppOrgStats>(`/whatsapp/analytics/overview${qStr}`);
     },
-    getOrgWhatsAppEventStats(): Promise<WhatsAppEventStat[]> {
-        return request<WhatsAppEventStat[]>("/whatsapp/analytics/events");
+    getOrgWhatsAppEventStats(params: { startDate?: string; endDate?: string; queueId?: string; sessionId?: string } = {}): Promise<WhatsAppEventStat[]> {
+        const qs = new URLSearchParams();
+        if (params.startDate) qs.set("start_date", params.startDate);
+        if (params.endDate) qs.set("end_date", params.endDate);
+        if (params.queueId) qs.set("queue_id", params.queueId);
+        if (params.sessionId) qs.set("session_id", params.sessionId);
+        const qStr = qs.toString() ? `?${qs.toString()}` : "";
+        return request<WhatsAppEventStat[]>(`/whatsapp/analytics/events${qStr}`);
     },
     getOrgWhatsAppQueueStats(): Promise<WhatsAppQueueStat[]> {
         return request<WhatsAppQueueStat[]>("/whatsapp/analytics/queues");

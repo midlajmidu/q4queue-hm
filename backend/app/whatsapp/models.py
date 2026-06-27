@@ -38,6 +38,7 @@ class WhatsAppDeliveryStatus(str, enum.Enum):
     delivered = "delivered"
     read = "read"
     failed = "failed"
+    skipped = "skipped"
 
 
 class WhatsAppTemplateStatus(str, enum.Enum):
