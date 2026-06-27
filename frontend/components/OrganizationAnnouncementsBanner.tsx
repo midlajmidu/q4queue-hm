@@ -75,10 +75,10 @@ export function OrganizationAnnouncementsBanner() {
     }
 
     return (
-        <div className="fixed top-6 sm:top-10 left-1/2 -translate-x-1/2 flex flex-col items-center w-full z-[100] pointer-events-none px-4">
+        <div className="fixed bottom-6 right-4 sm:bottom-8 sm:right-8 flex flex-col items-end z-[100] pointer-events-none">
             <div 
                 key={ann.id + "-" + displayIndex}
-                className="group relative w-full sm:w-fit sm:min-w-[420px] max-w-2xl bg-white/30 dark:bg-[#1a1a1a]/40 backdrop-blur-3xl backdrop-saturate-150 border border-white/40 dark:border-white/10 rounded-[24px] p-5 md:p-6 flex flex-col gap-3 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1),inset_0_1px_0_0_rgba(255,255,255,0.7)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.1)] transition-all duration-500 animate-in slide-in-from-right-8 fade-in zoom-in-95 overflow-hidden pointer-events-auto"
+                className="group relative w-[calc(100vw-2rem)] sm:w-[400px] bg-white/30 dark:bg-[#1a1a1a]/40 backdrop-blur-3xl backdrop-saturate-150 border border-white/40 dark:border-white/10 rounded-[24px] p-5 md:p-6 flex flex-col gap-3 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1),inset_0_1px_0_0_rgba(255,255,255,0.7)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.1)] transition-all duration-500 animate-in slide-in-from-right-8 slide-in-from-bottom-4 fade-in overflow-hidden pointer-events-auto"
             >
                 <div className="flex items-start gap-4 w-full">
                     {/* Minimal Left Indicator */}
@@ -89,10 +89,13 @@ export function OrganizationAnnouncementsBanner() {
                         <Icon size={22} strokeWidth={2} />
                     </div>
                     
-                    <div className="flex-1 pr-8 pt-0.5">
+                    <div className="flex-1 pr-6 pt-0.5">
+                        <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                            Organization Broadcast
+                        </div>
                         <div className="flex items-center gap-2 mb-1.5">
-                            <h3 className="text-[15px] font-semibold text-slate-900 tracking-tight leading-none">{ann.title}</h3>
-                            <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${badgeBg} opacity-80`}>
+                            <h3 className="text-[15px] font-semibold text-slate-900 tracking-tight leading-tight">{ann.title}</h3>
+                            <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${badgeBg} opacity-90`}>
                                 {ann.type}
                             </span>
                         </div>
