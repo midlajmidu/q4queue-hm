@@ -32,7 +32,7 @@ async def get_global_stats(db: AsyncSession) -> dict:
                 case((WhatsAppMessage.status == WhatsAppDeliveryStatus.sent, 1))
             ).label("sent"),
             func.count(
-                case((WhatsAppMessage.status == WhatsAppDeliveryStatus.delivered, 1))
+                case((WhatsAppMessage.status.in_([WhatsAppDeliveryStatus.delivered, WhatsAppDeliveryStatus.read]), 1))
             ).label("delivered"),
             func.count(
                 case((WhatsAppMessage.status == WhatsAppDeliveryStatus.read, 1))
@@ -43,12 +43,12 @@ async def get_global_stats(db: AsyncSession) -> dict:
             func.count(
                 case((WhatsAppMessage.status == WhatsAppDeliveryStatus.pending, 1))
             ).label("pending"),
-        )
+        ).where(WhatsAppMessage.status != WhatsAppDeliveryStatus.skipped)
     )
     row = result.one()
 
     total = row.total or 0
-    delivered = (row.delivered or 0) + (row.read or 0)
+    delivered = row.delivered or 0
     failed = row.failed or 0
     success_rate = round((delivered / total * 100), 1) if total > 0 else 0.0
 
@@ -75,7 +75,7 @@ async def get_daily_chart(db: AsyncSession, days: int = 30) -> list[dict]:
             func.date(WhatsAppMessage.created_at).label("day"),
             func.count(WhatsAppMessage.id).label("total"),
             func.count(
-                case((WhatsAppMessage.status == WhatsAppDeliveryStatus.delivered, 1))
+                case((WhatsAppMessage.status.in_([WhatsAppDeliveryStatus.delivered, WhatsAppDeliveryStatus.read]), 1))
             ).label("delivered"),
             func.count(
                 case((WhatsAppMessage.status == WhatsAppDeliveryStatus.read, 1))
@@ -84,7 +84,7 @@ async def get_daily_chart(db: AsyncSession, days: int = 30) -> list[dict]:
                 case((WhatsAppMessage.status == WhatsAppDeliveryStatus.failed, 1))
             ).label("failed"),
         )
-        .where(WhatsAppMessage.created_at >= cutoff)
+        .where(WhatsAppMessage.created_at >= cutoff, WhatsAppMessage.status != WhatsAppDeliveryStatus.skipped)
         .group_by(func.date(WhatsAppMessage.created_at))
         .order_by(func.date(WhatsAppMessage.created_at))
     )
@@ -109,7 +109,7 @@ async def get_stats_by_org(db: AsyncSession, limit: int = 20) -> list[dict]:
             WhatsAppMessage.organization_id,
             func.count(WhatsAppMessage.id).label("total"),
             func.count(
-                case((WhatsAppMessage.status == WhatsAppDeliveryStatus.delivered, 1))
+                case((WhatsAppMessage.status.in_([WhatsAppDeliveryStatus.delivered, WhatsAppDeliveryStatus.read]), 1))
             ).label("delivered"),
             func.count(
                 case((WhatsAppMessage.status == WhatsAppDeliveryStatus.read, 1))
@@ -118,6 +118,7 @@ async def get_stats_by_org(db: AsyncSession, limit: int = 20) -> list[dict]:
                 case((WhatsAppMessage.status == WhatsAppDeliveryStatus.failed, 1))
             ).label("failed"),
         )
+        .where(WhatsAppMessage.status != WhatsAppDeliveryStatus.skipped)
         .group_by(WhatsAppMessage.organization_id)
         .order_by(func.count(WhatsAppMessage.id).desc())
         .limit(limit)
@@ -142,7 +143,7 @@ async def get_stats_by_org(db: AsyncSession, limit: int = 20) -> list[dict]:
             "read": row.read,
             "failed": row.failed,
             "success_rate": (
-                round(((row.delivered + row.read) / row.total * 100), 1)
+                round((row.delivered / row.total * 100), 1)
                 if row.total > 0 else 0.0
             ),
         }
@@ -152,29 +153,44 @@ async def get_stats_by_org(db: AsyncSession, limit: int = 20) -> list[dict]:
 
 # ── Per-Org Stats ─────────────────────────────────────────────────────────────
 
-async def get_org_stats(db: AsyncSession, organization_id: uuid.UUID) -> dict:
-    """Per-org WhatsApp analytics."""
-    result = await db.execute(
-        select(
-            func.count(WhatsAppMessage.id).label("total"),
-            func.count(
-                case((WhatsAppMessage.status == WhatsAppDeliveryStatus.delivered, 1))
-            ).label("delivered"),
-            func.count(
-                case((WhatsAppMessage.status == WhatsAppDeliveryStatus.read, 1))
-            ).label("read"),
-            func.count(
-                case((WhatsAppMessage.status == WhatsAppDeliveryStatus.failed, 1))
-            ).label("failed"),
-        )
-        .where(WhatsAppMessage.organization_id == organization_id)
-    )
+async def get_org_stats(
+    db: AsyncSession, 
+    organization_id: uuid.UUID,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    queue_id: Optional[uuid.UUID] = None,
+    session_id: Optional[uuid.UUID] = None,
+) -> dict:
+    """Per-org WhatsApp analytics with filters."""
+    query = select(
+        func.count(WhatsAppMessage.id).label("total"),
+        func.count(
+            case((WhatsAppMessage.status.in_([WhatsAppDeliveryStatus.delivered, WhatsAppDeliveryStatus.read]), 1))
+        ).label("delivered"),
+        func.count(
+            case((WhatsAppMessage.status == WhatsAppDeliveryStatus.read, 1))
+        ).label("read"),
+        func.count(
+            case((WhatsAppMessage.status == WhatsAppDeliveryStatus.failed, 1))
+        ).label("failed"),
+    ).where(WhatsAppMessage.organization_id == organization_id, WhatsAppMessage.status != WhatsAppDeliveryStatus.skipped)
+
+    if start_date:
+        query = query.where(func.date(WhatsAppMessage.created_at) >= start_date)
+    if end_date:
+        query = query.where(func.date(WhatsAppMessage.created_at) <= end_date)
+    if queue_id:
+        query = query.where(WhatsAppMessage.queue_id == queue_id)
+    if session_id:
+        query = query.where(WhatsAppMessage.session_id == session_id)
+
+    result = await db.execute(query)
     row = result.one()
     total = row.total or 0
-    delivered = (row.delivered or 0) + (row.read or 0)
+    delivered = row.delivered or 0
     return {
         "total": total,
-        "delivered": row.delivered or 0,
+        "delivered": delivered,
         "read": row.read or 0,
         "failed": row.failed or 0,
         "success_rate": round((delivered / total * 100), 1) if total > 0 else 0.0,
@@ -296,20 +312,35 @@ async def get_token_message_status(
     ]
 
 
-async def get_stats_by_event(db: AsyncSession, organization_id: uuid.UUID) -> list[dict]:
-    """Return counts grouped by event_type for an organization."""
-    result = await db.execute(
-        select(
-            WhatsAppMessage.event_type,
-            func.count(WhatsAppMessage.id).label("total"),
-            func.count(case((WhatsAppMessage.status == WhatsAppDeliveryStatus.delivered, 1))).label("delivered"),
-            func.count(case((WhatsAppMessage.status == WhatsAppDeliveryStatus.read, 1))).label("read"),
-            func.count(case((WhatsAppMessage.status == WhatsAppDeliveryStatus.failed, 1))).label("failed"),
-        )
-        .where(WhatsAppMessage.organization_id == organization_id)
-        .group_by(WhatsAppMessage.event_type)
-        .order_by(func.count(WhatsAppMessage.id).desc())
-    )
+async def get_stats_by_event(
+    db: AsyncSession, 
+    organization_id: uuid.UUID,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    queue_id: Optional[uuid.UUID] = None,
+    session_id: Optional[uuid.UUID] = None,
+) -> list[dict]:
+    """Return counts grouped by event_type for an organization with filters."""
+    query = select(
+        WhatsAppMessage.event_type,
+        func.count(WhatsAppMessage.id).label("total"),
+        func.count(case((WhatsAppMessage.status.in_([WhatsAppDeliveryStatus.delivered, WhatsAppDeliveryStatus.read]), 1))).label("delivered"),
+        func.count(case((WhatsAppMessage.status == WhatsAppDeliveryStatus.read, 1))).label("read"),
+        func.count(case((WhatsAppMessage.status == WhatsAppDeliveryStatus.failed, 1))).label("failed"),
+    ).where(WhatsAppMessage.organization_id == organization_id, WhatsAppMessage.status != WhatsAppDeliveryStatus.skipped)
+
+    if start_date:
+        query = query.where(func.date(WhatsAppMessage.created_at) >= start_date)
+    if end_date:
+        query = query.where(func.date(WhatsAppMessage.created_at) <= end_date)
+    if queue_id:
+        query = query.where(WhatsAppMessage.queue_id == queue_id)
+    if session_id:
+        query = query.where(WhatsAppMessage.session_id == session_id)
+
+    query = query.group_by(WhatsAppMessage.event_type).order_by(func.count(WhatsAppMessage.id).desc())
+    
+    result = await db.execute(query)
     rows = result.all()
     return [
         {
@@ -318,7 +349,7 @@ async def get_stats_by_event(db: AsyncSession, organization_id: uuid.UUID) -> li
             "delivered": row.delivered,
             "read": row.read,
             "failed": row.failed,
-            "success_rate": round(((row.delivered + row.read) / row.total * 100), 1) if row.total > 0 else 0.0,
+            "success_rate": round((row.delivered / row.total * 100), 1) if row.total > 0 else 0.0,
         }
         for row in rows
     ]
@@ -330,11 +361,11 @@ async def get_stats_by_queue(db: AsyncSession, organization_id: uuid.UUID) -> li
         select(
             WhatsAppMessage.queue_id,
             func.count(WhatsAppMessage.id).label("total"),
-            func.count(case((WhatsAppMessage.status == WhatsAppDeliveryStatus.delivered, 1))).label("delivered"),
+            func.count(case((WhatsAppMessage.status.in_([WhatsAppDeliveryStatus.delivered, WhatsAppDeliveryStatus.read]), 1))).label("delivered"),
             func.count(case((WhatsAppMessage.status == WhatsAppDeliveryStatus.read, 1))).label("read"),
             func.count(case((WhatsAppMessage.status == WhatsAppDeliveryStatus.failed, 1))).label("failed"),
         )
-        .where(WhatsAppMessage.organization_id == organization_id)
+        .where(WhatsAppMessage.organization_id == organization_id, WhatsAppMessage.status != WhatsAppDeliveryStatus.skipped)
         .group_by(WhatsAppMessage.queue_id)
         .order_by(func.count(WhatsAppMessage.id).desc())
     )
@@ -368,11 +399,11 @@ async def get_stats_by_session(db: AsyncSession, organization_id: uuid.UUID) -> 
         select(
             WhatsAppMessage.session_id,
             func.count(WhatsAppMessage.id).label("total"),
-            func.count(case((WhatsAppMessage.status == WhatsAppDeliveryStatus.delivered, 1))).label("delivered"),
+            func.count(case((WhatsAppMessage.status.in_([WhatsAppDeliveryStatus.delivered, WhatsAppDeliveryStatus.read]), 1))).label("delivered"),
             func.count(case((WhatsAppMessage.status == WhatsAppDeliveryStatus.read, 1))).label("read"),
             func.count(case((WhatsAppMessage.status == WhatsAppDeliveryStatus.failed, 1))).label("failed"),
         )
-        .where(WhatsAppMessage.organization_id == organization_id)
+        .where(WhatsAppMessage.organization_id == organization_id, WhatsAppMessage.status != WhatsAppDeliveryStatus.skipped)
         .group_by(WhatsAppMessage.session_id)
         .order_by(func.count(WhatsAppMessage.id).desc())
     )

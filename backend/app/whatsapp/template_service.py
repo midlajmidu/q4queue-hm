@@ -164,6 +164,73 @@ DEFAULT_TEMPLATES = [
         },
         "status": WhatsAppTemplateStatus.approved,
     },
+    {
+        "template_name": "queue_skipped_v2",
+        "event_type": "queue_skipped_v2",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Sent when a customer is skipped",
+        "body_text": (
+            "⚠️ *You Have Been Skipped*\n\n"
+            "Hello {{1}}, your token was called at {{2}} but you were marked unavailable, so your turn has been skipped. "
+            "If you are still here, please speak to our staff immediately.\n\n"
+            "📱 Check Status: {{5}}\n\n"
+            "Powered by Q4Queue"
+        ),
+        "variables": {
+            "1": "Customer Name",
+            "2": "Organization Name",
+            "3": "Token Number",
+            "4": "Current Position",
+            "5": "Tracking URL",
+            "6": "Display URL",
+        },
+        "status": WhatsAppTemplateStatus.approved,
+    },
+    {
+        "template_name": "queue_removed_v2",
+        "event_type": "queue_removed_v2",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Sent when a customer is removed from the queue",
+        "body_text": (
+            "❌ *Removed From Queue*\n\n"
+            "Hello {{1}}, you have been removed from the queue at {{2}}.\n\n"
+            "If this was a mistake, please scan the venue QR code again to rejoin.\n\n"
+            "Powered by Q4Queue"
+        ),
+        "variables": {
+            "1": "Customer Name",
+            "2": "Organization Name",
+            "3": "Token Number",
+            "4": "Current Position",
+            "5": "Tracking URL",
+            "6": "Display URL",
+        },
+        "status": WhatsAppTemplateStatus.approved,
+    },
+    {
+        "template_name": "queue_recalled_v2",
+        "event_type": "queue_recalled_v2",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Sent when a skipped customer is recalled by staff",
+        "body_text": (
+            "🔔 *You Have Been Recalled!*\n\n"
+            "Please proceed to the counter immediately, {{1}}!\n\n"
+            "🎫 *Your Token Number:* #{{3}}\n\n"
+            "Powered by Q4Queue"
+        ),
+        "variables": {
+            "1": "Customer Name",
+            "2": "Organization Name",
+            "3": "Token Number",
+            "4": "Current Position",
+            "5": "Tracking URL",
+            "6": "Display URL",
+        },
+        "status": WhatsAppTemplateStatus.approved,
+    },
 ]
 
 

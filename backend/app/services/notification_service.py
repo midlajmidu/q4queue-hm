@@ -99,6 +99,8 @@ async def notify_queue_event(
         # Check granular toggles based on event type
         if event_type == "queue_joined_v4" and not cfg.get("notify_queue_joined", True):
             return
+        if event_type == "queue_nearby_5_v2" and not cfg.get("notify_position_5", True):
+            return
         if event_type == "queue_nearby_3_v2" and not cfg.get("notify_position_3", True):
             return
         if event_type == "queue_called_v2" and not cfg.get("notify_called", True):
@@ -107,20 +109,7 @@ async def notify_queue_event(
             return
         # skipped and removed don't have toggles yet, we just allow them if globally enabled
 
-        # 1.5 Check 24-hour service window opt-in (skip alerts if not opted-in)
-        if event_type != "queue_joined_v4" and event_type != "test_notification_v2" and token_id:
-            async with AsyncSessionLocal() as db:
-                result = await db.execute(select(Token).where(Token.id == token_id))
-                token_obj = result.scalar_one_or_none()
-                if not token_obj:
-                    return
-                if not token_obj.whatsapp_alerts_active:
-                    logger.debug("Skipping %s: token %s has not opted into WhatsApp alerts", event_type, token_id)
-                    return
-                now = datetime.now(timezone.utc)
-                if not token_obj.whatsapp_window_expires_at or token_obj.whatsapp_window_expires_at < now:
-                    logger.debug("Skipping %s: WhatsApp 24h window expired for token %s", event_type, token_id)
-                    return
+
 
         # 2. Validate phone
         phone = customer_phone.strip()
@@ -130,7 +119,16 @@ async def notify_queue_event(
             )
             return
 
-        # 3. Handle Hybrid Logic
+        # 3. Fetch missing organization name if needed
+        if not organization_name:
+            from app.models.organization import Organization
+            async with AsyncSessionLocal() as db:
+                org_res = await db.execute(select(Organization).where(Organization.id == org_id))
+                org = org_res.scalar_one_or_none()
+                if org and org.name:
+                    organization_name = org.name
+
+        # 4. Handle Hybrid Logic
         token_str = f"{token_prefix}-{token_number}"
         is_raw_text = False
         raw_body = None
@@ -176,23 +174,70 @@ async def notify_queue_event(
                 
                 if not db_token.whatsapp_alerts_active or not db_token.whatsapp_window_expires_at or db_token.whatsapp_window_expires_at < now:
                     logger.info("Token %s WhatsApp alerts inactive or window expired, skipping message for event %s", token_id, event_type)
+                    
+                    from app.whatsapp.message_service import log_skipped_whatsapp_message
+                    import asyncio
+                    
+                    if getattr(db_token, "entry_type", "qr") == "manual":
+                        reason = "Manual entry (staff joined). Customer has not scanned the QR to opt-in."
+                    elif not db_token.whatsapp_alerts_active:
+                        reason = "Customer has not clicked 'Get Live Updates' on WhatsApp."
+                    else:
+                        reason = "The 24-hour WhatsApp service window has expired."
+                    
+                    asyncio.create_task(
+                        log_skipped_whatsapp_message(
+                            org_id=org_id,
+                            phone=customer_phone,
+                            event_type=event_type,
+                            reason=reason,
+                            queue_id=queue_id,
+                            token_id=token_id,
+                            customer_name=customer_name,
+                            session_id=session_id,
+                        )
+                    )
                     return
 
+            # Since only queue_joined_v4 is a Meta-approved template, all subsequent events are raw text
             is_raw_text = True
+            
             c_name = customer_name or "Customer"
-            o_name = organization_name or "the business"
+            o_name = organization_name or queue_name or "the business"
             
             # Use env-configured frontend URL or fallback
             from app.core.config import get_settings
             settings = get_settings()
             frontend_url = getattr(settings, "FRONTEND_URL", "https://q4q.in").rstrip("/")
             track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
+            org_display_id = str(org_id)
+            display_url = f"{frontend_url}/d/{org_display_id}"
+            
+            # Build variables for all template-based non-join events
+            # Format: 1: Name, 2: Org Name, 3: Token, 4: Position, 5: Tracking URL, 6: Display URL
+            if not is_raw_text:
+                variables = [
+                    c_name,
+                    o_name,
+                    token_str,
+                    str(position) if position else "0",
+                    track_url,
+                    display_url
+                ]
 
-            if event_type == "queue_approaching_v2":
+            if event_type == "queue_approaching_v2" or event_type == "queue_nearby_3_v2":
                 raw_body = (
                     "⏳ *Your Turn is Near!*\n\n"
                     f"Hi *{c_name}*, quick update! There are now only 3 customers remaining ahead of you at *{o_name}*. "
                     "Please start heading toward the counter.\n\n"
+                    f"📱 Track Live: {track_url}\n"
+                    "_Powered by Q4Queue_"
+                )
+            elif event_type == "queue_nearby_5_v2":
+                raw_body = (
+                    "⏳ *Queue Update*\n\n"
+                    f"Hi *{c_name}*, there are currently 5 customers remaining ahead of you at *{o_name}*. "
+                    "We will notify you again when your turn is closer.\n\n"
                     f"📱 Track Live: {track_url}\n"
                     "_Powered by Q4Queue_"
                 )
@@ -205,21 +250,6 @@ async def notify_queue_event(
                     f"{line_info}"
                     "_Powered by Q4Queue_"
                 )
-            elif event_type == "queue_skipped_v2":
-                raw_body = (
-                    "⚠️ *You Have Been Skipped*\n\n"
-                    f"Hello *{c_name}*, your token was called at *{o_name}* but you were marked unavailable, so your turn has been skipped. "
-                    "If you are still here, please speak to our staff immediately.\n\n"
-                    f"📱 Check Status: {track_url}\n"
-                    "_Powered by Q4Queue_"
-                )
-            elif event_type == "queue_removed_v2":
-                raw_body = (
-                    "❌ *Removed From Queue*\n\n"
-                    f"Hello *{c_name}*, you have been removed from the queue at *{o_name}*. "
-                    "If this was a mistake, please scan the venue QR code again to rejoin.\n\n"
-                    "_Powered by Q4Queue_"
-                )
             elif event_type == "queue_completed_v2":
                 raw_body = (
                     "✅ *Session Completed*\n\n"
@@ -228,7 +258,29 @@ async def notify_queue_event(
                     f"⭐ Rate Your Experience: {track_url}\n"
                     "_Powered by Q4Queue_"
                 )
-            else:
+            elif event_type == "queue_skipped_v2":
+                raw_body = (
+                    "⚠️ *Token Skipped*\n\n"
+                    f"Hi *{c_name}*, you were called to the counter at *{o_name}* but did not appear, so your token #{token_str} was skipped.\n\n"
+                    f"📱 Check Status: {track_url}\n"
+                    "_Powered by Q4Queue_"
+                )
+            elif event_type == "queue_removed_v2":
+                raw_body = (
+                    "❌ *Removed from Queue*\n\n"
+                    f"Hi *{c_name}*, your token #{token_str} has been removed from the queue at *{o_name}*.\n\n"
+                    f"📱 Check Status: {track_url}\n"
+                    "_Powered by Q4Queue_"
+                )
+            elif event_type == "queue_recalled_v2":
+                raw_body = (
+                    "🔄 *Token Recalled!*\n\n"
+                    f"Hi *{c_name}*, good news! Your skipped token #{token_str} has been recalled to the counter at *{o_name}*.\n"
+                    "Please proceed to the counter immediately.\n\n"
+                    f"📱 Check Status: {track_url}\n"
+                    "_Powered by Q4Queue_"
+                )
+            elif is_raw_text:
                 logger.warning("Unknown event type for raw message: %s", event_type)
                 return
 

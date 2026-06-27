@@ -177,7 +177,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                     </Link>
                                 </div>
                                 <div className="hidden md:flex items-center gap-2 text-sm text-slate-500 font-medium">
-                                    <span className="text-slate-900 font-semibold">{user?.organization?.name || "Organization"}</span>
+                                    <span className="text-slate-900 font-semibold">{user?.org_name || "Organization"}</span>
                                     <ChevronRight size={14} className="text-slate-400" />
                                     <span className="text-slate-600">{getPageTitle(pathname)}</span>
                                 </div>

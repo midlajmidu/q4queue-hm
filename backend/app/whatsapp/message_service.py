@@ -80,6 +80,38 @@ async def _store_message(
         return msg
 
 
+async def log_skipped_whatsapp_message(
+    *,
+    org_id: uuid.UUID,
+    phone: str,
+    event_type: str,
+    reason: str,
+    queue_id: Optional[uuid.UUID] = None,
+    token_id: Optional[uuid.UUID] = None,
+    customer_name: Optional[str] = None,
+    session_id: Optional[uuid.UUID] = None,
+) -> None:
+    """Log a message that was intentionally skipped (e.g., no opt-in)."""
+    async with AsyncSessionLocal() as db:
+        msg = WhatsAppMessage(
+            organization_id=org_id,
+            queue_id=queue_id,
+            session_id=session_id,
+            customer_id=None,
+            token_id=token_id,
+            customer_phone=_normalize_phone(phone),
+            customer_name=customer_name,
+            event_type=event_type,
+            template_name="skipped",
+            status=WhatsAppDeliveryStatus.skipped,
+            error_code="OPT_IN_REQUIRED",
+            error_message=reason,
+            failed_at=datetime.now(timezone.utc),
+        )
+        db.add(msg)
+        await db.commit()
+
+
 async def _update_message_status(
     message_id: uuid.UUID,
     *,

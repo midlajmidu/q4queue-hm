@@ -876,12 +876,15 @@ export interface WhatsAppMessage {
     customer_name?: string;
     event_type?: string;
     template_name?: string;
-    status: "pending" | "sent" | "delivered" | "read" | "failed";
+    template_variables?: any;
+    rendered_body?: string;
+    status: "pending" | "sent" | "delivered" | "read" | "failed" | "skipped";
     meta_message_id?: string;
     sent_at?: string | null;
     delivered_at?: string | null;
     read_at?: string | null;
     failed_at?: string | null;
+    error_code?: string | null;
     error_message?: string | null;
     created_at: string;
 }
