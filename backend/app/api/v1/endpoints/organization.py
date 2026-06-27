@@ -373,12 +373,14 @@ async def get_active_organization_announcements(
     result = await db.execute(query)
     announcements = result.scalars().all()
     
-    # Filter by start_time and end_time
+    # Filter by start_time, end_time, and target_branches
     valid_announcements = []
     for ann in announcements:
         if ann.start_time and ann.start_time.replace(tzinfo=None) > now:
             continue
         if ann.end_time and ann.end_time.replace(tzinfo=None) < now:
+            continue
+        if ann.target_branches and org.id not in ann.target_branches:
             continue
         valid_announcements.append(ann)
         

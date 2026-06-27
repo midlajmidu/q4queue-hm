@@ -130,13 +130,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                         label="Live Sessions" 
                                         badge={<div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" title="System Online" />}
                                     />
-                                    <NavLink 
-                                        href="/organization-admin/monitoring/queues" 
-                                        icon={Activity} 
-                                        label="Active Queues" 
-                                        badge="12"
-                                        badgeColor="indigo"
-                                    />
+                                    <NavLink href="/organization-admin/monitoring/queues" icon={Activity} label="Active Queues" />
                                     <NavLink href="/organization-admin/monitoring/staff" icon={UserCog} label="Staff Presence" />
                                 </div>
                             </div>
@@ -146,13 +140,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                 <h3 className="px-3 text-xs font-semibold tracking-wider text-slate-400 uppercase mb-2">Administration</h3>
                                 <div className="space-y-0.5">
                                     <NavLink href="/organization-admin/monitoring/audit" icon={Database} label="Audit Logs" />
-                                    <NavLink 
-                                        href="/organization-admin/announcements" 
-                                        icon={Megaphone} 
-                                        label="Announcements" 
-                                        badge="3"
-                                        badgeColor="amber"
-                                    />
+                                    <NavLink href="/organization-admin/announcements" icon={Megaphone} label="Announcements" />
                                     <NavLink href="/organization-admin/exports" icon={Download} label="Data Exports" />
                                     <NavLink href="/organization-admin/settings" icon={Settings} label="Organization Settings" />
                                 </div>

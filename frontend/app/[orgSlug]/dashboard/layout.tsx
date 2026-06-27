@@ -14,6 +14,7 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { AdminViewBanner } from "@/components/AdminViewBanner";
 import SystemBanner from "@/components/SystemBanner";
+import { OrganizationAnnouncementsBanner } from "@/components/OrganizationAnnouncementsBanner";
 import { useHeartbeat } from "@/hooks/useHeartbeat";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -69,6 +70,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     `}</style>
                     <div className={`flex-1 flex flex-col min-w-0 h-full overflow-hidden ${!isManageQueuePage ? 'sb-offset' : ''}`}>
                         <SystemBanner />
+                        <OrganizationAnnouncementsBanner />
                         <ImpersonationBanner />
                         <AdminViewBanner />
                         {/* Global Top Bar */}

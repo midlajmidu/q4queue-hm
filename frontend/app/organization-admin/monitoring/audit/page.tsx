@@ -20,10 +20,15 @@ export default function AuditLogsPage() {
     }, [selectedBranchId]);
 
     const totalPages = Math.max(1, Math.ceil(logs.length / itemsPerPage));
+    
+    const sortedLogs = useMemo(() => {
+        return [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    }, [logs]);
+
     const paginatedLogs = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
-        return logs.slice(start, start + itemsPerPage);
-    }, [logs, currentPage]);
+        return sortedLogs.slice(start, start + itemsPerPage);
+    }, [sortedLogs, currentPage]);
 
     useEffect(() => {
         const loadData = () => {

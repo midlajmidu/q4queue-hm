@@ -1,14 +1,17 @@
 import asyncio
-from sqlalchemy import select
 from app.db.session import AsyncSessionLocal
-from app.models.parent_organization import ParentOrganization
+from sqlalchemy import text
 
-async def check_db():
+async def main():
     async with AsyncSessionLocal() as db:
-        result = await db.execute(select(ParentOrganization))
-        orgs = result.scalars().all()
-        for org in orgs:
-            print(f"ID: {org.id}, Name: {org.name}, Max Branches: {org.max_branches}")
+        # Check table structure
+        res = await db.execute(text("""
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns
+            WHERE table_name = 'organization_announcements';
+        """))
+        for row in res:
+            print(row)
 
 if __name__ == "__main__":
-    asyncio.run(check_db())
+    asyncio.run(main())

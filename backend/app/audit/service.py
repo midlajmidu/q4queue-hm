@@ -42,6 +42,7 @@ async def record_event(
     Uses a separate DB session to avoid interfering with the main transaction.
     """
     try:
+        from datetime import datetime
         async with AsyncSessionLocal() as db:
             log = AuditLog(
                 event_type=event_type,
@@ -52,9 +53,12 @@ async def record_event(
                 resource_type=resource_type,
                 resource_id=resource_id if resource_id else None,
                 details=details,
+                created_at=datetime.utcnow()
             )
             db.add(log)
             await db.commit()
     except Exception as exc:
         # Never crash the main request
         logger.error("Audit log failed | event=%s err=%s", event_type, exc)
+        with open("audit_error.txt", "a") as f:
+            f.write(f"Error in record_event: {str(exc)}\n")

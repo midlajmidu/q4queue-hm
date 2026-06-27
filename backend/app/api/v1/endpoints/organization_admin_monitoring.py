@@ -641,6 +641,15 @@ async def monitor_whatsapp(
         return []
     return []
 
+@router.get("/monitoring/debug-audit")
+async def debug_audit(db: AsyncSession = Depends(get_db)):
+    from app.audit.models import AuditLog
+    from sqlalchemy import select
+    query = select(AuditLog.event_type, AuditLog.org_id, AuditLog.parent_organization_id, AuditLog.created_at).order_by(AuditLog.created_at.desc()).limit(5)
+    res = await db.execute(query)
+    logs = res.all()
+    return [{"event": l[0], "org_id": str(l[1]), "parent": str(l[2]), "time": str(l[3])} for l in logs]
+
 @router.get("/monitoring/audit", response_model=List[AuditMonitorItem])
 async def monitor_audit(
     db: AsyncSession = Depends(get_db),
@@ -666,8 +675,8 @@ async def monitor_audit(
     
     items = []
     for log, org, u in logs_data:
-        branch_name = org.name if org else "Unknown"
-        branch_slug = org.slug if org else "unknown"
+        branch_name = org.name if org else "Organization Wide"
+        branch_slug = org.slug if org else "org-wide"
         user_email = u.email if u else "System"
         
         items.append(AuditMonitorItem(

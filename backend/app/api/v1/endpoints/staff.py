@@ -16,16 +16,17 @@ Security:
 """
 import logging
 import uuid as _uuid
-from typing import Literal, Optional
+from typing import Literal, Optional, Any, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, BackgroundTasks
 from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_active_user
+from app.core.deps import get_current_active_user, get_current_org_admin
 from app.db.deps import get_db
 from app.models.user import User
 from app.core.security import hash_password
+from app.audit.service import record_event
 from app.schemas.user import StaffCreate, StaffUpdate, StaffResponse, PaginatedStaffResponse
 
 logger = logging.getLogger(__name__)
@@ -129,6 +130,7 @@ async def list_staff(
 )
 async def create_staff(
     body: StaffCreate,
+    background_tasks: BackgroundTasks,
     current_admin: User = Depends(get_current_org_admin),
     db: AsyncSession = Depends(get_db),
 ) -> StaffResponse:
@@ -172,6 +174,16 @@ async def create_staff(
     await db.commit()
     await db.refresh(member)
 
+    await record_event(
+        event_type="CREATE_STAFF",
+        org_id=current_admin.org_id,
+        parent_org_id=current_admin.parent_organization_id,
+        user_id=current_admin.id,
+        resource_type="user",
+        resource_id=str(member.id),
+        details={"email": member.email, "role": "staff"}
+    )
+
     logger.info("Admin created staff | admin=%s new_user=%s org=%s", current_admin.id, member.id, current_admin.org_id)
     return StaffResponse.model_validate(member)
 
@@ -185,6 +197,7 @@ async def create_staff(
 async def update_staff(
     staff_id: _uuid.UUID,
     body: StaffUpdate,
+    background_tasks: BackgroundTasks,
     current_admin: User = Depends(get_current_org_admin),
     db: AsyncSession = Depends(get_db),
 ) -> StaffResponse:
@@ -220,6 +233,16 @@ async def update_staff(
     await db.commit()
     await db.refresh(member)
 
+    await record_event(
+        event_type="UPDATE_STAFF",
+        org_id=current_admin.org_id,
+        parent_org_id=current_admin.parent_organization_id,
+        user_id=current_admin.id,
+        resource_type="user",
+        resource_id=str(member.id),
+        details={"email": member.email, "is_active": member.is_active}
+    )
+
     logger.info("Admin updated staff | admin=%s staff=%s org=%s", current_admin.id, member.id, current_admin.org_id)
     return StaffResponse.model_validate(member)
 
@@ -232,6 +255,7 @@ async def update_staff(
 )
 async def deactivate_staff(
     staff_id: _uuid.UUID,
+    background_tasks: BackgroundTasks,
     current_admin: User = Depends(get_current_org_admin),
     db: AsyncSession = Depends(get_db),
 ) -> StaffResponse:
@@ -248,6 +272,16 @@ async def deactivate_staff(
     await db.commit()
     await db.refresh(member)
 
+    await record_event(
+        event_type="DEACTIVATE_STAFF",
+        org_id=current_admin.org_id,
+        parent_org_id=current_admin.parent_organization_id,
+        user_id=current_admin.id,
+        resource_type="user",
+        resource_id=str(member.id),
+        details={"email": member.email, "reason": "Admin deactivated staff account"}
+    )
+
     logger.info("Admin deactivated staff | admin=%s staff=%s org=%s", current_admin.id, member.id, current_admin.org_id)
     return StaffResponse.model_validate(member)
 
@@ -260,6 +294,7 @@ async def deactivate_staff(
 )
 async def hard_delete_staff(
     staff_id: _uuid.UUID,
+    background_tasks: BackgroundTasks,
     current_admin: User = Depends(get_current_org_admin),
     db: AsyncSession = Depends(get_db),
 ) -> None:
@@ -274,5 +309,16 @@ async def hard_delete_staff(
 
     await db.delete(member)
     await db.commit()
+
+    await record_event(
+        event_type="DELETE_STAFF",
+        org_id=current_admin.org_id,
+        parent_org_id=current_admin.parent_organization_id,
+        user_id=current_admin.id,
+        resource_type="user",
+        resource_id=str(staff_id),
+        details={"reason": "Admin hard-deleted staff account"}
+    )
+
     logger.info("Admin hard-deleted staff | admin=%s staff=%s org=%s", current_admin.id, staff_id, current_admin.org_id)
 
