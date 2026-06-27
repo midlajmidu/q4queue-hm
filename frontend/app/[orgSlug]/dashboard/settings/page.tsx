@@ -387,7 +387,7 @@ export default function SettingsPage() {
                 const response = await api.updateMyProfile({
                     first_name: firstName,
                     last_name: lastName,
-                });
+                }) as any;
                 if (response && response.access_token) {
                     setToken(response.access_token);
                 }
