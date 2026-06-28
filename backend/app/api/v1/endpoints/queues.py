@@ -87,7 +87,7 @@ def _raise_403(exc: Exception) -> None:
 async def create_queue(
     body: QueueCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> QueueResponse:
     """Create a new queue for the authenticated organization."""
     try:
@@ -361,22 +361,23 @@ async def create_token(
                 name=body.name,
                 time_str=datetime.now(timezone.utc).isoformat()
             )
-            # WhatsApp notification: customer joined via QR
-            background_tasks.add_task(
-                notify_queue_event,
-                event_type="queue_joined_v4",
-                org_id=queue.org_id,
-                token_id=result.id,
-                queue_id=queue_id,
-                customer_name=body.name,
-                customer_phone=body.phone,
-                token_number=result.token_number,
-                token_prefix=queue.prefix,
-                queue_name=queue.name,
-                position=result.position,
-                tracking_id=str(result.tracking_id) if hasattr(result, "tracking_id") else None,
-                session_id=queue.session_id,
-            )
+            # WhatsApp notification: customer joined via QR — only if they consented
+            if body.send_whatsapp:
+                background_tasks.add_task(
+                    notify_queue_event,
+                    event_type="queue_joined_v4",
+                    org_id=queue.org_id,
+                    token_id=result.id,
+                    queue_id=queue_id,
+                    customer_name=body.name,
+                    customer_phone=body.phone,
+                    token_number=result.token_number,
+                    token_prefix=queue.prefix,
+                    queue_name=queue.name,
+                    position=result.position,
+                    tracking_id=str(result.tracking_id) if hasattr(result, "tracking_id") else None,
+                    session_id=queue.session_id,
+                )
     except ValueError as exc:
         msg = str(exc)
         if "not found" in msg.lower():

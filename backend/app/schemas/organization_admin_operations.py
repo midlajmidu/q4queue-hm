@@ -54,6 +54,7 @@ class BranchAdminItem(BaseModel):
     email: str
     last_login: str
     status: str
+    role: str
 
 class BranchWhatsAppStats(BaseModel):
     messages_sent_today: int

@@ -14,6 +14,7 @@ interface Props {
     onUpdate: () => void; // refresh after action
     isGlobalOrOrgAdmin?: boolean;
     isPaused?: boolean;
+    isReadOnly?: boolean;
 }
 
 export default function ServiceLinesGrid({
@@ -24,6 +25,7 @@ export default function ServiceLinesGrid({
     onUpdate,
     isGlobalOrOrgAdmin = false,
     isPaused = false,
+    isReadOnly = false,
 }: Props) {
     const [loadingLine, setLoadingLine] = React.useState<number | null>(null);
     const [expandedLine, setExpandedLine] = React.useState<number | null>(null);
@@ -154,7 +156,7 @@ export default function ServiceLinesGrid({
                                     </div>
 
                                     {/* Actions */}
-                                    {!isGlobalOrOrgAdmin && (
+                                    {!isGlobalOrOrgAdmin && !isReadOnly && (
                                         <div className="flex items-center gap-1.5 mt-auto">
                                             <button
                                                 onClick={() => callNext(lineNum, "skipped")}
@@ -192,7 +194,7 @@ export default function ServiceLinesGrid({
                                         <span className="text-[12px] font-medium text-slate-400 dark:text-slate-500">Empty Slot</span>
                                     </div>
                                     <div className="mt-auto relative z-10">
-                                        {!isGlobalOrOrgAdmin && (
+                                        {!isGlobalOrOrgAdmin && !isReadOnly && (
                                             <button
                                                 onClick={() => callNext(lineNum)}
                                                 disabled={isLoading || isPaused}
@@ -268,7 +270,7 @@ export default function ServiceLinesGrid({
 
                                 {/* Right: Inline Actions */}
                                 <div className="flex items-center gap-2 pl-2">
-                                    {!isGlobalOrOrgAdmin && (
+                                    {!isGlobalOrOrgAdmin && !isReadOnly && (
                                         isOccupied ? (
                                             <button
                                                 onClick={() => callNext(lineNum, "done")}
@@ -328,7 +330,7 @@ export default function ServiceLinesGrid({
                                             </div>
 
                                             {/* Actions */}
-                                            {!isGlobalOrOrgAdmin && (
+                                            {!isGlobalOrOrgAdmin && !isReadOnly && (
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); callNext(lineNum, "skipped"); }}
@@ -366,7 +368,7 @@ export default function ServiceLinesGrid({
                                                     No customer assigned
                                                 </span>
                                             </div>
-                                            {!isGlobalOrOrgAdmin && (
+                                            {!isGlobalOrOrgAdmin && !isReadOnly && (
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); callNext(lineNum); }}
                                                     disabled={isLoading}

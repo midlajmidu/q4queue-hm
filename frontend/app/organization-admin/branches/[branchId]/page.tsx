@@ -21,6 +21,7 @@ import BranchActivityTimeline from "@/components/organization-admin/branch-detai
 import BranchContactCard from "@/components/organization-admin/branch-details/BranchContactCard";
 import BranchAlerts from "@/components/organization-admin/branch-details/BranchAlerts";
 import BranchFuturePlaceholders from "@/components/organization-admin/branch-details/BranchFuturePlaceholders";
+import BranchAdminsList from "@/components/organization-admin/branch-details/BranchAdminsList";
 
 export default function BranchDetailsPage() {
     const { user } = useAuth();
@@ -105,7 +106,7 @@ export default function BranchDetailsPage() {
                         {branch.is_active ? 'Deactivate Branch' : 'Activate Branch'}
                     </button>
                     <Link
-                        href={`/org-admin/${branch.slug}/dashboard`}
+                        href={`/organization-admin/branches/${branchId}/admin`}
                         target="_blank"
                         className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors"
                     >
@@ -147,7 +148,8 @@ export default function BranchDetailsPage() {
                     {/* SECTION 10: Branch Contact Information */}
                     <BranchContactCard branchId={branchId} />
                     
-                    {/* SECTION 6: Branch Admins removed as per user request */}
+                    {/* SECTION 6: Branch Admins */}
+                    <BranchAdminsList branchId={branchId} />
                     
                     {/* SECTION 7: WhatsApp Statistics */}
                     <BranchWhatsAppStats branchId={branchId} />

@@ -31,7 +31,8 @@ function Tip({ label, show, children }: { label: string; show: boolean; children
 }
 
 export default function UserSidebar({ isOpen, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
-    const { user, logout } = useAuth();
+    const { user, logout, impersonatorUser, isImpersonating } = useAuth();
+    const displayUser = isImpersonating && impersonatorUser ? impersonatorUser : user;
     const pathname = usePathname();
     const params = useParams();
     const orgSlug = (params?.branchSlug as string) || (params?.orgSlug as string) || user?.org_slug;
@@ -207,7 +208,7 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
 
                     <div className={`p-3 space-y-1.5 ${c ? "flex flex-col items-center" : ""}`}>
                         {/* Profile */}
-                        <Tip label={user?.email || "Account"} show={c}>
+                        <Tip label={displayUser?.email || "Account"} show={c}>
                             <div 
                                 onClick={() => setIsLogoutModalOpen(true)}
                                 className={`group flex flex-row items-center justify-between rounded-xl cursor-pointer transition-all duration-300 ${
@@ -216,16 +217,16 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <div className="relative shrink-0">
                                         <div className={`${c ? "w-10 h-10 rounded-[10px] text-[13px]" : "w-[36px] h-[36px] rounded-[10px] text-[13px]"} flex items-center justify-center font-bold shadow-sm transition-all duration-500 group-hover:scale-105 group-hover:-rotate-2 ${
-                                            user?.org_logo_url
+                                            displayUser?.org_logo_url
                                                 ? "bg-white dark:bg-slate-800 ring-1 ring-black/5 dark:ring-white/10"
                                                 : "bg-gradient-to-br from-indigo-500 to-blue-700 text-white ring-1 ring-black/5 group-hover:shadow-indigo-500/20"
                                         } overflow-hidden shrink-0`}>
-                                            {user?.org_logo_url ? (
-                                                <img src={user.org_logo_url} alt="Org Logo" className="w-full h-full object-contain p-1" />
+                                            {displayUser?.org_logo_url ? (
+                                                <img src={displayUser.org_logo_url} alt="Org Logo" className="w-full h-full object-contain p-1" />
                                             ) : (
-                                                (user?.first_name && user?.last_name) 
-                                                    ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
-                                                    : (user?.first_name ? user.first_name[0].toUpperCase() : (user?.email?.[0] || "U").toUpperCase())
+                                                (displayUser?.first_name && displayUser?.last_name) 
+                                                    ? `${displayUser.first_name[0]}${displayUser.last_name[0]}`.toUpperCase()
+                                                    : (displayUser?.first_name ? displayUser.first_name[0].toUpperCase() : (displayUser?.email?.[0] || "U").toUpperCase())
                                             )}
                                         </div>
                                         <div className={`absolute -bottom-0.5 -right-0.5 ${c ? "w-[10px] h-[10px] border-2" : "w-3 h-3 border-2"} rounded-full bg-emerald-400 border-[#f4f5f8] dark:border-slate-900 group-hover:border-white dark:group-hover:border-slate-800 transition-colors duration-300`} />
@@ -234,10 +235,10 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                                     {!c && (
                                         <div className="flex flex-col min-w-0 flex-1 justify-center">
                                             <span className={`text-xs font-semibold truncate tracking-tight transition-colors duration-300 text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400`}>
-                                                {user?.email || "User Account"}
+                                                {displayUser?.email || "User Account"}
                                             </span>
                                             <span className={`text-[10px] font-medium truncate mt-[2px] text-gray-500 dark:text-gray-400`}>
-                                                {formatRole(user?.role)}{user?.org_name ? <><span className="mx-1.5 opacity-30">|</span>{user.org_name}</> : ""}
+                                                {formatRole(displayUser?.role)}{displayUser?.org_name ? <><span className="mx-1.5 opacity-30">|</span>{displayUser.org_name}</> : ""}
                                             </span>
                                         </div>
                                     )}

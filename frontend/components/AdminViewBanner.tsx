@@ -19,12 +19,25 @@ export function AdminViewBanner() {
         // Restore the original token that was saved before read-only impersonation
         const savedToken = getSuperAdminToken();
         if (savedToken) {
-            removeToken();
+            removeToken("staff");
             removeSuperAdminToken();
-            setToken(savedToken);
-            // Decode the restored token to find the correct return path
-            const restoredUser = getCurrentUser();
-            if (restoredUser?.role === "super_admin") {
+            
+            // Decode restored token to find correct return path
+            let restoredRole = "organization_admin";
+            try {
+                const parts = savedToken.split(".");
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]));
+                    if (payload && payload.role) {
+                        restoredRole = payload.role;
+                    }
+                }
+            } catch (e) {}
+
+            const targetType = restoredRole === "super_admin" ? "super_admin" : "org_admin";
+            setToken(savedToken, targetType);
+
+            if (restoredRole === "super_admin") {
                 router.push("/super-admin/branches");
                 return;
             }

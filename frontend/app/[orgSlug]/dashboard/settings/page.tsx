@@ -719,6 +719,120 @@ export default function SettingsPage() {
                                 </div>
                             )}
 
+                            {/* Headquarters / Parent Org Card */}
+                            {activeTab === 'profile' && settings?.parent_org && (
+                                <div className="card" style={{ marginTop: 24 }}>
+                                    <div className="card-header">
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                            <div style={{
+                                                width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                            }}>
+                                                <svg width={16} height={16} fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                                                    <path d="M3 21h18M3 7v1a3 3 0 006 0V7m6 0v1a3 3 0 006 0V7M3 7l2-4h14l2 4M12 21V11" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h2 style={{ fontSize: '15px', fontWeight: 700, color: C.text, margin: 0 }}>Headquarters</h2>
+                                                <p style={{ fontSize: '13px', color: C.textSub, marginTop: 2 }}>
+                                                    Parent organization details — read only.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span style={{
+                                            fontSize: 11, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase',
+                                            color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ede9fe',
+                                            borderRadius: 6, padding: '3px 8px'
+                                        }}>
+                                            Read Only
+                                        </span>
+                                    </div>
+
+                                    <div style={{ padding: '28px 24px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 20 }}>
+                                            {/* Logo + Name banner */}
+                                            <div style={{ gridColumn: '1 / -1' }}>
+                                                <div style={{
+                                                    display: 'flex', alignItems: 'center', gap: 16,
+                                                    padding: '16px 20px', borderRadius: 10,
+                                                    background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                                                    border: '1px solid #ddd6fe'
+                                                }}>
+                                                    <div style={{
+                                                        width: 52, height: 52, borderRadius: 10, overflow: 'hidden',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        background: '#fff', border: '1px solid #ddd6fe', flexShrink: 0
+                                                    }}>
+                                                        {settings.parent_org.logo_url ? (
+                                                            <img
+                                                                src={settings.parent_org.logo_url.startsWith('http')
+                                                                    ? settings.parent_org.logo_url
+                                                                    : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${settings.parent_org.logo_url}`}
+                                                                alt="HQ Logo"
+                                                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                                            />
+                                                        ) : (
+                                                            <span style={{ fontSize: 22 }}>🏛️</span>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontSize: 17, fontWeight: 700, color: '#4c1d95' }}>{settings.parent_org.name}</div>
+                                                        <div style={{ fontSize: 12, color: '#7c3aed', marginTop: 2, fontFamily: 'monospace' }}>
+                                                            /{settings.parent_org.slug}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Contact Email */}
+                                            <div>
+                                                <label className="lbl" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                    Contact Email
+                                                    <Lock size={11} color={C.textMuted} />
+                                                </label>
+                                                <input
+                                                    type="email"
+                                                    disabled
+                                                    value={settings.parent_org.contact_email || '—'}
+                                                    className="premium-input"
+                                                />
+                                            </div>
+
+                                            {/* Contact Phone */}
+                                            <div>
+                                                <label className="lbl" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                    Contact Phone
+                                                    <Lock size={11} color={C.textMuted} />
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    disabled
+                                                    value={settings.parent_org.contact_phone || '—'}
+                                                    className="premium-input"
+                                                />
+                                            </div>
+
+                                            {/* Address */}
+                                            {settings.parent_org.address && (
+                                                <div style={{ gridColumn: '1 / -1' }}>
+                                                    <label className="lbl" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                        Address
+                                                        <Lock size={11} color={C.textMuted} />
+                                                    </label>
+                                                    <textarea
+                                                        disabled
+                                                        rows={2}
+                                                        value={settings.parent_org.address}
+                                                        className="premium-input"
+                                                        style={{ resize: 'none' }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {activeTab === 'security' && (
                                 <div className="card" style={{ marginBottom: 40 }}>
                                     <div className="card-header border-b border-slate-200">

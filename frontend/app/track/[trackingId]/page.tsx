@@ -133,7 +133,7 @@ export default function TrackingPage({ params }: PageProps) {
                         position: info.position,
                         current_serving: 0, // will be updated by websocket
                         queue_prefix: info.token_prefix,
-                        session_id: "", // tracking page doesn't strictly need session validation like join did, but we'll adapt
+                        session_id: info.session_id,
                         tracking_id: info.tracking_id,
                         removed_by: info.removed_by
                     });
@@ -174,6 +174,15 @@ export default function TrackingPage({ params }: PageProps) {
 
             if (!newStatus && live?.current_serving === joinData.token_number) {
                 newStatus = "serving";
+            }
+
+            if (!newStatus && live?.all_serving_tokens) {
+                const isServing = live.all_serving_tokens.some(
+                    (t: { token_number: number }) => t.token_number === joinData.token_number
+                );
+                if (isServing) {
+                    newStatus = "serving";
+                }
             }
 
             try {
@@ -271,6 +280,7 @@ export default function TrackingPage({ params }: PageProps) {
     // Derived: compute live position
     const myNumber = joinData?.token_number ?? null;
     const serving = live?.current_serving ?? 0;
+    const activeServingTokens = live?.all_serving_tokens ?? [];
 
     const actualStatus = tokenStatus || "waiting";
     const isMyTurn = actualStatus === "serving";
@@ -279,8 +289,19 @@ export default function TrackingPage({ params }: PageProps) {
     const isDeleted = actualStatus === "deleted";
 
     const alreadyServed = isDone || isSkipped || isDeleted || (myNumber !== null && myNumber < serving && actualStatus !== "waiting");
-    const peopleAhead = myNumber !== null && actualStatus === "waiting" && myNumber > serving ? myNumber - serving - 1 : 0;
+    
+    // Accurate calculation using waiting_tokens list when available, falling back to math.
+    const peopleAhead = myNumber !== null && actualStatus === "waiting"
+        ? (live?.waiting_tokens 
+            ? live.waiting_tokens.filter(t => t.token_number < myNumber).length
+            : (myNumber > serving ? myNumber - serving - 1 : 0))
+        : 0;
+
     const isNext = peopleAhead === 0 && actualStatus === "waiting" && myNumber !== null;
+
+    const displayWaitingCount = live?.waiting_count !== undefined
+        ? (actualStatus === "waiting" ? Math.max(0, live.waiting_count - 1) : live.waiting_count)
+        : "—";
 
     // ── Remaining-count milestone: sound via utility ────
     useEffect(() => {
@@ -347,12 +368,58 @@ export default function TrackingPage({ params }: PageProps) {
                         {queueClosed ? "Currently Closed" : "Now Serving"}
                     </p>
 
-                    <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${serving}`}>
-                        {prefix}{serving}
-                    </div>
+                    {activeServingTokens.length === 0 ? (
+                        <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label="No one is currently serving">
+                            —
+                        </div>
+                    ) : activeServingTokens.length === 1 ? (
+                        <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
+                            {prefix}{activeServingTokens[0].token_number}
+                        </div>
+                    ) : activeServingTokens.length <= 3 ? (
+                        <div className="mt-4 py-3 bg-white/10 rounded-xl border border-white/20 px-4" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map(t => `${prefix}${t.token_number}`).join(', ')}`}>
+                            <div className="flex justify-center gap-3">
+                                {activeServingTokens.map((t) => (
+                                    <div key={t.id} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[70px] shrink-0">
+                                        <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                        {t.assigned_line != null && (
+                                            <span className="text-[10px] font-bold text-white/90 mt-1">Line {t.assigned_line}</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-4 overflow-hidden w-full relative py-2 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map(t => `${prefix}${t.token_number}`).join(', ')}`}>
+                            <style>{`
+                                @keyframes marquee {
+                                    0% { transform: translateX(0); }
+                                    100% { transform: translateX(-50%); }
+                                }
+                                .marquee-track {
+                                    display: flex;
+                                    width: max-content;
+                                    animation: marquee 25s linear infinite;
+                                }
+                                .marquee-track:hover {
+                                    animation-play-state: paused;
+                                }
+                            `}</style>
+                            <div className="marquee-track flex gap-4 px-4">
+                                {[...activeServingTokens, ...activeServingTokens].map((t, idx) => (
+                                    <div key={`${t.id}-${idx}`} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0">
+                                        <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                        {t.assigned_line != null && (
+                                            <span className="text-[10px] font-bold text-white/90 mt-1">Line {t.assigned_line}</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mt-3 flex justify-center gap-6 text-xs text-blue-200">
-                        <span>Waiting: <strong className="text-white">{live?.waiting_count ?? "—"}</strong></span>
+                        <span>Waiting: <strong className="text-white">{displayWaitingCount}</strong></span>
                     </div>
                 </div>
 
@@ -493,9 +560,21 @@ export default function TrackingPage({ params }: PageProps) {
                                             {isMyTurn ? "YOUR TURN" : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "NEXT" : "Waiting"}
                                         </p>
                                     </div>
-                                    <div className="flex-1 py-3">
+                                    <div className="flex-1 py-3 px-1">
                                         <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Serving</p>
-                                        <p className="text-2xl font-bold text-gray-900 mt-0.5 tabular-nums">{prefix}{serving}</p>
+                                        {activeServingTokens.length === 0 ? (
+                                            <p className="text-2xl font-bold text-gray-950 mt-0.5 tabular-nums">—</p>
+                                        ) : activeServingTokens.length === 1 ? (
+                                            <p className="text-2xl font-bold text-gray-900 mt-0.5 tabular-nums">{prefix}{activeServingTokens[0].token_number}</p>
+                                        ) : (
+                                            <div className="flex flex-col gap-1 mt-1 max-h-[80px] overflow-y-auto scrollbar-thin">
+                                                {activeServingTokens.map((t) => (
+                                                    <span key={t.id} className="text-xs font-bold text-gray-900 tabular-nums block">
+                                                        {prefix}{t.token_number} {t.assigned_line != null ? `(L${t.assigned_line})` : ""}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

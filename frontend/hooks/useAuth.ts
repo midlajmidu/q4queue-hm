@@ -31,6 +31,7 @@ interface UseAuthReturn {
     isAuthenticated: boolean;
     isHydrated: boolean;
     user: JwtPayload | null;
+    impersonatorUser: JwtPayload | null;
     login: (credentials: LoginRequest) => Promise<void>;
     logout: () => void;
     isLoading: boolean;
@@ -48,6 +49,7 @@ export function useAuth(): UseAuthReturn {
     const [isHydrated, setIsHydrated] = useState(false);
     const [user, setUser] = useState<JwtPayload | null>(null);
     const [isImpersonating, setIsImpersonating] = useState(false);
+    const [impersonatorUser, setImpersonatorUser] = useState<JwtPayload | null>(null);
 
     // Hydrate auth state on mount
     useEffect(() => {
@@ -69,7 +71,17 @@ export function useAuth(): UseAuthReturn {
         const authed = checkAuth();
         setIsAuthed(authed);
         setUser(authed ? getCurrentUser() : null);
-        setIsImpersonating(!!getSuperAdminToken());
+        const saToken = getSuperAdminToken();
+        setIsImpersonating(!!saToken);
+        if (saToken) {
+            try {
+                const parts = saToken.split(".");
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1])) as JwtPayload;
+                    setImpersonatorUser(payload);
+                }
+            } catch (e) {}
+        }
         setIsHydrated(true);
     }, []);
 
@@ -105,6 +117,7 @@ export function useAuth(): UseAuthReturn {
 
             try {
                 const response = await api.login(credentials);
+                removeSuperAdminToken();
                 setToken(response.access_token);
                 setIsAuthed(true);
                 const currentUser = getCurrentUser();
@@ -172,12 +185,27 @@ export function useAuth(): UseAuthReturn {
             const rootHost = isAppSubdomain ? window.location.host.replace("app.", "") : window.location.host;
             const protocol = window.location.protocol;
             
+            // Decode saToken to check role
+            let decodedRole = "super_admin";
+            try {
+                const parts = saToken.split(".");
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]));
+                    if (payload && payload.role) {
+                        decodedRole = payload.role;
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to decode saToken:", e);
+            }
+
             // Remove from current subdomain
-            removeToken();
+            removeToken("staff");
+            removeToken("org_admin");
             removeSuperAdminToken();
             
-            // Navigate to root domain with token in fragment to restore
-            window.location.href = `${protocol}//${rootHost}/super-admin#token=${saToken}`;
+            const targetPath = decodedRole === "organization_admin" ? "organization-admin" : "super-admin";
+            window.location.href = `${protocol}//${rootHost}/${targetPath}#token=${saToken}`;
         }
     }, []);
 
@@ -185,12 +213,13 @@ export function useAuth(): UseAuthReturn {
         isAuthenticated: isAuthed,
         isHydrated,
         user,
+        impersonatorUser,
         login,
         logout,
         isLoading,
         error,
         isImpersonating,
-        isReadOnly: !!(user as any)?.is_read_only,
+        isReadOnly: !!(user as any)?.is_read_only || isImpersonating,
         stopImpersonating,
     };
 }

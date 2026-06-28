@@ -444,6 +444,7 @@ async def get_analytics_csv_data(
     query = select(
         Token,
         Queue.name.label('queue_name'),
+        Queue.prefix.label('queue_prefix'),
         ServedUser.first_name.label('served_first'),
         ServedUser.last_name.label('served_last'),
         CompletedUser.first_name.label('completed_first'),
@@ -460,12 +461,12 @@ async def get_analytics_csv_data(
     writer = csv.writer(output)
     writer.writerow([
         "Date", "Token Number", "Queue", "Service Line", "Customer Name", "Customer Phone", "Companions",
-        "Status", "Created At", "Served At", "Completed At", 
+        "Status", "Created At", "Served At", "Completed At",
         "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Call Method", "Entry Type"
     ])
 
     for row in result.all():
-        token, q_name, served_first, served_last, completed_first, completed_last = row
+        token, q_name, q_prefix, served_first, served_last, completed_first, completed_last = row
         
         wait_time_mins = ""
         if token.served_at and token.created_at:
@@ -486,9 +487,13 @@ async def get_analytics_csv_data(
         companions = ", ".join(token.companion_names) if hasattr(token, 'companion_names') and token.companion_names else ""
         service_line = str(getattr(token, 'assigned_line', "")) if getattr(token, 'assigned_line', None) is not None else ""
 
+        entry_type = getattr(token, "entry_type", "qr")
+        entry_method = "Manual Entry" if entry_type == "manual" else ("Auto Assigned" if entry_type == "auto" else "QR Code")
+
+        token_display = f"{q_prefix or ''}{token.token_number}"
         writer.writerow([
             token.created_at.strftime("%Y-%m-%d"),
-            token.token_number,
+            token_display,
             q_name or "Unknown",
             service_line,
             token.customer_name or "Walk-in",
@@ -503,7 +508,7 @@ async def get_analytics_csv_data(
             served_by,
             completed_by,
             "Invite by Number" if token.called_via_invite else "Call Next",
-            getattr(token, "entry_type", "qr").title()
+            entry_method
         ])
 
     return output.getvalue()

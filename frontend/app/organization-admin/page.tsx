@@ -104,7 +104,7 @@ export default function OrgAdminDashboard() {
             {/* 1. Executive Overview */}
             <section>
                 <SectionHeader title="Executive Overview" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                     {/* Total Staff Card (Replaced Org Health) */}
                     <MetricCard 
                         title="Total Staff"
@@ -112,6 +112,15 @@ export default function OrgAdminDashboard() {
                         subtitle={`${data.global_kpis.active_staff || 0} active right now`}
                         icon={UserCog}
                         watermarkIcon={UserCog}
+                    />
+
+                    {/* Total Admins Card */}
+                    <MetricCard 
+                        title="Total Admins"
+                        value={data.global_kpis.total_branch_admins}
+                        subtitle="Branch administrators"
+                        icon={Shield}
+                        watermarkIcon={Shield}
                     />
 
                     {selectedBranchId ? (

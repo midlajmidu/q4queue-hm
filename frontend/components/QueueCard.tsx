@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { api, ApiError } from "@/lib/api";
+import { useDashBase } from "@/hooks/useDashBase";
 import type { QueueResponse } from "@/types/api";
 import ConfirmModal from "@/components/ConfirmModal";
 import EditQueueModal from "@/components/EditQueueModal";
@@ -17,9 +18,9 @@ interface Props {
 
 const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
     const { user } = useAuth();
+    const dashBase = useDashBase();
     const isStaff = user?.role === "staff";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
-    const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
 
     const [isActive, setIsActive] = React.useState(queue.is_active);
     const [toggling, setToggling] = React.useState(false);

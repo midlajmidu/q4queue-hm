@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Save, Building2, Globe, Palette } from "lucide-react";
+import { Save, Building2, Palette } from "lucide-react";
 
 export default function OrganizationSettingsPage() {
     const [loading, setLoading] = useState(true);
@@ -150,29 +150,6 @@ export default function OrganizationSettingsPage() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="flex items-center gap-2 mb-4 text-indigo-600">
-                        <Globe size={20} />
-                        <h2 className="text-lg font-semibold text-slate-900">Localization</h2>
-                    </div>
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Default Timezone</label>
-                        <select
-                            value={formData.timezone}
-                            onChange={(e) => setFormData({...formData, timezone: e.target.value})}
-                            className="w-full md:w-1/2 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                            <option value="UTC">UTC</option>
-                            <option value="America/New_York">Eastern Time (US & Canada)</option>
-                            <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
-                            <option value="Europe/London">London</option>
-                            <option value="Asia/Dubai">Dubai</option>
-                            <option value="Asia/Kolkata">India Standard Time</option>
-                        </select>
-                        <p className="text-xs text-slate-500 mt-2">New branches will default to this timezone.</p>
-                    </div>
-                </div>
 
                 <div className="flex justify-end">
                     <button

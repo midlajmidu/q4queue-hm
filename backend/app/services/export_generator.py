@@ -117,29 +117,39 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
     # Build Query
     date_col = func.coalesce(Session.session_date, func.date(Token.created_at))
     
+    from sqlalchemy.orm import aliased
+    CompletedByUser = aliased(User)
+
     stmt = (
         select(
             Organization.name.label("branch_name"),
             date_col.label("date"),
             Queue.name.label("queue_name"),
             Token.token_number,
+            Token.assigned_line,
             Token.customer_name,
             Token.customer_phone,
+            Token.companion_names,
             Token.status,
             Token.created_at,
             Token.served_at,
             Token.completed_at,
             Token.called_via_invite,
             Token.served_by_id,
+            Token.completed_by_id,
+            Token.entry_type,
             Session.title.label("session_name"),
             User.first_name.label("staff_first"),
-            User.last_name.label("staff_last")
+            User.last_name.label("staff_last"),
+            CompletedByUser.first_name.label("completed_first"),
+            CompletedByUser.last_name.label("completed_last")
         )
         .select_from(Token)
         .join(Organization, Token.org_id == Organization.id)
         .outerjoin(Session, Token.session_id == Session.id)
         .join(Queue, Token.queue_id == Queue.id)
         .outerjoin(User, Token.served_by_id == User.id)
+        .outerjoin(CompletedByUser, Token.completed_by_id == CompletedByUser.id)
         .where(Organization.parent_organization_id == job.parent_org_id)
     )
 
@@ -216,7 +226,7 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         if r.served_at and r.created_at:
             w_secs = (r.served_at - r.created_at).total_seconds()
             wait_mins = round(w_secs / 60, 2)
-            if r.status in ["served", "completed"]:
+            if r.status == "done":
                 total_wait_secs += w_secs
                 
         # Calculate Service Time
@@ -224,32 +234,50 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         if r.completed_at and r.served_at:
             s_secs = (r.completed_at - r.served_at).total_seconds()
             serve_mins = round(s_secs / 60, 2)
-            if r.status == "completed":
+            if r.status == "done":
                 total_serve_secs += s_secs
                 
-        if r.status in ["served", "completed"]:
+        if r.status == "done":
             served_count += 1
-        elif r.status in ["cancelled", "no_show"]:
+        elif r.status in ["skipped", "deleted"]:
             cancelled_count += 1
 
-        staff_name = f"{r.staff_first} {r.staff_last}" if r.staff_first else ""
+        staff_name = f"{r.staff_first} {r.staff_last}".strip() if r.staff_first else ""
+        completed_by_name = f"{r.completed_first} {r.completed_last}".strip() if r.completed_first else ""
+
+        # Companions: stored as JSON list of names
+        companions_raw = r.companion_names or []
+        companions_str = ", ".join(companions_raw) if companions_raw else ""
+
+        # Entry Type
+        if r.entry_type == "manual":
+            entry_type_label = "Manual"
+        elif r.entry_type == "qr":
+            entry_type_label = "QR Code"
+        elif r.entry_type == "auto":
+            entry_type_label = "Auto"
+        else:
+            entry_type_label = r.entry_type or ""
 
         formatted_data.append({
             "Branch Name": branch,
             "Date": r.date.strftime("%Y-%m-%d") if r.date else "",
             "Queue Name": q_name,
             "Token Number": r.token_number,
+            "Service Line": r.assigned_line if r.assigned_line is not None else "",
             "Customer Name": r.customer_name or "",
             "Customer Phone": r.customer_phone or "",
+            "Companions": companions_str,
             "Status": r.status.title(),
             "Created At": r.created_at.strftime("%H:%M:%S") if r.created_at else "",
             "Served At": r.served_at.strftime("%H:%M:%S") if r.served_at else "",
             "Completed At": r.completed_at.strftime("%H:%M:%S") if r.completed_at else "",
             "Wait Time (mins)": wait_mins,
-            "Service Time (mins)": serve_mins,
+            "Serve Time (mins)": serve_mins,
             "Served By": staff_name,
-            "Call Method": "Called" if r.status == "serving" else ("Skipped" if r.status == "skipped" else ("Cancelled" if r.status in ["cancelled", "no_show"] else ("Completed" if r.status == "done" else "Normal"))),
-            "Entry Method": "Manual Entry" if r.served_by_id else "QR Code"
+            "Completed By": completed_by_name,
+            "Call Method": "Skipped" if r.status == "skipped" else "Normal",
+            "Entry Type": entry_type_label
         })
 
     # Add Called At back as empty
@@ -258,49 +286,44 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         # Since dictionaries are ordered in Python 3.7+, we'll rebuild the dict to ensure column order
         pass
 
-    # We will build the dataframe with exact columns required
-    exact_columns = [
-        "Date", "Token Number", "Queue", "Customer Name", 
-        "Customer Phone", "Status", "Created At", "Served At", 
-        "Completed At", "Wait Time (mins)", "Service Time (mins)", 
-        "Served By", "Call Method", "Entry Method"
-    ]
-    
-    # Rebuild data to ensure exact columns
+    # Rebuild data with exact columns in the required order
     final_data = []
     for r in formatted_data:
         final_data.append({
-            "Branch Name": r.get("Branch Name", ""),  # Keep for grouping
-            "Queue Name": r.get("Queue Name", ""),    # Keep for grouping
+            "Branch Name": r.get("Branch Name", ""),   # Keep for grouping/sheet splitting
+            "Queue Name": r.get("Queue Name", ""),     # Keep for grouping/sheet splitting
             "Date": r.get("Date", ""),
             "Token Number": r.get("Token Number", ""),
             "Queue": r.get("Queue Name", ""),
+            "Service Line": r.get("Service Line", ""),
             "Customer Name": r.get("Customer Name", ""),
             "Customer Phone": r.get("Customer Phone", ""),
+            "Companions": r.get("Companions", ""),
             "Status": r.get("Status", ""),
             "Created At": r.get("Created At", ""),
             "Served At": r.get("Served At", ""),
             "Completed At": r.get("Completed At", ""),
             "Wait Time (mins)": r.get("Wait Time (mins)", ""),
-            "Service Time (mins)": r.get("Service Time (mins)", ""),
+            "Serve Time (mins)": r.get("Serve Time (mins)", ""),
             "Served By": r.get("Served By", ""),
+            "Completed By": r.get("Completed By", ""),
             "Call Method": r.get("Call Method", ""),
-            "Entry Method": r.get("Entry Method", "")
+            "Entry Type": r.get("Entry Type", "")
         })
 
     df = pd.DataFrame(final_data)
 
     # Compute Summary
     total_customers = len(formatted_data)
-    avg_wait = round((total_wait_secs / served_count) / 60, 2) if served_count > 0 else 0
-    avg_serve = round((total_serve_secs / served_count) / 60, 2) if served_count > 0 else 0
+    avg_wait = round(total_wait_secs / served_count / 60, 2) if served_count > 0 else 0
+    avg_serve = round(total_serve_secs / served_count / 60, 2) if served_count > 0 else 0
 
     summary_df = pd.DataFrame([
         {"Metric": "Total Branches", "Value": len(unique_branches)},
         {"Metric": "Total Queues", "Value": len(unique_queues)},
         {"Metric": "Total Customers", "Value": total_customers},
         {"Metric": "Total Served", "Value": served_count},
-        {"Metric": "Total Cancelled", "Value": cancelled_count},
+        {"Metric": "Total Cancelled / Deleted", "Value": cancelled_count},
         {"Metric": "Average Wait Time (Mins)", "Value": avg_wait},
         {"Metric": "Average Service Time (Mins)", "Value": avg_serve},
     ])
@@ -411,7 +434,7 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
                     ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=6)
                     ws.append([])
                     
-                    group_clean = queue_df[exact_columns]
+                    group_clean = queue_df.drop(columns=cols_to_drop, errors='ignore')
                     
                     # Table headers
                     row_idx = ws.max_row + 1

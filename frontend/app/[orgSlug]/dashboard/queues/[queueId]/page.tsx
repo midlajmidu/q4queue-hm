@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useQueueSocket } from "@/hooks/useQueueSocket";
 import { getToken, getCurrentUser } from "@/lib/auth";
 import { useAuth } from "@/hooks/useAuth";
+import { useDashBase } from "@/hooks/useDashBase";
 import { useToast } from "@/components/Toast";
 import ConnectionBadge from "@/components/ConnectionBadge";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -350,10 +351,10 @@ export default function QueueDetailPage({ params }: PageProps) {
     const token = getToken();
     const user = getCurrentUser();
     const { isReadOnly } = useAuth();
+    const dashBase = useDashBase();
     const isStaff = user?.role === "staff";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
     const canManageQueue = !isGlobalOrOrgAdmin && !isReadOnly;
-    const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
     const { toast } = useToast();
 
     const handleNewCustomer = useCallback((data: any) => {
@@ -451,7 +452,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     const RECENT_PAGE_SIZE = 20;
     const router = useRouter();
 
-    const [activeListTab, setActiveListTab] = useState<"recent" | "waiting" | "skipped" | "deleted">("recent");
+    const [activeListTab, setActiveListTab] = useState<"recent" | "waiting" | "skipped" | "deleted">("waiting");
 
     const filteredWaiting = React.useMemo(() => {
         if (!state?.waiting_tokens) return [];
@@ -1107,6 +1108,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         onUpdate={refresh}
                                                         isGlobalOrOrgAdmin={isGlobalOrOrgAdmin}
                                                         isPaused={(state?.is_paused ?? initialQueue?.is_paused) === true}
+                                                        isReadOnly={isReadOnly}
                                                     />
                                                 );
                                             }
@@ -2007,7 +2009,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                 <TokenDetailModal
                     token={selectedToken}
                     onClose={() => setSelectedToken(null)}
-                    onRecall={selectedToken ? () => handleRecallFlow(selectedToken.token_number) : undefined}
+                    onRecall={selectedToken && !isReadOnly ? () => handleRecallFlow(selectedToken.token_number) : undefined}
                 />
             </div>
 

@@ -28,6 +28,15 @@ class SupportContactResponse(BaseModel):
     support_email: str
     support_phone: str
 
+class ParentOrgSummary(BaseModel):
+    id: str
+    name: str
+    slug: str
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    address: Optional[str] = None
+    logo_url: Optional[str] = None
+
 class OrganizationSettingsResponse(BaseModel):
     name: str
     slug: str
@@ -40,6 +49,7 @@ class OrganizationSettingsResponse(BaseModel):
     auto_session_enabled: bool = False
     auto_session_time: Optional[str] = None
     access_token: Optional[str] = None
+    parent_org: Optional[ParentOrgSummary] = None
 
     model_config = {"from_attributes": True}
 
@@ -88,6 +98,22 @@ async def get_organization_settings(
     if not org:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
 
+    # Fetch parent org details if linked
+    parent_org_summary = None
+    if org.parent_organization_id:
+        from app.models.parent_organization import ParentOrganization
+        po = await db.scalar(select(ParentOrganization).where(ParentOrganization.id == org.parent_organization_id))
+        if po:
+            parent_org_summary = ParentOrgSummary(
+                id=str(po.id),
+                name=po.name,
+                slug=po.slug,
+                contact_email=po.contact_email,
+                contact_phone=po.contact_phone,
+                address=po.address,
+                logo_url=po.logo_url,
+            )
+
     return OrganizationSettingsResponse(
         name=org.name,
         slug=org.slug,
@@ -99,6 +125,7 @@ async def get_organization_settings(
         queue_templates=org.queue_templates if org.queue_templates is not None else [],
         auto_session_enabled=org.auto_session_enabled,
         auto_session_time=org.auto_session_time,
+        parent_org=parent_org_summary,
     )
 
 @router.put("/settings", response_model=OrganizationSettingsResponse)

@@ -39,6 +39,7 @@ class TrackingResponse(BaseModel):
     queue_name: str
     org_name: str
     queue_id: str
+    session_id: str
     queue_is_active: bool
     queue_is_paused: bool
     open_time: Optional[str] = None
@@ -117,6 +118,7 @@ async def track_token(
         queue_name=queue_name,
         org_name=org_name,
         queue_id=str(token.queue_id),
+        session_id=str(token.session_id),
         queue_is_active=queue_is_active,
         queue_is_paused=queue_is_paused,
         open_time=open_time,

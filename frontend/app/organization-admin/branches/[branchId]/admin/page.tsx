@@ -25,7 +25,7 @@ export default function OrgAdminBranchViewPage() {
         async function loadBranchView() {
             try {
                 const res = await api.impersonateOrgBranch(branchId);
-                const currentToken = getToken();
+                const currentToken = getToken("org_admin");
 
                 // Store current org-admin token so the banner "Return" button works
                 if (currentToken) {
@@ -33,7 +33,7 @@ export default function OrgAdminBranchViewPage() {
                 }
 
                 // Set the read-only branch token as the active token
-                setToken(res.access_token);
+                setToken(res.access_token, "staff");
 
                 // We need the branch slug to redirect — decode from the token
                 const payloadPart = res.access_token.split(".")[1];

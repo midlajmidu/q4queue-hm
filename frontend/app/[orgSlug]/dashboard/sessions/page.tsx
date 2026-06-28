@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import type { SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
+import { useDashBase } from "@/hooks/useDashBase";
 
 // ─── Date helpers ────────────────────────────────────────────────
 function toLocalDateStr(): string {
@@ -88,12 +89,13 @@ function groupByTimeline(sessions: SessionResponse[]): GroupedSessions[] {
 // ─── Component ───────────────────────────────────────────────────
 export default function SessionsPage() {
     const { user, isReadOnly } = useAuth();
+    const dashBase = useDashBase();
     const router = useRouter();
     const searchParams = useSearchParams();
     const isStaff = user?.role === "staff";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
-    const canCreateSession = !isStaff && !isGlobalOrOrgAdmin && !isReadOnly;
-    const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
+    const canCreateSession = !isGlobalOrOrgAdmin && !isReadOnly;
+    const canDeleteSession = !isStaff && !isGlobalOrOrgAdmin && !isReadOnly;
 
 
     const [sessions, setSessions] = useState<SessionResponse[]>([]);
@@ -137,10 +139,10 @@ export default function SessionsPage() {
 
     useEffect(() => {
         const action = searchParams.get("action");
-        if (action === "create" && !isStaff) {
+        if (action === "create") {
             setShowCreate(true);
         }
-    }, [searchParams, isStaff]);
+    }, [searchParams]);
 
     // Fetch unique queue names for the dropdown
     useEffect(() => {
@@ -417,7 +419,7 @@ export default function SessionsPage() {
 
                                                         {/* Delete + Chevron */}
                                                         <div className="flex items-center gap-1 shrink-0 ml-1">
-                                                            {canCreateSession && (
+                                                            {canDeleteSession && (
                                                                 <button
                                                                     onClick={(e) => handleDelete(session, e)}
                                                                     disabled={deletingId === session.id}

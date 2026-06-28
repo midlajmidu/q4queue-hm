@@ -454,17 +454,29 @@ async def get_branch_admins(
 ):
     await _verify_branch_access(branch_id, db, current_user)
     
-    admins_res = await db.execute(select(User).where(User.org_id == branch_id, User.role.in_(["admin", "branch_admin"])).order_by(User.first_name))
+    admins_res = await db.execute(
+        select(User)
+        .where(
+            User.org_id == branch_id,
+            User.role.in_(["admin", "branch_admin", "staff"])
+        )
+        .order_by(User.role, User.first_name)
+    )
     admins = admins_res.scalars().all()
     
     results = []
     for u in admins:
+        fullname = f"{u.first_name or ''} {u.last_name or ''}".strip()
+        if not fullname:
+            fullname = u.email.split("@")[0].replace(".", " ").replace("-", " ").title()
+            
         results.append(BranchAdminItem(
             user_id=u.id,
-            name=f"{u.first_name or ''} {u.last_name or ''}".strip() or "Branch Admin",
+            name=fullname,
             email=u.email,
             last_login=u.created_at.isoformat(),
-            status="Active" if u.is_active else "Inactive"
+            status="Active" if u.is_active else "Inactive",
+            role=u.role
         ))
         
     return results

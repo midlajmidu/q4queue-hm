@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { QueueResponse, SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
+import { useDashBase } from "@/hooks/useDashBase";
 import QueueCard from "@/components/QueueCard";
 import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays, CalendarOff, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -48,10 +49,10 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const { user, isReadOnly } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
+    const dashBase = useDashBase();
     const isStaff = user?.role === "staff";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
-    const canManageQueues = !isStaff && !isGlobalOrOrgAdmin && !isReadOnly;
+    const canManageQueues = !isGlobalOrOrgAdmin && !isReadOnly;
 
 
     const [session, setSession] = useState<SessionResponse | null>(null);

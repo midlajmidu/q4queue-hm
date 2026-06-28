@@ -714,6 +714,16 @@ export interface ListOrgsParams {
 }
 
 // ── Organization Settings ───────────────────────────────────────
+export interface ParentOrgSummary {
+    id: string;
+    name: string;
+    slug: string;
+    contact_email?: string | null;
+    contact_phone?: string | null;
+    address?: string | null;
+    logo_url?: string | null;
+}
+
 export interface OrganizationSettingsResponse {
     name: string;
     slug: string;
@@ -725,6 +735,7 @@ export interface OrganizationSettingsResponse {
     queue_templates: QueueTemplate[];
     auto_session_enabled: boolean;
     auto_session_time: string | null;
+    parent_org?: ParentOrgSummary | null;
 }
 
 export interface OrganizationSettingsUpdate {
@@ -984,6 +995,7 @@ export interface TrackingResponse {
     queue_name: string;
     org_name: string;
     queue_id: string;
+    session_id: string;
     queue_is_active: boolean;
     queue_is_paused: boolean;
     open_time?: string | null;
