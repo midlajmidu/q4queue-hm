@@ -405,8 +405,8 @@ export default function TrackingPage({ params }: PageProps) {
                                     animation-play-state: paused;
                                 }
                             `}</style>
-                            <div className="marquee-track flex gap-4 px-4">
-                                {[...activeServingTokens, ...activeServingTokens].map((t, idx) => (
+                            <div className={`flex flex-nowrap items-center gap-4 px-4 whitespace-nowrap ${activeServingTokens.length > 3 ? "marquee-track" : ""}`}>
+                                {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t, idx) => (
                                     <div key={`${t.id}-${idx}`} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0">
                                         <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
                                         {t.assigned_line != null && (

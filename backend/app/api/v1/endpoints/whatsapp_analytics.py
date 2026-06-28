@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
-from app.core.deps import require_branch_admin, get_current_super_admin
+from app.core.deps import require_branch_admin_or_staff, get_current_super_admin
 from app.db.deps import get_db
 from app.models.user import User
 from app.whatsapp import config_service, analytics_service
@@ -36,7 +36,7 @@ class NotificationSettingsUpdate(BaseModel):
 async def update_org_settings(
     body: NotificationSettingsUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> dict:
     if current_user.org_id is None:
         raise HTTPException(status_code=403, detail="No organization context")
@@ -81,7 +81,7 @@ async def update_org_settings(
 @router.get("/settings", summary="Get Org WhatsApp Settings")
 async def get_org_settings(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> dict:
     if current_user.org_id is None:
         raise HTTPException(status_code=403, detail="No organization context")
@@ -93,7 +93,7 @@ async def get_org_settings(
 @router.get("/overview", summary="Organization Overview Stats")
 async def get_analytics_overview(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     queue_id: Optional[uuid.UUID] = Query(None, description="Filter by Queue ID"),
@@ -110,7 +110,7 @@ async def get_analytics_overview(
 @router.get("/events", summary="Analytics Grouped by Event")
 async def get_analytics_events(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     queue_id: Optional[uuid.UUID] = Query(None, description="Filter by Queue ID"),
@@ -140,7 +140,7 @@ async def get_analytics_history(
     queue_id: Optional[uuid.UUID] = Query(None),
     session_id: Optional[uuid.UUID] = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> dict:
     """Paginated detailed message log with advanced filtering."""
     if current_user.org_id is None:
