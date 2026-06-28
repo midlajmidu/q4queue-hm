@@ -13,12 +13,12 @@ export function useDashBase() {
 
     if (!pathname || !orgSlug) return dashBase;
 
-    if (pathname.startsWith(`/organization-admin/${orgSlug}`)) {
+    if (pathname.match(/^\/organization-admin\/[^\/]+/i)) {
         dashBase = `/organization-admin/${orgSlug}/dashboard`;
-    } else if (pathname.startsWith(`/org-admin/${orgSlug}`)) {
+    } else if (pathname.match(/^\/org-admin\/[^\/]+/i)) {
         dashBase = `/org-admin/${orgSlug}/dashboard`;
     } else {
-        const superAdminMatch = pathname.match(new RegExp(`^/super-admin/([^/]+)/${orgSlug}`));
+        const superAdminMatch = pathname.match(/^\/super-admin\/([^\/]+)\/[^\/]+/i);
         if (superAdminMatch) {
             dashBase = `/super-admin/${superAdminMatch[1]}/${orgSlug}/dashboard`;
         }
