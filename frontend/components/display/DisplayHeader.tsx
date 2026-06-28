@@ -7,7 +7,7 @@ import Image from "next/image";
 interface DisplayHeaderProps {
     logoUrl?: string | null;
     queueName: string;
-    status: "connected" | "reconnecting" | "offline" | "disconnected";
+    status: "connected" | "reconnecting" | "offline" | "disconnected" | "connecting";
     soundEnabled: boolean;
     onToggleSound: () => void;
     isActive: boolean;
@@ -84,7 +84,7 @@ export function DisplayHeader({
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${
                         status === "connected"
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200/60"
-                            : status === "reconnecting"
+                            : status === "reconnecting" || status === "connecting"
                             ? "bg-amber-50 text-amber-700 border-amber-200/60"
                             : "bg-red-50 text-red-600 border-red-200/60"
                     }`}
@@ -93,6 +93,8 @@ export function DisplayHeader({
                     <span>
                         {status === "connected"
                             ? "LIVE"
+                            : status === "connecting"
+                            ? "CONNECTING"
                             : status === "reconnecting"
                             ? "RECONNECTING"
                             : status === "disconnected"
