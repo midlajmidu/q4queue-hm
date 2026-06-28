@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.core.deps import get_db, require_organization_admin
 from app.models.user import User
 from app.models.org_backup import OrgBackup
+from app.middleware.rate_limiter import api_rate_limit
 
 router = APIRouter()
 
@@ -42,7 +43,7 @@ async def list_backups(
         })
     return result
 
-@router.get("/backups/{backup_id}/download")
+@router.get("/backups/{backup_id}/download", dependencies=[Depends(api_rate_limit)])
 async def download_backup(
     backup_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -88,7 +89,7 @@ async def background_restore_task(parent_org_id: uuid.UUID, filepath: str, db: A
             except:
                 pass
 
-@router.post("/backups/restore")
+@router.post("/backups/restore", dependencies=[Depends(api_rate_limit)])
 async def restore_backup(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -101,16 +102,25 @@ async def restore_backup(
     if not current_user.parent_organization_id:
         raise HTTPException(status_code=400, detail="User is not associated with a parent organization")
         
-    if not file.filename.endswith(".q4backup"):
+    safe_filename = os.path.basename(file.filename)
+    if not safe_filename.endswith(".q4backup"):
         raise HTTPException(status_code=400, detail="Invalid backup file format")
         
     # Save file temporarily
     temp_dir = "/tmp/q4queue_restores"
     os.makedirs(temp_dir, exist_ok=True)
-    temp_path = os.path.join(temp_dir, f"{uuid.uuid4()}_{file.filename}")
+    temp_path = os.path.join(temp_dir, f"{uuid.uuid4()}_{safe_filename}")
     
+    max_size = 50 * 1024 * 1024 # 50MB
+    size = 0
     with open(temp_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        while content := await file.read(1024 * 1024):
+            size += len(content)
+            if size > max_size:
+                buffer.close()
+                os.remove(temp_path)
+                raise HTTPException(status_code=413, detail="File too large. Maximum size is 50MB.")
+            buffer.write(content)
         
     # Add to background tasks
     # Because db session might close after response, it's safer to use AsyncSessionLocal inside task

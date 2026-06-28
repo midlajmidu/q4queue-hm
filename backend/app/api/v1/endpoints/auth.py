@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.deps import get_db
 from app.schemas.auth import LoginRequest, TokenResponse, ChangeFirstPasswordRequest
 from app.services.auth_service import authenticate_user
-from app.middleware.rate_limiter import login_rate_limit
+from app.middleware.rate_limiter import login_rate_limit, api_rate_limit
 from app.audit.service import record_event
 from app.core.deps import get_current_user
 from app.core.security import hash_password, create_access_token
@@ -107,6 +107,7 @@ async def login(
     "/change-first-password",
     response_model=TokenResponse,
     summary="Change First-Time Password",
+    dependencies=[Depends(api_rate_limit)],
 )
 async def change_first_password(
     body: ChangeFirstPasswordRequest,

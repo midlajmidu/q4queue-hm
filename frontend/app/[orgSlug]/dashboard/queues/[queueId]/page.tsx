@@ -402,7 +402,7 @@ export default function QueueDetailPage({ params }: PageProps) {
         setIsMounted(true);
     }, []);
 
-    const [activeSection, setActiveSection] = useState<ActiveSection>("waiting_list");
+    const [activeSection, setActiveSection] = useState<ActiveSection>("queues");
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
     

@@ -1103,10 +1103,7 @@ export default function OverviewPage() {
                   )}
                   Download Report
                 </button>
-                <Link href={`${dashBase}/queues?action=qr`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.cardBgAlt, color: C.textSub, borderColor: C.border }}>
-                  <Icons.QrCode size={13} color="currentColor" />
-                  Generate QR
-                </Link>
+
                 <Link href={`${dashBase}/sessions?action=create`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.brand, color: "#fff", borderColor: C.brandDark, boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
                   <Icons.Play size={13} color="currentColor" />
                   Start Session

@@ -11,11 +11,13 @@ from app.models.user import User
 from app.models.export_job import ExportJob
 from app.schemas.organization_export import ExportRequest, ExportResponse
 from app.services.export_generator import generate_export
+from app.services.export_generator import generate_export
 from app.audit.service import record_event
+from app.middleware.rate_limiter import api_rate_limit
 
 router = APIRouter()
 
-@router.post("/exports", response_model=ExportResponse)
+@router.post("/exports", response_model=ExportResponse, dependencies=[Depends(api_rate_limit)])
 async def request_export(
     request: ExportRequest,
     background_tasks: BackgroundTasks,
@@ -69,7 +71,7 @@ async def list_exports(
     )
     return res.scalars().all()
 
-@router.get("/exports/{job_id}/download")
+@router.get("/exports/{job_id}/download", dependencies=[Depends(api_rate_limit)])
 async def download_export(
     job_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

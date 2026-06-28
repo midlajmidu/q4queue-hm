@@ -19,6 +19,7 @@ from app.schemas.organization_admin import (
 from app.core.security import hash_password
 from sqlalchemy.exc import IntegrityError
 import uuid
+from app.middleware.rate_limiter import api_rate_limit
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -261,7 +262,7 @@ async def create_branch_admin(
         is_active=new_admin.is_active
     )
 
-@router.post("/branches/{branch_id}/reset-password", status_code=200)
+@router.post("/branches/{branch_id}/reset-password", status_code=200, dependencies=[Depends(api_rate_limit)])
 async def reset_branch_admin_password(
     branch_id: uuid.UUID,
     admin_id: uuid.UUID,

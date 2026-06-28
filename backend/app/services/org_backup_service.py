@@ -150,6 +150,42 @@ async def restore_org_backup(parent_org_id: uuid.UUID, filepath: str, db: AsyncS
     with open(filepath, "r") as f:
         data = json.load(f)
         
+    # --- SECURITY HARDENING: TENANT ISOLATION VALIDATION ---
+    valid_org_ids = set()
+    
+    # 2a. Validate and isolate Organizations
+    for d in data.get("organizations", []):
+        d["parent_organization_id"] = str(parent_org_id)
+        if "id" in d and d["id"]:
+            valid_org_ids.add(str(d["id"]))
+
+    # 2b. Validate downstream entities
+    for d in data.get("users", []):
+        if d.get("parent_organization_id"):
+            d["parent_organization_id"] = str(parent_org_id)
+        if d.get("org_id") and str(d["org_id"]) not in valid_org_ids:
+            raise ValueError("Security validation failed: Invalid org_id in users backup.")
+
+    for d in data.get("organization_announcements", []):
+        d["parent_organization_id"] = str(parent_org_id)
+
+    for d in data.get("queues", []):
+        if d.get("org_id") and str(d["org_id"]) not in valid_org_ids:
+            raise ValueError("Security validation failed: Invalid org_id in queues backup.")
+
+    for d in data.get("sessions", []):
+        if d.get("org_id") and str(d["org_id"]) not in valid_org_ids:
+            raise ValueError("Security validation failed: Invalid org_id in sessions backup.")
+
+    for d in data.get("tokens", []):
+        if d.get("org_id") and str(d["org_id"]) not in valid_org_ids:
+            raise ValueError("Security validation failed: Invalid org_id in tokens backup.")
+
+    for d in data.get("messages", []):
+        if d.get("org_id") and str(d["org_id"]) not in valid_org_ids:
+            raise ValueError("Security validation failed: Invalid org_id in messages backup.")
+    # -------------------------------------------------------
+        
     def dict_to_row(model_class, d):
         kwargs = {}
         for col in model_class.__table__.columns:

@@ -36,6 +36,7 @@ from app.models.token import Token, TokenStatus
 from app.models.system_announcement import SystemAnnouncement
 from app.audit.models import AuditLog
 from app.core.security import hash_password, create_access_token
+from app.middleware.rate_limiter import login_rate_limit, api_rate_limit
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserResponse, SuperAdminUserUpdate
 from app.services.auth_service import authenticate_super_admin
@@ -315,6 +316,7 @@ def _org_to_detail(o: Organization, admin_user: User | None = None) -> OrgDetail
     "/auth/login",
     response_model=TokenResponse,
     summary="Super Admin Login",
+    dependencies=[Depends(login_rate_limit)],
 )
 async def super_admin_login(
     body: SuperAdminLoginRequest,
@@ -1111,7 +1113,7 @@ async def delete_organization(
     return _org_to_detail(org)
 
 
-@router.post("/organizations/{org_id}/reset-password")
+@router.post("/organizations/{org_id}/reset-password", dependencies=[Depends(api_rate_limit)])
 async def reset_org_admin_password(
     org_id: str,
     body: ResetPasswordRequest,
@@ -1526,6 +1528,7 @@ async def update_user(
     "/users/{user_id}/reset-password",
     response_model=ResetPasswordResponse,
     summary="Reset User Password",
+    dependencies=[Depends(api_rate_limit)],
 )
 async def reset_user_password(
     user_id: str,

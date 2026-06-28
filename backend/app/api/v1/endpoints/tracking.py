@@ -24,6 +24,7 @@ from app.models.token import Token, TokenStatus
 from app.models.queue import Queue
 from app.services import token_service
 from app.services.notification_service import notify_queue_event
+from app.middleware.rate_limiter import join_rate_limit
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -55,6 +56,7 @@ class TrackingResponse(BaseModel):
     response_model=TrackingResponse,
     summary="Track Token (Public)",
     description="Public endpoint for customers to view their queue position via WhatsApp link.",
+    dependencies=[Depends(join_rate_limit)],
 )
 async def track_token(
     tracking_id: uuid.UUID,
@@ -134,6 +136,7 @@ async def track_token(
     "/{tracking_id}",
     summary="Leave Queue (Public)",
     description="Customer voluntarily leaves the queue via tracking URL.",
+    dependencies=[Depends(join_rate_limit)],
 )
 async def leave_queue(
     tracking_id: uuid.UUID,

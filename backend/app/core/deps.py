@@ -10,6 +10,7 @@ Security rules:
 """
 import logging
 import uuid
+from datetime import datetime, timezone
 from typing import Callable, TYPE_CHECKING
 
 from fastapi import Depends, HTTPException, status, Request
@@ -80,6 +81,7 @@ async def get_current_user(
     user_id_raw: str | None = payload.get("sub")
     role_raw: str | None = payload.get("role")
     org_id_raw: str | None = payload.get("org_id")
+    iat_raw: int | None = payload.get("iat")
 
     if not user_id_raw or not role_raw:
         logger.warning("Token missing sub or role claim")
@@ -140,6 +142,17 @@ async def get_current_user(
     if not user.is_active:
         logger.warning("Token presented for inactive user | user_id=%s", user_id)
         raise _INACTIVE_USER_EXCEPTION
+        
+    # ── JWT Revocation Check ───────────────────────────────────────
+    if user.password_changed_at and iat_raw is not None:
+        iat_dt = datetime.fromtimestamp(iat_raw, tz=timezone.utc)
+        pwd_dt = user.password_changed_at
+        if pwd_dt.tzinfo is None:
+            pwd_dt = pwd_dt.replace(tzinfo=timezone.utc)
+            
+        if iat_dt < pwd_dt:
+            logger.warning("Token issued before last password change | user_id=%s", user_id)
+            raise _CREDENTIALS_EXCEPTION
 
     return user
 

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
 
 from app.db.deps import get_db
-from app.core.deps import require_organization_admin
+from app.core.deps import require_organization_admin, get_current_super_admin
 from app.models.user import User
 from app.models.organization import Organization
 from app.models.session import Session
@@ -642,7 +642,7 @@ async def monitor_whatsapp(
     return []
 
 @router.get("/monitoring/debug-audit")
-async def debug_audit(db: AsyncSession = Depends(get_db)):
+async def debug_audit(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_super_admin)):
     from app.audit.models import AuditLog
     from sqlalchemy import select
     query = select(AuditLog.event_type, AuditLog.org_id, AuditLog.parent_organization_id, AuditLog.created_at).order_by(AuditLog.created_at.desc()).limit(5)
