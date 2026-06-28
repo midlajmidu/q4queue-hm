@@ -1,0 +1,42 @@
+=========================================
+Q4QUEUE CLIENT ONBOARDING DETAILS
+=========================================
+
+Please fill out the following details so we can provision your dedicated Q4Queue instance.
+
+-----------------------------------------
+1. INFRASTRUCTURE & ACCESS (PRIORITY)
+-----------------------------------------
+Server Static IP Address       : 
+SSH Username                   : 
+SSH Private Key / Password     : (Please share securely via LastPass / 1Password, not here)
+Ubuntu Server IP               :
+-----------------------------------------
+2. PARENT ORGANIZATION DETAILS
+-----------------------------------------
+Organization Name              : 
+Preferred Org Slug (Short name): 
+(e.g., if name is "Apollo Hospitals", slug could be "apollo")
+
+Organization Admin Name        : 
+Organization Admin Email       : 
+Organization Admin Phone       : 
+
+-----------------------------------------
+3. FIRST BRANCH DETAILS
+-----------------------------------------
+Branch Name                    : 
+Preferred Branch Slug          : 
+(e.g., if branch is "Kochi Center", slug could be "kochi")
+
+Branch Admin Name              : 
+Branch Admin Email             : 
+Branch Admin Phone             : 
+
+
+-----------------------------------------
+4. BRANDING & DOMAIN
+-----------------------------------------
+Requested Subdomain            : ___________.q4queue.com
+(e.g., amoeba.q4queue.com)
+

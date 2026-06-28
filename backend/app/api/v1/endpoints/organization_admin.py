@@ -370,3 +370,190 @@ async def org_admin_impersonate_branch(
     )
     return TokenResponse(access_token=token)
 
+# ── Branch Backups for Org Admins ─────────────────────────────────────────────
+
+from app.models.branch_backup import BranchBackup
+from app.services.branch_backup_service import create_branch_backup, restore_branch_backup, cleanup_old_branch_backups
+from fastapi import UploadFile, File
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+
+class BranchBackupItem(BaseModel):
+    id: str
+    filename: str
+    size_bytes: int
+    status: str
+    created_at: str
+
+class BranchBackupListResponse(BaseModel):
+    items: list[BranchBackupItem]
+
+@router.post(
+    "/branches/{branch_id}/backups",
+    response_model=BranchBackupItem,
+    summary="Create a new Branch Backup (Org Admin)",
+)
+async def org_admin_create_branch_backup(
+    branch_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_org_admin),
+) -> BranchBackupItem:
+    # Verify ownership
+    org_result = await db.execute(
+        select(Organization)
+        .where(
+            Organization.id == branch_id,
+            Organization.parent_organization_id == current_user.parent_organization_id
+        )
+    )
+    if not org_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Branch not found")
+
+    try:
+        backup = await create_branch_backup(branch_id, db)
+        return BranchBackupItem(
+            id=str(backup.id),
+            filename=backup.filename,
+            size_bytes=backup.size_bytes,
+            status=backup.status.value,
+            created_at=backup.created_at.isoformat()
+        )
+    except Exception as e:
+        logger.error(f"Failed to create branch backup for branch {branch_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get(
+    "/branches/{branch_id}/backups",
+    response_model=BranchBackupListResponse,
+    summary="List Backups for a specific Branch (Org Admin)",
+)
+async def org_admin_list_branch_backups(
+    branch_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_org_admin),
+) -> BranchBackupListResponse:
+    # Verify ownership
+    org_result = await db.execute(
+        select(Organization)
+        .where(
+            Organization.id == branch_id,
+            Organization.parent_organization_id == current_user.parent_organization_id
+        )
+    )
+    if not org_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Branch not found")
+
+    # Run cleanup silently
+    try:
+        await cleanup_old_branch_backups(db)
+    except Exception as e:
+        logger.warning(f"Branch backup cleanup failed: {e}")
+        
+    from sqlalchemy import desc
+    result = await db.execute(
+        select(BranchBackup)
+        .where(BranchBackup.org_id == branch_id)
+        .order_by(desc(BranchBackup.created_at))
+    )
+    backups = result.scalars().all()
+    
+    return BranchBackupListResponse(
+        items=[
+            BranchBackupItem(
+                id=str(b.id),
+                filename=b.filename,
+                size_bytes=b.size_bytes,
+                status=b.status.value,
+                created_at=b.created_at.isoformat()
+            )
+            for b in backups
+        ]
+    )
+
+@router.get(
+    "/branches/{branch_id}/backups/{backup_id}/download",
+    summary="Download a Branch Backup (Org Admin)",
+)
+async def org_admin_download_branch_backup(
+    branch_id: uuid.UUID,
+    backup_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_org_admin),
+):
+    import os
+    # Verify ownership
+    org_result = await db.execute(
+        select(Organization)
+        .where(
+            Organization.id == branch_id,
+            Organization.parent_organization_id == current_user.parent_organization_id
+        )
+    )
+    if not org_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Branch not found")
+
+    backup = await db.scalar(
+        select(BranchBackup)
+        .where(BranchBackup.id == backup_id, BranchBackup.org_id == branch_id)
+    )
+    if not backup:
+        raise HTTPException(status_code=404, detail="Backup not found")
+        
+    filepath = os.path.join("/app/backups", backup.filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Backup file missing from disk")
+        
+    return FileResponse(
+        path=filepath, 
+        filename=backup.filename, 
+        media_type="application/json"
+    )
+
+class SuccessResponse(BaseModel):
+    message: str
+
+@router.post(
+    "/branches/{branch_id}/backups/restore",
+    response_model=SuccessResponse,
+    summary="Restore a Branch from a backup file (Org Admin)",
+)
+async def org_admin_restore_branch_from_backup(
+    branch_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_org_admin),
+) -> SuccessResponse:
+    import os
+    
+    # Verify ownership
+    org_result = await db.execute(
+        select(Organization)
+        .where(
+            Organization.id == branch_id,
+            Organization.parent_organization_id == current_user.parent_organization_id
+        )
+    )
+    if not org_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Branch not found")
+
+    if not file.filename.endswith(".q4branchbackup"):
+        raise HTTPException(status_code=400, detail="Must upload a .q4branchbackup file")
+        
+    filepath = f"/tmp/{uuid.uuid4()}_{file.filename}"
+    try:
+        contents = await file.read()
+        with open(filepath, "wb") as f:
+            f.write(contents)
+            
+        await restore_branch_backup(branch_id, filepath, db)
+        return SuccessResponse(message="Branch successfully restored from backup.")
+    except ValueError as e:
+        logger.error(f"Branch restore validation failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Branch restore failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+

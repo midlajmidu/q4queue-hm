@@ -18,4 +18,5 @@ from app.models.system_announcement import SystemAnnouncement # noqa: E402, F401
 from app.models.message import Message            # noqa: E402, F401
 from app.models.export_job import ExportJob       # noqa: E402, F401
 from app.models.org_backup import OrgBackup       # noqa: E402, F401
+from app.models.branch_backup import BranchBackup # noqa: E402, F401
 from app.audit.models import AuditLog             # noqa: E402, F401

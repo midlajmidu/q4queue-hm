@@ -1627,3 +1627,144 @@ async def restore_from_backup(
     except Exception as e:
         logger.error(f"Restore failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ── Branch Backups ────────────────────────────────────────────────────────────
+import uuid
+from fastapi import UploadFile, File
+from fastapi.responses import FileResponse
+from app.models.branch_backup import BranchBackup
+
+class BranchBackupItem(BaseModel):
+    id: str
+    filename: str
+    size_bytes: int
+    status: str
+    created_at: str
+
+class BranchBackupListResponse(BaseModel):
+    items: list[BranchBackupItem]
+
+@router.post(
+    "/branches/{org_id}/backups",
+    response_model=BranchBackupItem,
+    summary="Create a new Branch Backup",
+)
+async def create_branch_backup_endpoint(
+    org_id: uuid.UUID,
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> BranchBackupItem:
+    from app.services.branch_backup_service import create_branch_backup
+    try:
+        backup = await create_branch_backup(org_id, db)
+        return BranchBackupItem(
+            id=str(backup.id),
+            filename=backup.filename,
+            size_bytes=backup.size_bytes,
+            status=backup.status.value,
+            created_at=backup.created_at.isoformat()
+        )
+    except Exception as e:
+        logger.error(f"Failed to create branch backup for org {org_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get(
+    "/branches/{org_id}/backups",
+    response_model=BranchBackupListResponse,
+    summary="List Backups for a specific Branch",
+)
+async def list_branch_backups(
+    org_id: uuid.UUID,
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> BranchBackupListResponse:
+    from app.services.branch_backup_service import cleanup_old_branch_backups
+    # Run cleanup silently
+    try:
+        await cleanup_old_branch_backups(db)
+    except Exception as e:
+        logger.warning(f"Branch backup cleanup failed: {e}")
+        
+    result = await db.execute(
+        select(BranchBackup)
+        .where(BranchBackup.org_id == org_id)
+        .order_by(desc(BranchBackup.created_at))
+    )
+    backups = result.scalars().all()
+    
+    return BranchBackupListResponse(
+        items=[
+            BranchBackupItem(
+                id=str(b.id),
+                filename=b.filename,
+                size_bytes=b.size_bytes,
+                status=b.status.value,
+                created_at=b.created_at.isoformat()
+            )
+            for b in backups
+        ]
+    )
+
+@router.get(
+    "/branches/{org_id}/backups/{backup_id}/download",
+    summary="Download a Branch Backup",
+)
+async def download_branch_backup(
+    org_id: uuid.UUID,
+    backup_id: uuid.UUID,
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    import os
+    backup = await db.scalar(
+        select(BranchBackup)
+        .where(BranchBackup.id == backup_id, BranchBackup.org_id == org_id)
+    )
+    if not backup:
+        raise HTTPException(status_code=404, detail="Backup not found")
+        
+    filepath = os.path.join("/app/backups", backup.filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Backup file missing from disk")
+        
+    return FileResponse(
+        path=filepath, 
+        filename=backup.filename, 
+        media_type="application/json"
+    )
+
+@router.post(
+    "/branches/{org_id}/backups/restore",
+    response_model=SuccessResponse,
+    summary="Restore a Branch from a backup file",
+)
+async def restore_branch_from_backup(
+    org_id: uuid.UUID,
+    file: UploadFile = File(...),
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessResponse:
+    import os
+    from app.services.branch_backup_service import restore_branch_backup
+    
+    if not file.filename.endswith(".q4branchbackup"):
+        raise HTTPException(status_code=400, detail="Must upload a .q4branchbackup file")
+        
+    filepath = f"/tmp/{uuid.uuid4()}_{file.filename}"
+    try:
+        contents = await file.read()
+        with open(filepath, "wb") as f:
+            f.write(contents)
+            
+        await restore_branch_backup(org_id, filepath, db)
+        return SuccessResponse(message="Branch successfully restored from backup.")
+    except ValueError as e:
+        logger.error(f"Branch restore validation failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Branch restore failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+

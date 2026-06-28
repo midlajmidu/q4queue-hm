@@ -755,6 +755,46 @@ export const api = {
         });
     },
     
+    // ── Branch Backups ────────────────────────────────────────────────
+    createBranchBackup(orgId: string): Promise<any> {
+        return request<any>(`/super-admin/branches/${orgId}/backups`, {
+            method: "POST"
+        });
+    },
+
+    listBranchBackups(orgId: string): Promise<{ items: any[] }> {
+        return request<{ items: any[] }>(`/super-admin/branches/${orgId}/backups`);
+    },
+
+    restoreBranchBackup(orgId: string, file: File): Promise<SuccessResponse> {
+        const formData = new FormData();
+        formData.append("file", file);
+        return request<SuccessResponse>(`/super-admin/branches/${orgId}/backups/restore`, {
+            method: "POST",
+            body: formData,
+        });
+    },
+
+    // ── Org Admin Branch Backups ────────────────────────────────────────────────
+    orgAdminCreateBranchBackup(branchId: string): Promise<any> {
+        return request<any>(`/organization-admin/branches/${branchId}/backups`, {
+            method: "POST"
+        });
+    },
+
+    orgAdminListBranchBackups(branchId: string): Promise<{ items: any[] }> {
+        return request<{ items: any[] }>(`/organization-admin/branches/${branchId}/backups`);
+    },
+
+    orgAdminRestoreBranchBackup(branchId: string, file: File): Promise<SuccessResponse> {
+        const formData = new FormData();
+        formData.append("file", file);
+        return request<SuccessResponse>(`/organization-admin/branches/${branchId}/backups/restore`, {
+            method: "POST",
+            body: formData,
+        });
+    },
+
     assignBranchesToParent(id: string, data: AssignBranchesRequest): Promise<{ message: string }> {
         return request<{ message: string }>(`/parent-organizations/${id}/assign-branches`, {
             method: "POST",
