@@ -80,18 +80,18 @@ export default function AnalyticsPage() {
     return (
         <div className="space-y-6 pb-20">
             {/* Premium Header & Controls */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-6 pb-6 border-b border-slate-200/60">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
                 <div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Executive Dashboard</h1>
-                    <div className="flex items-center flex-wrap gap-2 text-sm text-slate-500 mt-2">
-                        <span>Historical data, operational insights, and performance metrics.</span>
-                        <span className="hidden sm:inline text-slate-300">•</span>
-                        <div className="flex items-center gap-2 text-slate-500 font-mono text-[10px] tracking-widest uppercase font-semibold bg-slate-100/50 px-2 py-0.5 rounded-md border border-slate-200/50">
+                    <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 mt-2">
+                        <span className="leading-none">Historical data, operational insights, and performance metrics.</span>
+                        <span className="hidden sm:flex items-center text-slate-300 leading-none">•</span>
+                        <div className="flex items-center gap-1.5 text-slate-500 font-mono text-[10px] tracking-widest uppercase font-semibold bg-slate-100/50 px-2 py-1 rounded-md border border-slate-200/50 leading-none">
                             <span className="relative flex h-1.5 w-1.5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                             </span>
-                            Updated just now
+                            <span>Updated just now</span>
                         </div>
                     </div>
                 </div>
@@ -115,19 +115,19 @@ export default function AnalyticsPage() {
                     <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 z-0"></div>
 
                     {/* The Frosted Glass Surface */}
-                    <div className="relative z-10 p-6 md:p-8 bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col md:flex-row items-center gap-6 rounded-2xl">
+                    <div className="relative z-10 p-5 md:p-6 bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col md:flex-row items-start md:items-center gap-6 rounded-2xl">
                         <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2 mb-3">
                                 {data.insights[0].includes("🚨") ? (
                                     <AlertCircle size={16} className="text-rose-600 fill-rose-600/30" />
                                 ) : (
                                     <Lightbulb size={16} className="text-indigo-600 fill-indigo-600/30" />
                                 )}
-                                <h3 className={`font-bold uppercase tracking-widest text-[10px] ${data.insights[0].includes("🚨") ? "text-rose-600" : "text-indigo-600"}`}>
+                                <h3 className={`font-bold uppercase tracking-widest text-[11px] pt-0.5 ${data.insights[0].includes("🚨") ? "text-rose-600" : "text-indigo-600"}`}>
                                     {data.insights[0].includes("🚨") ? "Critical Alert" : "AI Strategic Insight"}
                                 </h3>
                             </div>
-                            <h2 className={`text-xl font-bold leading-tight ${data.insights[0].includes("🚨") ? "text-rose-900" : "text-slate-900"}`}>
+                            <h2 className={`text-xl font-semibold leading-relaxed tracking-tight ${data.insights[0].includes("🚨") ? "text-rose-900" : "text-slate-800"}`}>
                                 {data.insights[0]}
                             </h2>
                         </div>
