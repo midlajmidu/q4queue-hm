@@ -96,7 +96,9 @@ class CustomerMetrics(BaseModel):
     total_customers: int
     customers_served: int
     customers_waiting: int
+    customers_abandoned: int
     completion_rate: str
+    abandonment_rate: str
 
 class TimeMetrics(BaseModel):
     avg_wait_time: str
@@ -107,6 +109,8 @@ class OperationsMetrics(BaseModel):
     active_branches: int
     active_sessions: int
     active_queues: int
+    operated_queues: int
+    online_staff: int
 
 class DailyVolumeTrendItem(BaseModel):
     date: str
@@ -118,6 +122,7 @@ class BranchRankingItem(BaseModel):
     customers_served: int
     avg_wait_time: str
     avg_service_time: str
+    raw_wait_sec: float
     completion_rate: str
     health_score: int
     health_status: str
@@ -133,6 +138,7 @@ class PeakTrafficItem(BaseModel):
     time_block: str
     customers_arrived: int
     customers_served: int
+    avg_wait_minutes: float
     is_peak: bool = False
 
 class StaffPerformanceItem(BaseModel):

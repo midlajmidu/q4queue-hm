@@ -45,12 +45,24 @@ export function getTokenTypeFromPath(): TokenType {
  * Primary: in-memory. Backup: localStorage for cross-session persistence.
  */
 export function setToken(token: string, explicitType?: TokenType): void {
-    const type = explicitType || getTokenTypeFromPath();
-    _tokens[type] = token;
-    console.log(`[auth.ts] setToken called for type ${type}.`);
+    let type = explicitType;
+    if (!type) {
+        const payload = decodeToken(token);
+        if (payload) {
+            if (payload.role === "super_admin") type = "super_admin";
+            else if (payload.role === "organization_admin") type = "org_admin";
+            else type = "staff";
+        } else {
+            type = getTokenTypeFromPath();
+        }
+    }
+    
+    const finalType = type as TokenType;
+    _tokens[finalType] = token;
+    console.log(`[auth.ts] setToken called for type ${finalType}.`);
     try {
         if (typeof window !== "undefined") {
-            localStorage.setItem(STORAGE_KEYS[type], token);
+            localStorage.setItem(STORAGE_KEYS[finalType], token);
         }
     } catch {
         // SSR or storage unavailable
@@ -80,21 +92,6 @@ export function getToken(explicitType?: TokenType): string | null {
         console.error(`[auth.ts] getToken error accessing localStorage for ${type}:`, e);
     }
     
-    // Fallback: If looking for staff token and it's missing, try to use the org_admin token
-    // This allows Organization Admins to view branch dashboards without a separate login
-    if (type === "staff") {
-        if (_tokens["org_admin"]) return _tokens["org_admin"];
-        try {
-            if (typeof window !== "undefined") {
-                const orgStored = localStorage.getItem(STORAGE_KEYS["org_admin"]);
-                if (orgStored) {
-                    _tokens["org_admin"] = orgStored;
-                    return orgStored;
-                }
-            }
-        } catch (e) {}
-    }
-
     return null;
 }
 

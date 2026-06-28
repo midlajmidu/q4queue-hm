@@ -267,10 +267,10 @@ async def get_branch_summary(
     wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == "waiting"))
     customers_waiting = wait_res.scalar() or 0
     
-    serv_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == "serving"))
+    serv_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.serving))
     customers_being_served = serv_res.scalar() or 0
     
-    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == "completed"))
+    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.done))
     customers_served_today = comp_res.scalar() or 0
     
     tot_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today))
@@ -298,13 +298,13 @@ async def get_branch_performance(
     from datetime import datetime, timezone
     today = datetime.now(timezone.utc).date()
     
-    wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == "waiting"))
+    wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.waiting))
     customers_waiting = wait_res.scalar() or 0
     
-    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == "completed"))
+    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.done))
     customers_served_today = comp_res.scalar() or 0
     
-    canc_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == "cancelled"))
+    canc_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.skipped))
     cancelled_tokens = canc_res.scalar() or 0
     
     tot_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today))
@@ -352,9 +352,9 @@ async def get_branch_queues(
     
     results = []
     for q in queues:
-        wait_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == "waiting"))
-        serv_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == "serving"))
-        comp_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == "completed"))
+        wait_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.waiting))
+        serv_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.serving))
+        comp_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.done))
         
         avg_wait = await db.execute(
             select(func.avg(func.extract('epoch', Token.served_at) - func.extract('epoch', Token.created_at)))
@@ -394,7 +394,7 @@ async def get_branch_sessions(
     for s in sessions:
         operator_name = "Staff Member"
         
-        comp_res = await db.execute(select(func.count(Token.id)).where(Token.session_id == s.id, Token.status == "completed"))
+        comp_res = await db.execute(select(func.count(Token.id)).where(Token.session_id == s.id, Token.status == TokenStatus.done))
         
         avg_svc = await db.execute(
             select(func.avg(func.extract('epoch', Token.completed_at) - func.extract('epoch', Token.served_at)))

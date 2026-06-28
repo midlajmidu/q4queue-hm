@@ -405,9 +405,9 @@ async def get_analytics(
             CustomerMetrics, TimeMetrics, OperationsMetrics
         )
         return AnalyticsResponse(
-            customer_metrics=CustomerMetrics(total_customers=0, customers_served=0, customers_waiting=0, completion_rate="0%"),
+            customer_metrics=CustomerMetrics(total_customers=0, customers_served=0, customers_waiting=0, customers_abandoned=0, completion_rate="0%", abandonment_rate="0%"),
             time_metrics=TimeMetrics(avg_wait_time="00:00:00", avg_service_time="00:00:00", peak_hour="-"),
-            operations_metrics=OperationsMetrics(active_branches=0, active_sessions=0, active_queues=0),
+            operations_metrics=OperationsMetrics(active_branches=0, active_sessions=0, active_queues=0, operated_queues=0, online_staff=0),
             volume_trend=[], branch_ranking=[], queue_analytics=[], peak_traffic=[], staff_performance=[], insights=[]
         )
         

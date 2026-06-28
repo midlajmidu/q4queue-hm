@@ -578,6 +578,7 @@ async def get_cross_branch_analytics(
         func.count(Token.id).label("total_customers"),
         func.sum(case((Token.status == TokenStatus.done, 1), else_=0)).label("served"),
         func.sum(case((Token.status == TokenStatus.waiting, 1), else_=0)).label("waiting"),
+        func.sum(case((Token.status == TokenStatus.skipped, 1), else_=0)).label("abandoned"),
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
         func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
     ).where(and_(*token_conditions))
@@ -588,8 +589,10 @@ async def get_cross_branch_analytics(
     total_customers = m_row.total_customers or 0
     served = int(m_row.served or 0)
     waiting = int(m_row.waiting or 0)
+    abandoned = int(m_row.abandoned or 0)
     
     completion_rate = f"{round((served / total_customers * 100) if total_customers > 0 else 0, 1)}%"
+    abandonment_rate = f"{round((abandoned / total_customers * 100) if total_customers > 0 else 0, 1)}%"
     
     def format_time(seconds: float | None) -> str:
         if not seconds: return "00:00:00"
@@ -611,6 +614,17 @@ async def get_cross_branch_analytics(
     s_res = await db.execute(select(func.count(Session.id)).where(Session.org_id.in_(org_ids), Session.session_date == today))
     active_sessions = s_res.scalar_one() or 0
     
+    # Calculate operated queues (distinct queues that handled tokens during this period)
+    oq_res = await db.execute(select(func.count(func.distinct(Token.queue_id))).where(and_(*token_conditions)))
+    operated_queues = oq_res.scalar_one() or 0
+    
+    # Calculate online staff (active in the last hour)
+    from datetime import timedelta
+    from app.models.user import User
+    one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+    os_res = await db.execute(select(func.count(User.id)).where(User.org_id.in_(org_ids), User.last_active_at >= one_hour_ago))
+    online_staff = os_res.scalar_one() or 0
+    
     # 5. Volume Trend (Daily)
     trend_q = select(
         func.date(func.timezone('Asia/Kolkata', Token.created_at)).label('dt'),
@@ -627,12 +641,11 @@ async def get_cross_branch_analytics(
         func.sum(case((Token.status == TokenStatus.done, 1), else_=0)).label("served"),
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
         func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
-    ).where(and_(*token_conditions)).group_by(Token.org_id).order_by(func.count(Token.id).desc())
+    ).where(and_(*token_conditions)).group_by(Token.org_id)
     
     branch_res = await db.execute(branch_q)
     
-    branch_ranking = []
-    rank = 1
+    branch_ranking_unsorted = []
     for r in branch_res.all():
         b_total = r.total or 0
         b_served = int(r.served or 0)
@@ -645,17 +658,22 @@ async def get_cross_branch_analytics(
         
         h_status = "Excellent" if health >= 95 else "Good" if health >= 80 else "Warning" if health >= 60 else "Critical"
         
-        branch_ranking.append({
-            "rank": rank,
+        branch_ranking_unsorted.append({
             "branch": org_map[r.org_id]["name"],
             "customers_served": b_served,
             "avg_wait_time": format_time(r.avg_wait_sec),
             "avg_service_time": format_time(r.avg_serve_sec),
+            "raw_wait_sec": float(r.avg_wait_sec or 0),
             "completion_rate": f"{round(cr, 1)}%",
             "health_score": health,
             "health_status": h_status
         })
-        rank += 1
+        
+    branch_ranking_unsorted.sort(key=lambda x: (x["health_score"], x["customers_served"]), reverse=True)
+    branch_ranking = []
+    for i, b in enumerate(branch_ranking_unsorted):
+        b["rank"] = i + 1
+        branch_ranking.append(b)
         
     # 7. Queue Analytics
     queue_q = select(
@@ -664,7 +682,7 @@ async def get_cross_branch_analytics(
         func.count(Token.id).label("served"),
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
         func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
-    ).join(Queue, Token.queue_id == Queue.id).where(and_(*token_conditions, Token.status == TokenStatus.done)).group_by(Queue.id, Token.org_id).order_by(func.count(Token.id).desc()).limit(10)
+    ).join(Queue, Token.queue_id == Queue.id).where(and_(*token_conditions, Token.status == TokenStatus.done)).group_by(Queue.id, Token.org_id).order_by(func.count(Token.id).desc())
     
     queue_res = await db.execute(queue_q)
     queue_analytics = []
@@ -727,7 +745,7 @@ async def get_cross_branch_analytics(
         Token.org_id,
         func.count(Token.id).label("served"),
         func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
-    ).join(User, Token.served_by_id == User.id).where(and_(*token_conditions, Token.status == TokenStatus.done)).group_by(User.id, Token.org_id).order_by(func.count(Token.id).desc()).limit(10)
+    ).join(User, Token.served_by_id == User.id).where(and_(*token_conditions, Token.status == TokenStatus.done)).group_by(User.id, Token.org_id).order_by(func.count(Token.id).desc())
     
     staff_res = await db.execute(staff_q)
     staff_performance = []
@@ -743,21 +761,33 @@ async def get_cross_branch_analytics(
         
     # 10. Generate Insights
     insights = []
-    if branch_ranking:
+    
+    abandonment_pct = (abandoned / total_customers * 100) if total_customers > 0 else 0
+    if abandonment_pct > 10:
+        insights.append(f"Insight: You experienced a {round(abandonment_pct, 1)}% abandonment rate today. This correlates heavily with peak traffic bottlenecks.")
+        
+    network_avg_wait = float(m_row.avg_wait_sec or 0)
+    if network_avg_wait > 0 and branch_ranking:
+        for b in branch_ranking:
+            if b['raw_wait_sec'] > (network_avg_wait * 1.5) and b['raw_wait_sec'] > 300: # at least 5 mins and 1.5x avg
+                insights.append(f"Warning: {b['branch']} has an average wait time of {b['avg_wait_time']}, which is significantly higher than the network average.")
+                break # Just alert the worst offender
+                
+    if not insights and branch_ranking:
         top_branch = branch_ranking[0]
-        insights.append(f"{top_branch['branch']} is the top-performing branch, serving {top_branch['customers_served']} customers with a {top_branch['completion_rate']} completion rate.")
-    if peak_traffic and formatted_peak != "-":
-        insights.append(f"Peak traffic occurs around {formatted_peak}, with {max_arrived} customers arriving.")
-    if queue_analytics:
-        top_queue = queue_analytics[0]
-        insights.append(f"The '{top_queue['queue_name']}' queue at {top_queue['branch']} handled the highest volume ({top_queue['customers_served']} customers).")
+        if top_branch['customers_served'] > 0:
+            insights.append(f"All systems normal. {top_branch['branch']} is leading with {top_branch['customers_served']} customers served and a {top_branch['completion_rate']} completion rate.")
+        else:
+            insights.append(f"{top_branch['branch']} is currently the most active branch, though service completion data is still accumulating.")
 
     return {
         "customer_metrics": {
             "total_customers": total_customers,
             "customers_served": served,
             "customers_waiting": waiting,
-            "completion_rate": completion_rate
+            "customers_abandoned": abandoned,
+            "completion_rate": completion_rate,
+            "abandonment_rate": abandonment_rate
         },
         "time_metrics": {
             "avg_wait_time": avg_wait,
@@ -767,7 +797,9 @@ async def get_cross_branch_analytics(
         "operations_metrics": {
             "active_branches": active_branches,
             "active_sessions": active_sessions,
-            "active_queues": active_queues
+            "active_queues": active_queues,
+            "operated_queues": operated_queues,
+            "online_staff": online_staff
         },
         "volume_trend": volume_trend,
         "branch_ranking": branch_ranking,

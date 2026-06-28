@@ -120,7 +120,13 @@ export function useAuth(): UseAuthReturn {
                 removeSuperAdminToken();
                 setToken(response.access_token);
                 setIsAuthed(true);
-                const currentUser = getCurrentUser();
+                
+                // Decode directly from the response token to avoid path-based token lookup issues
+                const parts = response.access_token.split(".");
+                let currentUser: JwtPayload | null = null;
+                if (parts.length === 3) {
+                    currentUser = JSON.parse(atob(parts[1])) as JwtPayload;
+                }
                 setUser(currentUser);
                 
                 if (response.force_password_change) {

@@ -24,8 +24,8 @@ export default function LoginPage() {
             if (user.role === "super_admin") {
                 router.replace("/super-admin");
             } else if (user.role === "organization_admin") {
-                router.replace(`/organization-admin`);
-            } else if (user.role === "admin" || user.role === "staff") {
+                router.replace("/organization-admin");
+            } else if (user.role === "admin" || user.role === "branch_admin" || user.role === "staff") {
                 router.replace(`/${user.org_slug}/dashboard`);
             } else {
                 router.replace("/dashboard");

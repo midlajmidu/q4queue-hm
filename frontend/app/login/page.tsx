@@ -26,6 +26,14 @@ export default function LoginPage() {
             }
             if (user.role === "super_admin") {
                 router.replace("/super-admin");
+            } else if (user.role === "organization_admin") {
+                // BUG FIX: If an org_admin is loaded on the staff /login page,
+                // it means their local storage has a corrupted fc_access_token from the old bug.
+                // We must clear it so they can log in as a staff member.
+                if (typeof window !== "undefined") {
+                    localStorage.removeItem("fc_access_token");
+                    window.location.reload();
+                }
             } else if (user.role === "admin" || user.role === "branch_admin" || user.role === "staff") {
                 router.replace(`/${user.org_slug}/dashboard`);
             } else {

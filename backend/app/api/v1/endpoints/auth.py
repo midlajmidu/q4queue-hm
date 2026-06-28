@@ -27,6 +27,29 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+@router.get("/fix-tokens")
+async def fix_tokens(db: AsyncSession = Depends(get_db)):
+    from app.models.token import Token, TokenStatus
+    from app.models.user import User
+    from sqlalchemy import select, update
+    
+    # Get any active user ID to use as a placeholder staff member
+    user_res = await db.execute(select(User.id).limit(1))
+    user_id = user_res.scalar()
+    
+    if user_id:
+        # Patch all done/serving tokens
+        await db.execute(
+            update(Token)
+            .where(Token.status.in_([TokenStatus.done, TokenStatus.serving]))
+            .where(Token.served_by_id.is_(None))
+            .values(served_by_id=user_id, completed_by_id=user_id)
+        )
+        await db.commit()
+        return {"msg": "Fixed!"}
+    return {"msg": "No users found"}
+
+
 
 @router.post(
     "/login",

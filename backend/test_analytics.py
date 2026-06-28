@@ -1,33 +1,19 @@
 import asyncio
-import uuid
-from app.db.session import AsyncSessionLocal
-from app.services.analytics_service import get_cross_branch_analytics
+from sqlalchemy import select, func, case, text
+from app.db.session import async_session_maker
+from app.models.token import Token, TokenStatus
+from dateutil.parser import parse
 
-async def test_analytics():
-    async with AsyncSessionLocal() as db:
-        try:
-            p_id = "8590ec94-7608-43fa-85de-b7bb9494de70"
-            print("Using Parent Org ID:", p_id)
-            
-            res = await get_cross_branch_analytics(
-                db=db,
-                parent_org_id=p_id,
-                branch_id=None,
-                start_date="2026-06-25",
-                end_date="2026-06-25"
-            )
-            import json
-            from app.schemas.organization_admin_monitoring import AnalyticsResponse
-            print("Trying to validate with AnalyticsResponse...")
-            try:
-                AnalyticsResponse(**res)
-                print("VALIDATION SUCCESS")
-            except Exception as e:
-                print("VALIDATION FAILED:", e)
-            print("SUCCESS:", json.dumps(res, indent=2))
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
+async def main():
+    async with async_session_maker() as db:
+        res = await db.execute(select(
+            func.count(Token.id).label("total_customers"),
+            func.sum(case((Token.status == TokenStatus.done, 1), else_=0)).label("served"),
+            func.sum(case((Token.status == TokenStatus.waiting, 1), else_=0)).label("waiting"),
+            func.sum(case((Token.status == TokenStatus.serving, 1), else_=0)).label("serving")
+        ))
+        row = res.first()
+        print(f"Total: {row.total_customers}, Served: {row.served}, Waiting: {row.waiting}, Serving: {row.serving}")
 
 if __name__ == "__main__":
-    asyncio.run(test_analytics())
+    asyncio.run(main())
