@@ -44,6 +44,49 @@ async def create_announcement(
     await db.commit()
     await db.refresh(db_announcement)
     
+    # Broadcast as a standard message to branches so it shows up in their Notification UI
+    from app.models.organization import Organization
+    from app.models.message import Message
+    from app.redis.deps import get_redis
+    import json
+    
+    query = select(Organization).where(Organization.parent_organization_id == current_user.parent_organization_id)
+    result = await db.execute(query)
+    branches = result.scalars().all()
+    
+    messages_to_create = []
+    target_branch_ids = [str(t_id) for t_id in (announcement_in.target_branches or [])]
+    
+    for branch in branches:
+        if not target_branch_ids or str(branch.id) in target_branch_ids:
+            msg = Message(
+                org_id=branch.id,
+                sender_id=current_user.id,
+                content=f"**ORGANIZATION BROADCAST**\n{db_announcement.title}\n{db_announcement.message}",
+                message_type=db_announcement.type,
+                is_read=False
+            )
+            db.add(msg)
+            messages_to_create.append(msg)
+            
+    if messages_to_create:
+        await db.commit()
+        for msg in messages_to_create:
+            await db.refresh(msg)
+            
+        # Broadcast redis events
+        try:
+            redis_client = await get_redis()
+            for msg in messages_to_create:
+                channel = f"org_{str(msg.org_id)}_notifications"
+                payload = {
+                    "type": "new_message",
+                    "message_id": str(msg.id)
+                }
+                await redis_client.publish(channel, json.dumps(payload))
+        except Exception as exc:
+            pass
+
     # Audit log
     await record_event(
         event_type="ORG_ANNOUNCEMENT_CREATED",

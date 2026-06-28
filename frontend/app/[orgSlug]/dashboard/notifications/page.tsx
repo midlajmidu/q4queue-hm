@@ -36,7 +36,7 @@ function NotifIcon({ type }: { type: NotifType }) {
       path: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" /></svg>,
     },
   };
-  const { className, path } = map[type];
+  const { className, path } = map[type] || map["info"];
   return (
     <div className={"flex items-center justify-center shrink-0 w-10 h-10 rounded-xl " + className}>
       {path}
@@ -93,7 +93,7 @@ export default function NotificationsPage() {
           title: ann.title || ann.message,
           message: ann.title ? ann.message : `${ann.source} Announcement`,
           type: ann.type,
-          time: new Date(ann.created_at).toLocaleDateString(),
+          time: new Date(ann.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
           isRead: true, // Announcements don't have read state in this context
           isAnnouncement: true,
           source: ann.source,

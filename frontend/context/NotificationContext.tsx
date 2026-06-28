@@ -32,7 +32,7 @@ function formatTimeAgo(dateString: string): string {
     // Ensure the date is parsed as UTC if the backend sends it without a timezone suffix
     const ds = dateString.endsWith('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
     const date = new Date(ds);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function getDynamicTitle(content: string, type: string): string {

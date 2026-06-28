@@ -1,130 +1,324 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
-import { AlertTriangle, Info, ShieldAlert, X } from "lucide-react";
+
+type AlertType = "error" | "warning" | "info" | "success";
+
+const typeConfig: Record<AlertType, {
+  bg: string;
+  border: string;
+  accent: string;
+  icon: string;
+  iconBg: string;
+  text: string;
+  sub: string;
+  shadow: string;
+  shadowHover: string;
+}> = {
+  error: {
+    bg: "#ffffff",
+    border: "#fecaca",
+    accent: "#ef4444",
+    icon: "#ffffff",
+    iconBg: "#ef4444",
+    text: "#1e293b",
+    sub: "#ef4444",
+    shadow: "0 4px 24px -4px rgba(239,68,68,.12), 0 2px 8px -2px rgba(0,0,0,.06)",
+    shadowHover: "0 12px 40px -8px rgba(239,68,68,.18), 0 4px 12px -2px rgba(0,0,0,.08)",
+  },
+  warning: {
+    bg: "#ffffff",
+    border: "#fde68a",
+    accent: "#f59e0b",
+    icon: "#ffffff",
+    iconBg: "#f59e0b",
+    text: "#1e293b",
+    sub: "#d97706",
+    shadow: "0 4px 24px -4px rgba(245,158,11,.12), 0 2px 8px -2px rgba(0,0,0,.06)",
+    shadowHover: "0 12px 40px -8px rgba(245,158,11,.18), 0 4px 12px -2px rgba(0,0,0,.08)",
+  },
+  info: {
+    bg: "#ffffff",
+    border: "#bfdbfe",
+    accent: "#3b82f6",
+    icon: "#ffffff",
+    iconBg: "#3b82f6",
+    text: "#1e293b",
+    sub: "#2563eb",
+    shadow: "0 4px 24px -4px rgba(59,130,246,.12), 0 2px 8px -2px rgba(0,0,0,.06)",
+    shadowHover: "0 12px 40px -8px rgba(59,130,246,.18), 0 4px 12px -2px rgba(0,0,0,.08)",
+  },
+  success: {
+    bg: "#ffffff",
+    border: "#a7f3d0",
+    accent: "#10b981",
+    icon: "#ffffff",
+    iconBg: "#10b981",
+    text: "#1e293b",
+    sub: "#059669",
+    shadow: "0 4px 24px -4px rgba(16,185,129,.12), 0 2px 8px -2px rgba(0,0,0,.06)",
+    shadowHover: "0 12px 40px -8px rgba(16,185,129,.18), 0 4px 12px -2px rgba(0,0,0,.08)",
+  },
+};
+
+const AlertIcons: Record<AlertType, React.ReactNode> = {
+  error: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+    </svg>
+  ),
+  warning: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  ),
+  info: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
+  ),
+  success: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6 9 17l-5-5"/>
+    </svg>
+  ),
+};
+
+const typeLabels: Record<AlertType, string> = {
+  error: "Critical Update",
+  warning: "Warning",
+  info: "Organization Info",
+  success: "Success",
+};
+
+const AnnouncementBanner: React.FC<{ announcement: any; onDismiss: (id: string) => void }> = ({ announcement, onDismiss }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [isDismissing, setIsDismissing] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Map backend types to AlertBanner types safely
+  const mapType = (type: string): AlertType => {
+      if (type === "critical") return "error";
+      if (type === "warning") return "warning";
+      if (type === "success") return "success";
+      return "info";
+  };
+  const type = mapType(announcement.type);
+  const config = typeConfig[type];
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setIsVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const handleDismiss = useCallback(() => {
+    setIsDismissing(true);
+    setTimeout(() => onDismiss(announcement.id), 300);
+  }, [announcement.id, onDismiss]);
+
+  const elapsed = Math.round((Date.now() - new Date(announcement.created_at).getTime()) / 1000);
+  const timeAgo = elapsed < 5 ? "just now" : elapsed < 60 ? `${elapsed}s ago` : elapsed < 3600 ? `${Math.floor(elapsed / 60)}m ago` : `${Math.floor(elapsed / 3600)}h ago`;
+
+  return (
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        position: "relative",
+        width: "100%",
+        maxWidth: 420,
+        background: config.bg,
+        border: `1px solid ${config.border}`,
+        borderRadius: 14,
+        padding: 0,
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: isHovered ? config.shadowHover : config.shadow,
+        transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+        transform: isVisible && !isDismissing
+          ? "translateX(0) scale(1)"
+          : isDismissing
+            ? "translateX(80px) scale(0.95)"
+            : "translateX(40px) scale(0.96)",
+        opacity: isVisible && !isDismissing ? 1 : 0,
+        overflow: "hidden",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        pointerEvents: "auto",
+      }}
+    >
+      {/* Top accent stripe */}
+      <div style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 3,
+        background: `linear-gradient(90deg, ${config.accent}, ${config.accent}cc, ${config.accent}66)`,
+        borderRadius: "14px 14px 0 0",
+      }} />
+
+      {/* Main content row */}
+      <div style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 14,
+        padding: "16px 16px 14px 16px",
+      }}>
+        {/* Icon pill */}
+        <div style={{
+          width: 34,
+          height: 34,
+          borderRadius: 10,
+          background: config.iconBg,
+          color: config.icon,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          marginTop: 1,
+        }}>
+          {AlertIcons[type]}
+        </div>
+
+        {/* Text block */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+            <span style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              color: config.sub,
+            }}>
+              {typeLabels[type]}
+            </span>
+            <span style={{
+              fontSize: 11,
+              fontWeight: 500,
+              color: "#94a3b8",
+            }}>
+              {timeAgo}
+            </span>
+          </div>
+          <p style={{
+            margin: 0,
+            fontSize: 13.5,
+            fontWeight: 600,
+            color: config.text,
+            lineHeight: 1.4,
+            letterSpacing: "-0.005em",
+            wordBreak: "break-word",
+            marginBottom: 2
+          }}>
+            {announcement.title}
+          </p>
+          <p style={{
+            margin: 0,
+            fontSize: 13,
+            fontWeight: 400,
+            color: "#64748b",
+            lineHeight: 1.5,
+            letterSpacing: "-0.005em",
+            wordBreak: "break-word",
+          }}>
+            {announcement.message}
+          </p>
+        </div>
+
+        {/* Dismiss */}
+        <button
+          onClick={handleDismiss}
+          style={{
+            background: "transparent",
+            border: "none",
+            padding: 4,
+            margin: "-4px -4px 0 0",
+            cursor: "pointer",
+            color: "#94a3b8",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 6,
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#475569";
+            e.currentTarget.style.background = "#f1f5f9";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#94a3b8";
+            e.currentTarget.style.background = "transparent";
+          }}
+          aria-label="Dismiss alert"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 
 export function OrganizationAnnouncementsBanner() {
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
-    const [currentIndex, setCurrentIndex] = useState(0);
-
     useEffect(() => {
-        // Load dismissed announcements from localStorage
-        try {
-            const saved = localStorage.getItem("qrq_dismissed_org_announcements");
-            if (saved) setDismissed(new Set(JSON.parse(saved)));
-        } catch (e) { }
-
-        const fetchAnnouncements = async () => {
-            try {
-                const data = await api.getActiveOrgAnnouncements?.() || await (api as any).request("/organization/announcements/active");
-                setAnnouncements(data);
-            } catch (err) {
-                console.debug("Failed to fetch organization announcements", err);
-            }
-        };
-
-        fetchAnnouncements();
-        const interval = setInterval(fetchAnnouncements, 60000); 
-        return () => clearInterval(interval);
+        // We load saved dismissed state from localStorage just to be robust
+        const stored = localStorage.getItem("qrq_dismissed_org_announcements");
+        if (stored) {
+            try { setDismissed(new Set(JSON.parse(stored))); } catch (e) {}
+        }
+        
+        api.getActiveOrgAnnouncements?.()
+            .then(data => setAnnouncements(data || []))
+            .catch(console.error);
+            
+        const intervalId = setInterval(() => {
+            api.getActiveOrgAnnouncements?.()
+                .then(data => setAnnouncements(data || []))
+                .catch(console.error);
+        }, 1000 * 60 * 5);
+        
+        return () => clearInterval(intervalId);
     }, []);
+
+    const handleDismiss = (id: string) => {
+        setDismissed(prev => {
+            const next = new Set(prev).add(id);
+            localStorage.setItem("qrq_dismissed_org_announcements", JSON.stringify(Array.from(next)));
+            return next;
+        });
+    };
 
     const activeAnnouncements = announcements.filter(a => !dismissed.has(a.id));
 
-    useEffect(() => {
-        if (activeAnnouncements.length <= 1) return;
-        const slideInterval = setInterval(() => {
-            setCurrentIndex(prev => (prev + 1) % activeAnnouncements.length);
-        }, 5000); // Change slide every 5 seconds
-        return () => clearInterval(slideInterval);
-    }, [activeAnnouncements.length]);
-
-    const dismissAnnouncement = (id: string) => {
-        const newDismissed = new Set(dismissed);
-        newDismissed.add(id);
-        setDismissed(newDismissed);
-        localStorage.setItem("qrq_dismissed_org_announcements", JSON.stringify(Array.from(newDismissed)));
-    };
-
     if (activeAnnouncements.length === 0) return null;
 
-    let displayIndex = currentIndex;
-    if (displayIndex >= activeAnnouncements.length) {
-        displayIndex = 0;
-    }
-
-    const ann = activeAnnouncements[displayIndex];
-
-    let Icon = Info;
-    let barColor = "bg-indigo-500/80";
-    let iconColor = "text-indigo-600";
-    let badgeBg = "bg-indigo-50/80 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400";
-    
-    if (ann.type === "warning") {
-        Icon = AlertTriangle;
-        barColor = "bg-amber-500/80";
-        iconColor = "text-amber-600";
-        badgeBg = "bg-amber-50/80 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
-    } else if (ann.type === "critical") {
-        Icon = ShieldAlert;
-        barColor = "bg-rose-500/80";
-        iconColor = "text-rose-600";
-        badgeBg = "bg-rose-50/80 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400";
-    }
-
     return (
-        <div className="fixed bottom-6 right-4 sm:bottom-8 sm:right-8 flex flex-col items-end z-[100] pointer-events-none">
-            <div 
-                key={ann.id + "-" + displayIndex}
-                className="group relative w-[calc(100vw-2rem)] sm:w-[400px] bg-white/30 dark:bg-[#1a1a1a]/40 backdrop-blur-3xl backdrop-saturate-150 border border-white/40 dark:border-white/10 rounded-[24px] p-5 md:p-6 flex flex-col gap-3 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1),inset_0_1px_0_0_rgba(255,255,255,0.7)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.1)] transition-all duration-500 animate-in slide-in-from-right-8 slide-in-from-bottom-4 fade-in overflow-hidden pointer-events-auto"
-            >
-                <div className="flex items-start gap-4 w-full">
-                    {/* Minimal Left Indicator */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${barColor} opacity-90`} />
-
-                    {/* Apple-style solid crisp icon badge */}
-                    <div className={`shrink-0 mt-0.5 flex items-center justify-center w-11 h-11 rounded-full ${badgeBg} shadow-sm`}>
-                        <Icon size={22} strokeWidth={2} />
-                    </div>
-                    
-                    <div className="flex-1 pr-6 pt-0.5">
-                        <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                            Organization Broadcast
-                        </div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <h3 className="text-[15px] font-semibold text-slate-900 tracking-tight leading-tight">{ann.title}</h3>
-                            <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${badgeBg} opacity-90`}>
-                                {ann.type}
-                            </span>
-                        </div>
-                        <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{ann.message}</div>
-                    </div>
-                    
-                    <button 
-                        onClick={() => dismissAnnouncement(ann.id)}
-                        className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-200"
-                        aria-label="Dismiss"
-                    >
-                        <X size={16} strokeWidth={2.5} />
-                    </button>
-                </div>
-
-                {/* Pagination Dots */}
-                {activeAnnouncements.length > 1 && (
-                    <div className="flex justify-center items-center gap-1.5 w-full mt-1">
-                        {activeAnnouncements.map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => setCurrentIndex(i)}
-                                className={`h-1.5 rounded-full transition-all duration-300 focus:outline-none ${i === displayIndex ? 'w-4 bg-slate-600 dark:bg-slate-400' : 'w-1.5 bg-slate-300 dark:bg-slate-600 hover:bg-slate-400'}`}
-                                aria-label={`Go to slide ${i + 1}`}
-                            />
-                        ))}
-                    </div>
-                )}
-            </div>
+        <div style={{
+            position: "fixed",
+            top: 20,
+            right: 20,
+            zIndex: 9998,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            maxHeight: "calc(100vh - 40px)",
+            pointerEvents: "none",
+        }}>
+            {activeAnnouncements.map((announcement) => (
+                <AnnouncementBanner 
+                    key={announcement.id} 
+                    announcement={announcement} 
+                    onDismiss={handleDismiss} 
+                />
+            ))}
         </div>
     );
 }
