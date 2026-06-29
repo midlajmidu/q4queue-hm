@@ -24,7 +24,7 @@ export function WaitingCountCard({ count }: WaitingCountCardProps) {
     }, [count]);
 
     return (
-        <div className="bg-white rounded-[24px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-200/60 p-8 flex flex-col items-center justify-center relative overflow-hidden flex-shrink-0 min-h-[220px]">
+        <div className="bg-white rounded-[24px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-200/60 p-6 lg:p-8 flex flex-col items-center justify-center relative overflow-hidden flex-shrink-0 min-h-[160px]">
             <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
                 <Users className="w-7 h-7" />
             </div>
