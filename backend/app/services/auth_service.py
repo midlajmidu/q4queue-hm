@@ -27,7 +27,8 @@ async def authenticate_user(
     *,
     email: str,
     plain_password: str,
-    org_slug: str,
+    org_slug: str | None,
+    login_type: str = "staff",
 ) -> tuple[str, User]:
     """
     Validate credentials for a specific organization and return a JWT and User.
@@ -42,42 +43,52 @@ async def authenticate_user(
     Raises:
       ValueError with a generic message on any failure.
     """
-    logger.info("Login attempt | org_slug=%s email=%s", org_slug, email)
+    logger.info("Login attempt | org_slug=%s email=%s login_type=%s", org_slug, email, login_type)
 
-    # ── 1. Check if org_slug is a ParentOrganization (Organization Admin Login) ──
-    from app.models.parent_organization import ParentOrganization
-    parent_org_result = await db.execute(
-        select(ParentOrganization).where(ParentOrganization.slug == org_slug)
-    )
-    parent_org: ParentOrganization | None = parent_org_result.scalar_one_or_none()
-
-    if parent_org and parent_org.is_active:
-        user_result = await db.execute(
-            select(User).where(
-                User.email == email,
-                User.parent_organization_id == parent_org.id,
-                User.role == "organization_admin"
-            )
+    if login_type == "org_admin":
+        # ── 1. Check ParentOrganization (Organization Admin Login) ──
+        # Since it's a dedicated single-parent deployment, we don't need a slug
+        from app.models.parent_organization import ParentOrganization
+        parent_org_result = await db.execute(
+            select(ParentOrganization).limit(1)
         )
-        user: User | None = user_result.scalar_one_or_none()
-        
-        if user and user.is_active and verify_password(plain_password, user.password_hash):
-            token = create_access_token(
-                user_id=str(user.id),
-                org_id=None,
-                parent_org_id=str(parent_org.id),
-                role=user.role,
-                email=user.email,
-                org_slug=parent_org.slug,
-                org_name=parent_org.name,
-                org_logo_url=None,
-                first_name=user.first_name,
-                last_name=user.last_name,
-                is_first_login=user.is_first_login,
+        parent_org: ParentOrganization | None = parent_org_result.scalar_one_or_none()
+
+        if parent_org and parent_org.is_active:
+            user_result = await db.execute(
+                select(User).where(
+                    User.email == email,
+                    User.parent_organization_id == parent_org.id,
+                    User.role == "organization_admin"
+                )
             )
-            return token, user
+            user: User | None = user_result.scalar_one_or_none()
+            
+            if user and user.is_active and verify_password(plain_password, user.password_hash):
+                token = create_access_token(
+                    user_id=str(user.id),
+                    org_id=None,
+                    parent_org_id=str(parent_org.id),
+                    role=user.role,
+                    email=user.email,
+                    org_slug=parent_org.slug,
+                    org_name=parent_org.name,
+                    org_logo_url=None,
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                    is_first_login=user.is_first_login,
+                )
+                return token, user
+
+        # If we reach here, org_admin login failed
+        logger.warning("Org admin login failed | email=%s slug=%s", email, org_slug)
+        raise ValueError(_INVALID_CREDENTIALS)
 
     # ── 2. Resolve organization (Branch Login) ────────────────────────────────────
+    if not org_slug:
+        logger.warning("Login failed: org_slug required for staff login")
+        raise ValueError(_INVALID_CREDENTIALS)
+
     org_result = await db.execute(
         select(Organization).where(Organization.slug == org_slug)
     )
@@ -95,14 +106,7 @@ async def authenticate_user(
     user_result = await db.execute(
         select(User).where(
             User.email == email,
-            or_(
-                User.org_id == org.id,        # ← TENANT ISOLATION
-                and_(
-                    User.role == "organization_admin",
-                    User.parent_organization_id == org.parent_organization_id,
-                    User.parent_organization_id.is_not(None)
-                )
-            )
+            User.org_id == org.id        # ← TENANT ISOLATION
         )
     )
     user: User | None = user_result.scalar_one_or_none()

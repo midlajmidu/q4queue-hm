@@ -12,7 +12,6 @@ import { ArrowRight, Eye, EyeOff, Building2 } from "lucide-react";
 export default function LoginPage() {
     const router = useRouter();
     const { login, isLoading, error, isAuthenticated, isHydrated, user } = useAuth();
-    const [orgSlug, setOrgSlug] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -36,11 +35,11 @@ export default function LoginPage() {
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await login({ organization_slug: orgSlug, email, password });
+            await login({ email, password, login_type: "org_admin" });
         } catch {
             // Error is handled in useAuth hook
         }
-    }, [login, orgSlug, email, password]);
+    }, [login, email, password]);
 
     return (
         <main className="force-dark min-h-screen relative flex flex-col items-center justify-center bg-slate-950 p-4 sm:p-8 overflow-y-auto">
@@ -99,23 +98,6 @@ export default function LoginPage() {
                         </AnimatePresence>
 
                         <div>
-                            <label htmlFor="org-slug" className="block text-sm font-semibold text-slate-200 mb-1.5">
-                                Organization Slug
-                            </label>
-                            <input
-                                id="org-slug"
-                                type="text"
-                                value={orgSlug}
-                                onChange={(e) => setOrgSlug(e.target.value)}
-                                placeholder="e.g. acme-corp"
-                                required
-                                autoComplete="organization"
-                                className="w-full rounded-xl border border-slate-700/50 bg-slate-900/50 px-4 py-2.5 text-sm text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all placeholder:text-slate-500"
-                                disabled={isLoading}
-                            />
-                        </div>
-
-                        <div>
                             <label htmlFor="email" className="block text-sm font-semibold text-slate-200 mb-1.5">Email Address</label>
                             <input
                                 id="email"
@@ -164,7 +146,7 @@ export default function LoginPage() {
 
                         <button
                             type="submit"
-                            disabled={isLoading || !orgSlug || !email || !password}
+                            disabled={isLoading || !email || !password}
                             aria-label="Sign in"
                             className="w-full h-11 mt-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-full shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] hover:scale-[1.02] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
@@ -185,18 +167,6 @@ export default function LoginPage() {
                     </form>
 
                     <div className="pt-6 border-t border-slate-800/80 flex flex-col items-center gap-4">
-                        <Link 
-                            href="/join" 
-                            className="group flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800/30 hover:bg-slate-800/60 border border-slate-700/50 hover:border-slate-600 transition-all duration-300 w-full"
-                        >
-                            <span className="text-[13px] font-medium text-slate-400 group-hover:text-slate-300 transition-colors">
-                                Don&apos;t have an account?
-                            </span>
-                            <span className="text-[13px] font-bold text-indigo-400 group-hover:text-indigo-300 transition-colors flex items-center gap-1">
-                                Sign Up <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                            </span>
-                        </Link>
-
                         <p className="text-xs text-slate-500">
                             Are you Branch Staff?{" "}
                             <Link href="/login" className="text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-2 transition-colors">

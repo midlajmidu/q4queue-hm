@@ -14,6 +14,7 @@ import BranchTodayPerformance from "@/components/organization-admin/branch-detai
 import BranchQueueBreakdown from "@/components/organization-admin/branch-details/BranchQueueBreakdown";
 import BranchSessionBreakdown from "@/components/organization-admin/branch-details/BranchSessionBreakdown";
 import BranchStaffOverview from "@/components/organization-admin/branch-details/BranchStaffOverview";
+import BranchAdminsOverview from "@/components/organization-admin/branch-details/BranchAdminsOverview";
 
 import BranchHealthCenter from "@/components/organization-admin/branch-details/BranchHealthCenter";
 import BranchActivityTimeline from "@/components/organization-admin/branch-details/BranchActivityTimeline";
@@ -131,6 +132,9 @@ export default function BranchDetailsPage() {
                     {/* SECTION 4: Session Breakdown */}
                     <BranchSessionBreakdown branchId={branchId} />
                     
+                    {/* SECTION 4.5: Branch Admins */}
+                    <BranchAdminsOverview branchId={branchId} />
+
                     {/* SECTION 5: Staff Overview */}
                     <BranchStaffOverview branchId={branchId} />
 

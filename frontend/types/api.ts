@@ -8,7 +8,8 @@
 export interface LoginRequest {
     email: string;
     password: string;
-    organization_slug: string;
+    organization_slug?: string;
+    login_type?: "staff" | "org_admin";
 }
 
 // ── Analytics ────────────────────────────────────────────────────
@@ -177,6 +178,15 @@ export interface BranchAdminCreateRequest {
 
 export interface BranchAdminResetPasswordRequest {
     new_password: string;
+}
+
+export interface BranchAdminItem {
+    user_id: string;
+    name: string;
+    email: string;
+    last_login: string;
+    status: string;
+    role: string;
 }
 
 export interface BranchAdminResponse {
