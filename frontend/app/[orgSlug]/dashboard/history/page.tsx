@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import type { SessionResponse, QueueResponse, TokenHistoryItem, AnalyticsOverview } from "@/types/api";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { Users } from "lucide-react";
 import { StandardPageHeader } from "@/components/StandardPageHeader";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
@@ -454,8 +455,8 @@ export default function HistoryPage() {
                                                     <span style={{ fontWeight: 600 }}>
                                                       {h.customer_name ? h.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : '-'}
                                                       {(h.companion_names && h.companion_names.length > 0) && (
-                                                          <span style={{ fontWeight: 400, color: "#6366f1", marginLeft: 4, textTransform: "none" }}>
-                                                              (+ {h.companion_names.join(", ")})
+                                                          <span style={{ fontWeight: 500, color: "#6366f1", backgroundColor: "rgba(99, 102, 241, 0.1)", padding: "2px 6px", borderRadius: "4px", marginLeft: 6, display: "inline-flex", alignItems: "center", gap: 2, textTransform: "none" }} title={h.companion_names.join(", ")}>
+                                                              <Users style={{ width: 12, height: 12 }} /> +{h.companion_names.length}
                                                           </span>
                                                       )}
                                                     </span>

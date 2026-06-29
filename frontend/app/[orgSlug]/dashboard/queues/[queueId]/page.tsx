@@ -1503,8 +1503,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                         <span className="font-semibold text-slate-700 dark:text-slate-300">
                                                                             {t.customer_name}
                                                                             {(t.companion_names && t.companion_names.length > 0) && (
-                                                                                <span className="font-normal text-indigo-500 ml-1">
-                                                                                    (+ {t.companion_names.join(", ")})
+                                                                                <span className="inline-flex items-center gap-0.5 font-medium text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded ml-1" title={t.companion_names.join(", ")}>
+                                                                                    <Users className="w-3 h-3" /> +{t.companion_names.length}
                                                                                 </span>
                                                                             )}
                                                                         </span>
@@ -1824,8 +1824,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                             <span className="text-[14px] md:text-[13px] font-bold text-slate-800 dark:text-slate-200">
                                                                 {t.customer_name || "Walk-in"}
                                                                 {(t.companion_names && t.companion_names.length > 0) && (
-                                                                    <span className="text-indigo-500 font-medium ml-1.5 text-xs">
-                                                                        (+ {t.companion_names.length})
+                                                                    <span className="inline-flex items-center gap-0.5 font-medium text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded ml-1 text-xs" title={t.companion_names.join(", ")}>
+                                                                        <Users className="w-3 h-3" /> +{t.companion_names.length}
                                                                     </span>
                                                                 )}
                                                             </span>
@@ -1984,7 +1984,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Companions <span className="text-slate-400 font-normal normal-case">(optional)</span></label>
-                                        <input type="text" value={addCompanions} onChange={e => setAddCompanions(e.target.value)} placeholder="e.g. John, Mary" className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
+                                        <input type="text" value={addCompanions} onChange={e => setAddCompanions(e.target.value.replace(/[^A-Za-z\s,]/g, ''))} maxLength={30} placeholder="e.g. John, Mary" className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
                                     </div>
                                 </div>
                             </div>
@@ -2164,8 +2164,8 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                         <span className="font-semibold text-slate-700 dark:text-slate-300 capitalize">
                             {t.customer_name}
                             {(t.companion_names && t.companion_names.length > 0) && (
-                                <span className="font-normal text-indigo-500 ml-1 normal-case">
-                                    (+ {t.companion_names.join(", ")})
+                                <span className="inline-flex items-center gap-0.5 font-medium text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded ml-1" title={t.companion_names.join(", ")}>
+                                    <Users className="w-3 h-3" /> +{t.companion_names.length}
                                 </span>
                             )}
                         </span>
@@ -2249,8 +2249,8 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                 <span className="text-[14px] md:text-[13px] font-bold text-slate-800 dark:text-slate-200">
                     {t.customer_name || "Walk-in"}
                     {(t.companion_names && t.companion_names.length > 0) && (
-                        <span className="text-indigo-500 font-medium ml-1.5 text-xs">
-                            (+ {t.companion_names.length})
+                        <span className="inline-flex items-center gap-0.5 font-medium text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded ml-1 text-xs" title={t.companion_names.join(", ")}>
+                            <Users className="w-3 h-3" /> +{t.companion_names.length}
                         </span>
                     )}
                 </span>
@@ -2467,8 +2467,8 @@ function QueueHistory({
                                                     <span style={{ fontWeight: 600, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                                         {item.customer_name || "—"}
                                                         {(item.companion_names && item.companion_names.length > 0) && (
-                                                            <span style={{ fontWeight: 400, color: "#6366f1", marginLeft: 4 }}>
-                                                                (+ {item.companion_names.join(", ")})
+                                                            <span style={{ fontWeight: 500, color: "#6366f1", backgroundColor: "rgba(99, 102, 241, 0.1)", padding: "2px 6px", borderRadius: "4px", marginLeft: 6, display: "inline-flex", alignItems: "center", gap: 2 }} title={item.companion_names.join(", ")}>
+                                                                <Users style={{ width: 12, height: 12 }} /> +{item.companion_names.length}
                                                             </span>
                                                         )}
                                                     </span>
