@@ -1,8 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
 export interface TokenDetailData {
+    id?: string;
     token_number: number;
     prefix?: string;
     customer_name: string;
@@ -78,14 +80,27 @@ const ENTRY_STYLES: Record<string, string> = {
 };
 
 export default function TokenDetailModal({ token, onClose, onRecall }: TokenDetailModalProps) {
-    if (!token) return null;
+    const [fullToken, setFullToken] = useState<TokenDetailData | null>(token);
 
-    const statusInfo = STATUS_STYLES[token.status] ?? { badge: "bg-gray-100 text-gray-500", label: token.status };
-    const entryType = token.entry_type ?? "manual";
-    const waitingTime = calcWaitingTime(token.created_at, token.served_at, token.status);
-    const serviceTime = calcServiceTime(token.served_at, token.completed_at);
+    useEffect(() => {
+        setFullToken(token);
+        // If the token came from WebSockets (live queue), it won't have customer_phone for privacy.
+        // We fetch the full details (which includes phone and age) securely from the REST API.
+        if (token && token.id && !token.customer_phone) {
+            api.restoreToken(token.id).then(data => {
+                setFullToken(prev => prev ? { ...prev, ...data } : null);
+            }).catch(() => {});
+        }
+    }, [token]);
+
+    if (!fullToken) return null;
+
+    const statusInfo = STATUS_STYLES[fullToken.status] ?? { badge: "bg-gray-100 text-gray-500", label: fullToken.status };
+    const entryType = fullToken.entry_type ?? "manual";
+    const waitingTime = calcWaitingTime(fullToken.created_at, fullToken.served_at, fullToken.status);
+    const serviceTime = calcServiceTime(fullToken.served_at, fullToken.completed_at);
     
-    const completedLabel = token.status === 'deleted' ? 'Cancelled' : token.status === 'skipped' ? 'Skipped' : 'Completed';
+    const completedLabel = fullToken.status === 'deleted' ? 'Cancelled' : fullToken.status === 'skipped' ? 'Skipped' : 'Completed';
 
     // Close on backdrop click
     const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -106,10 +121,10 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                     <div>
                         <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">Token</p>
                         <p className="text-4xl font-black text-white tabular-nums leading-none">
-                            {token.prefix || ""}{token.token_number}
+                            {fullToken.prefix || ""}{fullToken.token_number}
                         </p>
-                        {token.queue_name && (
-                            <p className="text-blue-200 text-xs mt-2 font-medium">{token.queue_name}</p>
+                        {fullToken.queue_name && (
+                            <p className="text-blue-200 text-xs mt-2 font-medium">{fullToken.queue_name}</p>
                         )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
@@ -138,8 +153,8 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                             </svg>
                         </div>
                         <div className="min-w-0">
-                            <p className="text-base font-bold text-gray-900 truncate">{token.customer_name || "—"}</p>
-                            <p className="text-sm text-gray-500">{token.customer_phone || "—"}</p>
+                            <p className="text-base font-bold text-gray-900 truncate">{fullToken.customer_name || "—"}</p>
+                            <p className="text-sm text-gray-500">{fullToken.customer_phone || "—"}</p>
                         </div>
                         <span className={`ml-auto px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex-shrink-0 ${ENTRY_STYLES[entryType] || ENTRY_STYLES.manual}`}>
                             {entryType.toUpperCase()}
@@ -148,36 +163,45 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
 
                     {/* Detail grid */}
                     <div className="grid grid-cols-2 gap-3">
-                        <DetailItem label="Phone Number" value={token.customer_phone || "Not Provided"} />
-                        {token.companion_names && token.companion_names.length > 0 && (
-                            <DetailItem label="Companions" value={token.companion_names.join(", ")} highlight="emerald" />
+                        <DetailItem label="Phone Number" value={fullToken.customer_phone || "Not Provided"} />
+                        {fullToken.companion_names && fullToken.companion_names.length > 0 && (
+                            <div className="col-span-2 bg-emerald-50/50 rounded-xl px-3 py-2.5">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600/70 mb-1.5">Companions</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {fullToken.companion_names.map((name, i) => (
+                                        <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-700">
+                                            {name}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
                         )}
-                        {token.assigned_line != null && (
-                            <DetailItem label="Line Number" value={String(token.assigned_line)} highlight="emerald" />
+                        {fullToken.assigned_line != null && (
+                            <DetailItem label="Line Number" value={String(fullToken.assigned_line)} highlight="emerald" />
                         )}
-                        <DetailItem label="Age" value={token.customer_age != null ? `${token.customer_age} yrs` : "Not Provided"} />
+                        <DetailItem label="Age" value={fullToken.customer_age != null ? `${fullToken.customer_age} yrs` : "Not Provided"} />
                         <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
-                        {token.called_via_invite !== undefined && (
-                            <DetailItem label="Call Method" value={token.called_via_invite ? "Invited by No." : "Call Next"} highlight={token.called_via_invite ? "amber" : undefined} />
+                        {fullToken.called_via_invite !== undefined && (
+                            <DetailItem label="Call Method" value={fullToken.called_via_invite ? "Invited by No." : "Call Next"} highlight={fullToken.called_via_invite ? "amber" : undefined} />
                         )}
-                        <DetailItem label="Created" value={fmtTime(token.created_at)} />
-                        <DetailItem label="Called" value={fmtTime(token.served_at)} />
-                        <DetailItem label={completedLabel} value={fmtTime(token.completed_at)} />
-                        {token.status === "deleted" && token.removed_by && (
-                            <DetailItem label="Removed By" value={token.removed_by === "customer" ? "Customer" : "Admin"} highlight="amber" />
+                        <DetailItem label="Created" value={fmtTime(fullToken.created_at)} />
+                        <DetailItem label="Called" value={fmtTime(fullToken.served_at)} />
+                        <DetailItem label={completedLabel} value={fmtTime(fullToken.completed_at)} />
+                        {fullToken.status === "deleted" && fullToken.removed_by && (
+                            <DetailItem label="Removed By" value={fullToken.removed_by === "customer" ? "Customer" : "Admin"} highlight="amber" />
                         )}
-                        {token.served_by_staff_name && (
-                            <DetailItem label="Served By" value={token.served_by_staff_name} />
+                        {fullToken.served_by_staff_name && (
+                            <DetailItem label="Served By" value={fullToken.served_by_staff_name} />
                         )}
-                        {token.completed_by_staff_name && (
-                            <DetailItem label="Completed By" value={token.completed_by_staff_name} />
+                        {fullToken.completed_by_staff_name && (
+                            <DetailItem label="Completed By" value={fullToken.completed_by_staff_name} />
                         )}
                         <DetailItem
                             label="Waiting Time"
                             value={waitingTime}
-                            highlight={token.served_at ? (parseInt(waitingTime) > 15 ? "amber" : "emerald") : undefined}
+                            highlight={fullToken.served_at ? (parseInt(waitingTime) > 15 ? "amber" : "emerald") : undefined}
                         />
-                        {token.completed_at && token.served_at && (
+                        {fullToken.completed_at && fullToken.served_at && (
                             <DetailItem
                                 label="Service Time"
                                 value={serviceTime}

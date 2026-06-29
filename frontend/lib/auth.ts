@@ -42,7 +42,7 @@ export function getTokenTypeFromPath(): TokenType {
 
 /**
  * Store the access token.
- * Primary: in-memory. Backup: localStorage for cross-session persistence.
+ * Primary: in-memory. Backup: sessionStorage for single-tab persistence (survives page refresh).
  */
 export function setToken(token: string, explicitType?: TokenType): void {
     let type = explicitType;
@@ -59,6 +59,9 @@ export function setToken(token: string, explicitType?: TokenType): void {
     
     const finalType = type as TokenType;
     _tokens[finalType] = token;
+    if (typeof window !== "undefined") {
+        sessionStorage.setItem(STORAGE_KEYS[finalType], token);
+    }
     console.log(`[auth.ts] setToken called for type ${finalType}.`);
 }
 
@@ -67,17 +70,43 @@ export function setToken(token: string, explicitType?: TokenType): void {
  */
 export function getToken(explicitType?: TokenType): string | null {
     const type = explicitType || getTokenTypeFromPath();
-    return _tokens[type];
+    if (_tokens[type]) return _tokens[type];
+    
+    if (typeof window !== "undefined") {
+        const stored = sessionStorage.getItem(STORAGE_KEYS[type]);
+        if (stored) {
+            _tokens[type] = stored; // Restore to memory
+            return stored;
+        }
+    }
+    return null;
 }
 
 export function getAllTokens(): Record<TokenType, string | null> {
-    return { ..._tokens };
+    const tokens = { ..._tokens };
+    if (typeof window !== "undefined") {
+        if (!tokens.staff) tokens.staff = sessionStorage.getItem(STORAGE_KEYS.staff);
+        if (!tokens.org_admin) tokens.org_admin = sessionStorage.getItem(STORAGE_KEYS.org_admin);
+        if (!tokens.super_admin) tokens.super_admin = sessionStorage.getItem(STORAGE_KEYS.super_admin);
+    }
+    return tokens;
 }
 
 export function setAllTokens(tokens: Record<TokenType, string | null>): void {
     _tokens.staff = tokens.staff;
     _tokens.org_admin = tokens.org_admin;
     _tokens.super_admin = tokens.super_admin;
+    
+    if (typeof window !== "undefined") {
+        if (tokens.staff) sessionStorage.setItem(STORAGE_KEYS.staff, tokens.staff);
+        else sessionStorage.removeItem(STORAGE_KEYS.staff);
+        
+        if (tokens.org_admin) sessionStorage.setItem(STORAGE_KEYS.org_admin, tokens.org_admin);
+        else sessionStorage.removeItem(STORAGE_KEYS.org_admin);
+        
+        if (tokens.super_admin) sessionStorage.setItem(STORAGE_KEYS.super_admin, tokens.super_admin);
+        else sessionStorage.removeItem(STORAGE_KEYS.super_admin);
+    }
 }
 
 /**
@@ -86,6 +115,9 @@ export function setAllTokens(tokens: Record<TokenType, string | null>): void {
 export function removeToken(explicitType?: TokenType): void {
     const type = explicitType || getTokenTypeFromPath();
     _tokens[type] = null;
+    if (typeof window !== "undefined") {
+        sessionStorage.removeItem(STORAGE_KEYS[type]);
+    }
 }
 
 // ── Super Admin Impersonation Token ──────────────────────────────

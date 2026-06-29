@@ -441,11 +441,13 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                         value={name}
                                                         onChange={(e) => {
                                                             const newNames = [...companionNames];
-                                                            newNames[idx] = e.target.value;
+                                                            // Only allow letters and spaces
+                                                            newNames[idx] = e.target.value.replace(/[^A-Za-z\s]/g, '');
                                                             setCompanionNames(newNames);
                                                         }}
                                                         placeholder="Companion's Name"
                                                         disabled={isJoining || queueClosed}
+                                                        maxLength={30}
                                                         className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
                                                     />
                                                     <button
