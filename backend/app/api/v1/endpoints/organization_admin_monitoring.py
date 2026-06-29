@@ -173,7 +173,14 @@ async def get_dashboard_metrics(
         )
         b_t = dict(b_tokens_res.all())
         
-        b_sessions = await db.execute(select(func.count(Session.id)).where(Session.org_id == org_id, Session.session_date == today))
+        # Count total active staff members assigned to this branch to act as our capacity denominator (counters)
+        b_staff = await db.execute(
+            select(func.count(User.id)).where(User.org_id == org_id, User.role == "staff", User.is_active == True)
+        )
+        staff_count = b_staff.scalar() or 0
+        if staff_count == 0:
+            staff_count = branch_obj.max_staff
+            
         b_queues = await db.execute(select(func.count(Queue.id)).where(Queue.org_id == org_id, Queue.is_active == True))
 
         # Real avg wait time for this branch today
@@ -197,7 +204,7 @@ async def get_dashboard_metrics(
             serving_customers=b_t.get(TokenStatus.serving, 0),
             customers_served_today=b_t.get(TokenStatus.done, 0),
             avg_wait_time=_fmt_minutes(b_wait),
-            active_sessions=b_sessions.scalar() or 0,
+            active_sessions=staff_count,
             active_queues=b_queues.scalar() or 0,
             status="Active" if branch_obj.is_active else "Inactive"
         ))

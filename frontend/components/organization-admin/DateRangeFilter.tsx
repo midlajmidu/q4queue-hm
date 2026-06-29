@@ -99,19 +99,19 @@ export default function DateRangeFilter({ onChange, initialPreset = "today" }: D
         <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center justify-between gap-3 min-w-[180px] bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:text-slate-900 hover:border-slate-300 hover:shadow-sm transition-all shadow-sm"
+                className={`group flex items-center justify-between gap-3 min-w-[200px] bg-white border ${isOpen ? 'border-indigo-300 ring-2 ring-indigo-50' : 'border-slate-200/80'} rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all shadow-sm hover:shadow active:scale-[0.98]`}
             >
-                <div className="flex items-center gap-2">
-                    <Calendar size={16} className="text-slate-400" />
+                <div className="flex items-center gap-2.5">
+                    <Calendar size={16} className={`transition-colors ${isOpen ? 'text-indigo-500' : 'text-slate-400 group-hover:text-indigo-500'}`} />
                     <span className="truncate">{preset === "custom" && customStart && customEnd ? `${customStart} to ${customEnd}` : displayLabel}</span>
                 </div>
-                <ChevronDown size={14} className="text-slate-400" />
+                <ChevronDown size={14} className={`transition-all duration-200 ${isOpen ? 'text-indigo-500 rotate-180' : 'text-slate-400 group-hover:text-indigo-500'}`} />
             </button>
 
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-slate-200 z-50 p-2 overflow-hidden">
+                    <div className="absolute right-0 mt-2.5 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 z-50 p-2 overflow-hidden ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                         <div className="flex flex-col space-y-1 mb-2">
                             {PRESETS.map((p) => (
                                 <button

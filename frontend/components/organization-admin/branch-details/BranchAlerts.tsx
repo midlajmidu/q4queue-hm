@@ -11,30 +11,22 @@ export default function BranchAlerts({ branchId }: { branchId: string }) {
         api.getBranchAlerts(branchId).then(setData).finally(() => setLoading(false));
     }, [branchId]);
 
-    if (loading) return <div className="h-40 bg-slate-100 animate-pulse rounded-xl"></div>;
+    if (loading) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
 
     if (data.length === 0) {
-        return (
-            <div className="bg-green-50 rounded-xl shadow-sm border border-green-100 p-4 flex items-start gap-3">
-                <AlertTriangle className="text-green-600 mt-0.5" size={18} />
-                <div>
-                    <h3 className="font-semibold text-green-900">No Active Alerts</h3>
-                    <p className="text-sm text-green-700 mt-1">Branch is operating normally without any registered issues.</p>
-                </div>
-            </div>
-        );
+        return null;
     }
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-4">
             {data.map((alert, i) => (
-                <div key={i} className="bg-red-50 rounded-xl shadow-sm border border-red-100 p-4 flex items-start gap-3">
-                    <AlertTriangle className="text-red-600 mt-0.5" size={18} />
+                <div key={i} className="bg-red-50 rounded-2xl shadow-sm shadow-red-100/50 border border-red-100 p-5 flex items-start gap-4 transition-all hover:shadow-md hover:shadow-red-100">
+                    <AlertTriangle className="text-red-600 mt-0.5 shrink-0" size={20} strokeWidth={1.5} />
                     <div>
-                        <h3 className="font-semibold text-red-900">{alert.issue}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs font-medium bg-red-100 text-red-800 px-2 py-0.5 rounded">{alert.severity} Severity</span>
-                            <span className="text-xs text-red-700">{alert.timestamp}</span>
+                        <h3 className="font-semibold tracking-tight text-red-900">{alert.issue}</h3>
+                        <div className="flex items-center gap-3 mt-2">
+                            <span className="text-[11px] font-semibold tracking-wider uppercase bg-red-100 text-red-800 px-2.5 py-1 rounded-md">{alert.severity}</span>
+                            <span className="text-xs font-medium text-red-700/80">{new Date(alert.timestamp).toLocaleString(undefined, { hour: 'numeric', minute: '2-digit' })}</span>
                         </div>
                     </div>
                 </div>

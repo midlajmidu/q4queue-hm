@@ -15,14 +15,11 @@ import BranchQueueBreakdown from "@/components/organization-admin/branch-details
 import BranchSessionBreakdown from "@/components/organization-admin/branch-details/BranchSessionBreakdown";
 import BranchStaffOverview from "@/components/organization-admin/branch-details/BranchStaffOverview";
 
-import BranchWhatsAppStats from "@/components/organization-admin/branch-details/BranchWhatsAppStats";
 import BranchHealthCenter from "@/components/organization-admin/branch-details/BranchHealthCenter";
 import BranchActivityTimeline from "@/components/organization-admin/branch-details/BranchActivityTimeline";
 import BranchContactCard from "@/components/organization-admin/branch-details/BranchContactCard";
 import BranchAlerts from "@/components/organization-admin/branch-details/BranchAlerts";
 import BranchFuturePlaceholders from "@/components/organization-admin/branch-details/BranchFuturePlaceholders";
-import BranchAdminsList from "@/components/organization-admin/branch-details/BranchAdminsList";
-
 export default function BranchDetailsPage() {
     const { user } = useAuth();
     const router = useRouter();
@@ -97,10 +94,10 @@ export default function BranchDetailsPage() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={handleToggleStatus}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                             branch.is_active 
-                            ? 'border-red-200 text-red-600 hover:bg-red-50' 
-                            : 'border-green-200 text-green-600 hover:bg-green-50'
+                            ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' 
+                            : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
                         }`}
                     >
                         {branch.is_active ? 'Deactivate Branch' : 'Activate Branch'}
@@ -108,7 +105,7 @@ export default function BranchDetailsPage() {
                     <Link
                         href={`/organization-admin/branches/${branchId}/admin`}
                         target="_blank"
-                        className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors"
+                        className="flex items-center gap-2 bg-indigo-600 text-white shadow-sm shadow-indigo-200 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-medium transition-all"
                     >
                         Open Dashboard <ExternalLink size={16} />
                     </Link>
@@ -126,6 +123,7 @@ export default function BranchDetailsPage() {
                 <div className="lg:col-span-2 space-y-6">
                     {/* SECTION 2: Today's Performance */}
                     <BranchTodayPerformance branchId={branchId} />
+
                     
                     {/* SECTION 3: Queue Breakdown */}
                     <BranchQueueBreakdown branchId={branchId} />
@@ -135,6 +133,7 @@ export default function BranchDetailsPage() {
                     
                     {/* SECTION 5: Staff Overview */}
                     <BranchStaffOverview branchId={branchId} />
+
                 </div>
 
                 {/* Right Column: 1/3 width */}
@@ -148,17 +147,14 @@ export default function BranchDetailsPage() {
                     {/* SECTION 10: Branch Contact Information */}
                     <BranchContactCard branchId={branchId} />
                     
-                    {/* SECTION 6: Branch Admins */}
-                    <BranchAdminsList branchId={branchId} />
-                    
-                    {/* SECTION 7: WhatsApp Statistics */}
-                    <BranchWhatsAppStats branchId={branchId} />
-                    
-                    {/* SECTION 9: Recent Activity Timeline */}
-                    <BranchActivityTimeline branchId={branchId} />
-                    
                     {/* SECTION 12: Future Enterprise Placeholders */}
                     <BranchFuturePlaceholders />
+                </div>
+
+                {/* Full Width Bottom Section */}
+                <div className="lg:col-span-3">
+                    {/* SECTION 9: Recent Activity Timeline */}
+                    <BranchActivityTimeline branchId={branchId} />
                 </div>
             </div>
         </div>

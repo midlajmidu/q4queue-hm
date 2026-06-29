@@ -44,20 +44,29 @@ export default function GlobalActivityFeed() {
             "queue.create": "created a queue",
             "queue.toggle": "toggled a queue",
             "org.create": "created an organization",
-            "org.update": "updated an organization",
-            "org.delete": "deleted an organization",
         };
-        const text = actionMap[log.event_type] || log.event_type;
+        let text = actionMap[log.action];
+        if (!text && log.action) {
+            text = log.action.toLowerCase().replace(/_/g, ' ');
+            if (text.includes('created')) text = 'created ' + text.replace(' created', '').replace('org ', '');
+            else if (text.includes('updated')) text = 'updated ' + text.replace(' updated', '').replace('org ', '');
+            else if (text.includes('deleted')) text = 'deleted ' + text.replace(' deleted', '').replace('org ', '');
+        } else if (!text) {
+            text = "performed an action";
+        }
+        
         return (
             <span className="text-sm">
                 <span className="font-semibold text-slate-900">{log.user_email || log.ip_address || "System"}</span> {text}
-                {log.branch_name && <span> in <span className="font-medium text-slate-600">{log.branch_name}</span></span>}
+                {log.branch && <span> in <span className="font-medium text-slate-600">{log.branch}</span></span>}
             </span>
         );
     };
 
     const formatTime = (isoString: string) => {
+        if (!isoString) return "Recently";
         const date = new Date(isoString);
+        if (isNaN(date.getTime())) return "Recently";
         const today = new Date();
         const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
         const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -65,18 +74,20 @@ export default function GlobalActivityFeed() {
     };
 
     return (
-        <PremiumCard className="h-full flex flex-col flex-1 border border-slate-100 shadow-sm ring-1 ring-slate-900/5">
-            <div className="px-5 py-4 border-b border-slate-100/60 bg-slate-50/50 flex items-center justify-between shrink-0">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <Activity size={16} className="text-indigo-600" />
-                    Global Activity
-                </h3>
-                <button onClick={loadLogs} disabled={isLoading} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-lg transition-colors disabled:opacity-40">
+        <div className="bg-white rounded-xl h-full flex flex-col flex-1 min-h-0 border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                    <div className="text-slate-400">
+                        <Activity size={16} strokeWidth={2} />
+                    </div>
+                    <h3 className="text-sm font-semibold text-slate-900 tracking-tight">Global Activity</h3>
+                </div>
+                <button onClick={loadLogs} disabled={isLoading} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors disabled:opacity-40">
                     <svg className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 </button>
             </div>
             
-            <div className="p-5 overflow-y-auto flex-1 h-[250px] scrollbar-thin">
+            <div className="p-5 overflow-y-auto flex-1 min-h-0 h-[250px] scrollbar-thin">
                 {isLoading && logs.length === 0 ? (
                     <div className="space-y-6">
                         {[...Array(4)].map((_, i) => (
@@ -97,7 +108,7 @@ export default function GlobalActivityFeed() {
                 ) : (
                     <div className="relative border-l-2 border-slate-100 ml-4 space-y-6 pb-2">
                         {logs.map((log) => {
-                            const style = getActionStyle(log.event_type);
+                            const style = getActionStyle(log.action);
                             const Icon = style.icon;
                             
                             return (
@@ -112,7 +123,7 @@ export default function GlobalActivityFeed() {
                                             {getActionText(log)}
                                         </p>
                                         <span className="text-[11px] text-slate-400 mt-1 font-semibold tracking-wide uppercase">
-                                            {formatTime(log.created_at)}
+                                            {formatTime(log.timestamp)}
                                         </span>
                                     </div>
                                 </div>
@@ -121,6 +132,6 @@ export default function GlobalActivityFeed() {
                     </div>
                 )}
             </div>
-        </PremiumCard>
+        </div>
     );
 }

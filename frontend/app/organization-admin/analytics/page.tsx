@@ -7,7 +7,7 @@ import {
     Users, Clock, Building2, TrendingUp, Zap, Server, 
     BarChart3, Activity, Download, ChevronRight, LayoutDashboard,
     AlertCircle, CheckCircle2, TrendingDown, Star, Sparkles, Lightbulb,
-    UserMinus, UserCheck, Target, Layers
+    UserMinus, UserCheck, Target, Layers, FileText, FileSpreadsheet, ChevronDown
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useBranchFilter } from "@/context/BranchFilterContext";
@@ -23,10 +23,11 @@ export default function AnalyticsPage() {
     const [dateRange, setDateRange] = useState<DateRange>({ start_date: null, end_date: null, preset: "today" });
     
     // Pagination states
-    const ITEMS_PER_PAGE = 8;
+    const ITEMS_PER_PAGE = 5;
     const [branchPage, setBranchPage] = useState(1);
     const [queuePage, setQueuePage] = useState(1);
     const [staffPage, setStaffPage] = useState(1);
+    const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
     const { selectedBranchId } = useBranchFilter();
 
@@ -54,14 +55,30 @@ export default function AnalyticsPage() {
         fetchAnalytics();
     }, [selectedBranchId, dateRange]);
 
-    const handleExportCSV = () => {
-        let url = `/api/v1/organization-admin/analytics/export?`;
-        const params = new URLSearchParams();
-        if (selectedBranchId) params.append("branch_id", selectedBranchId);
-        if (dateRange.start_date) params.append("start_date", dateRange.start_date);
-        if (dateRange.end_date) params.append("end_date", dateRange.end_date);
-        
-        window.location.href = url + params.toString();
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleExportCSV = async () => {
+        try {
+            setIsExporting(true);
+            const blob = await api.exportOrgAdminAnalytics({
+                branch_id: selectedBranchId || undefined,
+                start_date: dateRange.start_date || undefined,
+                end_date: dateRange.end_date || undefined,
+            });
+            
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `q4queue_analytics_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Failed to export CSV:", error);
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     if (loading && !data) {
@@ -82,9 +99,11 @@ export default function AnalyticsPage() {
             {/* Premium Header & Controls */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Executive Dashboard</h1>
+                    <h1 className="text-[2rem] font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500">
+                        Executive Dashboard
+                    </h1>
                     <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 mt-2">
-                        <span className="leading-none">Historical data, operational insights, and performance metrics.</span>
+                        <span className="leading-none font-medium text-slate-500">Historical data, operational insights, and performance metrics.</span>
                         <span className="hidden sm:flex items-center text-slate-300 leading-none">•</span>
                         <div className="flex items-center gap-1.5 text-slate-500 font-mono text-[10px] tracking-widest uppercase font-semibold bg-slate-100/50 px-2 py-1 rounded-md border border-slate-200/50 leading-none">
                             <span className="relative flex h-1.5 w-1.5">
@@ -95,35 +114,84 @@ export default function AnalyticsPage() {
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-3 w-full lg:w-auto shrink-0">
+                <div className="flex items-center gap-3 w-full lg:w-auto shrink-0 print:hidden">
                     <DateRangeFilter onChange={setDateRange} initialPreset={dateRange.preset} />
-                    <button 
-                        onClick={handleExportCSV}
-                        className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 hover:shadow-sm px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm"
-                    >
-                        <Download size={16} />
-                        <span className="hidden sm:inline">Export CSV</span>
-                    </button>
+                    
+                    <div className="relative">
+                        <button 
+                            onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                            disabled={isExporting}
+                            className={`group flex items-center gap-2.5 bg-white border ${isExportMenuOpen ? 'border-indigo-300 ring-2 ring-indigo-50' : 'border-slate-200/80'} text-slate-700 hover:text-indigo-700 hover:border-indigo-200 hover:bg-indigo-50/30 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none`}
+                        >
+                            {isExporting ? (
+                                <div className="w-4 h-4 border-2 border-slate-300 border-t-indigo-500 rounded-full animate-spin"></div>
+                            ) : (
+                                <Download size={16} className={`transition-colors ${isExportMenuOpen ? 'text-indigo-500' : 'text-slate-400 group-hover:text-indigo-500'}`} />
+                            )}
+                            <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
+                            <ChevronDown size={14} className={`transition-all duration-200 ${isExportMenuOpen ? 'text-indigo-500 rotate-180' : 'text-slate-400 group-hover:text-indigo-500'}`} />
+                        </button>
+
+                        {isExportMenuOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsExportMenuOpen(false)}></div>
+                                <div className="absolute right-0 mt-2.5 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 z-50 p-2 overflow-hidden ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                                    <div className="flex flex-col space-y-1">
+                                        <button
+                                            onClick={() => {
+                                                setIsExportMenuOpen(false);
+                                                window.print();
+                                            }}
+                                            className="flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium group"
+                                        >
+                                            <div className="bg-slate-100 group-hover:bg-indigo-100 p-1.5 rounded-md transition-colors">
+                                                <FileText size={14} className="text-slate-500 group-hover:text-indigo-600 transition-colors" />
+                                            </div>
+                                            <div>
+                                                <p>Export as PDF</p>
+                                                <p className="text-[10px] text-slate-400 font-normal mt-0.5 leading-tight">Includes all graphs & visuals</p>
+                                            </div>
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setIsExportMenuOpen(false);
+                                                handleExportCSV();
+                                            }}
+                                            className="flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 font-medium group"
+                                        >
+                                            <div className="bg-slate-100 group-hover:bg-emerald-100 p-1.5 rounded-md transition-colors">
+                                                <FileSpreadsheet size={14} className="text-slate-500 group-hover:text-emerald-600 transition-colors" />
+                                            </div>
+                                            <div>
+                                                <p>Export as CSV / Excel</p>
+                                                <p className="text-[10px] text-slate-400 font-normal mt-0.5 leading-tight">Raw spreadsheet data</p>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Premium Glassmorphism AI Insights Panel */}
+            {/* Apple Liquid Glass AI Insights Panel */}
             {data.insights && data.insights.length > 0 && (
-                <div className="relative overflow-hidden rounded-2xl">
-                    {/* Gradient Orbs (The Light Source) */}
-                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse z-0"></div>
-                    <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 z-0"></div>
+                <div className="relative overflow-hidden rounded-2xl bg-[#fbfbfd]/70 backdrop-blur-2xl border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.06),inset_0_1px_0_0_rgba(255,255,255,0.9)]">
+                    {/* Liquid Abstract Orbs */}
+                    <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-500/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse z-0"></div>
+                    <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-500/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 z-0"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-48 bg-emerald-400/5 rounded-full mix-blend-multiply filter blur-3xl opacity-50 z-0"></div>
 
-                    {/* The Frosted Glass Surface */}
-                    <div className="relative z-10 p-5 md:p-6 bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col md:flex-row items-start md:items-center gap-6 rounded-2xl">
+                    <div className="relative z-10 p-6 md:p-7 flex flex-col md:flex-row items-start md:items-center gap-6">
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-3">
                                 {data.insights[0].includes("🚨") ? (
-                                    <AlertCircle size={16} className="text-rose-600 fill-rose-600/30" />
+                                    <AlertCircle size={15} className="text-rose-500" />
                                 ) : (
-                                    <Lightbulb size={16} className="text-indigo-600 fill-indigo-600/30" />
+                                    <Lightbulb size={15} className="text-slate-500" />
                                 )}
-                                <h3 className={`font-bold uppercase tracking-widest text-[11px] pt-0.5 ${data.insights[0].includes("🚨") ? "text-rose-600" : "text-indigo-600"}`}>
+                                <h3 className={`font-bold uppercase tracking-widest text-[11px] pt-0.5 ${data.insights[0].includes("🚨") ? "text-rose-500" : "text-slate-500"}`}>
                                     {data.insights[0].includes("🚨") ? "Critical Alert" : "AI Strategic Insight"}
                                 </h3>
                             </div>
@@ -132,16 +200,16 @@ export default function AnalyticsPage() {
                             </h2>
                         </div>
                         {data.insights.length > 1 && (
-                            <div className="w-full md:w-1/3 border-t md:border-t-0 md:border-l border-white/50 pt-4 md:pt-0 md:pl-6">
+                            <div className="w-full md:w-1/3 border-t md:border-t-0 md:border-l border-slate-200/60 pt-4 md:pt-0 md:pl-6">
                                 <ul className="space-y-3">
                                     {data.insights.slice(1).map((insight: string, idx: number) => {
                                         const isAlert = insight.includes("🚨");
                                         const isInsight = insight.includes("💡");
-                                        const color = isAlert ? "bg-rose-500" : (isInsight ? "bg-amber-500" : "bg-blue-400");
+                                        const color = isAlert ? "bg-rose-500" : (isInsight ? "bg-amber-500" : "bg-blue-500");
                                         return (
-                                            <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
+                                            <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-600 font-medium">
                                                 <div className={`w-1.5 h-1.5 rounded-full ${color} mt-1.5 shrink-0 shadow-sm`} />
-                                                <span className={`leading-snug ${isAlert ? 'font-medium text-rose-900' : ''}`}>{insight}</span>
+                                                <span className={`leading-snug ${isAlert ? 'text-rose-900' : ''}`}>{insight}</span>
                                             </li>
                                         )
                                     })}
@@ -311,54 +379,75 @@ export default function AnalyticsPage() {
                     </div>
                 </div>
                 <div className="h-[300px] w-full">
-                    {data.volume_trend && data.volume_trend.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={data.volume_trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorServed" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis 
-                                    dataKey="date" 
-                                    tick={{fontSize: 12, fill: '#64748b'}} 
-                                    tickFormatter={(val) => {
-                                        const d = new Date(val);
-                                        return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`;
-                                    }}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    dy={10}
-                                />
-                                <YAxis 
-                                    tick={{fontSize: 12, fill: '#64748b'}} 
-                                    axisLine={false}
-                                    tickLine={false}
-                                />
-                                <RechartsTooltip 
-                                    cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: 'none' }}
-                                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                    labelFormatter={(val) => new Date(val).toLocaleDateString()}
-                                />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="customers_served" 
-                                    name="Served" 
-                                    stroke="#6366f1" 
-                                    strokeWidth={2}
-                                    fillOpacity={0.1} 
-                                    fill="#6366f1" 
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                            <BarChart3 size={48} className="mb-2 opacity-20" />
-                            <p>No trend data available for this period</p>
-                        </div>
-                    )}
+                    {(() => {
+                        let chartData = data.volume_trend || [];
+                        if (chartData.length === 1) {
+                            // If there is only one data point, inject the previous day with 0 volume
+                            // so that Recharts can actually draw a trend line (slope) instead of a single dot.
+                            const point = chartData[0];
+                            const prevDate = new Date(point.date);
+                            prevDate.setDate(prevDate.getDate() - 1);
+                            chartData = [
+                                { date: prevDate.toISOString(), customers_served: 0 },
+                                point
+                            ];
+                        }
+                        
+                        return chartData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorServed" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis 
+                                        dataKey="date" 
+                                        tick={{fontSize: 12, fill: '#64748b'}} 
+                                        tickFormatter={(val) => {
+                                            const d = new Date(val);
+                                            return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`;
+                                        }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        dy={10}
+                                    />
+                                    <YAxis 
+                                        tick={{fontSize: 12, fill: '#64748b'}} 
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <RechartsTooltip 
+                                        cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: 'none' }}
+                                        contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', padding: '8px 12px' }}
+                                        labelStyle={{ fontWeight: 600, color: '#475569', marginBottom: '4px' }}
+                                        labelFormatter={(val) => {
+                                            const d = new Date(val);
+                                            return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
+                                        }}
+                                    />
+                                    <Area 
+                                        type="monotone" 
+                                        dataKey="customers_served" 
+                                        name="Served" 
+                                        stroke="#6366f1" 
+                                        strokeWidth={3}
+                                        fillOpacity={1} 
+                                        fill="url(#colorServed)" 
+                                        activeDot={{ r: 6, strokeWidth: 0 }}
+                                        dot={{ r: 4, strokeWidth: 2, fill: 'white', stroke: '#6366f1' }}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                                <BarChart3 size={48} className="mb-2 opacity-20" />
+                                <p>No trend data available for this period</p>
+                            </div>
+                        );
+                    })()}
                 </div>
             </div>
 
@@ -449,14 +538,28 @@ export default function AnalyticsPage() {
                                 {data.queue_analytics.length === 0 ? (
                                     <tr><td colSpan={4} className="py-8 px-4 text-center text-slate-400">No queues found</td></tr>
                                 ) : (
-                                    data.queue_analytics.slice((queuePage - 1) * ITEMS_PER_PAGE, queuePage * ITEMS_PER_PAGE).map((item: any, idx: number) => (
-                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
-                                            <td className="py-2 px-4 font-semibold text-slate-900">{item.queue_name}</td>
-                                            <td className="py-2 px-4 text-slate-500">{item.branch}</td>
-                                            <td className="py-2 px-4 text-right font-medium text-slate-700">{item.customers_served}</td>
-                                            <td className="py-2 px-4 text-right font-medium text-slate-600">{item.avg_wait_time}</td>
-                                        </tr>
-                                    ))
+                                    <>
+                                        {data.queue_analytics.slice((queuePage - 1) * ITEMS_PER_PAGE, queuePage * ITEMS_PER_PAGE).map((item: any, idx: number) => (
+                                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
+                                                <td className="py-2 px-4 font-semibold text-slate-900">{item.queue_name}</td>
+                                                <td className="py-2 px-4 text-slate-500">{item.branch}</td>
+                                                <td className="py-2 px-4 text-right font-medium text-slate-700">{item.customers_served}</td>
+                                                <td className="py-2 px-4 text-right font-medium text-slate-600">{item.avg_wait_time}</td>
+                                            </tr>
+                                        ))}
+                                        {data.queue_analytics.slice((queuePage - 1) * ITEMS_PER_PAGE, queuePage * ITEMS_PER_PAGE).length < ITEMS_PER_PAGE && (
+                                            <tr>
+                                                <td colSpan={4} className="p-0 bg-slate-50/30">
+                                                    <div 
+                                                        className="w-full flex items-center justify-center text-slate-400/60 text-[10px] font-bold uppercase tracking-widest"
+                                                        style={{ height: `${(ITEMS_PER_PAGE - data.queue_analytics.slice((queuePage - 1) * ITEMS_PER_PAGE, queuePage * ITEMS_PER_PAGE).length) * 44}px` }}
+                                                    >
+                                                        — End of Data —
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </>
                                 )}
                             </tbody>
                         </table>
@@ -513,19 +616,33 @@ export default function AnalyticsPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    data.staff_performance.slice((staffPage - 1) * ITEMS_PER_PAGE, staffPage * ITEMS_PER_PAGE).map((item: any, idx: number) => (
-                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
-                                            <td className="py-2 px-4 font-semibold text-slate-900 flex items-center gap-2">
-                                                <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[9px] font-bold">
-                                                    {item.staff_name.charAt(0).toUpperCase()}
-                                                </div>
-                                                {item.staff_name}
-                                            </td>
-                                            <td className="py-2 px-4 text-slate-500">{item.branch}</td>
-                                            <td className="py-2 px-4 text-right font-medium text-emerald-600">{item.customers_served}</td>
-                                            <td className="py-2 px-4 text-right font-medium text-slate-600">{item.avg_service_time}</td>
-                                        </tr>
-                                    ))
+                                    <>
+                                        {data.staff_performance.slice((staffPage - 1) * ITEMS_PER_PAGE, staffPage * ITEMS_PER_PAGE).map((item: any, idx: number) => (
+                                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
+                                                <td className="py-2 px-4 font-semibold text-slate-900 flex items-center gap-2">
+                                                    <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[9px] font-bold">
+                                                        {item.staff_name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    {item.staff_name}
+                                                </td>
+                                                <td className="py-2 px-4 text-slate-500">{item.branch}</td>
+                                                <td className="py-2 px-4 text-right font-medium text-emerald-600">{item.customers_served}</td>
+                                                <td className="py-2 px-4 text-right font-medium text-slate-600">{item.avg_service_time}</td>
+                                            </tr>
+                                        ))}
+                                        {data.staff_performance.slice((staffPage - 1) * ITEMS_PER_PAGE, staffPage * ITEMS_PER_PAGE).length < ITEMS_PER_PAGE && (
+                                            <tr>
+                                                <td colSpan={4} className="p-0 bg-slate-50/30">
+                                                    <div 
+                                                        className="w-full flex items-center justify-center text-slate-400/60 text-[10px] font-bold uppercase tracking-widest"
+                                                        style={{ height: `${(ITEMS_PER_PAGE - data.staff_performance.slice((staffPage - 1) * ITEMS_PER_PAGE, staffPage * ITEMS_PER_PAGE).length) * 44}px` }}
+                                                    >
+                                                        — End of Data —
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </>
                                 )}
                             </tbody>
                         </table>

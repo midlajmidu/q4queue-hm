@@ -1,4 +1,5 @@
 import uuid
+import ast
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -10,7 +11,7 @@ from app.models.user import User
 from app.models.organization import Organization
 from app.models.session import Session
 from app.models.queue import Queue
-from app.models.token import Token
+from app.models.token import Token, TokenStatus
 from app.audit.service import record_event
 
 router = APIRouter()
@@ -596,10 +597,21 @@ async def get_branch_timeline(
         
     results = []
     for log in logs:
+        desc = str(log.details)
+        parsed_details = log.details
+        if isinstance(parsed_details, str):
+            try:
+                parsed_details = ast.literal_eval(parsed_details)
+            except (ValueError, SyntaxError):
+                pass
+                
+        if isinstance(parsed_details, dict):
+            desc = parsed_details.get("reason") or parsed_details.get("action") or str(parsed_details)
+            
         results.append(BranchActivityEvent(
             id=log.id,
             event_type=log.event_type.replace("_", " ").title(),
-            description=str(log.details),
+            description=desc,
             timestamp=log.created_at.isoformat(),
             user_name="User"
         ))
@@ -621,9 +633,34 @@ async def get_branch_alerts(
     if not branch.is_active:
         alerts.append(BranchAlert(id=uuid.uuid4(), issue="Branch is marked as Inactive", severity="Critical", timestamp=datetime.now(timezone.utc).isoformat()))
         
-    as_res = await db.execute(select(func.count(Session.id)).where(Session.org_id == branch_id, Session.session_date == today))
-    if (as_res.scalar() or 0) == 0:
-        alerts.append(BranchAlert(id=uuid.uuid4(), issue="No Active Sessions currently processing queues", severity="High", timestamp=datetime.now(timezone.utc).isoformat()))
+    # Queue Overflow Alert (> 20 waiting)
+    queue_wait_res = await db.execute(
+        select(Queue.name, func.count(Token.id))
+        .join(Token, Token.queue_id == Queue.id)
+        .where(Queue.org_id == branch_id, Token.status == TokenStatus.waiting, func.date(Token.created_at) == today)
+        .group_by(Queue.id)
+    )
+    for q_name, w_count in queue_wait_res.all():
+        if w_count > 20:
+            alerts.append(BranchAlert(id=uuid.uuid4(), issue=f"Queue Overflow: '{q_name}' has {w_count} customers waiting", severity="Warning", timestamp=datetime.now(timezone.utc).isoformat()))
+
+    # Staffing Alert (Customers waiting but no active staff)
+    tot_wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, Token.status == TokenStatus.waiting, func.date(Token.created_at) == today))
+    tot_waiting = tot_wait_res.scalar() or 0
+    if tot_waiting > 0:
+        staff_res = await db.execute(select(func.count(User.id)).where(User.org_id == branch_id, User.role == "staff", User.is_active == True))
+        active_staff = staff_res.scalar() or 0
+        if active_staff == 0:
+            alerts.append(BranchAlert(id=uuid.uuid4(), issue=f"Staff Shortage: {tot_waiting} customers waiting with 0 active staff online", severity="High", timestamp=datetime.now(timezone.utc).isoformat()))
+
+    # Wait Time Alert (> 25 mins)
+    wait_time_res = await db.execute(
+        select(func.avg(func.extract('epoch', Token.served_at - Token.created_at)))
+        .where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.serving)
+    )
+    avg_wait_sec = wait_time_res.scalar() or 0
+    if avg_wait_sec > (25 * 60):
+        alerts.append(BranchAlert(id=uuid.uuid4(), issue=f"High Wait Times: Average wait time is {int(avg_wait_sec // 60)} minutes", severity="Medium", timestamp=datetime.now(timezone.utc).isoformat()))
         
     from app.whatsapp.models import WhatsAppMessage
     wa_failed_res = await db.execute(select(func.count(WhatsAppMessage.id)).where(WhatsAppMessage.organization_id == branch_id, func.date(WhatsAppMessage.created_at) == today, WhatsAppMessage.status == "failed"))

@@ -835,6 +835,36 @@ export const api = {
         if (endDate) ps.append("end_date", endDate);
         return request<any>(`/organization-admin/analytics${ps.toString() ? `?${ps.toString()}` : ''}`);
     },
+    exportOrgAdminAnalytics: async (params: { branch_id?: string; start_date?: string; end_date?: string }): Promise<Blob> => {
+        const qs = new URLSearchParams();
+        if (params.branch_id) qs.append("branch_id", params.branch_id);
+        if (params.start_date) qs.append("start_date", params.start_date);
+        if (params.end_date) qs.append("end_date", params.end_date);
+        const q = qs.toString();
+        
+        const url = `${config.apiBaseUrl}/organization-admin/analytics/export${q ? `?${q}` : ""}`;
+        const headers = new Headers();
+        const token = getToken();
+        if (token) headers.set("Authorization", `Bearer ${token}`);
+
+        // Try to attach X-Org-Slug from URL pathname for organization_admin branch access
+        if (typeof window !== "undefined") {
+            const pathParts = window.location.pathname.split('/');
+            if (pathParts.length >= 2) {
+                const potentialSlug = pathParts[1];
+                const excludedPrefixes = ['super-admin', 'organization-admin', 'login', 'get-started', 'auth'];
+                if (!excludedPrefixes.includes(potentialSlug)) {
+                    headers.set("X-Org-Slug", potentialSlug);
+                }
+            }
+        }
+
+        const resp = await fetch(url, { headers });
+        if (!resp.ok) {
+            throw new Error("Failed to export analytics data");
+        }
+        return await resp.blob();
+    },
     getOrgAdminTrafficChart: (branchId?: string) => {
         const query = branchId ? `?branch_id=${branchId}` : '';
         return request<{ peak_traffic: any[]; peak_hour: string | null }>(
