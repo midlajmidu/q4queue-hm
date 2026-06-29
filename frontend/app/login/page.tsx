@@ -52,28 +52,28 @@ export default function LoginPage() {
     }, [login, orgSlug, email, password]);
 
     return (
-        <main className="force-light min-h-screen w-full flex bg-white">
+        <main className="force-light min-h-screen w-full flex bg-white h-screen overflow-hidden">
             {/* Left Column - Form */}
-            <div className="w-full lg:w-[45%] flex flex-col justify-center px-8 sm:px-16 lg:px-24 py-12 relative overflow-y-auto">
+            <div className="w-full lg:w-[45%] flex flex-col justify-center px-8 sm:px-12 lg:px-20 py-4 relative overflow-y-auto">
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                    className="w-full max-w-md mx-auto"
+                    className="w-full max-w-md mx-auto flex flex-col justify-center h-full my-auto"
                 >
-                    <div className="mb-10 flex flex-col items-start">
+                    <div className="mb-6 flex flex-col items-start">
                         <Link href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg" aria-label="Go to home page">
-                            <Image src="/q4queue-main-logo.png" alt="Q4Queue Logo" width={200} height={50} className="h-10 w-auto object-contain" priority />
+                            <Image src="/q4queue-main-logo.png" alt="Q4Queue Logo" width={180} height={45} className="h-9 w-auto object-contain" priority />
                         </Link>
-                        <h1 className="font-heading text-3xl font-bold text-slate-900 mt-10 tracking-tight">
+                        <h1 className="font-heading text-2xl font-bold text-slate-900 mt-6 tracking-tight">
                             Welcome back!
                         </h1>
-                        <p className="text-base text-slate-500 mt-2">
+                        <p className="text-sm text-slate-500 mt-1">
                             Enter your credentials to continue to your dashboard.
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                         <AnimatePresence>
                             {error && (
                                 <motion.div
@@ -82,8 +82,8 @@ export default function LoginPage() {
                                     exit={{ opacity: 0, height: 0, scale: 0.95 }}
                                     className="overflow-hidden"
                                 >
-                                    <div role="alert" className="bg-red-50 text-red-600 text-sm font-medium p-4 rounded-xl border border-red-100 flex items-start gap-3">
-                                        <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <div role="alert" className="bg-red-50 text-red-600 text-sm font-medium p-3 rounded-xl border border-red-100 flex items-start gap-2">
+                                        <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                         <span>{error}</span>
@@ -93,7 +93,7 @@ export default function LoginPage() {
                         </AnimatePresence>
 
                         <div>
-                            <label htmlFor="org-slug" className="block text-sm font-bold text-slate-900 mb-2">
+                            <label htmlFor="org-slug" className="block text-xs font-bold text-slate-900 mb-1.5">
                                 {loginType === "staff" ? "Branch Slug *" : "Organization Slug *"}
                             </label>
                             <input
@@ -104,13 +104,13 @@ export default function LoginPage() {
                                 placeholder={loginType === "staff" ? "branch-slug" : "organization-slug"}
                                 required
                                 autoComplete="organization"
-                                className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
+                                className="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
                                 disabled={isLoading}
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="email" className="block text-sm font-bold text-slate-900 mb-2">Email Address *</label>
+                            <label htmlFor="email" className="block text-xs font-bold text-slate-900 mb-1.5">Email Address *</label>
                             <input
                                 id="email"
                                 type="email"
@@ -119,14 +119,14 @@ export default function LoginPage() {
                                 placeholder="admin@clinic.com"
                                 required
                                 autoComplete="email"
-                                className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
+                                className="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
                                 disabled={isLoading}
                             />
                         </div>
 
                         <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <label htmlFor="password" title="Password" className="block text-sm font-bold text-slate-900">Password *</label>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <label htmlFor="password" title="Password" className="block text-xs font-bold text-slate-900">Password *</label>
                             </div>
                             <div className="relative">
                                 <input
@@ -137,20 +137,20 @@ export default function LoginPage() {
                                     placeholder="••••••••"
                                     required
                                     autoComplete="current-password"
-                                    className="w-full rounded-xl border-2 border-slate-200 bg-white pl-4 pr-12 py-3 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
+                                    className="w-full rounded-xl border-2 border-slate-200 bg-white pl-3 pr-10 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
                                     disabled={isLoading}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1.5 rounded-md transition-colors"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1.5 rounded-md transition-colors"
                                     aria-label={showPassword ? "Hide password" : "Show password"}
                                     disabled={isLoading}
                                 >
                                     {showPassword ? (
-                                        <EyeOff className="w-5 h-5" />
+                                        <EyeOff className="w-4 h-4" />
                                     ) : (
-                                        <Eye className="w-5 h-5" />
+                                        <Eye className="w-4 h-4" />
                                     )}
                                 </button>
                             </div>
@@ -160,11 +160,11 @@ export default function LoginPage() {
                             type="submit"
                             disabled={isLoading || !orgSlug || !email || !password}
                             aria-label="Continue"
-                            className="w-full h-12 mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[15px] rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            className="w-full h-11 mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[14px] rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                         >
                             {isLoading ? (
                                 <>
-                                    <svg className="animate-spin h-5 w-5 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <svg className="animate-spin h-4 w-4 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
@@ -176,19 +176,19 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    <div className="mt-8 pt-8 border-t border-slate-100 flex flex-col items-center">
+                    <div className="mt-6 pt-6 border-t border-slate-100 flex flex-col items-center">
                         <Link 
                             href="/organization-login" 
-                            className="group flex items-center justify-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors"
+                            className="group flex items-center justify-center gap-2 text-[13px] font-medium text-slate-500 hover:text-indigo-600 transition-colors"
                         >
                             Parent Organization Admin?
                             <span className="flex items-center gap-1 font-bold">
-                                Login Here <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                                Login Here <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                             </span>
                         </Link>
                     </div>
 
-                    <p className="text-center text-xs text-slate-400 mt-12">
+                    <p className="text-center text-xs text-slate-400 mt-6 mb-2">
                         © {new Date().getFullYear()} Q4Queue · <Link href="/" className="hover:text-slate-600 transition-colors">Home</Link>
                     </p>
                 </motion.div>
@@ -196,7 +196,7 @@ export default function LoginPage() {
 
             {/* Right Column - Graphic */}
             <div className="hidden lg:flex lg:w-[55%] p-4 pl-0">
-                <div className="w-full h-full rounded-[2rem] overflow-hidden relative shadow-2xl">
+                <div className="w-full h-full rounded-[1.5rem] overflow-hidden relative shadow-2xl">
                     <motion.div 
                         initial={{ opacity: 0, scale: 1.05 }}
                         animate={{ opacity: 1, scale: 1 }}

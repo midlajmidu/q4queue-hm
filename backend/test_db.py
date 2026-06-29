@@ -1,10 +1,24 @@
-import psycopg2
+import asyncio
+import uuid
+from app.db.session import SessionLocal
+from sqlalchemy import select
+from app.models.token import Token
+from app.models.queue import Queue
 
-def main():
-    conn = psycopg2.connect("postgresql://appuser:apppassword@127.0.0.1:5432/queuedb")
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM organizations LIMIT 1;")
-    cols = [desc[0] for desc in cursor.description]
-    print("Columns in organizations:", cols)
+async def main():
+    async with SessionLocal() as db:
+        result = await db.execute(
+            select(Token, Queue.name, Queue.prefix, Queue.session_id)
+            .join(Queue, Token.queue_id == Queue.id)
+            .limit(1)
+        )
+        row = result.one_or_none()
+        print("Row:", row)
+        if row:
+            token, queue_name, queue_prefix, session_id = row
+            print("Token ID:", token.id)
+            print("Queue Name:", queue_name)
+            print("Queue Prefix:", queue_prefix)
+            print("Session ID:", session_id)
 
-main()
+asyncio.run(main())

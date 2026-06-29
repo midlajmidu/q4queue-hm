@@ -288,7 +288,7 @@ async def call_next(
     *,
     queue_id: uuid.UUID,
     org_id: uuid.UUID,
-    user_id: uuid.UUID,
+    user_id: Optional[uuid.UUID] = None,
     action: str = "done",
     line_number: int | None = None,
 ) -> NextResponse | None:
