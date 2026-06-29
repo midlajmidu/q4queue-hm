@@ -718,10 +718,18 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, [queueId, state?.prefix, toast]);
 
     const executeInvite = useCallback((lineNum?: number) => {
+        if (lineNum !== undefined && state?.all_serving_tokens) {
+            const isBusy = state.all_serving_tokens.some(t => t.assigned_line === lineNum);
+            if (isBusy) {
+                toast(`Line ${lineNum} is already serving a customer.`, "error");
+                return;
+            }
+        }
+        
         const num = parseInt(inviteNumber, 10);
         if (isNaN(num)) return;
         executeInviteWithNumber(num, lineNum);
-    }, [inviteNumber, executeInviteWithNumber]);
+    }, [inviteNumber, executeInviteWithNumber, state?.all_serving_tokens, toast]);
 
     const handleInvite = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
