@@ -148,7 +148,7 @@ async def notify_queue_event(
             # Use env-configured frontend URL or fallback
             from app.core.config import get_settings
             settings = get_settings()
-            frontend_url = getattr(settings, "FRONTEND_URL", "https://q4q.in").rstrip("/")
+            frontend_url = getattr(settings, "FRONTEND_URL", "https://amoebaq.com").rstrip("/")
             track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
             display_url = f"{frontend_url}/d/{org_display_id}"
             
@@ -214,7 +214,7 @@ async def notify_queue_event(
             # Use env-configured frontend URL or fallback
             from app.core.config import get_settings
             settings = get_settings()
-            frontend_url = getattr(settings, "FRONTEND_URL", "https://q4q.in").rstrip("/")
+            frontend_url = getattr(settings, "FRONTEND_URL", "https://amoebaq.com").rstrip("/")
             track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
             org_display_id = str(org_id)
             display_url = f"{frontend_url}/d/{org_display_id}"

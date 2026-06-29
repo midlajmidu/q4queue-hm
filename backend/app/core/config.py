@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "q4queue"
     VERSION: str = "0.5.0"
     ENVIRONMENT: str = "development"
-    FRONTEND_URL: str = "http://localhost"
+    FRONTEND_URL: str = "https://amoebaq.com"
 
     # ── Security ──────────────────────────────────────────────────
     SECRET_KEY: str
@@ -103,7 +103,7 @@ class Settings(BaseSettings):
         if not self.CORS_ORIGINS or self.CORS_ORIGINS == "*":
             # Wildcard origins cannot be combined with allow_credentials=True
             # Safe default fallback for local dev
-            return ["http://localhost:3000", "http://127.0.0.1:3000"]
+            return ["https://amoebaq.com"]
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
 

@@ -565,7 +565,7 @@ export default function SettingsPage() {
                                                                 boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                                                             }}>
                                                                 {logoUrl ? (
-                                                                    <img src={logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `http://localhost:8000${logoUrl}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                                    <img src={logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `https://amoebaq.com/api/v1${logoUrl}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                                                 ) : (
                                                                     <span style={{ fontSize: 20, color: C.textMuted }}>🏢</span>
                                                                 )}
@@ -656,7 +656,7 @@ export default function SettingsPage() {
                                                                 background: C.cardBgAlt, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center'
                                                             }}>
                                                                 {(logoPreview || logoUrl) ? (
-                                                                    <img src={logoPreview || (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `http://localhost:8000${logoUrl}`)} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                                    <img src={logoPreview || (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `https://amoebaq.com/api/v1${logoUrl}`)} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                                                 ) : (
                                                                     <span style={{ fontSize: 24, color: C.textMuted }}>🏢</span>
                                                                 )}
@@ -767,7 +767,7 @@ export default function SettingsPage() {
                                                             <img
                                                                 src={settings.parent_org.logo_url.startsWith('http')
                                                                     ? settings.parent_org.logo_url
-                                                                    : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${settings.parent_org.logo_url}`}
+                                                                    : `${process.env.NEXT_PUBLIC_API_URL || 'https://amoebaq.com/api/v1'}${settings.parent_org.logo_url}`}
                                                                 alt="HQ Logo"
                                                                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                                             />
