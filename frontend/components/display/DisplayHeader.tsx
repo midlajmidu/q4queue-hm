@@ -1,24 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Volume2, VolumeX, Globe, Activity } from "lucide-react";
+import { Activity } from "lucide-react";
 import Image from "next/image";
 
 interface DisplayHeaderProps {
     logoUrl?: string | null;
-    queueName: string;
     status: "connected" | "reconnecting" | "offline" | "disconnected" | "connecting";
-    soundEnabled: boolean;
-    onToggleSound: () => void;
     isActive: boolean;
 }
 
 export function DisplayHeader({
     logoUrl,
-    queueName,
     status,
-    soundEnabled,
-    onToggleSound,
     isActive,
 }: DisplayHeaderProps) {
     const [timeString, setTimeString] = useState<string>("");
@@ -65,17 +59,8 @@ export function DisplayHeader({
                 )}
             </div>
 
-            {/* Center: Queue Name */}
-            <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">
-                    {queueName}
-                </h1>
-                {!isActive && (
-                    <span className="mt-1 text-[10px] font-bold tracking-widest uppercase text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200/60">
-                        Queue Closed
-                    </span>
-                )}
-            </div>
+            {/* Center: Flexible Space */}
+            <div className="flex-1" />
 
             {/* Right: Controls & Time */}
             <div className="flex items-center justify-end w-[300px] gap-4">
@@ -103,26 +88,7 @@ export function DisplayHeader({
                     </span>
                 </div>
 
-                {/* Sound Toggle */}
-                <button
-                    onClick={onToggleSound}
-                    className={`p-2 rounded-full border transition-colors ${
-                        soundEnabled
-                            ? "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
-                            : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-                    }`}
-                    title={soundEnabled ? "Mute Sound" : "Enable Sound"}
-                >
-                    {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                </button>
 
-                {/* Language Switch Placeholder */}
-                <button
-                    className="p-2 rounded-full border bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 transition-colors"
-                    title="Change Language"
-                >
-                    <Globe className="w-4 h-4" />
-                </button>
 
                 {/* Time & Date */}
                 <div className="flex flex-col items-end leading-none ml-2 border-l border-slate-200 pl-4">

@@ -11,10 +11,11 @@ interface UpcomingQueueCardProps {
 }
 
 export function UpcomingQueueCard({ waitingTokens, prefix }: UpcomingQueueCardProps) {
-    const upcoming = waitingTokens.slice(0, 5);
+    // Show all waiting tokens (remove .slice constraint)
+    const upcoming = waitingTokens;
 
     return (
-        <div className="bg-white rounded-[24px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-200/60 p-6 flex flex-col flex-1 min-h-[220px] overflow-hidden">
+        <div className="bg-white rounded-[24px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-200/60 p-6 flex flex-col lg:flex-1 h-[350px] lg:h-auto lg:min-h-[160px] overflow-hidden">
             <div className="flex items-center gap-3 mb-5 px-2">
                 <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center">
                     <ListOrdered className="w-4 h-4" />
@@ -33,8 +34,8 @@ export function UpcomingQueueCard({ waitingTokens, prefix }: UpcomingQueueCardPr
                                 initial={{ opacity: 0, x: 10, height: 0 }}
                                 animate={{ opacity: 1, x: 0, height: "auto" }}
                                 exit={{ opacity: 0, scale: 0.95, height: 0 }}
-                                transition={{ duration: 0.3, delay: i * 0.05 }}
-                                className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                                transition={{ duration: 0.3, delay: i * 0.02 }}
+                                className="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors"
                             >
                                 <div className="flex items-center gap-4">
                                     <span className="text-[10px] font-bold text-slate-400 w-4">
@@ -44,9 +45,6 @@ export function UpcomingQueueCard({ waitingTokens, prefix }: UpcomingQueueCardPr
                                         {prefix}{token.token_number}
                                     </span>
                                 </div>
-                                <span className="text-xs font-medium text-slate-400 truncate max-w-[100px]">
-                                    {token.customer_name || "Guest"}
-                                </span>
                             </motion.div>
                         ))
                     ) : (

@@ -8,6 +8,7 @@ import { WaitingCountCard } from "@/components/display/WaitingCountCard";
 import { RecentCallsCard } from "@/components/display/RecentCallsCard";
 import { UpcomingQueueCard } from "@/components/display/UpcomingQueueCard";
 import { FooterTicker } from "@/components/display/FooterTicker";
+import { ServingToken } from "@/types/api";
 
 interface PageProps {
     params: Promise<{ queueId: string }>;
@@ -83,6 +84,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
     // Use the assigned line from serving details for single counter logic
     const assignedLine = state?.serving_details?.assigned_line;
     const customerName = state?.serving_details?.customer_name;
+    const allServingTokens = state?.all_serving_tokens || [];
 
     return (
         <>
@@ -90,33 +92,33 @@ export default function DisplayQueuePage({ params }: PageProps) {
                 * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
             `}</style>
 
-            <main className="h-screen w-screen bg-slate-50 flex flex-col select-none overflow-hidden text-slate-900 font-sans">
+            <main className="h-[100dvh] w-full bg-slate-50 flex flex-col select-none overflow-hidden text-slate-900 font-sans">
                 {/* 1. Header (80px height) */}
                 <DisplayHeader 
                     logoUrl={state?.org_logo_url}
-                    queueName={queueName}
                     status={status}
-                    soundEnabled={soundEnabled}
-                    onToggleSound={handleToggleSound}
                     isActive={state?.is_active ?? false}
                 />
 
                 {/* 2. Main Section (Split 70 / 30) */}
-                <div className="flex-1 flex gap-8 p-8 overflow-hidden min-h-0">
+                <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-8 p-4 lg:p-8 overflow-y-auto lg:overflow-hidden min-h-0">
                     
                     {/* Left: 70% Now Serving */}
-                    <div className="w-[70%] flex flex-col min-h-0">
+                    <div className="w-full lg:w-[70%] flex flex-col min-h-[50vh] lg:min-h-0">
                         <NowServingHero 
                             serving={serving}
                             prefix={prefix}
                             assignedLine={assignedLine}
                             serviceLines={serviceLines}
                             customerName={customerName}
+                            allServingTokens={allServingTokens}
+                            queueName={queueName}
+                            isActive={state?.is_active ?? false}
                         />
                     </div>
 
                     {/* Right: 30% Cards */}
-                    <div className="w-[30%] flex flex-col gap-6 min-h-0">
+                    <div className="w-full lg:w-[30%] flex flex-col gap-4 lg:gap-6 min-h-0">
                         <WaitingCountCard count={waiting} />
                         <RecentCallsCard recentTokens={recentTokens} prefix={prefix} />
                         <UpcomingQueueCard waitingTokens={waitingTokens} prefix={prefix} />

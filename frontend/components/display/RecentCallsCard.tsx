@@ -12,11 +12,10 @@ interface RecentCallsCardProps {
 
 export function RecentCallsCard({ recentTokens, prefix }: RecentCallsCardProps) {
     const recentlyCalled = recentTokens
-        .filter((t) => t.status === "serving" || t.status === "done")
-        .slice(0, 5);
+        .filter((t) => t.status === "serving" || t.status === "done");
 
     return (
-        <div className="bg-white rounded-[24px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-200/60 p-6 flex flex-col flex-1 min-h-[220px] overflow-hidden">
+        <div className="bg-white rounded-[24px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-200/60 p-6 flex flex-col lg:flex-1 h-[350px] lg:h-auto lg:min-h-[160px] overflow-hidden">
             <div className="flex items-center gap-3 mb-5 px-2">
                 <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center">
                     <History className="w-4 h-4" />
