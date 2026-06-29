@@ -79,6 +79,7 @@ async def login(
             email=body.email,
             plain_password=body.password,
             org_slug=body.organization_slug,
+            login_type=body.login_type,
         )
     except ValueError as exc:
         await record_event(

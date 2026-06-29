@@ -12,9 +12,9 @@ import { ArrowRight, Eye, EyeOff, Building2 } from "lucide-react";
 export default function LoginPage() {
     const router = useRouter();
     const { login, isLoading, error, isAuthenticated, isHydrated, user } = useAuth();
-    const [orgSlug, setOrgSlug] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [orgSlug, setOrgSlug] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loginType, setLoginType] = useState<"staff" | "org_admin">("org_admin");
 
@@ -36,11 +36,11 @@ export default function LoginPage() {
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await login({ organization_slug: orgSlug, email, password });
+            await login({ email, password, login_type: "org_admin" });
         } catch {
             // Error is handled in useAuth hook
         }
-    }, [login, orgSlug, email, password]);
+    }, [login, email, password]);
 
     return (
         <main className="force-light min-h-screen w-full flex bg-white h-screen overflow-hidden">

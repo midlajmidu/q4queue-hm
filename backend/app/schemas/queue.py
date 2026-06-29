@@ -97,8 +97,8 @@ class JoinResponse(BaseModel):
     token_number: int
     position: int           # how many 'waiting' tokens are ahead
     current_serving: int    # the token_number currently being served (0 = none)
-    queue_prefix: str
-    session_id: uuid.UUID
+    queue_prefix: Optional[str] = None
+    session_id: Optional[uuid.UUID] = None
     tracking_id: Optional[uuid.UUID] = None  # public tracking URL ID
     companion_names: list[str]
     is_existing: bool = False  # True if this token already existed (duplicate phone)
@@ -124,8 +124,8 @@ class TokenRestoreResponse(BaseModel):
     token_number: int
     status: TokenStatus
     queue_id: uuid.UUID
-    session_id: uuid.UUID
-    queue_prefix: str
+    session_id: Optional[uuid.UUID] = None
+    queue_prefix: Optional[str] = None
     customer_name: str
     customer_age: Optional[int] = None
     customer_phone: str

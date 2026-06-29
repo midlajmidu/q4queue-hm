@@ -45,7 +45,7 @@ export default function LoginPage() {
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await login({ organization_slug: orgSlug, email, password });
+            await login({ organization_slug: orgSlug, email, password, login_type: "staff" });
         } catch {
             // Error is handled in useAuth hook
         }

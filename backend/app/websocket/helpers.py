@@ -104,6 +104,7 @@ async def build_queue_snapshot(
         .select_from(Token)
         .where(
             Token.queue_id == queue_id,
+            Token.session_id == queue.token_session_id,
             Token.status == TokenStatus.waiting,
         )
     )
@@ -133,6 +134,7 @@ async def build_queue_snapshot(
         select(Token)
         .where(
             Token.queue_id == queue_id,
+            Token.session_id == queue.token_session_id,
             Token.status.in_([TokenStatus.serving, TokenStatus.done, TokenStatus.skipped, TokenStatus.deleted]),
         )
         .order_by(Token.token_number.desc())
@@ -164,6 +166,7 @@ async def build_queue_snapshot(
         select(Token)
         .where(
             Token.queue_id == queue_id,
+            Token.session_id == queue.token_session_id,
             Token.status == TokenStatus.waiting,
         )
         .order_by(Token.token_number.asc())

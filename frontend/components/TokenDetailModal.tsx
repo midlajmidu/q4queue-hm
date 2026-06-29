@@ -148,6 +148,7 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
 
                     {/* Detail grid */}
                     <div className="grid grid-cols-2 gap-3">
+                        <DetailItem label="Phone Number" value={token.customer_phone || "Not Provided"} />
                         {token.companion_names && token.companion_names.length > 0 && (
                             <DetailItem label="Companions" value={token.companion_names.join(", ")} highlight="emerald" />
                         )}

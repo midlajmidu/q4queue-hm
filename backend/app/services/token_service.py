@@ -15,6 +15,7 @@ Public (unauthenticated) operations use the unsafe lock only on public queues.
 import logging
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession

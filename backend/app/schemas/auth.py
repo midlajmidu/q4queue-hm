@@ -11,7 +11,8 @@ class LoginRequest(BaseModel):
 
     email: EmailStr
     password: str = Field(..., min_length=6)
-    organization_slug: str = Field(..., min_length=2, max_length=100)
+    organization_slug: str | None = Field(None, max_length=100)
+    login_type: str = Field("staff", description="'staff' for branch login, 'org_admin' for parent organization login")
 
     model_config = {"json_schema_extra": {"examples": [
         {
