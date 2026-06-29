@@ -339,7 +339,7 @@ export function TopBar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
             <div className="flex items-center gap-3 sm:gap-4">
                 <LiveClock />
                 <div className="w-px h-5 bg-gray-200 dark:bg-white/10 hidden md:block mx-1" />
-                <ThemeToggle />
+                {/* <ThemeToggle /> */}
                 <NotificationSystem />
 
             </div>

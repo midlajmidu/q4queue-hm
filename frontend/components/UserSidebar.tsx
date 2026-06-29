@@ -188,10 +188,10 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                             </>
                         )}
 
-                        {sectionLabel("Resources")}
+                        {/* {sectionLabel("Resources")}
                         <NavLink href={`${dashBase}/docs`} label="Documentation" icon={
                             <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                        } />
+                        } /> */}
                         <div className={`mt-6 ${c ? 'mx-2' : 'mx-6'} p-3 rounded-xl bg-white dark:bg-transparent border border-slate-100 dark:border-white/10 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]`}>
                             {!c && <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Need Help?</p>}
                             <a href={`mailto:contact@q4queue.com`} className={`flex items-center ${c ? 'justify-center' : 'gap-2 mb-2'} text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 transition-colors`} title={"contact@q4queue.com"}>
