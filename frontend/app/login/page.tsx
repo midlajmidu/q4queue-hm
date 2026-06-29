@@ -52,37 +52,28 @@ export default function LoginPage() {
     }, [login, orgSlug, email, password]);
 
     return (
-        <main className="force-light min-h-screen relative flex flex-col items-center justify-center bg-hero-glow p-4 sm:p-8 overflow-y-auto">
-            {/* Background grid */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(220_16%_90%/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(220_16%_90%/0.5)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black_70%,transparent_100%)] pointer-events-none" />
-            <div className="absolute top-20 left-[10%] w-72 h-72 bg-primary/8 rounded-full blur-[120px] animate-pulse pointer-events-none" />
-            <div className="absolute bottom-20 right-[10%] w-56 h-56 bg-accent/8 rounded-full blur-[100px] animate-pulse pointer-events-none" />
-
-            {/* Centered login */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full max-w-[420px] relative z-10"
-            >
-                <div className="text-center mb-8 flex justify-center">
-                    <Link href="/" className="inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-1" aria-label="Go to home page">
-                        <Image src="/newLogo2.png" alt="Q4Queue Logo" width={642} height={543} className="h-16 md:h-20 w-auto object-contain" priority />
-                    </Link>
-                </div>
-
-                {/* Login card */}
-                <div className="glass-card rounded-2xl p-7 md:p-8 space-y-6" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 8px 32px -4px rgba(0,0,0,0.06)" }}>
-                    <div className="text-center pb-5 border-b border-border/50">
-                        <h1 className="font-heading text-xl font-bold text-foreground">
-                            Sign in to your <span className="text-gradient">dashboard</span>
+        <main className="force-light min-h-screen w-full flex bg-white">
+            {/* Left Column - Form */}
+            <div className="w-full lg:w-[45%] flex flex-col justify-center px-8 sm:px-16 lg:px-24 py-12 relative overflow-y-auto">
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    className="w-full max-w-md mx-auto"
+                >
+                    <div className="mb-10 flex flex-col items-start">
+                        <Link href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg" aria-label="Go to home page">
+                            <Image src="/q4queue-main-logo.png" alt="Q4Queue Logo" width={200} height={50} className="h-10 w-auto object-contain" priority />
+                        </Link>
+                        <h1 className="font-heading text-3xl font-bold text-slate-900 mt-10 tracking-tight">
+                            Welcome back!
                         </h1>
-                        <p className="text-sm text-muted-foreground mt-1.5">Enter your credentials to continue</p>
+                        <p className="text-base text-slate-500 mt-2">
+                            Enter your credentials to continue to your dashboard.
+                        </p>
                     </div>
 
-
-
-                    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                         <AnimatePresence>
                             {error && (
                                 <motion.div
@@ -91,16 +82,19 @@ export default function LoginPage() {
                                     exit={{ opacity: 0, height: 0, scale: 0.95 }}
                                     className="overflow-hidden"
                                 >
-                                    <div role="alert" className="bg-destructive/10 text-destructive text-sm font-medium p-3 rounded-lg border border-destructive/20 text-center">
-                                        {error}
+                                    <div role="alert" className="bg-red-50 text-red-600 text-sm font-medium p-4 rounded-xl border border-red-100 flex items-start gap-3">
+                                        <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span>{error}</span>
                                     </div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
 
                         <div>
-                            <label htmlFor="org-slug" className="block text-sm font-semibold text-foreground mb-1.5">
-                                {loginType === "staff" ? "Branch Slug" : "Organization Slug"}
+                            <label htmlFor="org-slug" className="block text-sm font-bold text-slate-900 mb-2">
+                                {loginType === "staff" ? "Branch Slug *" : "Organization Slug *"}
                             </label>
                             <input
                                 id="org-slug"
@@ -110,13 +104,13 @@ export default function LoginPage() {
                                 placeholder={loginType === "staff" ? "branch-slug" : "organization-slug"}
                                 required
                                 autoComplete="organization"
-                                className="w-full rounded-xl border border-input bg-white/50 px-4 py-2.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-muted-foreground"
+                                className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
                                 disabled={isLoading}
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="email" className="block text-sm font-semibold text-foreground mb-1.5">Email Address</label>
+                            <label htmlFor="email" className="block text-sm font-bold text-slate-900 mb-2">Email Address *</label>
                             <input
                                 id="email"
                                 type="email"
@@ -125,14 +119,14 @@ export default function LoginPage() {
                                 placeholder="admin@clinic.com"
                                 required
                                 autoComplete="email"
-                                className="w-full rounded-xl border border-input bg-white/50 px-4 py-2.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-muted-foreground"
+                                className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
                                 disabled={isLoading}
                             />
                         </div>
 
                         <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                                <label htmlFor="password" title="Password" className="block text-sm font-semibold text-foreground">Password</label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label htmlFor="password" title="Password" className="block text-sm font-bold text-slate-900">Password *</label>
                             </div>
                             <div className="relative">
                                 <input
@@ -143,13 +137,13 @@ export default function LoginPage() {
                                     placeholder="••••••••"
                                     required
                                     autoComplete="current-password"
-                                    className="w-full rounded-xl border border-input bg-white/50 pl-4 pr-12 py-2.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-muted-foreground"
+                                    className="w-full rounded-xl border-2 border-slate-200 bg-white pl-4 pr-12 py-3 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
                                     disabled={isLoading}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none p-1.5 rounded-md transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1.5 rounded-md transition-colors"
                                     aria-label={showPassword ? "Hide password" : "Show password"}
                                     disabled={isLoading}
                                 >
@@ -165,45 +159,61 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={isLoading || !orgSlug || !email || !password}
-                            aria-label="Sign in"
-                            className="w-full h-11 mt-4 bg-primary text-primary-foreground font-semibold rounded-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            aria-label="Continue"
+                            className="w-full h-12 mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[15px] rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                         >
                             {isLoading ? (
                                 <>
-                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <svg className="animate-spin h-5 w-5 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
-                                    Signing in...
+                                    Continuing...
                                 </>
                             ) : (
-                                <>
-                                    Sign in <ArrowRight className="w-4 h-4 ml-1" />
-                                </>
+                                "Continue"
                             )}
                         </button>
                     </form>
 
-                    <div className="pt-6 border-t border-border/50 flex flex-col items-center">
+                    <div className="mt-8 pt-8 border-t border-slate-100 flex flex-col items-center">
                         <Link 
                             href="/organization-login" 
-                            className="group flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-50/50 hover:bg-slate-50 border border-slate-200/50 hover:border-slate-300 transition-all duration-300"
+                            className="group flex items-center justify-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors"
                         >
-                            <span className="text-[13px] font-medium text-slate-500 group-hover:text-slate-600 transition-colors">
-                                Parent Organization Admin?
-                            </span>
-                            <span className="text-[13px] font-bold text-indigo-600 group-hover:text-indigo-700 transition-colors flex items-center gap-1">
-                                Login Here <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                            Parent Organization Admin?
+                            <span className="flex items-center gap-1 font-bold">
+                                Login Here <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                             </span>
                         </Link>
                     </div>
-                </div>
-            </motion.div>
 
-            {/* Minimal footer */}
-            <p className="relative z-10 text-center text-xs text-muted-foreground mt-8">
-                © {new Date().getFullYear()} Q4Queue · <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
-            </p>
+                    <p className="text-center text-xs text-slate-400 mt-12">
+                        © {new Date().getFullYear()} Q4Queue · <Link href="/" className="hover:text-slate-600 transition-colors">Home</Link>
+                    </p>
+                </motion.div>
+            </div>
+
+            {/* Right Column - Graphic */}
+            <div className="hidden lg:flex lg:w-[55%] p-4 pl-0">
+                <div className="w-full h-full rounded-[2rem] overflow-hidden relative shadow-2xl">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 1.05 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="absolute inset-0 w-full h-full"
+                    >
+                        <Image 
+                            src="/images/login-hero-people.png" 
+                            alt="Q4Queue Platform" 
+                            fill
+                            className="object-cover object-center"
+                            priority
+                            sizes="55vw"
+                        />
+                    </motion.div>
+                </div>
+            </div>
         </main>
     );
 }
