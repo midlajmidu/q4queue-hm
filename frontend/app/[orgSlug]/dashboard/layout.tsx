@@ -85,24 +85,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             </div>
                             
                             {!isManageQueuePage && (
-                                <footer className="max-w-7xl mx-auto w-full mt-12 pt-5 border-t border-slate-200/80 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-medium text-slate-400 dark:text-slate-500 shrink-0">
-                                    <div className="flex items-center gap-3">
-                                        <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                                <footer className="max-w-7xl mx-auto w-full mt-12 pt-5 border-t border-slate-200/80 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                                        <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer group">
+                                            <span className="relative flex h-1.5 w-1.5">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 group-hover:opacity-100 transition-opacity"></span>
+                                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                            </span>
                                             All systems operational
-                                        </span>
-                                        <span className="hidden sm:inline text-slate-200 dark:text-slate-800">|</span>
-                                        <span className="hidden sm:inline">v1.2.4</span>
+                                        </div>
+                                        <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
+                                        <span>v1.2.4</span>
                                     </div>
                                     <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-                                        <span className="hidden lg:flex items-center gap-1.5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-                                            <kbd className="px-1.5 py-0.5 rounded-[4px] border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900 font-sans text-[9px] font-bold text-slate-500">?</kbd>
-                                            Shortcuts
-                                        </span>
-                                        <a href="#" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Help</a>
-                                        <a href="#" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">API Docs</a>
-                                        <a href="#" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Privacy</a>
-                                        <span className="text-slate-300 dark:text-slate-700">© 2026 Q4Queue</span>
+                                        <a href="#" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">Help</a>
+                                        <a href="#" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">API Docs</a>
+                                        <a href="#" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">Privacy</a>
+                                        <span className="text-slate-400 dark:text-slate-600">© 2026 Q4Queue</span>
                                     </div>
                                 </footer>
                             )}

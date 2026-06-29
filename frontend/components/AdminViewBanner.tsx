@@ -47,10 +47,24 @@ export function AdminViewBanner() {
 
     // Read-only view (org-admin or super-admin viewing a branch) — show dedicated banner
     if (isReadOnly) {
-        // Determine label based on whether we're in the super-admin URL tree
-        const isSuperAdminView = pathname?.startsWith("/super-admin/");
-        const bannerLabel = isSuperAdminView ? "Super Admin View" : "Organization Admin View";
-        const returnLabel = isSuperAdminView ? "Return to Super Admin" : "Return to Org Admin";
+        // Decode saToken to determine actual role
+        let originalRole = "organization_admin";
+        const saToken = getSuperAdminToken();
+        if (saToken) {
+            try {
+                const parts = saToken.split(".");
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]));
+                    if (payload && payload.role) {
+                        originalRole = payload.role;
+                    }
+                }
+            } catch (e) {}
+        }
+        
+        const isSuperAdmin = originalRole === "super_admin";
+        const bannerLabel = isSuperAdmin ? "Super Admin View" : "Organization Admin View";
+        const returnLabel = isSuperAdmin ? "Return to Super Admin" : "Return to Org Admin";
 
         return (
             <div className="bg-violet-600 text-white px-4 py-2 flex items-center justify-center gap-4 text-sm font-medium z-[100] relative shadow-md">

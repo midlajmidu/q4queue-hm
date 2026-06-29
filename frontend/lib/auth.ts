@@ -60,39 +60,24 @@ export function setToken(token: string, explicitType?: TokenType): void {
     const finalType = type as TokenType;
     _tokens[finalType] = token;
     console.log(`[auth.ts] setToken called for type ${finalType}.`);
-    try {
-        if (typeof window !== "undefined") {
-            localStorage.setItem(STORAGE_KEYS[finalType], token);
-        }
-    } catch {
-        // SSR or storage unavailable
-    }
 }
 
 /**
  * Retrieve the access token.
- * Falls back to localStorage if in-memory is empty (after page refresh or browser restart).
  */
 export function getToken(explicitType?: TokenType): string | null {
     const type = explicitType || getTokenTypeFromPath();
-    
-    // Primary check
-    if (_tokens[type]) return _tokens[type];
-    
-    let stored: string | null = null;
-    try {
-        if (typeof window !== "undefined") {
-            stored = localStorage.getItem(STORAGE_KEYS[type]);
-            if (stored) {
-                _tokens[type] = stored;
-                return stored;
-            }
-        }
-    } catch (e) {
-        console.error(`[auth.ts] getToken error accessing localStorage for ${type}:`, e);
-    }
-    
-    return null;
+    return _tokens[type];
+}
+
+export function getAllTokens(): Record<TokenType, string | null> {
+    return { ..._tokens };
+}
+
+export function setAllTokens(tokens: Record<TokenType, string | null>): void {
+    _tokens.staff = tokens.staff;
+    _tokens.org_admin = tokens.org_admin;
+    _tokens.super_admin = tokens.super_admin;
 }
 
 /**
@@ -101,13 +86,6 @@ export function getToken(explicitType?: TokenType): string | null {
 export function removeToken(explicitType?: TokenType): void {
     const type = explicitType || getTokenTypeFromPath();
     _tokens[type] = null;
-    try {
-        if (typeof window !== "undefined") {
-            localStorage.removeItem(STORAGE_KEYS[type]);
-        }
-    } catch {
-        // SSR or storage unavailable
-    }
 }
 
 // ── Super Admin Impersonation Token ──────────────────────────────
