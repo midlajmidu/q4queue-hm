@@ -133,7 +133,7 @@ export default function TrackingPage({ params }: PageProps) {
                         position: info.position,
                         current_serving: 0, // will be updated by websocket
                         queue_prefix: info.token_prefix,
-                        session_id: info.session_id,
+                        session_id: "", // tracking page doesn't strictly need session validation like join did, but we'll adapt
                         tracking_id: info.tracking_id,
                         removed_by: info.removed_by
                     });
@@ -142,15 +142,8 @@ export default function TrackingPage({ params }: PageProps) {
                 }
             } catch (err: unknown) {
                 if (mounted) {
-                    if (err instanceof Error && 'status' in err) {
-                        const status = (err as any).status;
-                        if (status === 404) {
-                            setError("This queue session has ended. Your token is no longer valid.");
-                        } else if (status === 429) {
-                            setError("You are refreshing too quickly! Please wait a few seconds and try again.");
-                        } else {
-                            setError("Tracking link is invalid or expired.");
-                        }
+                    if (err instanceof Error && 'status' in err && (err as any).status === 404) {
+                        setError("This queue session has ended. Your token is no longer valid.");
                     } else {
                         setError("Tracking link is invalid or expired.");
                     }
@@ -181,15 +174,6 @@ export default function TrackingPage({ params }: PageProps) {
 
             if (!newStatus && live?.current_serving === joinData.token_number) {
                 newStatus = "serving";
-            }
-
-            if (!newStatus && live?.all_serving_tokens) {
-                const isServing = live.all_serving_tokens.some(
-                    (t: { token_number: number }) => t.token_number === joinData.token_number
-                );
-                if (isServing) {
-                    newStatus = "serving";
-                }
             }
 
             try {
@@ -287,7 +271,6 @@ export default function TrackingPage({ params }: PageProps) {
     // Derived: compute live position
     const myNumber = joinData?.token_number ?? null;
     const serving = live?.current_serving ?? 0;
-    const activeServingTokens = live?.all_serving_tokens ?? [];
 
     const actualStatus = tokenStatus || "waiting";
     const isMyTurn = actualStatus === "serving";
@@ -296,19 +279,8 @@ export default function TrackingPage({ params }: PageProps) {
     const isDeleted = actualStatus === "deleted";
 
     const alreadyServed = isDone || isSkipped || isDeleted || (myNumber !== null && myNumber < serving && actualStatus !== "waiting");
-    
-    // Accurate calculation using waiting_tokens list when available, falling back to math.
-    const peopleAhead = myNumber !== null && actualStatus === "waiting"
-        ? (live?.waiting_tokens 
-            ? live.waiting_tokens.filter(t => t.token_number < myNumber).length
-            : (myNumber > serving ? myNumber - serving - 1 : 0))
-        : 0;
-
+    const peopleAhead = myNumber !== null && actualStatus === "waiting" && myNumber > serving ? myNumber - serving - 1 : 0;
     const isNext = peopleAhead === 0 && actualStatus === "waiting" && myNumber !== null;
-
-    const displayWaitingCount = live?.waiting_count !== undefined
-        ? (actualStatus === "waiting" ? Math.max(0, live.waiting_count - 1) : live.waiting_count)
-        : "—";
 
     // ── Remaining-count milestone: sound via utility ────
     useEffect(() => {
@@ -351,383 +323,226 @@ export default function TrackingPage({ params }: PageProps) {
     const logoUrl = live?.org_logo_url;
     const fullLogoUrl = logoUrl ? (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `https://amoebaq.com/api/v1${logoUrl}`) : null;
 
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [isInteracting, setIsInteracting] = useState(false);
-    const interactTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-    const handleInteraction = useCallback(() => {
-        setIsInteracting(true);
-        if (interactTimeoutRef.current) clearTimeout(interactTimeoutRef.current);
-        interactTimeoutRef.current = setTimeout(() => {
-            setIsInteracting(false);
-        }, 1500);
-    }, []);
-
-    const isDragging = useRef(false);
-    const startX = useRef(0);
-    const initialScrollLeft = useRef(0);
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-        isDragging.current = true;
-        if (scrollContainerRef.current) {
-            startX.current = e.pageX - scrollContainerRef.current.offsetLeft;
-            initialScrollLeft.current = scrollContainerRef.current.scrollLeft;
-        }
-        handleInteraction();
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging.current || !scrollContainerRef.current) return;
-        e.preventDefault();
-        const x = e.pageX - scrollContainerRef.current.offsetLeft;
-        const walk = (x - startX.current) * 2;
-        scrollContainerRef.current.scrollLeft = initialScrollLeft.current - walk;
-        handleInteraction();
-    };
-
-    const handleMouseUpOrLeave = () => {
-        isDragging.current = false;
-    };
-
-    useEffect(() => {
-        const el = scrollContainerRef.current;
-        if (!el || isInteracting || activeServingTokens.length <= 3) return;
-
-        let animationFrameId: number;
-        const speed = 0.5; // pixels per frame
-        let currentScroll = el.scrollLeft;
-
-        const scroll = () => {
-            currentScroll += speed;
-            if (currentScroll >= el.scrollWidth / 2) {
-                currentScroll -= (el.scrollWidth / 2);
-            }
-            if (el) {
-                el.scrollLeft = currentScroll;
-            }
-            animationFrameId = requestAnimationFrame(scroll);
-        };
-        animationFrameId = requestAnimationFrame(scroll);
-
-        return () => cancelAnimationFrame(animationFrameId);
-    }, [isInteracting, activeServingTokens.length]);
-
-    const bgGradient = isMyTurn 
-        ? "from-emerald-900 via-emerald-800 to-teal-900" 
-        : isNext 
-            ? "from-indigo-900 via-purple-900 to-slate-900"
-            : "from-[#0f172a] via-[#1e1b4b] to-[#020617]";
-
-    const cardGlass = "bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]";
-
-    // Approximate progress ring calculation (max 100 people for full circle visual)
-    const progressDashoffset = isMyTurn ? 0 : Math.max(0, 289 - (289 * (1 - Math.min(peopleAhead, 20) / 20)));
-
     return (
-        <main className={`min-h-screen flex flex-col p-4 sm:p-6 transition-colors duration-700 bg-gradient-to-br ${bgGradient} text-white relative`}>
-            {/* Absolute positioning for ConnectionBadge */}
-            <div className="absolute top-4 right-4 z-50">
-                <ConnectionBadge status={queueClosed ? "disconnected" : wsStatus} />
-            </div>
+        <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
+            <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-7 text-center text-white relative transition-colors duration-500" style={{ backgroundColor: brandColor }}>
+                    <div className="absolute top-3 right-3">
+                        <ConnectionBadge status={queueClosed ? "disconnected" : wsStatus} />
+                    </div>
 
-            <div className="flex-1 w-full max-w-md mx-auto flex flex-col justify-center relative pb-24">
-                
-                {/* Header (Logo + Queue Name) */}
-                <div className="text-center mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
                     {fullLogoUrl && (
-                        <div className="flex justify-center mb-4">
-                            <img src={fullLogoUrl} alt="Logo" className="h-16 object-contain drop-shadow-2xl bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20" />
+                        <div className="flex justify-center mb-3">
+                            <img 
+                                src={fullLogoUrl} 
+                                alt="Organization Logo" 
+                                className="h-16 object-contain bg-white/10 rounded-lg p-1.5 backdrop-blur-sm border border-white/20 shadow-sm"
+                            />
                         </div>
                     )}
-                    <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-md">{queueName}</h1>
-                    <p className="text-white/70 text-sm font-semibold uppercase tracking-widest mt-1">
-                        {queueClosed ? "Currently Closed" : "Live Token Tracking"}
+
+                    <h1 className="text-2xl font-extrabold mb-1">{queueName}</h1>
+                    <p className="text-white/80 text-xs font-semibold uppercase tracking-widest">
+                        {queueClosed ? "Currently Closed" : "Now Serving"}
                     </p>
 
-                    {activeServingTokens.length === 0 ? (
-                        <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label="No one is currently serving">
-                            —
-                        </div>
-                    ) : activeServingTokens.length === 1 ? (
-                        <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
-                            {prefix}{activeServingTokens[0].token_number}
-                        </div>
-                    ) : activeServingTokens.length <= 3 ? (
-                        <div className="mt-4 py-3 bg-white/10 rounded-xl border border-white/20 px-4" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map(t => `${prefix}${t.token_number}`).join(', ')}`}>
-                            <div className="flex justify-center gap-3">
-                                {activeServingTokens.map((t) => (
-                                    <div key={t.id} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[70px] shrink-0">
-                                        <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
-                                        {t.assigned_line != null && (
-                                            <span className="text-[10px] font-bold text-white/90 mt-1">Line {t.assigned_line}</span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="mt-4 overflow-hidden w-full relative py-2 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map(t => `${prefix}${t.token_number}`).join(', ')}`}>
-                            <style>{`
-                                .hide-scroll::-webkit-scrollbar { display: none; }
-                            `}</style>
-                            <div 
-                                ref={scrollContainerRef}
-                                className="flex flex-nowrap items-center gap-4 px-4 overflow-x-auto whitespace-nowrap hide-scroll cursor-grab active:cursor-grabbing select-none"
-                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                onTouchStart={handleInteraction}
-                                onTouchMove={handleInteraction}
-                                onWheel={handleInteraction}
-                                onMouseDown={handleMouseDown}
-                                onMouseMove={handleMouseMove}
-                                onMouseUp={handleMouseUpOrLeave}
-                                onMouseLeave={handleMouseUpOrLeave}
-                            >
-                                {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t, idx) => (
-                                    <div key={`${t.id}-${idx}`} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0">
-                                        <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
-                                        {t.assigned_line != null && (
-                                            <span className="text-[10px] font-bold text-white/90 mt-1">Line {t.assigned_line}</span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${serving}`}>
+                        {prefix}{serving}
+                    </div>
 
                     <div className="mt-3 flex justify-center gap-6 text-xs text-blue-200">
-                        <span>Waiting: <strong className="text-white">{displayWaitingCount}</strong></span>
+                        <span>Waiting: <strong className="text-white">{live?.waiting_count ?? "—"}</strong></span>
                     </div>
-    return (
-        <main className={`min-h-screen flex flex-col p-4 sm:p-6 transition-colors duration-700 bg-gradient-to-br ${bgGradient} text-white relative`}>
-            {/* Absolute positioning for ConnectionBadge */}
-            <div className="absolute top-4 right-4 z-50">
-                <ConnectionBadge status={queueClosed ? "disconnected" : wsStatus} />
-            </div>
-
-            <div className="flex-1 w-full max-w-md mx-auto flex flex-col justify-center relative pb-24">
-                
-                {/* Header (Logo + Queue Name) */}
-                <div className="text-center mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
-                    {fullLogoUrl && (
-                        <div className="flex justify-center mb-4">
-                            <img src={fullLogoUrl} alt="Logo" className="h-16 object-contain drop-shadow-2xl bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20" />
-                        </div>
-                    )}
-                    <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-md">{queueName}</h1>
-                    <p className="text-white/70 text-sm font-semibold uppercase tracking-widest mt-1">
-                        {queueClosed ? "Currently Closed" : "Live Token Tracking"}
-                    </p>
-<<<<<<< HEAD
-
-                    {activeServingTokens.length === 0 ? (
-                        <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label="No one is currently serving">
-                            —
-                        </div>
-                    ) : activeServingTokens.length === 1 ? (
-                        <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
-                            {prefix}{activeServingTokens[0].token_number}
-                        </div>
-                    ) : activeServingTokens.length <= 3 ? (
-                        <div className="mt-4 py-3 bg-white/10 rounded-xl border border-white/20 px-4" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map(t => `${prefix}${t.token_number}`).join(', ')}`}>
-                            <div className="flex justify-center gap-3">
-                                {activeServingTokens.map((t) => (
-                                    <div key={t.id} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[70px] shrink-0">
-                                        <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
-                                        {t.assigned_line != null && (
-                                            <span className="text-[10px] font-bold text-white/90 mt-1">Line {t.assigned_line}</span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="mt-4 overflow-hidden w-full relative py-2 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map(t => `${prefix}${t.token_number}`).join(', ')}`}>
-                            <style>{`
-                                .hide-scroll::-webkit-scrollbar { display: none; }
-                            `}</style>
-                            <div 
-                                ref={scrollContainerRef}
-                                className="flex flex-nowrap items-center gap-4 px-4 overflow-x-auto whitespace-nowrap hide-scroll cursor-grab active:cursor-grabbing select-none"
-                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                onTouchStart={handleInteraction}
-                                onTouchMove={handleInteraction}
-                                onWheel={handleInteraction}
-                                onMouseDown={handleMouseDown}
-                                onMouseMove={handleMouseMove}
-                                onMouseUp={handleMouseUpOrLeave}
-                                onMouseLeave={handleMouseUpOrLeave}
-                            >
-                                {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t, idx) => (
-                                    <div key={`${t.id}-${idx}`} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0">
-                                        <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
-                                        {t.assigned_line != null && (
-                                            <span className="text-[10px] font-bold text-white/90 mt-1">Line {t.assigned_line}</span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="mt-3 flex justify-center gap-6 text-xs text-blue-200">
-                        <span>Waiting: <strong className="text-white">{displayWaitingCount}</strong></span>
-                    </div>
-=======
->>>>>>> 8f0b96e5886a11ec9f2ed6beb353f520fb98a5e2
                 </div>
 
-                {error && (
-                    <div role="alert" className="mb-4 bg-red-500/20 backdrop-blur-md border border-red-500/30 text-red-200 text-sm font-bold p-4 rounded-xl text-center">
-                        {error}
-                    </div>
-                )}
+                {/* Body */}
+                <div className="p-6 space-y-5">
+                    {/* Service Hours Badge */}
+                    {live?.open_time && live?.close_time && (
+                        <div className="flex justify-center -mt-2 mb-2 relative z-10">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm shadow-sm border border-slate-200/60 rounded-full text-xs font-semibold text-slate-600 tracking-wide">
+                                <Clock className="w-3.5 h-3.5 text-blue-500" />
+                                <span>{formatTime12(live.open_time)} - {formatTime12(live.close_time)}</span>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {live?.is_paused && (
+                        <div role="alert" className="bg-amber-50 text-amber-800 text-sm font-bold p-4 rounded-xl border border-amber-200 shadow-sm animate-pulse flex items-center gap-3">
+                            <span className="text-xl">⏸️</span>
+                            <div>
+                                <p className="mb-0.5 uppercase tracking-wide text-xs text-amber-600">Paused</p>
+                                <p>The queue is currently on a break. Service will resume shortly.</p>
+                            </div>
+                        </div>
+                    )}
 
-                {/* Main Glassmorphism Ticket Card */}
-                {joinData && (
-                    <div className={`relative w-full rounded-[2rem] p-8 ${cardGlass} animate-in zoom-in-95 duration-500 overflow-hidden`}>
-                        {/* Shimmer effect */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 pointer-events-none" />
-                        
-                        <div className="text-center relative z-10">
-                            <p className="text-white/60 font-bold text-xs uppercase tracking-widest mb-1">{isMyTurn ? "Your turn!" : isNext ? "You're up next!" : "Your Ticket"}</p>
-                            
-                            {/* Circular Progress Ring wrapping the token number */}
-                            <div className="relative w-48 h-48 mx-auto mt-4 mb-6 flex items-center justify-center">
-                                {/* SVG Ring */}
-                                <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
-                                    <circle 
-                                        cx="50" cy="50" r="46" fill="none" 
-                                        stroke={isMyTurn ? "#34d399" : isNext ? "#818cf8" : "#fff"} 
-                                        strokeWidth="4" strokeLinecap="round"
-                                        strokeDasharray="289"
-                                        strokeDashoffset={progressDashoffset}
-                                        className="transition-all duration-1000 ease-out"
-                                    />
-                                </svg>
-                                
-                                <div className="flex flex-col items-center justify-center">
-                                    <span className={`text-6xl font-black tabular-nums tracking-tighter ${isMyTurn ? "text-emerald-300 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]" : "text-white"}`}>
-                                        {prefix}{myNumber}
-                                    </span>
-                                    {myAssignedLine != null && isMyTurn && (
-                                        <span className="mt-2 text-sm font-bold bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full border border-emerald-500/30">
-                                            Line {myAssignedLine}
-                                        </span>
+                    {error && (
+                        <div role="alert" className="bg-red-50 text-red-700 text-sm font-medium p-3 rounded-lg border border-red-100">
+                            {error}
+                        </div>
+                    )}
+
+                    {joinData && (
+                        /* ── Ticket Card ── */
+                        <div className="space-y-4">
+                            {/* ── Alert Settings Card ── */}
+                            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-3">
+                                <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Alert Settings</p>
+
+                                {/* Sound toggle */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-lg">🔔</span>
+                                        <div>
+                                            <p className="text-sm font-medium text-indigo-900">Sound Alerts</p>
+                                            <p className="text-xs text-indigo-500">Plays ringtone at milestones</p>
+                                        </div>
+                                    </div>
+                                    {soundEnabled ? (
+                                        <button
+                                            onClick={handleToggleSound}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${soundEnabled ? "bg-indigo-600" : "bg-gray-300"}`}
+                                            role="switch"
+                                            aria-checked={soundEnabled}
+                                            aria-label="Toggle sound alerts"
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${soundEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleEnableSound}
+                                            className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition"
+                                        >
+                                            Enable
+                                        </button>
                                     )}
                                 </div>
                             </div>
-                            
-                            <p className={`text-lg font-bold ${isMyTurn ? "text-emerald-300" : "text-white/90"}`}>
-                                {positionMessage}
-                            </p>
-                            
-                            {/* Stats row inside the card */}
-                            <div className="flex justify-between items-center mt-6 pt-6 border-t border-white/10 text-left">
-                                <div>
-                                    <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider">Status</p>
-                                    <p className={`text-sm font-bold mt-0.5 ${isMyTurn ? "text-emerald-400" : isSkipped ? "text-amber-400" : alreadyServed ? "text-gray-400" : "text-white"}`}>
-                                        {isMyTurn ? "Proceed to counter" : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "Next in line" : "Waiting"}
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider">Ahead of you</p>
-                                    <p className="text-sm font-bold mt-0.5 text-white tabular-nums">
-                                        {alreadyServed || isMyTurn ? "—" : peopleAhead}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
-                {/* Queue Avatars Timeline */}
-                {!isMyTurn && !alreadyServed && !isSkipped && !isDeleted && joinData && (
-                    <div className="mt-8 w-full animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-                        <p className="text-center text-white/50 text-[10px] font-bold uppercase tracking-widest mb-4">Live Queue Position</p>
-                        <div className="flex justify-center items-center gap-4">
-                            {/* Current Serving */}
-                            {activeServingTokens.slice(0, 1).map(t => (
-                                <div key={t.id} className="relative flex flex-col items-center transition-all">
-                                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-                                        <span className="text-sm font-bold text-white tabular-nums">{prefix}{t.token_number}</span>
+                            {/* Announcement */}
+                            {live?.announcement && (
+                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                    <div className="flex items-center gap-2 mb-2 text-indigo-800">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                                        <span className="text-xs font-bold uppercase tracking-widest text-indigo-900">Announcement</span>
                                     </div>
-                                    <span className="text-[9px] text-white/70 font-bold uppercase mt-1.5">Serving</span>
+                                    <p className="text-sm text-indigo-900 whitespace-pre-wrap">{live.announcement}</p>
                                 </div>
-                            ))}
-                            
-                            {activeServingTokens.length > 0 && (
-                                <div className="w-10 h-px bg-gradient-to-r from-white/30 to-white/10" />
+                            )}
+
+
+
+                            {isMyTurn && (
+                                <div role="alert" className="bg-emerald-50 text-emerald-800 p-4 rounded-xl border-2 border-emerald-300 text-center font-bold text-lg animate-pulse">
+                                    🎉 It&apos;s your turn!
+                                    {myAssignedLine != null ? (
+                                        <div className="mt-2 text-2xl font-black text-emerald-700">
+                                            Proceed to <span className="bg-emerald-700 text-white px-3 py-1 rounded-lg">Line {myAssignedLine}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-1 text-base font-semibold text-emerald-700">Please proceed to the counter.</div>
+                                    )}
+                                </div>
+                            )}
+                            {isNext && !isMyTurn && (
+                                <div role="status" className="bg-blue-50 text-blue-800 p-4 rounded-xl border border-blue-200 text-center font-bold text-base">
+                                    ⏳ You are next! Get ready.
+                                </div>
+                            )}
+                            {isSkipped && !isDone && !isMyTurn && !isDeleted && (
+                                <div className="bg-amber-50 text-amber-600 p-4 rounded-xl border border-amber-200 text-center text-sm">
+                                    Your token was skipped. Please see the receptionist.
+                                </div>
+                            )}
+                            {isDeleted && !isDone && !isMyTurn && (
+                                <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-center text-sm">
+                                    {error ? error : joinData?.removed_by === "session_end" ? "This queue session has ended. Your token is no longer valid." : "Your token has been removed from the waiting list."}
+                                </div>
                             )}
                             
-                            {/* Customer Avatar */}
-                            <div className="relative flex flex-col items-center">
-                                <div className="w-14 h-14 rounded-full bg-indigo-500/40 backdrop-blur-md border-2 border-indigo-400 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)] transform scale-110">
-                                    <span className="text-base font-black text-white tabular-nums">{prefix}{myNumber}</span>
+                            {alreadyServed && !isSkipped && !isDeleted && (
+                                <div className="bg-gray-50 text-gray-600 p-4 rounded-xl border border-gray-200 text-center text-sm">
+                                    Your token has already been served. Thank you for visiting!
                                 </div>
-                                <span className="text-[10px] text-indigo-300 font-bold uppercase mt-2">You</span>
+                            )}
+
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center shadow-inner" aria-label="Your ticket information">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
+                                    Your Ticket
+                                </p>
+                                <div className={`text-7xl font-black tabular-nums mb-2 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : ""}`} style={(!isMyTurn && !alreadyServed) ? { color: brandColor } : {}}>
+                                    {prefix}{myNumber}
+                                </div>
+
+                                <p aria-live="polite" className={`text-sm font-semibold mb-4 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : (!isNext ? "text-gray-600" : "")}`} style={isNext ? { color: brandColor } : {}}>
+                                    {positionMessage}
+                                </p>
+
+                                <div className="flex bg-white rounded-lg border border-gray-100 divide-x divide-gray-100 overflow-hidden text-sm shadow-sm">
+                                    <div className="flex-1 py-3">
+                                        <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Ahead</p>
+                                        <p className="text-2xl font-bold text-gray-900 mt-0.5 tabular-nums">
+                                            {alreadyServed ? "—" : isMyTurn ? "0" : peopleAhead}
+                                        </p>
+                                    </div>
+                                    <div className="flex-1 py-3">
+                                        <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Status</p>
+                                        <p className={`text-sm font-bold mt-1 ${isMyTurn ? "text-emerald-600" : isSkipped ? "text-amber-500" : alreadyServed ? "text-gray-400" : (!isNext ? "text-amber-600" : "")}`} style={isNext ? { color: brandColor } : {}}>
+                                            {isMyTurn ? "YOUR TURN" : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "NEXT" : "Waiting"}
+                                        </p>
+                                    </div>
+                                    <div className="flex-1 py-3">
+                                        <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Serving</p>
+                                        <p className="text-2xl font-bold text-gray-900 mt-0.5 tabular-nums">{prefix}{serving}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-center gap-2">
+                                <p className="text-center text-xs text-gray-400 leading-relaxed">
+                                    This page updates automatically. No need to refresh.
+                                </p>
+                                <button 
+                                    onClick={refresh}
+                                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 text-xs font-semibold transition-colors shadow-sm"
+                                >
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5" /></svg>
+                                    Refresh manually
+                                </button>
+                            </div>
+
+                            {wsStatus === "reconnecting" && (
+                                <div role="status" className="text-center text-xs text-amber-600 flex items-center justify-center gap-1.5 py-2">
+                                    <span className="w-3 h-3 border-2 border-amber-300 border-t-amber-600 rounded-full animate-spin" aria-hidden="true" />
+                                    Reconnecting to live updates...
+                                </div>
+                            )}
+
+                            {/* Cancel / Leave Queue */}
+                            <div className="pt-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row justify-center sm:items-center">
+                                <button
+                                    onClick={handleShare}
+                                    className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-4 py-2 rounded-lg transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Share2 className="w-3.5 h-3.5" />
+                                    Share Tracking Link
+                                </button>
+                                
+                                {!alreadyServed && (
+                                    <button
+                                        onClick={handleCancelRequest}
+                                        disabled={isCancelling}
+                                        className="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        {isCancelling ? "Cancelling..." : "Leave Queue / Cancel Ticket"}
+                                    </button>
+                                )}
                             </div>
                         </div>
-                    </div>
-                )}
-
-                {/* Alerts */}
-                {live?.is_paused && (
-                    <div className="mt-6 bg-amber-500/20 backdrop-blur-md border border-amber-500/30 text-amber-200 text-sm font-bold p-4 rounded-xl text-center flex flex-col items-center gap-2">
-                        <span className="text-2xl">⏸️</span>
-                        <span>Operator on a break. Service will resume shortly.</span>
-                    </div>
-                )}
-
-                {live?.announcement && (
-                    <div className="mt-6 bg-indigo-500/20 backdrop-blur-md border border-indigo-500/30 text-indigo-100 text-sm p-4 rounded-xl text-center">
-                        <p className="text-xs font-bold uppercase tracking-widest text-indigo-300 mb-1">Announcement</p>
-                        <p>{live.announcement}</p>
-                    </div>
-                )}
-
-            </div>
-
-            {/* Floating Action Bar */}
-            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-sm z-50 animate-in slide-in-from-bottom-8 duration-700">
-                <div className="bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl rounded-full p-2 flex items-center justify-between">
-                    <button 
-                        onClick={handleToggleSound}
-                        className={`flex items-center justify-center w-12 h-12 rounded-full transition-colors ${soundEnabled ? "bg-white/20 text-white" : "text-white/50 hover:bg-white/10"}`}
-                        title="Toggle Sounds"
-                    >
-                        <svg className="w-5 h-5" fill={soundEnabled ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
-                    </button>
                     
-                    <button 
-                        onClick={refresh}
-                        className="flex items-center justify-center w-12 h-12 rounded-full text-white/50 hover:bg-white/10 transition-colors"
-                        title="Refresh"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                    </button>
-
-                    <button 
-                        onClick={handleShare}
-                        className="flex items-center justify-center w-12 h-12 rounded-full text-white/50 hover:bg-white/10 transition-colors"
-                        title="Share Ticket"
-                    >
-                        <Share2 className="w-5 h-5" />
-                    </button>
-
-                    {!alreadyServed && (
-                        <button 
-                            onClick={handleCancelRequest}
-                            disabled={isCancelling}
-                            className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500/20 text-red-300 hover:bg-red-500/40 transition-colors ml-auto mr-1 disabled:opacity-50"
-                            title="Leave Queue"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
                     )}
                 </div>
             </div>

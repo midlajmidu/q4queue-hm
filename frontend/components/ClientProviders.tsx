@@ -25,7 +25,7 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
                 <AuthProvider>
                     <ToastProvider>
                         {children}
-                        <Toaster position="bottom-right" expand={false} richColors closeButton theme="light" />
+                        <Toaster position="top-center" expand={false} richColors closeButton theme="light" />
                     </ToastProvider>
                 </AuthProvider>
             </AlertProvider>

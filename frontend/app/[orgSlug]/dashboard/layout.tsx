@@ -85,8 +85,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             </div>
                             
                             {!isManageQueuePage && (
-                                <footer className="max-w-7xl mx-auto w-full mt-12 pt-5 border-t border-slate-200/80 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
-                                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                                <footer className="max-w-7xl mx-auto w-full mt-12 pt-5 border-t border-slate-200/80 dark:border-white/5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-[12px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                                    <div className="flex flex-col sm:flex-row items-center sm:justify-start gap-2 sm:gap-4">
                                         <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer group">
                                             <span className="relative flex h-1.5 w-1.5">
                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 group-hover:opacity-100 transition-opacity"></span>
@@ -94,14 +94,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                             </span>
                                             All systems operational
                                         </div>
-                                        <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
-                                        <span>v1.2.4</span>
                                     </div>
-                                    <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-                                        <a href="#" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">Help</a>
-                                        <a href="#" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">API Docs</a>
-                                        <a href="#" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">Privacy</a>
+                                    <div className="flex items-center justify-center">
                                         <span className="text-slate-400 dark:text-slate-600">© 2026 Q4Queue</span>
+                                    </div>
+                                    <div className="flex items-center justify-center sm:justify-end">
+                                        <span>v1.2.4</span>
                                     </div>
                                 </footer>
                             )}
