@@ -211,24 +211,24 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                     </div>
 
                     {/* Full timestamps */}
-                    {token.created_at && (
+                    {fullToken.created_at && (
                         <div className="pt-3 border-t border-gray-50">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Timestamps</p>
                             <div className="space-y-1.5 text-xs text-gray-500">
                                 <div className="flex justify-between">
                                     <span className="text-gray-400">Registered</span>
-                                    <span className="font-medium text-gray-700">{fmt(token.created_at)}</span>
+                                    <span className="font-medium text-gray-700">{fmt(fullToken.created_at)}</span>
                                 </div>
-                                {token.served_at && (
+                                {fullToken.served_at && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-400">Called</span>
-                                        <span className="font-medium text-gray-700">{fmt(token.served_at)}</span>
+                                        <span className="font-medium text-gray-700">{fmt(fullToken.served_at)}</span>
                                     </div>
                                 )}
-                                {token.completed_at && (
+                                {fullToken.completed_at && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-400">{completedLabel}</span>
-                                        <span className="font-medium text-gray-700">{fmt(token.completed_at)}</span>
+                                        <span className="font-medium text-gray-700">{fmt(fullToken.completed_at)}</span>
                                     </div>
                                 )}
                             </div>
@@ -238,7 +238,7 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
 
                 {/* Footer */}
                 <div className="px-6 pb-5 flex gap-3">
-                    {token.status === "skipped" && onRecall && (
+                    {fullToken.status === "skipped" && onRecall && (
                         <button
                             onClick={() => { onClose(); onRecall(); }}
                             className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
