@@ -142,8 +142,15 @@ export default function TrackingPage({ params }: PageProps) {
                 }
             } catch (err: unknown) {
                 if (mounted) {
-                    if (err instanceof Error && 'status' in err && (err as any).status === 404) {
-                        setError("This queue session has ended. Your token is no longer valid.");
+                    if (err instanceof Error && 'status' in err) {
+                        const status = (err as any).status;
+                        if (status === 404) {
+                            setError("This queue session has ended. Your token is no longer valid.");
+                        } else if (status === 429) {
+                            setError("You are refreshing too quickly! Please wait a few seconds and try again.");
+                        } else {
+                            setError("Tracking link is invalid or expired.");
+                        }
                     } else {
                         setError("Tracking link is invalid or expired.");
                     }
@@ -344,6 +351,67 @@ export default function TrackingPage({ params }: PageProps) {
     const logoUrl = live?.org_logo_url;
     const fullLogoUrl = logoUrl ? (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `http://localhost:8000${logoUrl}`) : null;
 
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [isInteracting, setIsInteracting] = useState(false);
+    const interactTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleInteraction = useCallback(() => {
+        setIsInteracting(true);
+        if (interactTimeoutRef.current) clearTimeout(interactTimeoutRef.current);
+        interactTimeoutRef.current = setTimeout(() => {
+            setIsInteracting(false);
+        }, 1500);
+    }, []);
+
+    const isDragging = useRef(false);
+    const startX = useRef(0);
+    const initialScrollLeft = useRef(0);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        isDragging.current = true;
+        if (scrollContainerRef.current) {
+            startX.current = e.pageX - scrollContainerRef.current.offsetLeft;
+            initialScrollLeft.current = scrollContainerRef.current.scrollLeft;
+        }
+        handleInteraction();
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging.current || !scrollContainerRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - scrollContainerRef.current.offsetLeft;
+        const walk = (x - startX.current) * 2;
+        scrollContainerRef.current.scrollLeft = initialScrollLeft.current - walk;
+        handleInteraction();
+    };
+
+    const handleMouseUpOrLeave = () => {
+        isDragging.current = false;
+    };
+
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (!el || isInteracting || activeServingTokens.length <= 3) return;
+
+        let animationFrameId: number;
+        const speed = 0.5; // pixels per frame
+        let currentScroll = el.scrollLeft;
+
+        const scroll = () => {
+            currentScroll += speed;
+            if (currentScroll >= el.scrollWidth / 2) {
+                currentScroll -= (el.scrollWidth / 2);
+            }
+            if (el) {
+                el.scrollLeft = currentScroll;
+            }
+            animationFrameId = requestAnimationFrame(scroll);
+        };
+        animationFrameId = requestAnimationFrame(scroll);
+
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isInteracting, activeServingTokens.length]);
+
     return (
         <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
             <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
@@ -392,20 +460,20 @@ export default function TrackingPage({ params }: PageProps) {
                     ) : (
                         <div className="mt-4 overflow-hidden w-full relative py-2 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map(t => `${prefix}${t.token_number}`).join(', ')}`}>
                             <style>{`
-                                @keyframes marquee {
-                                    0% { transform: translateX(0); }
-                                    100% { transform: translateX(-50%); }
-                                }
-                                .marquee-track {
-                                    display: flex;
-                                    width: max-content;
-                                    animation: marquee 25s linear infinite;
-                                }
-                                .marquee-track:hover {
-                                    animation-play-state: paused;
-                                }
+                                .hide-scroll::-webkit-scrollbar { display: none; }
                             `}</style>
-                            <div className={`flex flex-nowrap items-center gap-4 px-4 whitespace-nowrap ${activeServingTokens.length > 3 ? "marquee-track" : ""}`}>
+                            <div 
+                                ref={scrollContainerRef}
+                                className="flex flex-nowrap items-center gap-4 px-4 overflow-x-auto whitespace-nowrap hide-scroll cursor-grab active:cursor-grabbing select-none"
+                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                onTouchStart={handleInteraction}
+                                onTouchMove={handleInteraction}
+                                onWheel={handleInteraction}
+                                onMouseDown={handleMouseDown}
+                                onMouseMove={handleMouseMove}
+                                onMouseUp={handleMouseUpOrLeave}
+                                onMouseLeave={handleMouseUpOrLeave}
+                            >
                                 {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t, idx) => (
                                     <div key={`${t.id}-${idx}`} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0">
                                         <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
