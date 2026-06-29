@@ -360,33 +360,42 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const handleNewCustomer = useCallback((data: any) => {
         sonnerToast.custom((t) => (
-            <div className="flex w-[350px] items-start gap-4 rounded-xl bg-indigo-600 p-5 shadow-[0_12px_30px_rgba(79,70,229,0.35)] ring-1 ring-indigo-500 overflow-hidden relative">
-                {/* Subtle light burst in the corner */}
-                <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-indigo-400 blur-2xl opacity-40 pointer-events-none"></div>
-
-                <div className="relative z-10 mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-indigo-600 shadow-sm">
-                    <UserPlus className="h-6 w-6 stroke-[2.5px]" />
-                </div>
-                <div className="relative z-10 flex flex-col gap-1 w-full">
-                    <div className="flex items-center justify-between w-full">
-                        <span className="text-sm font-bold tracking-wide text-white">New Customer</span>
-                        <span className="rounded-md bg-indigo-900/30 px-2 py-0.5 text-[10px] font-bold tracking-widest text-indigo-100">
-                            {data.time ? new Date(data.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
-                        </span>
+            <div
+                onClick={() => sonnerToast.dismiss(t)}
+                className="w-[calc(100vw-32px)] sm:w-[320px] max-w-[320px] mx-auto bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors duration-200 animate-in slide-in-from-top-4 fade-in ease-out overflow-hidden"
+            >
+                <div className="flex items-start px-4 py-4 gap-3.5">
+                    {/* Professional Flat Icon */}
+                    <div className="w-10 h-10 flex-shrink-0 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                        <UserPlus className="h-5 w-5 stroke-[2px]" />
                     </div>
-                    <div className="text-3xl font-black tracking-tight text-white leading-none drop-shadow-sm mt-1">
-                        {data.token}
-                    </div>
-                    {data.name && (
-                        <div className="text-sm font-semibold text-indigo-100/90 mt-1">
-                            {data.name}
+                    
+                    {/* Clean Typography */}
+                    <div className="flex flex-col flex-1 min-w-0 justify-center pt-0.5">
+                        {/* Header Row */}
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">New Customer</span>
+                            <span className="text-[11px] font-medium text-slate-400 whitespace-nowrap ml-2">
+                                {data.time ? new Date(data.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                            </span>
                         </div>
-                    )}
+                        {/* Primary Subject */}
+                        <span className="text-xl font-bold text-slate-900 leading-none truncate">
+                            {data.token}
+                        </span>
+                        {/* Secondary Text */}
+                        {data.name && (
+                            <span className="text-[13px] font-medium text-slate-600 truncate mt-1">
+                                {data.name}
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
         ), {
             duration: 4000,
-            id: `customer-${data.token}`
+            id: `customer-${data.token}`,
+            unstyled: true
         });
     }, []);
 

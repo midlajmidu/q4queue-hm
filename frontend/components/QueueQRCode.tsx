@@ -87,11 +87,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
 
             <div className={`transition-all duration-300 ease-in-out ${isExpanded ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
                 <div className={`p-6 flex flex-col items-center ${isCollapsible ? "border-t border-gray-100" : ""}`}>
-                    {!isCollapsible && (
-                        <p className="text-sm text-gray-500 mb-4 text-center">
-                            Scan to join the <span className="font-semibold text-gray-700">{queueName}</span> queue
-                        </p>
-                    )}
+                    {/* Removed duplicated scan instruction */}
 
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-4 flex justify-center w-full" ref={qrRef}>
                         <QRCodeCanvas
