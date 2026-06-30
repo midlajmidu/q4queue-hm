@@ -262,7 +262,6 @@ async def notify_queue_event(
                     "✅ *Session Completed*\n\n"
                     f"Thank you for visiting *{o_name}*, *{c_name}*! Your service is now complete. "
                     "We hope you had a smooth experience using our virtual queuing system.\n\n"
-                    f"⭐ Rate Your Experience: {track_url}\n"
                     "_Powered by Q4Queue_"
                 )
             elif event_type == "queue_skipped_v2":

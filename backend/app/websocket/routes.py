@@ -180,11 +180,15 @@ async def websocket_notifications(
         try:
             payload = decode_access_token(token)
             org_id_str = payload.get("org_id")
-            if not org_id_str:
+            parent_org_id_str = payload.get("parent_org_id")
+            
+            target_org_id = org_id_str or parent_org_id_str
+
+            if not target_org_id:
                 await websocket.close(code=4403, reason="User must belong to an organization")
                 return
             
-            logger.info("WS notifications connected | user=%s org=%s", payload.get("sub"), org_id_str)
+            logger.info("WS notifications connected | user=%s org=%s", payload.get("sub"), target_org_id)
         except JWTError:
             await websocket.close(code=4401, reason="Invalid or expired token")
             return

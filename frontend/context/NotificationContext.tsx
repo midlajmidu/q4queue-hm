@@ -116,9 +116,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         const wsUrl = `${config.wsBaseUrl}/notifications?token=${token}`;
         let ws: WebSocket | null = null;
         let reconnectTimeout: NodeJS.Timeout;
+        let reconnectAttempts = 0;
 
         function connect() {
             ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                reconnectAttempts = 0;
+            };
 
             ws.onmessage = (event) => {
                 try {
@@ -141,8 +146,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 }
             };
 
-            ws.onclose = () => {
-                reconnectTimeout = setTimeout(connect, 3000);
+            ws.onclose = (event) => {
+                if (event.code === 4401 || event.code === 4403) {
+                    console.warn(`WebSocket closed with auth error ${event.code}. Not reconnecting.`);
+                    return;
+                }
+                const backoff = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+                reconnectAttempts++;
+                reconnectTimeout = setTimeout(connect, backoff);
             };
         }
 
@@ -150,7 +161,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         return () => {
             clearTimeout(reconnectTimeout);
-            if (ws) ws.close();
+            if (ws) {
+                ws.onclose = null;
+                ws.close();
+            }
         };
     }, [loadMessages]);
 

@@ -51,10 +51,12 @@ export function NowServingHero({
         // Responsive font + card size based on count
         const tokenSize =
             serviceLines > 20
-                ? "text-3xl md:text-4xl"
+                ? "text-xl md:text-2xl"
                 : serviceLines > 12
-                ? "text-4xl md:text-5xl"
-                : "text-5xl md:text-6xl lg:text-7xl";
+                ? "text-2xl md:text-3xl lg:text-4xl"
+                : serviceLines > 6
+                ? "text-3xl md:text-4xl lg:text-5xl"
+                : "text-4xl md:text-5xl lg:text-6xl";
 
         const cols =
             serviceLines > 20
@@ -125,7 +127,7 @@ export function NowServingHero({
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -8 }}
                                         transition={{ duration: 0.2 }}
-                                        className={`font-extrabold tracking-tighter leading-none tabular-nums ${tokenSize} ${
+                                        className={`font-extrabold tracking-tighter leading-none tabular-nums break-words w-full text-center px-1 ${tokenSize} ${
                                             hasToken ? "text-slate-900" : "text-slate-200"
                                         }`}
                                     >
@@ -144,10 +146,10 @@ export function NowServingHero({
     if (activeTokens.length > 1) {
         const tokenSize =
             activeTokens.length > 15
-                ? "text-3xl md:text-4xl"
+                ? "text-2xl md:text-3xl"
                 : activeTokens.length > 8
-                ? "text-4xl md:text-5xl"
-                : "text-5xl md:text-6xl lg:text-7xl";
+                ? "text-3xl md:text-4xl lg:text-5xl"
+                : "text-4xl md:text-5xl lg:text-6xl";
 
         return (
             <div className="flex-1 bg-white rounded-2xl border border-slate-200/70 shadow-sm p-5 lg:p-6 flex flex-col overflow-hidden">
@@ -232,7 +234,7 @@ export function NowServingHero({
                         transition={{ type: "spring", stiffness: 280, damping: 22, mass: 0.5 }}
                         className="flex flex-col items-center"
                     >
-                        <span className="text-[100px] sm:text-[130px] md:text-[160px] font-extrabold text-slate-900 tracking-tighter leading-none tabular-nums">
+                        <span className="text-[100px] sm:text-[130px] md:text-[160px] font-extrabold text-slate-900 tracking-tighter leading-none tabular-nums break-words w-full text-center px-4 max-w-[90vw]">
                             {displayToken}
                         </span>
                     </motion.div>
