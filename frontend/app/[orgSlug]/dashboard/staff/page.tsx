@@ -102,31 +102,19 @@ function StatusBadge({ active, presence }: { active: boolean; presence?: Presenc
         background: "#f8fafc", color: "#64748b", border: `0.5px solid #e2e8f0`,
       }}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", flexShrink: 0 }} />
-        Offline
+        Inactive
       </span>
     );
-  }
-
-  const state = presence ?? "online";
-  
-  let bg = "#ecfdf5", color = "#059669", border = "#a7f3d0", dot = "#059669", label = "Online";
-
-  if (state === "idle") {
-    bg = "#fffbeb"; color = "#d97706"; border = "#fde68a"; dot = "#d97706"; label = "Idle";
-  } else if (typeof state === "object" && state.serving) {
-    bg = "#fef2f2"; color = "#dc2626"; border = "#fecaca"; dot = "#dc2626"; label = `Serving ${state.serving}`;
-  } else if (state === "offline") {
-    bg = "#f8fafc"; color = "#64748b"; border = "#e2e8f0"; dot = "#94a3b8"; label = "Offline";
   }
 
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px",
       borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
-      background: bg, color: color, border: `0.5px solid ${border}`,
+      background: "#ecfdf5", color: "#059669", border: `0.5px solid #a7f3d0`,
     }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: dot, flexShrink: 0 }} />
-      {label}
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#059669", flexShrink: 0 }} />
+      Active
     </span>
   );
 }

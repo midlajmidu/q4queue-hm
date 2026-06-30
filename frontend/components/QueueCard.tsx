@@ -116,7 +116,7 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
     };
 
     return (
-        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-sm ring-1 ring-slate-900/5 flex flex-col justify-between w-full transition-all duration-200 hover:shadow-md relative overflow-hidden group">
+        <div className={`rounded-xl border p-4 flex flex-col justify-between w-full transition-all duration-300 relative overflow-hidden group ${isActive ? 'bg-white border-slate-200/80 shadow-sm ring-1 ring-slate-900/5 hover:shadow-md' : 'bg-slate-50/80 border-slate-200/50 shadow-none opacity-75 grayscale-[15%] hover:opacity-100 hover:grayscale-0 hover:shadow-sm'}`}>
             {/* Slanted Ticket Watermark */}
             {isActive ? (
                 <Ticket className="absolute -bottom-10 -right-6 w-56 h-56 text-slate-900 opacity-[0.06] -rotate-45 pointer-events-none select-none z-0 transition-all duration-500 group-hover:scale-110 group-hover:-rotate-[40deg]" />
@@ -188,7 +188,7 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
 
                 <div className="flex items-center justify-center">
                     <div className="flex flex-col items-center justify-center group">
-                        <div className="w-24 h-24 rounded-full bg-slate-50/50 border border-slate-100 flex flex-col items-center justify-center relative shadow-inner ring-4 ring-indigo-50/40 mx-auto my-3 transition-transform duration-300 group-hover:scale-105">
+                        <div className={`w-24 h-24 rounded-full flex flex-col items-center justify-center relative shadow-inner mx-auto my-3 transition-transform duration-300 group-hover:scale-105 ${isActive ? 'bg-slate-50/50 border border-slate-100 ring-4 ring-indigo-50/40' : 'bg-transparent border border-slate-200/60 ring-4 ring-slate-50'}`}>
                             {/* Prefix badge — top-center */}
                             <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-white border border-slate-200 text-slate-800 font-bold text-[10px] px-1.5 py-0.5 rounded-full shadow-sm z-10">
                                 {queue.prefix}
@@ -210,7 +210,7 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
             <div className="relative z-10 mt-3 border-t border-slate-100 pt-3 flex flex-col gap-0 w-full">
                 <Link
                     href={`${dashBase}/queues/${queue.id}`}
-                    className="w-full h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center justify-center gap-2"
+                    className={`w-full h-9 font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 ${isActive ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'}`}
                 >
                     {isGlobalOrOrgAdmin ? "View Queue" : "Manage Queue"}
                 </Link>

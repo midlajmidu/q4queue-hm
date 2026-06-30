@@ -159,41 +159,26 @@ export default function TrackingPage({ params }: PageProps) {
     // Fetch exact status on live update or when joinData changes
     useEffect(() => {
         let mounted = true;
-        const fetchStatus = async () => {
-            if (!joinData?.token_number || !joinData?.session_id) return;
+        const processStatus = () => {
+            if (!joinData?.token_number) return;
 
             let newStatus: TokenStatus | null = null;
 
-            if (live?.recent_tokens) {
-                const recent = live.recent_tokens.find(
-                    (t: { token_number: number; status: TokenStatus }) =>
-                        t.token_number === joinData.token_number
-                );
-                if (recent) newStatus = recent.status;
-            }
-
-            if (!newStatus && live?.current_serving === joinData.token_number) {
-                newStatus = "serving";
-            }
-
-            try {
-                if (!newStatus) {
-                    const res = await api.getTrackingInfo(trackingId);
-                    if (false) {
-                        if (mounted) {
-                            newStatus = "deleted";
-                            setError("This queue session has ended. Your token is no longer valid.");
-                        }
-                    } else {
-                        newStatus = res.status;
-                    }
+            if (live) {
+                // 1. Is it currently serving?
+                if (live.all_serving_tokens?.some((t: any) => t.token_number === joinData.token_number)) {
+                    newStatus = "serving";
                 }
-            } catch (err: unknown) {
-                if (err instanceof ApiError && err.status === 404) {
-                    if (mounted) {
-                        newStatus = "deleted";
-                        setError("This queue session has ended. Your token was removed.");
-                    }
+                // 2. Is it in recent tokens? (this covers done, skipped, deleted, serving)
+                else if (live.recent_tokens) {
+                    const recent = live.recent_tokens.find(
+                        (t: any) => t.token_number === joinData.token_number
+                    );
+                    if (recent) newStatus = recent.status;
+                }
+                // 3. Is it waiting?
+                else if (live.waiting_tokens?.some((t: any) => t.token_number === joinData.token_number)) {
+                    newStatus = "waiting";
                 }
             }
 
@@ -220,7 +205,7 @@ export default function TrackingPage({ params }: PageProps) {
             }
         };
 
-        fetchStatus();
+        processStatus();
         return () => { mounted = false; };
     }, [queueId, joinData?.token_number, joinData?.session_id, live, soundEnabled]);
 
@@ -279,7 +264,20 @@ export default function TrackingPage({ params }: PageProps) {
     const isDeleted = actualStatus === "deleted";
 
     const alreadyServed = isDone || isSkipped || isDeleted || (myNumber !== null && myNumber < serving && actualStatus !== "waiting");
-    const peopleAhead = myNumber !== null && actualStatus === "waiting" && myNumber > serving ? myNumber - serving - 1 : 0;
+    let peopleAhead = 0;
+    if (myNumber !== null && actualStatus === "waiting") {
+        if (live?.waiting_tokens) {
+            const idx = live.waiting_tokens.findIndex((t) => t.token_number === myNumber);
+            if (idx !== -1) {
+                peopleAhead = idx;
+            } else {
+                peopleAhead = myNumber > serving ? myNumber - serving - 1 : 0;
+            }
+        } else {
+            peopleAhead = joinData?.position ?? (myNumber > serving ? myNumber - serving - 1 : 0);
+        }
+    }
+
     const isNext = peopleAhead === 0 && actualStatus === "waiting" && myNumber !== null;
 
     // ── Remaining-count milestone: sound via utility ────
@@ -299,6 +297,69 @@ export default function TrackingPage({ params }: PageProps) {
     const queuePaused = live?.is_paused === true;
     const queueName = live?.queue_name || "Queue";
     const prefix = live?.prefix || joinData?.queue_prefix || "";
+
+    const activeServingTokens = live?.all_serving_tokens ?? [];
+
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [isInteracting, setIsInteracting] = useState(false);
+    const interactTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleInteraction = useCallback(() => {
+        setIsInteracting(true);
+        if (interactTimeoutRef.current) clearTimeout(interactTimeoutRef.current);
+        interactTimeoutRef.current = setTimeout(() => {
+            setIsInteracting(false);
+        }, 1500);
+    }, []);
+
+    const isDragging = useRef(false);
+    const startX = useRef(0);
+    const initialScrollLeft = useRef(0);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        isDragging.current = true;
+        if (scrollContainerRef.current) {
+            startX.current = e.pageX - scrollContainerRef.current.offsetLeft;
+            initialScrollLeft.current = scrollContainerRef.current.scrollLeft;
+        }
+        handleInteraction();
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging.current || !scrollContainerRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - scrollContainerRef.current.offsetLeft;
+        const walk = (x - startX.current) * 2;
+        scrollContainerRef.current.scrollLeft = initialScrollLeft.current - walk;
+        handleInteraction();
+    };
+
+    const handleMouseUpOrLeave = () => {
+        isDragging.current = false;
+    };
+
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (!el || isInteracting || activeServingTokens.length <= 3) return;
+
+        let animationFrameId: number;
+        const speed = 0.5; // pixels per frame
+        let currentScroll = el.scrollLeft;
+
+        const scroll = () => {
+            currentScroll += speed;
+            if (currentScroll >= el.scrollWidth / 2) {
+                currentScroll -= (el.scrollWidth / 2);
+            }
+            if (el) {
+                el.scrollLeft = currentScroll;
+            }
+            animationFrameId = requestAnimationFrame(scroll);
+        };
+        animationFrameId = requestAnimationFrame(scroll);
+
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isInteracting, activeServingTokens.length]);
 
     let positionMessage = "";
     if (myNumber !== null) {
@@ -324,13 +385,36 @@ export default function TrackingPage({ params }: PageProps) {
     const fullLogoUrl = logoUrl ? (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `https://amoebaq.com/api/v1${logoUrl}`) : null;
 
     return (
-        <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
+        <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col items-center justify-center p-4">
             <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
                 {/* Header */}
                 <div className="px-6 py-7 text-center text-white relative transition-colors duration-500" style={{ backgroundColor: brandColor }}>
-                    <div className="absolute top-3 right-3">
+                        <div className="absolute top-3 right-3">
                         <ConnectionBadge status={queueClosed ? "disconnected" : wsStatus} />
                     </div>
+
+                    {/* Sound toggle — small speaker icon top-left */}
+                    <button
+                        onClick={soundEnabled ? handleToggleSound : handleEnableSound}
+                        aria-label={soundEnabled ? "Mute sound alerts" : "Enable sound alerts"}
+                        title={soundEnabled ? "Sound ON — tap to mute" : "Sound OFF — tap to enable"}
+                        className="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                        style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)" }}
+                    >
+                        {soundEnabled ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                            </svg>
+                        ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                <line x1="23" y1="9" x2="17" y2="15" />
+                                <line x1="17" y1="9" x2="23" y2="15" />
+                            </svg>
+                        )}
+                    </button>
 
                     {fullLogoUrl && (
                         <div className="flex justify-center mb-3">
@@ -347,9 +431,55 @@ export default function TrackingPage({ params }: PageProps) {
                         {queueClosed ? "Currently Closed" : "Now Serving"}
                     </p>
 
-                    <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${serving}`}>
-                        {prefix}{serving}
-                    </div>
+                    {activeServingTokens.length === 0 ? (
+                        <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20">
+                            —
+                        </div>
+                    ) : activeServingTokens.length === 1 ? (
+                        <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
+                            {prefix}{activeServingTokens[0].token_number}
+                        </div>
+                    ) : activeServingTokens.length <= 3 ? (
+                        <div className="mt-4 py-3 bg-white/10 rounded-xl border border-white/20 px-4" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
+                            <div className="flex flex-nowrap items-center justify-center gap-4">
+                                {activeServingTokens.map((t: any) => (
+                                    <div key={t.id || t.token_number} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0">
+                                        <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                        {t.assigned_line !== null && (
+                                            <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/20 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-4 overflow-hidden w-full relative py-2 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
+                            <style>{`
+                                .hide-scroll::-webkit-scrollbar { display: none; }
+                            `}</style>
+                            <div 
+                                ref={scrollContainerRef}
+                                className="flex flex-nowrap items-center gap-4 px-4 overflow-x-auto whitespace-nowrap hide-scroll cursor-grab active:cursor-grabbing select-none"
+                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                onTouchStart={handleInteraction}
+                                onTouchMove={handleInteraction}
+                                onWheel={handleInteraction}
+                                onMouseDown={handleMouseDown}
+                                onMouseMove={handleMouseMove}
+                                onMouseUp={handleMouseUpOrLeave}
+                                onMouseLeave={handleMouseUpOrLeave}
+                            >
+                                {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t: any, idx: number) => (
+                                    <div key={`${t.id || t.token_number}-${idx}`} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0">
+                                        <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                        {t.assigned_line !== null && (
+                                            <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/20 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mt-3 flex justify-center gap-6 text-xs text-blue-200">
                         <span>Waiting: <strong className="text-white">{live?.waiting_count ?? "—"}</strong></span>
@@ -387,39 +517,7 @@ export default function TrackingPage({ params }: PageProps) {
                     {joinData && (
                         /* ── Ticket Card ── */
                         <div className="space-y-4">
-                            {/* ── Alert Settings Card ── */}
-                            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-3">
-                                <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Alert Settings</p>
-
-                                {/* Sound toggle */}
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-lg">🔔</span>
-                                        <div>
-                                            <p className="text-sm font-medium text-indigo-900">Sound Alerts</p>
-                                            <p className="text-xs text-indigo-500">Plays ringtone at milestones</p>
-                                        </div>
-                                    </div>
-                                    {soundEnabled ? (
-                                        <button
-                                            onClick={handleToggleSound}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${soundEnabled ? "bg-indigo-600" : "bg-gray-300"}`}
-                                            role="switch"
-                                            aria-checked={soundEnabled}
-                                            aria-label="Toggle sound alerts"
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${soundEnabled ? "translate-x-6" : "translate-x-1"}`} />
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={handleEnableSound}
-                                            className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition"
-                                        >
-                                            Enable
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
+    
 
                             {/* Announcement */}
                             {live?.announcement && (
@@ -500,18 +598,9 @@ export default function TrackingPage({ params }: PageProps) {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col items-center gap-2">
-                                <p className="text-center text-xs text-gray-400 leading-relaxed">
+                            <p className="text-center text-xs text-gray-400 leading-relaxed">
                                     This page updates automatically. No need to refresh.
                                 </p>
-                                <button 
-                                    onClick={refresh}
-                                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 text-xs font-semibold transition-colors shadow-sm"
-                                >
-                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5" /></svg>
-                                    Refresh manually
-                                </button>
-                            </div>
 
                             {wsStatus === "reconnecting" && (
                                 <div role="status" className="text-center text-xs text-amber-600 flex items-center justify-center gap-1.5 py-2">
@@ -530,7 +619,7 @@ export default function TrackingPage({ params }: PageProps) {
                                     Share Tracking Link
                                 </button>
                                 
-                                {!alreadyServed && (
+                                {!alreadyServed && !isMyTurn && (
                                     <button
                                         onClick={handleCancelRequest}
                                         disabled={isCancelling}
@@ -545,6 +634,14 @@ export default function TrackingPage({ params }: PageProps) {
                     
                     )}
                 </div>
+            </div>
+
+            {/* Footer Branding */}
+            <div className="mt-6 flex items-center justify-center">
+                <span className="text-[10px] font-medium tracking-[0.2em] text-slate-400 uppercase flex items-center gap-1.5">
+                    Powered by{" "}
+                    <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500 text-xs tracking-widest">Q4QUEUE</span>
+                </span>
             </div>
 
             <ConfirmModal

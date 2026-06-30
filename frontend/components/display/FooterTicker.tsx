@@ -44,6 +44,7 @@ export function FooterTicker({ announcement }: FooterTickerProps) {
                     Powered by 
                     <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500 text-xs tracking-widest">
                         Q4QUEUE
+                        
                     </span>
                 </span>
             </div>

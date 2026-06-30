@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useRef, useState, useCallback } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { OrgDetail, OrgUsageResponse } from "@/types/api";
@@ -356,7 +358,11 @@ export default function BranchesPage() {
                                 <tbody className="divide-y divide-slate-800/50 bg-slate-900/20">
                                     {orgs.map((o) => (
                                         <tr key={o.id} className="hover:bg-slate-800/40 transition-colors group">
-                                            <td className="px-6 py-4 font-medium text-white">{o.name}</td>
+                                            <td className="px-6 py-4 font-medium text-white">
+                                                <Link href={`/super-admin/organizations/${o.id}`} className="hover:text-violet-400 hover:underline transition-colors">
+                                                    {o.name}
+                                                </Link>
+                                            </td>
                                             <td className="px-6 py-4 text-slate-400 font-mono text-xs">{o.slug}</td>
                                             <td className="px-6 py-4 text-slate-400">{o.admin_email || <span className="text-slate-600 italic">None</span>}</td>
                                             <td className="px-6 py-4">

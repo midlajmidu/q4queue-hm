@@ -367,6 +367,9 @@ export interface RecentToken {
     assigned_line?: number | null;
     called_via_invite?: boolean;
     entry_type?: "manual" | "qr" | "auto" | null;
+    skipped_at?: string | null;
+    deleted_at?: string | null;
+    recalled_at?: string | null;
 }
 
 export interface WaitingToken {
@@ -384,6 +387,9 @@ export interface WaitingToken {
     assigned_line?: number | null;
     called_via_invite?: boolean;
     entry_type?: "manual" | "qr" | "auto" | null;
+    skipped_at?: string | null;
+    deleted_at?: string | null;
+    recalled_at?: string | null;
 }
 
 export interface ServingToken {
@@ -805,6 +811,10 @@ export interface TokenHistoryItem {
     assigned_line?: number;
     served_by_staff_name?: string;
     completed_by_staff_name?: string;
+    skipped_at?: string | null;
+    deleted_at?: string | null;
+    recalled_at?: string | null;
+    removed_by?: string | null;
 }
 
 export interface PaginatedHistoryResponse {

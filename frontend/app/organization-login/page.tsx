@@ -14,7 +14,6 @@ export default function LoginPage() {
     const { login, isLoading, error, isAuthenticated, isHydrated, user } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [orgSlug, setOrgSlug] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loginType, setLoginType] = useState<"staff" | "org_admin">("org_admin");
 
@@ -83,22 +82,6 @@ export default function LoginPage() {
                             )}
                         </AnimatePresence>
 
-                        <div>
-                            <label htmlFor="org-slug" className="block text-xs font-bold text-slate-900 mb-1.5">
-                                Organization Slug *
-                            </label>
-                            <input
-                                id="org-slug"
-                                type="text"
-                                value={orgSlug}
-                                onChange={(e) => setOrgSlug(e.target.value)}
-                                placeholder="e.g. acme-corp"
-                                required
-                                autoComplete="organization"
-                                className="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
-                                disabled={isLoading}
-                            />
-                        </div>
 
                         <div>
                             <label htmlFor="email" className="block text-xs font-bold text-slate-900 mb-1.5">Email Address *</label>
@@ -149,7 +132,7 @@ export default function LoginPage() {
 
                         <button
                             type="submit"
-                            disabled={isLoading || !orgSlug || !email || !password}
+                            disabled={isLoading || !email || !password}
                             aria-label="Continue"
                             className="w-full h-11 mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[14px] rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                         >

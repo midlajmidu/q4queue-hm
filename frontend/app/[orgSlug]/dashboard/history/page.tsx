@@ -412,7 +412,7 @@ export default function HistoryPage() {
                                     <th style={thStyle}>Status</th>
                                     <th style={thStyle}>Created</th>
                                     <th style={thStyle}>Served</th>
-                                    <th style={thStyle}>Finished</th>
+                                    <th style={thStyle}>Finished / Left</th>
                                     <th style={thStyle}></th>
                                 </tr>
                             </thead>
@@ -475,7 +475,7 @@ export default function HistoryPage() {
                                             <td style={tdStyle}><StatusBadge status={h.status} /></td>
                                             <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(h.created_at)}</td>
                                             <td className="tabular-nums" style={{ ...tdStyle, color: "#94a3b8", fontSize: 13 }}>{formatTime(h.served_at)}</td>
-                                            <td style={tdStyle}>{formatTime(h.completed_at)}</td>
+                                            <td style={tdStyle}>{formatTime(h.completed_at || h.deleted_at || h.skipped_at || null)}</td>
                                             <td style={{ ...tdStyle, textAlign: "right" }}>
                                                 <button
                                                     onClick={() => setSelectedToken({
@@ -491,7 +491,13 @@ export default function HistoryPage() {
                                                         completed_at: h.completed_at,
                                                         entry_type: h.entry_type || "qr", // Fallback for history
                                                         queue_name: h.queue_name,
-                                                        called_via_invite: h.called_via_invite
+                                                        called_via_invite: h.called_via_invite,
+                                                        skipped_at: h.skipped_at,
+                                                        deleted_at: h.deleted_at,
+                                                        recalled_at: h.recalled_at,
+                                                        removed_by: h.removed_by,
+                                                        served_by_staff_name: h.served_by_staff_name,
+                                                        completed_by_staff_name: h.completed_by_staff_name
                                                     })}
                                                     style={{ padding: "6px", background: "transparent", border: "1px solid #e2e8f0", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
                                                     onMouseEnter={e => { e.currentTarget.style.color = "#4f46e5"; e.currentTarget.style.borderColor = "#4f46e5"; }}

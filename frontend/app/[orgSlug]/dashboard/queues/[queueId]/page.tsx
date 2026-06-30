@@ -1742,30 +1742,30 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <div className="flex gap-5 overflow-x-auto scrollbar-none whitespace-nowrap border-b border-slate-200 dark:border-white/10 md:border-0">
                                         <button
                                             onClick={() => { setActiveListTab("recent"); setRecentPage(1); }}
-                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "recent" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2.5 transition-colors whitespace-nowrap ${activeListTab === "recent" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Recent
                                         </button>
                                         <button
                                             onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }}
-                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2.5 transition-colors whitespace-nowrap ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Waiting
-                                            <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.waiting_count ?? 0}</span>
+                                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${activeListTab === "waiting" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>{state?.waiting_count ?? 0}</span>
                                         </button>
                                         <button
                                             onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }}
-                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2.5 transition-colors whitespace-nowrap ${activeListTab === "skipped" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Skipped
-                                            <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.skipped_count ?? 0}</span>
+                                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${activeListTab === "skipped" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>{state?.skipped_count ?? 0}</span>
                                         </button>
                                         <button
                                             onClick={() => { setActiveListTab("deleted"); setWaitingPage(1); }}
-                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "deleted" ? "text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                            className={`flex items-center gap-2 text-[14px] font-semibold pb-2.5 transition-colors whitespace-nowrap ${activeListTab === "deleted" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Removed
-                                            <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-bold">{state?.deleted_tokens?.length ?? 0}</span>
+                                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${activeListTab === "deleted" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>{state?.deleted_tokens?.length ?? 0}</span>
                                         </button>
                                     </div>
                                     <div className="relative w-full md:w-64 lg:w-80">
@@ -1781,11 +1781,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 </div>
 
                                 <div className="w-full overflow-x-auto border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden flex-1 flex flex-col">
-                                    <div className="hidden md:grid bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 px-4 py-3 grid-cols-12 gap-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        <div className="col-span-3">Token</div>
-                                        <div className="col-span-4">Customer</div>
-                                        <div className="col-span-3">{activeListTab === "recent" ? "Time" : "Wait Time"}</div>
-                                        <div className="col-span-2 text-right">Actions</div>
+                                    <div className="hidden md:grid bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" style={{ gridTemplateColumns: '80px 80px 90px 70px 90px 1fr 110px 80px' }}>
+                                        <div>Token</div>
+                                        <div>Status</div>
+                                        <div>Entry</div>
+                                        <div>Line</div>
+                                        <div>Call Method</div>
+                                        <div>Customer</div>
+                                        <div>{activeListTab === "recent" ? "Join Time" : activeListTab === "waiting" ? "Wait Time" : activeListTab === "skipped" ? "Skipped / Recalled" : "Removed At"}</div>
+                                        <div className="text-right">Actions</div>
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto min-h-[300px]">
@@ -1811,85 +1815,70 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             )
                                         ) : (
                                             (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).map((t: WaitingToken, idx: number) => {
-                                                const waitMins = Math.floor((Date.now() - new Date(t.created_at || Date.now()).getTime()) / 60000);
+                                                let customTimeStr = "";
+                                                if (activeListTab === "waiting") {
+                                                    const waitMins = Math.floor((Date.now() - new Date(t.created_at || Date.now()).getTime()) / 60000);
+                                                    customTimeStr = waitMins < 1 ? "< 1 min wait" : `${waitMins} min${waitMins !== 1 ? "s" : ""} wait`;
+                                                } else if (activeListTab === "skipped") {
+                                                    if (t.recalled_at && t.skipped_at && new Date(t.recalled_at) > new Date(t.skipped_at)) {
+                                                        customTimeStr = `Recalled ${new Date(t.recalled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                                    } else if (t.skipped_at) {
+                                                        customTimeStr = `Skipped ${new Date(t.skipped_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                                    }
+                                                } else if (activeListTab === "deleted") {
+                                                    if (t.deleted_at) {
+                                                        customTimeStr = `Removed ${new Date(t.deleted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                                    }
+                                                }
+
                                                 return (
-                                                    <div key={t.id} className="flex flex-col md:grid md:grid-cols-12 gap-0 md:gap-4 px-4 py-3 md:py-3 border-b border-slate-100 dark:border-white/5 items-start md:items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                        <div className="w-full md:col-span-3 flex items-center justify-between md:justify-start gap-3 mb-2 md:mb-0">
-                                                            <div className="flex items-center gap-2.5">
-                                                                <span className="font-black text-slate-900 dark:text-white tabular-nums text-[16px] md:text-[15px]"><span className="text-emerald-500">{state?.prefix || ""}</span>{t.token_number}</span>
-                                                                <span className={`px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider ${activeListTab === "waiting" ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" : activeListTab === "skipped" ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"}`}>{activeListTab === "deleted" ? "Removed" : activeListTab}</span>
-                                                                {t.entry_type === "manual"
-                                                                    ? <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">Manual</span>
-                                                                    : <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
-                                                                }
-                                                            </div>
-                                                            <div className="flex md:hidden items-center bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-md">
-                                                                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                                                    {waitMins < 1 ? "< 1m" : `${waitMins}m`} wait
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="w-full md:col-span-4 flex flex-col justify-center mb-3 md:mb-0 pl-0.5 md:pl-0">
-                                                            <span className="text-[14px] md:text-[13px] font-bold text-slate-800 dark:text-slate-200">
-                                                                {t.customer_name || "Walk-in"}
-                                                                {(t.companion_names && t.companion_names.length > 0) && (
-                                                                    <span className="inline-flex items-center gap-0.5 font-medium text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded ml-1 text-xs" title={t.companion_names.join(", ")}>
-                                                                        <Users className="w-3 h-3" /> +{t.companion_names.length}
+                                                    <FullRecentTokenRow
+                                                        key={`${t.token_number}-${idx}`}
+                                                        token={t}
+                                                        prefix={state?.prefix || ""}
+                                                        queueName={queueName}
+                                                        isManual={t.entry_type === "manual"}
+                                                        onView={setSelectedToken}
+                                                        customTimeStr={customTimeStr || undefined}
+                                                        extraActions={
+                                                            <>
+                                                                {canManageQueue && activeListTab === "waiting" ? (
+                                                                    <button
+                                                                        onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
+                                                                        className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 w-8 h-8 flex items-center justify-center rounded-md transition-colors"
+                                                                        title="Remove Customer"
+                                                                    >
+                                                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                                    </button>
+                                                                ) : canManageQueue && activeListTab === "skipped" ? (
+                                                                    <button
+                                                                        onClick={() => handleRecallFlow(t.token_number)}
+                                                                        className="text-[11px] font-bold h-8 px-3 flex items-center text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors shadow-sm"
+                                                                    >
+                                                                        Recall
+                                                                    </button>
+                                                                ) : canManageQueue && activeListTab === "deleted" ? (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            performAction(`undo_remove_${t.id}`, async () => {
+                                                                                await api.undoRemoveToken(t.id);
+                                                                                toast(`Restored ${state?.prefix || ""}${t.token_number} back to queue`, "success");
+                                                                                refresh();
+                                                                            });
+                                                                        }}
+                                                                        disabled={actionLoading === `undo_remove_${t.id}`}
+                                                                        className="text-[11px] font-bold h-8 px-3 flex items-center text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors disabled:opacity-50 shadow-sm"
+                                                                    >
+                                                                        {actionLoading === `undo_remove_${t.id}` ? "..." : "Undo"}
+                                                                    </button>
+                                                                ) : activeListTab === "deleted" ? (
+                                                                    <span className="text-[11px] font-bold text-slate-400 h-8 px-2 flex items-center border border-transparent">
+                                                                        {t.removed_by === "customer" ? "By Customer" : "By Admin"}
                                                                     </span>
-                                                                )}
-                                                            </span>
-                                                            <span className="text-[12.5px] md:text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                                                                {t.customer_phone || "No phone"} {t.customer_age ? `• ${t.customer_age} yrs` : ""}
-                                                            </span>
-                                                        </div>
-                                                        <div className="hidden md:flex md:col-span-3 items-center">
-                                                            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                                                                {waitMins < 1 ? "< 1 min" : `${waitMins} min${waitMins !== 1 ? "s" : ""}`}
-                                                            </span>
-                                                        </div>
-                                                        <div className="w-full md:col-span-2 flex items-center justify-end gap-2 pt-3 md:pt-0 border-t border-dashed border-slate-200 dark:border-white/10 md:border-0">
-                                                            <button
-                                                                onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: t.entry_type || "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
-                                                                className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 w-8 h-8 flex items-center justify-center rounded-md transition-colors"
-                                                                title="View Details"
-                                                            >
-                                                                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                            </button>
-                                                            {canManageQueue && activeListTab === "waiting" ? (
-                                                                <button
-                                                                    onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
-                                                                    className="text-[11px] font-bold h-8 px-3 flex items-center text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-500/30 rounded-md hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shadow-sm"
-                                                                >
-                                                                    Remove
-                                                                </button>
-                                                            ) : canManageQueue && activeListTab === "skipped" ? (
-                                                                <button
-                                                                    onClick={() => handleRecallFlow(t.token_number)}
-                                                                    className="text-[11px] font-bold h-8 px-3 flex items-center text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors shadow-sm"
-                                                                >
-                                                                    Recall
-                                                                </button>
-                                                            ) : canManageQueue && activeListTab === "deleted" ? (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        performAction(`undo_remove_${t.id}`, async () => {
-                                                                            await api.undoRemoveToken(t.id);
-                                                                            toast(`Restored ${state?.prefix || ""}${t.token_number} back to queue`, "success");
-                                                                            refresh();
-                                                                        });
-                                                                    }}
-                                                                    disabled={actionLoading === `undo_remove_${t.id}`}
-                                                                    className="text-[11px] font-bold h-8 px-3 flex items-center text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors disabled:opacity-50 shadow-sm"
-                                                                >
-                                                                    {actionLoading === `undo_remove_${t.id}` ? "..." : "Undo"}
-                                                                </button>
-                                                            ) : activeListTab === "deleted" ? (
-                                                                <span className="text-[11px] font-bold text-slate-400 h-8 px-2 flex items-center border border-transparent">
-                                                                    {t.removed_by === "customer" ? "By Customer" : "By Admin"}
-                                                                </span>
-                                                            ) : null}
-                                                        </div>
-                                                    </div>
+                                                                ) : null}
+                                                            </>
+                                                        }
+                                                    />
                                                 );
                                             }) : (
                                                 <div className="h-full flex flex-col items-center justify-center p-8 text-center">
@@ -2199,91 +2188,169 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
 });
 
 // ── Full Recent Token Row ───────────────────────────────────────────────
+const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
+    serving:  { label: "Serving",   cls: "bg-blue-50  text-blue-600  border-blue-200  dark:bg-blue-500/10  dark:text-blue-400  dark:border-blue-500/20"  },
+    done:     { label: "Done",      cls: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" },
+    skipped:  { label: "Skipped",   cls: "bg-amber-50  text-amber-600  border-amber-200  dark:bg-amber-500/10  dark:text-amber-400  dark:border-amber-500/20"  },
+    deleted:  { label: "Removed",   cls: "bg-rose-50   text-rose-600   border-rose-200   dark:bg-rose-500/10   dark:text-rose-400   dark:border-rose-500/20"   },
+    waiting:  { label: "Waiting",   cls: "bg-amber-50  text-amber-600  border-amber-200  dark:bg-amber-500/10  dark:text-amber-400  dark:border-amber-500/20"  },
+};
+
 const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
-    token: t, prefix, queueName, isManual, onView,
+    token: t, prefix, queueName, isManual, onView, customTimeStr, extraActions
 }: {
-    token: RecentToken;
+    token: RecentToken | WaitingToken;
     prefix: string;
     queueName?: string;
     isManual?: boolean;
     onView?: (data: TokenDetailData) => void;
+    customTimeStr?: string;
+    extraActions?: React.ReactNode;
 }) {
-    const statusClasses: Record<string, string> = {
-        serving: "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
-        done: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
-        skipped: "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
-        deleted: "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20",
-        waiting: "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
-    };
-    const sClass = statusClasses[t.status] || "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20";
+    const st = STATUS_LABELS[t.status] ?? { label: t.status, cls: "bg-slate-50 text-slate-600 border-slate-200" };
 
-    let timeStr = "";
-    if (t.created_at) {
-        timeStr = new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
+    const timeStr = customTimeStr ?? (t.created_at
+        ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : "");
+
+    const tokenData: TokenDetailData = {
+        token_number: t.token_number,
+        prefix,
+        customer_name: t.customer_name,
+        customer_age: t.customer_age,
+        customer_phone: t.customer_phone,
+        companion_names: t.companion_names || [],
+        status: t.status,
+        created_at: t.created_at,
+        served_at: t.served_at,
+        completed_at: t.completed_at,
+        entry_type: isManual ? "manual" : "qr",
+        queue_name: queueName,
+        called_via_invite: t.called_via_invite,
+        assigned_line: t.assigned_line,
+        skipped_at: (t as WaitingToken).skipped_at,
+        deleted_at: (t as WaitingToken).deleted_at,
+        recalled_at: (t as WaitingToken).recalled_at,
+        removed_by: (t as WaitingToken).removed_by,
+    };
 
     return (
-        <div className="group border-b border-slate-100 dark:border-white/5 px-4 py-3 md:py-3 flex flex-col md:grid md:grid-cols-12 gap-0 md:gap-4 items-start md:items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors bg-transparent">
-            <div className="w-full md:col-span-3 flex items-center justify-between md:justify-start gap-3 mb-2 md:mb-0">
-                <div className="flex items-center gap-2.5">
-                    <span className="font-black text-slate-900 dark:text-white tabular-nums text-[16px] md:text-[15px]">
-                        <span className="text-emerald-500">{prefix}</span>{t.token_number}
+        /* Desktop: proper columns */
+        <div
+            className="group border-b border-slate-100 dark:border-white/5 hover:bg-indigo-50/30 dark:hover:bg-slate-800/40 transition-colors bg-transparent"
+        >
+            {/* ── Desktop row ─────────────────────────────── */}
+            <div
+                className="hidden md:grid px-4 py-3 items-center gap-3"
+                style={{ gridTemplateColumns: '80px 80px 90px 70px 90px 1fr 110px 80px' }}
+            >
+                {/* Token # */}
+                <div className="flex items-center">
+                    <span className="font-black tabular-nums text-[15px] text-slate-800 dark:text-white">
+                        <span className="text-indigo-500">{prefix}</span>{t.token_number}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider border ${sClass}`}>{t.status}</span>
-                    {isManual
-                        ? <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">Manual</span>
-                        : <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
-                    }
-                    {t.assigned_line != null && (
-                        <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                            Line {t.assigned_line}
-                        </span>
-                    )}
-                    {t.called_via_invite && (
-                        <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400">
-                            Invited
-                        </span>
-                    )}
                 </div>
-                {timeStr && (
-                    <div className="flex md:hidden items-center bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-md">
-                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                            {timeStr}
-                        </span>
-                    </div>
-                )}
-            </div>
-            
-            <div className="w-full md:col-span-4 flex flex-col justify-center mb-3 md:mb-0 pl-0.5 md:pl-0">
-                <span className="text-[14px] md:text-[13px] font-bold text-slate-800 dark:text-slate-200">
-                    {t.customer_name || "Walk-in"}
-                    {(t.companion_names && t.companion_names.length > 0) && (
-                        <span className="inline-flex items-center gap-0.5 font-medium text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded ml-1 text-xs" title={t.companion_names.join(", ")}>
-                            <Users className="w-3 h-3" /> +{t.companion_names.length}
-                        </span>
+
+                {/* Status */}
+                <div>
+                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${st.cls}`}>
+                        {st.label}
+                    </span>
+                </div>
+
+                {/* Entry Type */}
+                <div>
+                    {isManual
+                        ? <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20">Manual</span>
+                        : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20"><QrCode className="w-2.5 h-2.5" />QR</span>
+                    }
+                </div>
+
+                {/* Line */}
+                <div>
+                    {t.assigned_line != null
+                        ? <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">L {t.assigned_line}</span>
+                        : <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                    }
+                </div>
+
+                {/* Call Method */}
+                <div>
+                    {t.called_via_invite
+                        ? <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-500/10 dark:text-fuchsia-400 dark:border-fuchsia-500/20">Invited</span>
+                        : <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">Call Next</span>
+                    }
+                </div>
+
+                {/* Customer */}
+                <div className="flex flex-col min-w-0">
+                    <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 truncate">
+                        {t.customer_name || "Walk-in"}
+                        {(t.companion_names && t.companion_names.length > 0) && (
+                            <span className="inline-flex items-center gap-0.5 font-medium text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded ml-1 text-[10px]" title={t.companion_names.join(", ")}>
+                                <Users className="w-2.5 h-2.5" /> +{t.companion_names.length}
+                            </span>
+                        )}
+                    </span>
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                        {t.customer_phone || "No phone"}{t.customer_age ? ` • ${t.customer_age} yrs` : ""}
+                    </span>
+                </div>
+
+                {/* Time */}
+                <div>
+                    <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
+                        {timeStr || "—"}
+                    </span>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {onView && (
+                        <button
+                            onClick={() => onView(tokenData)}
+                            className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-md transition-colors"
+                            title="View Details"
+                        >
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        </button>
                     )}
-                </span>
-                <span className="text-[12.5px] md:text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                    {t.customer_phone || "No phone"} {t.customer_age ? `• ${t.customer_age} yrs` : ""}
-                </span>
+                    {extraActions}
+                </div>
             </div>
 
-            <div className="hidden md:flex md:col-span-3 items-center">
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    {timeStr}
-                </span>
-            </div>
-
-            <div className="w-full md:col-span-2 flex items-center justify-end gap-2 pt-3 md:pt-0 border-t border-dashed border-slate-200 dark:border-white/10 md:border-0 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                {onView && (
-                    <button
-                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
-                        className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 w-8 h-8 flex items-center justify-center rounded-md transition-colors"
-                        title="View Details"
-                    >
-                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    </button>
-                )}
+            {/* ── Mobile card ─────────────────────────────── */}
+            <div className="md:hidden px-4 py-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <span className="font-black text-[16px] text-slate-900 dark:text-white tabular-nums">
+                            <span className="text-indigo-500">{prefix}</span>{t.token_number}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border ${st.cls}`}>{st.label}</span>
+                        {isManual
+                            ? <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200">Manual</span>
+                            : <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200">QR</span>
+                        }
+                        {t.assigned_line != null && (
+                            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">L{t.assigned_line}</span>
+                        )}
+                    </div>
+                    <span className="text-[11px] font-medium text-slate-400 tabular-nums">{timeStr}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                        <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">{t.customer_name || "Walk-in"}</span>
+                        <span className="text-[11px] text-slate-400">{t.customer_phone || "No phone"}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        {onView && (
+                            <button onClick={() => onView(tokenData)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="View Details">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            </button>
+                        )}
+                        {extraActions}
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -2420,6 +2487,7 @@ function QueueHistory({
                             <option value="done">Completed</option>
                             <option value="skipped">Skipped</option>
                             <option value="serving">Serving</option>
+                            <option value="deleted">Removed</option>
                         </select>
                     </div>
                     <button
@@ -2522,7 +2590,8 @@ function QueueHistory({
                                                         customer_age: item.customer_age, customer_phone: item.customer_phone, companion_names: item.companion_names || [], 
                                                         status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, 
                                                         entry_type: isManual ? "manual" : "qr", queue_name: queueName,
-                                                        assigned_line: item.assigned_line, served_by_staff_name: item.served_by_staff_name, completed_by_staff_name: item.completed_by_staff_name
+                                                        assigned_line: item.assigned_line, served_by_staff_name: item.served_by_staff_name, completed_by_staff_name: item.completed_by_staff_name,
+                                                        skipped_at: item.skipped_at, deleted_at: item.deleted_at, recalled_at: item.recalled_at, removed_by: item.removed_by
                                                     })}
                                                     style={{ padding: "6px", background: "transparent", border: "#e5e7eb", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
                                                     onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}

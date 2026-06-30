@@ -153,6 +153,9 @@ async def build_queue_snapshot(
             "assigned_line": t.assigned_line,
             "called_via_invite": t.called_via_invite,
             "entry_type": getattr(t, "entry_type", "qr"),
+            "skipped_at": getattr(t, "skipped_at", None).isoformat() if getattr(t, "skipped_at", None) else None,
+            "deleted_at": getattr(t, "deleted_at", None).isoformat() if getattr(t, "deleted_at", None) else None,
+            "recalled_at": getattr(t, "recalled_at", None).isoformat() if getattr(t, "recalled_at", None) else None,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -186,6 +189,9 @@ async def build_queue_snapshot(
             "assigned_line": t.assigned_line,
             "called_via_invite": t.called_via_invite,
             "entry_type": getattr(t, "entry_type", "qr"),
+            "skipped_at": getattr(t, "skipped_at", None).isoformat() if getattr(t, "skipped_at", None) else None,
+            "deleted_at": getattr(t, "deleted_at", None).isoformat() if getattr(t, "deleted_at", None) else None,
+            "recalled_at": getattr(t, "recalled_at", None).isoformat() if getattr(t, "recalled_at", None) else None,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -218,6 +224,9 @@ async def build_queue_snapshot(
             "customer_name": t.customer_name,
             "called_via_invite": t.called_via_invite,
             "entry_type": getattr(t, "entry_type", "qr"),
+            "skipped_at": getattr(t, "skipped_at", None).isoformat() if getattr(t, "skipped_at", None) else None,
+            "deleted_at": getattr(t, "deleted_at", None).isoformat() if getattr(t, "deleted_at", None) else None,
+            "recalled_at": getattr(t, "recalled_at", None).isoformat() if getattr(t, "recalled_at", None) else None,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -250,6 +259,9 @@ async def build_queue_snapshot(
             "customer_name": t.customer_name,
             "called_via_invite": t.called_via_invite,
             "entry_type": getattr(t, "entry_type", "qr"),
+            "skipped_at": getattr(t, "skipped_at", None).isoformat() if getattr(t, "skipped_at", None) else None,
+            "deleted_at": getattr(t, "deleted_at", None).isoformat() if getattr(t, "deleted_at", None) else None,
+            "recalled_at": getattr(t, "recalled_at", None).isoformat() if getattr(t, "recalled_at", None) else None,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age

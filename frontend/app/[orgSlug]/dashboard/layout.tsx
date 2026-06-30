@@ -99,7 +99,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                         <span className="text-slate-400 dark:text-slate-600">© 2026 Q4Queue</span>
                                     </div>
                                     <div className="flex items-center justify-center sm:justify-end">
-                                        <span>v1.2.4</span>
+                                        <span>v1.0.0</span>
                                     </div>
                                 </footer>
                             )}

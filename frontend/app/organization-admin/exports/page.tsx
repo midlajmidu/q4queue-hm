@@ -96,37 +96,47 @@ export default function ExportsPage() {
                 </button>
             </div>
 
-            <div className="bg-slate-900 rounded-2xl shadow-sm border border-slate-800 p-6 mb-8 text-white">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-xl font-bold flex items-center gap-2">
-                            <Database className="text-indigo-400" />
-                            Backup Center
-                        </h2>
-                        <p className="text-slate-400 text-sm mt-1">Tenant-isolated organization backups run daily at 03:00 AM.</p>
+                    <div className="flex items-start gap-4">
+                        <div className="p-3 bg-indigo-50 rounded-xl">
+                            <Database className="text-indigo-600 w-6 h-6" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+                                Backup Center
+                            </h2>
+                            <p className="text-slate-500 text-sm mt-0.5">Tenant-isolated organization backups run daily at 03:00 AM.</p>
+                        </div>
                     </div>
-                    <a href="/organization-admin/backups" className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    <a href="/organization-admin/backups" className="inline-flex items-center justify-center bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-sm">
                         Open Backup Center
                     </a>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-                    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                        <div className="text-slate-400 text-xs uppercase font-semibold mb-1">Last Backup</div>
-                        <div className="font-medium">
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-100">
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                        <div className="text-slate-500 text-[11px] uppercase tracking-wider font-semibold mb-1.5">Last Backup</div>
+                        <div className="font-semibold text-slate-900 text-sm">
                             {backups.length > 0 ? new Date(backups[0].created_at).toLocaleString() : "Never"}
                         </div>
                     </div>
-                    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                        <div className="text-slate-400 text-xs uppercase font-semibold mb-1">Status</div>
-                        <div className="font-medium">
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                        <div className="text-slate-500 text-[11px] uppercase tracking-wider font-semibold mb-1.5">Status</div>
+                        <div className="font-semibold text-sm">
                             {backups.length > 0 ? (
-                                <span className="capitalize text-emerald-400">{backups[0].status}</span>
-                            ) : "N/A"}
+                                <span className="capitalize text-emerald-600 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    {backups[0].status}
+                                </span>
+                            ) : (
+                                <span className="text-slate-900">N/A</span>
+                            )}
                         </div>
                     </div>
-                    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                        <div className="text-slate-400 text-xs uppercase font-semibold mb-1">Stored Backups</div>
-                        <div className="font-medium">{backups.length}</div>
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                        <div className="text-slate-500 text-[11px] uppercase tracking-wider font-semibold mb-1.5">Stored Backups</div>
+                        <div className="font-semibold text-slate-900 text-sm">{backups.length}</div>
                     </div>
                 </div>
             </div>

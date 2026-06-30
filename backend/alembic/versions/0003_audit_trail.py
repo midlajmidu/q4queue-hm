@@ -41,8 +41,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_audit_logs_created_at", table_name="audit_logs")
-    op.drop_index("ix_audit_logs_user_id", table_name="audit_logs")
-    op.drop_index("ix_audit_logs_org_id", table_name="audit_logs")
-    op.drop_index("ix_audit_logs_event_type", table_name="audit_logs")
-    op.drop_table("audit_logs")
+    op.execute("DROP INDEX IF EXISTS ix_audit_logs_created_at")
+    op.execute("DROP INDEX IF EXISTS ix_audit_logs_user_id")
+    op.execute("DROP INDEX IF EXISTS ix_audit_logs_org_id")
+    op.execute("DROP INDEX IF EXISTS ix_audit_logs_event_type")
+    op.execute("DROP TABLE IF EXISTS audit_logs CASCADE")

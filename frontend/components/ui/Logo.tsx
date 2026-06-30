@@ -18,7 +18,7 @@ export function Logo({ className, size = "md" }: LogoProps) {
   return (
     <div className={cn("flex items-center group select-none cursor-pointer", className)}>
       <Image
-        src="/q4queue-logo-final.png"
+        src="/q4queue-main-logo.png"
         alt="Q4Queue Logo"
         width={760}
         height={219}

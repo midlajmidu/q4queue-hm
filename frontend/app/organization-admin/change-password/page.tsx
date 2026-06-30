@@ -81,33 +81,24 @@ export default function OrganizationAdminChangePasswordPage() {
     }
 
     return (
-        <main className="force-light min-h-screen h-screen relative flex flex-col items-center justify-center bg-hero-glow overflow-hidden px-4">
-            {/* Background grid */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(220_16%_90%/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(220_16%_90%/0.5)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black_70%,transparent_100%)] pointer-events-none" />
-            <div className="absolute top-20 left-[10%] w-72 h-72 bg-primary/8 rounded-full blur-[120px] animate-pulse pointer-events-none" />
-            <div className="absolute bottom-20 right-[10%] w-56 h-56 bg-accent/8 rounded-full blur-[100px] animate-pulse pointer-events-none" />
-
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full max-w-[420px] relative z-10"
-            >
-                {/* Logo */}
-                <div className="text-center mb-8 flex justify-center">
-                    <Link href="/" className="inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-1" aria-label="Go to home page">
-                        <Image src="/newLogo2.png" alt="Q4Queue Logo" width={642} height={543} className="h-24 w-auto object-contain" priority />
-                    </Link>
-                </div>
-
-                {/* Main Card */}
-                <div className="glass-card rounded-2xl p-7 md:p-8 space-y-6 bg-white shadow-xl shadow-slate-200/50 border border-slate-100">
-                    <div className="text-center pb-5 border-b border-border/50">
-                        <h1 className="font-heading text-xl font-bold text-slate-900">
-                            Welcome to <span className="text-primary">Q4Queue</span>
+        <main className="force-light min-h-screen w-full flex bg-white h-screen overflow-hidden">
+            {/* Left Column - Form */}
+            <div className="w-full lg:w-[45%] flex flex-col justify-center px-8 sm:px-12 lg:px-20 py-4 relative overflow-y-auto">
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    className="w-full max-w-md mx-auto flex flex-col justify-center h-full my-auto"
+                >
+                    <div className="mb-6 flex flex-col items-start">
+                        <Link href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg" aria-label="Go to home page">
+                            <Image src="/q4queue-main-logo.png" alt="Q4Queue Logo" width={180} height={45} className="h-9 w-auto object-contain" priority />
+                        </Link>
+                        <h1 className="font-heading text-2xl font-bold text-slate-900 mt-6 tracking-tight">
+                            Secure Your Account
                         </h1>
-                        <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                            For security reasons, you must change your password before accessing the dashboard for the first time.
+                        <p className="text-sm text-slate-500 mt-1">
+                            For security reasons, please change your password before accessing the enterprise dashboard.
                         </p>
                     </div>
 
@@ -120,8 +111,11 @@ export default function OrganizationAdminChangePasswordPage() {
                                     exit={{ opacity: 0, height: 0, scale: 0.95 }}
                                     className="overflow-hidden"
                                 >
-                                    <div role="alert" className="bg-red-50 text-red-600 text-sm font-medium p-3 rounded-lg border border-red-100 text-center">
-                                        {error}
+                                    <div role="alert" className="bg-red-50 text-red-600 text-sm font-medium p-3 rounded-xl border border-red-100 flex items-start gap-2">
+                                        <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span>{error}</span>
                                     </div>
                                 </motion.div>
                             )}
@@ -130,7 +124,7 @@ export default function OrganizationAdminChangePasswordPage() {
                         {/* New Password */}
                         <div>
                             <div className="flex items-center justify-between mb-1.5">
-                                <label className="block text-sm font-semibold text-slate-900">New Password</label>
+                                <label className="block text-xs font-bold text-slate-900">New Password</label>
                             </div>
                             <div className="relative">
                                 <input
@@ -139,7 +133,7 @@ export default function OrganizationAdminChangePasswordPage() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-4 pr-12 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400"
+                                    className="w-full rounded-xl border-2 border-slate-200 bg-white pl-4 pr-12 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
                                     disabled={loading}
                                 />
                                 <button
@@ -157,7 +151,7 @@ export default function OrganizationAdminChangePasswordPage() {
                         {/* Confirm Password */}
                         <div>
                             <div className="flex items-center justify-between mb-1.5">
-                                <label className="block text-sm font-semibold text-slate-900">Confirm New Password</label>
+                                <label className="block text-xs font-bold text-slate-900">Confirm New Password</label>
                             </div>
                             <div className="relative">
                                 <input
@@ -166,7 +160,7 @@ export default function OrganizationAdminChangePasswordPage() {
                                     value={confirm}
                                     onChange={(e) => setConfirm(e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-4 pr-12 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400"
+                                    className="w-full rounded-xl border-2 border-slate-200 bg-white pl-4 pr-12 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
                                     disabled={loading}
                                 />
                                 <button
@@ -184,11 +178,11 @@ export default function OrganizationAdminChangePasswordPage() {
                         <button
                             type="submit"
                             disabled={loading || !password || !confirm}
-                            className="w-full h-11 mt-4 bg-primary text-primary-foreground font-semibold rounded-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="w-full h-11 mt-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center shadow-sm"
                         >
                             {loading ? (
                                 <>
-                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <svg className="animate-spin h-4 w-4 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
@@ -201,13 +195,33 @@ export default function OrganizationAdminChangePasswordPage() {
                             )}
                         </button>
                     </form>
-                </div>
-            </motion.div>
 
-            {/* Minimal footer */}
-            <p className="relative z-10 text-center text-xs text-slate-400 mt-8">
-                © {new Date().getFullYear()} Q4Queue
-            </p>
+                    <p className="text-center text-xs text-slate-400 mt-8 mb-2">
+                        © {new Date().getFullYear()} Q4Queue
+                    </p>
+                </motion.div>
+            </div>
+
+            {/* Right Column - Graphic */}
+            <div className="hidden lg:flex lg:w-[55%] p-4 pl-0">
+                <div className="w-full h-full rounded-[1.5rem] overflow-hidden relative shadow-2xl">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 1.05 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="absolute inset-0 w-full h-full"
+                    >
+                        <Image 
+                            src="/images/org-login-hero.png" 
+                            alt="Q4Queue Platform" 
+                            fill
+                            className="object-cover object-center"
+                            priority
+                            sizes="55vw"
+                        />
+                    </motion.div>
+                </div>
+            </div>
         </main>
     );
 }

@@ -130,7 +130,13 @@ async def _subscriber_loop() -> None:
                     logger.warning("Invalid JSON on channel %s", channel)
                     continue
 
-                await manager.broadcast(channel, payload)
+                if payload.get("type") == "queue_update" and "public" in payload and "admin" in payload:
+                    # Give the public snapshot a type as well
+                    payload["public"]["type"] = "queue_update"
+                    payload["admin"]["type"] = "queue_update"
+                    await manager.broadcast_differentiated(channel, payload["public"], payload["admin"])
+                else:
+                    await manager.broadcast(channel, payload)
 
         except asyncio.CancelledError:
             logger.info("Subscriber loop cancelled — shutting down")

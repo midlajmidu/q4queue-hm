@@ -139,10 +139,15 @@ async def notify_queue_update(queue_id: uuid.UUID, org_id: uuid.UUID) -> None:
 
         # Build a fresh snapshot from a NEW session (to see committed data)
         async with AsyncSessionLocal() as snapshot_db:
-            snapshot = await build_queue_snapshot(snapshot_db, queue_id=queue_id)
+            snapshot_public = await build_queue_snapshot(snapshot_db, queue_id=queue_id, is_admin=False)
+            snapshot_admin = await build_queue_snapshot(snapshot_db, queue_id=queue_id, is_admin=True)
 
-        snapshot["type"] = "queue_update"
-        await publish_queue_update(redis, channel=channel, payload=snapshot)
+        payload = {
+            "type": "queue_update",
+            "public": snapshot_public,
+            "admin": snapshot_admin
+        }
+        await publish_queue_update(redis, channel=channel, payload=payload)
     except Exception as exc:
         logger.error("Failed to publish background queue update: %s", exc)
 
@@ -337,9 +342,13 @@ async def call_next(
     
     for currently_serving in currently_serving_tokens:
         currently_serving.status = target_status
-        currently_serving.completed_at = now
         if target_status == TokenStatus.done:
+            currently_serving.completed_at = now
             queue.total_served += 1
+        elif target_status == TokenStatus.deleted:
+            currently_serving.deleted_at = now
+        else:
+            currently_serving.skipped_at = now
             
         # If the action was 'done', trigger the completed notification immediately
         if action in ["done", "skipped", "deleted"]:
@@ -393,6 +402,8 @@ async def call_next(
         next_token.served_at = now
         next_token.served_by_id = user_id
         next_token.called_via_invite = False
+        next_token.completed_at = None
+        next_token.completed_by_id = None
         # In multi-lane mode, assign the token to the specified line
         if line_number is not None:
             next_token.assigned_line = line_number
@@ -481,7 +492,7 @@ async def skip_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID
         raise ValueError(f"Cannot skip token with status '{token.status}'")
 
     token.status = TokenStatus.skipped
-    token.completed_at = datetime.now(timezone.utc)
+    token.skipped_at = datetime.now(timezone.utc)
     await db.flush()
     return token
 
@@ -507,18 +518,51 @@ async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UU
     # SECURITY FIX: use org-scoped lock to avoid cross-tenant DoS
     queue = await _lock_queue_for_org(db, token.queue_id, org_id)
 
+    now = datetime.now(timezone.utc)
+
     if token.status == TokenStatus.waiting:
         token.status = TokenStatus.deleted
         token.removed_by = removed_by
-        token.completed_at = datetime.now(timezone.utc)
+        token.deleted_at = now
         await db.flush()
     elif token.status == TokenStatus.serving:
+        # ─── BUG FIX ───────────────────────────────────────────────────────────
+        # Previously this called call_next(action="deleted") which marks ALL
+        # currently serving tokens as deleted (in single-counter mode) — wiping
+        # every active service line.  Instead, only mark THIS specific token as
+        # deleted and free its assigned line.  The counter slot simply becomes
+        # "Available" again without auto-promoting the next waiting customer.
+        # ────────────────────────────────────────────────────────────────────────
+        token.status = TokenStatus.deleted
         token.removed_by = removed_by
-        await call_next(db, queue_id=queue.id, org_id=org_id, action="deleted")
-        await db.refresh(token)
+        token.deleted_at = now
+        await db.flush()
+
+        # Fire the removal notification (fire-and-forget, same as call_next does)
+        try:
+            from app.services.notification_service import notify_queue_event
+            import asyncio
+            asyncio.create_task(
+                notify_queue_event(
+                    event_type="queue_removed_v2",
+                    org_id=org_id,
+                    token_id=token.id,
+                    queue_id=queue.id,
+                    customer_name=token.customer_name,
+                    customer_phone=token.customer_phone,
+                    token_number=token.token_number,
+                    token_prefix=queue.prefix,
+                    queue_name=queue.name,
+                    tracking_id=str(getattr(token, "tracking_id", "")),
+                    session_id=queue.session_id,
+                )
+            )
+        except Exception as e:
+            logger.error("Failed to dispatch removal notification for serving token: %s", e)
     else:
         raise ValueError("Cannot remove completed or already skipped/deleted token")
     return token
+
 
 
 async def undo_remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID) -> Token:
@@ -532,6 +576,7 @@ async def undo_remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uu
     token.status = TokenStatus.waiting
     token.removed_by = None
     token.completed_at = None
+    token.deleted_at = None
     await db.flush()
     return token
 
@@ -586,13 +631,16 @@ async def serve_specific_token(
     await db.execute(
         update(Token)
         .where(*where_clause)
-        .values(status=TokenStatus.skipped, completed_at=now)
+        .values(status=TokenStatus.skipped, skipped_at=now)
     )
 
     specific_token.status = TokenStatus.serving
     specific_token.served_at = now
     specific_token.served_by_id = user_id
     specific_token.called_via_invite = True
+    specific_token.completed_at = None
+    specific_token.completed_by_id = None
+    specific_token.recalled_at = now
     if line_number is not None:
         specific_token.assigned_line = line_number
 

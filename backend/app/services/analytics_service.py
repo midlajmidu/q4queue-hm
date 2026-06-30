@@ -284,7 +284,7 @@ async def get_history_details(
     from app.models.queue import Queue
     from sqlalchemy import or_, cast, String
     
-    conditions = [Token.org_id == org_id, Token.status != TokenStatus.deleted]
+    conditions = [Token.org_id == org_id]
     if queue_id:
         conditions.append(Token.queue_id == queue_id)
     if status:
@@ -315,8 +315,10 @@ async def get_history_details(
         Queue.prefix.label('queue_prefix'),
         ServedUser.first_name.label('served_first'),
         ServedUser.last_name.label('served_last'),
+        ServedUser.email.label('served_email'),
         CompletedUser.first_name.label('completed_first'),
-        CompletedUser.last_name.label('completed_last')
+        CompletedUser.last_name.label('completed_last'),
+        CompletedUser.email.label('completed_email')
     ).join(Queue, Token.queue_id == Queue.id).outerjoin(
         ServedUser, Token.served_by_id == ServedUser.id
     ).outerjoin(
@@ -339,9 +341,18 @@ async def get_history_details(
     
     items = []
     for row in result.all():
-        token, q_name, q_prefix, served_first, served_last, completed_first, completed_last = row
-        served_name = f"{served_first or ''} {served_last or ''}".strip() if (served_first or served_last) else None
-        completed_name = f"{completed_first or ''} {completed_last or ''}".strip() if (completed_first or completed_last) else None
+        token, q_name, q_prefix, served_first, served_last, served_email, completed_first, completed_last, completed_email = row
+        served_name = ""
+        if served_first or served_last:
+            served_name = f"{served_first or ''} {served_last or ''}".strip()
+        elif served_email:
+            served_name = served_email.split('@')[0]
+            
+        completed_name = ""
+        if completed_first or completed_last:
+            completed_name = f"{completed_first or ''} {completed_last or ''}".strip()
+        elif completed_email:
+            completed_name = completed_email.split('@')[0]
         
         items.append({
             "id": str(token.id),
@@ -361,6 +372,10 @@ async def get_history_details(
             "assigned_line": getattr(token, "assigned_line", None),
             "served_by_staff_name": served_name,
             "completed_by_staff_name": completed_name,
+            "removed_by": token.removed_by,
+            "deleted_at": token.deleted_at.isoformat() if token.deleted_at else None,
+            "skipped_at": token.skipped_at.isoformat() if token.skipped_at else None,
+            "recalled_at": token.recalled_at.isoformat() if token.recalled_at else None,
         })
 
     return {
@@ -389,7 +404,7 @@ async def get_analytics_csv_data(
     from app.models.queue import Queue
     from app.models.user import User
 
-    conditions = [Token.org_id == org_id, Token.status != TokenStatus.deleted]
+    conditions = [Token.org_id == org_id]
     if queue_id:
         conditions.append(Token.queue_id == queue_id)
     if status:
@@ -447,8 +462,10 @@ async def get_analytics_csv_data(
         Queue.prefix.label('queue_prefix'),
         ServedUser.first_name.label('served_first'),
         ServedUser.last_name.label('served_last'),
+        ServedUser.email.label('served_email'),
         CompletedUser.first_name.label('completed_first'),
-        CompletedUser.last_name.label('completed_last')
+        CompletedUser.last_name.label('completed_last'),
+        CompletedUser.email.label('completed_email')
     ).outerjoin(Queue, Token.queue_id == Queue.id)\
      .outerjoin(ServedUser, Token.served_by_id == ServedUser.id)\
      .outerjoin(CompletedUser, Token.completed_by_id == CompletedUser.id)\
@@ -461,12 +478,12 @@ async def get_analytics_csv_data(
     writer = csv.writer(output)
     writer.writerow([
         "Date", "Token Number", "Queue", "Service Line", "Customer Name", "Customer Phone", "Companions",
-        "Status", "Created At", "Served At", "Completed At",
-        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Call Method", "Entry Type"
+        "Status", "Created At", "Served At", "Completed At", "Skipped At", "Recalled At", "Removed At",
+        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Removed By", "Call Method", "Entry Type"
     ])
 
     for row in result.all():
-        token, q_name, q_prefix, served_first, served_last, completed_first, completed_last = row
+        token, q_name, q_prefix, served_first, served_last, served_email, completed_first, completed_last, completed_email = row
         
         wait_time_mins = ""
         if token.served_at and token.created_at:
@@ -479,16 +496,28 @@ async def get_analytics_csv_data(
         served_by = ""
         if served_first or served_last:
             served_by = f"{served_first or ''} {served_last or ''}".strip()
+        elif served_email:
+            served_by = served_email.split('@')[0]
             
         completed_by = ""
         if completed_first or completed_last:
             completed_by = f"{completed_first or ''} {completed_last or ''}".strip()
+        elif completed_email:
+            completed_by = completed_email.split('@')[0]
 
         companions = ", ".join(token.companion_names) if hasattr(token, 'companion_names') and token.companion_names else ""
         service_line = str(getattr(token, 'assigned_line', "")) if getattr(token, 'assigned_line', None) is not None else ""
 
         entry_type = getattr(token, "entry_type", "qr")
         entry_method = "Manual Entry" if entry_type == "manual" else ("Auto Assigned" if entry_type == "auto" else "QR Code")
+
+        removed_by_label = ""
+        if token.removed_by == "customer":
+            removed_by_label = "Customer"
+        elif token.removed_by == "session_end":
+            removed_by_label = "System (Session End)"
+        elif token.removed_by:
+            removed_by_label = "Staff"
 
         token_display = f"{q_prefix or ''}{token.token_number}"
         writer.writerow([
@@ -503,10 +532,14 @@ async def get_analytics_csv_data(
             token.created_at.isoformat(),
             token.served_at.isoformat() if token.served_at else "",
             token.completed_at.isoformat() if token.completed_at else "",
+            token.skipped_at.isoformat() if token.skipped_at else "",
+            token.recalled_at.isoformat() if token.recalled_at else "",
+            token.deleted_at.isoformat() if token.deleted_at else "",
             wait_time_mins,
             serve_time_mins,
             served_by,
             completed_by,
+            removed_by_label,
             "Invite by Number" if token.called_via_invite else "Call Next",
             entry_method
         ])
@@ -832,7 +865,7 @@ async def get_cross_branch_csv_data(
 
     tz = ZoneInfo("Asia/Kolkata")
     
-    conditions = [Token.org_id.in_(org_ids), Token.status != TokenStatus.deleted]
+    conditions = [Token.org_id.in_(org_ids)]
     
     if start_date:
         try:
@@ -852,16 +885,24 @@ async def get_cross_branch_csv_data(
             conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
         except: pass
 
+    from sqlalchemy.orm import aliased
+    ServedUser = aliased(User)
+    CompletedUser = aliased(User)
+
     query = select(
         Token,
         Queue.name.label('queue_name'),
         Organization.name.label('branch_name'),
-        User.first_name,
-        User.last_name,
-        User.email
+        ServedUser.first_name.label('served_first'),
+        ServedUser.last_name.label('served_last'),
+        ServedUser.email.label('served_email'),
+        CompletedUser.first_name.label('completed_first'),
+        CompletedUser.last_name.label('completed_last'),
+        CompletedUser.email.label('completed_email')
     ).outerjoin(Queue, Token.queue_id == Queue.id)\
      .outerjoin(Organization, Token.org_id == Organization.id)\
-     .outerjoin(User, Token.served_by_id == User.id)\
+     .outerjoin(ServedUser, Token.served_by_id == ServedUser.id)\
+     .outerjoin(CompletedUser, Token.completed_by_id == CompletedUser.id)\
      .where(and_(*conditions))\
      .order_by(Token.created_at.desc())
 
@@ -871,12 +912,12 @@ async def get_cross_branch_csv_data(
     writer = csv.writer(output)
     writer.writerow([
         "Date", "Branch", "Token Number", "Queue", "Customer Name", "Customer Phone", 
-        "Status", "Created At", "Served At", "Completed At", 
-        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Call Method", "Entry Type"
+        "Status", "Created At", "Served At", "Completed At", "Skipped At", "Recalled At", "Removed At",
+        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Removed By", "Call Method", "Entry Type"
     ])
 
     for row in result.all():
-        token, q_name, b_name, f_name, l_name, u_email = row
+        token, q_name, b_name, served_first, served_last, served_email, completed_first, completed_last, completed_email = row
         
         wait_time_mins = ""
         if token.served_at and token.created_at:
@@ -887,10 +928,24 @@ async def get_cross_branch_csv_data(
             serve_time_mins = round((token.completed_at - token.served_at).total_seconds() / 60.0, 1)
 
         served_by = ""
-        if f_name or l_name:
-            served_by = f"{f_name or ''} {l_name or ''}".strip()
-        elif u_email:
-            served_by = u_email.split('@')[0]
+        if served_first or served_last:
+            served_by = f"{served_first or ''} {served_last or ''}".strip()
+        elif served_email:
+            served_by = served_email.split('@')[0]
+
+        completed_by = ""
+        if completed_first or completed_last:
+            completed_by = f"{completed_first or ''} {completed_last or ''}".strip()
+        elif completed_email:
+            completed_by = completed_email.split('@')[0]
+
+        removed_by_label = ""
+        if token.removed_by == "customer":
+            removed_by_label = "Customer"
+        elif token.removed_by == "session_end":
+            removed_by_label = "System (Session End)"
+        elif token.removed_by:
+            removed_by_label = "Staff"
 
         writer.writerow([
             token.created_at.strftime("%Y-%m-%d"),
@@ -903,9 +958,14 @@ async def get_cross_branch_csv_data(
             token.created_at.isoformat(),
             token.served_at.isoformat() if token.served_at else "",
             token.completed_at.isoformat() if token.completed_at else "",
+            token.skipped_at.isoformat() if token.skipped_at else "",
+            token.recalled_at.isoformat() if token.recalled_at else "",
+            token.deleted_at.isoformat() if token.deleted_at else "",
             wait_time_mins,
             serve_time_mins,
             served_by,
+            completed_by,
+            removed_by_label,
             "Invite by Number" if token.called_via_invite else "Call Next",
             getattr(token, "entry_type", "qr").title()
         ])

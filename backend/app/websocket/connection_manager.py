@@ -33,6 +33,7 @@ class ConnectionManager:
     def __init__(self) -> None:
         # channel → set of WebSocket connections
         self._connections: dict[str, set[WebSocket]] = defaultdict(set)
+        self._admin_connections: dict[str, set[WebSocket]] = defaultdict(set)
         self._lock = asyncio.Lock()
 
     @staticmethod
@@ -45,53 +46,68 @@ class ConnectionManager:
         """Build the tenant-isolated notification channel name."""
         return f"org_{org_id}_notifications"
 
-    async def connect(self, channel: str, websocket: WebSocket) -> None:
+    async def connect(self, channel: str, websocket: WebSocket, is_admin: bool = False) -> None:
         """Accept and register a WebSocket client."""
         await websocket.accept()
         async with self._lock:
             self._connections[channel].add(websocket)
+            if is_admin:
+                self._admin_connections[channel].add(websocket)
         logger.info(
-            "WS connected | channel=%s clients=%d",
+            "WS connected | channel=%s clients=%d admin=%s",
             channel,
             len(self._connections[channel]),
+            is_admin
         )
 
     async def disconnect(self, channel: str, websocket: WebSocket) -> None:
         """Remove a WebSocket client. Safe to call multiple times."""
         async with self._lock:
-            self._connections[channel].discard(websocket)
-            if not self._connections[channel]:
-                del self._connections[channel]
-        logger.info("WS disconnected | channel=%s", channel)
+            if channel in self._connections:
+                self._connections[channel].discard(websocket)
+                if not self._connections[channel]:
+                    del self._connections[channel]
+            if channel in self._admin_connections:
+                self._admin_connections[channel].discard(websocket)
+                if not self._admin_connections[channel]:
+                    del self._admin_connections[channel]
+        try:
+            await websocket.close()
+        except Exception:
+            pass
 
     async def broadcast(self, channel: str, message: dict[str, Any]) -> None:
-        """
-        Send a JSON message to ALL connected WebSocket clients in a channel.
-        Handles broken connections gracefully — removes dead sockets.
-        """
-        async with self._lock:
-            sockets = list(self._connections.get(channel, set()))
-
-        if not sockets:
+        """Send JSON to all clients in a specific channel."""
+        if channel not in self._connections:
             return
 
-        dead: list[WebSocket] = []
+        # Snapshot the set to avoid RuntimeError if disconnected during iteration
+        async with self._lock:
+            sockets = list(self._connections[channel])
+
         for ws in sockets:
             try:
                 await ws.send_json(message)
             except Exception:
-                dead.append(ws)
+                await self.disconnect(channel, ws)
 
-        # Clean up dead connections
-        if dead:
-            async with self._lock:
-                for ws in dead:
-                    self._connections[channel].discard(ws)
-                if not self._connections.get(channel):
-                    self._connections.pop(channel, None)
-            logger.debug(
-                "Removed %d dead sockets from channel %s", len(dead), channel
-            )
+    async def broadcast_differentiated(self, channel: str, public_message: dict, admin_message: dict) -> None:
+        """Send admin JSON to admin clients, public JSON to public clients."""
+        if channel not in self._connections:
+            return
+
+        async with self._lock:
+            sockets = list(self._connections[channel])
+            admin_sockets = set(self._admin_connections.get(channel, set()))
+
+        for ws in sockets:
+            try:
+                if ws in admin_sockets:
+                    await ws.send_json(admin_message)
+                else:
+                    await ws.send_json(public_message)
+            except Exception:
+                await self.disconnect(channel, ws)
 
     def active_count(self, channel: str) -> int:
         """Return how many live sockets are in a channel."""

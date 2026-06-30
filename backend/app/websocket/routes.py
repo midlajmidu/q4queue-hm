@@ -118,6 +118,8 @@ async def websocket_queue(
         # Note: accept() already called above, so we use _register_only
         async with manager._lock:
             manager._connections[channel].add(websocket)
+            if is_admin:
+                manager._admin_connections[channel].add(websocket)
         logger.info(
             "WS registered | channel=%s clients=%d",
             channel, manager.active_count(channel),

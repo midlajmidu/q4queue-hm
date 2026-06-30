@@ -48,23 +48,22 @@ async def authenticate_user(
     if login_type == "org_admin":
         # ── 1. Check ParentOrganization (Organization Admin Login) ──
         # Since it's a dedicated single-parent deployment, we don't need a slug
-        from app.models.parent_organization import ParentOrganization
-        parent_org_result = await db.execute(
-            select(ParentOrganization).limit(1)
-        )
-        parent_org: ParentOrganization | None = parent_org_result.scalar_one_or_none()
-
-        if parent_org and parent_org.is_active:
-            user_result = await db.execute(
-                select(User).where(
-                    User.email == email,
-                    User.parent_organization_id == parent_org.id,
-                    User.role == "organization_admin"
-                )
+        user_result = await db.execute(
+            select(User).where(
+                User.email == email,
+                User.role == "organization_admin"
             )
-            user: User | None = user_result.scalar_one_or_none()
+        )
+        user: User | None = user_result.scalar_one_or_none()
+
+        if user and user.is_active and verify_password(plain_password, user.password_hash):
+            from app.models.parent_organization import ParentOrganization
+            parent_org_result = await db.execute(
+                select(ParentOrganization).where(ParentOrganization.id == user.parent_organization_id)
+            )
+            parent_org: ParentOrganization | None = parent_org_result.scalar_one_or_none()
             
-            if user and user.is_active and verify_password(plain_password, user.password_hash):
+            if parent_org and parent_org.is_active:
                 token = create_access_token(
                     user_id=str(user.id),
                     org_id=None,

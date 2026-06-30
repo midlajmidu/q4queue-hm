@@ -1134,7 +1134,7 @@ export default function OverviewPage() {
             <div className="section-label" style={{ marginBottom: 14 }}>Key Metrics</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 16 }}>
               <MetricCard
-                label="Visitors Today" value={overview?.status_counts?.total ?? 0}
+                label="Total Visitors" value={overview?.status_counts?.total ?? 0}
                 Icon={Icons.Users} trend={mkTrend(overview?.status_counts?.total ?? 0, prevOverview?.status_counts?.total)}
                 color={C.brand} bg={C.brandLight} border={C.brandBorder}
                 valueColor={C.brand} isLoading={isLoading}
@@ -1155,7 +1155,7 @@ export default function OverviewPage() {
                 );
               })()}
               <MetricCard
-                label="Served Today" value={overview?.status_counts?.served ?? 0}
+                label="Total Served" value={overview?.status_counts?.served ?? 0}
                 Icon={Icons.CheckCircle2} trend={mkTrend(overview?.status_counts?.served ?? 0, prevOverview?.status_counts?.served)}
                 color={C.green} bg={C.greenBg} border="#a7f3d0"
                 valueColor={C.green} isLoading={isLoading}

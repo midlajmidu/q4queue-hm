@@ -13,3 +13,10 @@ venv/
 .pytest_cache/
 __pycache__/
 *.pyc
+
+# Ignore massive docker tarballs and offline deployment folders
+*.tar
+*.tar.gz
+production/
+administrator@*/
+

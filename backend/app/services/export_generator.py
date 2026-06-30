@@ -141,8 +141,14 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             Session.title.label("session_name"),
             User.first_name.label("staff_first"),
             User.last_name.label("staff_last"),
+            User.email.label("staff_email"),
             CompletedByUser.first_name.label("completed_first"),
-            CompletedByUser.last_name.label("completed_last")
+            CompletedByUser.last_name.label("completed_last"),
+            CompletedByUser.email.label("completed_email"),
+            Token.removed_by,
+            Token.skipped_at,
+            Token.recalled_at,
+            Token.deleted_at
         )
         .select_from(Token)
         .join(Organization, Token.org_id == Organization.id)
@@ -242,8 +248,18 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         elif r.status in ["skipped", "deleted"]:
             cancelled_count += 1
 
-        staff_name = f"{r.staff_first} {r.staff_last}".strip() if r.staff_first else ""
-        completed_by_name = f"{r.completed_first} {r.completed_last}".strip() if r.completed_first else ""
+        staff_name = ""
+        if r.staff_first or r.staff_last:
+            staff_name = f"{r.staff_first or ''} {r.staff_last or ''}".strip()
+        elif r.staff_email:
+            staff_name = r.staff_email.split('@')[0]
+            
+        completed_by_name = ""
+        if r.completed_first or r.completed_last:
+            completed_by_name = f"{r.completed_first or ''} {r.completed_last or ''}".strip()
+        elif r.completed_email:
+            completed_by_name = r.completed_email.split('@')[0]
+
 
         # Companions: stored as JSON list of names
         companions_raw = r.companion_names or []
@@ -259,6 +275,15 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         else:
             entry_type_label = r.entry_type or ""
 
+        # Format Removed By
+        removed_by_label = ""
+        if r.removed_by == "customer":
+            removed_by_label = "Customer"
+        elif r.removed_by == "session_end":
+            removed_by_label = "System (Session End)"
+        elif r.removed_by:
+            removed_by_label = "Staff"
+
         formatted_data.append({
             "Branch Name": branch,
             "Date": r.date.strftime("%Y-%m-%d") if r.date else "",
@@ -272,10 +297,14 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             "Created At": r.created_at.strftime("%H:%M:%S") if r.created_at else "",
             "Served At": r.served_at.strftime("%H:%M:%S") if r.served_at else "",
             "Completed At": r.completed_at.strftime("%H:%M:%S") if r.completed_at else "",
+            "Skipped At": r.skipped_at.strftime("%H:%M:%S") if r.skipped_at else "",
+            "Recalled At": r.recalled_at.strftime("%H:%M:%S") if r.recalled_at else "",
+            "Removed At": r.deleted_at.strftime("%H:%M:%S") if r.deleted_at else "",
             "Wait Time (mins)": wait_mins,
             "Serve Time (mins)": serve_mins,
             "Served By": staff_name,
             "Completed By": completed_by_name,
+            "Removed By": removed_by_label,
             "Call Method": "Skipped" if r.status == "skipped" else "Normal",
             "Entry Type": entry_type_label
         })
@@ -303,10 +332,14 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             "Created At": r.get("Created At", ""),
             "Served At": r.get("Served At", ""),
             "Completed At": r.get("Completed At", ""),
+            "Skipped At": r.get("Skipped At", ""),
+            "Recalled At": r.get("Recalled At", ""),
+            "Removed At": r.get("Removed At", ""),
             "Wait Time (mins)": r.get("Wait Time (mins)", ""),
             "Serve Time (mins)": r.get("Serve Time (mins)", ""),
             "Served By": r.get("Served By", ""),
             "Completed By": r.get("Completed By", ""),
+            "Removed By": r.get("Removed By", ""),
             "Call Method": r.get("Call Method", ""),
             "Entry Type": r.get("Entry Type", "")
         })

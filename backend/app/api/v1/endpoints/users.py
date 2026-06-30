@@ -65,7 +65,8 @@ async def update_me(
 
     # Issue a new token so the frontend sees the updated name immediately
     from sqlalchemy import select
-    from app.models.organization import Organization, ParentOrganization
+    from app.models.organization import Organization
+    from app.models.parent_organization import ParentOrganization
     from app.core.security import create_access_token
 
     org_slug = None

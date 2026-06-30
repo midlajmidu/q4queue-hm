@@ -87,6 +87,17 @@ export default function OrgWhatsAppDashboard() {
     const [endDate, setEndDate] = useState("");
     const [filterQueueId, setFilterQueueId] = useState("");
     const [filterSessionId, setFilterSessionId] = useState("");
+    const [filterStatus, setFilterStatus] = useState("");
+    const [filterEventType, setFilterEventType] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
 
     // Settings state
     const [testPhone, setTestPhone] = useState("");
@@ -117,10 +128,19 @@ export default function OrgWhatsAppDashboard() {
                 queueId: filterQueueId || undefined,
                 sessionId: filterSessionId || undefined,
             };
+            
+            const historyParams = {
+                ...params,
+                status: filterStatus || undefined,
+                eventType: filterEventType || undefined,
+                customerPhone: debouncedSearchQuery && /^[0-9+ \-]+$/.test(debouncedSearchQuery) ? debouncedSearchQuery : undefined,
+                customerName: debouncedSearchQuery && !/^[0-9+ \-]+$/.test(debouncedSearchQuery) ? debouncedSearchQuery : undefined,
+            };
+
             const [st, events, history] = await Promise.all([
                 api.getOrgWhatsAppStats(params).catch(() => null),
                 api.getOrgWhatsAppEventStats(params).catch(() => []),
-                api.getOrgWhatsAppMessages({ limit: 50, ...params }).catch(() => null),
+                api.getOrgWhatsAppMessages({ limit: 50, ...historyParams }).catch(() => null),
             ]);
             if (st) setStats(st);
             setEventStats(events || []);
@@ -128,7 +148,7 @@ export default function OrgWhatsAppDashboard() {
         } finally {
             setLoading(false);
         }
-    }, [startDate, endDate, filterQueueId, filterSessionId]);
+    }, [startDate, endDate, filterQueueId, filterSessionId, filterStatus, filterEventType, debouncedSearchQuery]);
 
     useEffect(() => { 
         loadFilteredData();
@@ -227,7 +247,7 @@ export default function OrgWhatsAppDashboard() {
     }
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto pb-12">
+        <div className="space-y-6 w-full pb-12">
             <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <svg className="w-6 h-6 text-[#25d366]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -367,6 +387,25 @@ export default function OrgWhatsAppDashboard() {
 
                 {activeTab === "history" && (
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex flex-col sm:flex-row gap-4 items-center">
+                            <div className="flex-1 w-full relative">
+                                <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                <input type="text" placeholder="Search by name or phone..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow" />
+                            </div>
+                            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full sm:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow">
+                                <option value="">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="sent">Sent</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="read">Read</option>
+                                <option value="failed">Failed</option>
+                                <option value="skipped">Skipped</option>
+                            </select>
+                            <select value={filterEventType} onChange={e => setFilterEventType(e.target.value)} className="w-full sm:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow">
+                                <option value="">All Events</option>
+                                {ACTIVE_EVENTS.map(ev => <option key={ev} value={ev}>{EVENT_LABEL[ev] || ev}</option>)}
+                            </select>
+                        </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">

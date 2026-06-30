@@ -22,6 +22,9 @@ export interface TokenDetailData {
     called_via_invite?: boolean;
     served_by_staff_name?: string | null;
     completed_by_staff_name?: string | null;
+    deleted_at?: string | null;
+    skipped_at?: string | null;
+    recalled_at?: string | null;
 }
 
 interface TokenDetailModalProps {
@@ -100,7 +103,6 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
     const waitingTime = calcWaitingTime(fullToken.created_at, fullToken.served_at, fullToken.status);
     const serviceTime = calcServiceTime(fullToken.served_at, fullToken.completed_at);
     
-    const completedLabel = fullToken.status === 'deleted' ? 'Cancelled' : fullToken.status === 'skipped' ? 'Skipped' : 'Completed';
 
     // Close on backdrop click
     const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -186,9 +188,18 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         )}
                         <DetailItem label="Created" value={fmtTime(fullToken.created_at)} />
                         <DetailItem label="Called" value={fmtTime(fullToken.served_at)} />
-                        <DetailItem label={completedLabel} value={fmtTime(fullToken.completed_at)} />
+                        {fullToken.completed_at && (
+                            <DetailItem label="Completed" value={fmtTime(fullToken.completed_at)} />
+                        )}
+                        {fullToken.deleted_at && (
+                            <DetailItem label="Removed" value={fmtTime(fullToken.deleted_at)} highlight="amber" />
+                        )}
                         {fullToken.status === "deleted" && fullToken.removed_by && (
-                            <DetailItem label="Removed By" value={fullToken.removed_by === "customer" ? "Customer" : "Admin"} highlight="amber" />
+                            <DetailItem 
+                                label="Removed By" 
+                                value={fullToken.removed_by === "customer" ? "Customer" : (fullToken.removed_by === "session_end" ? "System (Session End)" : "Staff")} 
+                                highlight="amber" 
+                            />
                         )}
                         {fullToken.served_by_staff_name && (
                             <DetailItem label="Served By" value={fullToken.served_by_staff_name} />
@@ -225,10 +236,28 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                                         <span className="font-medium text-gray-700">{fmt(fullToken.served_at)}</span>
                                     </div>
                                 )}
+                                {fullToken.skipped_at && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400">Last Skipped</span>
+                                        <span className="font-medium text-gray-700">{fmt(fullToken.skipped_at)}</span>
+                                    </div>
+                                )}
+                                {fullToken.recalled_at && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400">Last Recalled</span>
+                                        <span className="font-medium text-gray-700">{fmt(fullToken.recalled_at)}</span>
+                                    </div>
+                                )}
                                 {fullToken.completed_at && (
                                     <div className="flex justify-between">
-                                        <span className="text-gray-400">{completedLabel}</span>
+                                        <span className="text-gray-400">Completed</span>
                                         <span className="font-medium text-gray-700">{fmt(fullToken.completed_at)}</span>
+                                    </div>
+                                )}
+                                {fullToken.deleted_at && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400">Removed</span>
+                                        <span className="font-medium text-gray-700">{fmt(fullToken.deleted_at)}</span>
                                     </div>
                                 )}
                             </div>

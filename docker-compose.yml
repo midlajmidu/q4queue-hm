@@ -126,10 +126,10 @@ services:
       backend:
         condition: service_healthy
     environment:
-      - NEXT_PUBLIC_API_URL=https://amoebaq.com/api/v1
-      - NEXT_PUBLIC_APP_URL=https://amoebaq.com
-      - NEXT_PUBLIC_LANDING_URL=https://amoebaq.com
-      - NEXT_PUBLIC_WS_BASE_URL=wss://amoebaq.com/api/v1/ws
+      # - NEXT_PUBLIC_API_URL=https://amoebaq.com/api/v1
+      # - NEXT_PUBLIC_APP_URL=https://amoebaq.com
+      # - NEXT_PUBLIC_LANDING_URL=https://amoebaq.com
+      # - NEXT_PUBLIC_WS_BASE_URL=wss://amoebaq.com/api/v1/ws
       - TZ=Asia/Kolkata
     deploy:
       resources:
