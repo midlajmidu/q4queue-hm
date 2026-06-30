@@ -144,7 +144,104 @@ export default function SessionsMonitoringPage() {
                         Operational Status
                     </h2>
                 </div>
-                <div className="overflow-x-auto">
+                {/* Mobile View Feed (spacious cards on small screens) */}
+                <div className="block md:hidden divide-y divide-slate-100 bg-white">
+                    {sessions.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <div className="w-14 h-14 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm mx-auto mb-4">
+                                <Activity size={28} />
+                            </div>
+                            <h3 className="text-base font-bold text-slate-900">No active sessions</h3>
+                            <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">All queues are currently clear. When branches start serving customers, they will appear here in real-time.</p>
+                        </div>
+                    ) : (
+                        sortedSessions.map((s: any) => {
+                            const idx = s.originalIdx;
+                            const isCritical = s.loadPercentage >= 90;
+                            const isHeavy = s.loadPercentage >= 75;
+                            const barColor = isCritical ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' :
+                                             isHeavy ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' :
+                                             'bg-indigo-500';
+                            const textColor = isCritical ? 'text-rose-600' :
+                                              isHeavy ? 'text-amber-600' :
+                                              'text-slate-700';
+
+                            const staffPct = s.staffPresentNum / (s.staffTotalNum || 1);
+                            const staffBg = staffPct < 0.5 ? 'bg-rose-50 border-rose-200' :
+                                              staffPct < 1 ? 'bg-amber-50 border-amber-200' :
+                                              'bg-emerald-50 border-emerald-200';
+                            const staffTextColor = staffPct < 0.5 ? 'text-rose-700' : staffPct < 1 ? 'text-amber-700' : 'text-emerald-700';
+
+                            return (
+                                <div key={idx} className="p-4 space-y-4 hover:bg-slate-50/30 transition-colors">
+                                    {/* Line 1: Branch/Session and Status */}
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 text-sm leading-snug">{s.branch}</h4>
+                                            <p className="text-xs text-slate-500 font-medium mt-0.5">{s.session_name}</p>
+                                        </div>
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                                            s.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
+                                        }`}>
+                                            {s.status === 'Active' && (
+                                                <span className="relative flex h-1.5 w-1.5">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                                </span>
+                                            )}
+                                            {s.status}
+                                        </span>
+                                    </div>
+
+                                    {/* Line 2: Details Grid */}
+                                    <div className="grid grid-cols-2 gap-3 bg-slate-50/50 rounded-xl p-3 border border-slate-100 text-xs">
+                                        {/* Load Bar */}
+                                        <div className="col-span-2 space-y-1.5">
+                                            <div className="flex justify-between items-end">
+                                                <span className="text-slate-500 font-medium">Queue Load</span>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className={`font-bold ${textColor}`}>{s.loadPercentage}%</span>
+                                                    {s.loadStatus !== 'Normal' && (
+                                                        <span className={`text-[9px] font-bold uppercase tracking-widest ${isCritical ? 'text-rose-500 animate-pulse' : 'text-amber-500'}`}>
+                                                            {s.loadStatus}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
+                                                <div className={`h-full rounded-full transition-all duration-700 ease-out ${barColor}`} style={{ width: `${s.loadPercentage}%` }} />
+                                            </div>
+                                        </div>
+
+                                        {/* Staffing */}
+                                        <div className="col-span-2 border-t border-slate-100/60 pt-2 flex items-center justify-between">
+                                            <span className="text-slate-500 font-medium">Staff Present</span>
+                                            <div className={`inline-flex items-baseline justify-center border shadow-sm rounded-md px-2 py-0.5 ${staffBg}`}>
+                                                <span className={`text-[12px] font-extrabold ${staffTextColor}`}>{s.staffPresentNum}</span>
+                                                <span className={`text-[9px] font-bold mx-0.5 ${staffTextColor} opacity-40`}>/</span>
+                                                <span className={`text-[10px] font-semibold ${staffTextColor} opacity-70`}>{s.staffTotalNum}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Line 3: Actions */}
+                                    <div className="pt-1">
+                                        <a
+                                            href={`/${s.branch_slug || s.branch?.toLowerCase().replace(/\s+/g, '-')}/dashboard/sessions`}
+                                            className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-lg transition-all shadow-sm"
+                                        >
+                                            Open Dashboard
+                                            <ChevronRight size={14} className="text-slate-400" />
+                                        </a>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Desktop View Table (visible on large viewports) */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">

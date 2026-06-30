@@ -96,10 +96,10 @@ export default function DateRangeFilter({ onChange, initialPreset = "today" }: D
     const displayLabel = preset === "today" ? `Today, ${todayStr}` : currentLabel;
 
     return (
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`group flex items-center justify-between gap-3 min-w-[200px] bg-white border ${isOpen ? 'border-indigo-300 ring-2 ring-indigo-50' : 'border-slate-200/80'} rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all shadow-sm hover:shadow active:scale-[0.98]`}
+                className={`group flex items-center justify-between gap-3 min-w-[200px] w-full sm:w-auto bg-white border ${isOpen ? 'border-indigo-300 ring-2 ring-indigo-50' : 'border-slate-200/80'} rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:text-indigo-700 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all shadow-sm hover:shadow active:scale-[0.98]`}
             >
                 <div className="flex items-center gap-2.5">
                     <Calendar size={16} className={`transition-colors ${isOpen ? 'text-indigo-500' : 'text-slate-400 group-hover:text-indigo-500'}`} />

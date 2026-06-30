@@ -132,8 +132,8 @@ export default function BranchesPage() {
             </div>
 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-                <div className="p-3 border-b border-slate-200 flex items-center justify-between bg-white">
-                    <div className="relative w-72">
+                <div className="p-3 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white">
+                    <div className="relative w-full sm:w-72">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Search size={14} className="text-slate-400" />
                         </div>
@@ -145,12 +145,12 @@ export default function BranchesPage() {
                             className="block w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded-md text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 outline-none transition-all placeholder:text-slate-400"
                         />
                     </div>
-                    <div className="flex items-center gap-2">
-                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest mr-2">Filter</label>
+                    <div className="flex items-center justify-end w-full sm:w-auto">
+                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest mr-2 hidden sm:inline-block">Filter</label>
                         <select 
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="border border-slate-200 bg-slate-50 text-slate-700 text-sm rounded-md py-1.5 pl-3 pr-8 outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="border border-slate-200 bg-slate-50 text-slate-700 text-sm rounded-md py-1.5 pl-3 pr-8 outline-none focus:ring-1 focus:ring-indigo-500 w-full sm:w-auto"
                         >
                             <option value="All Statuses">All Statuses</option>
                             <option value="Healthy">Healthy</option>
@@ -160,7 +160,105 @@ export default function BranchesPage() {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* Mobile View List (spacious and clear on small screens) */}
+                <div className="block md:hidden divide-y divide-slate-100 bg-white">
+                    {isLoading ? (
+                        <div className="p-8 text-center text-slate-500 text-sm">
+                            Loading branch overview...
+                        </div>
+                    ) : filteredBranches.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-slate-50 text-slate-400 mb-3 border border-slate-200 shadow-sm">
+                                <Building2 size={20} />
+                            </div>
+                            <p className="text-slate-600 font-medium text-sm">No branches found</p>
+                        </div>
+                    ) : (
+                        paginatedBranches.map((branch) => (
+                            <div key={branch.id} className="p-4 space-y-4 hover:bg-slate-50/30 transition-colors">
+                                {/* Row 1: Name and Health */}
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 text-base">{branch.name}</h4>
+                                        <div className="flex items-center gap-1.5 mt-0.5 group/copy">
+                                            <span className="text-xs text-slate-500 font-medium">Ref: {branch.slug}</span>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigator.clipboard.writeText(branch.slug);
+                                                    toast.success("Reference ID copied to clipboard");
+                                                }}
+                                                className="p-1 text-slate-400 hover:text-indigo-600 rounded transition-all"
+                                                title="Copy Reference ID"
+                                            >
+                                                <Copy size={12} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                                        branch.health === 'Healthy' ? 'bg-emerald-50 text-emerald-700' : 
+                                        branch.health === 'Warning' ? 'bg-amber-50 text-amber-700' : 
+                                        'bg-slate-50 text-slate-600'
+                                    }`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${branch.health === 'Healthy' ? 'bg-emerald-500' : branch.health === 'Warning' ? 'bg-amber-500' : 'bg-slate-500'}`}></span>
+                                        {branch.health === 'Offline' ? 'Inactive' : branch.health}
+                                    </span>
+                                </div>
+
+                                {/* Row 2: Metrics Grid */}
+                                <div className="grid grid-cols-2 gap-3 bg-slate-50/50 rounded-xl p-3 border border-slate-100 text-xs">
+                                    <div className="flex justify-between items-center py-0.5">
+                                        <span className="text-slate-500 font-medium">Active Queues</span>
+                                        <span className="font-bold text-slate-900">{branch.queues}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-0.5">
+                                        <span className="text-slate-500 font-medium">Live Wait</span>
+                                        <span className="font-bold text-slate-900">{branch.avg_wait_time || "0m"}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-0.5 col-span-2 border-t border-slate-100/60 pt-1.5">
+                                        <span className="text-slate-500 font-medium">Serving Capacity</span>
+                                        <span className="font-bold text-slate-950">{branch.serving || 0} / {branch.sessions || 0} counters</span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-0.5 col-span-2 border-t border-slate-100/60 pt-1.5">
+                                        <span className="text-slate-500 font-medium">Staff Online</span>
+                                        <span className="font-bold text-slate-900">{branch.online_staff || 0}</span>
+                                    </div>
+                                </div>
+
+                                {/* Row 3: Action Buttons */}
+                                <div className="flex items-center justify-end gap-2 pt-1">
+                                    <button
+                                        onClick={() => {
+                                            setSelectedBranch(branch);
+                                            setIsEditModalOpen(true);
+                                        }}
+                                        className="inline-flex items-center justify-center p-2 text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-colors"
+                                        title="Edit Branch"
+                                    >
+                                        <Pencil size={15} />
+                                    </button>
+                                    <Link
+                                        href={`/organization-admin/branches/${branch.id}`}
+                                        className="inline-flex items-center justify-center p-2 text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-colors"
+                                        title="View Branch Details"
+                                    >
+                                        <Eye size={15} />
+                                    </Link>
+                                    <Link
+                                        href={`/organization-admin/branches/${branch.id}`}
+                                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-all shadow-sm text-center"
+                                    >
+                                        Dashboard
+                                        <ChevronRight size={14} strokeWidth={2.5} />
+                                    </Link>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Desktop View Table (visible on medium & large screens) */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead className="bg-slate-50/80 border-b border-slate-200">
                             <tr>
@@ -339,11 +437,11 @@ export default function BranchesPage() {
                 </div>
                 
                 {/* Clean Table Footer */}
-                <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+                <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3">
                     <p className="text-xs font-medium text-slate-500">
                         Showing <strong className="text-slate-900 font-bold">{filteredBranches.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, filteredBranches.length)}</strong> of <strong className="text-slate-900 font-bold">{filteredBranches.length}</strong> Branches
                     </p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                         <button 
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1 || filteredBranches.length === 0} 

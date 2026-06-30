@@ -70,7 +70,97 @@ export default function AuditLogsPage() {
                         Security & Audit Events
                     </h2>
                 </div>
-                <div className="overflow-x-auto">
+                {/* Mobile View Feed (spacious cards on small screens) */}
+                <div className="block md:hidden divide-y divide-slate-100 bg-white">
+                    {paginatedLogs.length === 0 ? (
+                        <div className="p-12 text-center text-slate-500 text-sm">
+                            No recent audit logs.
+                        </div>
+                    ) : (
+                        paginatedLogs.map((log: any, idx: number) => {
+                            // Determine action color
+                            let actionColor = 'bg-slate-100 text-slate-800';
+                            const act = log.action ? log.action.toUpperCase() : '';
+                            if (act.includes('DELETE') || act.includes('REMOVE')) actionColor = 'bg-rose-100 text-rose-800';
+                            else if (act.includes('CREATE') || act.includes('ADD')) actionColor = 'bg-emerald-100 text-emerald-800';
+                            else if (act.includes('UPDATE') || act.includes('EDIT')) actionColor = 'bg-amber-100 text-amber-800';
+                            else if (act.includes('LOGIN') || act.includes('AUTH')) actionColor = 'bg-blue-100 text-blue-800';
+
+                            // Format Details
+                            let detailsPills: { key: string, value: string }[] = [];
+                            if (log.details) {
+                                try {
+                                    const parsed = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+                                    if (Object.keys(parsed).length > 0) {
+                                        detailsPills = Object.entries(parsed).map(([k, v]) => ({ key: k, value: String(v) }));
+                                    }
+                                } catch (e) {
+                                    detailsPills = [{ key: "info", value: String(log.details) }];
+                                }
+                            }
+
+                            return (
+                                <div key={idx} className="p-4 space-y-3 hover:bg-slate-50/30 transition-colors">
+                                    {/* Line 1: Action Badge & Time */}
+                                    <div className="flex items-center justify-between gap-4">
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${actionColor}`}>
+                                            {log.action}
+                                        </span>
+                                        <span className="text-xs text-slate-400 font-medium">
+                                            {new Date(log.timestamp).toLocaleTimeString(undefined, {
+                                                hour: '2-digit', minute: '2-digit', second: '2-digit'
+                                            })}
+                                        </span>
+                                    </div>
+
+                                    {/* Line 2: User & Branch Details */}
+                                    <div className="text-xs space-y-1">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-500 font-medium">User</span>
+                                            <span className="font-bold text-slate-800 break-all select-all">{log.user_email}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-500 font-medium">Branch</span>
+                                            <span className="font-bold text-slate-900">{log.branch}</span>
+                                        </div>
+                                        {log.entity_type && (
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-500 font-medium">Entity</span>
+                                                <span className="font-bold text-slate-800 capitalize">
+                                                    {log.entity_type.replace('_', ' ')} 
+                                                    {log.entity_id && ` (#${log.entity_id.split('-')[0]})`}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-500 font-medium">Date</span>
+                                            <span className="font-bold text-slate-850">
+                                                {new Date(log.timestamp).toLocaleDateString(undefined, {
+                                                    year: 'numeric', month: 'short', day: 'numeric'
+                                                })}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Line 3: Details Area */}
+                                    {detailsPills.length > 0 && (
+                                        <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100 flex flex-wrap gap-1.5">
+                                            {detailsPills.map((p, i) => (
+                                                <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 shadow-sm text-[10px]">
+                                                    <span className="text-slate-400 font-medium capitalize">{p.key.replace('_', ' ')}:</span>
+                                                    <span className="text-slate-700 font-mono truncate max-w-[150px]" title={p.value}>{p.value}</span>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Desktop View Table (visible on large viewports) */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold">

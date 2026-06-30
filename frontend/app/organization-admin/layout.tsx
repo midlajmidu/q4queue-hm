@@ -8,7 +8,8 @@ import { BranchFilterProvider } from "@/context/BranchFilterContext";
 import { 
     Building2, LogOut, LayoutDashboard, Users, UserCog, 
     Settings, Megaphone, Download, Database, Search, 
-    Bell, ChevronRight, Activity, LineChart, MessageCircle, ChevronUp
+    Bell, ChevronRight, Activity, LineChart, MessageCircle, ChevronUp,
+    Menu, X
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -20,6 +21,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
     useHeartbeat();
     const pathname = usePathname();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
@@ -52,6 +54,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
         return (
             <Link 
                 href={href}
+                onClick={() => setIsMobileMenuOpen(false)}
                 title={isSidebarCollapsed ? label : undefined}
                 className={`group relative flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3'} py-2 rounded-lg text-[13px] font-medium transition-all duration-150 border ${
                     isActive 
@@ -113,17 +116,29 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
             <NotificationProvider>
                 <div className="flex h-screen overflow-hidden bg-slate-50 font-sans">
                     
+                    {/* Mobile Backdrop Overlay */}
+                    {isMobileMenuOpen && (
+                        <div 
+                            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 md:hidden" 
+                            onClick={() => setIsMobileMenuOpen(false)} 
+                        />
+                    )}
+                    
                     {/* Enterprise Sidebar */}
-                    <aside className={`bg-white border-r border-slate-200 flex flex-col hidden md:flex h-full shrink-0 relative z-20 transition-all duration-300 ${isSidebarCollapsed ? 'w-[72px]' : 'w-[260px]'}`}>
+                    <aside className={`bg-white border-r border-slate-200 flex flex-col h-full shrink-0 transition-all duration-300 w-[260px] ${
+                        isSidebarCollapsed ? 'md:w-[72px]' : 'md:w-[260px]'
+                    } fixed md:sticky inset-y-0 left-0 z-50 md:z-20 md:flex ${
+                        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+                    }`}>
                         <button 
                             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                            className="absolute -right-3 top-7 bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full p-1 shadow-sm z-50 hover:bg-slate-50 transition-colors"
+                            className="absolute -right-3 top-7 bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full p-1 shadow-sm z-50 hover:bg-slate-50 transition-colors hidden md:block"
                         >
                             <ChevronRight size={14} className={`transition-transform duration-300 ${isSidebarCollapsed ? "" : "rotate-180"}`} />
                         </button>
                         
                         {/* Logo */}
-                        <div className="h-16 flex items-center justify-center px-4 shrink-0 border-b border-slate-100 overflow-hidden">
+                        <div className="h-16 flex items-center justify-between px-4 shrink-0 border-b border-slate-100 overflow-hidden">
                             <Link href="/organization-admin" className="focus:outline-none transition-opacity hover:opacity-80 flex items-center justify-center">
                                 {isSidebarCollapsed ? (
                                     <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">Q</div>
@@ -131,6 +146,12 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                     <Logo size="sm" />
                                 )}
                             </Link>
+                            <button 
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="md:hidden p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors animate-in fade-in duration-200"
+                            >
+                                <X size={18} />
+                            </button>
                         </div>
 
                         {/* Navigation */}
@@ -244,7 +265,14 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                         <header className="h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-slate-50 border-b border-slate-200 shrink-0">
                             
                             {/* Breadcrumbs & Mobile Logo */}
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={() => setIsMobileMenuOpen(true)}
+                                    className="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none"
+                                    aria-label="Open menu"
+                                >
+                                    <Menu size={20} />
+                                </button>
                                 <div className="flex items-center gap-2 md:hidden">
                                     <Link href="/organization-admin" className="focus:outline-none">
                                         <Logo size="sm" />
@@ -324,20 +352,17 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                 {children}
                             </div>
                             
-                            <footer className="max-w-[1600px] mx-auto w-full mt-12 pt-5 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-3 gap-4 text-[12px] font-medium text-slate-500 shrink-0">
-                                <div className="flex flex-col sm:flex-row items-center sm:justify-start gap-2 sm:gap-4">
-                                    <div className="flex items-center gap-2.5 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer group">
-                                        <span className="relative flex h-1.5 w-1.5">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 group-hover:opacity-100 transition-opacity"></span>
-                                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                                        </span>
-                                        All systems operational
-                                    </div>
+                            <footer className="max-w-[1600px] mx-auto w-full mt-12 pt-5 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] font-medium text-slate-500 shrink-0">
+                                <div className="flex items-center gap-2.5 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer group">
+                                    <span className="relative flex h-1.5 w-1.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 group-hover:opacity-100 transition-opacity"></span>
+                                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                    </span>
+                                    All systems operational
                                 </div>
-                                <div className="flex items-center justify-center">
-                                    <span className="text-slate-400">© {new Date().getFullYear()} Q4Queue</span>
-                                </div>
-                                <div className="flex items-center justify-center sm:justify-end">
+                                <div className="flex items-center gap-2 text-slate-400">
+                                    <span>© {new Date().getFullYear()} Q4Queue</span>
+                                    <span>•</span>
                                     <span>v1.0.0</span>
                                 </div>
                             </footer>

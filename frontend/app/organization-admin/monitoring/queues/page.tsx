@@ -82,7 +82,7 @@ export default function QueuesMonitoringPage() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white">
                     <h2 className="font-bold text-slate-900 flex items-center gap-2">
                         <ListFilter size={18} className="text-indigo-600" />
                         Customer Flow
@@ -91,7 +91,7 @@ export default function QueuesMonitoringPage() {
                         <select 
                             value={selectedSession} 
                             onChange={(e) => setSelectedSession(e.target.value)}
-                            className="text-sm border-slate-200 rounded-md py-1.5 pl-3 pr-8 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700 bg-slate-50 cursor-pointer shadow-sm hover:bg-white transition-colors"
+                            className="text-sm border-slate-200 rounded-md py-1.5 pl-3 pr-8 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700 bg-slate-50 cursor-pointer shadow-sm hover:bg-white transition-colors w-full sm:w-auto"
                         >
                             <option value="">All Sessions</option>
                             {uniqueSessions.map(s => (
@@ -100,7 +100,98 @@ export default function QueuesMonitoringPage() {
                         </select>
                     )}
                 </div>
-                <div className="overflow-x-auto">
+
+                {/* Mobile View Feed (spacious cards on small screens) */}
+                <div className="block md:hidden divide-y divide-slate-100 bg-white">
+                    {paginatedQueues.length === 0 ? (
+                        <div className="p-12 text-center text-slate-500 text-sm">
+                            No queues match the current filter.
+                        </div>
+                    ) : (
+                        paginatedQueues.map((q: any, idx: number) => {
+                            const loadPct = q.load_percentage || 0;
+                            const isCritical = loadPct >= 90;
+                            const isHeavy = loadPct >= 75;
+                            const barColor = isCritical ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' :
+                                             isHeavy ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' :
+                                             'bg-indigo-500';
+                            const textColor = isCritical ? 'text-rose-600' :
+                                              isHeavy ? 'text-amber-600' :
+                                              'text-slate-700';
+                            const statusLabel = isCritical ? 'Critical' : isHeavy ? 'Heavy' : 'Normal';
+
+                            return (
+                                <div key={idx} className="p-4 space-y-4 hover:bg-slate-50/30 transition-colors">
+                                    {/* Row 1: Branch/Queue and Status */}
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 text-sm leading-snug">{q.branch}</h4>
+                                            <p className="text-xs text-slate-500 font-medium mt-0.5">{q.queue_name}</p>
+                                        </div>
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                                            q.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
+                                        }`}>
+                                            {q.status === 'Active' && (
+                                                <span className="relative flex h-1.5 w-1.5">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                                </span>
+                                            )}
+                                            {q.status}
+                                        </span>
+                                    </div>
+
+                                    {/* Row 2: Details Grid */}
+                                    <div className="grid grid-cols-2 gap-3 bg-slate-50/50 rounded-xl p-3 border border-slate-100 text-xs">
+                                        {/* Load Bar */}
+                                        <div className="col-span-2 space-y-1.5">
+                                            <div className="flex justify-between items-end">
+                                                <span className="text-slate-500 font-medium">Queue Load</span>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className={`font-bold ${textColor}`}>{q.waiting || 0} waiting</span>
+                                                    {statusLabel !== 'Normal' && (
+                                                        <span className={`text-[9px] font-bold uppercase tracking-widest ${isCritical ? 'text-rose-500 animate-pulse' : 'text-amber-500'}`}>
+                                                            {statusLabel}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
+                                                <div className={`h-full rounded-full transition-all duration-700 ease-out ${barColor}`} style={{ width: `${loadPct}%` }} />
+                                            </div>
+                                        </div>
+
+                                        {/* Stats */}
+                                        <div className="flex justify-between items-center py-0.5 border-t border-slate-100/60 pt-2 col-span-2 sm:col-span-1">
+                                            <span className="text-slate-500 font-medium">Served Today</span>
+                                            <span className="font-bold text-slate-900">{q.served_today || 0}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-0.5 border-t sm:border-t-0 border-slate-100/60 pt-2 col-span-2 sm:col-span-1">
+                                            <span className="text-slate-500 font-medium">Avg Wait</span>
+                                            <span className="font-bold text-slate-900">{q.avg_wait_time || "0m"}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 3: Action Button */}
+                                    <div className="pt-1">
+                                        <a
+                                            href={`/${q.branch_slug}/dashboard/queues`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-lg transition-all shadow-sm"
+                                        >
+                                            Open Queue View
+                                            <ExternalLink size={14} className="text-slate-400" />
+                                        </a>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Desktop View Table (visible on large viewports) */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
