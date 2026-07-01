@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { getToken } from "@/lib/auth";
 
 // Import all modular components
 import BranchExecutiveSummary from "@/components/organization-admin/branch-details/BranchExecutiveSummary";
@@ -104,7 +105,7 @@ export default function BranchDetailsPage() {
                         {branch.is_active ? 'Deactivate Branch' : 'Activate Branch'}
                     </button>
                     <Link
-                        href={`/organization-admin/branches/${branchId}/admin`}
+                        href={`/organization-admin/branches/${branchId}/admin#token=${getToken("org_admin") || ""}`}
                         target="_blank"
                         className="flex items-center gap-2 bg-indigo-600 text-white shadow-sm shadow-indigo-200 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-medium transition-all"
                     >

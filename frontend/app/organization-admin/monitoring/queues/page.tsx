@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { ListFilter, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useBranchFilter } from "@/context/BranchFilterContext";
+import BranchSelector from "@/components/organization-admin/BranchSelector";
 
 export default function QueuesMonitoringPage() {
     const [queues, setQueues] = useState<any[]>([]);
@@ -78,6 +79,9 @@ export default function QueuesMonitoringPage() {
                             Updated just now
                         </div>
                     </div>
+                </div>
+                <div className="shrink-0">
+                    <BranchSelector />
                 </div>
             </div>
 

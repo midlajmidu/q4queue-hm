@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { Search, Plus, ExternalLink, Eye, Building2, Pencil, ChevronRight, Copy, Info, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { getToken } from "@/lib/auth";
 import CreateBranchModal from "@/components/organization-admin/CreateBranchModal";
 import EditBranchModal from "@/components/organization-admin/EditBranchModal";
 
@@ -245,7 +246,8 @@ export default function BranchesPage() {
                                         <Eye size={15} />
                                     </Link>
                                     <Link
-                                        href={`/organization-admin/branches/${branch.id}`}
+                                        href={`/organization-admin/branches/${branch.id}/admin#token=${getToken("org_admin") || ""}`}
+                                        target="_blank"
                                         className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-all shadow-sm text-center"
                                     >
                                         Dashboard
@@ -421,7 +423,8 @@ export default function BranchesPage() {
                                                     <Eye size={16} />
                                                 </Link>
                                                 <Link
-                                                    href={`/organization-admin/branches/${branch.id}`}
+                                                    href={`/organization-admin/branches/${branch.id}/admin#token=${getToken("org_admin") || ""}`}
+                                                    target="_blank"
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-600 bg-white hover:bg-slate-50 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-md transition-all shadow-sm"
                                                 >
                                                     Dashboard

@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { Users, ExternalLink, ArrowUp, ArrowDown, Activity, ChevronRight, Flame, CheckCircle2 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useBranchFilter } from "@/context/BranchFilterContext";
+import BranchSelector from "@/components/organization-admin/BranchSelector";
 
 export default function SessionsMonitoringPage() {
     const [sessions, setSessions] = useState<any[]>([]);
@@ -135,6 +136,9 @@ export default function SessionsMonitoringPage() {
                         </div>
                     </div>
                 </div>
+                <div className="shrink-0">
+                    <BranchSelector />
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -157,20 +161,6 @@ export default function SessionsMonitoringPage() {
                     ) : (
                         sortedSessions.map((s: any) => {
                             const idx = s.originalIdx;
-                            const isCritical = s.loadPercentage >= 90;
-                            const isHeavy = s.loadPercentage >= 75;
-                            const barColor = isCritical ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' :
-                                             isHeavy ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' :
-                                             'bg-indigo-500';
-                            const textColor = isCritical ? 'text-rose-600' :
-                                              isHeavy ? 'text-amber-600' :
-                                              'text-slate-700';
-
-                            const staffPct = s.staffPresentNum / (s.staffTotalNum || 1);
-                            const staffBg = staffPct < 0.5 ? 'bg-rose-50 border-rose-200' :
-                                              staffPct < 1 ? 'bg-amber-50 border-amber-200' :
-                                              'bg-emerald-50 border-emerald-200';
-                            const staffTextColor = staffPct < 0.5 ? 'text-rose-700' : staffPct < 1 ? 'text-amber-700' : 'text-emerald-700';
 
                             return (
                                 <div key={idx} className="p-4 space-y-4 hover:bg-slate-50/30 transition-colors">
@@ -193,36 +183,7 @@ export default function SessionsMonitoringPage() {
                                         </span>
                                     </div>
 
-                                    {/* Line 2: Details Grid */}
-                                    <div className="grid grid-cols-2 gap-3 bg-slate-50/50 rounded-xl p-3 border border-slate-100 text-xs">
-                                        {/* Load Bar */}
-                                        <div className="col-span-2 space-y-1.5">
-                                            <div className="flex justify-between items-end">
-                                                <span className="text-slate-500 font-medium">Queue Load</span>
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className={`font-bold ${textColor}`}>{s.loadPercentage}%</span>
-                                                    {s.loadStatus !== 'Normal' && (
-                                                        <span className={`text-[9px] font-bold uppercase tracking-widest ${isCritical ? 'text-rose-500 animate-pulse' : 'text-amber-500'}`}>
-                                                            {s.loadStatus}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
-                                                <div className={`h-full rounded-full transition-all duration-700 ease-out ${barColor}`} style={{ width: `${s.loadPercentage}%` }} />
-                                            </div>
-                                        </div>
 
-                                        {/* Staffing */}
-                                        <div className="col-span-2 border-t border-slate-100/60 pt-2 flex items-center justify-between">
-                                            <span className="text-slate-500 font-medium">Staff Present</span>
-                                            <div className={`inline-flex items-baseline justify-center border shadow-sm rounded-md px-2 py-0.5 ${staffBg}`}>
-                                                <span className={`text-[12px] font-extrabold ${staffTextColor}`}>{s.staffPresentNum}</span>
-                                                <span className={`text-[9px] font-bold mx-0.5 ${staffTextColor} opacity-40`}>/</span>
-                                                <span className={`text-[10px] font-semibold ${staffTextColor} opacity-70`}>{s.staffTotalNum}</span>
-                                            </div>
-                                        </div>
-                                    </div>
 
                                     {/* Line 3: Actions */}
                                     <div className="pt-1">
@@ -247,8 +208,6 @@ export default function SessionsMonitoringPage() {
                             <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
                                 <SortHeader field="branch" label="Branch" />
                                 <SortHeader field="session_name" label="Session Name" />
-                                <SortHeader field="load_status" label="Queue Load" />
-                                <SortHeader field="staff_present" label="Staff Present" align="center" />
                                 <SortHeader field="status" label="Status" />
                                 <th className="px-4 py-3 text-right">Actions</th>
                             </tr>
@@ -256,7 +215,7 @@ export default function SessionsMonitoringPage() {
                         <tbody className="divide-y divide-slate-100 text-[13px]">
                             {sessions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-16 text-center bg-slate-50/30">
+                                    <td colSpan={4} className="p-16 text-center bg-slate-50/30">
                                         <div className="flex flex-col items-center justify-center space-y-4">
                                             <div className="w-14 h-14 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm">
                                                 <Activity size={28} />
@@ -270,7 +229,6 @@ export default function SessionsMonitoringPage() {
                                 </tr>
                             ) : (
                                 sortedSessions.map((s: any) => {
-                                    const loadStatus = s.loadStatus;
                                     const idx = s.originalIdx;
                                     
                                     return (
@@ -279,57 +237,6 @@ export default function SessionsMonitoringPage() {
                                                 <div className="font-semibold text-slate-900">{s.branch}</div>
                                             </td>
                                             <td className="px-4 py-2.5 font-medium text-slate-700">{s.session_name}</td>
-                                            <td className="px-4 py-2.5">
-                                                {(() => {
-                                                    const isCritical = s.loadPercentage >= 90;
-                                                    const isHeavy = s.loadPercentage >= 75;
-                                                    const barColor = isCritical ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' :
-                                                                     isHeavy ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' :
-                                                                     'bg-indigo-500';
-                                                    const textColor = isCritical ? 'text-rose-600' :
-                                                                      isHeavy ? 'text-amber-600' :
-                                                                      'text-slate-700';
-                                                    
-                                                    return (
-                                                        <div className="flex flex-col gap-1.5 w-32">
-                                                            <div className="flex items-end justify-between">
-                                                                <span className={`text-xs font-semibold ${textColor}`}>
-                                                                    {s.loadPercentage}%
-                                                                </span>
-                                                                {s.loadStatus !== 'Normal' && (
-                                                                    <span className={`text-[9px] font-bold uppercase tracking-widest ${isCritical ? 'text-rose-500 animate-pulse' : 'text-amber-500'}`}>
-                                                                        {s.loadStatus}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                                                                <div 
-                                                                    className={`h-full rounded-full transition-all duration-700 ease-out ${barColor}`}
-                                                                    style={{ width: `${s.loadPercentage}%` }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </td>
-                                            <td className="px-4 py-2.5 text-center">
-                                                {(() => {
-                                                    const staffPct = s.staffPresentNum / (s.staffTotalNum || 1);
-                                                    const statusColor = staffPct < 0.5 ? 'bg-rose-50 border-rose-200' :
-                                                                      staffPct < 1 ? 'bg-amber-50 border-amber-200' :
-                                                                      'bg-emerald-50 border-emerald-200';
-                                                    const textColor = staffPct < 0.5 ? 'text-rose-700' : staffPct < 1 ? 'text-amber-700' : 'text-emerald-700';
-
-                                                    return (
-                                                        <div className={`inline-flex items-baseline justify-center border shadow-sm rounded-md px-2.5 py-1 ${statusColor}`}>
-                                                            <span className={`text-[14px] font-extrabold ${textColor}`}>{s.staffPresentNum}</span>
-                                                            <span className={`text-[10px] font-bold mx-1 ${textColor} opacity-40`}>/</span>
-                                                            <span className={`text-[11px] font-semibold ${textColor} opacity-70`}>{s.staffTotalNum}</span>
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </td>
-
                                             <td className="px-4 py-2.5">
                                                 <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
                                                     s.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'

@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { UserCog, ExternalLink, Users, ShieldAlert, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useBranchFilter } from "@/context/BranchFilterContext";
+import BranchSelector from "@/components/organization-admin/BranchSelector";
 
 export default function StaffMonitoringPage() {
     const [staff, setStaff] = useState<any[]>([]);
@@ -53,9 +54,14 @@ export default function StaffMonitoringPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900">Staff Monitoring</h1>
-                <p className="text-sm text-slate-500 mt-1">Monitor all staff members and branch admins across the organization.</p>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 pb-6 border-b border-slate-200/60 mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900">Staff Monitoring</h1>
+                    <p className="text-sm text-slate-500 mt-1">Monitor all staff members and branch admins across the organization.</p>
+                </div>
+                <div className="shrink-0">
+                    <BranchSelector />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
