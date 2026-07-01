@@ -142,15 +142,12 @@ async def notify_queue_event(
 
         if event_type == "queue_joined_v4":
             # Primary Welcome Template (Template 1)
-            # Need to get org_display_id (which could be the org_id or slug). Here we'll just use org_id as slug placeholder.
-            org_display_id = str(org_id)
-            
             # Use env-configured frontend URL or fallback
             from app.core.config import get_settings
             settings = get_settings()
             frontend_url = getattr(settings, "FRONTEND_URL", "https://amoebaq.com").rstrip("/")
             track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
-            display_url = f"{frontend_url}/d/{org_display_id}"
+            display_url = f"{frontend_url}/d/{queue_id}"
             
             org_name_to_use = organization_name if organization_name else queue_name
             
@@ -216,8 +213,7 @@ async def notify_queue_event(
             settings = get_settings()
             frontend_url = getattr(settings, "FRONTEND_URL", "https://amoebaq.com").rstrip("/")
             track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
-            org_display_id = str(org_id)
-            display_url = f"{frontend_url}/d/{org_display_id}"
+            display_url = f"{frontend_url}/d/{queue_id}"
             
             # Build variables for all template-based non-join events
             # Format: 1: Name, 2: Org Name, 3: Token, 4: Position, 5: Tracking URL, 6: Display URL
