@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { setToken, getSuperAdminToken, getToken, setSuperAdminToken } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Org-Admin → Branch Read-Only View
@@ -17,10 +18,16 @@ export default function OrgAdminBranchViewPage() {
     const params = useParams();
     const router = useRouter();
     const branchId = params?.branchId as string;
+    const { isHydrated, isAuthenticated } = useAuth();
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!branchId) return;
+        if (!isHydrated || !branchId) return;
+
+        if (!isAuthenticated) {
+            setError("Session expired or not authenticated. Please login again.");
+            return;
+        }
 
         async function loadBranchView() {
             try {
@@ -49,7 +56,7 @@ export default function OrgAdminBranchViewPage() {
         }
 
         loadBranchView();
-    }, [branchId, router]);
+    }, [branchId, router, isHydrated, isAuthenticated]);
 
     if (error) {
         return (

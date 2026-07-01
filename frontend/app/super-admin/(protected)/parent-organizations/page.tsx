@@ -56,7 +56,8 @@ export default function ParentOrganizationsPage() {
         e.preventDefault();
         setCreating(true);
         try {
-            await api.createParentOrganization(formData);
+            const finalSlug = formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            await api.createParentOrganization({ ...formData, slug: finalSlug });
             toast.success("Parent Organization created successfully");
             setIsCreateModalOpen(false);
             setFormData({ name: "", slug: "", contact_email: "", contact_phone: "" });
@@ -203,17 +204,7 @@ export default function ParentOrganizationsPage() {
                                     placeholder="e.g. HM Leisure"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-1.5">Slug (URL identifier)</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.slug}
-                                    onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
-                                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-sm text-slate-100 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 placeholder:text-slate-500 transition-all shadow-inner"
-                                    placeholder="e.g. hm-leisure"
-                                />
-                            </div>
+
                             <div>
                                 <label className="block text-sm font-semibold text-slate-300 mb-1.5">Contact Email</label>
                                 <input

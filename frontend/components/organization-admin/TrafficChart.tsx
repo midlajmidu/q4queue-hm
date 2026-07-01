@@ -111,7 +111,7 @@ export default function TrafficChart() {
     return (
         <PremiumCard className="p-6 w-full mb-8" hoverEffect={false}>
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
                     <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
                         Global Traffic &amp; Wait Time Trends
@@ -126,8 +126,8 @@ export default function TrafficChart() {
                     )}
                 </div>
 
-                <div className="flex items-center gap-5">
-                    <div className="flex items-center gap-4 text-xs font-medium">
+                <div className="flex items-center justify-between sm:justify-end gap-5 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-medium">
                         <div className="flex items-center gap-1.5">
                             <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
                             <span className="text-slate-500">Volume</span>
@@ -140,7 +140,7 @@ export default function TrafficChart() {
                     <button
                         onClick={() => { setLoading(true); loadTrafficData(); }}
                         title="Refresh"
-                        className="text-slate-400 hover:text-indigo-600 transition-colors"
+                        className="text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
                     </button>

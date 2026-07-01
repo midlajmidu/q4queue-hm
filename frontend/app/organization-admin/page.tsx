@@ -104,7 +104,7 @@ export default function OrgAdminDashboard() {
             {/* 1. Executive Overview */}
             <section>
                 <SectionHeader title="Executive Overview" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
                     {/* Total Staff Card (Replaced Org Health) */}
                     <MetricCard 
                         title="Total Staff"
@@ -150,15 +150,18 @@ export default function OrgAdminDashboard() {
                         trend="down"
                         trendValue={12}
                     />
-                    <MetricCard 
-                        title={selectedBranchId ? "Branch Served" : "Served Today"}
-                        value={selectedBranchId && data.branch_performance?.length > 0 ? data.branch_performance[0].customers_served_today : data.global_kpis.total_customers_served_today}
-                        subtitle="vs yesterday"
-                        icon={UserCheck}
-                        watermarkIcon={UserCheck}
-                        trend="up"
-                        trendValue={8}
-                    />
+                    
+                    <div className="col-span-2 lg:col-span-1">
+                        <MetricCard 
+                            title={selectedBranchId ? "Branch Served" : "Served Today"}
+                            value={selectedBranchId && data.branch_performance?.length > 0 ? data.branch_performance[0].customers_served_today : data.global_kpis.total_customers_served_today}
+                            subtitle="vs yesterday"
+                            icon={UserCheck}
+                            watermarkIcon={UserCheck}
+                            trend="up"
+                            trendValue={8}
+                        />
+                    </div>
                 </div>
             </section>
 
@@ -181,7 +184,7 @@ export default function OrgAdminDashboard() {
                                 <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-700">Real-time</span>
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Active Sessions */}
                             <div className="bg-slate-50/50 rounded-xl p-5 border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between h-full group hover:border-slate-300 transition-colors">
                                 <div className="flex items-center justify-between mb-4">

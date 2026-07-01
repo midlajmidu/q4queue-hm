@@ -5,7 +5,7 @@ from datetime import datetime, date, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, text, or_
 
 from app.db.deps import get_db
 from app.core.deps import require_organization_admin, get_current_super_admin
@@ -461,7 +461,24 @@ async def monitor_sessions(
         return []
     
     today = datetime.now(timezone.utc).date()
-    query = select(Session, Organization).join(Organization, Session.org_id == Organization.id).where(Session.org_id.in_(org_ids), Session.session_date == today)
+    
+    active_queue_sessions_subq = (
+        select(Queue.session_id)
+        .where(Queue.is_active == True)
+        .distinct()
+    )
+    
+    query = (
+        select(Session, Organization)
+        .join(Organization, Session.org_id == Organization.id)
+        .where(
+            Session.org_id.in_(org_ids),
+            or_(
+                Session.session_date == today,
+                Session.id.in_(active_queue_sessions_subq)
+            )
+        )
+    )
     res = await db.execute(query)
     sessions_data = res.all()
     

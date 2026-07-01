@@ -66,7 +66,7 @@ export default function OrganizationSettingsPage() {
             </div>
 
             <form onSubmit={handleSave} className="space-y-6">
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
                     <div className="flex items-center gap-2 mb-4 text-indigo-600">
                         <Building2 size={20} />
                         <h2 className="text-lg font-semibold text-slate-900">General Information</h2>
@@ -113,7 +113,7 @@ export default function OrganizationSettingsPage() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
                     <div className="flex items-center gap-2 mb-4 text-indigo-600">
                         <Palette size={20} />
                         <h2 className="text-lg font-semibold text-slate-900">Branding & Identity</h2>
@@ -155,7 +155,7 @@ export default function OrganizationSettingsPage() {
                     <button
                         type="submit"
                         disabled={saving}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
                     >
                         <Save size={18} />
                         {saving ? "Saving..." : "Save Settings"}

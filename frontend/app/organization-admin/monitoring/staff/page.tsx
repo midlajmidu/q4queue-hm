@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { UserCog, ExternalLink, Users, ShieldAlert, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useBranchFilter } from "@/context/BranchFilterContext";
+import BranchSelector from "@/components/organization-admin/BranchSelector";
 
 export default function StaffMonitoringPage() {
     const [staff, setStaff] = useState<any[]>([]);
@@ -53,12 +54,17 @@ export default function StaffMonitoringPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900">Staff Monitoring</h1>
-                <p className="text-sm text-slate-500 mt-1">Monitor all staff members and branch admins across the organization.</p>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 pb-6 border-b border-slate-200/60 mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900">Staff Monitoring</h1>
+                    <p className="text-sm text-slate-500 mt-1">Monitor all staff members and branch admins across the organization.</p>
+                </div>
+                <div className="shrink-0">
+                    <BranchSelector />
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-start gap-4">
                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
                         <Users size={24} />
@@ -79,7 +85,7 @@ export default function StaffMonitoringPage() {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-start gap-4">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-start gap-4 sm:col-span-2 md:col-span-1">
                     <div className="p-3 bg-rose-50 text-rose-600 rounded-lg">
                         <ShieldAlert size={24} />
                     </div>
@@ -97,7 +103,82 @@ export default function StaffMonitoringPage() {
                         Organization Staff
                     </h2>
                 </div>
-                <div className="overflow-x-auto">
+                {/* Mobile View Feed (spacious cards on small screens) */}
+                <div className="block md:hidden divide-y divide-slate-100 bg-white">
+                    {paginatedStaff.length === 0 ? (
+                        <div className="p-12 text-center text-slate-500 text-sm">
+                            No staff members found.
+                        </div>
+                    ) : (
+                        paginatedStaff.map((s: any, idx: number) => (
+                            <div key={idx} className="p-4 space-y-4 hover:bg-slate-50/30 transition-colors">
+                                {/* Row 1: Avatar, Name & Status */}
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-750 flex items-center justify-center text-xs font-bold border border-slate-205">
+                                            {s.name.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 text-sm leading-snug">{s.name}</h4>
+                                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 uppercase border border-slate-200 mt-1">
+                                                {s.role}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                                        s.status === 'Online' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
+                                    }`}>
+                                        {s.status === 'Online' && (
+                                            <span className="relative flex h-1.5 w-1.5">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                            </span>
+                                        )}
+                                        {s.status}
+                                    </span>
+                                </div>
+
+                                {/* Row 2: Details Grid */}
+                                <div className="grid grid-cols-1 gap-2 bg-slate-50/50 rounded-xl p-3 border border-slate-100 text-xs">
+                                    <div className="flex justify-between items-center py-0.5">
+                                        <span className="text-slate-500 font-medium">Branch</span>
+                                        <span className="font-bold text-slate-900">{s.branch}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-0.5 border-t border-slate-100/60 pt-1.5">
+                                        <span className="text-slate-500 font-medium">Email</span>
+                                        <span className="font-bold text-slate-800 break-all select-all">{s.email}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-0.5 border-t border-slate-100/60 pt-1.5">
+                                        <span className="text-slate-500 font-medium">Added Date</span>
+                                        <span className="font-bold text-slate-900">
+                                            {new Date(s.created_at).toLocaleDateString(undefined, {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric'
+                                            })}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Row 3: Action Button */}
+                                <div className="pt-1">
+                                    <a
+                                        href={`/${s.branch_slug}/dashboard`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-lg transition-all shadow-sm"
+                                    >
+                                        Open Branch View
+                                        <ExternalLink size={14} className="text-slate-400" />
+                                    </a>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Desktop View Table (visible on large viewports) */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold">

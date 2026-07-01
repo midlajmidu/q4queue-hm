@@ -126,19 +126,19 @@ export default function OrganizationAnnouncementsPage() {
                 <div className="space-y-3">
                     {announcements.map((ann) => (
                         <div key={ann.id} className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-colors group">
-                            <div className="flex items-start justify-between">
+                            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                                 <div className="flex gap-4">
-                                    <div className="mt-0.5">{getTypeIcon(ann.type)}</div>
+                                    <div className="mt-0.5 shrink-0">{getTypeIcon(ann.type)}</div>
                                     <div>
-                                        <h3 className="text-base font-medium text-slate-900">{ann.title}</h3>
+                                        <h3 className="text-base font-semibold text-slate-900">{ann.title}</h3>
                                         <p className="text-sm text-slate-600 mt-1">{ann.message}</p>
-                                        <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-slate-500">
                                             <span>Created {new Date(ann.created_at).toLocaleDateString()}</span>
                                             {ann.start_time && (
-                                                <span className="text-slate-600">Start: {new Date(ann.start_time).toLocaleDateString()}</span>
+                                                <span className="text-slate-650">Start: {new Date(ann.start_time).toLocaleDateString()}</span>
                                             )}
                                             {ann.end_time && (
-                                                <span className="text-slate-600">End: {new Date(ann.end_time).toLocaleDateString()}</span>
+                                                <span className="text-slate-650">End: {new Date(ann.end_time).toLocaleDateString()}</span>
                                             )}
                                             <span className="capitalize px-2 py-0.5 bg-slate-50 text-slate-600 rounded border border-slate-200">
                                                 {ann.type}
@@ -150,7 +150,7 @@ export default function OrganizationAnnouncementsPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-4 sm:mt-0 sm:ml-4">
+                                <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity justify-end sm:justify-start w-full sm:w-auto border-t border-slate-100 sm:border-t-0 pt-3 sm:pt-0 shrink-0">
                                     <button 
                                         onClick={() => handleEdit(ann)}
                                         className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
@@ -202,7 +202,7 @@ export default function OrganizationAnnouncementsPage() {
                                     <option value="critical">Critical</option>
                                 </select>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Start Time (Optional)</label>
                                     <input

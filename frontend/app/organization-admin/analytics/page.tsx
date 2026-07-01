@@ -114,28 +114,28 @@ export default function AnalyticsPage() {
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-3 w-full lg:w-auto shrink-0 print:hidden">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0 print:hidden">
                     <DateRangeFilter onChange={setDateRange} initialPreset={dateRange.preset} />
                     
-                    <div className="relative">
+                    <div className="relative w-full sm:w-auto">
                         <button 
                             onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
                             disabled={isExporting}
-                            className={`group flex items-center gap-2.5 bg-white border ${isExportMenuOpen ? 'border-indigo-300 ring-2 ring-indigo-50' : 'border-slate-200/80'} text-slate-700 hover:text-indigo-700 hover:border-indigo-200 hover:bg-indigo-50/30 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none`}
+                            className={`group flex items-center justify-center gap-2.5 w-full sm:w-auto bg-white border ${isExportMenuOpen ? 'border-indigo-300 ring-2 ring-indigo-50' : 'border-slate-200/80'} text-slate-700 hover:text-indigo-700 hover:border-indigo-200 hover:bg-indigo-50/30 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none`}
                         >
                             {isExporting ? (
                                 <div className="w-4 h-4 border-2 border-slate-300 border-t-indigo-500 rounded-full animate-spin"></div>
                             ) : (
                                 <Download size={16} className={`transition-colors ${isExportMenuOpen ? 'text-indigo-500' : 'text-slate-400 group-hover:text-indigo-500'}`} />
                             )}
-                            <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
+                            <span>{isExporting ? 'Exporting...' : 'Export'}</span>
                             <ChevronDown size={14} className={`transition-all duration-200 ${isExportMenuOpen ? 'text-indigo-500 rotate-180' : 'text-slate-400 group-hover:text-indigo-500'}`} />
                         </button>
 
                         {isExportMenuOpen && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setIsExportMenuOpen(false)}></div>
-                                <div className="absolute right-0 mt-2.5 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 z-50 p-2 overflow-hidden ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                                <div className="absolute right-0 sm:right-0 mt-2.5 w-full sm:w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 z-50 p-2 overflow-hidden ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                                     <div className="flex flex-col space-y-1">
                                         <button
                                             onClick={() => {
@@ -221,7 +221,7 @@ export default function AnalyticsPage() {
             )}
 
             {/* Merged High-Density KPI Cards */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 
                 {/* Efficiency Focus */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
@@ -320,7 +320,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Retention & Load */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:col-span-2 xl:col-span-1">
                     <div className="px-5 py-3 border-b border-slate-100 bg-rose-50/30 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <TrendingDown size={16} className="text-rose-500" />

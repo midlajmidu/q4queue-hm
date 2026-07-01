@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import {
     setToken,
@@ -33,6 +33,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
+    const pathname = usePathname();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isAuthed, setIsAuthed] = useState(false);
@@ -58,6 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } catch (e) {}
         }
     }, []);
+
+    // Monitor pathname route changes to automatically sync auth state
+    useEffect(() => {
+        syncAuthState();
+    }, [pathname, syncAuthState]);
 
     // Hydrate auth state on mount and initialize BroadcastChannel
     useEffect(() => {

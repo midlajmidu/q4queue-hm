@@ -85,20 +85,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             </div>
                             
                             {!isManageQueuePage && (
-                                <footer className="max-w-7xl mx-auto w-full mt-12 pt-5 border-t border-slate-200/80 dark:border-white/5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-[12px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
-                                    <div className="flex flex-col sm:flex-row items-center sm:justify-start gap-2 sm:gap-4">
-                                        <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer group">
-                                            <span className="relative flex h-1.5 w-1.5">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 group-hover:opacity-100 transition-opacity"></span>
-                                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                                            </span>
-                                            All systems operational
-                                        </div>
+                                <footer className="max-w-7xl mx-auto w-full mt-12 pt-5 border-t border-slate-200/80 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                                    <div className="flex items-center gap-2.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer group">
+                                        <span className="relative flex h-1.5 w-1.5">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 group-hover:opacity-100 transition-opacity"></span>
+                                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                        </span>
+                                        All systems operational
                                     </div>
-                                    <div className="flex items-center justify-center">
-                                        <span className="text-slate-400 dark:text-slate-600">© 2026 Q4Queue</span>
-                                    </div>
-                                    <div className="flex items-center justify-center sm:justify-end">
+                                    <div className="flex items-center gap-2 text-slate-400 dark:text-slate-600">
+                                        <span>© {new Date().getFullYear()} Q4Queue</span>
+                                        <span>•</span>
                                         <span>v1.0.0</span>
                                     </div>
                                 </footer>
