@@ -12,6 +12,10 @@ class GlobalKPIs(BaseModel):
     total_customers_waiting: int
     total_customers_served_today: int
     org_health_score: int
+    waiting_trend_value: float = 0.0
+    waiting_trend_direction: str = "neutral"
+    served_trend_value: float = 0.0
+    served_trend_direction: str = "neutral"
 
 class DynamicInsights(BaseModel):
     active_sessions: int
@@ -20,6 +24,10 @@ class DynamicInsights(BaseModel):
     average_wait_time: str
     average_service_time: str
     whatsapp_success_rate: float
+    sessions_trend_value: float = 0.0
+    sessions_trend_direction: str = "neutral"
+    serving_trend_value: float = 0.0
+    serving_trend_direction: str = "neutral"
 
 class ExecutiveInsights(BaseModel):
     top_performing_branch: Optional[str] = None

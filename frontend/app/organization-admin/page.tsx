@@ -147,8 +147,8 @@ export default function OrgAdminDashboard() {
                         subtitle="vs yesterday average"
                         icon={Clock}
                         watermarkIcon={Clock}
-                        trend="down"
-                        trendValue={12}
+                        trend={data.global_kpis.waiting_trend_direction as any}
+                        trendValue={data.global_kpis.waiting_trend_value}
                     />
                     
                     <div className="col-span-2 lg:col-span-1">
@@ -158,8 +158,8 @@ export default function OrgAdminDashboard() {
                             subtitle="vs yesterday"
                             icon={UserCheck}
                             watermarkIcon={UserCheck}
-                            trend="up"
-                            trendValue={8}
+                            trend={data.global_kpis.served_trend_direction as any}
+                            trendValue={data.global_kpis.served_trend_value}
                         />
                     </div>
                 </div>
@@ -196,9 +196,13 @@ export default function OrgAdminDashboard() {
                                 <div>
                                     <span className="text-2xl font-bold tracking-tight text-slate-900">{data.dynamic_insights.active_sessions}</span>
                                     <div className="mt-2 flex items-center gap-2">
-                                        <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-100/50">
-                                            <TrendingUp size={12} strokeWidth={2} />
-                                            <span>12%</span>
+                                        <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium ${
+                                            data.dynamic_insights.sessions_trend_direction === 'up' ? 'text-emerald-700 bg-emerald-50 border border-emerald-100/50' :
+                                            data.dynamic_insights.sessions_trend_direction === 'down' ? 'text-rose-700 bg-rose-50 border border-rose-100/50' :
+                                            'text-slate-600 bg-slate-100 border border-slate-200'
+                                        }`}>
+                                            <TrendingUp size={12} strokeWidth={2} className={data.dynamic_insights.sessions_trend_direction === 'down' ? 'rotate-180' : ''} />
+                                            <span>{data.dynamic_insights.sessions_trend_value}%</span>
                                         </div>
                                         <span className="text-[11px] text-slate-500">vs last hour</span>
                                     </div>
@@ -217,9 +221,13 @@ export default function OrgAdminDashboard() {
                                     <span className="text-2xl font-bold tracking-tight text-slate-900">{data.dynamic_insights.customers_being_served}</span>
                                     <div className="mt-2 flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-100/50">
-                                                <TrendingUp size={12} strokeWidth={2} />
-                                                <span>8%</span>
+                                            <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium ${
+                                                data.dynamic_insights.serving_trend_direction === 'up' ? 'text-emerald-700 bg-emerald-50 border border-emerald-100/50' :
+                                                data.dynamic_insights.serving_trend_direction === 'down' ? 'text-rose-700 bg-rose-50 border border-rose-100/50' :
+                                                'text-slate-600 bg-slate-100 border border-slate-200'
+                                            }`}>
+                                                <TrendingUp size={12} strokeWidth={2} className={data.dynamic_insights.serving_trend_direction === 'down' ? 'rotate-180' : ''} />
+                                                <span>{data.dynamic_insights.serving_trend_value}%</span>
                                             </div>
                                             <span className="text-[11px] text-slate-500">vs last hour</span>
                                         </div>

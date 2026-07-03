@@ -35,6 +35,16 @@ async def get_org_ids(db: AsyncSession, parent_org_id: uuid.UUID, branch_id: Opt
     res = await db.execute(query)
     return list(res.scalars().all())
 
+def _calc_trend(current: int, previous: int) -> tuple[float, str]:
+    if previous == 0:
+        return (100.0, "up") if current > 0 else (0.0, "neutral")
+    change = ((current - previous) / previous) * 100
+    if change > 0:
+        return round(change, 1), "up"
+    elif change < 0:
+        return round(abs(change), 1), "down"
+    return 0.0, "neutral"
+
 def _fmt_minutes(sec: float | None) -> str:
     if not sec or sec <= 0:
         return "0m"
@@ -90,6 +100,21 @@ async def get_dashboard_metrics(
     )
     global_tokens = dict(global_tokens_res.all())
 
+    global_tokens_yesterday_res = await db.execute(
+        select(Token.status, func.count(Token.id))
+        .where(Token.org_id.in_(global_org_ids), func.date(Token.created_at) == today - timedelta(days=1))
+        .group_by(Token.status)
+    )
+    global_tokens_yesterday = dict(global_tokens_yesterday_res.all())
+
+    waiting_today = global_tokens.get(TokenStatus.waiting, 0)
+    waiting_yesterday = global_tokens_yesterday.get(TokenStatus.waiting, 0)
+    waiting_trend_val, waiting_trend_dir = _calc_trend(waiting_today, waiting_yesterday)
+
+    served_today = global_tokens.get(TokenStatus.done, 0)
+    served_yesterday = global_tokens_yesterday.get(TokenStatus.done, 0)
+    served_trend_val, served_trend_dir = _calc_trend(served_today, served_yesterday)
+
     total_branches = len(global_branches)
     active_branches = sum(1 for b in global_branches if b.is_active)
     global_kpis = GlobalKPIs(
@@ -98,9 +123,13 @@ async def get_dashboard_metrics(
         inactive_branches=total_branches - active_branches,
         total_staff=sum(1 for s in global_staff if s.role == "staff"),
         total_branch_admins=sum(1 for s in global_staff if s.role == "admin" or s.role == "branch_admin"),
-        total_customers_waiting=global_tokens.get(TokenStatus.waiting, 0),
-        total_customers_served_today=global_tokens.get(TokenStatus.done, 0),
-        org_health_score=100 if active_branches > 0 else 0 # Simplified health
+        total_customers_waiting=waiting_today,
+        total_customers_served_today=served_today,
+        org_health_score=100 if active_branches > 0 else 0, # Simplified health
+        waiting_trend_value=waiting_trend_val,
+        waiting_trend_direction=waiting_trend_dir,
+        served_trend_value=served_trend_val,
+        served_trend_direction=served_trend_dir
     )
 
     # --- DYNAMIC INSIGHTS (Filtered) ---
@@ -131,13 +160,51 @@ async def get_dashboard_metrics(
     )
     tm = time_metrics_res.first()
 
+    now_utc = datetime.now(timezone.utc)
+    one_hour_ago = now_utc - timedelta(hours=1)
+    two_hours_ago = now_utc - timedelta(hours=2)
+
+    sess_last_hour_res = await db.execute(
+        select(func.count(Session.id)).where(
+            Session.org_id.in_(filtered_org_ids), 
+            Session.created_at >= one_hour_ago
+        )
+    )
+    sess_prev_hour_res = await db.execute(
+        select(func.count(Session.id)).where(
+            Session.org_id.in_(filtered_org_ids), 
+            Session.created_at >= two_hours_ago,
+            Session.created_at < one_hour_ago
+        )
+    )
+    sess_trend_val, sess_trend_dir = _calc_trend(sess_last_hour_res.scalar() or 0, sess_prev_hour_res.scalar() or 0)
+
+    served_last_hour_res = await db.execute(
+        select(func.count(Token.id)).where(
+            Token.org_id.in_(filtered_org_ids),
+            Token.served_at >= one_hour_ago
+        )
+    )
+    served_prev_hour_res = await db.execute(
+        select(func.count(Token.id)).where(
+            Token.org_id.in_(filtered_org_ids),
+            Token.served_at >= two_hours_ago,
+            Token.served_at < one_hour_ago
+        )
+    )
+    serve_trend_val, serve_trend_dir = _calc_trend(served_last_hour_res.scalar() or 0, served_prev_hour_res.scalar() or 0)
+
     dynamic_insights = DynamicInsights(
         active_sessions=filtered_sessions_res.scalar() or 0,
         active_queues=filtered_queues_res.scalar() or 0,
         customers_being_served=filtered_tokens.get(TokenStatus.serving, 0),
         average_wait_time=_fmt_minutes(tm.avg_wait_sec if tm else None),
         average_service_time=_fmt_minutes(tm.avg_serve_sec if tm else None),
-        whatsapp_success_rate=100.0  # Placeholder — WhatsApp computed below
+        whatsapp_success_rate=100.0,  # Placeholder — WhatsApp computed below
+        sessions_trend_value=sess_trend_val,
+        sessions_trend_direction=sess_trend_dir,
+        serving_trend_value=serve_trend_val,
+        serving_trend_direction=serve_trend_dir
     )
 
     from app.whatsapp.models import WhatsAppMessage
