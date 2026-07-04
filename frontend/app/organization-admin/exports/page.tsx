@@ -15,6 +15,10 @@ export default function ExportsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [backups, setBackups] = useState<any[]>([]);
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
     const fetchJobs = async () => {
         try {
@@ -75,6 +79,17 @@ export default function ExportsPage() {
             case 'failed': return 'bg-red-50 text-red-700 border-red-200';
             default: return 'bg-amber-50 text-amber-700 border-amber-200';
         }
+    };
+
+    const totalPages = Math.ceil(jobs.length / ITEMS_PER_PAGE);
+    const paginatedJobs = jobs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) setCurrentPage(p => p + 1);
+    };
+
+    const handlePrevPage = () => {
+        if (currentPage > 1) setCurrentPage(p => p - 1);
     };
 
     return (
@@ -158,7 +173,7 @@ export default function ExportsPage() {
                             <p className="text-sm text-slate-500">Request your first data export to see it here.</p>
                         </div>
                     ) : (
-                        jobs.map((job) => (
+                        paginatedJobs.map((job) => (
                             <div key={job.id} className="p-4 space-y-4 hover:bg-slate-50/30 transition-colors">
                                 {/* Row 1: Report Details & Format */}
                                 <div className="flex items-start justify-between gap-4">
@@ -253,7 +268,7 @@ export default function ExportsPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                jobs.map((job) => (
+                                paginatedJobs.map((job) => (
                                     <tr key={job.id} className="hover:bg-slate-50/50 transition-colors">
                                         <td className="p-4">
                                             <div className="font-medium text-slate-900 flex items-center gap-2">
@@ -310,6 +325,75 @@ export default function ExportsPage() {
                         </tbody>
                     </table>
                 </div>
+                
+                {/* Pagination Controls */}
+                {!isLoading && jobs.length > ITEMS_PER_PAGE && (
+                    <div className="border-t border-slate-200 px-4 py-4 flex items-center justify-between sm:px-6 bg-white">
+                        <div className="flex flex-1 justify-between sm:hidden">
+                            <button
+                                onClick={handlePrevPage}
+                                disabled={currentPage === 1}
+                                className="relative inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={handleNextPage}
+                                disabled={currentPage === totalPages}
+                                className="relative ml-3 inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+                        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-sm text-slate-700">
+                                    Showing <span className="font-medium">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-medium">{Math.min(currentPage * ITEMS_PER_PAGE, jobs.length)}</span> of{' '}
+                                    <span className="font-medium">{jobs.length}</span> results
+                                </p>
+                            </div>
+                            <div>
+                                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                    <button
+                                        onClick={handlePrevPage}
+                                        disabled={currentPage === 1}
+                                        className="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <span className="sr-only">Previous</span>
+                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    
+                                    {Array.from({ length: totalPages }).map((_, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => setCurrentPage(i + 1)}
+                                            className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 ${
+                                                currentPage === i + 1 
+                                                ? 'z-10 bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600' 
+                                                : 'text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:outline-offset-0'
+                                            }`}
+                                        >
+                                            {i + 1}
+                                        </button>
+                                    ))}
+
+                                    <button
+                                        onClick={handleNextPage}
+                                        disabled={currentPage === totalPages}
+                                        className="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <span className="sr-only">Next</span>
+                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <RequestExportModal
