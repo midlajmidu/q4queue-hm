@@ -1,78 +1,123 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { CalendarClock } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import type { WaitingToken } from "@/types/api";
+import { motion, AnimatePresence } from "framer-motion";
+import type { DisplayTheme } from "./displayTheme";
+import { cardBg, cardBorder, cardShadow, iconBg, iconColor, labelText, secondaryText, mutedText, dividerBorder, dotActive, dotInactive } from "./displayTheme";
 
 interface UpcomingQueueCardProps {
     waitingTokens: WaitingToken[];
     prefix: string;
+    theme?: DisplayTheme;
 }
 
-export function UpcomingQueueCard({ waitingTokens, prefix }: UpcomingQueueCardProps) {
-    const upcoming = waitingTokens.slice(0, 6);
+export function UpcomingQueueCard({ waitingTokens, prefix, theme = "light" }: UpcomingQueueCardProps) {
+    const ITEMS_PER_PAGE = 4;
+    const totalPages = Math.ceil(waitingTokens.length / ITEMS_PER_PAGE);
+    const [page, setPage] = useState(0);
+
+    useEffect(() => {
+        if (totalPages <= 1) {
+            setPage(0);
+            return;
+        }
+        const interval = setInterval(() => {
+            setPage((p) => (p + 1) % totalPages);
+        }, 8000);
+        return () => clearInterval(interval);
+    }, [totalPages, waitingTokens.length]);
+
+    const visibleTokens = waitingTokens.slice(
+        page * ITEMS_PER_PAGE,
+        (page + 1) * ITEMS_PER_PAGE
+    );
 
     return (
-        <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm p-5 flex flex-col lg:flex-1 overflow-hidden">
+        <div className={`${cardBg(theme)} border ${cardBorder(theme)} ${cardShadow(theme)} rounded-2xl px-5 py-4 flex flex-col lg:flex-1 overflow-hidden relative`}>
             {/* Header */}
-            <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center">
-                    <CalendarClock className="w-3.5 h-3.5 text-slate-500" />
+            <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-lg border ${iconBg(theme)} flex items-center justify-center`}>
+                        <CalendarClock className={`w-4 h-4 ${iconColor(theme)}`} />
+                    </div>
+                    <h3 className={`text-sm font-semibold tracking-[0.15em] ${labelText(theme)} uppercase`}>
+                        Upcoming
+                    </h3>
                 </div>
-                <h3 className="text-xs font-bold tracking-[0.15em] text-slate-500 uppercase">
-                    Upcoming
-                </h3>
+                {totalPages > 1 && (
+                    <div className="flex items-center gap-1.5">
+                        {Array.from({ length: totalPages }).map((_, i) => (
+                            <div
+                                key={i}
+                                className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
+                                    i === page ? dotActive(theme) : dotInactive(theme)
+                                }`}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* List */}
-            <div className="flex flex-col gap-1 flex-1 overflow-y-auto">
-                <AnimatePresence initial={false}>
-                    {upcoming.length > 0 ? (
-                        upcoming.map((token, i) => {
-                            const joinTime = token.created_at
-                                ? new Date(token.created_at).toLocaleTimeString([], {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                  })
-                                : "--:--";
+            <div className="flex-1 flex flex-col min-h-0 relative">
+                {waitingTokens.length > 0 ? (
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={`page-${page}-${waitingTokens[0]?.token_number}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.4 }}
+                            className="flex flex-col w-full"
+                        >
+                            {visibleTokens.map((token, i) => {
+                                const globalIndex = page * ITEMS_PER_PAGE + i;
+                                const joinTime = token.created_at
+                                    ? new Date(token.created_at).toLocaleTimeString([], {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                      })
+                                    : "--:--";
 
-                            return (
-                                <motion.div
-                                    key={`upcoming-${token.token_number}`}
-                                    initial={{ opacity: 0, x: 10, height: 0 }}
-                                    animate={{ opacity: 1, x: 0, height: "auto" }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    transition={{ duration: 0.25, delay: i * 0.02 }}
-                                    className="flex items-center justify-between px-3 py-2.5 rounded-xl"
-                                >
-                                    {/* Token number */}
-                                    <span className="text-xl font-bold text-blue-600 tabular-nums">
-                                        {prefix}{token.token_number}
-                                    </span>
+                                return (
+                                    <div
+                                        key={`upcoming-${token.token_number}`}
+                                        className={`flex items-center justify-between px-6 py-6 border-b ${dividerBorder(theme)} last:border-b-0`}
+                                    >
+                                        <div className="flex items-center gap-6">
+                                            <span className={`text-sm font-bold tracking-widest ${mutedText(theme)} tabular-nums min-w-[20px]`}>
+                                                {globalIndex + 1}
+                                            </span>
+                                            <span className={`text-3xl font-black ${secondaryText(theme)} tabular-nums`}>
+                                                {prefix}{token.token_number}
+                                            </span>
+                                        </div>
 
-                                    {/* Counter label (if multi-line) */}
-                                    {token.assigned_line ? (
-                                        <span className="text-[11px] font-semibold text-slate-500 flex-1 text-center">
-                                            Counter {String(token.assigned_line).padStart(2, "0")}
-                                        </span>
-                                    ) : (
-                                        <span className="flex-1" />
-                                    )}
-
-                                    {/* Join time */}
-                                    <span className="text-xs font-semibold text-slate-400 tabular-nums">
-                                        {joinTime}
-                                    </span>
-                                </motion.div>
-                            );
-                        })
-                    ) : (
-                        <div className="flex-1 flex items-center justify-center py-6 text-sm font-medium text-slate-300">
-                            Queue is empty
-                        </div>
-                    )}
-                </AnimatePresence>
+                                        <div className="flex items-center gap-4">
+                                            {token.assigned_line && (
+                                                <span className={`text-xs font-medium ${mutedText(theme)}`}>
+                                                    Counter {String(token.assigned_line).padStart(2, "0")}
+                                                </span>
+                                            )}
+                                            <span className={`text-sm font-bold tracking-wider ${mutedText(theme)} tabular-nums`}>
+                                                {joinTime}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </motion.div>
+                    </AnimatePresence>
+                ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center py-10 text-center">
+                        <CalendarClock className={`w-6 h-6 ${mutedText(theme)} mb-3`} />
+                        <span className={`text-xs font-medium tracking-[0.15em] uppercase ${mutedText(theme)}`}>
+                            No upcoming
+                        </span>
+                    </div>
+                )}
             </div>
         </div>
     );

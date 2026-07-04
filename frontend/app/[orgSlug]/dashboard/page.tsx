@@ -817,8 +817,6 @@ export default function OverviewPage() {
       setIsDownloading(false);
     }
   };
-
-  // ── Auto-refresh & abort ──────────────────────────────────────
   const abortRef = useRef<AbortController | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const REFRESH_SECS = 20;
@@ -1136,8 +1134,8 @@ export default function OverviewPage() {
               <MetricCard
                 label="Total Visitors" value={overview?.status_counts?.total ?? 0}
                 Icon={Icons.Users} trend={mkTrend(overview?.status_counts?.total ?? 0, prevOverview?.status_counts?.total)}
-                color={C.brand} bg={C.brandLight} border={C.brandBorder}
-                valueColor={C.brand} isLoading={isLoading}
+                color="#4f46e5" bg="#eef2ff" border="#e0e7ff"
+                valueColor="#4f46e5" isLoading={isLoading}
                 sparklineData={[12, 19, 15, 25, 22, 30]}
               />
               {(() => {
@@ -1147,8 +1145,8 @@ export default function OverviewPage() {
                   <MetricCard
                     label="Waiting Now" value={waitingCount}
                     Icon={Icons.Clock} trend={mkTrend(waitingCount, prevOverview?.status_counts?.waiting)}
-                    color={isWarning ? "#dc2626" : C.blue} bg={isWarning ? "#fef2f2" : C.blueBg} border={isWarning ? "#fecaca" : "#bfdbfe"}
-                    valueColor={isWarning ? "#dc2626" : C.blue} pulse isLoading={isLoading}
+                    color={isWarning ? "#dc2626" : "#2563eb"} bg={isWarning ? "#fef2f2" : "#eff6ff"} border={isWarning ? "#fecaca" : "#bfdbfe"}
+                    valueColor={isWarning ? "#dc2626" : "#2563eb"} pulse isLoading={isLoading}
                     subtext="in all queues" comparisonLabel={!prevOverview ? "vs yesterday" : undefined}
                     sparklineData={[4, 7, 5, 8, 12, waitingCount]}
                   />
@@ -1157,27 +1155,32 @@ export default function OverviewPage() {
               <MetricCard
                 label="Total Served" value={overview?.status_counts?.served ?? 0}
                 Icon={Icons.CheckCircle2} trend={mkTrend(overview?.status_counts?.served ?? 0, prevOverview?.status_counts?.served)}
-                color={C.green} bg={C.greenBg} border="#a7f3d0"
-                valueColor={C.green} isLoading={isLoading}
+                color="#059669" bg="#ecfdf5" border="#a7f3d0"
+                valueColor="#059669" isLoading={isLoading}
                 sparklineData={[5, 10, 8, 15, 12, 18]}
               />
               <MetricCard
                 label="Cancelled / No-show" value={overview?.status_counts?.cancelled ?? 0}
                 Icon={Icons.XCircle} trend={mkTrend(overview?.status_counts?.cancelled ?? 0, prevOverview?.status_counts?.cancelled)}
-                color={"#475569"} bg={C.slateBg} border={C.border}
-                valueColor={C.textSub} muted isLoading={isLoading}
+                color={"#475569"} bg="#f8fafc" border="#e2e8f0"
+                valueColor={"#475569"} muted isLoading={isLoading}
                 subtext={overview?.status_counts?.total ? `(${Math.round((overview.status_counts.cancelled / overview.status_counts.total) * 100)}% of visitors)` : undefined}
                 sparklineData={[1, 0, 2, 1, 3, 2]}
               />
-              <MetricCard
-                label="Completion Rate" value={completionRate} suffix="%"
-                Icon={Icons.CheckSquare} trend={null}
-                color={crColor} bg={crBg} border={crBorder}
-                valueColor={crColor} isLoading={isLoading}
-                subtext={completionRate < 75 ? "vs 75% target" : undefined}
-                comparisonLabel={!prevOverview ? "vs target" : undefined}
-                sparklineData={[60, 65, 70, 68, 75, completionRate]}
-              />
+              {(() => {
+                const crWarning = completionRate < 75;
+                return (
+                  <MetricCard
+                    label="Completion Rate" value={completionRate} suffix="%"
+                    Icon={Icons.CheckSquare} trend={null}
+                    color={crWarning ? "#dc2626" : "#059669"} bg={crWarning ? "#fef2f2" : "#ecfdf5"} border={crWarning ? "#fecaca" : "#a7f3d0"}
+                    valueColor={crWarning ? "#dc2626" : "#059669"} isLoading={isLoading}
+                    subtext={crWarning ? "vs 75% target" : undefined}
+                    comparisonLabel={!prevOverview ? "vs target" : undefined}
+                    sparklineData={[60, 65, 70, 68, 75, completionRate]}
+                  />
+                );
+              })()}
 
             </div>
           </div>
@@ -1605,12 +1608,10 @@ export default function OverviewPage() {
                   </div>
                 ))}
               </div>
-
             </div>
           </div>
         </>
       )}
-
     </>
   );
 }
@@ -1630,97 +1631,119 @@ function MetricCard({
   pulse?: boolean; muted?: boolean; isLoading?: boolean; suffix?: string;
   subtext?: string; comparisonLabel?: string; sparklineData?: number[];
 }) {
+  const gradientId = `wave-grad-${label.replace(/[^a-zA-Z0-9]/g, '')}`;
 
   if (isLoading) {
     return (
-      <div className="card card-skeleton" style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div className="shim" style={{ width: "60%", height: 16 }} />
-          <div className="shim" style={{ width: 36, height: 36, borderRadius: 12 }} />
+          <div className="shim" style={{ width: "40%", height: 12, borderRadius: 4 }} />
+          <div className="shim" style={{ width: 36, height: 36, borderRadius: 10 }} />
         </div>
-        <div className="shim" style={{ width: "45%", height: 36, marginTop: 4 }} />
-        <div className="shim" style={{ width: "80%", height: 12, marginTop: 8 }} />
+        <div className="shim" style={{ width: "35%", height: 36, marginTop: 8, borderRadius: 6 }} />
+        <div className="shim" style={{ width: "60%", height: 12, marginTop: 12, borderRadius: 4 }} />
       </div>
     );
   }
 
   return (
-    <div className="card metric-card" style={{ padding: "24px 26px", position: "relative", overflow: "hidden", cursor: "default" }}>
-      {/* corner tint */}
-      <div aria-hidden style={{ position: "absolute", top: 0, right: 0, width: 110, height: 110, background: `radial-gradient(circle at 100% 0%, ${bg}, transparent 70%)`, pointerEvents: "none", borderRadius: "0 14px 0 0" }} />
+    <div 
+      className="bg-white rounded-2xl transition-all duration-300 relative overflow-hidden" 
+      style={{ 
+        padding: "24px", 
+        display: "flex", 
+        flexDirection: "column",
+        border: "1px solid #e2e8f0",
+        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.5)"
+      }}
+    >
+      {/* Static Gradient Wave Background (Clean & Legible) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl z-0">
+        <svg className="absolute right-0 bottom-0 w-full h-full" viewBox="0 0 400 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={color} stopOpacity={muted ? "0.02" : "0.04"} />
+              <stop offset="100%" stopColor={color} stopOpacity={muted ? "0.08" : "0.15"} />
+            </linearGradient>
+            <linearGradient id={`${gradientId}-2`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={color} stopOpacity={muted ? "0.01" : "0.02"} />
+              <stop offset="100%" stopColor={color} stopOpacity={muted ? "0.04" : "0.10"} />
+            </linearGradient>
+          </defs>
+          
+          {/* Back Wave */}
+          <path 
+            d="M0,70 C100,50 150,90 250,70 C320,55 370,75 400,70 L400,100 L0,100 Z" 
+            fill={`url(#${gradientId}-2)`} 
+          />
+          
+          {/* Front Wave */}
+          <path 
+            d="M0,80 C100,100 150,60 250,80 C320,95 370,75 400,85 L400,100 L0,100 Z" 
+            fill={`url(#${gradientId})`} 
+          />
+        </svg>
+      </div>
 
-      {/* label + icon row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <span className="lbl" style={{ color: muted ? C.textMuted : C.textSub, fontSize: 11, letterSpacing: ".07em" }}>{label}</span>
-        <div className="icon-badge" style={{ width: 38, height: 38, background: bg, border: `1px solid ${border}`, position: "relative" }}>
+      {/* Header: Label & Icon */}
+      <div className="relative z-10 flex items-start justify-between gap-3 mb-4" style={{ minHeight: 44 }}>
+        <span 
+          className="font-semibold leading-tight" 
+          style={{ color: muted ? "#94a3b8" : "#475569", fontSize: 13, letterSpacing: "0.01em", paddingTop: 2 }}
+        >
+          {label}
+        </span>
+        <div 
+          className="shrink-0 flex items-center justify-center relative shadow-sm transition-transform duration-300 group-hover:scale-105" 
+          style={{ width: 38, height: 38, background: bg, border: `1px solid ${border}`, borderRadius: 10 }}
+        >
           {pulse && (
-            <span className="live-dot" style={{ position: "absolute", inset: -3, borderRadius: 13, border: `2px solid ${color}`, opacity: .25 }} />
+            <span className="absolute w-2.5 h-2.5 rounded-full" style={{ top: -2, right: -2, background: color, boxShadow: `0 0 0 2.5px white` }} />
           )}
-          <Icon size={16} color={color} />
+          <Icon size={18} color={color} />
         </div>
       </div>
 
-      {/* value */}
-      <span className="mono tnum" style={{ display: "block", fontSize: 40, fontWeight: 700, color: muted ? C.textMuted : valueColor, letterSpacing: "-.045em", lineHeight: 1 }}>
-        {value.toLocaleString()}{suffix}
-      </span>
+      {/* Value */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8, position: "relative", zIndex: 10 }}>
+        <span 
+          className="mono tnum tracking-tight" 
+          style={{ 
+            fontSize: 36, 
+            fontWeight: 800, 
+            lineHeight: 1,
+            background: muted ? "#94a3b8" : "linear-gradient(135deg, #0f172a 0%, #334155 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent"
+          }}
+        >
+          {value.toLocaleString()}
+        </span>
+        {suffix && <span style={{ fontSize: 18, fontWeight: 600, color: muted ? "#94a3b8" : "#64748b" }}>{suffix}</span>}
+      </div>
 
-      {/* Sparkline or colored bottom bar */}
-      {sparklineData && sparklineData.length > 0 ? (
-        <div style={{ marginTop: 12, height: 28, width: "100%", position: "relative" }}>
-          <svg viewBox="0 0 100 30" preserveAspectRatio="none" style={{ width: "100%", height: "100%", overflow: "visible" }}>
-            {(() => {
-              const max = Math.max(...sparklineData, 1);
-              const min = Math.min(...sparklineData, 0);
-              const range = max - min;
-              const points = sparklineData.map((d, i) => {
-                const x = (i / (sparklineData.length - 1)) * 100;
-                const y = 30 - ((d - min) / (range || 1)) * 26;
-                return `${x},${y}`;
-              }).join(" ");
-              return (
-                <polyline
-                  fill="none"
-                  stroke={color}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  points={points}
-                  style={{ opacity: muted ? 0.4 : 0.8 }}
-                />
-              );
-            })()}
-          </svg>
-        </div>
-      ) : (
-        <div style={{ marginTop: 20, height: 3, borderRadius: 99, background: bg, overflow: "hidden", opacity: value === 0 ? 0 : 1, transition: "opacity 0.3s ease" }}>
-          <div style={{ height: "100%", width: "65%", background: `linear-gradient(90deg, ${color}, ${color}cc)`, borderRadius: 99, opacity: muted ? .4 : .75 }} />
-        </div>
-      )}
-
-      {/* trend & subtext footer */}
-      <div style={{ marginTop: 12, height: 39, display: "flex", flexDirection: "column", justifyContent: "flex-start" }}>
+      {/* Footer: Trend & Subtext */}
+      <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6, position: "relative", zIndex: 10, minHeight: 44 }}>
         {trend ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: trend.up ? C.green : C.red }}>
-            {trend.up ? "↑" : "↓"}
-            <span className="tnum" style={{ marginLeft: 2 }}>{trend.pct}%</span>
-            <span style={{ color: C.textMuted, fontWeight: 400, marginLeft: 4 }}>{comparisonLabel || "vs last session"}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 2, color: trend.up ? "#059669" : "#e11d48", background: trend.up ? "#ecfdf5" : "#fff1f2", padding: "3px 8px", borderRadius: 8, border: `1px solid ${trend.up ? "#d1fae5" : "#ffe4e6"}` }}>
+              {trend.up ? <Icons.TrendingUp size={14} strokeWidth={2.5} /> : <Icons.TrendingDown size={14} strokeWidth={2.5} />}
+              <span className="tnum" style={{ fontWeight: 700 }}>{trend.pct}%</span>
+            </div>
+            <span style={{ color: "#64748b", fontWeight: 500 }}>{comparisonLabel || "vs last session"}</span>
           </div>
         ) : (
           comparisonLabel ? (
-            <div style={{ fontSize: 12, color: C.textMuted, fontWeight: 400 }}>
+            <div style={{ fontSize: 13, color: "#64748b", fontWeight: 500, height: 26, display: "flex", alignItems: "center" }}>
               {comparisonLabel}
             </div>
-          ) : (
-            <div style={{ height: 18 }} />
-          )
+          ) : null
         )}
-        {subtext ? (
-          <div style={{ marginTop: (trend || comparisonLabel) ? 4 : 0, fontSize: 11.5, color: C.textMuted, fontWeight: 500 }}>
+        
+        {subtext && (
+          <div style={{ fontSize: 12, color: muted ? "#94a3b8" : "#64748b", fontWeight: 600 }}>
             {subtext}
           </div>
-        ) : (
-          <div style={{ height: 17, marginTop: (trend || comparisonLabel) ? 4 : 0 }} />
         )}
       </div>
 

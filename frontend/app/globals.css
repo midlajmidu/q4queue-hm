@@ -78,6 +78,21 @@
       transform: translateY(0);
     }
   }
+
+  --animate-blob-slow: blob-slow 20s infinite alternate linear;
+  --animate-blob-slower: blob-slower 30s infinite alternate linear;
+
+  @keyframes blob-slow {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-45%, -45%) scale(1.1); }
+    100% { transform: translate(-55%, -55%) scale(0.95); }
+  }
+
+  @keyframes blob-slower {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-5%, -5%) scale(1.05); }
+    100% { transform: translate(5%, 5%) scale(0.98); }
+  }
 }
 
 @layer base {

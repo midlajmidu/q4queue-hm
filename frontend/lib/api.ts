@@ -281,6 +281,20 @@ export const api = {
         });
     },
 
+    // ── TV Pairing ────────────────────────────────────────────────
+    generatePairingCode(): Promise<{ code: string }> {
+        return request<{ code: string }>("/pairing/generate", {
+            method: "POST",
+        });
+    },
+
+    connectPairingCode(data: { pair_code: string; queue_id: string }): Promise<{ status: string; message: string }> {
+        return request<{ status: string; message: string }>("/pairing/connect", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
     // ── Analytics ────────────────────────────────────────────────
     getOverview(params: { sessionId?: string; queueId?: string; startDate?: string; endDate?: string; recentLimit?: number; recentOffset?: number } = {}, init?: RequestInit): Promise<AnalyticsOverview> {
         const qs = new URLSearchParams();

@@ -27,6 +27,7 @@ from app.api.v1.endpoints import (
     tracking,
     whatsapp,
     whatsapp_analytics,
+    pairing,
 )
 
 api_router = APIRouter()
@@ -82,3 +83,6 @@ api_router.include_router(whatsapp.webhook_router, prefix="/webhooks", tags=["We
 
 # ── Customer Tracking ───────────────────────────────────────
 api_router.include_router(tracking.router, prefix="/track", tags=["Tracking"])
+
+# ── Smart TV Pairing ───────────────────────────────────────
+api_router.include_router(pairing.router, prefix="/pairing", tags=["Pairing"])

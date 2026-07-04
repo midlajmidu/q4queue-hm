@@ -213,10 +213,82 @@ async def websocket_notifications(
     except WebSocketDisconnect:
         pass
     except Exception as exc:
-        logger.error("WebSocket error | notifications channel=%s err=%s", channel, exc)
+        logger.error("WebSocket notifications error | err=%s", exc)
     finally:
-        if channel:
+        if org_id:
+            channel = manager.get_notification_channel(str(org_id))
             await manager.disconnect(channel, websocket)
+        try:
+            from app.monitoring.metrics import WS_DISCONNECTIONS_TOTAL
+            WS_DISCONNECTIONS_TOTAL.inc()
+        except Exception:
+            pass
+
+
+@router.websocket("/pairing/{code}")
+async def websocket_pairing(websocket: WebSocket, code: str):
+    """
+    WebSocket endpoint for Smart TV Pairing handshake.
+    The TV connects to this endpoint using the generated 6-character code and waits for a redirect.
+    """
+    await websocket.accept()
+    
+    try:
+        from app.redis.client import get_redis
+        redis = get_redis()
+        
+        # Verify the code exists in redis
+        val = await redis.get(f"pairing:{code}")
+        if not val:
+            await websocket.close(code=4404, reason="Code not found or expired")
+            return
+            
+        pubsub = redis.pubsub()
+        await pubsub.subscribe(f"pairing_channel:{code}")
+        
+        try:
+            import asyncio
+            import json
+            
+            async def listen_pubsub():
+                while True:
+                    message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                    if message:
+                        try:
+                            data = json.loads(message["data"])
+                            await websocket.send_json(data)
+                            break # Close after successful pairing
+                        except Exception as e:
+                            logger.error("Error parsing pairing message | err=%s", e)
+                    await asyncio.sleep(0.1)
+
+            async def listen_client():
+                try:
+                    while True:
+                        await websocket.receive_text()
+                except WebSocketDisconnect:
+                    pass
+
+            pubsub_task = asyncio.create_task(listen_pubsub())
+            client_task = asyncio.create_task(listen_client())
+            
+            done, pending = await asyncio.wait(
+                [pubsub_task, client_task],
+                return_when=asyncio.FIRST_COMPLETED
+            )
+            
+            for task in pending:
+                task.cancel()
+                
+        finally:
+            await pubsub.unsubscribe(f"pairing_channel:{code}")
+            await pubsub.aclose()
+            
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        logger.error("WebSocket pairing error | code=%s err=%s", code, exc)
+    finally:
         try:
             from app.monitoring.metrics import WS_DISCONNECTIONS_TOTAL
             WS_DISCONNECTIONS_TOTAL.inc()

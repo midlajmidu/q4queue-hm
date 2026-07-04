@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users } from "lucide-react";
 import { ServingToken } from "@/types/api";
+import type { DisplayTheme } from "./displayTheme";
+import { cardBg, cardBorder, cardShadow, iconBg, iconColor, labelText, primaryText, secondaryText, mutedText, gradientText, counterPillBg, counterPillStrong } from "./displayTheme";
 
 interface NowServingHeroProps {
     serving: number;
@@ -14,6 +16,7 @@ interface NowServingHeroProps {
     allServingTokens?: ServingToken[];
     queueName?: string;
     isActive?: boolean;
+    theme?: DisplayTheme;
 }
 
 export function NowServingHero({
@@ -25,6 +28,7 @@ export function NowServingHero({
     allServingTokens,
     queueName,
     isActive,
+    theme = "light",
 }: NowServingHeroProps) {
     const [prevServing, setPrevServing] = useState(serving);
     const isNew = serving !== 0 && serving !== prevServing;
@@ -44,11 +48,10 @@ export function NowServingHero({
 
     const isMultiCounterMode = serviceLines > 1;
 
-    // ─── Multi-counter grid (matches the screenshot exactly) ──────────
+    // ─── Multi-counter grid ──────────────────────────────────────────
     if (isMultiCounterMode) {
         const counters = Array.from({ length: serviceLines }, (_, i) => i + 1);
 
-        // Responsive font + card size based on count
         const tokenSize =
             serviceLines > 20
                 ? "text-xl md:text-2xl"
@@ -68,20 +71,20 @@ export function NowServingHero({
                 : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
 
         return (
-            <div className="flex-1 bg-white rounded-2xl border border-slate-200/70 shadow-sm p-5 lg:p-6 flex flex-col overflow-hidden">
+            <div className={`flex-1 ${cardBg(theme)} border ${cardBorder(theme)} ${cardShadow(theme)} rounded-2xl p-5 lg:p-6 flex flex-col overflow-hidden`}>
                 {/* Header */}
                 <div className="flex flex-col items-center gap-1 mb-5 shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mb-1">
-                        <Users className="w-5 h-5 text-blue-500" />
+                    <div className={`w-10 h-10 rounded-xl border ${iconBg(theme)} flex items-center justify-center mb-1`}>
+                        <Users className={`w-5 h-5 ${iconColor(theme)}`} />
                     </div>
-                    <p className="text-xs font-bold tracking-[0.18em] text-slate-400 uppercase">
+                    <p className={`text-xs font-semibold tracking-[0.15em] ${mutedText(theme)} uppercase`}>
                         Now Serving
                     </p>
                     {queueName && (
-                        <h1 className="text-lg font-bold text-slate-700 text-center">
+                        <h1 className={`text-lg font-bold ${primaryText(theme)} text-center tracking-tight capitalize`}>
                             {queueName}
                             {isActive === false && (
-                                <span className="ml-2 text-[10px] font-bold tracking-widest uppercase text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                                <span className="ml-3 text-[10px] font-semibold tracking-widest uppercase text-red-400 bg-red-500/10 px-2.5 py-0.5 rounded-full border border-red-500/20">
                                     Closed
                                 </span>
                             )}
@@ -104,22 +107,20 @@ export function NowServingHero({
                                 initial={{ opacity: 0, scale: 0.92 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.25 }}
-                                className={`flex flex-col items-center justify-center p-3 lg:p-4 rounded-xl border transition-all duration-300 ${
+                                className={`flex flex-col items-center justify-center p-4 lg:p-6 rounded-xl border transition-all duration-300 ${
                                     hasToken
-                                        ? "bg-white border-slate-200 shadow-sm"
-                                        : "bg-slate-50/60 border-slate-100"
+                                        ? theme === "dark" ? "bg-white/[0.08] border-white/[0.12]" : "bg-slate-50 border-slate-200"
+                                        : theme === "dark" ? "bg-white/[0.02] border-white/[0.04] opacity-40" : "bg-slate-50/50 border-slate-100 opacity-40"
                                 }`}
                             >
-                                {/* Counter label */}
                                 <span
-                                    className={`text-[9px] lg:text-[10px] font-bold tracking-[0.15em] uppercase mb-2 ${
-                                        hasToken ? "text-blue-600" : "text-slate-400"
+                                    className={`text-[10px] lg:text-[11px] font-semibold tracking-[0.15em] uppercase mb-3 ${
+                                        hasToken ? secondaryText(theme) : mutedText(theme)
                                     }`}
                                 >
                                     Counter {String(counterNum).padStart(2, "0")}
                                 </span>
 
-                                {/* Token number */}
                                 <AnimatePresence mode="wait">
                                     <motion.span
                                         key={hasToken ? `${prefix}${activeToken.token_number}` : `empty-${counterNum}`}
@@ -127,8 +128,8 @@ export function NowServingHero({
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -8 }}
                                         transition={{ duration: 0.2 }}
-                                        className={`font-extrabold tracking-tighter leading-none tabular-nums break-words w-full text-center px-1 ${tokenSize} ${
-                                            hasToken ? "text-slate-900" : "text-slate-200"
+                                        className={`font-extrabold tracking-tight leading-none tabular-nums w-full text-center ${tokenSize} ${
+                                            hasToken ? primaryText(theme) : theme === "dark" ? "text-slate-700" : "text-slate-300"
                                         }`}
                                     >
                                         {hasToken ? `${prefix}${activeToken.token_number}` : "—"}
@@ -152,14 +153,14 @@ export function NowServingHero({
                 : "text-4xl md:text-5xl lg:text-6xl";
 
         return (
-            <div className="flex-1 bg-white rounded-2xl border border-slate-200/70 shadow-sm p-5 lg:p-6 flex flex-col overflow-hidden">
-                <div className="flex flex-col items-center gap-1 mb-5 shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mb-1">
-                        <Users className="w-5 h-5 text-blue-500" />
+            <div className={`flex-1 ${cardBg(theme)} border ${cardBorder(theme)} ${cardShadow(theme)} rounded-2xl p-5 lg:p-6 flex flex-col overflow-hidden`}>
+                <div className="flex flex-col items-center gap-1 mb-6 shrink-0">
+                    <div className={`w-10 h-10 rounded-xl border ${iconBg(theme)} flex items-center justify-center mb-1`}>
+                        <Users className={`w-5 h-5 ${iconColor(theme)}`} />
                     </div>
-                    <p className="text-xs font-bold tracking-[0.18em] text-slate-400 uppercase">Now Serving</p>
+                    <p className={`text-xs font-semibold tracking-[0.15em] ${mutedText(theme)} uppercase`}>Now Serving</p>
                 </div>
-                <div className="flex flex-wrap justify-center items-stretch gap-3 flex-1 overflow-y-auto content-start">
+                <div className="flex flex-wrap justify-center items-stretch gap-4 flex-1 overflow-y-auto content-start">
                     <AnimatePresence>
                         {activeTokens.map((token) => (
                             <motion.div
@@ -168,13 +169,15 @@ export function NowServingHero({
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.85 }}
                                 layout
-                                className="flex flex-col items-center justify-center p-4 lg:p-5 bg-white border border-slate-200 rounded-xl shadow-sm min-w-[140px] max-w-[200px]"
+                                className={`flex flex-col items-center justify-center p-5 lg:p-6 border rounded-xl min-w-[150px] max-w-[220px] ${
+                                    theme === "dark" ? "bg-[rgba(255,255,255,0.05)] border-[rgba(255,255,255,0.1)]" : "bg-slate-50 border-slate-200"
+                                }`}
                             >
-                                <span className={`font-extrabold text-slate-900 tracking-tighter leading-none tabular-nums ${tokenSize}`}>
+                                <span className={`font-extrabold ${primaryText(theme)} tracking-tight leading-none tabular-nums ${tokenSize}`}>
                                     {prefix}{token.token_number}
                                 </span>
                                 {serviceLines > 0 && token.assigned_line && (
-                                    <span className="mt-2 text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                                    <span className={`mt-3 text-[10px] font-medium uppercase tracking-widest ${secondaryText(theme)}`}>
                                         Counter {String(token.assigned_line).padStart(2, "0")}
                                     </span>
                                 )}
@@ -187,77 +190,73 @@ export function NowServingHero({
     }
 
     // ─── Single token / idle ──────────────────────────────────────────
-    const displayToken = serving === 0 ? "—" : `${prefix}${serving}`;
 
     return (
-        <div className="flex-1 bg-white rounded-2xl border border-slate-200/70 shadow-sm p-6 lg:p-10 flex flex-col items-center justify-center relative overflow-hidden">
-            {/* Subtle glow on new token */}
-            <AnimatePresence>
-                {isNew && (
-                    <motion.div
-                        initial={{ opacity: 0.6, scale: 0.6 }}
-                        animate={{ opacity: 0, scale: 2.5 }}
-                        transition={{ duration: 1.2, ease: "easeOut" }}
-                        className="absolute inset-0 m-auto w-[280px] h-[280px] bg-blue-300 rounded-full blur-[80px] pointer-events-none"
-                    />
-                )}
-            </AnimatePresence>
-
+        <div className={`flex-1 ${cardBg(theme)} border ${cardBorder(theme)} ${cardShadow(theme)} rounded-2xl p-5 flex flex-col relative overflow-hidden`}>
             {/* Queue name */}
             {queueName && (
-                <div className="absolute top-5 left-0 right-0 flex justify-center items-center gap-2 px-6 z-10">
-                    <h1 className="text-xl lg:text-2xl font-bold text-slate-700 text-center tracking-tight">
+                <div className="flex justify-center items-center gap-3 w-full mb-auto">
+                    <h1 className={`text-2xl lg:text-3xl font-bold ${primaryText(theme)} text-center tracking-tight capitalize`}>
                         {queueName}
                     </h1>
                     {isActive === false && (
-                        <span className="text-[10px] font-bold tracking-widest uppercase text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                        <span className="text-[10px] font-semibold tracking-widest uppercase text-red-400 bg-red-500/10 px-3 py-1 rounded-full border border-red-500/20">
                             Closed
                         </span>
                     )}
                 </div>
             )}
 
-            <div className="relative z-10 flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-4">
-                    <Users className="w-6 h-6 text-blue-500" />
-                </div>
-                <p className="text-xs font-bold tracking-[0.2em] text-slate-400 uppercase mb-6">
+            <div className="flex flex-col items-center justify-center flex-1 w-full">
+                <p className={`text-sm font-semibold tracking-[0.2em] uppercase mb-4 transition-colors ${serving === 0 ? mutedText(theme) : labelText(theme)}`}>
                     Now Serving
                 </p>
 
                 <AnimatePresence mode="popLayout">
-                    <motion.div
-                        key={displayToken}
-                        initial={{ opacity: 0, scale: 0.88, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 1.08, y: -20 }}
-                        transition={{ type: "spring", stiffness: 280, damping: 22, mass: 0.5 }}
-                        className="flex flex-col items-center"
-                    >
-                        <span className="text-[100px] sm:text-[130px] md:text-[160px] font-extrabold text-slate-900 tracking-tighter leading-none tabular-nums break-words w-full text-center px-4 max-w-[90vw]">
-                            {displayToken}
-                        </span>
-                    </motion.div>
+                    {serving !== 0 ? (
+                        <motion.div
+                            key={`${prefix}${serving}`}
+                            initial={{ opacity: 0, scale: 0.85, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.1, y: -30 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 25, mass: 0.6 }}
+                            className={`text-[140px] lg:text-[180px] font-black ${gradientText(theme)} leading-none tracking-tighter tabular-nums drop-shadow-2xl flex items-center justify-center`}
+                        >
+                            {prefix}{activeTokens[0]?.token_number || serving}
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="empty"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="flex flex-col items-center"
+                        >
+                            <span className={`text-[80px] md:text-[100px] font-light ${theme === "dark" ? "text-slate-700" : "text-slate-300"} tracking-widest leading-none`}>
+                                --
+                            </span>
+                        </motion.div>
+                    )}
                 </AnimatePresence>
 
                 {serving !== 0 && (
-                    <motion.p
-                        initial={{ opacity: 0, y: 10 }}
+                    <motion.div
+                        initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="mt-6 text-lg lg:text-xl font-semibold text-slate-400 tracking-tight text-center"
+                        transition={{ delay: 0.4 }}
+                        className={`mt-6 text-lg lg:text-xl font-semibold tracking-tight text-center border px-8 py-3 rounded-full shadow-xl ${counterPillBg(theme)}`}
                     >
                         {serviceLines > 0 && activeTokens[0]?.assigned_line ? (
                             <span>
                                 Please proceed to{" "}
-                                <strong className="text-blue-600 font-bold">
+                                <strong className={`font-bold ml-1 ${counterPillStrong(theme)}`}>
                                     Counter {String(activeTokens[0].assigned_line).padStart(2, "0")}
                                 </strong>
                             </span>
                         ) : (
                             <span>Please approach the counter</span>
                         )}
-                    </motion.p>
+                    </motion.div>
                 )}
             </div>
         </div>

@@ -330,7 +330,7 @@ interface PageProps {
     params: Promise<{ queueId: string }>;
 }
 
-type ActiveSection = "queues" | "waiting_list" | "qrcode" | "announcement" | "history";
+type ActiveSection = "queues" | "waiting_list" | "qrcode" | "announcement" | "history" | "connect_tv";
 
 const COUNTRY_CODES = [
     { code: "+91", country: "India", flag: "🇮🇳" },
@@ -411,6 +411,37 @@ export default function QueueDetailPage({ params }: PageProps) {
     const [isScrollingDown, setIsScrollingDown] = useState(false);
     const lastScrollY = useRef(0);
 
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    const [activeSection, setActiveSection] = useState<ActiveSection>("queues");
+    
+    // TV Pairing state
+    const [pairingCodeInput, setPairingCodeInput] = useState("");
+    const [isPairing, setIsPairing] = useState(false);
+
+    const handleConnectTV = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!pairingCodeInput.trim()) {
+            sonnerToast.error("Please enter a pairing code.");
+            return;
+        }
+        setIsPairing(true);
+        try {
+            await api.connectPairingCode({
+                pair_code: pairingCodeInput.trim().toUpperCase(),
+                queue_id: queueId
+            });
+            sonnerToast.success("TV connected successfully!");
+            setPairingCodeInput("");
+        } catch (err: any) {
+            sonnerToast.error(err.message || "Invalid or expired pairing code.");
+        } finally {
+            setIsPairing(false);
+        }
+    };
+
     const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
         const currentScrollY = e.currentTarget.scrollTop;
         const direction = currentScrollY > lastScrollY.current;
@@ -419,11 +450,7 @@ export default function QueueDetailPage({ params }: PageProps) {
         }
         lastScrollY.current = currentScrollY > 0 ? currentScrollY : 0;
     }, [isScrollingDown]);
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
 
-    const [activeSection, setActiveSection] = useState<ActiveSection>("queues");
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
     
@@ -834,6 +861,10 @@ export default function QueueDetailPage({ params }: PageProps) {
         {
             id: "history", label: "History",
             icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+        },
+        {
+            id: "connect_tv", label: "Connect TV",
+            icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M12 12a2 2 0 100-4 2 2 0 000 4zm4.2 4.2c2.3-2.3 2.3-6.1 0-8.5M19.1 19.1c3.9-3.9 3.9-10.3 0-14.2" /></svg>,
         },
     ];
 
@@ -1725,6 +1756,54 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 onOpenMobileMenu={() => setMobileMenuOpen(true)}
                             />
                         )}
+                        
+                        {/* ═══════════════════════════════════════════
+                        SECTION: Connect TV
+                        ════════════════════════════════════════════ */}
+                        {activeSection === "connect_tv" && (
+                            <div className="fade-in bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 p-6 md:p-10 shadow-sm min-h-[calc(100vh-120px)] flex flex-col items-center justify-center relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl" />
+                                <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl" />
+                                
+                                <div className="max-w-md w-full relative z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-xl ring-1 ring-slate-900/5 dark:ring-white/10 p-8">
+                                    <div className="flex flex-col items-center text-center mb-8">
+                                        <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-4 ring-4 ring-white dark:ring-slate-900 shadow-sm">
+                                            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M12 12a2 2 0 100-4 2 2 0 000 4zm4.2 4.2c2.3-2.3 2.3-6.1 0-8.5M19.1 19.1c3.9-3.9 3.9-10.3 0-14.2" />
+                                            </svg>
+                                        </div>
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Connect Smart TV</h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                                            Open <strong className="text-slate-700 dark:text-slate-300">/display</strong> on your Smart TV and enter the 6-digit pairing code below to connect it to this queue.
+                                        </p>
+                                    </div>
+                                    
+                                    <form onSubmit={handleConnectTV} className="flex flex-col gap-6">
+                                        <div>
+                                            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-2">Pairing Code</label>
+                                            <input
+                                                type="text"
+                                                value={pairingCodeInput}
+                                                onChange={(e) => setPairingCodeInput(e.target.value.toUpperCase())}
+                                                maxLength={6}
+                                                placeholder="e.g. ABC123"
+                                                className="w-full px-4 py-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white font-mono text-center text-3xl font-black tracking-[0.2em] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all uppercase placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                                                required
+                                            />
+                                        </div>
+                                        
+                                        <button
+                                            type="submit"
+                                            disabled={isPairing || pairingCodeInput.length < 6}
+                                            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 px-6 rounded-xl transition-all shadow-md shadow-indigo-600/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                                        >
+                                            {isPairing ? <RefreshCw size={18} className="animate-spin" /> : "Connect Display"}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
 
                         {/* ═══════════════════════════════════════════
                         SECTION: Queue Lists (Full Page)
