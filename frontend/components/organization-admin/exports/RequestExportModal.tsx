@@ -11,24 +11,29 @@ interface RequestExportModalProps {
 
 const REPORT_TYPES = [
     {
+        value: "Customer Detailed Report",
+        description: "Full customer-level data: token number, name, phone, queue, session date, wait time, service time, served by, and final status (served/skipped/removed).",
+        disabled: false
+    },
+    {
         value: "Executive Summary",
-        description: "High-level KPIs across all branches: total branches, total customers, waiting times, and service completion rates."
+        description: "High-level KPIs across all branches: total branches, total customers, waiting times, and service completion rates.",
+        disabled: true
     },
     {
         value: "Branch Performance Report",
-        description: "Per-branch metrics: branch name, active queues, staff counts, served customers, and performance scores."
+        description: "Per-branch metrics: branch name, active queues, staff counts, served customers, and performance scores.",
+        disabled: true
     },
     {
         value: "Staff Performance Report",
-        description: "All staff details: full name, role, branch, online status, tokens served, service times, and completion rates."
+        description: "All staff details: full name, role, branch, online status, tokens served, service times, and completion rates.",
+        disabled: true
     },
     {
         value: "Waiting Time Analysis",
-        description: "Detailed waiting time metrics: average/max/min wait times, waiting time distribution, and peak hour analysis."
-    },
-    {
-        value: "Customer Detailed Report",
-        description: "Full customer-level data: token number, name, phone, queue, session date, wait time, service time, served by, and final status (served/skipped/removed)."
+        description: "Detailed waiting time metrics: average/max/min wait times, waiting time distribution, and peak hour analysis.",
+        disabled: true
     }
 ];
 
@@ -171,7 +176,9 @@ export default function RequestExportModal({ isOpen, onClose, onExportRequested 
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                             >
                                 {REPORT_TYPES.map(rt => (
-                                    <option key={rt.value} value={rt.value}>{rt.value}</option>
+                                    <option key={rt.value} value={rt.value} disabled={rt.disabled}>
+                                        {rt.value} {rt.disabled ? "(Coming Soon)" : ""}
+                                    </option>
                                 ))}
                             </select>
 
