@@ -52,7 +52,7 @@ async def request_export(
     )
     
     # Run export generation in background
-    background_tasks.add_task(generate_export, job.id, db)
+    background_tasks.add_task(generate_export, job.id)
     
     return job
 

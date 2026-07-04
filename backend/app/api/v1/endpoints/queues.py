@@ -114,6 +114,20 @@ async def list_queues(
 
 
 @router.get(
+    "/trash",
+    response_model=list[QueueResponse],
+    summary="List Deleted Queues",
+)
+async def list_trash_queues(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_branch_admin_or_staff()),
+) -> list[QueueResponse]:
+    """List all soft-deleted queues for the authenticated organization."""
+    queues = await queue_service.list_trash_queues(db, org_id=current_user.org_id)
+    return [QueueResponse.model_validate(q) for q in queues]
+
+
+@router.get(
     "/{queue_id}",
     response_model=QueueResponse,
     summary="Get Queue",
@@ -280,6 +294,30 @@ async def delete_queue(
         await queue_service.delete_queue(db, queue_id=queue.id, org_id=queue.org_id)
     except ValueError as exc:
         _raise_404(exc)
+
+
+@router.post(
+    "/{queue_id}/restore",
+    response_model=QueueResponse,
+    summary="Restore Queue",
+)
+async def restore_queue(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    queue: Queue = Depends(get_admin_queue_for_org),
+    current_user: User = Depends(get_current_active_user),
+) -> QueueResponse:
+    """
+    Restore a soft-deleted queue.
+    SECURITY: Only Global/Org Admins (or impersonated branch admins) can do this.
+    """
+    if current_user.role not in ["super_admin", "organization_admin"] and not getattr(request.state, "is_impersonating", False):
+        raise HTTPException(status_code=403, detail="Only Global Admins can restore queues.")
+    try:
+        updated = await queue_service.restore_queue(db, queue_id=queue.id, org_id=queue.org_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return QueueResponse.model_validate(updated)
 
 
 @router.post(

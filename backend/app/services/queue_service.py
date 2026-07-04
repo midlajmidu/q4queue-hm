@@ -62,17 +62,20 @@ async def get_queue_or_404(
     *,
     queue_id: uuid.UUID,
     org_id: uuid.UUID,
+    include_deleted: bool = False,
 ) -> Queue:
     """
     Fetch a queue by ID, scoped to org_id.
     Raises ValueError (→ 404) if not found or belongs to different org.
     """
-    result = await db.execute(
-        select(Queue).where(
-            Queue.id == queue_id,
-            Queue.org_id == org_id,     # ← TENANT ISOLATION
-        )
+    query = select(Queue).where(
+        Queue.id == queue_id,
+        Queue.org_id == org_id,     # ← TENANT ISOLATION
     )
+    if not include_deleted:
+        query = query.where(Queue.is_deleted == False)
+
+    result = await db.execute(query)
     queue = result.scalar_one_or_none()
     if queue is None:
         raise ValueError(f"Queue {queue_id} not found")
@@ -129,11 +132,62 @@ async def delete_queue(
     queue_id: uuid.UUID,
     org_id: uuid.UUID,
 ) -> None:
-    """Delete a queue. Will cascade and delete tokens as well based on DB setup."""
+    """Soft-delete a queue."""
+    from datetime import datetime, timezone
     queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
-    await db.delete(queue)
+    queue.is_deleted = True
+    queue.deleted_at = datetime.now(timezone.utc)
+    queue.is_active = False # Deactivate it as well
     await db.commit()
-    logger.info("Queue deleted | id=%s org=%s", queue_id, org_id)
+    logger.info("Queue soft-deleted | id=%s org=%s", queue_id, org_id)
+
+async def list_trash_queues(
+    db: AsyncSession,
+    *,
+    org_id: uuid.UUID,
+    limit: int = 20,
+    offset: int = 0,
+) -> list[Queue]:
+    """List soft-deleted queues for an organization."""
+    query = select(Queue).where(
+        Queue.org_id == org_id,
+        Queue.is_deleted == True
+    ).order_by(Queue.deleted_at.desc()).limit(limit).offset(offset)
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+async def restore_queue(
+    db: AsyncSession,
+    *,
+    queue_id: uuid.UUID,
+    org_id: uuid.UUID,
+) -> Queue:
+    """Restore a soft-deleted queue, checking session limits."""
+    queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id, include_deleted=True)
+    if not queue.is_deleted:
+        return queue # Already active
+
+    # Check limit for the queue's session
+    if queue.session_id:
+        from app.models.organization import Organization
+        org = await db.scalar(select(Organization).where(Organization.id == org_id))
+        if org:
+            current_queues_count = await db.scalar(
+                select(func.count(Queue.id)).where(
+                    Queue.session_id == queue.session_id,
+                    Queue.is_deleted == False
+                )
+            ) or 0
+            if current_queues_count >= org.max_queues_per_session:
+                raise ValueError(f"Cannot restore: Session limit reached (maximum {org.max_queues_per_session} queues allowed).")
+
+    queue.is_deleted = False
+    queue.deleted_at = None
+    queue.is_active = True
+    await db.commit()
+    await db.refresh(queue)
+    logger.info("Queue restored | id=%s org=%s", queue_id, org_id)
+    return queue
 
 async def reset_queue(
     db: AsyncSession,

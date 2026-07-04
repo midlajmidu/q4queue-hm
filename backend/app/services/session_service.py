@@ -17,7 +17,7 @@ from app.models.session import Session
 from app.models.queue import Queue
 from app.models.token import Token, TokenStatus
 from app.models.organization import Organization
-from app.schemas.session import SessionCreate, SessionResponse
+from app.schemas.session import SessionCreate, SessionResponse, SessionUpdate
 from app.schemas.queue import QueueCreate
 
 logger = logging.getLogger(__name__)
@@ -124,7 +124,7 @@ async def list_sessions(
             func.count(Queue.id).label("queue_count"),
             func.array_agg(Queue.name).label("queue_names")
         )
-        .where(Queue.org_id == org_id)
+        .where(Queue.org_id == org_id, Queue.is_deleted == False)
         .group_by(Queue.session_id)
         .subquery()
     )
@@ -138,7 +138,7 @@ async def list_sessions(
         )
         .select_from(Queue)
         .join(Token, Token.queue_id == Queue.id)
-        .where(Queue.org_id == org_id)
+        .where(Queue.org_id == org_id, Queue.is_deleted == False)
         .group_by(Queue.session_id)
         .subquery()
     )
@@ -209,6 +209,31 @@ async def get_session_or_404(
         raise ValueError(f"Session {session_id} not found")
     return session
 
+async def update_session(
+    db: AsyncSession,
+    *,
+    session_id: uuid.UUID,
+    org_id: uuid.UUID,
+    data: SessionUpdate,
+) -> SessionResponse:
+    """Update a session's title."""
+    session = await get_session_or_404(db, session_id=session_id, org_id=org_id)
+    
+    if data.title is not None:
+        session.title = data.title
+        
+    await db.commit()
+    await db.refresh(session)
+    
+    return SessionResponse(
+        id=session.id,
+        org_id=session.org_id,
+        session_date=session.session_date,
+        title=session.title,
+        created_at=session.created_at,
+        queue_count=0, # Simplified response, similar to create_session
+    )
+
 
 async def delete_session(
     db: AsyncSession,
@@ -239,7 +264,7 @@ async def list_session_queues(
     """List all queues within a specific session (tenant-scoped)."""
     # Total count
     count_query = select(func.count(Queue.id)).where(
-        Queue.session_id == session_id, Queue.org_id == org_id
+        Queue.session_id == session_id, Queue.org_id == org_id, Queue.is_deleted == False
     )
     if name:
         count_query = count_query.where(Queue.name.ilike(f"%{name}%"))
@@ -247,7 +272,7 @@ async def list_session_queues(
     total = total_res.scalar_one()
 
     # Paginated items
-    select_query = select(Queue).where(Queue.session_id == session_id, Queue.org_id == org_id)
+    select_query = select(Queue).where(Queue.session_id == session_id, Queue.org_id == org_id, Queue.is_deleted == False)
     if name:
         select_query = select_query.where(Queue.name.ilike(f"%{name}%"))
     
@@ -277,7 +302,9 @@ async def create_session_queue(
     # ── Limit validation ──
     org = await db.scalar(select(Organization).where(Organization.id == org_id))
     if org:
-        current_queues_count = await db.scalar(select(func.count(Queue.id)).where(Queue.session_id == session_id)) or 0
+        current_queues_count = await db.scalar(
+            select(func.count(Queue.id)).where(Queue.session_id == session_id, Queue.is_deleted == False)
+        ) or 0
         if current_queues_count >= org.max_queues_per_session:
             raise ValueError(f"Session limit reached: maximum {org.max_queues_per_session} queues allowed per session.")
 
@@ -286,7 +313,8 @@ async def create_session_queue(
         existing_prefix = await db.scalar(
             select(Queue.id).where(
                 Queue.session_id == session_id, 
-                func.upper(Queue.prefix) == data.prefix.upper()
+                func.upper(Queue.prefix) == data.prefix.upper(),
+                Queue.is_deleted == False
             )
         )
         if existing_prefix:

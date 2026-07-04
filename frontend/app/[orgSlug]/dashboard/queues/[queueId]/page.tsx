@@ -734,7 +734,7 @@ export default function QueueDetailPage({ params }: PageProps) {
         setActionError(null);
         try {
             await api.serveSpecificToken(queueId, num, lineNum);
-            toast(`Token ${state?.prefix || ""}${num} is now serving${lineNum ? ` on Line ${lineNum}` : ''}`, "success");
+            toast(`Token ${state?.prefix || ""}${num} is now serving${lineNum ? ` on Lane ${lineNum}` : ''}`, "success");
             setInviteNumber("");
             setShowInviteLineModal(false);
         } catch (err: unknown) {
@@ -748,7 +748,7 @@ export default function QueueDetailPage({ params }: PageProps) {
         if (lineNum !== undefined && state?.all_serving_tokens) {
             const isBusy = state.all_serving_tokens.some(t => t.assigned_line === lineNum);
             if (isBusy) {
-                toast(`Line ${lineNum} is already serving a customer.`, "error");
+                toast(`Lane ${lineNum} is already serving a customer.`, "error");
                 return;
             }
         }
@@ -1155,7 +1155,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     {/* Left: Serving + Actions */}
                                     <div className="lg:col-span-2 flex flex-col gap-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1 pb-4 relative">
 
-                                        {/* Hero – Now Serving or Service Lines Grid */}
+                                        {/* Hero – Now Serving or Service Lanes Grid */}
                                         {(() => {
                                             const numLines = state?.service_lines ?? initialQueue?.service_lines ?? 0;
                                             if (numLines > 0) {
@@ -2101,7 +2101,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                         <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-white/10">
                             <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
                                 <div>
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Select Service Line</h3>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Select Service Lane</h3>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Which line is calling Token {state?.prefix || ""}{inviteNumber}?</p>
                                 </div>
                                 <button onClick={() => setShowInviteLineModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-900/5 p-2 rounded-full">

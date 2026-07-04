@@ -245,7 +245,7 @@ async def notify_queue_event(
                     "_Powered by Q4Queue_"
                 )
             elif event_type == "queue_called_v2":
-                line_info = f"➡️ *Please go to Service Line {assigned_line}*\n\n" if assigned_line else ""
+                line_info = f"➡️ *Please go to Service Lane {assigned_line}*\n\n" if assigned_line else ""
                 raw_body = (
                     "🔔 *It's Your Turn!*\n\n"
                     f"Please proceed to the counter immediately, *{c_name}*! The staff at *{o_name}* is ready to serve you now.\n\n"
@@ -275,7 +275,7 @@ async def notify_queue_event(
                     "_Powered by Q4Queue_"
                 )
             elif event_type == "queue_recalled_v2":
-                line_info = f"➡️ *Please go to Service Line {assigned_line}*\n\n" if assigned_line else ""
+                line_info = f"➡️ *Please go to Service Lane {assigned_line}*\n\n" if assigned_line else ""
                 raw_body = (
                     "🔄 *Token Recalled!*\n\n"
                     f"Hi *{c_name}*, good news! Your skipped token #{token_str} has been recalled to the counter at *{o_name}*.\n"

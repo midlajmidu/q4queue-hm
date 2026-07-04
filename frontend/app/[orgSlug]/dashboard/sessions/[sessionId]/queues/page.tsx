@@ -552,7 +552,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                 </svg>
                             </div>
                             <h3 className="text-xl font-black text-gray-900 mb-1">Create New Queue</h3>
-                            <p className="text-sm text-gray-500 font-medium mb-6">Define a new service line for this session.</p>
+                            <p className="text-sm text-gray-500 font-medium mb-6">Define a new service lane for this session.</p>
 
                             <form onSubmit={handleCreate} className="flex flex-col gap-4">
 
@@ -648,14 +648,14 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                                     : "text-slate-500 hover:text-slate-700"
                                             }`}
                                         >
-                                            Service Lines
+                                            Service Lanes
                                         </button>
                                     </div>
                                 </div>
 
                                 {newQueueType === "service_lines" && (
                                     <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Number of Service Lines</label>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Number of Service Lanes</label>
                                         <input
                                             type="number"
                                             min={1}

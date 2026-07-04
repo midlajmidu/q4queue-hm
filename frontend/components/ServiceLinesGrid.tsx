@@ -49,11 +49,11 @@ export default function ServiceLinesGrid({
             if ("message" in res) {
                 toast.info(res.message);
             } else {
-                toast.success(status === "skipped" ? `Skipped current and called next to Line ${lineNum}` : `Called next customer to Line ${lineNum}`);
+                toast.success(status === "skipped" ? `Skipped current and called next to Lane ${lineNum}` : `Called next customer to Lane ${lineNum}`);
             }
             onUpdate();
         } catch {
-            toast.error(`Failed to call next for Line ${lineNum}`);
+            toast.error(`Failed to call next for Lane ${lineNum}`);
         } finally {
             setLoadingLine(null);
         }
@@ -63,10 +63,10 @@ export default function ServiceLinesGrid({
         setLoadingLine(lineNum);
         try {
             await api.clearLine(queueId, lineNum);
-            toast.success(`Line ${lineNum} cleared`);
+            toast.success(`Lane ${lineNum} cleared`);
             onUpdate();
         } catch {
-            toast.error(`Failed to clear Line ${lineNum}`);
+            toast.error(`Failed to clear Lane ${lineNum}`);
         } finally {
             setLoadingLine(null);
         }
@@ -81,10 +81,10 @@ export default function ServiceLinesGrid({
             <div className="flex items-center justify-between mb-3.5">
                 <div>
                     <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--q-text)", margin: 0 }}>
-                        Service Lines
+                        Service Lanes
                     </h2>
                     <p style={{ fontSize: 12, color: "var(--q-text-muted)", margin: "2px 0 0" }}>
-                        {allServingTokens.length} of {serviceLines} lines occupied
+                        {allServingTokens.length} of {serviceLines} lanes occupied
                     </p>
                 </div>
 
@@ -133,7 +133,7 @@ export default function ServiceLinesGrid({
                             <div className="flex items-center justify-between mb-2 relative z-10">
                                 <div className="flex items-center gap-2">
                                     <span className={`text-[10px] font-black uppercase tracking-[0.1em] ${isOccupied ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"}`}>
-                                        Line {lineNum}
+                                        Lane {lineNum}
                                     </span>
                                 </div>
                                 <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${
@@ -177,7 +177,7 @@ export default function ServiceLinesGrid({
                                             <button
                                                 onClick={() => clearLine(lineNum)}
                                                 disabled={isLoading}
-                                                title="Clear Line"
+                                                title="Clear Lane"
                                                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors disabled:opacity-50 flex-shrink-0"
                                             >
                                                 <Check size={14} />

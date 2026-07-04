@@ -184,7 +184,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                             >
                                 <div>
                                     <div className={`text-sm font-semibold ${queueType === "service_lines" ? "text-purple-700" : "text-slate-700"}`}>
-                                        Service Lines
+                                        Service Lanes
                                     </div>
                                     <div className="text-xs text-slate-500 mt-0.5">Multiple lanes / counters</div>
                                 </div>
@@ -192,7 +192,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                         </div>
                         {queueType === "service_lines" && (
                             <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100 animate-in fade-in slide-in-from-top-2">
-                                <label className="block text-sm font-semibold text-purple-900 mb-1.5">Number of Service Lines</label>
+                                <label className="block text-sm font-semibold text-purple-900 mb-1.5">Number of Service Lanes</label>
                                 <input
                                     type="number"
                                     min="2"

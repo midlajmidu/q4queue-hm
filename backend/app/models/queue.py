@@ -72,6 +72,8 @@ class Queue(Base):
     )
     open_time: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
     close_time: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
