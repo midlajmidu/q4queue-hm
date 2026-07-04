@@ -123,21 +123,20 @@ export default function SmartTVPairingPage() {
 
     return (
         <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-8 text-white relative overflow-hidden">
-            {/* Background design */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black"></div>
-                <div className="absolute w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-[120px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+                <div className="absolute w-[150vw] h-[150vw] sm:w-[800px] sm:h-[800px] bg-blue-500/10 rounded-full blur-[120px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
             </div>
 
-            <div className="z-10 flex flex-col items-center max-w-2xl text-center">
-                <div className="mb-12 flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-blue-600/20">Q</div>
-                    <span className="text-3xl font-bold tracking-tight text-white">Q4Queue</span>
+            <div className="z-10 flex flex-col items-center w-full max-w-2xl text-center px-4">
+                <div className="mb-8 sm:mb-12 flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-lg sm:text-xl shadow-lg shadow-blue-600/20">Q</div>
+                    <span className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Q4Queue</span>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 p-12 rounded-3xl backdrop-blur-md shadow-2xl flex flex-col items-center w-full min-w-[500px]">
-                    <h1 className="text-2xl font-semibold text-slate-300 mb-2">Connect Smart TV</h1>
-                    <p className="text-slate-400 mb-10 text-sm">Open the Queue Dashboard on your computer and enter this code.</p>
+                <div className="bg-white/5 border border-white/10 p-6 sm:p-12 rounded-3xl backdrop-blur-md shadow-2xl flex flex-col items-center w-full max-w-sm sm:max-w-none sm:min-w-[500px]">
+                    <h1 className="text-xl sm:text-2xl font-semibold text-slate-300 mb-2">Connect Smart TV</h1>
+                    <p className="text-slate-400 mb-8 sm:mb-10 text-xs sm:text-sm">Open the Queue Dashboard on your computer and enter this code.</p>
 
                     {status === "generating" ? (
                         <div className="h-[120px] flex flex-col items-center justify-center gap-4">
@@ -161,8 +160,8 @@ export default function SmartTVPairingPage() {
                             <span className="text-emerald-400 font-semibold tracking-wide">Connected! Redirecting...</span>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center">
-                            <div className="tracking-[0.25em] text-7xl font-black text-white bg-white/10 px-10 py-6 rounded-2xl border border-white/20 mb-8 font-mono shadow-inner whitespace-nowrap">
+                        <div className="flex flex-col items-center w-full">
+                            <div className="tracking-[0.15em] sm:tracking-[0.25em] text-4xl sm:text-7xl font-black text-white bg-white/10 px-6 sm:px-10 py-4 sm:py-6 rounded-2xl border border-white/20 mb-8 font-mono shadow-inner whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
                                 {pairingCode}
                             </div>
                             
