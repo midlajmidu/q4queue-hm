@@ -657,8 +657,10 @@ async def _report_waiting_time_analysis(job: ExportJob, db: AsyncSession, file_p
         await _generate_structured_excel(sections, file_path)
 
 
-async def generate_export(job_id: uuid.UUID, db: AsyncSession):
-    job = await db.get(ExportJob, job_id)
+async def generate_export(job_id: uuid.UUID):
+    from app.db.session import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        job = await db.get(ExportJob, job_id)
     if not job:
         return
         

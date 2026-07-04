@@ -47,6 +47,8 @@ export default function RequestExportModal({ isOpen, onClose, onExportRequested 
     const [reportType, setReportType] = useState(REPORT_TYPES[0].value);
     const [format, setFormat] = useState('EXCEL');
     const [dateRange, setDateRange] = useState('Last 7 Days');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
 
     // Customer Detailed Report Specific State
     const [branchSelection, setBranchSelection] = useState<'ALL' | 'SPECIFIC'>('ALL');
@@ -104,6 +106,14 @@ export default function RequestExportModal({ isOpen, onClose, onExportRequested 
                 format,
                 date_range: dateRange
             };
+
+            if (dateRange === "Custom Date Range") {
+                if (!customStartDate || !customEndDate) {
+                    throw new Error("Please select both start and end dates for Custom Date Range.");
+                }
+                payload.custom_start_date = customStartDate;
+                payload.custom_end_date = customEndDate;
+            }
 
             if (reportType === "Customer Detailed Report") {
                 if (branchSelection === "SPECIFIC" && selectedBranchId) {
@@ -267,6 +277,31 @@ export default function RequestExportModal({ isOpen, onClose, onExportRequested 
                                     <option key={dr} value={dr}>{dr}</option>
                                 ))}
                             </select>
+
+                            {dateRange === "Custom Date Range" && (
+                                <div className="mt-3 grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">Start Date</label>
+                                        <input
+                                            type="date"
+                                            value={customStartDate}
+                                            onChange={(e) => setCustomStartDate(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500 transition-colors"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">End Date</label>
+                                        <input
+                                            type="date"
+                                            value={customEndDate}
+                                            onChange={(e) => setCustomEndDate(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500 transition-colors"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Format */}
