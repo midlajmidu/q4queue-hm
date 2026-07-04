@@ -13,6 +13,10 @@ from app.models.token import Token
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from app.models.parent_organization import ParentOrganization
+
+EXPORTS_DIR = "exports"
+os.makedirs(EXPORTS_DIR, exist_ok=True)
+
 async def _resolve_date_bounds(db: AsyncSession, job: ExportJob):
     parent_org = await db.get(ParentOrganization, job.parent_org_id)
     tz_name = parent_org.timezone if parent_org and parent_org.timezone else "UTC"
