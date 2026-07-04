@@ -21,6 +21,7 @@ from app.models.token import Token
 from app.whatsapp.config_service import get_org_notification_config
 from app.whatsapp.message_service import send_whatsapp_message
 from app.audit.service import record_event
+from app.redis.client import get_redis
 
 logger = logging.getLogger(__name__)
 
@@ -287,6 +288,19 @@ async def notify_queue_event(
             elif is_raw_text:
                 logger.warning("Unknown event type for raw message: %s", event_type)
                 return
+
+        # 3.5 Rate limit via Redis
+        if event_type not in ("queue_called_v2", "queue_joined_v4"):
+            try:
+                redis_client = get_redis()
+                rl_key = f"wa_throttle:{token_id}"
+                # Set key if not exists (NX) with 15 sec expiry (EX)
+                acquired = await redis_client.set(rl_key, "1", ex=15, nx=True)
+                if not acquired:
+                    logger.info("WhatsApp throttled for token %s (event=%s)", token_id, event_type)
+                    return
+            except Exception as e:
+                logger.warning("Redis rate limit check failed, proceeding anyway: %s", e)
 
         # 4. Send
         await send_whatsapp_message(
