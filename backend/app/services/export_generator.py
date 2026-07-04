@@ -665,49 +665,49 @@ async def generate_export(job_id: uuid.UUID):
     from app.db.session import AsyncSessionLocal
     async with AsyncSessionLocal() as db:
         job = await db.get(ExportJob, job_id)
-    if not job:
-        return
-        
-    try:
-        job.status = "processing"
-        await db.commit()
-        
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{job.report_type.replace(' ', '_')}_{timestamp}"
-        
-        if job.report_type == "Customer Detailed Report":
-            file_path = await _generate_customer_detailed_report(job, db, filename)
-        else:
-            fmt = job.format.upper()
-            if fmt == "PDF":
-                fmt = "EXCEL" # Replaced custom pdf generation with well-formatted single sheet excel
-                
-            file_path = os.path.join(EXPORTS_DIR, f"{filename}.{'csv' if fmt == 'CSV' else 'xlsx'}")
+        if not job:
+            return
             
-            if job.report_type == "Executive Summary":
-                await _report_executive_summary(job, db, file_path, fmt)
-            elif job.report_type == "Branch Performance Report":
-                await _report_branch_performance(job, db, file_path, fmt)
-            elif job.report_type == "Staff Performance Report":
-                await _report_staff_performance(job, db, file_path, fmt)
-            elif job.report_type == "Waiting Time Analysis":
-                await _report_waiting_time_analysis(job, db, file_path, fmt)
+        try:
+            job.status = "processing"
+            await db.commit()
+            
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{job.report_type.replace(' ', '_')}_{timestamp}"
+            
+            if job.report_type == "Customer Detailed Report":
+                file_path = await _generate_customer_detailed_report(job, db, filename)
             else:
-                raise ValueError(f"Unknown report type: {job.report_type}")
+                fmt = job.format.upper()
+                if fmt == "PDF":
+                    fmt = "EXCEL" # Replaced custom pdf generation with well-formatted single sheet excel
+                    
+                file_path = os.path.join(EXPORTS_DIR, f"{filename}.{'csv' if fmt == 'CSV' else 'xlsx'}")
+                
+                if job.report_type == "Executive Summary":
+                    await _report_executive_summary(job, db, file_path, fmt)
+                elif job.report_type == "Branch Performance Report":
+                    await _report_branch_performance(job, db, file_path, fmt)
+                elif job.report_type == "Staff Performance Report":
+                    await _report_staff_performance(job, db, file_path, fmt)
+                elif job.report_type == "Waiting Time Analysis":
+                    await _report_waiting_time_analysis(job, db, file_path, fmt)
+                else:
+                    raise ValueError(f"Unknown report type: {job.report_type}")
 
-        job.file_path = file_path
-        job.status = "completed"
-        job.completed_at = datetime.now(timezone.utc)
-        
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        job.status = "failed"
-        job.error_message = str(e)
-        job.completed_at = datetime.now(timezone.utc)
-        
-    finally:
-        await db.commit()
+            job.file_path = file_path
+            job.status = "completed"
+            job.completed_at = datetime.now(timezone.utc)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            job.status = "failed"
+            job.error_message = str(e)
+            job.completed_at = datetime.now(timezone.utc)
+            
+        finally:
+            await db.commit()
 
 def _generate_pdf(df, file_path, title):
     from reportlab.lib.pagesizes import letter
