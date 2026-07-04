@@ -14,6 +14,10 @@ class SessionCreate(BaseModel):
     title: Optional[str] = Field(None, max_length=200)
 
 
+class SessionUpdate(BaseModel):
+    title: Optional[str] = Field(None, max_length=200)
+
+
 class SessionResponse(BaseModel):
     id: uuid.UUID
     org_id: uuid.UUID

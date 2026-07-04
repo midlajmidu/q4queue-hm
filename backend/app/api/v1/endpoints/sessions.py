@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import get_current_active_user, require_branch_admin, require_branch_admin_or_staff
 from app.db.deps import get_db
 from app.models.user import User
-from app.schemas.session import SessionCreate, SessionResponse, PaginatedSessionResponse
+from app.schemas.session import SessionCreate, SessionResponse, PaginatedSessionResponse, SessionUpdate
 from app.schemas.queue import QueueCreate, QueueResponse, PaginatedQueueResponse
 from app.services import session_service
 from app.middleware.rate_limiter import api_rate_limit
@@ -126,6 +126,28 @@ async def get_session(
         created_at=session.created_at,
         queue_count=queue_count,
     )
+
+@router.patch(
+    "/{session_id}",
+    response_model=SessionResponse,
+    summary="Update Session",
+)
+async def update_session(
+    session_id: uuid.UUID,
+    body: SessionUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_branch_admin()),
+) -> SessionResponse:
+    """Update a specific session (e.g., its title)."""
+    try:
+        session = await session_service.update_session(
+            db, session_id=session_id, org_id=current_user.org_id, data=body
+        )
+    except ValueError as exc:
+        _raise_404(exc)
+
+    return session
+
 
 
 @router.delete(

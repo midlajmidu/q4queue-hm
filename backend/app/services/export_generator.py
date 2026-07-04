@@ -10,12 +10,654 @@ from app.models.organization import Organization
 from app.models.queue import Queue
 from app.models.session import Session
 from app.models.token import Token
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+from app.models.parent_organization import ParentOrganization
+async def _resolve_date_bounds(db: AsyncSession, job: ExportJob):
+    parent_org = await db.get(ParentOrganization, job.parent_org_id)
+    tz_name = parent_org.timezone if parent_org and parent_org.timezone else "UTC"
+    
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        tz = timezone.utc
 
-EXPORTS_DIR = "/app/exports"
-os.makedirs(EXPORTS_DIR, exist_ok=True)
+    now = datetime.now(tz)
+    start_date = None
+    end_date = None
+
+    date_range = job.filters.get("date_range", "All Time")
+    
+    if date_range == "Today":
+        start_date = now.date()
+        end_date = now.date()
+    elif date_range == "Yesterday":
+        start_date = (now - timedelta(days=1)).date()
+        end_date = start_date
+    elif date_range == "Last 7 Days":
+        start_date = (now - timedelta(days=6)).date()
+        end_date = now.date()
+    elif date_range == "Last 30 Days":
+        start_date = (now - timedelta(days=29)).date()
+        end_date = now.date()
+    elif date_range == "This Month":
+        start_date = now.replace(day=1).date()
+        end_date = now.date()
+    elif date_range == "Last Month":
+        last_day = now.replace(day=1) - timedelta(days=1)
+        start_date = last_day.replace(day=1).date()
+        end_date = last_day.date()
+    elif date_range == "Custom Date Range":
+        c_start = job.filters.get("custom_start_date")
+        c_end = job.filters.get("custom_end_date")
+        if c_start:
+            start_date = datetime.strptime(c_start.split("T")[0], "%Y-%m-%d").date()
+        if c_end:
+            end_date = datetime.strptime(c_end.split("T")[0], "%Y-%m-%d").date()
+
+    return start_date, end_date, tz
+
+async def _get_org_ids(db: AsyncSession, parent_org_id: uuid.UUID, filters: dict):
+    stmt = select(Organization).where(Organization.parent_organization_id == parent_org_id)
+    branch_ids = filters.get("branch_ids")
+    if branch_ids:
+        stmt = stmt.where(Organization.id.in_([uuid.UUID(b) for b in branch_ids]))
+    
+    res = await db.execute(stmt)
+    orgs = res.scalars().all()
+    return [o.id for o in orgs], {o.id: o.name for o in orgs}, [o for o in orgs]
+
+def _apply_date_filter(stmt, start_date, end_date, tz):
+    if start_date:
+        start_dt = datetime.combine(start_date, datetime.min.time()).replace(tzinfo=tz)
+        stmt = stmt.where(Token.created_at >= start_dt)
+    if end_date:
+        end_dt = datetime.combine(end_date, datetime.max.time()).replace(tzinfo=tz)
+        stmt = stmt.where(Token.created_at <= end_dt)
+    return stmt
+
+
+async def _generate_structured_excel(sections: list, file_path: str):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    
+    header_fill = PatternFill(start_color="333333", end_color="333333", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+    section_font = Font(size=14, bold=True)
+    thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+
+    row_idx = 1
+    for section in sections:
+        title = section.get('title')
+        data = section.get('data') # List of dicts
+        
+        if title:
+            cell = ws.cell(row=row_idx, column=1, value=title)
+            cell.font = section_font
+            row_idx += 2
+            
+        if not data:
+            ws.cell(row=row_idx, column=1, value="No data available")
+            row_idx += 2
+            continue
+            
+        headers = list(data[0].keys())
+        for col_idx, h in enumerate(headers, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=h)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='center')
+        
+        row_idx += 1
+        
+        for row_data in data:
+            for col_idx, h in enumerate(headers, 1):
+                val = row_data.get(h)
+                cell = ws.cell(row=row_idx, column=col_idx, value=val)
+                cell.border = thin_border
+            row_idx += 1
+            
+        row_idx += 2 # Space between sections
+        
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        ws.column_dimensions[column].width = min(max_length + 2, 50)
+        
+    wb.save(file_path)
+
+
+async def _generate_csv(sections: list, file_path: str):
+    import csv
+    with open(file_path, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        for section in sections:
+            title = section.get('title')
+            data = section.get('data')
+            if title:
+                writer.writerow([f"=== {title.upper()} ==="])
+            if not data:
+                writer.writerow(["No data available"])
+                writer.writerow([])
+                continue
+                
+            headers = list(data[0].keys())
+            writer.writerow(headers)
+            for row in data:
+                writer.writerow([row.get(h, "") for h in headers])
+            writer.writerow([])
+
+
+def _format_time(seconds: float) -> str:
+    if not seconds or seconds < 0:
+        return "0m"
+    mins = int(seconds // 60)
+    if mins >= 60:
+        hrs = mins // 60
+        rem_mins = mins % 60
+        return f"{hrs}h {rem_mins}m"
+    return f"{mins}m"
+
+
+async def _report_executive_summary(job: ExportJob, db: AsyncSession, file_path: str, format_type: str):
+    start_date, end_date, tz = await _resolve_date_bounds(db, job)
+    org_ids, org_name_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
+    
+    if not org_ids:
+        return [{"Message": "No branches found."}]
+        
+    from sqlalchemy.dialects.postgresql import aggregate_order_by
+    from app.models.token import TokenStatus
+    
+    stmt = select(
+        Token.org_id,
+        func.count(Token.id).filter(Token.status != TokenStatus.deleted).label("total"),
+        func.count(Token.id).filter(Token.status == TokenStatus.done).label("served"),
+        func.count(Token.id).filter(Token.status == TokenStatus.waiting).label("waiting"),
+        func.count(Token.id).filter(Token.status == TokenStatus.skipped).label("cancelled"),
+        func.count(Token.id).filter(Token.status == TokenStatus.deleted).label("removed"),
+        func.avg(func.extract('epoch', Token.served_at - Token.created_at)).filter(Token.status == TokenStatus.done).label("avg_wait"),
+        func.max(func.extract('epoch', Token.served_at - Token.created_at)).filter(Token.status == TokenStatus.done).label("max_wait"),
+        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label("avg_serve"),
+        func.max(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label("max_serve")
+    ).where(Token.org_id.in_(org_ids))
+    
+    stmt = _apply_date_filter(stmt, start_date, end_date, tz)
+    stmt = stmt.group_by(Token.org_id)
+    
+    res = await db.execute(stmt)
+    branch_metrics = res.fetchall()
+    
+    # Query 2: Staff counts
+    staff_stmt = select(
+        User.org_id,
+        func.count(User.id).label("total"),
+        func.sum(func.cast(User.is_active, func.integer())).label("active")
+    ).where(User.org_id.in_(org_ids), User.role.in_(["admin", "staff"])).group_by(User.org_id)
+    staff_res = await db.execute(staff_stmt)
+    staff_counts = {row.org_id: {"total": row.total, "active": row.active} for row in staff_res.fetchall()}
+    
+    # Compute Aggregates
+    tot_branches = len(orgs)
+    act_branches = sum(1 for o in orgs if o.is_active)
+    tot_staff = sum(s["total"] or 0 for s in staff_counts.values())
+    act_staff = sum(s["active"] or 0 for s in staff_counts.values())
+    
+    tot_cust = sum(r.total for r in branch_metrics)
+    tot_served = sum(r.served for r in branch_metrics)
+    tot_waiting = sum(r.waiting for r in branch_metrics)
+    tot_cancelled = sum(r.cancelled for r in branch_metrics)
+    tot_removed = sum(r.removed for r in branch_metrics)
+    
+    avg_wait = sum((r.avg_wait or 0) * r.served for r in branch_metrics) / tot_served if tot_served else 0
+    max_wait = max((r.max_wait for r in branch_metrics if r.max_wait), default=0)
+    avg_serve = sum((r.avg_serve or 0) * r.served for r in branch_metrics) / tot_served if tot_served else 0
+    max_serve = max((r.max_serve for r in branch_metrics if r.max_serve), default=0)
+    
+    serve_rate = round((tot_served / tot_cust) * 100, 1) if tot_cust else 0
+    
+    overview_data = [
+        {"Metric": "Total Branches", "Value": tot_branches},
+        {"Metric": "Active Branches", "Value": act_branches},
+        {"Metric": "Total Staff", "Value": tot_staff},
+        {"Metric": "Active Staff", "Value": act_staff},
+        {"Metric": "Total Customers", "Value": tot_cust},
+        {"Metric": "Customers Served", "Value": tot_served},
+        {"Metric": "Customers Waiting", "Value": tot_waiting},
+        {"Metric": "Cancelled", "Value": tot_cancelled},
+        {"Metric": "Service Completion Rate", "Value": f"{serve_rate}%"},
+        {"Metric": "Average Waiting Time", "Value": _format_time(avg_wait)},
+        {"Metric": "Maximum Waiting Time", "Value": _format_time(max_wait)},
+        {"Metric": "Average Service Time", "Value": _format_time(avg_serve)},
+        {"Metric": "Maximum Service Time", "Value": _format_time(max_serve)},
+    ]
+    
+    # Top 5 branches by volume
+    branch_detail = []
+    for r in branch_metrics:
+        b_name = org_name_map.get(r.org_id, "Unknown")
+        rate = round((r.served / r.total) * 100, 1) if r.total else 0
+        branch_detail.append({
+            "Branch": b_name,
+            "Total Customers": r.total,
+            "Customers Served": r.served,
+            "Service Completion %": f"{rate}%",
+            "Avg Waiting Time": _format_time(r.avg_wait or 0),
+            "Avg Service Time": _format_time(r.avg_serve or 0),
+            "score": (rate * 0.5) + ((100 - min((r.avg_wait or 0)/60, 100)) * 0.3) + (min(r.total/100, 1) * 20)
+        })
+    
+    branch_detail.sort(key=lambda x: x["Total Customers"], reverse=True)
+    
+    # Staff performance
+    top_staff_stmt = select(
+        User.first_name, User.last_name, User.email,
+        func.count(Token.id).label("served"),
+        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label("avg_serve")
+    ).join(Token, Token.completed_by_id == User.id).where(
+        User.org_id.in_(org_ids), Token.status == TokenStatus.done
+    )
+    top_staff_stmt = _apply_date_filter(top_staff_stmt, start_date, end_date, tz)
+    top_staff_stmt = top_staff_stmt.group_by(User.id).order_by(func.count(Token.id).desc()).limit(5)
+    
+    staff_res = await db.execute(top_staff_stmt)
+    top_staff = []
+    for row in staff_res.fetchall():
+        name = f"{row.first_name or ''} {row.last_name or ''}".strip() or row.email.split('@')[0]
+        top_staff.append({
+            "Staff Name": name,
+            "Customers Served": row.served,
+            "Avg Service Time": _format_time(row.avg_serve or 0)
+        })
+        
+    # Key Insights
+    best_branch = max(branch_detail, key=lambda x: x["score"]) if branch_detail else None
+    highest_vol = branch_detail[0] if branch_detail else None
+    lowest_wait = min((b for b in branch_detail if b["Total Customers"] > 0), key=lambda x: x.get("_raw_wait", float(x["Avg Waiting Time"].split('m')[0].replace('h ', ''))), default=None) if branch_detail else None
+    needs_attn = min(branch_detail, key=lambda x: x["score"]) if branch_detail else None
+    
+    insights = []
+    if best_branch: insights.append({"Insight": "Highest Performing Branch", "Value": best_branch["Branch"]})
+    if highest_vol: insights.append({"Insight": "Highest Customer Volume", "Value": highest_vol["Branch"]})
+    if lowest_wait: insights.append({"Insight": "Lowest Average Waiting Time", "Value": lowest_wait["Branch"]})
+    insights.append({"Insight": "Average Customers per Branch", "Value": round(tot_cust / act_branches) if act_branches else 0})
+    insights.append({"Insight": "Average Customers per Staff", "Value": round(tot_cust / act_staff) if act_staff else 0})
+    insights.append({"Insight": "Service Completion Rate", "Value": f"{serve_rate}%"})
+    if needs_attn: insights.append({"Insight": "Branch Requiring Attention", "Value": needs_attn["Branch"]})
+    
+    # Remove score from branch detail for output
+    for b in branch_detail:
+        b.pop("score", None)
+        
+    sections = [
+        {"title": "Overview KPIs", "data": overview_data},
+        {"title": "Key Insights", "data": insights},
+        {"title": "Top 5 Busiest Branches", "data": branch_detail[:5]},
+        {"title": "Top 5 Best Performing Staff", "data": top_staff},
+        {"title": "Branch Comparison", "data": branch_detail}
+    ]
+    
+    if format_type == "CSV":
+        await _generate_csv(sections, file_path)
+    else:
+        await _generate_structured_excel(sections, file_path)
+
+async def _report_branch_performance(job: ExportJob, db: AsyncSession, file_path: str, format_type: str):
+    start_date, end_date, tz = await _resolve_date_bounds(db, job)
+    org_ids, org_name_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
+    
+    if not org_ids:
+        return [{"Message": "No branches found."}]
+        
+    from app.models.token import TokenStatus
+    
+    # Get Branch Metrics
+    stmt = select(
+        Token.org_id,
+        func.count(Token.id).filter(Token.status != TokenStatus.deleted).label("total"),
+        func.count(Token.id).filter(Token.status == TokenStatus.done).label("served"),
+        func.count(Token.id).filter(Token.status == TokenStatus.waiting).label("waiting"),
+        func.count(Token.id).filter(Token.status == TokenStatus.skipped).label("cancelled"),
+        func.avg(func.extract('epoch', Token.served_at - Token.created_at)).filter(Token.status == TokenStatus.done).label("avg_wait"),
+        func.max(func.extract('epoch', Token.served_at - Token.created_at)).filter(Token.status == TokenStatus.done).label("max_wait"),
+        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label("avg_serve"),
+        func.max(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label("max_serve")
+    ).where(Token.org_id.in_(org_ids))
+    stmt = _apply_date_filter(stmt, start_date, end_date, tz)
+    stmt = stmt.group_by(Token.org_id)
+    branch_metrics = await db.execute(stmt)
+    metrics_map = {row.org_id: row for row in branch_metrics.fetchall()}
+    
+    # Active queues
+    q_stmt = select(Queue.org_id, func.count(Queue.id).label("count")).where(
+        Queue.org_id.in_(org_ids), Queue.is_active == True, Queue.is_deleted == False
+    ).group_by(Queue.org_id)
+    q_res = await db.execute(q_stmt)
+    q_counts = {row.org_id: row.count for row in q_res.fetchall()}
+    
+    # Sessions
+    s_stmt = select(Session.org_id, func.count(Session.id).label("count")).where(Session.org_id.in_(org_ids))
+    if start_date:
+        s_stmt = s_stmt.where(Session.session_date >= start_date)
+    if end_date:
+        s_stmt = s_stmt.where(Session.session_date <= end_date)
+    s_stmt = s_stmt.group_by(Session.org_id)
+    s_res = await db.execute(s_stmt)
+    s_counts = {row.org_id: row.count for row in s_res.fetchall()}
+    
+    # Staff
+    staff_stmt = select(
+        User.org_id,
+        func.count(User.id).label("total"),
+        func.sum(func.cast(User.is_active, func.integer())).label("active")
+    ).where(User.org_id.in_(org_ids), User.role.in_(["admin", "staff"])).group_by(User.org_id)
+    staff_res = await db.execute(staff_stmt)
+    staff_counts = {row.org_id: {"total": row.total, "active": row.active} for row in staff_res.fetchall()}
+    
+    data = []
+    for org in orgs:
+        m = metrics_map.get(org.id)
+        sc = staff_counts.get(org.id, {"total": 0, "active": 0})
+        total = m.total if m else 0
+        served = m.served if m else 0
+        rate = round((served / total) * 100, 1) if total else 0
+        avg_w = m.avg_wait if m else 0
+        active_q = q_counts.get(org.id, 0)
+        act_staff = sc["active"] or 1
+        
+        score = (rate * 0.5) + ((100 - min(avg_w/60, 100)) * 0.3) + (min(total/100, 1) * 20)
+        
+        data.append({
+            "Branch Name": org.name,
+            "Total Customers": total,
+            "Customers Served": served,
+            "Waiting": m.waiting if m else 0,
+            "Cancelled": m.cancelled if m else 0,
+            "Average Waiting Time": _format_time(avg_w),
+            "Maximum Waiting Time": _format_time(m.max_wait if m else 0),
+            "Average Service Time": _format_time(m.avg_serve if m else 0),
+            "Maximum Service Time": _format_time(m.max_serve if m else 0),
+            "Service Completion %": f"{rate}%",
+            "Total Staff": sc["total"] or 0,
+            "Active Staff": sc["active"] or 0,
+            "Active Queues": active_q,
+            "Active Sessions": s_counts.get(org.id, 0),
+            "Customers per Staff": round(total / act_staff, 1),
+            "Customers per Active Queue": round(total / active_q, 1) if active_q else total,
+            "_score": score,
+            "_raw_wait": avg_w,
+            "_raw_rate": rate
+        })
+        
+    data.sort(key=lambda x: x["_score"], reverse=True)
+    
+    summary = []
+    if data:
+        summary.append({"Ranking": "🥇 Best Overall Branch", "Branch Name": data[0]["Branch Name"], "Score Detail": f"{data[0]['Service Completion %']} completion"})
+    if len(data) > 1:
+        summary.append({"Ranking": "🥈 Second Best", "Branch Name": data[1]["Branch Name"], "Score Detail": f"{data[1]['Service Completion %']} completion"})
+    if len(data) > 2:
+        summary.append({"Ranking": "🥉 Third Best", "Branch Name": data[2]["Branch Name"], "Score Detail": f"{data[2]['Service Completion %']} completion"})
+        
+    most_active = max(data, key=lambda x: x["Total Customers"]) if data else None
+    if most_active:
+        summary.append({"Ranking": "🔥 Most Active Branch", "Branch Name": most_active["Branch Name"], "Score Detail": f"{most_active['Total Customers']} customers"})
+        
+    needs_improve = min(data, key=lambda x: x["_score"]) if data else None
+    if needs_improve:
+        summary.append({"Ranking": "⚠️ Needs Improvement", "Branch Name": needs_improve["Branch Name"], "Score Detail": f"{needs_improve['Service Completion %']} completion, {_format_time(needs_improve['_raw_wait'])} avg wait"})
+
+    for d in data:
+        d.pop("_score")
+        d.pop("_raw_wait")
+        d.pop("_raw_rate")
+        
+    sections = [
+        {"title": "Overall Performance Rankings", "data": summary},
+        {"title": "Branch Performance Details", "data": data}
+    ]
+    
+    if format_type == "CSV":
+        await _generate_csv(sections, file_path)
+    else:
+        await _generate_structured_excel(sections, file_path)
+
+async def _report_staff_performance(job: ExportJob, db: AsyncSession, file_path: str, format_type: str):
+    start_date, end_date, tz = await _resolve_date_bounds(db, job)
+    org_ids, org_name_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
+    
+    if not org_ids:
+        return [{"Message": "No branches found."}]
+        
+    from app.models.token import TokenStatus
+    from sqlalchemy import or_
+    
+    stmt = select(
+        User.id,
+        User.first_name, User.last_name, User.email, User.role, User.last_active_at, User.org_id,
+        func.count(Token.id).filter(Token.status == TokenStatus.done).label("served"),
+        func.count(Token.id).filter(Token.status == TokenStatus.done, Token.completed_by_id == User.id).label("completed"),
+        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label("avg_serve"),
+        func.max(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label("max_serve"),
+        func.avg(func.extract('epoch', Token.served_at - Token.created_at)).filter(Token.status == TokenStatus.done).label("avg_wait")
+    ).outerjoin(
+        Token, and_(Token.served_by_id == User.id, Token.org_id == User.org_id)
+    )
+    
+    if start_date:
+        start_dt = datetime.combine(start_date, datetime.min.time()).replace(tzinfo=tz)
+        stmt = stmt.where(or_(Token.created_at >= start_dt, Token.id == None))
+    if end_date:
+        end_dt = datetime.combine(end_date, datetime.max.time()).replace(tzinfo=tz)
+        stmt = stmt.where(or_(Token.created_at <= end_dt, Token.id == None))
+
+    stmt = stmt.where(User.org_id.in_(org_ids), User.role.in_(["admin", "staff"]))
+    stmt = stmt.group_by(User.id)
+    
+    res = await db.execute(stmt)
+    staff_data = res.fetchall()
+    
+    days = 1
+    if start_date and end_date:
+        days = (end_date - start_date).days + 1
+        
+    two_mins_ago = datetime.now(timezone.utc) - timedelta(minutes=2)
+    
+    data = []
+    for r in staff_data:
+        name = f"{r.first_name or ''} {r.last_name or ''}".strip() or "—"
+        online = "Online" if r.last_active_at and r.last_active_at.replace(tzinfo=timezone.utc) >= two_mins_ago else "Offline"
+        
+        serve_rate = round((r.completed / r.served) * 100, 1) if r.served else 0
+        daily_avg = round(r.served / days, 1) if days > 0 else r.served
+        
+        # Avoid division by zero
+        safe_served = max(r.served, 1)
+        score = (r.served * 2) + (serve_rate * 0.5) + (max(600 - (r.avg_serve or 600), 0) / 60)
+        
+        data.append({
+            "Name": name,
+            "Email": r.email,
+            "Branch": org_name_map.get(r.org_id, "Unknown"),
+            "Role": r.role.capitalize(),
+            "Status": online,
+            "Last Active": r.last_active_at.strftime("%Y-%m-%d %H:%M") if r.last_active_at else "Never",
+            "Customers Served": r.served,
+            "Customers Completed": r.completed,
+            "Service Completion %": f"{serve_rate}%",
+            "Avg Customers/Day": daily_avg,
+            "Avg Service Time": _format_time(r.avg_serve or 0),
+            "Max Service Time": _format_time(r.max_serve or 0),
+            "Avg Wait of Handled Customers": _format_time(r.avg_wait or 0),
+            "_score": score
+        })
+        
+    data.sort(key=lambda x: x["_score"], reverse=True)
+    
+    summary = []
+    if data:
+        best = data[0]
+        summary.append({"Metric": "🌟 Best Performer", "Staff Member": best["Name"], "Detail": f"{best['Customers Served']} served"})
+        
+        highest_wl = max(data, key=lambda x: x["Customers Served"])
+        summary.append({"Metric": "📈 Highest Workload", "Staff Member": highest_wl["Name"], "Detail": f"{highest_wl['Customers Served']} served"})
+        
+        active_staff = [d for d in data if d["Customers Served"] > 0]
+        if active_staff:
+            lowest_wl = min(active_staff, key=lambda x: x["Customers Served"])
+            summary.append({"Metric": "📉 Lowest Workload (Active)", "Staff Member": lowest_wl["Name"], "Detail": f"{lowest_wl['Customers Served']} served"})
+
+    for d in data:
+        d.pop("_score")
+
+    sections = [
+        {"title": "Staff Summary", "data": summary},
+        {"title": "Staff Performance Details", "data": data}
+    ]
+    
+    if format_type == "CSV":
+        await _generate_csv(sections, file_path)
+    else:
+        await _generate_structured_excel(sections, file_path)
+
+async def _report_waiting_time_analysis(job: ExportJob, db: AsyncSession, file_path: str, format_type: str):
+    start_date, end_date, tz = await _resolve_date_bounds(db, job)
+    org_ids, org_name_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
+    
+    if not org_ids:
+        return [{"Message": "No branches found."}]
+        
+    from app.models.token import TokenStatus
+    
+    stmt = select(
+        Token.org_id,
+        func.count(Token.id).label("served"),
+        func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label("avg_wait"),
+        func.max(func.extract('epoch', Token.served_at - Token.created_at)).label("max_wait"),
+        func.min(func.extract('epoch', Token.served_at - Token.created_at)).label("min_wait")
+    ).where(Token.org_id.in_(org_ids), Token.status == TokenStatus.done)
+    stmt = _apply_date_filter(stmt, start_date, end_date, tz)
+    stmt = stmt.group_by(Token.org_id)
+    
+    res = await db.execute(stmt)
+    branch_metrics = res.fetchall()
+    
+    tot_served = sum(r.served for r in branch_metrics)
+    avg_wait = sum((r.avg_wait or 0) * r.served for r in branch_metrics) / tot_served if tot_served else 0
+    max_wait = max((r.max_wait for r in branch_metrics if r.max_wait), default=0)
+    min_wait = min((r.min_wait for r in branch_metrics if r.min_wait), default=0) if tot_served else 0
+    
+    overall = [
+        {"Average Waiting Time": _format_time(avg_wait), "Maximum Waiting Time": _format_time(max_wait), "Minimum Waiting Time": _format_time(min_wait)}
+    ]
+    
+    # Distribution
+    dist_stmt = select(
+        func.count().filter((func.extract('epoch', Token.served_at - Token.created_at) / 60) < 5).label("0-5"),
+        func.count().filter(and_((func.extract('epoch', Token.served_at - Token.created_at) / 60) >= 5, (func.extract('epoch', Token.served_at - Token.created_at) / 60) < 10)).label("5-10"),
+        func.count().filter(and_((func.extract('epoch', Token.served_at - Token.created_at) / 60) >= 10, (func.extract('epoch', Token.served_at - Token.created_at) / 60) < 20)).label("10-20"),
+        func.count().filter(and_((func.extract('epoch', Token.served_at - Token.created_at) / 60) >= 20, (func.extract('epoch', Token.served_at - Token.created_at) / 60) < 30)).label("20-30"),
+        func.count().filter((func.extract('epoch', Token.served_at - Token.created_at) / 60) >= 30).label("30+")
+    ).where(Token.org_id.in_(org_ids), Token.status == TokenStatus.done)
+    dist_stmt = _apply_date_filter(dist_stmt, start_date, end_date, tz)
+    
+    dist_res = await db.execute(dist_stmt)
+    dist = dist_res.first()
+    
+    distribution = []
+    if dist:
+        total_d = tot_served or 1
+        distribution = [
+            {"Wait Time": "0-5 min", "Customers": dist[0], "% of Total": f"{round((dist[0]/total_d)*100,1)}%"},
+            {"Wait Time": "5-10 min", "Customers": dist[1], "% of Total": f"{round((dist[1]/total_d)*100,1)}%"},
+            {"Wait Time": "10-20 min", "Customers": dist[2], "% of Total": f"{round((dist[2]/total_d)*100,1)}%"},
+            {"Wait Time": "20-30 min", "Customers": dist[3], "% of Total": f"{round((dist[3]/total_d)*100,1)}%"},
+            {"Wait Time": "30+ min", "Customers": dist[4], "% of Total": f"{round((dist[4]/total_d)*100,1)}%"}
+        ]
+        
+    branch_comp = []
+    for r in branch_metrics:
+        branch_comp.append({
+            "Branch Name": org_name_map.get(r.org_id, "Unknown"),
+            "Customers Served": r.served,
+            "Average Wait": _format_time(r.avg_wait or 0),
+            "Maximum Wait": _format_time(r.max_wait or 0),
+            "_raw_wait": r.avg_wait or 0
+        })
+    branch_comp.sort(key=lambda x: x["_raw_wait"])
+    
+    for idx, b in enumerate(branch_comp, 1):
+        b["Rank (Lowest Wait)"] = f"#{idx}"
+        b.pop("_raw_wait")
+        
+    # Peak Analysis
+    # Ensure correct time extraction according to timezone
+    try:
+        hour_expr = func.extract('hour', func.timezone(tz.key, Token.created_at))
+        day_expr = func.date(func.timezone(tz.key, Token.created_at))
+    except Exception:
+        hour_expr = func.extract('hour', Token.created_at)
+        day_expr = func.date(Token.created_at)
+        
+    peak_stmt = select(
+        hour_expr.label("hr"),
+        func.count(Token.id).label("count")
+    ).where(Token.org_id.in_(org_ids), Token.status != TokenStatus.deleted)
+    peak_stmt = _apply_date_filter(peak_stmt, start_date, end_date, tz)
+    peak_stmt = peak_stmt.group_by("hr")
+    
+    peak_res = await db.execute(peak_stmt)
+    hours = peak_res.fetchall()
+    
+    day_stmt = select(
+        day_expr.label("dy"),
+        func.count(Token.id).label("count")
+    ).where(Token.org_id.in_(org_ids), Token.status != TokenStatus.deleted)
+    day_stmt = _apply_date_filter(day_stmt, start_date, end_date, tz)
+    day_stmt = day_stmt.group_by("dy")
+    
+    day_res = await db.execute(day_stmt)
+    days = day_res.fetchall()
+    
+    peak_hour = max(hours, key=lambda x: x.count) if hours else None
+    busy_day = max(days, key=lambda x: x.count) if days else None
+    
+    peak_analysis = []
+    if peak_hour:
+        h = int(peak_hour.hr)
+        h_str = f"{h % 12 or 12}:00 {'AM' if h < 12 else 'PM'}"
+        peak_analysis.append({"Metric": "Peak Hour", "Value": h_str, "Customers": peak_hour.count})
+    if busy_day:
+        peak_analysis.append({"Metric": "Busiest Day", "Value": str(busy_day.dy), "Customers": busy_day.count})
+        
+    insights = []
+    if branch_comp:
+        insights.append({"Observation": "Lowest Wait Time Branch", "Branch": branch_comp[0]["Branch Name"]})
+        insights.append({"Observation": "Highest Wait Time Branch", "Branch": branch_comp[-1]["Branch Name"]})
+
+    sections = [
+        {"title": "Overall Waiting Metrics", "data": overall},
+        {"title": "Waiting Time Distribution", "data": distribution},
+        {"title": "Peak Analysis", "data": peak_analysis},
+        {"title": "Key Insights", "data": insights},
+        {"title": "Branch Comparison", "data": branch_comp}
+    ]
+    
+    if format_type == "CSV":
+        await _generate_csv(sections, file_path)
+    else:
+        await _generate_structured_excel(sections, file_path)
+
 
 async def generate_export(job_id: uuid.UUID, db: AsyncSession):
-    # Fetch job
     job = await db.get(ExportJob, job_id)
     if not job:
         return
@@ -24,27 +666,28 @@ async def generate_export(job_id: uuid.UUID, db: AsyncSession):
         job.status = "processing"
         await db.commit()
         
-        # Determine specific logic for report type
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{job.report_type.replace(' ', '_')}_{timestamp}"
         
         if job.report_type == "Customer Detailed Report":
             file_path = await _generate_customer_detailed_report(job, db, filename)
         else:
-            # Legacy simple logic
-            data = await _fetch_data_for_report(job, db)
-            df = pd.DataFrame(data)
-            if job.format.upper() == "CSV":
-                file_path = os.path.join(EXPORTS_DIR, f"{filename}.csv")
-                df.to_csv(file_path, index=False)
-            elif job.format.upper() == "EXCEL":
-                file_path = os.path.join(EXPORTS_DIR, f"{filename}.xlsx")
-                df.to_excel(file_path, index=False)
-            elif job.format.upper() == "PDF":
-                file_path = os.path.join(EXPORTS_DIR, f"{filename}.pdf")
-                _generate_pdf(df, file_path, job.report_type)
+            fmt = job.format.upper()
+            if fmt == "PDF":
+                fmt = "EXCEL" # Replaced custom pdf generation with well-formatted single sheet excel
+                
+            file_path = os.path.join(EXPORTS_DIR, f"{filename}.{'csv' if fmt == 'CSV' else 'xlsx'}")
+            
+            if job.report_type == "Executive Summary":
+                await _report_executive_summary(job, db, file_path, fmt)
+            elif job.report_type == "Branch Performance Report":
+                await _report_branch_performance(job, db, file_path, fmt)
+            elif job.report_type == "Staff Performance Report":
+                await _report_staff_performance(job, db, file_path, fmt)
+            elif job.report_type == "Waiting Time Analysis":
+                await _report_waiting_time_analysis(job, db, file_path, fmt)
             else:
-                raise ValueError("Unsupported format")
+                raise ValueError(f"Unknown report type: {job.report_type}")
 
         job.file_path = file_path
         job.status = "completed"
@@ -59,29 +702,6 @@ async def generate_export(job_id: uuid.UUID, db: AsyncSession):
         
     finally:
         await db.commit()
-
-async def _fetch_data_for_report(job: ExportJob, db: AsyncSession):
-    # Legacy data fetching logic
-    if job.report_type == "Executive Summary":
-        return [{"Metric": "Total Branches", "Value": 5}, {"Metric": "Total Staff", "Value": 25}]
-    elif job.report_type == "Branch Performance Report":
-        orgs_res = await db.execute(select(Organization).where(Organization.parent_organization_id == job.parent_org_id))
-        orgs = orgs_res.scalars().all()
-        return [{"Branch": o.name, "Status": "Active" if o.is_active else "Inactive", "Created At": o.created_at} for o in orgs]
-    elif job.report_type == "Queue Performance Report":
-        q_res = await db.execute(select(Queue))
-        queues = q_res.scalars().all()
-        return [{"Queue Name": q.name, "Active": q.is_active, "Tokens Served": q.total_served} for q in queues]
-    elif job.report_type == "Session Performance Report":
-        s_res = await db.execute(select(Session))
-        sessions = s_res.scalars().all()
-        return [{"Session": s.name, "Date": s.session_date, "Status": s.status} for s in sessions]
-    elif job.report_type == "Staff Performance Report":
-        return [{"Staff": "John Doe", "Customers Served": 120}]
-    elif job.report_type == "Customer Flow Report":
-        return [{"Customer": "Jane", "Wait Time": "12m", "Service Time": "5m"}]
-    else:
-        return [{"Message": "No data available for this report type"}]
 
 def _generate_pdf(df, file_path, title):
     from reportlab.lib.pagesizes import letter

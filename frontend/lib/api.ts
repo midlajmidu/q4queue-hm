@@ -381,6 +381,13 @@ export const api = {
         });
     },
 
+    updateSession(sessionId: string, data: { title: string }): Promise<void> {
+        return request<void>(`/sessions/${sessionId}`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        });
+    },
+
     deleteSession(sessionId: string): Promise<void> {
         return request<void>(`/sessions/${sessionId}`, {
             method: "DELETE",
@@ -453,6 +460,16 @@ export const api = {
 
     resetQueue(queueId: string): Promise<void> {
         return request<void>(`/queues/${queueId}/reset`, {
+            method: "POST",
+        });
+    },
+
+    listTrashQueues(): Promise<QueueResponse[]> {
+        return request<QueueResponse[]>("/queues/trash");
+    },
+
+    restoreQueue(queueId: string): Promise<QueueResponse> {
+        return request<QueueResponse>(`/queues/${queueId}/restore`, {
             method: "POST",
         });
     },

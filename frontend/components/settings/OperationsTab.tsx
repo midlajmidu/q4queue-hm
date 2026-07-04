@@ -368,14 +368,14 @@ export function OperationsTab() {
                                                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                                                 }`}
                                             >
-                                                Service Lines
+                                                Service Lanes
                                             </button>
                                         </div>
                                     </div>
 
                                     {createQueueType === "service_lines" && (
                                         <div className="animate-in slide-in-from-top-2 fade-in duration-200">
-                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Number of Service Lines</label>
+                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Number of Service Lanes</label>
                                             <input
                                                 type="number"
                                                 min="2"

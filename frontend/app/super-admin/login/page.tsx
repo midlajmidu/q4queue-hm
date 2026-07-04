@@ -10,8 +10,8 @@ import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 
 export default function SuperAdminLoginPage() {
     const router = useRouter();
-    const [email, setEmail] = useState("superadmin@q4queue.internal");
-    const [password, setPassword] = useState("SuperAdmin@2026!!!");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);

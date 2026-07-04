@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, Plus, Layers, Users, CalendarClock, CheckCircle2 } from "lucide-react";
+import { ChevronRight, Plus, Layers, Users, CalendarClock, CheckCircle2, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import type { SessionResponse } from "@/types/api";
@@ -88,15 +88,15 @@ function groupByTimeline(sessions: SessionResponse[]): GroupedSessions[] {
 
 // ─── Component ───────────────────────────────────────────────────
 export default function SessionsPage() {
-    const { user, isReadOnly } = useAuth();
+    const { user, isReadOnly, isImpersonating } = useAuth();
     const dashBase = useDashBase();
     const router = useRouter();
     const searchParams = useSearchParams();
     const isStaff = user?.role === "staff";
-    const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
+    const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin" || isImpersonating;
     const canCreateSession = !isGlobalOrOrgAdmin && !isReadOnly;
-    const canDeleteSession = !isStaff && !isGlobalOrOrgAdmin && !isReadOnly;
-
+    const canDeleteSession = isGlobalOrOrgAdmin;
+    const canEditSession = isGlobalOrOrgAdmin || (!isStaff && !isReadOnly);
 
     const [sessions, setSessions] = useState<SessionResponse[]>([]);
     const [queueList, setQueueList] = useState<string[]>([]);
@@ -119,6 +119,12 @@ export default function SessionsPage() {
     // Delete
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [sessionToDelete, setSessionToDelete] = useState<SessionResponse | null>(null);
+    
+    // Edit
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingSession, setEditingSession] = useState<SessionResponse | null>(null);
+    const [editSessionTitle, setEditSessionTitle] = useState("");
+    const [editLoading, setEditLoading] = useState(false);
 
     const loadData = useCallback(async () => {
         setIsLoading(true);
@@ -230,6 +236,31 @@ export default function SessionsPage() {
             alert(err instanceof ApiError ? err.detail : "Failed to delete session");
         } finally {
             setDeletingId(null);
+        }
+    };
+
+    const handleEditClick = (session: SessionResponse, e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setEditingSession(session);
+        setEditSessionTitle(session.title || "");
+        setIsEditModalOpen(true);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingSession) return;
+        setEditLoading(true);
+        try {
+            await api.updateSession(editingSession.id, { title: editSessionTitle });
+            toast.success("Session updated successfully");
+            setIsEditModalOpen(false);
+            setEditingSession(null);
+            await loadData();
+        } catch (err: unknown) {
+            toast.error(err instanceof ApiError ? err.message : "Failed to update session");
+        } finally {
+            setEditLoading(false);
         }
     };
 
@@ -417,8 +448,17 @@ export default function SessionsPage() {
                                                             </div>
                                                         </div>
 
-                                                        {/* Delete + Chevron */}
+                                                        {/* Actions + Chevron */}
                                                         <div className="flex items-center gap-1 shrink-0 ml-1">
+                                                            {canEditSession && (
+                                                                <button
+                                                                    onClick={(e) => handleEditClick(session, e)}
+                                                                    className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-2 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all duration-200"
+                                                                    aria-label="Edit session"
+                                                                >
+                                                                    <Edit2 className="w-[18px] h-[18px]" strokeWidth={2} />
+                                                                </button>
+                                                            )}
                                                             {canDeleteSession && (
                                                                 <button
                                                                     onClick={(e) => handleDelete(session, e)}
@@ -512,6 +552,40 @@ export default function SessionsPage() {
                                 <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
                                 <button type="submit" disabled={createLoading || !newDate} className="flex-[1.5] py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-500/20 hover:-translate-y-0.5 transition-all active:translate-y-0">
                                     {createLoading ? "Creating..." : "Create Session"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Edit Session Modal ── */}
+            {isEditModalOpen && editingSession && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsEditModalOpen(false)} />
+                    <div className="relative bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="mb-6">
+                            <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1.5">Edit Session</h3>
+                            <p className="text-sm text-slate-500 font-medium">Update the title for this session.</p>
+                        </div>
+                        <form onSubmit={handleEditSubmit} noValidate className="flex flex-col gap-4">
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                    Session Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editSessionTitle}
+                                    onChange={(e) => setEditSessionTitle(e.target.value)}
+                                    placeholder="e.g. Morning Clinic"
+                                    maxLength={200}
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100">
+                                <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
+                                <button type="submit" disabled={editLoading} className="flex-[1.5] py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-500/20 hover:-translate-y-0.5 transition-all active:translate-y-0">
+                                    {editLoading ? "Saving..." : "Save Changes"}
                                 </button>
                             </div>
                         </form>
