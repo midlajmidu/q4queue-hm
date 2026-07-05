@@ -105,7 +105,7 @@ async def notify_queue_event(
             return
         if event_type == "queue_nearby_3_v2" and not cfg.get("notify_position_3", True):
             return
-        if event_type == "queue_called_v2" and not cfg.get("notify_called", True):
+        if event_type in ("queue_called_v2", "queue_called_v3") and not cfg.get("notify_called", True):
             return
         if event_type == "queue_completed_v2" and not cfg.get("notify_completed", True):
             return
@@ -166,12 +166,12 @@ async def notify_queue_event(
             else:
                 # queue_called_v3 variables: Name, Org Name, Token, Position, Tracking URL, Display URL
                 variables = [
-                    c_name,
-                    org_name_to_use,
-                    token_str,
-                    str(position) if position else "0",
-                    track_url,
-                    display_url
+                    {"type": "text", "text": c_name},
+                    {"type": "text", "text": org_name_to_use},
+                    {"type": "text", "text": token_str},
+                    {"type": "text", "text": str(position) if position else "0"},
+                    {"type": "text", "text": track_url},
+                    {"type": "text", "text": display_url}
                 ]
         else:
             # Events B, C, D, E require whatsapp_alerts_active check
