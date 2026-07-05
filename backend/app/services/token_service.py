@@ -710,7 +710,7 @@ async def send_called_and_reminder_notifications(
             serving_token = tok_res.scalar_one_or_none()
 
             if serving_token:
-                event_name = "queue_recalled_v2" if getattr(serving_token, "called_via_invite", False) else "queue_called_v2"
+                event_name = "queue_recalled_v2" if getattr(serving_token, "called_via_invite", False) else "queue_called_v3"
                 await notify_queue_event(
                     event_type=event_name,
                     org_id=org_id,

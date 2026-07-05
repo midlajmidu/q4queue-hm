@@ -141,8 +141,8 @@ async def notify_queue_event(
         raw_body = None
         variables = []
 
-        if event_type == "queue_joined_v4":
-            # Primary Welcome Template (Template 1)
+        if event_type in ("queue_joined_v4", "queue_called_v3"):
+            # These templates bypass the opt-in and 24-hour window checks
             # Use env-configured frontend URL or fallback
             from app.core.config import get_settings
             settings = get_settings()
@@ -151,16 +151,28 @@ async def notify_queue_event(
             display_url = f"{frontend_url}/d/{queue_id}"
             
             org_name_to_use = organization_name if organization_name else queue_name
+            c_name = customer_name or "Customer"
             
-            variables = build_template_variables(
-                customer_name=customer_name,
-                queue_name=queue_name,
-                organization_name=org_name_to_use,
-                token_number=token_str,
-                current_position=str(position),
-                tracking_url=track_url,
-                display_url=display_url,
-            )
+            if event_type == "queue_joined_v4":
+                variables = build_template_variables(
+                    customer_name=c_name,
+                    queue_name=queue_name,
+                    organization_name=org_name_to_use,
+                    token_number=token_str,
+                    current_position=str(position),
+                    tracking_url=track_url,
+                    display_url=display_url,
+                )
+            else:
+                # queue_called_v3 variables: Name, Org Name, Token, Position, Tracking URL, Display URL
+                variables = [
+                    c_name,
+                    org_name_to_use,
+                    token_str,
+                    str(position) if position else "0",
+                    track_url,
+                    display_url
+                ]
         else:
             # Events B, C, D, E require whatsapp_alerts_active check
             if not token_id:
@@ -290,7 +302,7 @@ async def notify_queue_event(
                 return
 
         # 3.5 Rate limit via Redis
-        if event_type not in ("queue_called_v2", "queue_joined_v4"):
+        if event_type not in ("queue_called_v2", "queue_called_v3", "queue_joined_v4"):
             try:
                 redis_client = get_redis()
                 rl_key = f"wa_throttle:{token_id}"
