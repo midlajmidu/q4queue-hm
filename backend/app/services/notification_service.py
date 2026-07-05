@@ -166,10 +166,10 @@ async def notify_queue_event(
             else:
                 # queue_called_v3 variables: {{1}} Customer, {{2}} Queue, {{3}} Org, {{4}} Token
                 variables = [
-                    {"type": "text", "text": c_name},
-                    {"type": "text", "text": queue_name or org_name_to_use},
-                    {"type": "text", "text": organization_name or "our store"},
-                    {"type": "text", "text": token_str}
+                    c_name,
+                    queue_name or org_name_to_use,
+                    organization_name or "our store",
+                    token_str
                 ]
         else:
             # Events B, C, D, E require whatsapp_alerts_active check
