@@ -116,6 +116,31 @@ DEFAULT_TEMPLATES = [
         "status": WhatsAppTemplateStatus.approved,
     },
     {
+        "template_name": "queue_called_v3",
+        "event_type": "queue_called_v3",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Sent when a customer's token is called to be served",
+        "body_text": (
+            "🔔 *It's your turn, {{1}}!*\n\n"
+            "Token *{{3}}* is now being called at *{{2}}*.\n\n"
+            "Current Position: {{4}}\n\n"
+            "Please proceed to the counter immediately.\n\n"
+            "Track your position live: {{5}}\n\n"
+            "Visit us at: {{6}}\n\n"
+            "If you are not present, your token may be skipped."
+        ),
+        "variables": {
+            "1": "Customer Name",
+            "2": "Organization Name",
+            "3": "Token Number",
+            "4": "Current Position",
+            "5": "Tracking URL",
+            "6": "Display URL",
+        },
+        "status": WhatsAppTemplateStatus.approved,
+    },
+    {
         "template_name": "queue_completed_v2",
         "event_type": "queue_completed_v2",
         "category": "UTILITY",
