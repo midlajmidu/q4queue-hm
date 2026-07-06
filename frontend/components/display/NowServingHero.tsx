@@ -77,7 +77,7 @@ export function NowServingHero({
                     <div className={`w-10 h-10 rounded-xl border ${iconBg(theme)} flex items-center justify-center mb-1`}>
                         <Users className={`w-5 h-5 ${iconColor(theme)}`} />
                     </div>
-                    <p className={`text-xs font-semibold tracking-[0.15em] ${mutedText(theme)} uppercase`}>
+                    <p className={`text-base font-bold tracking-[0.15em] ${mutedText(theme)} uppercase`}>
                         Now Serving
                     </p>
                     {queueName && (
@@ -158,7 +158,7 @@ export function NowServingHero({
                     <div className={`w-10 h-10 rounded-xl border ${iconBg(theme)} flex items-center justify-center mb-1`}>
                         <Users className={`w-5 h-5 ${iconColor(theme)}`} />
                     </div>
-                    <p className={`text-xs font-semibold tracking-[0.15em] ${mutedText(theme)} uppercase`}>Now Serving</p>
+                    <p className={`text-base font-bold tracking-[0.15em] ${mutedText(theme)} uppercase`}>Now Serving</p>
                 </div>
                 <div className="flex flex-wrap justify-center items-stretch gap-4 flex-1 overflow-y-auto content-start">
                     <AnimatePresence>
@@ -195,8 +195,8 @@ export function NowServingHero({
         <div className={`flex-1 ${cardBg(theme)} border ${cardBorder(theme)} ${cardShadow(theme)} rounded-2xl p-5 flex flex-col relative overflow-hidden`}>
             {/* Queue name */}
             {queueName && (
-                <div className="flex justify-center items-center gap-3 w-full mb-auto">
-                    <h1 className={`text-2xl lg:text-3xl font-bold ${primaryText(theme)} text-center tracking-tight capitalize`}>
+                <div className="flex justify-center items-center gap-4 w-full mb-auto mt-4">
+                    <h1 className={`text-3xl lg:text-4xl font-black ${primaryText(theme)} text-center tracking-tight capitalize`}>
                         {queueName}
                     </h1>
                     {isActive === false && (
@@ -208,7 +208,7 @@ export function NowServingHero({
             )}
 
             <div className="flex flex-col items-center justify-center flex-1 w-full">
-                <p className={`text-sm font-semibold tracking-[0.2em] uppercase mb-4 transition-colors ${serving === 0 ? mutedText(theme) : labelText(theme)}`}>
+                <p className={`text-xl lg:text-2xl font-bold tracking-[0.2em] uppercase mb-4 transition-colors ${serving === 0 ? mutedText(theme) : labelText(theme)}`}>
                     Now Serving
                 </p>
 

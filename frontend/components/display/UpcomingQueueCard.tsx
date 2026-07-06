@@ -35,14 +35,14 @@ export function UpcomingQueueCard({ waitingTokens, prefix, theme = "light" }: Up
     );
 
     return (
-        <div className={`${cardBg(theme)} border ${cardBorder(theme)} ${cardShadow(theme)} rounded-2xl px-5 py-4 flex flex-col lg:flex-1 overflow-hidden relative`}>
+        <div className={`${cardBg(theme)} border ${cardBorder(theme)} ${cardShadow(theme)} rounded-2xl px-6 py-6 flex flex-col lg:flex-1 overflow-hidden relative`}>
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-lg border ${iconBg(theme)} flex items-center justify-center`}>
                         <CalendarClock className={`w-4 h-4 ${iconColor(theme)}`} />
                     </div>
-                    <h3 className={`text-sm font-semibold tracking-[0.15em] ${labelText(theme)} uppercase`}>
+                    <h3 className={`text-lg lg:text-xl font-bold tracking-[0.15em] ${labelText(theme)} uppercase`}>
                         Upcoming
                     </h3>
                 </div>
@@ -112,8 +112,8 @@ export function UpcomingQueueCard({ waitingTokens, prefix, theme = "light" }: Up
                     </AnimatePresence>
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center py-10 text-center">
-                        <CalendarClock className={`w-6 h-6 ${mutedText(theme)} mb-3`} />
-                        <span className={`text-xs font-medium tracking-[0.15em] uppercase ${mutedText(theme)}`}>
+                        <CalendarClock className={`w-12 h-12 ${mutedText(theme)} mb-4 opacity-50`} />
+                        <span className={`text-base lg:text-lg font-bold tracking-[0.15em] uppercase ${mutedText(theme)}`}>
                             No upcoming
                         </span>
                     </div>

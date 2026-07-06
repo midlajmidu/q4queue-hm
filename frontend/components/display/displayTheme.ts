@@ -21,11 +21,11 @@ export const iconBg = (t: DisplayTheme) =>
 
 /** Section label (WAITING, RECENTLY CALLED, etc.) */
 export const labelText = (t: DisplayTheme) =>
-    t === "dark" ? "text-slate-400" : "text-slate-500";
+    t === "dark" ? "text-slate-300" : "text-slate-500";
 
 /** Icon stroke */
 export const iconColor = (t: DisplayTheme) =>
-    t === "dark" ? "text-slate-400" : "text-slate-400";
+    t === "dark" ? "text-slate-300" : "text-slate-400";
 
 /** Primary text (token numbers, big counts) */
 export const primaryText = (t: DisplayTheme) =>
@@ -33,11 +33,11 @@ export const primaryText = (t: DisplayTheme) =>
 
 /** Secondary text (dimmed token numbers) */
 export const secondaryText = (t: DisplayTheme) =>
-    t === "dark" ? "text-slate-400" : "text-slate-500";
+    t === "dark" ? "text-slate-200" : "text-slate-500";
 
 /** Muted text (timestamps, captions) */
 export const mutedText = (t: DisplayTheme) =>
-    t === "dark" ? "text-slate-500" : "text-slate-400";
+    t === "dark" ? "text-slate-400" : "text-slate-400";
 
 /** Divider between list items */
 export const dividerBorder = (t: DisplayTheme) =>
