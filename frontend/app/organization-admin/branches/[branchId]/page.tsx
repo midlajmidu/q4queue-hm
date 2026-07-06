@@ -74,7 +74,7 @@ export default function BranchDetailsPage() {
         <div className="-mt-4 sm:-mt-6 lg:-mt-8 bg-slate-50 min-h-screen pb-12">
             {/* Minimalist Sub-Navigation Header */}
             <div className="sticky -top-4 sm:-top-6 lg:-top-8 z-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white/80 backdrop-blur-md border-b border-slate-200 py-3 mb-6">
-                <div className="flex items-center justify-between max-w-7xl mx-auto">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between max-w-7xl mx-auto gap-4 sm:gap-0">
                     <div className="flex items-center gap-3">
                         <Link href="/organization-admin/branches" className="text-slate-400 hover:text-slate-900 transition-colors" title="Back to Branches">
                             <ArrowLeft size={18} strokeWidth={2} />
@@ -87,7 +87,7 @@ export default function BranchDetailsPage() {
                             </span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                         <div className="text-xs text-slate-500 hidden sm:block mr-2 font-medium">
                             <span className="text-slate-400">Ref:</span> {branch.slug}
                         </div>

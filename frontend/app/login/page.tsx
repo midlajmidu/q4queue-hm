@@ -61,21 +61,25 @@ export default function LoginPage() {
     return (
         <main className="force-light min-h-screen w-full flex bg-white h-screen overflow-hidden">
             {/* Left Column - Form */}
-            <div className="w-full lg:w-[45%] flex flex-col justify-center px-8 sm:px-12 lg:px-20 py-4 relative overflow-y-auto">
+            <div className="w-full lg:w-1/2 flex flex-col px-8 sm:px-12 lg:px-20 xl:px-32 py-10 sm:py-12 relative overflow-y-auto">
+                {/* Logo */}
+                <div className="flex-none mb-auto">
+                    <Link href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg" aria-label="Go to home page">
+                        <Image src="/q4queue-main-logo.png" alt="Q4Queue Logo" width={140} height={35} className="h-7 sm:h-8 w-auto object-contain" priority />
+                    </Link>
+                </div>
+
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                    className="w-full max-w-md mx-auto flex flex-col justify-center h-full my-auto"
+                    className="w-full max-w-[440px] flex flex-col justify-center h-full my-auto pt-8 sm:pt-0"
                 >
-                    <div className="mb-6 flex flex-col items-start">
-                        <Link href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg" aria-label="Go to home page">
-                            <Image src="/q4queue-main-logo.png" alt="Q4Queue Logo" width={180} height={45} className="h-9 w-auto object-contain" priority />
-                        </Link>
-                        <h1 className="font-heading text-2xl font-bold text-slate-900 mt-6 tracking-tight">
+                    <div className="mb-8 flex flex-col items-start">
+                        <h1 className="font-heading text-[28px] sm:text-3xl font-bold text-slate-900 tracking-tight">
                             Welcome back!
                         </h1>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <p className="text-[15px] text-slate-600 mt-2">
                             Enter your credentials to continue to your dashboard.
                         </p>
                     </div>
@@ -100,7 +104,7 @@ export default function LoginPage() {
                         </AnimatePresence>
 
                         <div>
-                            <label htmlFor="org-slug" className="block text-xs font-bold text-slate-900 mb-1.5">
+                            <label htmlFor="org-slug" className="block text-[13px] font-bold text-slate-900 mb-1.5">
                                 {loginType === "staff" ? "Branch Slug *" : "Organization Slug *"}
                             </label>
                             <input
@@ -111,13 +115,13 @@ export default function LoginPage() {
                                 placeholder={loginType === "staff" ? "branch-slug" : "organization-slug"}
                                 required
                                 autoComplete="organization"
-                                className="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
+                                className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 outline-none transition-all placeholder:text-slate-400"
                                 disabled={isLoading}
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="email" className="block text-xs font-bold text-slate-900 mb-1.5">Email Address *</label>
+                            <label htmlFor="email" className="block text-[13px] font-bold text-slate-900 mb-1.5">Email Address *</label>
                             <input
                                 id="email"
                                 type="email"
@@ -126,14 +130,14 @@ export default function LoginPage() {
                                 placeholder="admin@clinic.com"
                                 required
                                 autoComplete="email"
-                                className="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
+                                className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 outline-none transition-all placeholder:text-slate-400"
                                 disabled={isLoading}
                             />
                         </div>
 
                         <div>
                             <div className="flex items-center justify-between mb-1.5">
-                                <label htmlFor="password" title="Password" className="block text-xs font-bold text-slate-900">Password *</label>
+                                <label htmlFor="password" title="Password" className="block text-[13px] font-bold text-slate-900">Password *</label>
                             </div>
                             <div className="relative">
                                 <input
@@ -144,7 +148,7 @@ export default function LoginPage() {
                                     placeholder="••••••••"
                                     required
                                     autoComplete="current-password"
-                                    className="w-full rounded-xl border-2 border-slate-200 bg-white pl-3 pr-10 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
+                                    className="w-full rounded-lg border border-slate-300 bg-white pl-3.5 pr-10 py-2.5 text-[15px] text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 outline-none transition-all placeholder:text-slate-400"
                                     disabled={isLoading}
                                 />
                                 <button
@@ -167,7 +171,7 @@ export default function LoginPage() {
                             type="submit"
                             disabled={isLoading || !orgSlug || !email || !password}
                             aria-label="Continue"
-                            className="w-full h-11 mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[14px] rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            className="w-full h-[46px] mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-[15px] rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                         >
                             {isLoading ? (
                                 <>
@@ -202,8 +206,8 @@ export default function LoginPage() {
             </div>
 
             {/* Right Column - Graphic */}
-            <div className="hidden lg:flex lg:w-[55%] p-4 pl-0">
-                <div className="w-full h-full rounded-[1.5rem] overflow-hidden relative shadow-2xl">
+            <div className="hidden lg:flex lg:w-1/2 p-3 lg:p-4 justify-center items-center bg-white">
+                <div className="w-full h-full rounded-[2rem] lg:rounded-[2.5rem] overflow-hidden relative">
                     <motion.div 
                         initial={{ opacity: 0, scale: 1.05 }}
                         animate={{ opacity: 1, scale: 1 }}

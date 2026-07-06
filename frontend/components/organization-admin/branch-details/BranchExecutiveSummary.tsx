@@ -29,37 +29,37 @@ export default function BranchExecutiveSummary({ branchId }: { branchId: string 
     if (!data) return null;
 
     return (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between">
-                <div className="flex justify-between items-start mb-3">
-                    <div className="text-[13px] font-medium text-slate-500">Total Staff</div>
-                    <Users size={16} strokeWidth={2} className="text-slate-400" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-2 sm:mb-3">
+                    <div className="text-xs sm:text-[13px] font-medium text-slate-500">Total Staff</div>
+                    <Users size={16} strokeWidth={2} className="text-slate-400 hidden sm:block" />
                 </div>
-                <div className="text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.total_staff.toLocaleString()}</div>
+                <div className="text-2xl sm:text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.total_staff.toLocaleString()}</div>
             </div>
             
-            <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between">
-                <div className="flex justify-between items-start mb-3">
-                    <div className="text-[13px] font-medium text-slate-500">Active Sessions</div>
-                    <MonitorPlay size={16} strokeWidth={2} className="text-slate-400" />
+            <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-2 sm:mb-3">
+                    <div className="text-xs sm:text-[13px] font-medium text-slate-500">Active Sessions</div>
+                    <MonitorPlay size={16} strokeWidth={2} className="text-slate-400 hidden sm:block" />
                 </div>
-                <div className="text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.active_sessions.toLocaleString()}</div>
+                <div className="text-2xl sm:text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.active_sessions.toLocaleString()}</div>
             </div>
             
-            <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between">
-                <div className="flex justify-between items-start mb-3">
-                    <div className="text-[13px] font-medium text-slate-500">Active Queues</div>
-                    <Ticket size={16} strokeWidth={2} className="text-slate-400" />
+            <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-2 sm:mb-3">
+                    <div className="text-xs sm:text-[13px] font-medium text-slate-500">Active Queues</div>
+                    <Ticket size={16} strokeWidth={2} className="text-slate-400 hidden sm:block" />
                 </div>
-                <div className="text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.active_queues.toLocaleString()}</div>
+                <div className="text-2xl sm:text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.active_queues.toLocaleString()}</div>
             </div>
             
-            <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between">
-                <div className="flex justify-between items-start mb-3">
-                    <div className="text-[13px] font-medium text-slate-500">Served Today</div>
-                    <Activity size={16} strokeWidth={2} className="text-slate-400" />
+            <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-2 sm:mb-3">
+                    <div className="text-xs sm:text-[13px] font-medium text-slate-500">Served Today</div>
+                    <Activity size={16} strokeWidth={2} className="text-slate-400 hidden sm:block" />
                 </div>
-                <div className="text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.customers_served_today.toLocaleString()}</div>
+                <div className="text-2xl sm:text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.customers_served_today.toLocaleString()}</div>
             </div>
         </div>
     );

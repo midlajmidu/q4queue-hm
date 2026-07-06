@@ -43,28 +43,28 @@ export default function BranchQueueBreakdown({ branchId }: { branchId: string })
                 <table className="w-full text-left">
                     <thead className="bg-slate-50 border-b border-slate-100 text-slate-500">
                         <tr>
-                            <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider">Queue Name</th>
-                            <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-center">Status</th>
-                            <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-center">Current</th>
-                            <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-center">Waiting</th>
-                            <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-center">Completed</th>
+                            <th className="px-4 sm:px-5 py-3 text-[10px] sm:text-xs font-medium uppercase tracking-wider whitespace-nowrap">Queue Name</th>
+                            <th className="px-4 sm:px-5 py-3 text-[10px] sm:text-xs font-medium uppercase tracking-wider text-center whitespace-nowrap">Status</th>
+                            <th className="px-4 sm:px-5 py-3 text-[10px] sm:text-xs font-medium uppercase tracking-wider text-center whitespace-nowrap">Current</th>
+                            <th className="px-4 sm:px-5 py-3 text-[10px] sm:text-xs font-medium uppercase tracking-wider text-center whitespace-nowrap">Waiting</th>
+                            <th className="px-4 sm:px-5 py-3 text-[10px] sm:text-xs font-medium uppercase tracking-wider text-center whitespace-nowrap">Completed</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {data.map((q, i) => (
                             <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
-                                <td className="px-5 py-3 text-sm font-medium text-slate-900 flex items-center gap-2">
+                                <td className="px-4 sm:px-5 py-3 text-xs sm:text-sm font-medium text-slate-900 flex items-center gap-2 whitespace-nowrap">
                                     {q.queue_name}
                                 </td>
-                                <td className="px-5 py-3 text-center">
+                                <td className="px-4 sm:px-5 py-3 text-center whitespace-nowrap">
                                     <div className="flex items-center justify-center gap-1.5">
-                                        <span className={`w-2 h-2 rounded-full ${q.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                                        <span className="text-xs font-medium text-slate-600">{q.status}</span>
+                                        <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${q.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                        <span className="text-[10px] sm:text-xs font-medium text-slate-600">{q.status}</span>
                                     </div>
                                 </td>
-                                <td className="px-5 py-3 text-center text-sm font-medium text-slate-900 tabular-nums">{q.current_token || '-'}</td>
-                                <td className="px-5 py-3 text-center text-sm text-slate-500 tabular-nums">{q.waiting_count}</td>
-                                <td className="px-5 py-3 text-center text-sm text-slate-500 tabular-nums">{q.completed_today}</td>
+                                <td className="px-4 sm:px-5 py-3 text-center text-xs sm:text-sm font-medium text-slate-900 tabular-nums whitespace-nowrap">{q.current_token || '-'}</td>
+                                <td className="px-4 sm:px-5 py-3 text-center text-xs sm:text-sm text-slate-500 tabular-nums whitespace-nowrap">{q.waiting_count}</td>
+                                <td className="px-4 sm:px-5 py-3 text-center text-xs sm:text-sm text-slate-500 tabular-nums whitespace-nowrap">{q.completed_today}</td>
                             </tr>
                         ))}
                         {data.length === 0 && (

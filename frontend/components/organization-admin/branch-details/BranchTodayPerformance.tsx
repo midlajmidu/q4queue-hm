@@ -33,11 +33,11 @@ export default function BranchTodayPerformance({ branchId }: { branchId: string 
 
     return (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="grid grid-cols-2 md:grid-cols-3 divide-y divide-slate-100 md:divide-y-0">
-                <div className="p-5 md:border-r border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+                <div className="p-4 sm:p-5">
                     <div className="flex items-center gap-2 mb-2">
                         <TrendingUp size={14} strokeWidth={2} className="text-slate-400" />
-                        <span className="text-[13px] font-medium text-slate-500">Avg Wait Time</span>
+                        <span className="text-xs sm:text-[13px] font-medium text-slate-500">Avg Wait Time</span>
                     </div>
                     <div className="flex items-end gap-1.5">
                         <span className="text-2xl font-semibold tracking-tight text-slate-900 leading-none">{data.avg_wait_time_mins}</span>
@@ -45,10 +45,10 @@ export default function BranchTodayPerformance({ branchId }: { branchId: string 
                     </div>
                 </div>
                 
-                <div className="p-5 md:border-r border-slate-100">
+                <div className="p-4 sm:p-5">
                     <div className="flex items-center gap-2 mb-2">
                         <Clock size={14} strokeWidth={2} className="text-slate-400" />
-                        <span className="text-[13px] font-medium text-slate-500">Avg Service Time</span>
+                        <span className="text-xs sm:text-[13px] font-medium text-slate-500">Avg Service Time</span>
                     </div>
                     <div className="flex items-end gap-1.5">
                         <span className="text-2xl font-semibold tracking-tight text-slate-900 leading-none">{data.avg_service_time_mins}</span>
@@ -56,10 +56,10 @@ export default function BranchTodayPerformance({ branchId }: { branchId: string 
                     </div>
                 </div>
                 
-                <div className="p-5 col-span-2 md:col-span-1">
+                <div className="p-4 sm:p-5">
                     <div className="flex items-center gap-2 mb-2">
                         <AlertCircle size={14} strokeWidth={2} className="text-slate-400" />
-                        <span className="text-[13px] font-medium text-slate-500">Drop-off Rate</span>
+                        <span className="text-xs sm:text-[13px] font-medium text-slate-500">Drop-off Rate</span>
                     </div>
                     <div className="flex items-end gap-1.5">
                         <span className="text-2xl font-semibold tracking-tight text-slate-900 leading-none">{data.drop_off_rate}%</span>
