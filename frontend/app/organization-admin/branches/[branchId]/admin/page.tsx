@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { setToken, getSuperAdminToken, getToken, setSuperAdminToken } from "@/lib/auth";
 import { useAuth } from "@/hooks/useAuth";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 
 /**
  * Org-Admin → Branch Read-Only View
@@ -19,13 +20,16 @@ export default function OrgAdminBranchViewPage() {
     const router = useRouter();
     const branchId = params?.branchId as string;
     const { isHydrated, isAuthenticated } = useAuth();
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<{title: string, message: string} | null>(null);
 
     useEffect(() => {
         if (!isHydrated || !branchId) return;
 
         if (!isAuthenticated) {
-            setError("Session expired or not authenticated. Please login again.");
+            setError({
+                title: "Authentication Error",
+                message: "Session expired or not authenticated. Please login again."
+            });
             return;
         }
 
@@ -51,7 +55,16 @@ export default function OrgAdminBranchViewPage() {
                 router.replace(`/org-admin/${branchSlug}/dashboard`);
 
             } catch (err: any) {
-                setError(err?.detail || "Failed to access branch dashboard. Please try again.");
+                let errorTitle = "Access Denied";
+                let errorMsg = err?.detail || err?.message || "Failed to access branch dashboard. Please try again.";
+                
+                // If it's a 404 Not Found from impersonate API, it means the branch has no admin
+                if (errorMsg.toLowerCase().includes("not found")) {
+                    errorTitle = "Branch Admin Required";
+                    errorMsg = "No Branch Admin is currently assigned to this branch. You must create or assign a branch admin before you can view its live dashboard.";
+                }
+
+                setError({ title: errorTitle, message: errorMsg });
             }
         }
 
@@ -60,21 +73,30 @@ export default function OrgAdminBranchViewPage() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-                    <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-7 h-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+            <div className="min-h-screen bg-slate-50/50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+                {/* Background decorative elements */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-rose-100/50 rounded-full blur-3xl -z-10 opacity-70"></div>
+                
+                <div className="bg-white rounded-[24px] shadow-xl shadow-slate-200/50 border border-slate-100/80 p-10 max-w-md w-full text-center relative z-10">
+                    <div className="relative w-20 h-20 mx-auto mb-6">
+                        <div className="absolute inset-0 bg-rose-200 rounded-full animate-ping opacity-20"></div>
+                        <div className="relative w-full h-full bg-gradient-to-tr from-rose-100 to-rose-50 border border-rose-200 shadow-sm rounded-full flex items-center justify-center">
+                            <AlertTriangle className="w-8 h-8 text-rose-600" strokeWidth={2} />
+                        </div>
                     </div>
-                    <h2 className="text-lg font-semibold text-slate-900 mb-2">Access Denied</h2>
-                    <p className="text-slate-500 text-sm mb-6">{error}</p>
-                    <button
-                        onClick={() => router.push("/organization-admin/branches")}
-                        className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors"
-                    >
-                        Return to Branches
-                    </button>
+                    
+                    <h2 className="text-xl font-bold text-slate-900 mb-3 tracking-tight">{error.title}</h2>
+                    <p className="text-slate-500 text-[15px] leading-relaxed mb-8 px-2">{error.message}</p>
+                    
+                    <div className="flex flex-col gap-3">
+                        <button
+                            onClick={() => router.push("/organization-admin/branches")}
+                            className="w-full px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 group"
+                        >
+                            <ArrowLeft size={16} className="text-indigo-200 group-hover:text-white transition-colors" />
+                            Return to Branches
+                        </button>
+                    </div>
                 </div>
             </div>
         );

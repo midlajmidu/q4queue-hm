@@ -1014,6 +1014,9 @@ export const api = {
     listBranches: () => {
         return request<BranchStatItem[]>("/organization-admin/branches"); // (Needs to call the older endpoint or maybe it was overwritten. Actually I overwrote /organization-admin/branches)
     },
+    checkBranchSlug: (slug: string) => {
+        return request<{ available: boolean }>(`/organization-admin/check-slug?slug=${encodeURIComponent(slug)}`);
+    },
     createBranch: (data: BranchCreateRequest) => {
         return request<BranchStatItem>("/organization-admin/branches", {
             method: "POST",

@@ -1234,13 +1234,15 @@ export default function OverviewPage() {
             const grandTotal = queueStats.reduce((s, q) => s + q.total, 0);
             const overallPct = grandTotal > 0 ? Math.round((totalServed / grandTotal) * 100) : 0;
             return (
-              <div className="card" style={{ overflow: "hidden" }}>
-                <div className="card-header" style={{ flexWrap: "wrap", gap: "10px" }}>
+              <div style={{ marginTop: 32 }}>
+                <div className="section-label" style={{ marginBottom: 14 }}>Queue Summary</div>
+                <div className="card" style={{ overflow: "hidden" }}>
+                  <div className="card-header" style={{ flexWrap: "wrap", gap: "10px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                     <div className="icon-badge" style={{ width: 32, height: 32, background: C.brandLight, border: `1px solid ${C.brandBorder}` }}>
                       <Icons.Table2 size={14} color={C.brand} />
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em", whiteSpace: "nowrap" }}>Queue Breakdown</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em", whiteSpace: "nowrap" }}>Queue Summary</span>
                     <span style={{ fontSize: 11, fontWeight: 600, color: C.brand, background: C.brandLight, padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
                       {queueStats.length} queue{queueStats.length !== 1 ? "s" : ""}
                     </span>
@@ -1388,29 +1390,25 @@ export default function OverviewPage() {
                   </div>
                 </div>
               </div>
+              </div>
             );
           })()}
 
           {/* ══ ACTIVITY FEED ════════════════════════════════════ */}
-          <div className="card" style={{ overflow: "hidden" }}>
-            <div className="card-header">
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div className="icon-badge" style={{ width: 32, height: 32, background: C.brandLight, border: `1px solid ${C.brandBorder}` }}>
-                  <Icons.Activity size={14} color={C.brand} />
+          <div className="mt-8 mb-4 flex items-center justify-between">
+            <h2 className="text-[16px] font-bold text-slate-900 dark:text-white">Recent Activity</h2>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-500/20">
+                  <Icons.Activity size={16} color="currentColor" />
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: "-.01em" }}>Recent Activity</span>
+                <span className="text-[14px] font-bold text-slate-900 dark:text-white">Activity Feed</span>
               </div>
-              <Link href={`${dashBase}/history`} style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                fontSize: 12, fontWeight: 600, color: "var(--q-text-sub)",
-                padding: "5px 12px", borderRadius: 8,
-                border: `1px solid var(--q-border)`, background: "transparent",
-                textDecoration: "none", transition: "all .15s ease",
-              }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--q-border-hov)"; e.currentTarget.style.background = "var(--q-card-bg-alt)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--q-border)"; e.currentTarget.style.background = "transparent"; }}
-              >
-                View all <Icons.ArrowRight size={11} color="currentColor" />
+              <Link href={`${dashBase}/history`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-indigo-600 transition-all shadow-sm">
+                View all <Icons.ArrowRight size={12} color="currentColor" />
               </Link>
             </div>
 
@@ -1423,127 +1421,154 @@ export default function OverviewPage() {
             ) : overview?.recent_activity?.length ? (
               <>
                 {/* Filter tabs */}
-                <div style={{ padding: "10px 20px", borderBottom: `1px solid ${C.borderLight}` }}>
-                  <div style={{ display: "flex", gap: 4 }}>
+                <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
                     {[
                       { id: "all", lbl: "All", count: overview.recent_activity.length },
                       { id: "waiting", lbl: "Waiting", count: overview.recent_activity.filter(a => a.status === "waiting").length },
                       { id: "serving", lbl: "Serving", count: overview.recent_activity.filter(a => a.status === "serving").length },
                       { id: "done", lbl: "Done", count: overview.recent_activity.filter(a => a.status === "done").length },
-                    ].map(t => (
-                      <button
-                        key={t.id}
-                        onClick={() => setFeedFilter(t.id as any)}
-                        style={{
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                          padding: "5px 12px", borderRadius: 6, border: "#e5e7eb",
-                          fontSize: 12, fontWeight: 600, cursor: "pointer",
-                          background: feedFilter === t.id ? C.brandLight : "transparent",
-                          color: feedFilter === t.id ? C.brand : C.textMuted,
-                          transition: "all .12s ease",
-                        }}
-                      >
-                        {t.lbl}
-                        <span className="mono tnum" style={{
-                          fontSize: 10.5, fontWeight: 700,
-                          color: feedFilter === t.id ? C.brand : C.textMuted,
-                          opacity: feedFilter === t.id ? 1 : 0.6,
-                        }}>{t.count}</span>
-                      </button>
-                    ))}
+                    ].map(t => {
+                      const isActive = feedFilter === t.id;
+                      
+                      let baseColors = "text-slate-600 hover:bg-slate-100 hover:text-slate-900 border-transparent";
+                      let activeColors = "bg-white border-slate-200 text-slate-900 shadow-sm";
+                      let badgeColors = "bg-slate-100 text-slate-500 group-hover:bg-slate-200";
+                      let badgeActiveColors = "bg-slate-100 text-slate-600";
+
+                      if (t.id === "waiting") {
+                        activeColors = "bg-amber-50 border-amber-200 text-amber-700 shadow-sm";
+                        badgeActiveColors = "bg-amber-100 text-amber-700";
+                        badgeColors = "bg-slate-100 text-slate-500 group-hover:bg-amber-100 group-hover:text-amber-700";
+                      } else if (t.id === "serving") {
+                        activeColors = "bg-blue-50 border-blue-200 text-blue-700 shadow-sm";
+                        badgeActiveColors = "bg-blue-100 text-blue-700";
+                        badgeColors = "bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-700";
+                      } else if (t.id === "done") {
+                        activeColors = "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm";
+                        badgeActiveColors = "bg-emerald-100 text-emerald-700";
+                        badgeColors = "bg-slate-100 text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-700";
+                      } else if (t.id === "all" && isActive) {
+                        activeColors = "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm";
+                        badgeActiveColors = "bg-indigo-100 text-indigo-700";
+                      }
+
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => setFeedFilter(t.id as any)}
+                          className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold border transition-all ${isActive ? activeColors : baseColors}`}
+                        >
+                          {t.lbl}
+                          <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums transition-colors ${isActive ? badgeActiveColors : badgeColors}`}>
+                            {t.count}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div className="overflow-x-auto whitespace-nowrap scrollbar-hide w-full bg-slate-50/50 dark:bg-slate-900/20 p-4">
-                  {/* Activity rows */}
-                  <ul className="flex flex-col gap-2 m-0 p-0" style={{ listStyle: "none" }}>
-                    {overview.recent_activity.filter(a => feedFilter === "all" || a.status === feedFilter).map((act, idx) => {
-                      const statusColors: Record<string, { bg: string; color: string; dot: string }> = {
-                        waiting: { bg: "#fffbeb", color: "#92400e", dot: C.amber },
-                        serving: { bg: "#eff6ff", color: "#1e40af", dot: C.blue },
-                        done: { bg: "#ecfdf5", color: "#065f46", dot: C.green },
-                      };
-                      const sc = statusColors[act.status] ?? { bg: "#f8fafc", color: C.textSub, dot: C.textMuted };
-
-                      return (
-                        <li
-                          key={idx}
-                          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm ring-1 ring-slate-900/5 dark:ring-white/10 hover:shadow-md transition-all cursor-pointer p-4 fade-in"
-                          onClick={() => setDrawerAct(act)}
-                          style={{
-                            display: "grid", gridTemplateColumns: "1fr auto auto",
-                            gap: "16px", alignItems: "center",
-                            animationDelay: `${idx * 15}ms`,
-                          }}
-                        >
-                          {/* Details */}
-                          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                            <div style={{
-                              width: 32, height: 32, borderRadius: "50%",
-                              background: C.brandLight, color: C.brand,
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              fontSize: 12, fontWeight: 700, flexShrink: 0
-                            }}>
-                              {statusLabel(act).substring(0, 2).toUpperCase()}
-                            </div>
-                            <div style={{ minWidth: 0 }}>
-                              <p className="capitalize text-slate-900 dark:text-white" style={{ margin: 0, fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.4 }}>
-                                {statusLabel(act)}
-                              </p>
-                              <p style={{ margin: "2px 0 0", fontSize: 12, color: C.textMuted, lineHeight: 1.3 }}>{toTitleCase(act.queue)}</p>
-                            </div>
-                          </div>
-                          {/* Status */}
-                          <span style={{
-                            background: act.status === 'done' ? 'var(--q-green-bg)' : act.status === 'waiting' ? 'var(--q-amber-bg)' : act.status === 'serving' ? 'var(--q-blue-bg)' : 'var(--q-slate-bg)',
-                            color: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
-                          }} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full capitalize">
-                            <span style={{
-                              background: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
-                            }} className="w-1.5 h-1.5 rounded-full" />
-                            {act.status}
-                          </span>
-                          {/* Timestamp */}
-                          <div className="text-right text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[70px]">
-                            {act.time ? new Date(act.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : "Just now"}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                <div className="w-full overflow-x-auto scrollbar-hide">
+                  <table className="w-full text-left border-collapse whitespace-nowrap">
+                    <thead>
+                      <tr className="bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800/60">
+                        <th className="py-3 px-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Token</th>
+                        <th className="py-3 px-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</th>
+                        <th className="py-3 px-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Queue</th>
+                        <th className="py-3 px-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                        <th className="py-3 px-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {overview.recent_activity.filter(a => feedFilter === "all" || a.status === feedFilter).map((act, idx) => {
+                        return (
+                          <tr
+                            key={idx}
+                            className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer fade-in"
+                            onClick={() => setDrawerAct(act)}
+                            style={{ animationDelay: `${idx * 15}ms` }}
+                          >
+                            <td className="py-4 px-5">
+                              <span className="text-[13px] font-bold text-slate-900 dark:text-white tabular-nums">
+                                {act.prefix}{act.number}
+                              </span>
+                            </td>
+                            <td className="py-4 px-5">
+                              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                <div style={{
+                                  width: 32, height: 32, borderRadius: "50%",
+                                  background: C.brandLight, color: C.brand,
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  fontSize: 11, fontWeight: 700
+                                }}>
+                                  {statusLabel(act).substring(0, 2).toUpperCase()}
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                  <span className="capitalize text-slate-900 dark:text-white" style={{ fontSize: 13, fontWeight: 600, letterSpacing: "-.01em" }}>
+                                    {statusLabel(act)}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-5">
+                              <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 500 }}>{toTitleCase(act.queue)}</span>
+                            </td>
+                            <td className="py-4 px-5">
+                              <span style={{
+                                background: act.status === 'done' ? 'var(--q-green-bg)' : act.status === 'waiting' ? 'var(--q-amber-bg)' : act.status === 'serving' ? 'var(--q-blue-bg)' : 'var(--q-slate-bg)',
+                                color: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
+                              }} className="inline-flex items-center justify-center px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full border border-black/5 dark:border-white/5">
+                                {act.status}
+                              </span>
+                            </td>
+                            <td className="py-4 px-5 text-right">
+                              <span className="mono tnum text-[12px] font-medium text-slate-500">
+                                {act.time ? new Date(act.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : "Just now"}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
 
-                {/* Pagination */}
-                <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "10px 20px",
-                  borderTop: `1px solid ${C.borderLight}`,
-                }}>
-                  <button onClick={() => setRecentPage(p => Math.max(1, p - 1))} disabled={recentPage === 1 || isLoading} className="pg-btn">
+                <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                  <button 
+                    onClick={() => setRecentPage(p => Math.max(1, p - 1))} 
+                    disabled={recentPage === 1 || isLoading} 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <Icons.ArrowLeft size={12} color="currentColor" /> Prev
                   </button>
-                  <span className="mono tnum" style={{ fontSize: 11, fontWeight: 600, color: C.textMuted }}>
+                  <span className="tabular-nums text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                     Page {recentPage}
                   </span>
-                  <button onClick={() => setRecentPage(p => p + 1)} disabled={(overview?.recent_activity?.length || 0) < LIMIT || isLoading} className="pg-btn">
+                  <button 
+                    onClick={() => setRecentPage(p => p + 1)} 
+                    disabled={(overview?.recent_activity?.length || 0) < LIMIT || isLoading} 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     Next <Icons.ArrowRight size={12} color="currentColor" />
                   </button>
                 </div>
               </>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 16px", background: "#f8fafc", border: `1px dashed ${C.border}`, borderRadius: 12, margin: 20 }}>
-                <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                  <Icons.Activity size={24} color="#64748b" />
+              <div className="flex flex-col items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl m-5">
+                <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center mb-4">
+                  <Icons.Activity size={24} color="currentColor" />
                 </div>
-                <p style={{ margin: 0, fontSize: 14, color: C.text, fontWeight: 600 }}>No recent activity</p>
-                <p style={{ margin: "4px 0 20px", fontSize: 13, color: C.textMuted, textAlign: "center", maxWidth: 280 }}>Activity will appear once your queue session begins.</p>
-                <Link href={`${dashBase}/sessions?action=create`} className="qa-btn" style={{ background: "#4f46e5", color: "#fff", borderColor: "#4338ca", boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
-                  <Icons.Play size={13} color="currentColor" /> Start Session
+                <h3 className="text-[15px] font-bold text-slate-900 dark:text-white mb-1">No recent activity</h3>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 text-center max-w-sm mb-5">
+                  Activity will appear once your queue session begins.
+                </p>
+                <Link href={`${dashBase}/sessions?action=create`} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-bold cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white border border-transparent transition-all shadow-sm hover:-translate-y-0.5 hover:shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
+                  <Icons.Play size={14} color="currentColor" /> Start Session
                 </Link>
               </div>
             )}
           </div>
-
         </div>
       </div>
 

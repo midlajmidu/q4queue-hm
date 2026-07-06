@@ -202,7 +202,8 @@ async def get_overview_metrics(
         Token.served_at,
         Token.completed_at,
         Token.customer_name,
-        Queue.name.label('queue_name')
+        Queue.name.label('queue_name'),
+        Queue.prefix.label('queue_prefix')
     ).join(Queue, Token.queue_id == Queue.id).where(
         and_(*active_conditions)
     ).order_by(Token.created_at.desc()).limit(recent_limit).offset(recent_offset)
@@ -212,6 +213,7 @@ async def get_overview_metrics(
     recent_res = await db.execute(recent_query)
     recent_activity = [
         {
+            "prefix": r.queue_prefix,
             "number": r.token_number,
             "status": r.status.value,
             "queue": r.queue_name,

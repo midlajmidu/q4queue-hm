@@ -25,7 +25,27 @@ export default function BranchActivityTimeline({ branchId }: { branchId: string 
         }).finally(() => setLoading(false));
     }, [branchId]);
 
-    if (loading) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
+    if (loading) {
+        return (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-pulse">
+                <div className="p-5 border-b border-slate-100 bg-slate-50">
+                    <div className="w-32 h-5 bg-slate-200 rounded"></div>
+                </div>
+                <div className="h-24 bg-slate-50 border-b border-slate-100"></div>
+                <div className="p-5 space-y-4">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="flex gap-4">
+                            <div className="w-2 h-2 rounded-full bg-slate-200 mt-1.5"></div>
+                            <div className="space-y-2 flex-1">
+                                <div className="w-1/4 h-4 bg-slate-200 rounded"></div>
+                                <div className="w-1/2 h-3 bg-slate-100 rounded"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200 overflow-hidden">
@@ -54,14 +74,14 @@ export default function BranchActivityTimeline({ branchId }: { branchId: string 
             </div>
 
             {/* Recent Activity Feed */}
-            <div className="p-5 space-y-5">
+            <div className="p-2 space-y-1">
                 {logs.map((event, i) => (
-                    <div key={i} className="flex gap-4">
-                        <div className="w-2 h-2 mt-1.5 rounded-full bg-indigo-400 shrink-0" />
+                    <div key={i} className="group flex gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-default">
+                        <div className="w-2 h-2 mt-1.5 rounded-full bg-slate-200 group-hover:bg-indigo-500 transition-colors shrink-0 shadow-sm" />
                         <div>
-                            <div className="text-sm font-medium text-slate-900">{event.event_type}</div>
-                            <div className="text-xs text-slate-500 mt-0.5">{event.description}</div>
-                            <div className="text-xs text-slate-400 mt-1.5">
+                            <div className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{event.event_type}</div>
+                            <div className="text-xs font-medium text-slate-500 mt-0.5">{event.description}</div>
+                            <div className="text-[10px] font-bold text-slate-400 mt-1.5 uppercase tracking-wider">
                                 {new Date(event.timestamp).toLocaleString(undefined, { hour: 'numeric', minute: '2-digit' })}
                             </div>
                         </div>

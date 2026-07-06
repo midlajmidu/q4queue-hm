@@ -43,6 +43,7 @@ export interface AnalyticsOverview {
         avg_serve: number;
     }[];
     recent_activity: {
+        prefix: string;
         number: number;
         status: string;
         queue: string;
@@ -156,6 +157,11 @@ export interface BranchCreateRequest {
     address?: string | null;
     phone_number?: string | null;
     brand_color?: string | null;
+    timezone?: string;
+    admin_first_name?: string | null;
+    admin_last_name?: string | null;
+    admin_email?: string | null;
+    admin_password?: string | null;
 }
 
 export interface BranchUpdateRequest {
@@ -248,6 +254,8 @@ export interface QueueResponse {
     id: string;
     org_id: string;
     session_id: string | null;
+    session_title?: string | null;
+    session_date?: string | null;
     token_session_id: string;
     name: string;
     prefix: string;

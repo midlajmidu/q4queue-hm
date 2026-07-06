@@ -41,6 +41,7 @@ class Organization(Base):
     # ── Clinic Information ─────────────────────────────────────────
     address: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     phone_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    timezone: Mapped[str] = mapped_column(String(50), default="Asia/Kolkata", server_default="Asia/Kolkata", nullable=False)
 
     # ── Limits ─────────────────────────────────────────────────────
     max_sessions: Mapped[int] = mapped_column(default=10, nullable=False)

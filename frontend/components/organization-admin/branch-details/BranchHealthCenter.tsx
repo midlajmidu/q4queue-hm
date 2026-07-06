@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { Activity } from "lucide-react";
 
 export default function BranchHealthCenter({ branchId }: { branchId: string }) {
     const [data, setData] = useState<any>(null);
@@ -14,22 +15,48 @@ export default function BranchHealthCenter({ branchId }: { branchId: string }) {
     if (!data) return null;
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+        <div className="bg-white rounded-xl border border-slate-200 flex flex-col">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                    <span className="font-semibold text-lg tracking-tight text-slate-900">Branch Health</span>
+                    <Activity size={16} strokeWidth={2} className="text-slate-400" />
+                    <h3 className="font-semibold text-slate-900 text-sm">System Health</h3>
                 </div>
-                <span className={`px-2.5 py-1 text-[11px] font-semibold tracking-wider uppercase rounded-md ${data.status === 'Healthy' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                    Score: {data.health_score}/100
-                </span>
+                {/* Overall status dot */}
+                <div className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${
+                        data.queue_health === 'Healthy' && data.staff_availability === 'Optimal'
+                            ? 'bg-emerald-500' 
+                            : 'bg-amber-500'
+                    }`}></span>
+                    <span className="text-xs font-medium text-slate-600">
+                        {data.queue_health === 'Healthy' && data.staff_availability === 'Optimal' ? 'Operational' : 'Degraded'}
+                    </span>
+                </div>
             </div>
-            <div className="p-5 flex flex-col space-y-4 text-sm">
-                <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">Queues:</span> <span className="font-semibold text-slate-900">{data.queue_health}</span></div>
-                <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">Sessions:</span> <span className="font-semibold text-slate-900">{data.session_health}</span></div>
-                <div className="flex justify-between items-center"><span className="text-slate-500 font-medium">Staff:</span> <span className="font-semibold text-slate-900">{data.staff_availability}</span></div>
+            <div className="p-5 flex flex-col justify-center space-y-4">
+                <div className="flex justify-between items-center">
+                    <span className="text-[13px] font-medium text-slate-500">Queues</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-medium text-slate-900">{data.queue_health}</span>
+                        <span className={`w-2 h-2 rounded-full ${
+                            data.queue_health === 'Healthy' 
+                                ? 'bg-emerald-500'
+                                : data.queue_health === 'Degraded' ? 'bg-amber-500' : 'bg-red-500'
+                        }`}></span>
+                    </div>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                    <span className="text-[13px] font-medium text-slate-500">Staff Availability</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-medium text-slate-900">{data.staff_availability}</span>
+                        <span className={`w-2 h-2 rounded-full ${
+                            data.staff_availability === 'Optimal' 
+                                ? 'bg-emerald-500'
+                                : data.staff_availability === 'Low' ? 'bg-amber-500' : 'bg-red-500'
+                        }`}></span>
+                    </div>
+                </div>
             </div>
         </div>
     );

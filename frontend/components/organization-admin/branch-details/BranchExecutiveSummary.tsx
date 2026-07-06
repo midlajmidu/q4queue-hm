@@ -11,30 +11,55 @@ export default function BranchExecutiveSummary({ branchId }: { branchId: string 
         api.getBranchSummary(branchId).then(setData).finally(() => setLoading(false));
     }, [branchId]);
 
-    if (loading) return <div className="h-32 bg-slate-100 animate-pulse rounded-xl"></div>;
+    if (loading) {
+        return (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 flex flex-col justify-between h-32 animate-pulse">
+                        <div className="flex justify-between items-start w-full">
+                            <div className="w-24 h-4 bg-slate-100 rounded-md"></div>
+                            <div className="w-8 h-8 rounded-lg bg-slate-100"></div>
+                        </div>
+                        <div className="w-16 h-8 bg-slate-100 rounded-md mt-auto"></div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
     if (!data) return null;
 
     return (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm shadow-slate-200/50 overflow-hidden flex flex-col sm:flex-row sm:divide-x divide-slate-100">
-            <div className="flex-1 p-6 flex flex-col items-center justify-center text-center sm:hover:bg-slate-50/50 transition-colors">
-                <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-3"><Users size={20} strokeWidth={1.5} /></div>
-                <div className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{data.total_staff.toLocaleString()}</div>
-                <div className="text-sm text-slate-500 font-medium mt-1">Total Staff</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                    <div className="text-[13px] font-medium text-slate-500">Total Staff</div>
+                    <Users size={16} strokeWidth={2} className="text-slate-400" />
+                </div>
+                <div className="text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.total_staff.toLocaleString()}</div>
             </div>
-            <div className="flex-1 p-6 flex flex-col items-center justify-center text-center sm:hover:bg-slate-50/50 transition-colors border-t sm:border-t-0 border-slate-100">
-                <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3"><MonitorPlay size={20} strokeWidth={1.5} /></div>
-                <div className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{data.active_sessions.toLocaleString()}</div>
-                <div className="text-sm text-slate-500 font-medium mt-1">Active Sessions</div>
+            
+            <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                    <div className="text-[13px] font-medium text-slate-500">Active Sessions</div>
+                    <MonitorPlay size={16} strokeWidth={2} className="text-slate-400" />
+                </div>
+                <div className="text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.active_sessions.toLocaleString()}</div>
             </div>
-            <div className="flex-1 p-6 flex flex-col items-center justify-center text-center sm:hover:bg-slate-50/50 transition-colors border-t sm:border-t-0 border-slate-100">
-                <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mb-3"><Ticket size={20} strokeWidth={1.5} /></div>
-                <div className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{data.active_queues.toLocaleString()}</div>
-                <div className="text-sm text-slate-500 font-medium mt-1">Active Queues</div>
+            
+            <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                    <div className="text-[13px] font-medium text-slate-500">Active Queues</div>
+                    <Ticket size={16} strokeWidth={2} className="text-slate-400" />
+                </div>
+                <div className="text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.active_queues.toLocaleString()}</div>
             </div>
-            <div className="flex-1 p-6 flex flex-col items-center justify-center text-center sm:hover:bg-slate-50/50 transition-colors border-t sm:border-t-0 border-slate-100">
-                <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-3"><Activity size={20} strokeWidth={1.5} /></div>
-                <div className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{data.customers_served_today.toLocaleString()}</div>
-                <div className="text-sm text-slate-500 font-medium mt-1">Served Today</div>
+            
+            <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-3">
+                    <div className="text-[13px] font-medium text-slate-500">Served Today</div>
+                    <Activity size={16} strokeWidth={2} className="text-slate-400" />
+                </div>
+                <div className="text-3xl font-semibold tracking-tighter text-slate-900 tabular-nums leading-none">{data.customers_served_today.toLocaleString()}</div>
             </div>
         </div>
     );

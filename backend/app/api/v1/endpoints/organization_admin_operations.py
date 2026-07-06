@@ -343,39 +343,47 @@ async def get_branch_queues(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_organization_admin()),
 ):
-    await _verify_branch_access(branch_id, db, current_user)
-    
-    from datetime import datetime, timezone
-    today = datetime.now(timezone.utc).date()
-    
-    queues_res = await db.execute(select(Queue).where(Queue.org_id == branch_id).order_by(Queue.created_at.desc()))
-    queues = queues_res.scalars().all()
-    
-    results = []
-    for q in queues:
-        wait_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.waiting))
-        serv_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.serving))
-        comp_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.done))
+    try:
+        await _verify_branch_access(branch_id, db, current_user)
         
-        avg_wait = await db.execute(
-            select(func.avg(func.extract('epoch', Token.served_at) - func.extract('epoch', Token.created_at)))
-            .where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.served_at != None)
-        )
-        avg_wait_sec = avg_wait.scalar() or 0
-        avg_wait_str = f"{int(avg_wait_sec // 60)}m" if avg_wait_sec > 0 else "-"
+        from datetime import datetime, timezone
+        today = datetime.now(timezone.utc).date()
         
-        results.append(QueueBreakdownItem(
-            queue_id=q.id,
-            queue_name=q.name,
-            status="Active" if q.is_active else "Inactive",
-            current_token=q.current_token_number or "-",
-            waiting_count=wait_res.scalar() or 0,
-            serving_count=serv_res.scalar() or 0,
-            completed_today=comp_res.scalar() or 0,
-            average_wait=avg_wait_str
-        ))
+        queues_res = await db.execute(select(Queue).where(Queue.org_id == branch_id).order_by(Queue.created_at.desc()))
+        queues = queues_res.scalars().all()
         
-    return results
+        results = []
+        for q in queues:
+            wait_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.waiting))
+            serv_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.serving))
+            comp_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.done))
+            
+            avg_wait = await db.execute(
+                select(func.avg(func.extract('epoch', Token.served_at) - func.extract('epoch', Token.created_at)))
+                .where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.served_at.isnot(None))
+            )
+            avg_wait_sec = avg_wait.scalar() or 0
+            avg_wait_str = f"{int(avg_wait_sec // 60)}m" if avg_wait_sec > 0 else "-"
+            
+            current_token_str = str(q.current_token_number) if q.current_token_number and q.current_token_number > 0 else "-"
+            
+            results.append(QueueBreakdownItem(
+                queue_id=q.id,
+                queue_name=q.name,
+                status="Active" if q.is_active else "Inactive",
+                current_token=current_token_str,
+                waiting_count=wait_res.scalar() or 0,
+                serving_count=serv_res.scalar() or 0,
+                completed_today=comp_res.scalar() or 0,
+                average_wait=avg_wait_str
+            ))
+            
+        return results
+    except Exception as e:
+        import traceback
+        print("FATAL ERROR IN QUEUES ROUTE:", repr(e))
+        traceback.print_exc()
+        raise e
 
 @router.get("/operations/{branch_id}/sessions", response_model=List[SessionBreakdownItem])
 async def get_branch_sessions(
@@ -406,7 +414,7 @@ async def get_branch_sessions(
         
         results.append(SessionBreakdownItem(
             session_id=s.id,
-            session_name=s.name or f"Desk {s.id}",
+            session_name=s.title or f"Desk {str(s.id)[:8]}",
             operator_name=operator_name,
             started_at=s.created_at.isoformat(),
             status="Active",

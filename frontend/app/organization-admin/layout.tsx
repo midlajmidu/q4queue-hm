@@ -22,10 +22,6 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     
     const isImpersonationRedirectPage = pathname?.endsWith("/admin") && pathname?.includes("/branches/");
-    if (isImpersonationRedirectPage) {
-        return <ProtectedRoute>{children}</ProtectedRoute>;
-    }
-
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -114,6 +110,10 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                 </div>
             </ProtectedRoute>
         );
+    }
+
+    if (isImpersonationRedirectPage) {
+        return <ProtectedRoute>{children}</ProtectedRoute>;
     }
 
     return (

@@ -141,6 +141,8 @@ async def delete_queue(
     await db.commit()
     logger.info("Queue soft-deleted | id=%s org=%s", queue_id, org_id)
 
+from sqlalchemy.orm import joinedload
+
 async def list_trash_queues(
     db: AsyncSession,
     *,
@@ -149,7 +151,7 @@ async def list_trash_queues(
     offset: int = 0,
 ) -> list[Queue]:
     """List soft-deleted queues for an organization."""
-    query = select(Queue).where(
+    query = select(Queue).options(joinedload(Queue.session)).where(
         Queue.org_id == org_id,
         Queue.is_deleted == True
     ).order_by(Queue.deleted_at.desc()).limit(limit).offset(offset)

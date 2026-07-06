@@ -25,6 +25,13 @@ class BranchCreateRequest(BaseModel):
     address: str | None = None
     phone_number: str | None = None
     brand_color: str | None = None
+    timezone: str = "Asia/Kolkata"
+    
+    # Optional Admin Assignment
+    admin_first_name: str | None = None
+    admin_last_name: str | None = None
+    admin_email: str | None = None
+    admin_password: str | None = None
 
 class BranchUpdateRequest(BaseModel):
     name: str | None = None

@@ -86,5 +86,13 @@ class Queue(Base):
         "Session", back_populates="queues", lazy="noload"
     )
 
+    @property
+    def session_title(self) -> Optional[str]:
+        return self.session.title if getattr(self, "session", None) else None
+
+    @property
+    def session_date(self) -> Optional[str]:
+        return self.session.session_date.isoformat() if getattr(self, "session", None) and self.session.session_date else None
+
     def __repr__(self) -> str:
         return f"<Queue id={self.id} name={self.name!r} org={self.org_id}>"

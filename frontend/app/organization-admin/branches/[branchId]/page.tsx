@@ -71,50 +71,45 @@ export default function BranchDetailsPage() {
     if (!branch) return null;
 
     return (
-        <div className="space-y-6 pb-20">
-            {/* Header section remains fast and instant */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
-                <div className="flex items-center gap-3">
-                    <Link 
-                        href={`/organization-admin/branches`}
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                    >
-                        <ArrowLeft size={20} />
-                    </Link>
-                    <div>
+        <div className="-mt-4 sm:-mt-6 lg:-mt-8 bg-slate-50 min-h-screen pb-12">
+            {/* Minimalist Sub-Navigation Header */}
+            <div className="sticky -top-4 sm:-top-6 lg:-top-8 z-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white/80 backdrop-blur-md border-b border-slate-200 py-3 mb-6">
+                <div className="flex items-center justify-between max-w-7xl mx-auto">
+                    <div className="flex items-center gap-3">
+                        <Link href="/organization-admin/branches" className="text-slate-400 hover:text-slate-900 transition-colors" title="Back to Branches">
+                            <ArrowLeft size={18} strokeWidth={2} />
+                        </Link>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-bold text-slate-900">{branch.name}</h1>
-                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                branch.is_active ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'
-                            }`}>
+                            <h1 className="text-lg font-semibold text-slate-900 tracking-tight">{branch.name}</h1>
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase ${branch.is_active ? 'bg-emerald-500/10 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                                <span className={`w-1 h-1 rounded-full ${branch.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
                                 {branch.is_active ? 'Active' : 'Inactive'}
                             </span>
                         </div>
-                        <p className="text-slate-500 text-sm font-mono mt-1">/{branch.slug}</p>
                     </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={handleToggleStatus}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            branch.is_active 
-                            ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' 
-                            : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
-                        }`}
-                    >
-                        {branch.is_active ? 'Deactivate Branch' : 'Activate Branch'}
-                    </button>
-                    <Link
-                        href={`/organization-admin/branches/${branchId}/admin#token=${getToken("org_admin") || ""}`}
-                        target="_blank"
-                        className="flex items-center gap-2 bg-indigo-600 text-white shadow-sm shadow-indigo-200 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                    >
-                        Open Dashboard <ExternalLink size={16} />
-                    </Link>
+                    <div className="flex items-center gap-3">
+                        <div className="text-xs text-slate-500 hidden sm:block mr-2 font-medium">
+                            <span className="text-slate-400">Ref:</span> {branch.slug}
+                        </div>
+                        <button 
+                            onClick={handleToggleStatus}
+                            className="text-xs px-3 py-1.5 font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-md transition-colors shadow-sm"
+                        >
+                            {branch.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <Link
+                            href={`/organization-admin/branches/${branchId}/admin#token=${getToken("org_admin") || ""}`}
+                            target="_blank"
+                            className="text-xs px-3 py-1.5 font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm flex items-center gap-2 transition-colors"
+                        >
+                            Dashboard <ExternalLink size={14} />
+                        </Link>
+                    </div>
                 </div>
             </div>
 
-            {/* Modular Layout with Suspense boundaries (implied by components internal loading state) */}
+            <div className="space-y-6 pb-20">
+                {/* Modular Layout with Suspense boundaries (implied by components internal loading state) */}
             
             {/* SECTION 1: Executive Summary */}
             <BranchExecutiveSummary branchId={branchId} />
@@ -162,6 +157,7 @@ export default function BranchDetailsPage() {
                     <BranchActivityTimeline branchId={branchId} />
                 </div>
             </div>
+        </div>
         </div>
     );
 }

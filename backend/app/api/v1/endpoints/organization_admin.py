@@ -26,6 +26,17 @@ router = APIRouter()
 
 
 
+@router.get("/check-slug")
+async def check_slug(
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_org_admin),
+):
+    """Check if a branch slug is available."""
+    result = await db.execute(select(Organization).where(Organization.slug == slug))
+    org = result.scalar_one_or_none()
+    return {"available": org is None}
+
 @router.post("/branches", response_model=BranchStatItem)
 async def create_branch(
     request: BranchCreateRequest,
@@ -46,6 +57,14 @@ async def create_branch(
         if current_count >= parent_org.max_branches:
             raise HTTPException(status_code=400, detail=f"Branch limit ({parent_org.max_branches}) reached for this organization")
 
+    # Check if admin email is already in use
+    if request.admin_email:
+        from app.models.user import User
+        email_check = await db.execute(select(User).where(func.lower(User.email) == request.admin_email.lower()))
+        if email_check.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail=f"User with email {request.admin_email} already exists")
+
+
     # Check slug uniqueness
     existing_org_result = await db.execute(
         select(Organization).where(Organization.slug == request.slug)
@@ -59,6 +78,7 @@ async def create_branch(
         address=request.address,
         phone_number=request.phone_number,
         brand_color=request.brand_color,
+        timezone=request.timezone,
         parent_organization_id=current_user.parent_organization_id
     )
     
@@ -66,6 +86,25 @@ async def create_branch(
     try:
         await db.commit()
         await db.refresh(new_branch)
+        
+        # Create the initial admin if provided
+        if request.admin_email and request.admin_first_name and request.admin_last_name and request.admin_password:
+            from app.core.security import hash_password
+            
+            new_admin = User(
+                email=request.admin_email,
+                first_name=request.admin_first_name,
+                last_name=request.admin_last_name,
+                password_hash=hash_password(request.admin_password),
+                role="admin",
+                is_active=True,
+                is_first_login=True,
+                org_id=new_branch.id,
+                parent_organization_id=current_user.parent_organization_id,
+            )
+            db.add(new_admin)
+            await db.commit()
+            
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=400, detail="Could not create branch")

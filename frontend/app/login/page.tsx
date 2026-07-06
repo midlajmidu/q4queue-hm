@@ -22,7 +22,14 @@ export default function LoginPage() {
     useEffect(() => {
         if (isHydrated && isAuthenticated && user) {
             if (user.is_first_login) {
-                return; // Let useAuth handle redirect to change-password
+                if (user.role === "super_admin") {
+                    router.replace("/super-admin/change-password");
+                } else if (user.role === "organization_admin") {
+                    router.replace("/organization-admin/change-password");
+                } else {
+                    router.replace(`/${user.org_slug}/change-password`);
+                }
+                return;
             }
             if (user.role === "super_admin") {
                 router.replace("/super-admin");

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { TrendingUp, Clock, AlertCircle } from "lucide-react";
 import { api } from "@/lib/api";
 
 export default function BranchTodayPerformance({ branchId }: { branchId: string }) {
@@ -10,41 +11,59 @@ export default function BranchTodayPerformance({ branchId }: { branchId: string 
         api.getBranchPerformance(branchId).then(setData).finally(() => setLoading(false));
     }, [branchId]);
 
-    if (loading) return <div className="h-32 bg-slate-100 animate-pulse rounded-2xl"></div>;
+    if (loading) {
+        return (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-pulse">
+                <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+                    <div className="w-5 h-5 bg-slate-200 rounded"></div>
+                    <div className="w-40 h-5 bg-slate-200 rounded"></div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-[1px] bg-slate-100/70">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="p-6 bg-white">
+                            <div className="w-24 h-4 bg-slate-100 rounded mb-2"></div>
+                            <div className="w-16 h-8 bg-slate-200 rounded"></div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
     if (!data) return null;
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm shadow-slate-200/50 border border-slate-200 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-                <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13h2.672c.677 0 1.258-.456 1.45-1.096l1.378-4.595a1.5 1.5 0 012.895 0l2.605 8.685a1.5 1.5 0 002.895 0L18.328 11H21" />
-                </svg>
-                <span className="font-semibold text-lg tracking-tight text-slate-900">Today's Performance</span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 divide-x divide-y divide-slate-100/70">
-                <div className="p-6 transition-colors hover:bg-slate-50/50">
-                    <div className="text-sm font-medium text-slate-500">Customers Served</div>
-                    <div className="text-2xl font-bold tracking-tight mt-1 text-slate-900 tabular-nums">{data.customers_served_today}</div>
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="grid grid-cols-2 md:grid-cols-3 divide-y divide-slate-100 md:divide-y-0">
+                <div className="p-5 md:border-r border-slate-100">
+                    <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp size={14} strokeWidth={2} className="text-slate-400" />
+                        <span className="text-[13px] font-medium text-slate-500">Avg Wait Time</span>
+                    </div>
+                    <div className="flex items-end gap-1.5">
+                        <span className="text-2xl font-semibold tracking-tight text-slate-900 leading-none">{data.avg_wait_time_mins}</span>
+                        <span className="text-xs font-medium text-slate-500 mb-0.5">mins</span>
+                    </div>
                 </div>
-                <div className="p-6 transition-colors hover:bg-slate-50/50">
-                    <div className="text-sm font-medium text-slate-500">Customers Waiting</div>
-                    <div className="text-2xl font-bold tracking-tight mt-1 text-slate-900 tabular-nums">{data.customers_waiting}</div>
+                
+                <div className="p-5 md:border-r border-slate-100">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Clock size={14} strokeWidth={2} className="text-slate-400" />
+                        <span className="text-[13px] font-medium text-slate-500">Avg Service Time</span>
+                    </div>
+                    <div className="flex items-end gap-1.5">
+                        <span className="text-2xl font-semibold tracking-tight text-slate-900 leading-none">{data.avg_service_time_mins}</span>
+                        <span className="text-xs font-medium text-slate-500 mb-0.5">mins</span>
+                    </div>
                 </div>
-                <div className="p-6 transition-colors hover:bg-slate-50/50">
-                    <div className="text-sm font-medium text-slate-500">Avg Wait Time</div>
-                    <div className="text-2xl font-bold tracking-tight mt-1 text-slate-900 tabular-nums">{data.average_wait_time}</div>
-                </div>
-                <div className="p-6 border-t border-slate-100/70 transition-colors hover:bg-slate-50/50">
-                    <div className="text-sm font-medium text-slate-500">Avg Service Time</div>
-                    <div className="text-2xl font-bold tracking-tight mt-1 text-slate-900 tabular-nums">{data.average_service_time}</div>
-                </div>
-                <div className="p-6 border-t border-slate-100/70 transition-colors hover:bg-slate-50/50">
-                    <div className="text-sm font-medium text-slate-500">Cancelled Tokens</div>
-                    <div className="text-2xl font-bold tracking-tight mt-1 text-red-600 tabular-nums">{data.cancelled_tokens}</div>
-                </div>
-                <div className="p-6 border-t border-slate-100/70 transition-colors hover:bg-slate-50/50">
-                    <div className="text-sm font-medium text-slate-500">Completion Rate</div>
-                    <div className="text-2xl font-bold tracking-tight mt-1 text-emerald-600 tabular-nums">{data.completion_rate}</div>
+                
+                <div className="p-5 col-span-2 md:col-span-1">
+                    <div className="flex items-center gap-2 mb-2">
+                        <AlertCircle size={14} strokeWidth={2} className="text-slate-400" />
+                        <span className="text-[13px] font-medium text-slate-500">Drop-off Rate</span>
+                    </div>
+                    <div className="flex items-end gap-1.5">
+                        <span className="text-2xl font-semibold tracking-tight text-slate-900 leading-none">{data.drop_off_rate}%</span>
+                    </div>
                 </div>
             </div>
         </div>

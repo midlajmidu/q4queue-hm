@@ -38,6 +38,8 @@ class QueueResponse(BaseModel):
     id: uuid.UUID
     org_id: uuid.UUID
     session_id: Optional[uuid.UUID] = None
+    session_title: Optional[str] = None
+    session_date: Optional[str] = None
     name: str
     prefix: str
     announcement: Optional[str] = None
