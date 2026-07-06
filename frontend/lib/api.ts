@@ -207,6 +207,13 @@ async function request<T>(
         if (resp.status === 401) {
             removeToken();
             if (typeof window !== "undefined") {
+                // Broadcast logout to all other tabs to prevent token resurrection loops
+                try {
+                    const bc = new BroadcastChannel("auth_sync_channel");
+                    bc.postMessage({ type: "LOGOUT" });
+                    bc.close();
+                } catch (e) { }
+
                 const path = window.location.pathname;
                 const isSuperAdminPath = path.startsWith("/super-admin");
                 const isOrgAdminPath = path.startsWith("/organization-admin");

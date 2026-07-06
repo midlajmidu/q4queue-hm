@@ -288,90 +288,109 @@ export default function JoinQueuePage({ params }: PageProps) {
             <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
                 <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
                     {/* Header */}
-                    <div className="px-6 py-7 text-center text-white relative transition-colors duration-500" style={{ backgroundColor: brandColor }}>
-                        <div className="absolute top-3 right-3">
-                            <ConnectionBadge status={queueClosed ? "disconnected" : wsStatus} />
-                        </div>
-
-                        {fullLogoUrl && (
-                            <div className="flex justify-center mb-3">
-                                <img 
-                                    src={fullLogoUrl} 
-                                    alt="Organization Logo" 
-                                    className="h-16 object-contain bg-white/10 rounded-lg p-1.5 backdrop-blur-sm border border-white/20 shadow-sm"
-                                />
+                    <div 
+                        className="px-4 sm:px-6 py-6 sm:py-8 text-center text-white relative overflow-hidden transition-colors duration-500" 
+                        style={{ 
+                            background: `linear-gradient(135deg, ${brandColor}, #0f172a)`
+                        }}
+                    >
+                        {/* Decorative subtle lighting effect */}
+                        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at top right, rgba(255,255,255,0.4), transparent 60%)' }}></div>
+                        
+                        <div className="relative z-10">
+                            <div className="absolute top-0 right-0">
+                                <ConnectionBadge status={queueClosed ? "disconnected" : wsStatus} />
                             </div>
-                        )}
 
-                        <h1 className="text-2xl font-extrabold mb-1">{queueName}</h1>
-                        <p className="text-white/80 text-xs font-semibold uppercase tracking-widest">
-                            {queueClosed ? "Currently Closed" : "Now Serving"}
-                        </p>
+                            {fullLogoUrl && (
+                                <div className="flex justify-center mb-3 mt-1">
+                                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-2xl shadow-xl">
+                                        <img src={fullLogoUrl} alt="Organization Logo" className="h-10 object-contain" />
+                                    </div>
+                                </div>
+                            )}
 
-                        <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${serving}`}>
-                            {!live?.serving_details ? "—" : `${prefix}${serving}`}
-                        </div>
+                            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-1 drop-shadow-md">{queueName}</h1>
+                            <p className="text-[10px] sm:text-xs font-semibold tracking-[0.25em] uppercase text-white/70 mb-4">
+                                {queueClosed ? "Currently Closed" : "Now Serving"}
+                            </p>
 
-                        <div className="mt-3 flex justify-center gap-6 text-xs text-blue-200">
-                            <span>Waiting: <strong className="text-white">{live?.waiting_count ?? "—"}</strong></span>
+                            <div className="relative mx-auto w-full max-w-[200px]">
+                                {/* Subtle glow behind the number card */}
+                                <div className="absolute -inset-1 bg-white/10 blur-xl rounded-2xl opacity-50"></div>
+                                
+                                <div className="relative text-5xl sm:text-6xl font-black tabular-nums tracking-tighter py-3 sm:py-4 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center min-h-[80px] sm:min-h-[100px]" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${serving}`}>
+                                    {!live?.serving_details ? "—" : `${prefix}${serving}`}
+                                </div>
+                            </div>
+
+                            <div className="mt-4 flex justify-center">
+                                <div className="px-4 py-1.5 bg-black/20 backdrop-blur-md rounded-full border border-white/10 text-xs font-medium text-white/80 shadow-sm flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse"></span>
+                                    Waiting: <strong className="text-white ml-0.5">{live?.waiting_count ?? "—"}</strong>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     {/* Body */}
-                    <div className="p-6 space-y-5">
+                    <div className="p-4 sm:p-6 space-y-4">
                         {/* Service Hours Badge */}
                         {live?.open_time && live?.close_time && (
-                            <div className="flex justify-center -mt-2 mb-2 relative z-10">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm shadow-sm border border-slate-200/60 rounded-full text-xs font-semibold text-slate-600 tracking-wide">
-                                    <Clock className="w-3.5 h-3.5 text-blue-500" />
+                            <div className="flex justify-center -mt-2 mb-1 relative z-10">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/90 backdrop-blur-sm shadow-sm border border-slate-200/60 rounded-full text-[11px] font-semibold text-slate-600 tracking-wide">
+                                    <Clock className="w-3 h-3 text-blue-500" />
                                     <span>{formatTime12(live.open_time)} - {formatTime12(live.close_time)}</span>
                                 </div>
                             </div>
                         )}
                         {error && (
-                            <div role="alert" className="bg-red-50 text-red-700 text-sm font-medium p-3 rounded-lg border border-red-100">
+                            <div role="alert" className="bg-red-50 text-red-700 text-xs font-medium p-3 rounded-lg border border-red-100">
                                 {error}
                             </div>
                         )}
 
                             {/* ── Customer Form + Join Button ── */}
-                            <div className="space-y-5">
+                            <div className="space-y-4">
                                 {/* Info text */}
-                                <p className="text-gray-500 text-sm leading-relaxed text-center">
-                                    Fill in your details below to get your ticket number and track your position in real-time.
-                                </p>
+                                <div className="text-center px-2">
+                                    <h2 className="text-lg font-black text-slate-900 tracking-tight mb-1">Welcome</h2>
+                                    <p className="text-slate-500 text-xs leading-relaxed">
+                                        Please enter your details below to secure your position.
+                                    </p>
+                                </div>
 
                                 {/* Customer info form */}
-                                <div className="space-y-3">
+                                <div className="space-y-3.5">
                                     {/* Name */}
                                     <div>
-                                        <label htmlFor="customer-name" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                                            Full Name <span className="text-red-500">*</span>
+                                        <label htmlFor="customer-name" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                            Full Name <span className="text-emerald-500 ml-0.5">*</span>
                                         </label>
                                         <input
                                             id="customer-name"
                                             type="text"
                                             value={customerName}
                                             onChange={(e) => setCustomerName(e.target.value)}
-                                            placeholder="John Doe"
+                                            placeholder="Enter your name"
                                             required
                                             maxLength={50}
                                             autoComplete="name"
                                             disabled={isJoining || queueClosed}
-                                            className={`w-full px-4 py-3 bg-gray-50 border ${debouncedCustomerName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedCustomerName.trim()) ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50`}
+                                            className={`w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white border ${debouncedCustomerName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedCustomerName.trim()) ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200/80 focus:border-slate-800 focus:ring-slate-100'} rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50`}
                                         />
                                         {debouncedCustomerName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedCustomerName.trim()) && (
-                                            <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1 font-medium" role="alert">
+                                            <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1.5 font-medium ml-1" role="alert">
                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
-                                                Please enter a valid name (letters only, min 2 chars).
+                                                Please enter a valid name.
                                             </p>
                                         )}
                                     </div>
 
                                     {/* Age */}
                                     <div>
-                                        <label htmlFor="customer-age" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                                            Age <span className="text-gray-400 font-normal normal-case">(optional)</span>
+                                        <label htmlFor="customer-age" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                            Age <span className="text-slate-400 font-medium tracking-normal normal-case ml-0.5 relative top-[0.5px]">(Optional)</span>
                                         </label>
                                         <input
                                             id="customer-age"
@@ -380,25 +399,25 @@ export default function JoinQueuePage({ params }: PageProps) {
                                             max="150"
                                             value={customerAge}
                                             onChange={(e) => setCustomerAge(e.target.value)}
-                                            placeholder="32"
+                                            placeholder="Enter your age"
                                             autoComplete="off"
                                             disabled={isJoining || queueClosed}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
+                                            className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:border-slate-800 focus:ring-4 focus:ring-slate-100 transition-all duration-300 disabled:opacity-50"
                                         />
                                     </div>
 
                                     <div>
-                                        <label htmlFor="customer-phone" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                                            Phone Number <span className="text-red-500">*</span>
+                                        <label htmlFor="customer-phone" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                            Phone Number <span className="text-emerald-500 ml-0.5">*</span>
                                         </label>
                                         <div className="flex gap-2">
-                                            <div className="relative">
+                                            <div className="relative w-[100px] sm:w-[115px] shrink-0">
                                                 <select
                                                     id="country-code"
                                                     value={countryCode}
                                                     onChange={(e) => setCountryCode(e.target.value)}
                                                     disabled={isJoining || queueClosed}
-                                                    className="h-full pl-3 pr-8 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer disabled:opacity-50"
+                                                    className="w-full h-full pl-3 sm:pl-4 pr-7 sm:pr-8 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl text-slate-900 font-medium text-sm sm:text-[15px] shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:border-slate-800 focus:ring-4 focus:ring-slate-100 appearance-none cursor-pointer disabled:opacity-50 transition-all duration-300"
                                                 >
                                                     {COUNTRY_CODES.map((c) => (
                                                         <option key={c.code} value={c.code}>
@@ -406,8 +425,8 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                         </option>
                                                     ))}
                                                 </select>
-                                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none text-gray-400">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+                                                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                                                 </div>
                                             </div>
                                             <input
@@ -423,17 +442,17 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                 required
                                                 autoComplete="tel"
                                                 disabled={isJoining || queueClosed}
-                                                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
+                                                className="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 font-medium text-sm sm:text-[15px] shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:border-slate-800 focus:ring-4 focus:ring-slate-100 transition-all duration-300 disabled:opacity-50"
                                             />
                                         </div>
                                     </div>
 
                                     {/* Companion Names */}
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                                            Are you joining with others?
+                                    <div className="pt-2">
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">
+                                            Joining with others? <span className="text-slate-400 font-medium tracking-normal normal-case ml-0.5 relative top-[0.5px]">(Optional)</span>
                                         </label>
-                                        <div className="space-y-3">
+                                        <div className="space-y-2.5">
                                             {companionNames.map((name, idx) => (
                                                 <div key={idx} className="flex items-center gap-2">
                                                     <input
@@ -448,7 +467,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                         placeholder="Companion's Name"
                                                         disabled={isJoining || queueClosed}
                                                         maxLength={30}
-                                                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
+                                                        className="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 font-medium text-sm sm:text-[15px] shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:border-slate-800 focus:ring-4 focus:ring-slate-100 transition-all duration-300 disabled:opacity-50"
                                                     />
                                                     <button
                                                         type="button"
@@ -457,9 +476,9 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                             setCompanionNames(newNames);
                                                         }}
                                                         disabled={isJoining || queueClosed}
-                                                        className="w-12 h-12 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-100 disabled:opacity-50 transition-colors shrink-0"
+                                                        className="w-[48px] h-[48px] sm:w-[52px] sm:h-[52px] flex items-center justify-center rounded-xl sm:rounded-2xl bg-white border border-slate-200 text-slate-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 disabled:opacity-50 transition-all duration-300 shrink-0 shadow-[0_2px_10px_rgb(0,0,0,0.02)]"
                                                     >
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                         </svg>
                                                     </button>
@@ -470,12 +489,12 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                     type="button"
                                                     onClick={() => setCompanionNames([...companionNames, ""])}
                                                     disabled={isJoining || queueClosed}
-                                                    className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50 transition-colors"
+                                                    className="w-full flex items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-white border border-dashed border-slate-300 rounded-xl sm:rounded-2xl hover:bg-slate-50 hover:border-slate-400 hover:text-slate-800 disabled:opacity-50 transition-all duration-300 group shadow-[0_2px_10px_rgb(0,0,0,0.01)]"
                                                 >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                     </svg>
-                                                    Add Person
+                                                    Add Another Person
                                                 </button>
                                             )}
                                         </div>
@@ -483,26 +502,41 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 </div>
 
                                 {/* Take Token button */}
-                                <button
-                                    onClick={handleJoin}
-                                    disabled={isJoining || queueClosed || queuePaused || !isFormValid}
-                                    aria-label={queueClosed ? "Queue is closed" : queuePaused ? "Operator on break" : "Take a token"}
-                                    className="w-full py-4 text-white font-bold rounded-xl text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-black/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg"
-                                    style={{ backgroundColor: brandColor }}
-                                >
-                                    {isJoining ? (
-                                        <span className="flex items-center justify-center gap-2">
-                                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
-                                            Getting Ticket...
+                                <div className="pt-3">
+                                    <button
+                                        onClick={handleJoin}
+                                        disabled={isJoining || queueClosed || queuePaused || !isFormValid}
+                                        aria-label={queueClosed ? "Queue is closed" : queuePaused ? "Operator on break" : "Take a token"}
+                                        className="group relative w-full py-4 text-white font-black uppercase tracking-widest text-[13px] sm:text-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-500/30 transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:-translate-y-0 disabled:hover:shadow-xl"
+                                        style={{ 
+                                            backgroundColor: brandColor,
+                                            backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%)'
+                                        }}
+                                    >
+                                        {/* Animated Shimmer */}
+                                        <div className="absolute inset-0 -translate-x-[150%] bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out pointer-events-none skew-x-12" />
+                                        
+                                        <span className="relative flex items-center justify-center gap-2.5">
+                                            {isJoining ? (
+                                                <>
+                                                    <span className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
+                                                    Getting Ticket...
+                                                </>
+                                            ) : queueClosed ? (
+                                                "Queue is Closed"
+                                            ) : queuePaused ? (
+                                                "Operator on Break"
+                                            ) : (
+                                                <>
+                                                    Take a Token
+                                                    <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                                    </svg>
+                                                </>
+                                            )}
                                         </span>
-                                    ) : queueClosed ? (
-                                        "Queue is Closed"
-                                    ) : queuePaused ? (
-                                        "Operator on Break"
-                                    ) : (
-                                        "Take a Token"
-                                    )}
-                                </button>
+                                    </button>
+                                </div>
 
                                 {queueClosed && (
                                     <p className="text-sm text-amber-600 font-medium text-center">

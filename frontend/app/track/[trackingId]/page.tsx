@@ -211,6 +211,7 @@ export default function TrackingPage({ params }: PageProps) {
 
     const [isCancelling, setIsCancelling] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
 
     const handleConfirmCancel = useCallback(async () => {
         if (!joinData || isCancelling) return;
@@ -233,8 +234,10 @@ export default function TrackingPage({ params }: PageProps) {
     const handleCancelRequest = () => setShowCancelConfirm(true);
 
     const handleShare = async () => {
+        if (isSharing) return;
         const url = window.location.href;
         if (navigator.share) {
+            setIsSharing(true);
             try {
                 await navigator.share({
                     title: 'My Queue Ticket',
@@ -245,11 +248,24 @@ export default function TrackingPage({ params }: PageProps) {
                 // Ignore AbortError if user cancelled share
                 if ((err as Error).name !== 'AbortError') {
                     console.error("Error sharing", err);
+                    // Fallback to clipboard if native share fails (e.g., InvalidStateError)
+                    try {
+                        await navigator.clipboard.writeText(url);
+                        alert("Tracking link copied to clipboard!");
+                    } catch (e) {
+                        // Ignore clipboard error
+                    }
                 }
+            } finally {
+                setIsSharing(false);
             }
         } else {
-            navigator.clipboard.writeText(url);
-            alert("Tracking link copied to clipboard!");
+            try {
+                await navigator.clipboard.writeText(url);
+                alert("Tracking link copied to clipboard!");
+            } catch (e) {
+                console.error("Clipboard copy failed", e);
+            }
         }
     };
 
@@ -388,101 +404,114 @@ export default function TrackingPage({ params }: PageProps) {
         <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col items-center justify-center p-4">
             <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
                 {/* Header */}
-                <div className="px-6 py-7 text-center text-white relative transition-colors duration-500" style={{ backgroundColor: brandColor }}>
-                        <div className="absolute top-3 right-3">
-                        <ConnectionBadge status={queueClosed ? "disconnected" : wsStatus} />
-                    </div>
+                {/* Header */}
+                <div 
+                    className="px-5 sm:px-6 py-6 sm:py-8 text-center text-white relative overflow-hidden transition-colors duration-500" 
+                    style={{ 
+                        background: `linear-gradient(135deg, ${brandColor}, #0f172a)`
+                    }}
+                >
+                    {/* Decorative subtle lighting effect */}
+                    <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at top right, rgba(255,255,255,0.4), transparent 60%)' }}></div>
+                    
+                    <div className="relative z-10">
+                        <div className="absolute top-0 right-0">
+                            <ConnectionBadge status={queueClosed ? "disconnected" : wsStatus} />
+                        </div>
 
-                    {/* Sound toggle — small speaker icon top-left */}
-                    <button
-                        onClick={soundEnabled ? handleToggleSound : handleEnableSound}
-                        aria-label={soundEnabled ? "Mute sound alerts" : "Enable sound alerts"}
-                        title={soundEnabled ? "Sound ON — tap to mute" : "Sound OFF — tap to enable"}
-                        className="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center transition-all"
-                        style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)" }}
-                    >
-                        {soundEnabled ? (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                            </svg>
-                        ) : (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                                <line x1="23" y1="9" x2="17" y2="15" />
-                                <line x1="17" y1="9" x2="23" y2="15" />
-                            </svg>
+                        {/* Sound toggle — small speaker icon top-left */}
+                        <button
+                            onClick={soundEnabled ? handleToggleSound : handleEnableSound}
+                            aria-label={soundEnabled ? "Mute sound alerts" : "Enable sound alerts"}
+                            title={soundEnabled ? "Sound ON — tap to mute" : "Sound OFF — tap to enable"}
+                            className="absolute top-0 left-0 w-8 h-8 rounded-full flex items-center justify-center transition-all bg-black/10 hover:bg-black/20 backdrop-blur-sm border border-white/20 shadow-sm"
+                        >
+                            {soundEnabled ? (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                                </svg>
+                            ) : (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                    <line x1="23" y1="9" x2="17" y2="15" />
+                                    <line x1="17" y1="9" x2="23" y2="15" />
+                                </svg>
+                            )}
+                        </button>
+
+                        {fullLogoUrl && (
+                            <div className="flex justify-center mb-4 mt-2">
+                                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-2.5 rounded-2xl shadow-xl">
+                                    <img src={fullLogoUrl} alt="Organization Logo" className="h-12 object-contain" />
+                                </div>
+                            </div>
                         )}
-                    </button>
 
-                    {fullLogoUrl && (
-                        <div className="flex justify-center mb-3">
-                            <img 
-                                src={fullLogoUrl} 
-                                alt="Organization Logo" 
-                                className="h-16 object-contain bg-white/10 rounded-lg p-1.5 backdrop-blur-sm border border-white/20 shadow-sm"
-                            />
-                        </div>
-                    )}
+                        <h1 className="text-2xl font-bold tracking-tight mb-1 text-white/95" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{queueName}</h1>
+                        <p className="text-white/60 text-[10px] font-bold uppercase tracking-[0.25em] mb-4">
+                            {queueClosed ? "Currently Closed" : "Now Serving"}
+                        </p>
 
-                    <h1 className="text-2xl font-extrabold mb-1">{queueName}</h1>
-                    <p className="text-white/80 text-xs font-semibold uppercase tracking-widest">
-                        {queueClosed ? "Currently Closed" : "Now Serving"}
-                    </p>
-
-                    {activeServingTokens.length === 0 ? (
-                        <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20">
-                            —
-                        </div>
-                    ) : activeServingTokens.length === 1 ? (
-                        <div className="mt-4 text-6xl font-black tabular-nums tracking-tight py-4 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
-                            {prefix}{activeServingTokens[0].token_number}
-                        </div>
-                    ) : activeServingTokens.length <= 3 ? (
-                        <div className="mt-4 py-3 bg-white/10 rounded-xl border border-white/20 px-4" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
-                            <div className="flex flex-nowrap items-center justify-center gap-4">
-                                {activeServingTokens.map((t: any) => (
-                                    <div key={t.id || t.token_number} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0">
-                                        <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
-                                        {t.assigned_line !== null && (
-                                            <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/20 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
-                                        )}
+                        <div className="relative mx-auto w-full">
+                            {activeServingTokens.length === 0 ? (
+                                <div className="mt-4 text-6xl sm:text-7xl font-black tabular-nums tracking-tighter py-4 sm:py-5 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center min-h-[100px] sm:min-h-[120px]">
+                                    —
+                                </div>
+                            ) : activeServingTokens.length === 1 ? (
+                                <div className="mt-4 text-6xl sm:text-7xl font-black tabular-nums tracking-tighter py-4 sm:py-5 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center min-h-[100px] sm:min-h-[120px]" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
+                                    {prefix}{activeServingTokens[0].token_number}
+                                </div>
+                            ) : activeServingTokens.length <= 3 ? (
+                                <div className="mt-4 py-3 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl px-4" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
+                                    <div className="flex flex-nowrap items-center justify-center gap-4">
+                                        {activeServingTokens.map((t: any) => (
+                                            <div key={t.id || t.token_number} className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0 border border-white/5">
+                                                <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                                {t.assigned_line !== null && (
+                                                    <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                </div>
+                            ) : (
+                                <div className="mt-4 overflow-hidden w-full relative py-3 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
+                                    <style>{`
+                                        .hide-scroll::-webkit-scrollbar { display: none; }
+                                    `}</style>
+                                    <div 
+                                        ref={scrollContainerRef}
+                                        className="flex flex-nowrap items-center gap-4 px-4 overflow-x-auto whitespace-nowrap hide-scroll cursor-grab active:cursor-grabbing select-none"
+                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                        onTouchStart={handleInteraction}
+                                        onTouchMove={handleInteraction}
+                                        onWheel={handleInteraction}
+                                        onMouseDown={handleMouseDown}
+                                        onMouseMove={handleMouseMove}
+                                        onMouseUp={handleMouseUpOrLeave}
+                                        onMouseLeave={handleMouseUpOrLeave}
+                                    >
+                                        {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t: any, idx: number) => (
+                                            <div key={`${t.id || t.token_number}-${idx}`} className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0 border border-white/5">
+                                                <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                                {t.assigned_line !== null && (
+                                                    <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-6 flex justify-center">
+                            <div className="px-4 py-1.5 bg-black/20 backdrop-blur-md rounded-full border border-white/10 text-xs font-medium text-white/80 shadow-sm flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse"></span>
+                                Waiting: <strong className="text-white ml-0.5">{live?.waiting_count ?? "—"}</strong>
                             </div>
                         </div>
-                    ) : (
-                        <div className="mt-4 overflow-hidden w-full relative py-2 bg-white/10 rounded-xl border border-white/20" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
-                            <style>{`
-                                .hide-scroll::-webkit-scrollbar { display: none; }
-                            `}</style>
-                            <div 
-                                ref={scrollContainerRef}
-                                className="flex flex-nowrap items-center gap-4 px-4 overflow-x-auto whitespace-nowrap hide-scroll cursor-grab active:cursor-grabbing select-none"
-                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                onTouchStart={handleInteraction}
-                                onTouchMove={handleInteraction}
-                                onWheel={handleInteraction}
-                                onMouseDown={handleMouseDown}
-                                onMouseMove={handleMouseMove}
-                                onMouseUp={handleMouseUpOrLeave}
-                                onMouseLeave={handleMouseUpOrLeave}
-                            >
-                                {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t: any, idx: number) => (
-                                    <div key={`${t.id || t.token_number}-${idx}`} className="bg-white/25 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0">
-                                        <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
-                                        {t.assigned_line !== null && (
-                                            <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/20 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="mt-3 flex justify-center gap-6 text-xs text-blue-200">
-                        <span>Waiting: <strong className="text-white">{live?.waiting_count ?? "—"}</strong></span>
                     </div>
                 </div>
 
@@ -533,103 +562,208 @@ export default function TrackingPage({ params }: PageProps) {
 
 
                             {isMyTurn && (
-                                <div role="alert" className="bg-emerald-50 text-emerald-800 p-4 rounded-xl border-2 border-emerald-300 text-center font-bold text-lg animate-pulse">
-                                    🎉 It&apos;s your turn!
-                                    {myAssignedLine != null ? (
-                                        <div className="mt-2 text-2xl font-black text-emerald-700">
-                                            Proceed to <span className="bg-emerald-700 text-white px-3 py-1 rounded-lg">Line {myAssignedLine}</span>
+                                <div role="alert" className="relative overflow-hidden rounded-xl p-4 sm:p-5 shadow-lg shadow-emerald-500/20 flex items-center gap-4 text-left bg-gradient-to-br from-emerald-500 to-emerald-600">
+                                    <div className="flex-shrink-0 relative z-10">
+                                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full flex items-center justify-center relative shadow-md text-emerald-600">
+                                            <div className="absolute -inset-1.5 border-2 border-white/60 rounded-full animate-ping opacity-50"></div>
+                                            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
                                         </div>
-                                    ) : (
-                                        <div className="mt-1 text-base font-semibold text-emerald-700">Please proceed to the counter.</div>
-                                    )}
+                                    </div>
+
+                                    <div className="flex-1 relative z-10">
+                                        <h3 className="text-base sm:text-lg font-black text-white tracking-widest uppercase drop-shadow-sm leading-tight">It&apos;s Your Turn!</h3>
+                                        
+                                        {myAssignedLine != null ? (
+                                            <div className="mt-1 text-emerald-50 text-[11px] sm:text-xs font-semibold uppercase tracking-wider flex items-center gap-2 flex-wrap">
+                                                Proceed to
+                                                <span className="text-[11px] sm:text-xs font-black bg-white text-emerald-700 px-2.5 py-0.5 rounded shadow-sm">
+                                                    Line {myAssignedLine}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="mt-1 text-[11px] sm:text-xs font-medium text-emerald-50 leading-snug">Please proceed to the counter immediately.</div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Decorative subtle lighting */}
+                                    <div className="absolute -right-8 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
                                 </div>
                             )}
                             {isNext && !isMyTurn && (
-                                <div role="status" className="bg-blue-50 text-blue-800 p-4 rounded-xl border border-blue-200 text-center font-bold text-base">
-                                    ⏳ You are next! Get ready.
+                                <div className="mx-auto w-full max-w-sm mt-4 mb-8 flex flex-col items-center text-center">
+                                    {/* Pill Shaped Badge */}
+                                    <div className="relative inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-50 border border-emerald-100/80 rounded-full shadow-[0_4px_20px_rgb(16,185,129,0.15)] mb-4">
+                                        <div className="absolute inset-0 bg-emerald-400/20 rounded-full animate-pulse"></div>
+                                        
+                                        <style>{`
+                                            @keyframes smooth-slide-arrow {
+                                                0%, 100% { transform: translateY(-1.5px); }
+                                                50% { transform: translateY(2.5px); }
+                                            }
+                                            .animate-smooth-slide {
+                                                animation: smooth-slide-arrow 1.8s ease-in-out infinite;
+                                            }
+                                        `}</style>
+                                        
+                                        <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-white shadow-sm shrink-0">
+                                            <svg className="w-3.5 h-3.5 animate-smooth-slide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                            </svg>
+                                        </div>
+                                        
+                                        <span className="relative text-[14px] font-black text-emerald-700 tracking-[0.15em] uppercase">You Are Next</span>
+                                    </div>
+                                    
+                                    <p className="text-[13px] font-medium text-slate-500 leading-relaxed px-6">
+                                        Please come to the counter area right now so you are ready when called.
+                                    </p>
                                 </div>
                             )}
                             {isSkipped && !isDone && !isMyTurn && !isDeleted && (
-                                <div className="bg-amber-50 text-amber-600 p-4 rounded-xl border border-amber-200 text-center text-sm">
-                                    Your token was skipped. Please see the receptionist.
+                                <div className="mx-auto w-full max-w-sm mt-4 mb-6 text-center">
+                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-50 mb-3 shadow-sm border border-amber-100/50">
+                                        <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <h4 className="text-[15px] font-bold text-slate-800 tracking-tight mb-1">Turn Skipped</h4>
+                                    <p className="text-[13px] font-medium text-slate-500 leading-relaxed px-4">
+                                        Your token was skipped. Please see the receptionist for assistance.
+                                    </p>
                                 </div>
                             )}
+                            
                             {isDeleted && !isDone && !isMyTurn && (
-                                <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-center text-sm">
-                                    {error ? error : joinData?.removed_by === "session_end" ? "This queue session has ended. Your token is no longer valid." : "Your token has been removed from the waiting list."}
+                                <div className="mx-auto w-full max-w-sm mt-4 mb-6 text-center">
+                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-rose-50 mb-3 shadow-sm border border-rose-100/50">
+                                        <svg className="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </div>
+                                    <h4 className="text-[15px] font-bold text-slate-800 tracking-tight mb-1">Ticket Cancelled</h4>
+                                    <p className="text-[13px] font-medium text-slate-500 leading-relaxed px-4">
+                                        {error ? error : joinData?.removed_by === "session_end" ? "This queue session has ended. Your token is no longer valid." : "Your token has been removed from the waiting list."}
+                                    </p>
                                 </div>
                             )}
                             
                             {alreadyServed && !isSkipped && !isDeleted && (
-                                <div className="bg-gray-50 text-gray-600 p-4 rounded-xl border border-gray-200 text-center text-sm">
-                                    Your token has already been served. Thank you for visiting!
+                                <div className="mx-auto w-full max-w-sm mt-4 mb-6 text-center">
+                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-50 mb-3 shadow-sm border border-emerald-100/50">
+                                        <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <h4 className="text-[15px] font-bold text-slate-800 tracking-tight mb-1">Successfully Served</h4>
+                                    <p className="text-[13px] font-medium text-slate-500 leading-relaxed px-4">
+                                        Your token has already been served. Thank you for visiting!
+                                    </p>
                                 </div>
                             )}
 
-                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center shadow-inner" aria-label="Your ticket information">
-                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
-                                    Your Ticket
-                                </p>
-                                <div className={`text-7xl font-black tabular-nums mb-2 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : ""}`} style={(!isMyTurn && !alreadyServed) ? { color: brandColor } : {}}>
-                                    {prefix}{myNumber}
-                                </div>
+                            {/* Premium Ticket Card */}
+                            <div className="bg-white border border-slate-100 rounded-3xl p-1 text-center shadow-[0_8px_30px_rgb(0,0,0,0.06)] relative overflow-hidden" aria-label="Your ticket information">
+                                <div className="p-6 pb-5 relative">
+                                    {/* Ticket decorative notch - left */}
+                                    <div className="absolute top-1/2 -left-4 w-6 h-6 bg-[#f8fafc] rounded-full border-r border-slate-200/60 shadow-inner -translate-y-1/2 z-10"></div>
+                                    {/* Ticket decorative notch - right */}
+                                    <div className="absolute top-1/2 -right-4 w-6 h-6 bg-[#f8fafc] rounded-full border-l border-slate-200/60 shadow-inner -translate-y-1/2 z-10"></div>
 
-                                <p aria-live="polite" className={`text-sm font-semibold mb-4 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-gray-400" : (!isNext ? "text-gray-600" : "")}`} style={isNext ? { color: brandColor } : {}}>
-                                    {positionMessage}
-                                </p>
-
-                                <div className="flex bg-white rounded-lg border border-gray-100 divide-x divide-gray-100 overflow-hidden text-sm shadow-sm">
-                                    <div className="flex-1 py-3">
-                                        <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Ahead</p>
-                                        <p className="text-2xl font-bold text-gray-900 mt-0.5 tabular-nums">
-                                            {alreadyServed ? "—" : isMyTurn ? "0" : peopleAhead}
-                                        </p>
+                                    <div className="flex items-center justify-center gap-2 mb-3">
+                                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Ticket</span>
                                     </div>
-                                    <div className="flex-1 py-3">
-                                        <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Status</p>
-                                        <p className={`text-sm font-bold mt-1 ${isMyTurn ? "text-emerald-600" : isSkipped ? "text-amber-500" : alreadyServed ? "text-gray-400" : (!isNext ? "text-amber-600" : "")}`} style={isNext ? { color: brandColor } : {}}>
-                                            {isMyTurn ? "YOUR TURN" : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "NEXT" : "Waiting"}
-                                        </p>
+                                    
+                                    <div className={`text-[5rem] sm:text-[5.5rem] leading-none font-black tabular-nums tracking-tighter mb-2 drop-shadow-sm ${isMyTurn ? "text-emerald-500" : alreadyServed ? "text-slate-300" : ""}`} style={(!isMyTurn && !alreadyServed) ? { color: brandColor } : {}}>
+                                        {prefix}{myNumber}
                                     </div>
-                                    <div className="flex-1 py-3">
-                                        <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-wider">Serving</p>
-                                        <p className="text-2xl font-bold text-gray-900 mt-0.5 tabular-nums">{prefix}{serving}</p>
-                                    </div>
+
+                                    <p aria-live="polite" className={`text-xs sm:text-sm font-semibold tracking-wide ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-slate-400" : (!isNext ? "text-slate-500" : "")}`} style={isNext ? { color: brandColor } : {}}>
+                                        {positionMessage}
+                                    </p>
                                 </div>
-                            </div>
-
-                            <p className="text-center text-xs text-gray-400 leading-relaxed">
-                                    This page updates automatically. No need to refresh.
-                                </p>
-
-                            {wsStatus === "reconnecting" && (
-                                <div role="status" className="text-center text-xs text-amber-600 flex items-center justify-center gap-1.5 py-2">
-                                    <span className="w-3 h-3 border-2 border-amber-300 border-t-amber-600 rounded-full animate-spin" aria-hidden="true" />
-                                    Reconnecting to live updates...
-                                </div>
-                            )}
-
-                            {/* Cancel / Leave Queue */}
-                            <div className="pt-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row justify-center sm:items-center">
-                                <button
-                                    onClick={handleShare}
-                                    className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-4 py-2 rounded-lg transition-all flex items-center justify-center gap-2"
-                                >
-                                    <Share2 className="w-3.5 h-3.5" />
-                                    Share Tracking Link
-                                </button>
                                 
-                                {!alreadyServed && !isMyTurn && (
-                                    <button
-                                        onClick={handleCancelRequest}
-                                        disabled={isCancelling}
-                                        className="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                                    >
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                        {isCancelling ? "Cancelling..." : "Leave Queue / Cancel Ticket"}
-                                    </button>
-                                )}
+                                {/* Dashed divider line for ticket aesthetic */}
+                                <div className="mx-6 border-t-2 border-dashed border-slate-100"></div>
+
+                                <div className="p-4 pt-5">
+                                    <div className="flex bg-slate-50/50 rounded-2xl border border-slate-100 divide-x divide-slate-100 overflow-hidden text-sm">
+                                        <div className="flex-1 py-3.5">
+                                            <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1">Ahead</p>
+                                            <p className="text-2xl font-black text-slate-800 tabular-nums">
+                                                {alreadyServed ? "—" : isMyTurn ? "0" : peopleAhead}
+                                            </p>
+                                        </div>
+                                        <div className="flex-1 py-3.5 relative">
+                                            {isMyTurn && <div className="absolute inset-0 bg-emerald-50/50 animate-pulse"></div>}
+                                            <p className="relative text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1">Status</p>
+                                            <p className={`relative text-[11px] font-black uppercase tracking-wider mt-2 ${isMyTurn ? "text-emerald-500" : isSkipped ? "text-amber-500" : alreadyServed ? "text-slate-400" : (!isNext ? "text-amber-500" : "")}`} style={isNext ? { color: brandColor } : {}}>
+                                                {isMyTurn ? "YOUR TURN" : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "NEXT" : "Waiting"}
+                                            </p>
+                                        </div>
+                                        <div className="flex-1 py-3.5">
+                                            <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1">Serving</p>
+                                            <p className="text-2xl font-black text-slate-800 tabular-nums">{prefix}{serving}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+
+                                <div className="flex justify-center my-4">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50/80 border border-slate-200/50 rounded-full shadow-[0_1px_2px_rgb(0,0,0,0.02)]">
+                                        {wsStatus === "reconnecting" ? (
+                                            <>
+                                                <span className="w-3 h-3 border-2 border-amber-300 border-t-amber-600 rounded-full animate-spin" aria-hidden="true" />
+                                                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Reconnecting...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                </span>
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live Updates Active</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                            {/* Actions */}
+                            {!alreadyServed && !isDeleted && !isSkipped && (
+                                <div className="pt-6 border-t border-slate-100 space-y-3">
+                                    {/* Share Action Card */}
+                                    <button
+                                        onClick={handleShare}
+                                        disabled={isSharing}
+                                        className="w-full flex items-center justify-between p-4 bg-white border border-slate-200/80 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] active:scale-[0.98] active:bg-slate-50 transition-all duration-200 text-left disabled:opacity-50"
+                                    >
+                                        <div>
+                                            <h4 className="text-[13px] font-bold text-slate-800 mb-0.5">Share Tracking Link</h4>
+                                            <p className="text-[11px] font-medium text-slate-500">Send this live update page to others</p>
+                                        </div>
+                                        <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 shadow-sm shrink-0">
+                                            <Share2 className="w-4 h-4" />
+                                        </div>
+                                    </button>
+                                    
+                                    {/* Leave Queue Action Card */}
+                                    {!isMyTurn && (
+                                        <button
+                                            onClick={handleCancelRequest}
+                                            disabled={isCancelling}
+                                            className="w-full flex items-center justify-between p-4 bg-rose-50/40 border border-rose-100/60 rounded-2xl active:scale-[0.98] active:bg-rose-50 transition-all duration-200 text-left disabled:opacity-50"
+                                        >
+                                            <div>
+                                                <h4 className="text-[13px] font-bold text-rose-700">Leave Queue</h4>
+                                                <p className="text-[11px] font-medium text-rose-500/80">Cancel your ticket and give up your spot</p>
+                                            </div>
+                                            <div className="w-10 h-10 rounded-full bg-rose-100/50 flex items-center justify-center text-rose-600 shrink-0">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                            </div>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     
                     )}
@@ -637,11 +771,11 @@ export default function TrackingPage({ params }: PageProps) {
             </div>
 
             {/* Footer Branding */}
-            <div className="mt-6 flex items-center justify-center">
-                <span className="text-[10px] font-medium tracking-[0.2em] text-slate-400 uppercase flex items-center gap-1.5">
-                    Powered by{" "}
-                    <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500 text-xs tracking-widest">Q4QUEUE</span>
-                </span>
+            <div className="mt-10 mb-6 flex items-center justify-center">
+                <div className="flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity cursor-default">
+                    <span className="text-[11px] font-medium text-slate-500">Powered by</span>
+                    <span className="font-bold text-slate-800 text-[11px] tracking-wide">Q4QUEUE</span>
+                </div>
             </div>
 
             <ConfirmModal
