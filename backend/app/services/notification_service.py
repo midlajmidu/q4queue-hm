@@ -75,13 +75,13 @@ async def notify_queue_event(
 
     event_type values (v4):
       queue_joined_v4
-      queue_nearby_5_v2
-      queue_nearby_3_v2
+      queue_nearby_5_v3
+      queue_nearby_3_v3
       queue_called_v2
-      queue_skipped_v2
-      queue_recalled_v2
-      queue_removed_v2
-      queue_completed_v2
+      queue_skipped_v3
+      queue_recalled_v3
+      queue_removed_v3
+      queue_completed_v3
       test_notification_v2
     """
     try:
@@ -101,19 +101,19 @@ async def notify_queue_event(
         # Check granular toggles based on event type
         if event_type == "queue_joined_v4" and not cfg.get("notify_queue_joined", True):
             return
-        if event_type == "queue_nearby_5_v2" and not cfg.get("notify_position_5", True):
+        if event_type == "queue_nearby_5_v3" and not cfg.get("notify_position_5", True):
             return
-        if event_type == "queue_nearby_3_v2" and not cfg.get("notify_position_3", True):
+        if event_type == "queue_nearby_3_v3" and not cfg.get("notify_position_3", True):
             return
         if event_type in ("queue_called_v2", "queue_called_v3") and not cfg.get("notify_called", True):
             return
-        if event_type == "queue_completed_v2" and not cfg.get("notify_completed", True):
+        if event_type == "queue_completed_v3" and not cfg.get("notify_completed", True):
             return
-        if event_type == "queue_skipped_v2" and not cfg.get("notify_skipped", True):
+        if event_type == "queue_skipped_v3" and not cfg.get("notify_skipped", True):
             return
-        if event_type == "queue_recalled_v2" and not cfg.get("notify_recalled", True):
+        if event_type == "queue_recalled_v3" and not cfg.get("notify_recalled", True):
             return
-        if event_type == "queue_removed_v2" and not cfg.get("notify_removed", True):
+        if event_type == "queue_removed_v3" and not cfg.get("notify_removed", True):
             return
 
 
@@ -141,38 +141,30 @@ async def notify_queue_event(
         raw_body = None
         variables = []
 
-        if event_type in ("queue_joined_v4", "queue_called_v3"):
-            # These templates bypass the opt-in and 24-hour window checks
-            # Use env-configured frontend URL or fallback
+        # Upgrade any v2 events emitted by the system to v3
+        event_type = event_type.replace("_v2", "_v3")
+
+        org_name_to_use = organization_name if organization_name else queue_name
+        c_name = customer_name or "Customer"
+
+        if event_type == "queue_joined_v4":
+            # joined template still bypasses and uses original variables
             from app.core.config import get_settings
             settings = get_settings()
             frontend_url = getattr(settings, "FRONTEND_URL", "https://amoebaq.com").rstrip("/")
             track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
             display_url = f"{frontend_url}/d/{queue_id}"
             
-            org_name_to_use = organization_name if organization_name else queue_name
-            c_name = customer_name or "Customer"
-            
-            if event_type == "queue_joined_v4":
-                variables = build_template_variables(
-                    customer_name=c_name,
-                    queue_name=queue_name,
-                    organization_name=org_name_to_use,
-                    token_number=token_str,
-                    current_position=str(position),
-                    tracking_url=track_url,
-                    display_url=display_url,
-                )
-            else:
-                # queue_called_v3 variables: {{1}} Customer, {{2}} Queue, {{3}} Org, {{4}} Token
-                variables = [
-                    c_name,
-                    queue_name or org_name_to_use,
-                    organization_name or "our store",
-                    token_str
-                ]
+            variables = build_template_variables(
+                customer_name=c_name,
+                queue_name=queue_name,
+                organization_name=org_name_to_use,
+                token_number=token_str,
+                current_position=str(position),
+                tracking_url=track_url,
+                display_url=display_url,
+            )
         else:
-            # Events B, C, D, E require whatsapp_alerts_active check
             if not token_id:
                 logger.warning("No token_id provided for non-join event %s, skipping", event_type)
                 return
@@ -186,131 +178,120 @@ async def notify_queue_event(
                     logger.warning("Token %s not found in DB for event %s, skipping", token_id, event_type)
                     return
                 
-                if not db_token.whatsapp_alerts_active or not db_token.whatsapp_window_expires_at or db_token.whatsapp_window_expires_at < now:
-                    logger.info("Token %s WhatsApp alerts inactive or window expired, skipping message for event %s", token_id, event_type)
-                    
-                    from app.whatsapp.message_service import log_skipped_whatsapp_message
-                    import asyncio
-                    
-                    if getattr(db_token, "entry_type", "qr") == "manual":
-                        reason = "Manual entry (staff joined). Customer has not scanned the QR to opt-in."
-                    elif not db_token.whatsapp_alerts_active:
-                        reason = "Customer has not clicked 'Get Live Updates' on WhatsApp."
-                    else:
-                        reason = "The 24-hour WhatsApp service window has expired."
-                    
-                    asyncio.create_task(
-                        log_skipped_whatsapp_message(
-                            org_id=org_id,
-                            phone=customer_phone,
-                            event_type=event_type,
-                            reason=reason,
-                            queue_id=queue_id,
-                            token_id=token_id,
-                            customer_name=customer_name,
-                            session_id=session_id,
-                        )
+                if db_token.whatsapp_alerts_active and db_token.whatsapp_window_expires_at and db_token.whatsapp_window_expires_at >= now:
+                    # User opted in -> cheaper service conversation
+                    is_raw_text = True
+                else:
+                    # User did NOT opt in -> approved Meta template (utility conversation)
+                    is_raw_text = False
+
+            # Build standard variables
+            base_vars = [
+                c_name,
+                queue_name or org_name_to_use,
+                org_name_to_use,
+                token_str
+            ]
+
+            if event_type in ("queue_called_v3", "queue_recalled_v3"):
+                dest = f"Service Lane {assigned_line}" if assigned_line else "the counter"
+                variables = base_vars + [dest]
+                if is_raw_text:
+                    action = "ready to serve you now" if event_type == "queue_called_v3" else "calling you again"
+                    header = "It's Your Turn!" if event_type == "queue_called_v3" else "Token Recalled!"
+                    raw_body = (
+                        f"*{header}*\n\n"
+                        f"Please proceed to {dest} immediately, {c_name}! The staff at {org_name_to_use} ({queue_name or org_name_to_use}) is {action}.\n\n"
+                        f"🎫 *Your Queue Ticket:* {token_str}\n\n"
+                        "Thank you.\n\n"
+                        "_Powered by Q4Queue_"
                     )
-                    return
+            elif event_type in ("queue_nearby_5_v3", "queue_nearby_3_v3"):
+                pos_str = str(position) if position else "0"
+                
+                serving_token_str = "-"
+                try:
+                    from sqlalchemy import desc
+                    async with AsyncSessionLocal() as db_session:
+                        serving_res = await db_session.execute(
+                            select(Token).where(
+                                Token.queue_id == queue_id,
+                                Token.status == "serving"
+                            ).order_by(desc(Token.served_at)).limit(1)
+                        )
+                        serving_token = serving_res.scalar_one_or_none()
+                        if serving_token:
+                            serving_token_str = f"{serving_token.token_prefix}-{serving_token.token_number}"
+                except Exception as e:
+                    logger.warning("Could not fetch serving token: %s", e)
 
-            # Since only queue_joined_v4 is a Meta-approved template, all subsequent events are raw text
-            is_raw_text = True
-            
-            c_name = customer_name or "Customer"
-            o_name = organization_name or queue_name or "the business"
-            
-            # Use env-configured frontend URL or fallback
-            from app.core.config import get_settings
-            settings = get_settings()
-            frontend_url = getattr(settings, "FRONTEND_URL", "https://amoebaq.com").rstrip("/")
-            track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
-            display_url = f"{frontend_url}/d/{queue_id}"
-            
-            # Build variables for all template-based non-join events
-            # Format: 1: Name, 2: Org Name, 3: Token, 4: Position, 5: Tracking URL, 6: Display URL
-            if not is_raw_text:
-                variables = [
-                    c_name,
-                    o_name,
-                    token_str,
-                    str(position) if position else "0",
-                    track_url,
-                    display_url
-                ]
-
-            if event_type == "queue_nearby_5_v2":
-                raw_body = (
-                    "⏳ *Queue Update*\n\n"
-                    f"Hi *{c_name}*, there are currently 5 customers remaining ahead of you at *{o_name}*. "
-                    "We will notify you again when your turn is closer.\n\n"
-                    f"📱 Track Live: {track_url}\n"
-                    "_Powered by Q4Queue_"
-                )
-            elif event_type == "queue_approaching_v2" or event_type == "queue_nearby_3_v2":
-                raw_body = (
-                    f"⏳ *Almost Your Turn, {c_name}!*\n\n"
-                    f"Only *3 customers ahead* of you at *{o_name}*. "
-                    "Please start making your way to the counter.\n\n"
-                    f"🎫 Your Token: #{token_str}\n"
-                    f"📱 Track Live: {track_url}\n"
-                    "_Powered by Q4Queue_"
-                )
-            elif event_type == "queue_called_v2":
-                line_info = f"➡️ *Please go to Service Lane {assigned_line}*\n\n" if assigned_line else ""
-                raw_body = (
-                    "🔔 *It's Your Turn!*\n\n"
-                    f"Please proceed to the counter immediately, *{c_name}*! The staff at *{o_name}* is ready to serve you now.\n\n"
-                    f"🎫 *Your Token Number:* #{token_str}\n\n"
-                    f"{line_info}"
-                    "_Powered by Q4Queue_"
-                )
-            elif event_type == "queue_completed_v2":
-                raw_body = (
-                    "✅ *Session Completed*\n\n"
-                    f"Thank you for visiting *{o_name}*, *{c_name}*! Your service is now complete. "
-                    "We hope you had a smooth experience using our virtual queuing system.\n\n"
-                    "_Powered by Q4Queue_"
-                )
-            elif event_type == "queue_skipped_v2":
-                raw_body = (
-                    "⚠️ *Token Skipped*\n\n"
-                    f"Hi *{c_name}*, you were called to the counter at *{o_name}* but did not appear, so your token #{token_str} was skipped.\n\n"
-                    f"📱 Check Status: {track_url}\n"
-                    "_Powered by Q4Queue_"
-                )
-            elif event_type == "queue_removed_v2":
-                raw_body = (
-                    "❌ *Removed from Queue*\n\n"
-                    f"Hi *{c_name}*, your token #{token_str} has been removed from the queue at *{o_name}*.\n\n"
-                    f"📱 Check Status: {track_url}\n"
-                    "_Powered by Q4Queue_"
-                )
-            elif event_type == "queue_recalled_v2":
-                line_info = f"➡️ *Please go to Service Lane {assigned_line}*\n\n" if assigned_line else ""
-                raw_body = (
-                    "🔄 *Token Recalled!*\n\n"
-                    f"Hi *{c_name}*, good news! Your skipped token #{token_str} has been recalled to the counter at *{o_name}*.\n"
-                    "Please proceed to the counter immediately.\n\n"
-                    f"{line_info}"
-                    f"📱 Check Status: {track_url}\n"
-                    "_Powered by Q4Queue_"
-                )
+                variables = base_vars + [pos_str, serving_token_str]
+                if is_raw_text:
+                    header = "Queue Update" if event_type == "queue_nearby_5_v3" else "Almost Your Turn!"
+                    prefix = "Almost your turn" if event_type == "queue_nearby_5_v3" else "Get ready"
+                    suffix = "Please start heading towards the counter!" if event_type == "queue_nearby_5_v3" else "Please be ready — you will be called very soon!"
+                    raw_body = (
+                        f"*{header}*\n\n"
+                        f"{prefix}, {c_name}! Only {pos_str} people remaining before you at {org_name_to_use} ({queue_name or org_name_to_use}).\n\n"
+                        f"🎫 *Your Queue Ticket:* {token_str}\n"
+                        f"🔢 *Current Serving Token:* {serving_token_str}\n\n"
+                        f"{suffix}\n\n"
+                        "_Powered by Q4Queue_"
+                    )
+            elif event_type == "queue_completed_v3":
+                variables = base_vars
+                if is_raw_text:
+                    raw_body = (
+                        "👉 *Service Completed*\n\n"
+                        f"Thank you, {c_name}! Your service at {org_name_to_use} ({queue_name or org_name_to_use}) has been completed.\n\n"
+                        f"🎫 *Your Queue Ticket:* {token_str}\n\n"
+                        "We hope you had a great experience. Have a wonderful day!\n\n"
+                        "_Powered by Q4Queue_"
+                    )
+            elif event_type == "queue_skipped_v3":
+                variables = base_vars
+                if is_raw_text:
+                    raw_body = (
+                        "⚠️ *Token Skipped*\n\n"
+                        f"You have been skipped, {c_name}. Your ticket was called at {org_name_to_use} ({queue_name or org_name_to_use}) but you were marked unavailable.\n\n"
+                        f"🎫 *Your Queue Ticket:* {token_str}\n\n"
+                        "If you are still here, please speak to our staff immediately.\n\n"
+                        "_Powered by Q4Queue_"
+                    )
+            elif event_type == "queue_removed_v3":
+                variables = base_vars
+                if is_raw_text:
+                    raw_body = (
+                        "❌ *Removed from Queue*\n\n"
+                        f"Removed from queue, {c_name}. You have been removed from the queue at {org_name_to_use} ({queue_name or org_name_to_use}).\n\n"
+                        f"🎫 *Your Queue Ticket:* {token_str}\n\n"
+                        "If this was a mistake, please scan the venue QR code again to rejoin.\n\n"
+                        "_Powered by Q4Queue_"
+                    )
             elif is_raw_text:
                 logger.warning("Unknown event type for raw message: %s", event_type)
                 return
 
         # 3.5 Rate limit via Redis
-        if event_type not in ("queue_called_v2", "queue_called_v3", "queue_joined_v4"):
-            try:
-                redis_client = get_redis()
-                rl_key = f"wa_throttle:{token_id}"
-                # Set key if not exists (NX) with 15 sec expiry (EX)
-                acquired = await redis_client.set(rl_key, "1", ex=15, nx=True)
-                if not acquired:
-                    logger.info("WhatsApp throttled for token %s (event=%s)", token_id, event_type)
-                    return
-            except Exception as e:
-                logger.warning("Redis rate limit check failed, proceeding anyway: %s", e)
+        try:
+            redis_client = get_redis()
+            
+            # Determine throttle expiry based on event_type
+            if event_type in ("queue_joined_v4", "queue_called_v3", "queue_skipped_v3", "queue_recalled_v3"):
+                expiry = 3  # 3 seconds for critical events (prevents UI double-clicks)
+            else:
+                expiry = 15 # 15 seconds for others (like nearby)
+            
+            # Use event-specific key so a 15s 'nearby' lock doesn't block a critical 'called' event
+            rl_key = f"wa_throttle:{token_id}:{event_type}"
+            
+            # Set key if not exists (NX)
+            acquired = await redis_client.set(rl_key, "1", ex=expiry, nx=True)
+            if not acquired:
+                logger.info("WhatsApp throttled for token %s (event=%s)", token_id, event_type)
+                return
+        except Exception as e:
+            logger.warning("Redis rate limit check failed, proceeding anyway: %s", e)
 
         # 4. Send
         await send_whatsapp_message(
