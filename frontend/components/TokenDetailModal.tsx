@@ -8,9 +8,9 @@ export interface TokenDetailData {
     token_number: number;
     prefix?: string;
     customer_name: string;
-    customer_age: number | null;
+
     customer_phone: string;
-    companion_names?: string[];
+    pax_count?: number;
     status: string;
     created_at?: string | null;
     served_at?: string | null;
@@ -166,22 +166,13 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                     {/* Detail grid */}
                     <div className="grid grid-cols-2 gap-3">
                         <DetailItem label="Phone Number" value={fullToken.customer_phone || "Not Provided"} />
-                        {fullToken.companion_names && fullToken.companion_names.length > 0 && (
-                            <div className="col-span-2 bg-emerald-50/50 rounded-xl px-3 py-2.5">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600/70 mb-1.5">Companions</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {fullToken.companion_names.map((name, i) => (
-                                        <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-700">
-                                            {name}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
+                        {(fullToken.pax_count && fullToken.pax_count > 1) && (
+                            <DetailItem label="Number of Pax" value={String(fullToken.pax_count)} highlight="emerald" />
                         )}
                         {fullToken.assigned_line != null && (
                             <DetailItem label="Line Number" value={String(fullToken.assigned_line)} highlight="emerald" />
                         )}
-                        <DetailItem label="Age" value={fullToken.customer_age != null ? `${fullToken.customer_age} yrs` : "Not Provided"} />
+
                         <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
                         {fullToken.called_via_invite !== undefined && (
                             <DetailItem label="Call Method" value={fullToken.called_via_invite ? "Invited by No." : "Call Next"} highlight={fullToken.called_via_invite ? "amber" : undefined} />

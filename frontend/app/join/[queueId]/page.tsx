@@ -175,10 +175,9 @@ export default function JoinQueuePage({ params }: PageProps) {
         const t = setTimeout(() => setDebouncedCustomerName(customerName), 800);
         return () => clearTimeout(t);
     }, [customerName]);
-    const [customerAge, setCustomerAge] = useState("");
     const [countryCode, setCountryCode] = useState("+91");
     const [customerPhone, setCustomerPhone] = useState("");
-    const [companionNames, setCompanionNames] = useState<string[]>([]);
+    const [paxCount, setPaxCount] = useState<number>(1);
 
     // Derived values
     const isNameValid = /^[A-Za-z\s'-]{2,50}$/.test(customerName.trim());
@@ -194,9 +193,8 @@ export default function JoinQueuePage({ params }: PageProps) {
         try {
             const payload = {
                 name: customerName.trim(),
-                age: customerAge ? parseInt(customerAge, 10) : undefined,
                 phone: `${countryCode}${customerPhone}`,
-                companion_names: companionNames.filter(n => n.trim() !== ""),
+                pax_count: paxCount,
                 send_whatsapp: sendWhatsApp,
             };
 
@@ -217,7 +215,7 @@ export default function JoinQueuePage({ params }: PageProps) {
             setError(err instanceof ApiError ? err.detail : "Failed to join queue. Please try again.");
             setIsJoining(false);
         }
-    }, [isFormValid, isJoining, customerName, customerAge, customerPhone, companionNames, queueId, router]);
+    }, [isFormValid, isJoining, customerName, customerPhone, paxCount, queueId, router]);
 
     // Clicking the button → show modal first
     const handleJoin = useCallback(() => {
@@ -289,10 +287,8 @@ export default function JoinQueuePage({ params }: PageProps) {
                 <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
                     {/* Header */}
                     <div 
-                        className="px-4 sm:px-6 py-6 sm:py-8 text-center text-white relative overflow-hidden transition-colors duration-500" 
-                        style={{ 
-                            background: `linear-gradient(135deg, ${brandColor}, #0f172a)`
-                        }}
+                        className="px-4 sm:px-6 py-6 sm:py-8 text-center text-white relative overflow-hidden transition-colors duration-500"
+                        style={{ backgroundColor: brandColor }}
                     >
                         {/* Decorative subtle lighting effect */}
                         <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at top right, rgba(255,255,255,0.4), transparent 60%)' }}></div>
@@ -319,13 +315,13 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 {/* Subtle glow behind the number card */}
                                 <div className="absolute -inset-1 bg-white/10 blur-xl rounded-2xl opacity-50"></div>
                                 
-                                <div className="relative text-5xl sm:text-6xl font-black tabular-nums tracking-tighter py-3 sm:py-4 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center min-h-[80px] sm:min-h-[100px]" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${serving}`}>
+                                <div className="relative text-5xl sm:text-6xl font-black tabular-nums tracking-tighter py-3 sm:py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex items-center justify-center min-h-[80px] sm:min-h-[100px]" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${serving}`}>
                                     {!live?.serving_details ? "—" : `${prefix}${serving}`}
                                 </div>
                             </div>
 
                             <div className="mt-4 flex justify-center">
-                                <div className="px-4 py-1.5 bg-black/20 backdrop-blur-md rounded-full border border-white/10 text-xs font-medium text-white/80 shadow-sm flex items-center gap-2">
+                                <div className="px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-xs font-medium text-white shadow-sm flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse"></span>
                                     Waiting: <strong className="text-white ml-0.5">{live?.waiting_count ?? "—"}</strong>
                                 </div>
@@ -387,37 +383,20 @@ export default function JoinQueuePage({ params }: PageProps) {
                                         )}
                                     </div>
 
-                                    {/* Age */}
-                                    <div>
-                                        <label htmlFor="customer-age" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                                            Age <span className="text-slate-400 font-medium tracking-normal normal-case ml-0.5 relative top-[0.5px]">(Optional)</span>
-                                        </label>
-                                        <input
-                                            id="customer-age"
-                                            type="number"
-                                            min="0"
-                                            max="150"
-                                            value={customerAge}
-                                            onChange={(e) => setCustomerAge(e.target.value)}
-                                            placeholder="Enter your age"
-                                            autoComplete="off"
-                                            disabled={isJoining || queueClosed}
-                                            className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:border-slate-800 focus:ring-4 focus:ring-slate-100 transition-all duration-300 disabled:opacity-50"
-                                        />
-                                    </div>
 
+
+                                    {/* Phone Number */}
                                     <div>
                                         <label htmlFor="customer-phone" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
                                             Phone Number <span className="text-emerald-500 ml-0.5">*</span>
                                         </label>
-                                        <div className="flex gap-2">
-                                            <div className="relative w-[100px] sm:w-[115px] shrink-0">
+                                        <div className={`flex bg-white rounded-xl sm:rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border ${customerPhone.length > 0 && !isPhoneValid ? 'border-red-300 focus-within:border-red-500 focus-within:ring-red-100' : 'border-slate-200/80 focus-within:border-slate-800 focus-within:ring-slate-100'} focus-within:ring-4 transition-all duration-300 overflow-hidden`}>
+                                            <div className="relative flex items-center border-r border-slate-100 bg-slate-50/30">
                                                 <select
-                                                    id="country-code"
                                                     value={countryCode}
                                                     onChange={(e) => setCountryCode(e.target.value)}
                                                     disabled={isJoining || queueClosed}
-                                                    className="w-full h-full pl-3 sm:pl-4 pr-7 sm:pr-8 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl text-slate-900 font-medium text-sm sm:text-[15px] shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:border-slate-800 focus:ring-4 focus:ring-slate-100 appearance-none cursor-pointer disabled:opacity-50 transition-all duration-300"
+                                                    className="appearance-none bg-transparent pl-4 sm:pl-5 pr-8 py-3 sm:py-3.5 text-sm sm:text-[15px] font-medium text-slate-600 focus:outline-none cursor-pointer disabled:opacity-50"
                                                 >
                                                     {COUNTRY_CODES.map((c) => (
                                                         <option key={c.code} value={c.code}>
@@ -425,79 +404,85 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                         </option>
                                                     ))}
                                                 </select>
-                                                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
-                                                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                                                 </div>
                                             </div>
                                             <input
                                                 id="customer-phone"
                                                 type="tel"
                                                 value={customerPhone}
-                                                maxLength={10}
-                                                onChange={(e) => {
-                                                    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-                                                    setCustomerPhone(val);
-                                                }}
-                                                placeholder="Enter phone number"
+                                                onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                                                placeholder="e.g. 1234567890"
                                                 required
-                                                autoComplete="tel"
+                                                maxLength={10}
                                                 disabled={isJoining || queueClosed}
-                                                className="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 font-medium text-sm sm:text-[15px] shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:border-slate-800 focus:ring-4 focus:ring-slate-100 transition-all duration-300 disabled:opacity-50"
+                                                className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium focus:outline-none disabled:opacity-50"
                                             />
                                         </div>
+                                        {customerPhone.length > 0 && !isPhoneValid && (
+                                            <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1.5 font-medium ml-1" role="alert">
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
+                                                Please enter a valid 10-digit number.
+                                            </p>
+                                        )}
                                     </div>
 
-                                    {/* Companion Names */}
+                                    {/* Companions */}
                                     <div className="pt-2">
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">
-                                            Joining with others? <span className="text-slate-400 font-medium tracking-normal normal-case ml-0.5 relative top-[0.5px]">(Optional)</span>
-                                        </label>
-                                        <div className="space-y-2.5">
-                                            {companionNames.map((name, idx) => (
-                                                <div key={idx} className="flex items-center gap-2">
-                                                    <input
-                                                        type="text"
-                                                        value={name}
-                                                        onChange={(e) => {
-                                                            const newNames = [...companionNames];
-                                                            // Only allow letters and spaces
-                                                            newNames[idx] = e.target.value.replace(/[^A-Za-z\s]/g, '');
-                                                            setCompanionNames(newNames);
-                                                        }}
-                                                        placeholder="Companion's Name"
-                                                        disabled={isJoining || queueClosed}
-                                                        maxLength={30}
-                                                        className="flex-1 px-4 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 font-medium text-sm sm:text-[15px] shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:border-slate-800 focus:ring-4 focus:ring-slate-100 transition-all duration-300 disabled:opacity-50"
-                                                    />
+                                        {paxCount === 1 ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setPaxCount(2)}
+                                                disabled={isJoining || queueClosed}
+                                                className="w-full group flex items-center justify-center gap-3 py-3.5 px-4 bg-slate-50 border border-slate-200/60 rounded-xl sm:rounded-2xl text-[13px] sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300 disabled:opacity-50 shadow-[0_2px_10px_rgb(0,0,0,0.01)]"
+                                            >
+                                                <div className="w-6 h-6 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-slate-300 transition-transform">
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+                                                </div>
+                                                Add Companions <span className="text-slate-400 font-normal">(optional)</span>
+                                            </button>
+                                        ) : (
+                                            <div className="flex items-center justify-between bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all duration-300">
+                                                <div className="flex items-center gap-3.5 pl-1.5 sm:pl-2">
+                                                    <div className="relative flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-slate-50 border border-slate-200/50 text-slate-600 shadow-sm">
+                                                        <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-[14px] sm:text-[15px] font-bold text-slate-900 tracking-tight leading-none mb-1">
+                                                            {paxCount - 1} Companion{paxCount - 1 > 1 ? 's' : ''}
+                                                        </div>
+                                                        <div className="text-[11px] sm:text-[12px] font-medium text-slate-500 leading-none">
+                                                            Joining with you
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg sm:rounded-xl p-1 border border-slate-100">
                                                     <button
                                                         type="button"
-                                                        onClick={() => {
-                                                            const newNames = companionNames.filter((_, i) => i !== idx);
-                                                            setCompanionNames(newNames);
-                                                        }}
+                                                        onClick={() => setPaxCount(Math.max(1, paxCount - 1))}
                                                         disabled={isJoining || queueClosed}
-                                                        className="w-[48px] h-[48px] sm:w-[52px] sm:h-[52px] flex items-center justify-center rounded-xl sm:rounded-2xl bg-white border border-slate-200 text-slate-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 disabled:opacity-50 transition-all duration-300 shrink-0 shadow-[0_2px_10px_rgb(0,0,0,0.02)]"
+                                                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md sm:rounded-lg bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 shadow-sm border border-slate-200/60 transition-colors disabled:opacity-50 active:scale-95"
                                                     >
-                                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
+                                                        <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" /></svg>
+                                                    </button>
+                                                    <div className="w-4 text-center text-[13px] sm:text-sm font-bold text-slate-800 tabular-nums hidden sm:block">
+                                                        {paxCount - 1}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPaxCount(Math.min(10, paxCount + 1))}
+                                                        disabled={paxCount >= 10 || isJoining || queueClosed}
+                                                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md sm:rounded-lg bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 shadow-sm border border-slate-200/60 disabled:opacity-50 active:scale-95 transition-colors"
+                                                    >
+                                                        <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
                                                     </button>
                                                 </div>
-                                            ))}
-                                            {companionNames.length < 9 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setCompanionNames([...companionNames, ""])}
-                                                    disabled={isJoining || queueClosed}
-                                                    className="w-full flex items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-white border border-dashed border-slate-300 rounded-xl sm:rounded-2xl hover:bg-slate-50 hover:border-slate-400 hover:text-slate-800 disabled:opacity-50 transition-all duration-300 group shadow-[0_2px_10px_rgb(0,0,0,0.01)]"
-                                                >
-                                                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                    </svg>
-                                                    Add Another Person
-                                                </button>
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

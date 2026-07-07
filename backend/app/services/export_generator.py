@@ -755,7 +755,7 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             Token.assigned_line,
             Token.customer_name,
             Token.customer_phone,
-            Token.companion_names,
+            Token.pax_count,
             Token.status,
             Token.created_at,
             Token.served_at,
@@ -887,9 +887,9 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             completed_by_name = r.completed_email.split('@')[0]
 
 
-        # Companions: stored as JSON list of names
-        companions_raw = r.companion_names or []
-        companions_str = ", ".join(companions_raw) if companions_raw else ""
+        # Pax Count
+        pax_count_raw = getattr(r, 'pax_count', 1)
+        pax_count_str = str(pax_count_raw)
 
         # Entry Type
         if r.entry_type == "manual":
@@ -918,7 +918,7 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             "Service Line": r.assigned_line if r.assigned_line is not None else "",
             "Customer Name": r.customer_name or "",
             "Customer Phone": r.customer_phone or "",
-            "Companions": companions_str,
+            "Pax": pax_count_str,
             "Status": r.status.title(),
             "Created At": r.created_at.strftime("%H:%M:%S") if r.created_at else "",
             "Served At": r.served_at.strftime("%H:%M:%S") if r.served_at else "",
@@ -953,7 +953,7 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             "Service Line": r.get("Service Line", ""),
             "Customer Name": r.get("Customer Name", ""),
             "Customer Phone": r.get("Customer Phone", ""),
-            "Companions": r.get("Companions", ""),
+            "Pax": r.get("Pax", ""),
             "Status": r.get("Status", ""),
             "Created At": r.get("Created At", ""),
             "Served At": r.get("Served At", ""),

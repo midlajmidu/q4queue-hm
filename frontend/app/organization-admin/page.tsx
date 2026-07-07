@@ -112,6 +112,7 @@ export default function OrgAdminDashboard() {
                         subtitle={`${data.global_kpis.active_staff || 0} active right now`}
                         icon={UserCog}
                         watermarkIcon={UserCog}
+                        iconColor="emerald"
                     />
 
                     {/* Total Admins Card */}
@@ -121,6 +122,7 @@ export default function OrgAdminDashboard() {
                         subtitle="Branch administrators"
                         icon={Shield}
                         watermarkIcon={Shield}
+                        iconColor="indigo"
                     />
 
                     {selectedBranchId ? (
@@ -130,6 +132,7 @@ export default function OrgAdminDashboard() {
                             subtitle="Running right now"
                             icon={Activity}
                             watermarkIcon={Activity}
+                            iconColor="sky"
                         />
                     ) : (
                         <MetricCard 
@@ -138,6 +141,7 @@ export default function OrgAdminDashboard() {
                             subtitle={`${data.global_kpis.active_branches} currently active`}
                             icon={Building2}
                             watermarkIcon={Building2}
+                            iconColor="sky"
                         />
                     )}
                     
@@ -149,6 +153,7 @@ export default function OrgAdminDashboard() {
                         watermarkIcon={Clock}
                         trend={data.global_kpis.waiting_trend_direction as any}
                         trendValue={data.global_kpis.waiting_trend_value}
+                        iconColor="amber"
                     />
                     
                     <div className="col-span-2 lg:col-span-1">
@@ -160,6 +165,7 @@ export default function OrgAdminDashboard() {
                             watermarkIcon={UserCheck}
                             trend={data.global_kpis.served_trend_direction as any}
                             trendValue={data.global_kpis.served_trend_value}
+                            iconColor="teal"
                         />
                     </div>
                 </div>

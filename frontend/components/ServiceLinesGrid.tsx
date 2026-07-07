@@ -3,7 +3,7 @@
 import React from "react";
 import { api } from "@/lib/api";
 import { ServingToken } from "@/types/api";
-import { CheckCircle, PhoneCall, FastForward, UserPlus, Check, ChevronDown, LayoutGrid, List } from "lucide-react";
+import { CheckCircle, PhoneCall, FastForward, UserPlus, Check, ChevronDown, LayoutGrid, List, Users } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -151,8 +151,14 @@ export default function ServiceLinesGrid({
                                     <div className="text-[24px] font-black tracking-tight text-slate-900 dark:text-white leading-none mb-1">
                                         <span className="text-emerald-500 font-bold">{prefix}</span>{token.token_number}
                                     </div>
-                                    <div className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-3 truncate">
-                                        {token.customer_name || "Guest"}
+                                    <div className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-3 truncate flex items-center">
+                                        <span className="truncate">{token.customer_name || "Guest"}</span>
+                                        {((token as any).pax_count && (token as any).pax_count > 1) && (
+                                            <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700" title={`Total Pax: ${(token as any).pax_count}`}>
+                                                <Users size={10} className="text-slate-400" />
+                                                +{(token as any).pax_count - 1}
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Actions */}

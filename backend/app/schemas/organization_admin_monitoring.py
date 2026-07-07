@@ -155,6 +155,18 @@ class StaffPerformanceItem(BaseModel):
     customers_served: int
     avg_service_time: str
 
+class PaxAnalyticsItem(BaseModel):
+    group_size: str
+    token_count: int
+    total_pax: int
+    avg_wait_time: str
+    avg_service_time: str
+
+class PaxSummary(BaseModel):
+    total_headcount: int
+    avg_group_size: float
+    largest_group: int
+
 class AnalyticsResponse(BaseModel):
     customer_metrics: CustomerMetrics
     time_metrics: TimeMetrics
@@ -164,6 +176,8 @@ class AnalyticsResponse(BaseModel):
     queue_analytics: List[QueueAnalyticsItem]
     peak_traffic: List[PeakTrafficItem]
     staff_performance: List[StaffPerformanceItem]
+    pax_analytics: List[PaxAnalyticsItem] = []
+    pax_summary: Optional[PaxSummary] = None
     insights: List[str]
 
 class SessionMonitorItem(BaseModel):

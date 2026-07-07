@@ -408,7 +408,7 @@ export default function TrackingPage({ params }: PageProps) {
                 <div 
                     className="px-5 sm:px-6 py-6 sm:py-8 text-center text-white relative overflow-hidden transition-colors duration-500" 
                     style={{ 
-                        background: `linear-gradient(135deg, ${brandColor}, #0f172a)`
+                        backgroundColor: brandColor 
                     }}
                 >
                     {/* Decorative subtle lighting effect */}
@@ -456,15 +456,15 @@ export default function TrackingPage({ params }: PageProps) {
 
                         <div className="relative mx-auto w-full">
                             {activeServingTokens.length === 0 ? (
-                                <div className="mt-4 text-6xl sm:text-7xl font-black tabular-nums tracking-tighter py-4 sm:py-5 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center min-h-[100px] sm:min-h-[120px]">
+                                <div className="mt-4 text-6xl sm:text-7xl font-black tabular-nums tracking-tighter py-4 sm:py-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex items-center justify-center min-h-[100px] sm:min-h-[120px]">
                                     —
                                 </div>
                             ) : activeServingTokens.length === 1 ? (
-                                <div className="mt-4 text-6xl sm:text-7xl font-black tabular-nums tracking-tighter py-4 sm:py-5 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center min-h-[100px] sm:min-h-[120px]" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
+                                <div className="mt-4 text-6xl sm:text-7xl font-black tabular-nums tracking-tighter py-4 sm:py-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex items-center justify-center min-h-[100px] sm:min-h-[120px]" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
                                     {prefix}{activeServingTokens[0].token_number}
                                 </div>
                             ) : activeServingTokens.length <= 3 ? (
-                                <div className="mt-4 py-3 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl px-4" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
+                                <div className="mt-4 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl px-4" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
                                     <div className="flex flex-nowrap items-center justify-center gap-4">
                                         {activeServingTokens.map((t: any) => (
                                             <div key={t.id || t.token_number} className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0 border border-white/5">
@@ -477,7 +477,7 @@ export default function TrackingPage({ params }: PageProps) {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="mt-4 overflow-hidden w-full relative py-3 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
+                                <div className="mt-4 overflow-hidden w-full relative py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
                                     <style>{`
                                         .hide-scroll::-webkit-scrollbar { display: none; }
                                     `}</style>
@@ -507,7 +507,7 @@ export default function TrackingPage({ params }: PageProps) {
                         </div>
 
                         <div className="mt-6 flex justify-center">
-                            <div className="px-4 py-1.5 bg-black/20 backdrop-blur-md rounded-full border border-white/10 text-xs font-medium text-white/80 shadow-sm flex items-center gap-2">
+                            <div className="px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-xs font-medium text-white shadow-sm flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse"></span>
                                 Waiting: <strong className="text-white ml-0.5">{live?.waiting_count ?? "—"}</strong>
                             </div>
@@ -642,7 +642,10 @@ export default function TrackingPage({ params }: PageProps) {
                                     </div>
                                     <h4 className="text-[15px] font-bold text-slate-800 tracking-tight mb-1">Ticket Cancelled</h4>
                                     <p className="text-[13px] font-medium text-slate-500 leading-relaxed px-4">
-                                        {error ? error : joinData?.removed_by === "session_end" ? "This queue session has ended. Your token is no longer valid." : "Your token has been removed from the waiting list."}
+                                        {error ? error : 
+                                         joinData?.removed_by === "session_end" ? "This queue session has ended. Your token is no longer valid." : 
+                                         joinData?.removed_by === "staff" ? "Your token has been removed by the staff." :
+                                         "You have successfully cancelled your token."}
                                     </p>
                                 </div>
                             )}
@@ -731,35 +734,26 @@ export default function TrackingPage({ params }: PageProps) {
                             {/* Actions */}
                             {!alreadyServed && !isDeleted && !isSkipped && (
                                 <div className="pt-6 border-t border-slate-100 space-y-3">
-                                    {/* Share Action Card */}
+                                    {/* Share Action Button */}
                                     <button
                                         onClick={handleShare}
                                         disabled={isSharing}
-                                        className="w-full flex items-center justify-between p-4 bg-white border border-slate-200/80 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] active:scale-[0.98] active:bg-slate-50 transition-all duration-200 text-left disabled:opacity-50"
+                                        className="group relative w-full flex items-center justify-center gap-2.5 py-3.5 text-white font-bold uppercase tracking-wider text-[12px] rounded-xl shadow-md active:opacity-80 transition-all duration-200 disabled:opacity-50"
+                                        style={{ backgroundColor: `color-mix(in srgb, ${brandColor}, black 20%)` }}
                                     >
-                                        <div>
-                                            <h4 className="text-[13px] font-bold text-slate-800 mb-0.5">Share Tracking Link</h4>
-                                            <p className="text-[11px] font-medium text-slate-500">Send this live update page to others</p>
-                                        </div>
-                                        <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 shadow-sm shrink-0">
-                                            <Share2 className="w-4 h-4" />
-                                        </div>
+                                        <Share2 className="w-4 h-4" />
+                                        <span>Share Tracking Link</span>
                                     </button>
                                     
-                                    {/* Leave Queue Action Card */}
+                                    {/* Leave Queue Action Button */}
                                     {!isMyTurn && (
                                         <button
                                             onClick={handleCancelRequest}
                                             disabled={isCancelling}
-                                            className="w-full flex items-center justify-between p-4 bg-rose-50/40 border border-rose-100/60 rounded-2xl active:scale-[0.98] active:bg-rose-50 transition-all duration-200 text-left disabled:opacity-50"
+                                            className="w-full flex items-center justify-center gap-2 py-3 bg-transparent text-rose-400 active:opacity-60 font-bold uppercase tracking-wider text-[11px] rounded-xl transition-all duration-200 disabled:opacity-50 mt-1"
                                         >
-                                            <div>
-                                                <h4 className="text-[13px] font-bold text-rose-700">Leave Queue</h4>
-                                                <p className="text-[11px] font-medium text-rose-500/80">Cancel your ticket and give up your spot</p>
-                                            </div>
-                                            <div className="w-10 h-10 rounded-full bg-rose-100/50 flex items-center justify-center text-rose-600 shrink-0">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                            </div>
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                            <span>Cancel Ticket</span>
                                         </button>
                                     )}
                                 </div>

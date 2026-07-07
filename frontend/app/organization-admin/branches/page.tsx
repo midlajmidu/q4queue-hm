@@ -286,24 +286,31 @@ export default function BranchesPage() {
                                         <Link
                                             href={`/organization-admin/branches/${branch.id}/admin#token=${getToken("org_admin") || ""}`}
                                             target="_blank"
-                                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-all shadow-sm text-center"
+                                            title="Visit Website"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors shadow-sm"
                                         >
                                             Dashboard
+                                            <ExternalLink size={12} className="opacity-70" />
                                         </Link>
+                                        
                                         <div className="relative inline-block text-left">
                                             <button 
                                                 onClick={(e) => { 
-                                                    e.stopPropagation(); 
+                                                    e.stopPropagation();
                                                     e.nativeEvent.stopImmediatePropagation();
                                                     setOpenDropdownId(openDropdownId === branch.id ? null : branch.id); 
                                                 }}
-                                                className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-md transition-colors"
+                                                className={`p-1.5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 ${
+                                                    openDropdownId === branch.id 
+                                                        ? 'bg-slate-100 text-slate-700' 
+                                                        : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                                                }`}
                                             >
                                                 <MoreVertical size={18} />
                                             </button>
                                             {openDropdownId === branch.id && (
                                                 <div 
-                                                    className="absolute right-0 bottom-full mb-1 w-40 bg-white rounded-xl shadow-lg border border-slate-100 z-[60] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-100 py-1"
+                                                    className="absolute right-0 bottom-full mb-2 w-44 bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-slate-200/60 z-[60] overflow-hidden animate-in fade-in zoom-in-95 duration-100 p-1.5"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         e.nativeEvent.stopImmediatePropagation();
@@ -316,16 +323,16 @@ export default function BranchesPage() {
                                                             setIsEditModalOpen(true);
                                                             setOpenDropdownId(null);
                                                         }}
-                                                        className="flex items-center w-full px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                                                        className="flex items-center w-full px-3 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-colors group"
                                                     >
-                                                        <Pencil size={14} className="mr-2" />
+                                                        <Pencil size={14} className="mr-2.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                                                         Edit Branch
                                                     </button>
                                                     <Link
                                                         href={`/organization-admin/branches/${branch.id}`}
-                                                        className="flex items-center w-full px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                                                        className="flex items-center w-full px-3 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-colors group mt-0.5"
                                                     >
-                                                        <Eye size={14} className="mr-2" />
+                                                        <Eye size={14} className="mr-2.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                                                         View Details
                                                     </Link>
                                                 </div>
@@ -339,7 +346,7 @@ export default function BranchesPage() {
                 </div>
 
                 {/* Desktop View Table (visible on medium & large screens) */}
-                <div className="hidden md:block overflow-x-auto min-h-[350px]">
+                <div className="hidden md:block overflow-x-auto min-h-[180px]">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead className="bg-slate-50/50 border-b border-slate-100">
                             <tr>
@@ -512,13 +519,20 @@ export default function BranchesPage() {
                                         </td>
                                         <td className="px-4 py-3 text-right whitespace-nowrap">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Link
-                                                    href={`/organization-admin/branches/${branch.id}/admin#token=${getToken("org_admin") || ""}`}
-                                                    target="_blank"
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-all shadow-sm"
-                                                >
-                                                    Dashboard
-                                                </Link>
+                                                <div className="relative group/tooltip inline-block">
+                                                    <Link
+                                                        href={`/organization-admin/branches/${branch.id}/admin#token=${getToken("org_admin") || ""}`}
+                                                        target="_blank"
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors shadow-sm"
+                                                    >
+                                                        Dashboard
+                                                        <ExternalLink size={12} className="opacity-70" />
+                                                    </Link>
+                                                    <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-[11.5px] font-medium whitespace-nowrap opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150 shadow-lg z-[99]">
+                                                        Visit website
+                                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-slate-900" />
+                                                    </div>
+                                                </div>
                                                 <div className="relative inline-block text-left">
                                                     <button 
                                                         onClick={(e) => { 
@@ -526,13 +540,17 @@ export default function BranchesPage() {
                                                             e.nativeEvent.stopImmediatePropagation();
                                                             setOpenDropdownId(openDropdownId === branch.id ? null : branch.id); 
                                                         }}
-                                                        className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-md transition-colors"
+                                                        className={`p-1.5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 ${
+                                                            openDropdownId === branch.id 
+                                                                ? 'bg-slate-100 text-slate-700' 
+                                                                : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                                                        }`}
                                                     >
                                                         <MoreVertical size={18} />
                                                     </button>
                                                     {openDropdownId === branch.id && (
                                                         <div 
-                                                            className={`absolute right-0 w-36 bg-white rounded-xl shadow-lg border border-slate-200 z-[60] overflow-hidden animate-in fade-in duration-100 py-1 ${isLastFew ? 'bottom-full mb-1 slide-in-from-bottom-2' : 'top-full mt-1 slide-in-from-top-2'}`}
+                                                            className={`absolute right-0 w-44 bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-slate-200/60 z-[60] overflow-hidden animate-in fade-in zoom-in-95 duration-100 p-1.5 ${isLastFew ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 e.nativeEvent.stopImmediatePropagation();
@@ -545,16 +563,16 @@ export default function BranchesPage() {
                                                                     setIsEditModalOpen(true);
                                                                     setOpenDropdownId(null);
                                                                 }}
-                                                                className="flex items-center w-full px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                                                                className="flex items-center w-full px-3 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-colors group"
                                                             >
-                                                                <Pencil size={14} className="mr-2" />
+                                                                <Pencil size={14} className="mr-2.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                                                                 Edit Branch
                                                             </button>
                                                             <Link
                                                                 href={`/organization-admin/branches/${branch.id}`}
-                                                                className="flex items-center w-full px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                                                                className="flex items-center w-full px-3 py-2 text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-colors group mt-0.5"
                                                             >
-                                                                <Eye size={14} className="mr-2" />
+                                                                <Eye size={14} className="mr-2.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                                                                 View Details
                                                             </Link>
                                                         </div>

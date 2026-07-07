@@ -98,7 +98,7 @@ export default function EditBranchModal({ isOpen, onClose, onUpdated, branch }: 
         
         setIsDeleting(true);
         try {
-            await api.deleteBranch(branch.id);
+            await api.deleteOrganization(branch.id);
             toast.success("Branch deleted successfully");
             onUpdated();
             onClose();

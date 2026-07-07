@@ -1,0 +1,256 @@
+diff --git a/frontend/app/organization-admin/analytics/page.tsx b/frontend/app/organization-admin/analytics/page.tsx
+index 1bfc393..e7299db 100644
+--- a/frontend/app/organization-admin/analytics/page.tsx
++++ b/frontend/app/organization-admin/analytics/page.tsx
+@@ -1,13 +1,13 @@
+ "use client";
+ 
+-import { useState, useEffect } from "react";
++import {  useState, useEffect } from "react";
+ import Link from "next/link";
+ import { api } from "@/lib/api";
+ import { 
+     Users, Clock, Building2, TrendingUp, Zap, Server, 
+     BarChart3, Activity, Download, ChevronRight, LayoutDashboard,
+     AlertCircle, CheckCircle2, TrendingDown, Star, Sparkles, Lightbulb,
+-    UserMinus, UserCheck, Target, Layers, FileText, FileSpreadsheet, ChevronDown
++    UserMinus, UserCheck, Target, Layers, FileText, FileSpreadsheet, ChevronDown, UsersRound, BarChart2, Trophy, User
+ } from "lucide-react";
+ import LoadingSpinner from "@/components/ui/LoadingSpinner";
+ import { useBranchFilter } from "@/context/BranchFilterContext";
+@@ -224,144 +224,136 @@ export default function AnalyticsPage() {
+             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                 
+                 {/* Efficiency Focus */}
+-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+-                    <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+-                        <div className="flex items-center gap-2">
+-                            <Activity size={16} className="text-indigo-500" />
+-                            <h2 className="font-semibold text-slate-900 text-sm">Efficiency Metrics</h2>
++                <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm p-6 hover:shadow-md transition-shadow">
++                    <div className="flex items-center justify-between mb-8">
++                        <div className="flex items-center gap-2.5">
++                            <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600">
++                                <Activity size={16} />
++                            </div>
++                            <h2 className="font-semibold text-slate-800 text-sm">Efficiency Metrics</h2>
+                         </div>
+-                        <span className="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">Average</span>
++                        <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">Average</span>
+                     </div>
+-                    <div className="p-5 grid grid-cols-2 gap-y-6 gap-x-6 flex-1 items-start">
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <Clock size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Wait Time</p>
++                    <div className="grid grid-cols-2 gap-y-8 gap-x-6">
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Average duration customers wait before being served.">
++                                <Clock size={14} className="text-slate-400" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Wait Time</span>
+                             </div>
+-                            <p className="text-2xl font-bold text-slate-900">{data.time_metrics.avg_wait_time}</p>
+-                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">Average duration customers wait before being served.</p>
++                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">{data.time_metrics.avg_wait_time}</span>
+                         </div>
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <Zap size={14} className="text-slate-400 group-hover:text-amber-500 transition-colors" />
+-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Service Time</p>
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Average time staff spends serving each customer.">
++                                <Zap size={14} className="text-amber-500/80" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Service Time</span>
+                             </div>
+-                            <p className="text-2xl font-bold text-slate-900">{data.time_metrics.avg_service_time}</p>
+-                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">Average time staff spends serving each customer.</p>
++                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">{data.time_metrics.avg_service_time}</span>
+                         </div>
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <CheckCircle2 size={14} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
+-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Completion</p>
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Percentage of queued customers successfully served.">
++                                <CheckCircle2 size={14} className="text-emerald-500/80" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Completion</span>
+                             </div>
+-                            <div className="flex items-center gap-1.5">
+-                                <p className="text-2xl font-bold text-slate-900">{data.customer_metrics.completion_rate}</p>
+-                            </div>
+-                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">Percentage of queued customers successfully served.</p>
++                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">{data.customer_metrics.completion_rate}</span>
+                         </div>
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <Layers size={14} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+-                                    {dateRange.preset === "today" ? "Live Queues" : "Queues Operated"}
+-                                </p>
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Total number of queue lanes active in this period.">
++                                <Layers size={14} className="text-blue-500/80" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">
++                                    {dateRange.preset === "today" ? "Live Queues" : "Queues"}
++                                </span>
+                             </div>
+-                            <p className="text-2xl font-bold text-slate-900">
++                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">
+                                 {dateRange.preset === "today" ? data.operations_metrics.active_queues : data.operations_metrics.operated_queues}
+-                            </p>
+-                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">Total number of queue lanes active in this period.</p>
++                            </span>
+                         </div>
+                     </div>
+                 </div>
+ 
+                 {/* Volume Focus */}
+-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+-                    <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+-                        <div className="flex items-center gap-2">
+-                            <Users size={16} className="text-indigo-500" />
+-                            <h2 className="font-semibold text-slate-900 text-sm">Volume & Scale</h2>
++                <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm p-6 hover:shadow-md transition-shadow">
++                    <div className="flex items-center justify-between mb-8">
++                        <div className="flex items-center gap-2.5">
++                            <div className="bg-emerald-50 p-2 rounded-lg text-emerald-600">
++                                <Users size={16} />
++                            </div>
++                            <h2 className="font-semibold text-slate-800 text-sm">Volume & Scale</h2>
+                         </div>
+-                        <span className="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">Total</span>
++                        <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">Total</span>
+                     </div>
+-                    <div className="p-5 grid grid-cols-2 gap-y-6 gap-x-6 flex-1 items-start">
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <Users size={14} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
+-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Total Served</p>
++                    <div className="grid grid-cols-2 gap-y-8 gap-x-6">
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Overall number of customers fully processed.">
++                                <Users size={14} className="text-emerald-500/80" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Served</span>
+                             </div>
+-                            <p className="text-2xl font-bold text-emerald-600">{data.customer_metrics.customers_served}</p>
+-                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">Overall number of customers fully processed.</p>
++                            <span className="text-2xl font-semibold text-emerald-600 tracking-tight">{data.customer_metrics.customers_served}</span>
+                         </div>
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <Activity size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Waiting</p>
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Current volume of customers still in queue.">
++                                <Activity size={14} className="text-indigo-500/80" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Waiting</span>
+                             </div>
+-                            <p className="text-2xl font-bold text-indigo-600">{data.customer_metrics.customers_waiting}</p>
+-                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">Current volume of customers still in queue.</p>
++                            <span className="text-2xl font-semibold text-indigo-600 tracking-tight">{data.customer_metrics.customers_waiting}</span>
+                         </div>
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <TrendingUp size={14} className="text-slate-400 group-hover:text-rose-500 transition-colors" />
+-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Peak Hour</p>
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="The busiest hour by customer volume.">
++                                <TrendingUp size={14} className="text-rose-500/80" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Peak Hour</span>
+                             </div>
+-                            <p className="text-xl font-bold text-rose-600">{data.time_metrics.peak_hour}</p>
+-                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">The busiest hour by customer volume.</p>
++                            <span className="text-[17px] font-semibold text-rose-600 tracking-tight leading-tight max-w-[120px]">{data.time_metrics.peak_hour}</span>
+                         </div>
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <Building2 size={14} className="text-slate-400 group-hover:text-slate-900 transition-colors" />
+-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Branches</p>
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Number of active branches generating data.">
++                                <Building2 size={14} className="text-slate-700/80" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Branches</span>
+                             </div>
+-                            <p className="text-2xl font-bold text-slate-900">{data.operations_metrics.active_branches}</p>
+-                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">Number of active branches generating data.</p>
++                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">{data.operations_metrics.active_branches}</span>
+                         </div>
+                     </div>
+                 </div>
+ 
+                 {/* Retention & Load */}
+-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:col-span-2 xl:col-span-1">
+-                    <div className="px-5 py-3 border-b border-slate-100 bg-rose-50/30 flex items-center justify-between">
+-                        <div className="flex items-center gap-2">
+-                            <TrendingDown size={16} className="text-rose-500" />
+-                            <h2 className="font-semibold text-slate-900 text-sm">Retention & Load</h2>
++                <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm p-6 hover:shadow-md transition-shadow md:col-span-2 xl:col-span-1">
++                    <div className="flex items-center justify-between mb-8">
++                        <div className="flex items-center gap-2.5">
++                            <div className="bg-rose-50 p-2 rounded-lg text-rose-600">
++                                <TrendingDown size={16} />
++                            </div>
++                            <h2 className="font-semibold text-slate-800 text-sm">Retention & Load</h2>
+                         </div>
+-                        <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">Critical</span>
++                        <span className="bg-rose-50 text-rose-600 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border border-rose-100">Critical</span>
+                     </div>
+-                    <div className="p-5 grid grid-cols-2 gap-y-6 gap-x-6 flex-1 items-start">
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <UserMinus size={14} className="text-slate-400 group-hover:text-rose-500 transition-colors" />
+-                                <p className="text-[11px] font-bold text-rose-400 uppercase tracking-widest">Abandoned</p>
++                    <div className="grid grid-cols-2 gap-y-8 gap-x-6">
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Customers who left the queue without service.">
++                                <UserMinus size={14} className="text-rose-400" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Abandoned</span>
+                             </div>
+-                            <p className="text-2xl font-bold text-rose-600">{data.customer_metrics.customers_abandoned}</p>
+-                            <p className="text-[10px] text-rose-400/80 mt-1 leading-snug">Customers who left the queue without service.</p>
++                            <span className="text-2xl font-semibold text-rose-600 tracking-tight">{data.customer_metrics.customers_abandoned}</span>
+                         </div>
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <TrendingDown size={14} className="text-slate-400 group-hover:text-rose-500 transition-colors" />
+-                                <p className="text-[11px] font-bold text-rose-400 uppercase tracking-widest">Churn Rate</p>
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Percentage ratio of abandoned customers.">
++                                <TrendingDown size={14} className="text-rose-400" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Churn Rate</span>
+                             </div>
+-                            <p className="text-2xl font-bold text-rose-600">{data.customer_metrics.abandonment_rate}</p>
+-                            <p className="text-[10px] text-rose-400/80 mt-1 leading-snug">Percentage ratio of abandoned customers.</p>
++                            <span className="text-2xl font-semibold text-rose-600 tracking-tight">{data.customer_metrics.abandonment_rate}</span>
+                         </div>
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <UserCheck size={14} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
+-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Online Staff</p>
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Number of staff members currently on shift.">
++                                <UserCheck size={14} className="text-emerald-500/80" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Staff Online</span>
+                             </div>
+-                            <p className="text-2xl font-bold text-emerald-600">{data.operations_metrics.online_staff}</p>
+-                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">Number of staff members currently on shift.</p>
++                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">{data.operations_metrics.online_staff}</span>
+                         </div>
+-                        <div className="flex flex-col group">
+-                            <div className="flex items-center gap-1.5 mb-1.5">
+-                                <Target size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cust / Staff</p>
++                        <div className="flex flex-col gap-1.5">
++                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Average waiting customers per online staff member.">
++                                <Target size={14} className="text-indigo-500/80" />
++                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Load / Staff</span>
+                             </div>
+-                            <p className="text-2xl font-bold text-slate-900">
++                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">
+                                 {data.operations_metrics.online_staff > 0 ? (data.customer_metrics.customers_waiting / data.operations_metrics.online_staff).toFixed(1) : "-"}
+-                            </p>
+-                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">Average customer load per online staff member.</p>
++                            </span>
+                         </div>
+                     </div>
+                 </div>

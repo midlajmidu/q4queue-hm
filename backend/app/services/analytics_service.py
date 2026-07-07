@@ -365,7 +365,7 @@ async def get_history_details(
             "customer_name": token.customer_name,
             "customer_phone": token.customer_phone,
             "customer_age": token.customer_age,
-            "companion_names": token.companion_names if hasattr(token, 'companion_names') else [],
+            "pax_count": token.pax_count if hasattr(token, 'pax_count') else 1,
             "created_at": token.created_at.isoformat(),
             "served_at": token.served_at.isoformat() if token.served_at else None,
             "completed_at": token.completed_at.isoformat() if token.completed_at else None,
@@ -479,7 +479,7 @@ async def get_analytics_csv_data(
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "Date", "Token Number", "Queue", "Service Line", "Customer Name", "Customer Phone", "Companions",
+        "Date", "Token Number", "Queue", "Service Line", "Customer Name", "Customer Phone", "Age", "Pax",
         "Status", "Created At", "Served At", "Completed At", "Skipped At", "Recalled At", "Removed At",
         "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Removed By", "Call Method", "Entry Type"
     ])
@@ -507,7 +507,7 @@ async def get_analytics_csv_data(
         elif completed_email:
             completed_by = completed_email.split('@')[0]
 
-        companions = ", ".join(token.companion_names) if hasattr(token, 'companion_names') and token.companion_names else ""
+        pax_count_str = str(token.pax_count) if hasattr(token, 'pax_count') else "1"
         service_line = str(getattr(token, 'assigned_line', "")) if getattr(token, 'assigned_line', None) is not None else ""
 
         entry_type = getattr(token, "entry_type", "qr")
@@ -529,7 +529,8 @@ async def get_analytics_csv_data(
             service_line,
             token.customer_name or "Walk-in",
             token.customer_phone or "",
-            companions,
+            token.customer_age if token.customer_age else "",
+            pax_count_str,
             token.status.value,
             token.created_at.isoformat(),
             token.served_at.isoformat() if token.served_at else "",
@@ -552,7 +553,7 @@ import uuid
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date, timedelta, timezone
 
-from sqlalchemy import select, func, and_, case, extract, text
+from sqlalchemy import select, func, and_, case, extract, text, String, Float
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -815,6 +816,43 @@ async def get_cross_branch_analytics(
         else:
             insights.append(f"{top_branch['branch']} is currently the most active branch, though service completion data is still accumulating.")
 
+    # 11. PAX / Group Size Analytics
+    pax_q = select(
+        case(
+            (Token.pax_count >= 5, '5+'),
+            else_=func.cast(Token.pax_count, String)
+        ).label('group_size'),
+        func.count(Token.id).label('token_count'),
+        func.sum(Token.pax_count).label('total_pax'),
+        func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
+        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
+    ).where(and_(*token_conditions)).group_by('group_size').order_by('group_size')
+
+    pax_res = await db.execute(pax_q)
+    pax_analytics = []
+    for r in pax_res.all():
+        pax_analytics.append({
+            "group_size": str(r.group_size),
+            "token_count": r.token_count,
+            "total_pax": int(r.total_pax or 0),
+            "avg_wait_time": format_time(r.avg_wait_sec),
+            "avg_service_time": format_time(r.avg_serve_sec),
+        })
+
+    # PAX summary
+    pax_summary_q = select(
+        func.sum(Token.pax_count).label('total_headcount'),
+        func.avg(func.cast(Token.pax_count, Float)).label('avg_group_size'),
+        func.max(Token.pax_count).label('largest_group'),
+    ).where(and_(*token_conditions))
+    pax_summary_res = await db.execute(pax_summary_q)
+    pax_summary_row = pax_summary_res.first()
+    pax_summary = {
+        "total_headcount": int(pax_summary_row.total_headcount or 0),
+        "avg_group_size": round(float(pax_summary_row.avg_group_size or 1.0), 1),
+        "largest_group": int(pax_summary_row.largest_group or 1),
+    } if pax_summary_row and pax_summary_row.total_headcount else None
+
     return {
         "customer_metrics": {
             "total_customers": total_customers,
@@ -841,6 +879,8 @@ async def get_cross_branch_analytics(
         "queue_analytics": queue_analytics,
         "peak_traffic": peak_traffic,
         "staff_performance": staff_performance,
+        "pax_analytics": pax_analytics,
+        "pax_summary": pax_summary,
         "insights": insights
     }
 
@@ -913,7 +953,7 @@ async def get_cross_branch_csv_data(
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "Date", "Branch", "Token Number", "Queue", "Customer Name", "Customer Phone", 
+        "Date", "Branch", "Token Number", "Queue", "Customer Name", "Customer Phone", "Age", "Pax",
         "Status", "Created At", "Served At", "Completed At", "Skipped At", "Recalled At", "Removed At",
         "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Removed By", "Call Method", "Entry Type"
     ])
@@ -956,6 +996,8 @@ async def get_cross_branch_csv_data(
             q_name or "Unknown",
             token.customer_name or "Walk-in",
             token.customer_phone or "",
+            token.customer_age if token.customer_age else "",
+            str(token.pax_count) if hasattr(token, 'pax_count') else "1",
             token.status.value,
             token.created_at.isoformat(),
             token.served_at.isoformat() if token.served_at else "",

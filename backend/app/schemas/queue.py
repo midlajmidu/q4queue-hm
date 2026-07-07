@@ -63,7 +63,7 @@ class JoinRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
     age: Optional[int] = Field(None, ge=0, le=150)
     phone: str = Field(..., min_length=10, max_length=15)
-    companion_names: list[str] = Field(default_factory=list, max_items=9)
+    pax_count: int = Field(default=1, ge=1)
     send_whatsapp: bool = Field(default=True)
     entry_type: Optional[str] = Field(default="qr")
 
@@ -102,7 +102,7 @@ class JoinResponse(BaseModel):
     queue_prefix: Optional[str] = None
     session_id: Optional[uuid.UUID] = None
     tracking_id: Optional[uuid.UUID] = None  # public tracking URL ID
-    companion_names: list[str]
+    pax_count: int
     is_existing: bool = False  # True if this token already existed (duplicate phone)
 
 
@@ -113,7 +113,7 @@ class PublicTokenResponse(BaseModel):
     customer_name: str
     customer_age: Optional[int]
     customer_phone: str
-    companion_names: list[str]
+    pax_count: int
     session_id: uuid.UUID
     entry_type: Optional[str] = None
 
@@ -131,7 +131,7 @@ class TokenRestoreResponse(BaseModel):
     customer_name: str
     customer_age: Optional[int] = None
     customer_phone: str
-    companion_names: list[str]
+    pax_count: int
     created_at: datetime
     served_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
@@ -167,7 +167,7 @@ class TokenResponse(BaseModel):
     customer_age: Optional[int]
     customer_phone: str
     tracking_id: Optional[uuid.UUID] = None
-    companion_names: list[str]
+    pax_count: int
     removed_by: Optional[str] = None
     assigned_line: Optional[int] = None
     entry_type: Optional[str] = None

@@ -230,7 +230,7 @@ async def join_queue(
                 queue_prefix=queue.prefix,
                 session_id=queue.token_session_id,
                 tracking_id=existing_token.tracking_id,
-                companion_names=existing_token.companion_names if hasattr(existing_token, 'companion_names') else [],
+                pax_count=existing_token.pax_count if hasattr(existing_token, 'pax_count') else 1,
                 is_existing=True,
             )
 
@@ -247,7 +247,7 @@ async def join_queue(
         customer_name=data.name.strip(),
         customer_age=data.age,
         customer_phone=phone_cleaned,
-        companion_names=data.companion_names,
+        pax_count=data.pax_count,
         entry_type=data.entry_type or "qr",
     )
     db.add(token)
@@ -264,7 +264,7 @@ async def join_queue(
         queue_prefix=queue.prefix,
         session_id=queue.token_session_id,
         tracking_id=token.tracking_id,
-        companion_names=token.companion_names if hasattr(token, 'companion_names') else [],
+        pax_count=token.pax_count if hasattr(token, 'pax_count') else 1,
     )
 
 

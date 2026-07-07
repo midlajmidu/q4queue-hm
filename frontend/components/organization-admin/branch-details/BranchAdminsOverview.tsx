@@ -24,8 +24,8 @@ export default function BranchAdminsOverview({ branchId }: { branchId: string })
     if (loading) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
 
     return (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100/80 bg-slate-50/50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Shield size={16} strokeWidth={2} className="text-slate-400" />
                     <h3 className="font-semibold text-slate-900 text-sm">Branch Admins</h3>

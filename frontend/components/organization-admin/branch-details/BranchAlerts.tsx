@@ -32,25 +32,20 @@ export default function BranchAlerts({ branchId }: { branchId: string }) {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
             {data.map((alert, i) => (
-                <div key={i} className="group relative bg-white rounded-2xl border border-red-200 overflow-hidden transition-all hover:shadow-md hover:shadow-red-50 hover:-translate-y-[1px]">
-                    {/* Left glowing edge */}
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 group-hover:bg-red-600 transition-colors"></div>
-                    
-                    <div className="p-5 pl-6 flex items-start gap-4">
-                        <div className="p-2 bg-red-50 rounded-lg text-red-600 mt-0.5 shrink-0 group-hover:bg-red-100 transition-colors">
-                            <AlertTriangle size={20} strokeWidth={2} />
-                        </div>
-                        <div>
-                            <h3 className="font-bold tracking-tight text-slate-900 group-hover:text-red-900 transition-colors">{alert.issue}</h3>
-                            <div className="flex items-center gap-3 mt-2">
-                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border bg-red-50 text-red-700 border-red-200/50">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                                    {alert.severity}
-                                </span>
-                                <span className="text-xs font-medium text-slate-500 group-hover:text-red-700/80 transition-colors">{new Date(alert.timestamp).toLocaleString(undefined, { hour: 'numeric', minute: '2-digit' })}</span>
-                            </div>
+                <div key={i} className="group relative bg-rose-50/50 rounded-xl border border-rose-200 flex items-center p-3 gap-3 transition-colors hover:bg-rose-50">
+                    <div className="bg-white border border-rose-200/50 text-rose-600 rounded-lg p-1.5 shrink-0 shadow-sm">
+                        <AlertTriangle size={16} strokeWidth={2.5} />
+                    </div>
+                    <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <h3 className="font-semibold text-[13px] tracking-tight text-rose-900 leading-snug">{alert.issue}</h3>
+                        <div className="flex items-center gap-3 shrink-0">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-white border border-rose-200 text-rose-700 shadow-sm">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                {alert.severity}
+                            </span>
+                            <span className="text-[11px] font-medium text-rose-700/70">{new Date(alert.timestamp).toLocaleString(undefined, { hour: 'numeric', minute: '2-digit' })}</span>
                         </div>
                     </div>
                 </div>

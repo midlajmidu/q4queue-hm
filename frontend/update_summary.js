@@ -1,34 +1,18 @@
-"use client";
-import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
-import { Users, MonitorPlay, Ticket, Activity } from "lucide-react";
+const fs = require('fs');
+const path = '/Users/muzammil/Documents/q4queue/q4queue-hm/frontend/components/organization-admin/branch-details/BranchExecutiveSummary.tsx';
+let content = fs.readFileSync(path, 'utf8');
 
-export default function BranchExecutiveSummary({ branchId }: { branchId: string }) {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+// Replace the grid of cards
+const searchStr = `<div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 flex flex-col justify-between">`;
+// We will just do a multi_replace manually by completely replacing the render block.
+const renderStart = `    return (\n        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">`;
+const renderEnd = `        </div>\n    );\n}`;
 
-    useEffect(() => {
-        api.getBranchSummary(branchId).then(setData).finally(() => setLoading(false));
-    }, [branchId]);
+const iStart = content.indexOf(renderStart);
+const iEnd = content.indexOf(renderEnd);
 
-    if (loading) {
-        return (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm p-5 flex flex-col justify-between h-[120px] animate-pulse">
-                        <div className="flex justify-between items-start w-full">
-                            <div className="w-24 h-4 bg-slate-100 rounded-md"></div>
-                            <div className="w-8 h-8 rounded-lg bg-slate-100"></div>
-                        </div>
-                        <div className="w-16 h-8 bg-slate-100 rounded-md mt-auto"></div>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    if (!data) return null;
-
-    return (
+if (iStart !== -1 && iEnd !== -1) {
+    const newRender = `    return (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow p-5 flex flex-col justify-between group">
                 <div className="flex justify-between items-start mb-4">
@@ -71,4 +55,17 @@ export default function BranchExecutiveSummary({ branchId }: { branchId: string 
             </div>
         </div>
     );
+}`;
+
+    let newContent = content.substring(0, iStart) + newRender;
+    
+    // Also fix the loading state
+    const loadingOld = `                    <div key={i} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 flex flex-col justify-between h-32 animate-pulse">`;
+    const loadingNew = `                    <div key={i} className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm p-5 flex flex-col justify-between h-[120px] animate-pulse">`;
+    newContent = newContent.replace(loadingOld, loadingNew);
+
+    fs.writeFileSync(path, newContent, 'utf8');
+    console.log("Updated BranchExecutiveSummary");
+} else {
+    console.error("Could not find render block");
 }

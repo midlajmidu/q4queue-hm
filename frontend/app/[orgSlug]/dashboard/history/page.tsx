@@ -452,11 +452,12 @@ export default function HistoryPage() {
                                                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                                   <Avatar name={h.customer_name ? h.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : ""} />
                                                   <div style={{ display: "flex", flexDirection: "column" }}>
-                                                    <span style={{ fontWeight: 600 }}>
+                                                    <span style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}>
                                                       {h.customer_name ? h.customer_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : '-'}
-                                                      {(h.companion_names && h.companion_names.length > 0) && (
-                                                          <span style={{ fontWeight: 500, color: "#6366f1", backgroundColor: "rgba(99, 102, 241, 0.1)", padding: "2px 6px", borderRadius: "4px", marginLeft: 6, display: "inline-flex", alignItems: "center", gap: 2, textTransform: "none" }} title={h.companion_names.join(", ")}>
-                                                              <Users style={{ width: 12, height: 12 }} /> +{h.companion_names.length}
+                                                      {(h.pax_count && h.pax_count > 1) && (
+                                                          <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] shadow-sm border border-slate-200 dark:border-slate-700" title={`Total Pax: ${h.pax_count}`} style={{ textTransform: "none" }}>
+                                                              <Users size={10} className="text-slate-400" />
+                                                              +{h.pax_count - 1}
                                                           </span>
                                                       )}
                                                     </span>
@@ -482,9 +483,8 @@ export default function HistoryPage() {
                                                         token_number: h.token_number,
                                                         prefix: h.queue_prefix || "",
                                                         customer_name: h.customer_name,
-                                                        customer_age: h.customer_age,
                                                         customer_phone: h.customer_phone,
-                                                        companion_names: h.companion_names || [],
+                                                        pax_count: h.pax_count,
                                                         status: h.status,
                                                         created_at: h.created_at,
                                                         served_at: h.served_at,

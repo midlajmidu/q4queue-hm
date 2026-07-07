@@ -296,7 +296,7 @@ export interface TokenDetail {
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
-    companion_names: string[];
+    pax_count: number;
     called_via_invite?: boolean;
     entry_type?: "manual" | "qr" | "auto" | null;
 }
@@ -306,7 +306,7 @@ export interface JoinRequest {
     name: string;
     age?: number;
     phone: string;
-    companion_names: string[];
+    pax_count: number;
     send_whatsapp?: boolean;
     entry_type?: string;
 }
@@ -334,7 +334,7 @@ export interface TokenRestoreResponse {
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
-    companion_names: string[];
+    pax_count: number;
     tracking_id: string;
     created_at: string;
     served_at: string | null;
@@ -347,7 +347,7 @@ export interface PublicTokenResponse {
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
-    companion_names: string[];
+    pax_count: number;
     session_id: string;
 }
 
@@ -371,7 +371,7 @@ export interface RecentToken {
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
-    companion_names: string[];
+    pax_count: number;
     assigned_line?: number | null;
     called_via_invite?: boolean;
     entry_type?: "manual" | "qr" | "auto" | null;
@@ -390,7 +390,7 @@ export interface WaitingToken {
     customer_name: string;
     customer_age: number | null;
     customer_phone: string;
-    companion_names: string[];
+    pax_count: number;
     removed_by?: string | null;
     assigned_line?: number | null;
     called_via_invite?: boolean;
@@ -430,7 +430,7 @@ export interface QueueSnapshot {
         customer_name: string;
         customer_age: number | null;
         customer_phone: string;
-        companion_names?: string[];
+        pax_count?: number;
         assigned_line?: number | null;
         called_via_invite?: boolean;
     } | null;
@@ -810,7 +810,7 @@ export interface TokenHistoryItem {
     customer_name: string;
     customer_phone: string;
     customer_age: number | null;
-    companion_names: string[];
+    pax_count: number;
     created_at: string;
     served_at: string | null;
     completed_at: string | null;

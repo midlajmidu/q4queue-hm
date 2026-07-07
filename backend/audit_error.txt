@@ -1,0 +1,8 @@
+Error in record_event: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedTableError'>: relation "audit_logs" does not exist
+[SQL: INSERT INTO audit_logs (id, event_type, org_id, parent_organization_id, user_id, ip_address, resource_type, resource_id, details, created_at) VALUES ($1::UUID, $2::VARCHAR, $3::UUID, $4::UUID, $5::UUID, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::JSONB, $10::TIMESTAMP WITH TIME ZONE)]
+[parameters: (UUID('47af9585-a247-4984-9658-469d1ee9eeaf'), 'token.join', None, None, None, '192.168.65.1', 'queue', '1a43324e-cd02-41cf-b490-52264df363ff', '{"token_number": 7, "customer_name": "Muzammil Muhammed"}', datetime.datetime(2026, 7, 7, 12, 11, 38, 150038))]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Error in record_event: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedTableError'>: relation "audit_logs" does not exist
+[SQL: INSERT INTO audit_logs (id, event_type, org_id, parent_organization_id, user_id, ip_address, resource_type, resource_id, details, created_at) VALUES ($1::UUID, $2::VARCHAR, $3::UUID, $4::UUID, $5::UUID, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::JSONB, $10::TIMESTAMP WITH TIME ZONE)]
+[parameters: (UUID('52771145-5e72-4c69-bb90-d1bc1d29472d'), 'token.join', None, None, None, '192.168.65.1', 'queue', '1a43324e-cd02-41cf-b490-52264df363ff', '{"token_number": 8, "customer_name": "Muzammil Muhammed"}', datetime.datetime(2026, 7, 7, 12, 16, 35, 311826))]
+(Background on this error at: https://sqlalche.me/e/20/f405)

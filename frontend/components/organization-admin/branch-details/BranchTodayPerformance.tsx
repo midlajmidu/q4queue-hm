@@ -32,37 +32,45 @@ export default function BranchTodayPerformance({ branchId }: { branchId: string 
     if (!data) return null;
 
     return (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
-                <div className="p-4 sm:p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                        <TrendingUp size={14} strokeWidth={2} className="text-slate-400" />
-                        <span className="text-xs sm:text-[13px] font-medium text-slate-500">Avg Wait Time</span>
+        <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100/80 bg-slate-50/50 flex items-center justify-between">
+                <h2 className="font-semibold text-slate-800 text-[13px] uppercase tracking-wider">Today's Performance</h2>
+                <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Live</span>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100/80">
+                <div className="p-5 flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-3 cursor-help w-max" title="Average duration customers wait before being served">
+                        <TrendingUp size={14} strokeWidth={2.5} className="text-indigo-400" />
+                        <span className="text-[12px] font-bold text-slate-500 tracking-wider uppercase border-b border-dashed border-slate-300">Avg Wait Time</span>
                     </div>
-                    <div className="flex items-end gap-1.5">
-                        <span className="text-2xl font-semibold tracking-tight text-slate-900 leading-none">{data.avg_wait_time_mins}</span>
-                        <span className="text-xs font-medium text-slate-500 mb-0.5">mins</span>
+                    <div className="flex items-baseline gap-1.5">
+                        <span className="text-3xl font-bold tracking-tight text-slate-900 leading-none">{data.avg_wait_time_mins || '0'}</span>
+                        <span className="text-sm font-semibold text-slate-400">min</span>
                     </div>
                 </div>
                 
-                <div className="p-4 sm:p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Clock size={14} strokeWidth={2} className="text-slate-400" />
-                        <span className="text-xs sm:text-[13px] font-medium text-slate-500">Avg Service Time</span>
+                <div className="p-5 flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-3 cursor-help w-max" title="Average time staff spends serving each customer">
+                        <Clock size={14} strokeWidth={2.5} className="text-emerald-400" />
+                        <span className="text-[12px] font-bold text-slate-500 tracking-wider uppercase border-b border-dashed border-slate-300">Avg Service Time</span>
                     </div>
-                    <div className="flex items-end gap-1.5">
-                        <span className="text-2xl font-semibold tracking-tight text-slate-900 leading-none">{data.avg_service_time_mins}</span>
-                        <span className="text-xs font-medium text-slate-500 mb-0.5">mins</span>
+                    <div className="flex items-baseline gap-1.5">
+                        <span className="text-3xl font-bold tracking-tight text-slate-900 leading-none">{data.avg_service_time_mins || '0'}</span>
+                        <span className="text-sm font-semibold text-slate-400">min</span>
                     </div>
                 </div>
                 
-                <div className="p-4 sm:p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                        <AlertCircle size={14} strokeWidth={2} className="text-slate-400" />
-                        <span className="text-xs sm:text-[13px] font-medium text-slate-500">Drop-off Rate</span>
+                <div className="p-5 flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-3 cursor-help w-max" title="Percentage of customers who dropped off without being served">
+                        <AlertCircle size={14} strokeWidth={2.5} className="text-rose-400" />
+                        <span className="text-[12px] font-bold text-slate-500 tracking-wider uppercase border-b border-dashed border-slate-300">Drop-off Rate</span>
                     </div>
-                    <div className="flex items-end gap-1.5">
-                        <span className="text-2xl font-semibold tracking-tight text-slate-900 leading-none">{data.drop_off_rate}%</span>
+                    <div className="flex items-baseline gap-1.5">
+                        <span className="text-3xl font-bold tracking-tight text-slate-900 leading-none">{data.drop_off_rate || '0'}</span>
+                        <span className="text-sm font-semibold text-slate-400">%</span>
                     </div>
                 </div>
             </div>

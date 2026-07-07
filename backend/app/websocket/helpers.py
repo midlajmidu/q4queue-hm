@@ -66,6 +66,7 @@ async def build_queue_snapshot(
             "assigned_line": serving_token.assigned_line,
             "called_via_invite": serving_token.called_via_invite,
             "entry_type": getattr(serving_token, "entry_type", "qr"),
+            "pax_count": getattr(serving_token, "pax_count", 1),
         }
         if is_admin:
             # Mask sensitive data for public screens
@@ -92,6 +93,7 @@ async def build_queue_snapshot(
             "called_via_invite": t.called_via_invite,
             "served_at": t.served_at.isoformat() if t.served_at else None,
             "entry_type": getattr(t, "entry_type", "qr"),
+            "pax_count": getattr(t, "pax_count", 1),
         }
         if is_admin:
             sd["customer_phone"] = t.customer_phone
@@ -156,6 +158,7 @@ async def build_queue_snapshot(
             "skipped_at": getattr(t, "skipped_at", None).isoformat() if getattr(t, "skipped_at", None) else None,
             "deleted_at": getattr(t, "deleted_at", None).isoformat() if getattr(t, "deleted_at", None) else None,
             "recalled_at": getattr(t, "recalled_at", None).isoformat() if getattr(t, "recalled_at", None) else None,
+            "pax_count": getattr(t, "pax_count", 1),
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -192,6 +195,7 @@ async def build_queue_snapshot(
             "skipped_at": getattr(t, "skipped_at", None).isoformat() if getattr(t, "skipped_at", None) else None,
             "deleted_at": getattr(t, "deleted_at", None).isoformat() if getattr(t, "deleted_at", None) else None,
             "recalled_at": getattr(t, "recalled_at", None).isoformat() if getattr(t, "recalled_at", None) else None,
+            "pax_count": getattr(t, "pax_count", 1),
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age

@@ -684,8 +684,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, [addName]);
     const [addCountryCode, setAddCountryCode] = useState("+91");
     const [addPhone, setAddPhone] = useState("");
-    const [addAge, setAddAge] = useState("");
-    const [addCompanions, setAddCompanions] = useState("");
+    const [addPaxCount, setAddPaxCount] = useState<number>(1);
     const [showWhatsappConfirm, setShowWhatsappConfirm] = useState(false);
     const [addFormError, setAddFormError] = useState<string | null>(null);
     const isAddNameValid = /^[A-Za-z\s'-]{2,50}$/.test(addName.trim());
@@ -711,23 +710,21 @@ export default function QueueDetailPage({ params }: PageProps) {
         setActionLoading("add");
         setActionError(null);
         try {
-            const parsedCompanions = addCompanions.split(",").map(n => n.trim()).filter(n => n.length > 0);
             const res = await api.adminJoin(queueId, { 
                 name: addName.trim(), 
                 phone: `${addCountryCode}${phoneDigits}`, 
-                age: addAge ? parseInt(addAge, 10) : undefined, 
-                companion_names: parsedCompanions,
+                pax_count: addPaxCount,
                 send_whatsapp: sendWhatsapp,
                 entry_type: "manual"
             });
             toast(`Token ${state?.prefix || ""}${res.token_number} created`, "success");
             setShowAddForm(false);
-            setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions("");
+            setAddName(""); setAddPhone(""); setAddPaxCount(1);
         } catch (err: unknown) {
             if (err instanceof ApiError) toast(err.detail, "error");
             else toast("Failed to add customer", "error");
         } finally { setActionLoading(null); }
-    }, [queueId, addName, addPhone, addAge, addCountryCode, addCompanions, state?.prefix, toast]);
+    }, [queueId, addName, addPhone, addPaxCount, addCountryCode, state?.prefix, toast]);
 
     const executeInviteWithNumber = useCallback(async (num: number, lineNum?: number) => {
         setActionLoading("invite");
@@ -1222,18 +1219,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                     <h3 className="text-slate-800 dark:text-slate-100 text-lg font-semibold m-0">
                                                                         {state.serving_details.customer_name}
                                                                     </h3>
-                                                                    {(state.serving_details.companion_names && state.serving_details.companion_names.length > 0) && (
-                                                                        <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-semibold border border-slate-200 dark:border-slate-700" title={state.serving_details.companion_names.join(", ")}>
-                                                                            +{state.serving_details.companion_names.length}
+                                                                    {(state.serving_details.pax_count && state.serving_details.pax_count > 1) && (
+                                                                        <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700" title={`Total Pax: ${state.serving_details.pax_count}`}>
+                                                                            <Users size={10} className="text-slate-400" />
+                                                                            +{state.serving_details.pax_count - 1}
                                                                         </span>
                                                                     )}
                                                                 </div>
                                                                 
                                                                 <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm mt-1">
-                                                                    {state.serving_details.customer_age != null && (
-                                                                        <span>Age {state.serving_details.customer_age}</span>
-                                                                    )}
-                                                                    {state.serving_details.customer_age != null && <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />}
                                                                     <span>{state.serving_details.customer_phone}</span>
                                                                 </div>
                                                             </div>
@@ -1542,20 +1536,20 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                     <div className="text-[11.5px] text-slate-500 dark:text-slate-400 pl-[56px] flex flex-wrap gap-x-2 gap-y-0.5">
                                                                         <span className="font-semibold text-slate-700 dark:text-slate-300">
                                                                             {t.customer_name}
-                                                                            {(t.companion_names && t.companion_names.length > 0) && (
-                                                                                <span className="inline-flex items-center gap-0.5 font-medium text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded ml-1" title={t.companion_names.join(", ")}>
-                                                                                    <Users className="w-3 h-3" /> +{t.companion_names.length}
+                                                                            {(t.pax_count && t.pax_count > 1) && (
+                                                                                <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700" title={`Total Pax: ${t.pax_count}`}>
+                                                                                    <Users size={10} className="text-slate-400" />
+                                                                                    +{(t.pax_count) - 1}
                                                                                 </span>
                                                                             )}
                                                                         </span>
-                                                                        {t.customer_age != null && <span>Age: {t.customer_age}</span>}
                                                                         <span>{t.customer_phone}</span>
                                                                     </div>
                                                                 )}
                                                             </div>
                                                             <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                                                 <button
-                                                                    onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: t.entry_type || "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
+                                                                    onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_phone: t.customer_phone, pax_count: t.pax_count, status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: t.entry_type || "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
                                                                     className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-[8px] transition-colors"
                                                                     title="View Details"
                                                                 >
@@ -2054,15 +2048,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="e.g. 1234567890" maxLength={10} className="flex-1 h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Age <span className="text-slate-400 font-normal normal-case">(optional)</span></label>
-                                        <input type="number" value={addAge} onChange={e => setAddAge(e.target.value)} placeholder="e.g. 28" className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Companions <span className="text-slate-400 font-normal normal-case">(optional)</span></label>
-                                        <input type="text" value={addCompanions} onChange={e => setAddCompanions(e.target.value.replace(/[^A-Za-z\s,]/g, ''))} maxLength={30} placeholder="e.g. John, Mary" className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
-                                    </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Number of Pax <span className="text-red-500">*</span></label>
+                                    <input type="number" min="1" max="10" value={addPaxCount} onChange={e => { const val = parseInt(e.target.value); if (!isNaN(val)) setAddPaxCount(Math.min(10, Math.max(1, val))); }} className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
                                 </div>
                             </div>
                             <div className="px-6 py-5 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-white/5 flex items-center gap-3 justify-between">
@@ -2075,7 +2063,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddAge(""); setAddCompanions(""); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+                                    <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddPaxCount(1); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
                                         Cancel
                                     </button>
                                     <button 
@@ -2240,13 +2228,13 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                     <div className="text-[11.5px] text-slate-500 dark:text-slate-400 pl-[56px] flex flex-wrap gap-x-2 gap-y-0.5">
                         <span className="font-semibold text-slate-700 dark:text-slate-300 capitalize">
                             {t.customer_name}
-                            {(t.companion_names && t.companion_names.length > 0) && (
-                                <span className="inline-flex items-center gap-0.5 font-medium text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded ml-1" title={t.companion_names.join(", ")}>
-                                    <Users className="w-3 h-3" /> +{t.companion_names.length}
+                            {(t.pax_count && t.pax_count > 1) && (
+                                <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700" title={`Total Pax: ${t.pax_count}`}>
+                                    <Users size={10} className="text-slate-400" />
+                                    +{(t.pax_count) - 1}
                                 </span>
                             )}
                         </span>
-                        {t.customer_age != null && <span>Age: {t.customer_age}</span>}
                         <span>{t.customer_phone}</span>
                     </div>
                 )}
@@ -2254,7 +2242,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
             <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                 {onView && (
                     <button
-                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_age: t.customer_age, customer_phone: t.customer_phone, companion_names: t.companion_names || [], status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
+                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_phone: t.customer_phone, pax_count: t.pax_count, status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
                         className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-[8px] transition-colors"
                         title="View Details"
                     >
@@ -2296,9 +2284,8 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
         token_number: t.token_number,
         prefix,
         customer_name: t.customer_name,
-        customer_age: t.customer_age,
         customer_phone: t.customer_phone,
-        companion_names: t.companion_names || [],
+        pax_count: t.pax_count,
         status: t.status,
         created_at: t.created_at,
         served_at: t.served_at,
@@ -2363,16 +2350,17 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
 
                 {/* Customer */}
                 <div className="flex flex-col min-w-0">
-                    <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 truncate">
+                    <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 truncate flex items-center">
                         {t.customer_name || "Walk-in"}
-                        {(t.companion_names && t.companion_names.length > 0) && (
-                            <span className="inline-flex items-center gap-0.5 font-medium text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded ml-1 text-[10px]" title={t.companion_names.join(", ")}>
-                                <Users className="w-2.5 h-2.5" /> +{t.companion_names.length}
+                        {(t.pax_count && t.pax_count > 1) && (
+                            <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[9px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700 flex-shrink-0" title={`Total Pax: ${t.pax_count}`}>
+                                <Users size={10} className="text-slate-400" />
+                                +{(t.pax_count) - 1}
                             </span>
                         )}
                     </span>
                     <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
-                        {t.customer_phone || "No phone"}{t.customer_age ? ` • ${t.customer_age} yrs` : ""}
+                        {t.customer_phone || "No phone"}
                     </span>
                 </div>
 
@@ -2418,7 +2406,15 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                 </div>
                 <div className="flex items-center justify-between">
                     <div className="flex flex-col">
-                        <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">{t.customer_name || "Walk-in"}</span>
+                        <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            {t.customer_name || "Walk-in"}
+                            {(t.pax_count && t.pax_count > 1) && (
+                                <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] shadow-sm border border-slate-200 dark:border-slate-700" title={`Total Pax: ${t.pax_count}`}>
+                                    <Users size={10} className="text-slate-400" />
+                                    +{(t.pax_count) - 1}
+                                </span>
+                            )}
+                        </span>
                         <span className="text-[11px] text-slate-400">{t.customer_phone || "No phone"}</span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -2620,11 +2616,12 @@ function QueueHistory({
                                         <td style={{ padding: "12px 18px" }}>
                                             <div style={{ display: "flex", flexDirection: "column" }}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                                    <span style={{ fontWeight: 600, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                    <span style={{ fontWeight: 600, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
                                                         {item.customer_name || "—"}
-                                                        {(item.companion_names && item.companion_names.length > 0) && (
-                                                            <span style={{ fontWeight: 500, color: "#6366f1", backgroundColor: "rgba(99, 102, 241, 0.1)", padding: "2px 6px", borderRadius: "4px", marginLeft: 6, display: "inline-flex", alignItems: "center", gap: 2 }} title={item.companion_names.join(", ")}>
-                                                                <Users style={{ width: 12, height: 12 }} /> +{item.companion_names.length}
+                                                        {(item.pax_count && item.pax_count > 1) && (
+                                                            <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] shadow-sm border border-slate-200 dark:border-slate-700" style={{ marginLeft: 6 }} title={`Total Pax: ${item.pax_count}`}>
+                                                                <Users size={10} className="text-slate-400" />
+                                                                +{(item.pax_count) - 1}
                                                             </span>
                                                         )}
                                                     </span>
@@ -2666,7 +2663,7 @@ function QueueHistory({
                                                 <button
                                                     onClick={() => onViewToken({ 
                                                         token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name, 
-                                                        customer_age: item.customer_age, customer_phone: item.customer_phone, companion_names: item.companion_names || [], 
+                                                        customer_phone: item.customer_phone, pax_count: item.pax_count, 
                                                         status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, 
                                                         entry_type: isManual ? "manual" : "qr", queue_name: queueName,
                                                         assigned_line: item.assigned_line, served_by_staff_name: item.served_by_staff_name, completed_by_staff_name: item.completed_by_staff_name,

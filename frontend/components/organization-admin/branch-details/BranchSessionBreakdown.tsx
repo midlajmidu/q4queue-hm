@@ -32,50 +32,52 @@ export default function BranchSessionBreakdown({ branchId }: { branchId: string 
     }
 
     return (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100/80 bg-slate-50/50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <MonitorPlay size={16} strokeWidth={2} className="text-slate-400" />
-                    <h3 className="font-semibold text-slate-900 text-sm">Session Breakdown</h3>
+                    <div className="bg-slate-100 p-1.5 rounded-lg text-slate-500">
+                        <MonitorPlay size={14} strokeWidth={2.5} />
+                    </div>
+                    <h3 className="font-semibold text-slate-800 text-[13px] uppercase tracking-wider">Session Breakdown</h3>
                 </div>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100 text-slate-500">
+                    <thead className="bg-slate-50/50 border-b border-slate-100 text-slate-400">
                         <tr>
-                            <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider">Session</th>
-                            <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider">Operator</th>
-                            <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-center">Status</th>
-                            <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-center">Served</th>
-                            <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-center">Avg Time</th>
+                            <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">Session</th>
+                            <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">Operator</th>
+                            <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap">Status</th>
+                            <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap">Served</th>
+                            <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap">Avg Time</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {data.map((s, i) => (
                             <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
-                                <td className="px-5 py-3 text-sm font-medium text-slate-900 flex items-center gap-2">
+                                <td className="px-5 py-3.5 text-[13px] font-semibold text-slate-900 whitespace-nowrap">
                                     {s.session_name}
                                 </td>
-                                <td className="px-5 py-3 text-sm text-slate-600">{s.operator_name}</td>
-                                <td className="px-5 py-3 text-center">
+                                <td className="px-5 py-3.5 text-[13px] font-semibold text-slate-500 whitespace-nowrap">{s.operator_name}</td>
+                                <td className="px-5 py-3.5 text-center whitespace-nowrap">
                                     <div className="flex items-center justify-center gap-1.5">
-                                        <span className={`w-2 h-2 rounded-full ${s.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                                        <span className="text-xs font-medium text-slate-600">{s.status}</span>
+                                        <span className={`w-2 h-2 rounded-full shadow-sm ${s.status === 'Active' ? 'bg-emerald-500 shadow-emerald-200 animate-pulse' : 'bg-slate-400'}`}></span>
+                                        <span className="text-[11px] font-bold tracking-wide uppercase text-slate-600">{s.status}</span>
                                     </div>
                                 </td>
-                                <td className="px-5 py-3 text-center text-sm font-medium text-slate-900 tabular-nums">{s.customers_served}</td>
-                                <td className="px-5 py-3 text-center text-sm text-slate-500 tabular-nums">{s.average_service_time}</td>
+                                <td className="px-5 py-3.5 text-center text-[13px] font-bold text-slate-900 tabular-nums whitespace-nowrap">{s.customers_served}</td>
+                                <td className="px-5 py-3.5 text-center text-[13px] font-semibold text-slate-500 tabular-nums whitespace-nowrap">{s.average_service_time}</td>
                             </tr>
                         ))}
                         {data.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="p-10">
+                                <td colSpan={5} className="p-12">
                                     <div className="flex flex-col items-center justify-center text-center">
-                                        <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center mb-3">
-                                            <MonitorPlay size={16} strokeWidth={2} className="text-slate-400" />
+                                        <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center mb-4">
+                                            <MonitorPlay size={18} strokeWidth={2} className="text-slate-400" />
                                         </div>
-                                        <p className="text-sm font-medium text-slate-900 mb-0.5">No active sessions</p>
-                                        <p className="text-xs text-slate-500">Operators have not started any sessions.</p>
+                                        <p className="text-[13px] font-semibold text-slate-900 mb-1">No active sessions</p>
+                                        <p className="text-[12px] text-slate-500 max-w-[200px]">Operators have not started any sessions.</p>
                                     </div>
                                 </td>
                             </tr>
