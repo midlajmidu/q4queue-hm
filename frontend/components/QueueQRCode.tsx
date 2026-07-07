@@ -51,6 +51,18 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
         }
     };
 
+    const handleOpenQR = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const canvas = qrRef.current?.querySelector("canvas");
+        if (canvas) {
+            const url = canvas.toDataURL("image/png");
+            const win = window.open();
+            if (win) {
+                win.document.write(`<html><body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#f8fafc;"><img src="${url}" style="max-width:90%;max-height:90%;border-radius:1rem;box-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1);" /></body></html>`);
+            }
+        }
+    };
+
     if (!joinUrl) return null;
 
     return (
@@ -103,17 +115,15 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                     </a>
 
                     <div className="flex gap-3 w-full">
-                        <a
-                            href={joinUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <button
+                            onClick={handleOpenQR}
                             className="flex-1 py-2 px-3 bg-gray-100 text-gray-700 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                             </svg>
-                            Open Link
-                        </a>
+                            Open QR
+                        </button>
                         <button
                             onClick={handleDownload}
                             className="flex-1 py-2 px-3 bg-blue-50 text-blue-700 font-medium text-sm rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
