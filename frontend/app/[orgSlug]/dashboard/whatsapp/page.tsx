@@ -91,6 +91,7 @@ export default function OrgWhatsAppDashboard() {
     const [filterEventType, setFilterEventType] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -98,6 +99,11 @@ export default function OrgWhatsAppDashboard() {
         }, 500);
         return () => clearTimeout(handler);
     }, [searchQuery]);
+
+    // Reset pagination on filter change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [startDate, endDate, filterQueueId, filterSessionId, filterStatus, filterEventType, debouncedSearchQuery]);
 
     // Settings state
     const [testPhone, setTestPhone] = useState("");
@@ -135,12 +141,14 @@ export default function OrgWhatsAppDashboard() {
                 eventType: filterEventType || undefined,
                 customerPhone: debouncedSearchQuery && /^[0-9+ \-]+$/.test(debouncedSearchQuery) ? debouncedSearchQuery : undefined,
                 customerName: debouncedSearchQuery && !/^[0-9+ \-]+$/.test(debouncedSearchQuery) ? debouncedSearchQuery : undefined,
+                limit: 50,
+                offset: (currentPage - 1) * 50,
             };
 
             const [st, events, history] = await Promise.all([
                 api.getOrgWhatsAppStats(params).catch(() => null),
                 api.getOrgWhatsAppEventStats(params).catch(() => []),
-                api.getOrgWhatsAppMessages({ limit: 50, ...historyParams }).catch(() => null),
+                api.getOrgWhatsAppMessages(historyParams).catch(() => null),
             ]);
             if (st) setStats(st);
             setEventStats(events || []);
@@ -148,7 +156,7 @@ export default function OrgWhatsAppDashboard() {
         } finally {
             setLoading(false);
         }
-    }, [startDate, endDate, filterQueueId, filterSessionId, filterStatus, filterEventType, debouncedSearchQuery]);
+    }, [startDate, endDate, filterQueueId, filterSessionId, filterStatus, filterEventType, debouncedSearchQuery, currentPage]);
 
     useEffect(() => { 
         loadFilteredData();
@@ -463,6 +471,30 @@ export default function OrgWhatsAppDashboard() {
                                 </tbody>
                             </table>
                         </div>
+                        
+                        {logs && logs.total > 50 && (
+                            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+                                <div className="text-sm text-slate-500 dark:text-slate-400">
+                                    Showing <span className="font-medium text-slate-900 dark:text-slate-200">{(currentPage - 1) * 50 + 1}</span> to <span className="font-medium text-slate-900 dark:text-slate-200">{Math.min(currentPage * 50, logs.total)}</span> of <span className="font-medium text-slate-900 dark:text-slate-200">{logs.total}</span> entries
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                                    >
+                                        Previous
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentPage(p => p + 1)}
+                                        disabled={currentPage * 50 >= logs.total}
+                                        className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

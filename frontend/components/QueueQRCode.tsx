@@ -37,17 +37,83 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
         }
     };
 
+    const generateWatermarkedQRUrl = (): string | null => {
+        const qrCanvas = qrRef.current?.querySelector("canvas");
+        if (!qrCanvas) return null;
+
+        // If size is 220, and pixelRatio is 2, qrSize = 440
+        const qrSize = qrCanvas.width;
+        
+        // Scale ratio based on a base size of 220
+        const scale = qrSize / 220; 
+        
+        const paddingBottom = 30 * scale; 
+        
+        const canvas = document.createElement("canvas");
+        canvas.width = qrSize;
+        canvas.height = qrSize + paddingBottom;
+        const ctx = canvas.getContext("2d");
+        
+        if (!ctx) return null;
+
+        // Fill white background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw original QR code
+        ctx.drawImage(qrCanvas, 0, 0);
+
+        // Draw text
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        
+        const fontSize = 11 * scale;
+        const textY = qrSize + (paddingBottom / 2) - (2 * scale);
+
+        const text1 = "Powered by ";
+        const text2 = "Q4QUEUE";
+        
+        ctx.font = `500 ${fontSize}px Inter, system-ui, sans-serif`;
+        const metrics1 = ctx.measureText(text1);
+        
+        ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
+        const metrics2 = ctx.measureText(text2);
+        
+        const totalWidth = metrics1.width + metrics2.width;
+        const startX = (canvas.width - totalWidth) / 2;
+        
+        ctx.font = `500 ${fontSize}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = "#64748b";
+        ctx.fillText(text1, startX, textY);
+        
+        ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = "#1e293b";
+        ctx.fillText(text2, startX + metrics1.width, textY);
+        
+        return canvas.toDataURL("image/png");
+    };
+
     const handleDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const canvas = qrRef.current?.querySelector("canvas");
-        if (canvas) {
-            const url = canvas.toDataURL("image/png");
+        const url = generateWatermarkedQRUrl();
+        if (url) {
             const a = document.createElement("a");
             a.href = url;
             a.download = `Queue_${queueName}_QR.png`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+        }
+    };
+
+    const handleOpenQR = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const url = generateWatermarkedQRUrl();
+        if (url) {
+            const win = window.open();
+            if (win) {
+                win.document.write(`<html><body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#f8fafc;"><img src="${url}" style="max-width:90%;max-height:90%;border-radius:1rem;box-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1);" /></body></html>`);
+            }
         }
     };
 
@@ -103,17 +169,15 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                     </a>
 
                     <div className="flex gap-3 w-full">
-                        <a
-                            href={joinUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <button
+                            onClick={handleOpenQR}
                             className="flex-1 py-2 px-3 bg-gray-100 text-gray-700 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                             </svg>
-                            Open Link
-                        </a>
+                            Open QR
+                        </button>
                         <button
                             onClick={handleDownload}
                             className="flex-1 py-2 px-3 bg-blue-50 text-blue-700 font-medium text-sm rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
@@ -123,6 +187,13 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                             </svg>
                             Download
                         </button>
+                    </div>
+
+                    <div className="mt-5 flex items-center justify-center">
+                        <div className="flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity cursor-default">
+                            <span className="text-[11px] font-medium text-slate-500">Powered by</span>
+                            <span className="font-bold text-slate-800 text-[11px] tracking-wide">Q4QUEUE</span>
+                        </div>
                     </div>
                 </div>
             </div>

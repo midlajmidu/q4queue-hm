@@ -1087,6 +1087,11 @@ export const api = {
             body: JSON.stringify({ is_active }),
         });
     },
+    deleteBranch: (id: string) => {
+        return request<any>(`/organization-admin/branches/${id}`, {
+            method: "DELETE",
+        });
+    },
     createBranchAdmin: (id: string, data: BranchAdminCreateRequest) => {
         return request<BranchAdminResponse>(`/organization-admin/branches/${id}/admins`, {
             method: "POST",
