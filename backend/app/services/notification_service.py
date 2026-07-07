@@ -77,9 +77,9 @@ async def notify_queue_event(
       queue_joined_v4
       queue_nearby_5_v3
       queue_nearby_3_v3
-      queue_called_v2
+      queue_called_v3
       queue_skipped_v3
-      queue_recalled_v3
+      queue_recalled_v2
       queue_removed_v3
       queue_completed_v3
       test_notification_v2
@@ -111,7 +111,7 @@ async def notify_queue_event(
             return
         if event_type == "queue_skipped_v3" and not cfg.get("notify_skipped", True):
             return
-        if event_type == "queue_recalled_v3" and not cfg.get("notify_recalled", True):
+        if event_type == "queue_recalled_v2" and not cfg.get("notify_recalled", True):
             return
         if event_type == "queue_removed_v3" and not cfg.get("notify_removed", True):
             return
@@ -142,7 +142,8 @@ async def notify_queue_event(
         variables = []
 
         # Upgrade any v2 events emitted by the system to v3
-        event_type = event_type.replace("_v2", "_v3")
+        if event_type == "queue_called_v2": event_type = "queue_called_v3"
+        elif event_type == "queue_skipped_v2": event_type = "queue_skipped_v3"
 
         org_name_to_use = organization_name if organization_name else queue_name
         c_name = customer_name or "Customer"
@@ -193,7 +194,7 @@ async def notify_queue_event(
                 token_str
             ]
 
-            if event_type in ("queue_called_v3", "queue_recalled_v3"):
+            if event_type in ("queue_called_v3", "queue_recalled_v2"):
                 dest = f"Service Lane {assigned_line}" if assigned_line else "the counter"
                 variables = base_vars + [dest]
                 if is_raw_text:
@@ -277,7 +278,7 @@ async def notify_queue_event(
             redis_client = get_redis()
             
             # Determine throttle expiry based on event_type
-            if event_type in ("queue_joined_v4", "queue_called_v3", "queue_skipped_v3", "queue_recalled_v3"):
+            if event_type in ("queue_joined_v4", "queue_called_v3", "queue_skipped_v3", "queue_recalled_v2"):
                 expiry = 3  # 3 seconds for critical events (prevents UI double-clicks)
             else:
                 expiry = 15 # 15 seconds for others (like nearby)

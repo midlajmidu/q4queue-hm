@@ -189,8 +189,8 @@ DEFAULT_TEMPLATES = [
         "status": WhatsAppTemplateStatus.approved,
     },
     {
-        "template_name": "queue_recalled_v3",
-        "event_type": "queue_recalled_v3",
+        "template_name": "queue_recalled_v2",
+        "event_type": "queue_recalled_v2",
         "category": "UTILITY",
         "language": "en",
         "description": "Sent when a skipped customer is re-called by staff",
