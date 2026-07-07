@@ -124,6 +124,13 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                             Download
                         </button>
                     </div>
+
+                    <div className="mt-5 flex items-center justify-center">
+                        <div className="flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity cursor-default">
+                            <span className="text-[11px] font-medium text-slate-500">Powered by</span>
+                            <span className="font-bold text-slate-800 text-[11px] tracking-wide">Q4QUEUE</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
