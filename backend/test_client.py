@@ -1,8 +1,0 @@
-import asyncio
-from fastapi.testclient import TestClient
-from app.main import app
-
-client = TestClient(app)
-resp = client.get('/api/v1/sessions?limit=100&offset=0', headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwZTViYzBmNS1mNjM4LTRmNTMtYTJmMy1hYWJmMGM5Yzc4NTciLCJvcmdfaWQiOiIyNjA4Yjc0NS0yM2I0LTQ5MmMtOWFhNy05MGY5NTg2NGEwODMiLCJwYXJlbnRfb3JnX2lkIjpudWxsLCJvcmdfc2x1ZyI6Inh5ei1jbGluaWMiLCJvcmdfbmFtZSI6Inh5ei1jbGluaWMiLCJvcmdfbG9nb191cmwiOm51bGwsInJvbGUiOiJhZG1pbiIsImVtYWlsIjoibWFhem11aGFtbWVkMDhAZ21haWwuY29tIiwiZmlyc3RfbmFtZSI6bnVsbCwibGFzdF9uYW1lIjpudWxsLCJpc19maXJzdF9sb2dpbiI6ZmFsc2UsImlzX2ltcGVyc29uYXRpbmciOmZhbHNlLCJpc19yZWFkX29ubHkiOmZhbHNlLCJleHAiOjE3ODMzNDk2ODh9.aHQLJ65X-N-sICVFA_gbQp4gL3_3isgtLsWtTFMdWm0'})
-print('STATUS:', resp.status_code)
-print('BODY:', resp.text)
