@@ -183,6 +183,7 @@ class AnalyticsResponse(BaseModel):
 class SessionMonitorItem(BaseModel):
     id: uuid.UUID
     branch: str
+    branch_id: uuid.UUID
     branch_slug: str
     queue: str
     session_name: str
@@ -198,6 +199,7 @@ class SessionMonitorItem(BaseModel):
 class QueueMonitorItem(BaseModel):
     id: uuid.UUID
     branch: str
+    branch_id: uuid.UUID
     branch_slug: str
     queue_name: str
     session_name: Optional[str] = None

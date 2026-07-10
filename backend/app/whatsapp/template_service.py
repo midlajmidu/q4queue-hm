@@ -17,194 +17,163 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_TEMPLATES = [
     {
-        "template_name": "queue_joined_v4",
+        "template_name": "ticket_confirmed_v1",
         "event_type": "queue_joined_v4",
         "category": "UTILITY",
         "language": "en",
-        "description": "Sent when a customer joins a queue (via QR or manual entry)",
+        "description": "Sent when a customer joins a queue",
         "body_text": (
-            "Hello {{1}}, you're in the {{2}} queue at {{3}}.\n\n"
-            "🎫 Your Ticket: {{4}}\n"
-            "👥 Current Position: {{5}}\n\n"
-            "📺 Display: {{6}}\n\n"
-            "📱 Tracking: {{7}}\n\n"
-            "Tap below to receive live queue updates directly in WhatsApp.\n\n"
-            "Powered by Q4Queue"
+            "Greetings, {{1}}!\n\n"
+            "🎟️ Your queue ticket has been confirmed.\n\n"
+            "🎫 Ticket Number: {{2}}\n"
+            "👥 People Ahead: {{3}}\n\n"
+            "Track your queue:\n{{4}}\n\n"
+            "View Live Display:\n{{5}}\n\n"
+            "🏢 Branch: {{6}}\n"
+            "📋 Queue: {{7}}\n\n"
+            "We'll keep you updated as your turn gets closer."
         ),
         "variables": {
             "1": "Customer Name",
-            "2": "Queue Name",
-            "3": "Organization Name",
-            "4": "Token Number",
-            "5": "Current Position",
-            "6": "Display URL",
-            "7": "Tracking URL",
+            "2": "Ticket Number",
+            "3": "People Ahead",
+            "4": "Queue Tracking URL",
+            "5": "Live Display URL",
+            "6": "Branch Name",
+            "7": "Queue Name",
         },
         "status": WhatsAppTemplateStatus.approved,
     },
     {
-        "template_name": "queue_nearby_5_v3",
+        "template_name": "queue_update_5_v1",
         "event_type": "queue_nearby_5_v3",
         "category": "UTILITY",
         "language": "en",
-        "description": "Reminder sent when customer's position reaches 5",
+        "description": "Reminder sent when position reaches 5",
         "body_text": (
-            "Almost your turn, {{1}}! Only {{5}} people remaining before you at {{3}} ({{2}}).\n\n"
-            "🎫 *Your Queue Ticket:* {{4}}\n"
-            "🔢 *Current Serving Token:* {{6}}\n\n"
-            "Please start heading towards the counter!"
+            "Your turn is getting closer.\n\n"
+            "🎫 Ticket Number: {{1}}\n"
+            "👥 Only 5 people are ahead of you.\n\n"
+            "Please be ready.\n\n"
+            "Track your queue:\n{{2}}"
         ),
         "variables": {
-            "1": "Customer Name",
-            "2": "Queue Name",
-            "3": "Organization Name",
-            "4": "Token Number",
-            "5": "Current Position",
-            "6": "Current Serving Token",
+            "1": "Ticket Number",
+            "2": "Queue Tracking URL",
         },
         "status": WhatsAppTemplateStatus.approved,
     },
     {
-        "template_name": "queue_nearby_3_v3",
+        "template_name": "queue_update_3_v1",
         "event_type": "queue_nearby_3_v3",
         "category": "UTILITY",
         "language": "en",
-        "description": "Reminder sent when customer's position reaches 3",
+        "description": "Reminder sent when position reaches 3",
         "body_text": (
-            "Get ready, {{1}}! Only {{5}} people remaining before you at {{3}} ({{2}}).\n\n"
-            "🎫 *Your Queue Ticket:* {{4}}\n"
-            "🔢 *Current Serving Token:* {{6}}\n\n"
-            "Please be ready — you will be called very soon!"
+            "Your turn is almost here! Only 3 people are ahead of you.\n\n"
+            "🎫 Ticket Number: {{1}}\n"
+            "📋 Queue: {{2}}\n"
+            "👥 People Ahead: 3\n\n"
+            "Please head towards the service area and be ready."
         ),
         "variables": {
-            "1": "Customer Name",
+            "1": "Ticket Number",
             "2": "Queue Name",
-            "3": "Organization Name",
-            "4": "Token Number",
-            "5": "Current Position",
-            "6": "Current Serving Token",
         },
         "status": WhatsAppTemplateStatus.approved,
     },
     {
-        "template_name": "queue_called_v3",
+        "template_name": "token_called_v1",
         "event_type": "queue_called_v3",
         "category": "UTILITY",
         "language": "en",
         "description": "Sent when a customer's token is called to be served",
         "body_text": (
-            "Please proceed to {{5}} immediately, {{1}}! The staff at {{3}} ({{2}}) is ready to serve you now.\n\n"
-            "🎫 *Your Queue Ticket:* {{4}}\n\n"
-            "Thank you."
+            "Please proceed to {{3}}.\n\n"
+            "🎫 Ticket Number: {{1}}\n"
+            "📋 Queue: {{2}}\n\n"
+            "Our staff is ready to assist you."
         ),
         "variables": {
-            "1": "Customer Name",
+            "1": "Ticket Number",
             "2": "Queue Name",
-            "3": "Organization Name",
-            "4": "Token Number",
-            "5": "Counter or Service Lane",
+            "3": "Destination",
         },
         "status": WhatsAppTemplateStatus.approved,
     },
     {
-        "template_name": "queue_completed_v3",
+        "template_name": "service_completed_v1",
         "event_type": "queue_completed_v3",
         "category": "UTILITY",
         "language": "en",
         "description": "Sent when a customer's service is completed",
         "body_text": (
-            "Thank you, {{1}}! Your service at {{3}} ({{2}}) has been completed.\n\n"
-            "🎫 *Your Queue Ticket:* {{4}}\n\n"
-            "We hope you had a great experience. Have a wonderful day!"
+            "Your visit has been completed successfully.\n\n"
+            "🎫 Ticket Number: {{1}}\n"
+            "📋 Queue: {{2}}\n\n"
+            "Thank you for choosing {{3}}."
         ),
         "variables": {
-            "1": "Customer Name",
+            "1": "Ticket Number",
             "2": "Queue Name",
-            "3": "Organization Name",
-            "4": "Token Number",
+            "3": "Business Name",
         },
         "status": WhatsAppTemplateStatus.approved,
     },
     {
-        "template_name": "test_notification_v2",
-        "event_type": "test_notification_v2",
-        "category": "UTILITY",
-        "language": "en",
-        "description": "Test notification template",
-        "body_text": (
-            "🧪 Test Notification for {{1}}\n\n"
-            "Organization: *{{2}}*\n"
-            "Token: {{3}}\n"
-            "Position: {{4}}\n\n"
-            "Tracking URL: {{5}}\n"
-            "Display URL: {{6}}\n\n"
-            "This is a system test."
-        ),
-        "variables": {
-            "1": "Customer Name",
-            "2": "Organization Name",
-            "3": "Token Number",
-            "4": "Current Position",
-            "5": "Tracking URL",
-            "6": "Display URL",
-        },
-        "status": WhatsAppTemplateStatus.approved,
-    },
-    {
-        "template_name": "queue_skipped_v3",
+        "template_name": "token_skipped_v1",
         "event_type": "queue_skipped_v3",
         "category": "UTILITY",
         "language": "en",
         "description": "Sent when a customer's token is skipped",
         "body_text": (
-            "You have been skipped, {{1}}. Your ticket was called at {{3}} ({{2}}) but you were marked unavailable.\n\n"
-            "🎫 *Your Queue Ticket:* {{4}}\n\n"
-            "If you are still here, please speak to our staff immediately."
+            "Your ticket was skipped at {{3}}.\n\n"
+            "🎫 Ticket Number: {{1}}\n"
+            "📋 Queue: {{2}}\n\n"
+            "Please contact our staff if you are still available."
         ),
         "variables": {
-            "1": "Customer Name",
+            "1": "Ticket Number",
             "2": "Queue Name",
-            "3": "Organization Name",
-            "4": "Token Number",
+            "3": "Destination",
         },
         "status": WhatsAppTemplateStatus.approved,
     },
     {
-        "template_name": "queue_removed_v3",
+        "template_name": "ticket_deleted_v1",
         "event_type": "queue_removed_v3",
         "category": "UTILITY",
         "language": "en",
         "description": "Sent when a customer is removed from the queue",
         "body_text": (
-            "Removed from queue, {{1}}. You have been removed from the queue at {{3}} ({{2}}).\n\n"
-            "🎫 *Your Queue Ticket:* {{4}}\n\n"
-            "If this was a mistake, please scan the venue QR code again to rejoin."
+            "Your queue ticket has been cancelled.\n\n"
+            "🎫 Ticket Number: {{1}}\n"
+            "📋 Queue: {{2}}\n\n"
+            "If this was unexpected, please contact our staff."
         ),
         "variables": {
-            "1": "Customer Name",
+            "1": "Ticket Number",
             "2": "Queue Name",
-            "3": "Organization Name",
-            "4": "Token Number",
         },
         "status": WhatsAppTemplateStatus.approved,
     },
     {
-        "template_name": "queue_recalled_v2",
+        "template_name": "token_recalled_v1",
         "event_type": "queue_recalled_v2",
         "category": "UTILITY",
         "language": "en",
         "description": "Sent when a skipped customer is re-called by staff",
         "body_text": (
-            "You have been recalled, {{1}}! The staff at {{3}} ({{2}}) is calling you again. Please proceed to {{5}} immediately.\n\n"
-            "🎫 *Your Queue Ticket:* {{4}}\n\n"
-            "Thank you."
+            "Please proceed to {{3}}.\n\n"
+            "Your ticket has been recalled.\n\n"
+            "🎫 Ticket Number: {{1}}\n"
+            "📋 Queue: {{2}}\n\n"
+            "Our staff is waiting to assist you."
         ),
         "variables": {
-            "1": "Customer Name",
+            "1": "Ticket Number",
             "2": "Queue Name",
-            "3": "Organization Name",
-            "4": "Token Number",
-            "5": "Counter or Service Lane",
+            "3": "Destination",
         },
         "status": WhatsAppTemplateStatus.approved,
     }

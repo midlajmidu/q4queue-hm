@@ -608,7 +608,7 @@ async def monitor_sessions(
         present_staff = staff_data["present"]
         
         items.append(SessionMonitorItem(
-            id=s.id, branch=org.name, branch_slug=org.slug,
+            id=s.id, branch=org.name, branch_id=org.id, branch_slug=org.slug,
             queue="-", session_name=s.title or f"{today.strftime('%b %d')} Session",
             waiting=waiting, serving=serving, completed=completed, status="Active",
             active_staff_total=str(total_staff),
@@ -685,9 +685,10 @@ async def monitor_queues(
         load_percentage = min(100, pct)
         
         items.append(QueueMonitorItem(
-            id=q.id, branch=org.name, branch_slug=org.slug, queue_name=q.name,
+            id=q.id, branch=org.name, branch_id=org.id, branch_slug=org.slug, queue_name=q.name,
             session_name=sess.title if sess else None,
-            current_token="-", waiting=waiting, served_today=served, avg_wait_time=avg_wait_str, status="Active", load_percentage=load_percentage
+            current_token="-", waiting=waiting, served_today=served, avg_wait_time=avg_wait_str, 
+            status="Active" if q.is_active else "Inactive", load_percentage=load_percentage, is_active=q.is_active
         ))
     return items
 

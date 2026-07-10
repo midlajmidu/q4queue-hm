@@ -177,7 +177,9 @@ export default function JoinQueuePage({ params }: PageProps) {
     }, [customerName]);
     const [countryCode, setCountryCode] = useState("+91");
     const [customerPhone, setCustomerPhone] = useState("");
-    const [paxCount, setPaxCount] = useState<number>(1);
+    const [showCompanions, setShowCompanions] = useState<boolean>(false);
+    const [companionInput, setCompanionInput] = useState<string>("1");
+    const paxCount = Math.max(1, (parseInt(companionInput) || 0) + 1);
 
     // Derived values
     const isNameValid = /^[A-Za-z\s'-]{2,50}$/.test(customerName.trim());
@@ -266,11 +268,66 @@ export default function JoinQueuePage({ params }: PageProps) {
     const queueName = live?.queue_name || "Queue";
     const prefix = live?.prefix || joinData?.queue_prefix || "";
     const serving = live?.current_serving ?? 0;
+    const activeServingTokens = live?.all_serving_tokens ?? [];
 
 
     const brandColor = live?.org_brand_color || '#2563eb';
     const logoUrl = live?.org_logo_url;
     const fullLogoUrl = logoUrl ? (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `https://amoebaq.com/api/v1${logoUrl}`) : null;
+
+    // ── Marquee auto-scroll logic ────────────────────────────────────────────────
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [isInteracting, setIsInteracting] = useState(false);
+    const isDragging = useRef(false);
+    const startX = useRef(0);
+    const scrollLeft = useRef(0);
+
+    const handleInteraction = useCallback(() => {
+        setIsInteracting(true);
+    }, []);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        isDragging.current = true;
+        startX.current = e.pageX - (scrollContainerRef.current?.offsetLeft || 0);
+        scrollLeft.current = scrollContainerRef.current?.scrollLeft || 0;
+        handleInteraction();
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging.current || !scrollContainerRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - scrollContainerRef.current.offsetLeft;
+        const walk = (x - startX.current) * 2;
+        scrollContainerRef.current.scrollLeft = scrollLeft.current - walk;
+        handleInteraction();
+    };
+
+    const handleMouseUpOrLeave = () => {
+        isDragging.current = false;
+    };
+
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (!el || isInteracting || activeServingTokens.length <= 3) return;
+
+        let animationFrameId: number;
+        const speed = 0.5; // pixels per frame
+        let currentScroll = el.scrollLeft;
+
+        const scroll = () => {
+            currentScroll += speed;
+            if (currentScroll >= el.scrollWidth / 2) {
+                currentScroll -= (el.scrollWidth / 2);
+            }
+            if (el) {
+                el.scrollLeft = currentScroll;
+            }
+            animationFrameId = requestAnimationFrame(scroll);
+        };
+        animationFrameId = requestAnimationFrame(scroll);
+
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isInteracting, activeServingTokens.length]);
 
     return (
         <>
@@ -311,13 +368,62 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 {queueClosed ? "Currently Closed" : "Now Serving"}
                             </p>
 
-                            <div className="relative mx-auto w-full max-w-[200px]">
-                                {/* Subtle glow behind the number card */}
-                                <div className="absolute -inset-1 bg-white/10 blur-xl rounded-2xl opacity-50"></div>
-                                
-                                <div className="relative text-5xl sm:text-6xl font-black tabular-nums tracking-tighter py-3 sm:py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex items-center justify-center min-h-[80px] sm:min-h-[100px]" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${serving}`}>
-                                    {!live?.serving_details ? "—" : `${prefix}${serving}`}
-                                </div>
+                            <div className="relative mx-auto w-full">
+                                {activeServingTokens.length === 0 ? (
+                                    <div className="relative mx-auto w-full max-w-[200px]">
+                                        <div className="absolute -inset-1 bg-white/10 blur-xl rounded-2xl opacity-50"></div>
+                                        <div className="relative text-5xl sm:text-6xl font-black tabular-nums tracking-tighter py-3 sm:py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex items-center justify-center min-h-[80px] sm:min-h-[100px]">
+                                            —
+                                        </div>
+                                    </div>
+                                ) : activeServingTokens.length === 1 ? (
+                                    <div className="relative mx-auto w-full max-w-[200px]">
+                                        <div className="absolute -inset-1 bg-white/10 blur-xl rounded-2xl opacity-50"></div>
+                                        <div className="relative text-4xl sm:text-5xl font-black tabular-nums tracking-tighter py-3 sm:py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex items-center justify-center min-h-[80px] sm:min-h-[100px] px-4 text-center break-words break-all" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
+                                            {prefix}{activeServingTokens[0].token_number}
+                                        </div>
+                                    </div>
+                                ) : activeServingTokens.length <= 3 ? (
+                                    <div className="mt-2 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl px-4 relative">
+                                        <div className="absolute -inset-1 bg-white/10 blur-xl rounded-2xl opacity-50"></div>
+                                        <div className="relative flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+                                            {activeServingTokens.map((t: any) => (
+                                                <div key={t.id || t.token_number} className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 sm:px-4 flex flex-col items-center min-w-[80px] shrink-0 border border-white/5 max-w-full">
+                                                    <span className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight leading-none text-white break-words break-all text-center">{prefix}{t.token_number}</span>
+                                                    {t.assigned_line !== null && (
+                                                        <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mt-2 overflow-hidden w-full relative py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
+                                        <style>{`
+                                            .hide-scroll::-webkit-scrollbar { display: none; }
+                                        `}</style>
+                                        <div className="absolute -inset-1 bg-white/10 blur-xl rounded-2xl opacity-50"></div>
+                                        <div 
+                                            ref={scrollContainerRef}
+                                            className="relative flex flex-nowrap items-center gap-4 px-4 overflow-x-auto whitespace-nowrap hide-scroll cursor-grab active:cursor-grabbing select-none"
+                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                            onMouseDown={handleMouseDown}
+                                            onMouseUp={handleMouseUpOrLeave}
+                                            onMouseLeave={handleMouseUpOrLeave}
+                                            onMouseMove={handleMouseMove}
+                                            onTouchStart={handleInteraction}
+                                        >
+                                            {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t: any, i: number) => (
+                                                <div key={`${t.id || t.token_number}-${i}`} className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 sm:px-4 flex flex-col items-center min-w-[80px] shrink-0 mx-2 border border-white/5">
+                                                    <span className="text-xl sm:text-2xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                                    {t.assigned_line !== null && (
+                                                        <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="mt-4 flex justify-center">
@@ -430,17 +536,17 @@ export default function JoinQueuePage({ params }: PageProps) {
 
                                     {/* Companions */}
                                     <div className="pt-2">
-                                        {paxCount === 1 ? (
+                                        {!showCompanions ? (
                                             <button
                                                 type="button"
-                                                onClick={() => setPaxCount(2)}
+                                                onClick={() => setShowCompanions(true)}
                                                 disabled={isJoining || queueClosed}
                                                 className="w-full group flex items-center justify-center gap-3 py-3.5 px-4 bg-slate-50 border border-slate-200/60 rounded-xl sm:rounded-2xl text-[13px] sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300 disabled:opacity-50 shadow-[0_2px_10px_rgb(0,0,0,0.01)]"
                                             >
                                                 <div className="w-6 h-6 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-slate-300 transition-transform">
                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
                                                 </div>
-                                                Add Companions <span className="text-slate-400 font-normal">(optional)</span>
+                                                No of pax <span className="text-slate-400 font-normal">(optional)</span>
                                             </button>
                                         ) : (
                                             <div className="flex items-center justify-between bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all duration-300">
@@ -452,7 +558,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                     </div>
                                                     <div>
                                                         <div className="text-[14px] sm:text-[15px] font-bold text-slate-900 tracking-tight leading-none mb-1">
-                                                            {paxCount - 1} Companion{paxCount - 1 > 1 ? 's' : ''}
+                                                            {paxCount - 1} Pax
                                                         </div>
                                                         <div className="text-[11px] sm:text-[12px] font-medium text-slate-500 leading-none">
                                                             Joining with you
@@ -460,26 +566,21 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg sm:rounded-xl p-1 border border-slate-100">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setPaxCount(Math.max(1, paxCount - 1))}
+                                                <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg sm:rounded-xl p-1.5 border border-slate-100">
+                                                    <input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        pattern="[0-9]*"
+                                                        value={companionInput}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value.replace(/[^0-9]/g, '');
+                                                            setCompanionInput(val);
+                                                        }}
+                                                        placeholder="0"
                                                         disabled={isJoining || queueClosed}
-                                                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md sm:rounded-lg bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 shadow-sm border border-slate-200/60 transition-colors disabled:opacity-50 active:scale-95"
-                                                    >
-                                                        <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" /></svg>
-                                                    </button>
-                                                    <div className="w-4 text-center text-[13px] sm:text-sm font-bold text-slate-800 tabular-nums hidden sm:block">
-                                                        {paxCount - 1}
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setPaxCount(Math.min(10, paxCount + 1))}
-                                                        disabled={paxCount >= 10 || isJoining || queueClosed}
-                                                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md sm:rounded-lg bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 shadow-sm border border-slate-200/60 disabled:opacity-50 active:scale-95 transition-colors"
-                                                    >
-                                                        <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
-                                                    </button>
+                                                        className="w-16 sm:w-20 h-9 sm:h-10 mx-1 text-center text-[15px] sm:text-[16px] font-bold text-slate-800 tabular-nums bg-white border border-slate-200/80 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 p-0 [-moz-appearance:_textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none transition-shadow"
+                                                        min="0"
+                                                    />
                                                 </div>
                                             </div>
                                         )}

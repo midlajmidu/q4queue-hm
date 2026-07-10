@@ -230,6 +230,22 @@ async def send_whatsapp_message(
             }
         else:
             components = []
+            
+            # Inject Header for ticket_confirmed_v1 (Image)
+            if template_name == "ticket_confirmed_v1":
+                components.append({
+                    "type": "header",
+                    "parameters": [
+                        {
+                            "type": "image",
+                            "image": {
+                                # TODO: Replace with actual dynamic ticket image generator URL
+                                "link": "https://www.w3.org/html/logo/downloads/HTML5_Logo_512.png"
+                            }
+                        }
+                    ]
+                })
+
             if variables:
                 components.append({
                     "type": "body",

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.plivo.com/sdk/browser/v2/plivo.min.js"></script>
+</head>
+<body>
+    <script>
+        setTimeout(() => {
+            var p = new window.Plivo({ debug: "ALL" });
+            console.log("Plivo object:", p);
+            console.log("Client object:", p.client);
+            if (p.client && typeof p.client.on === "function") {
+                console.log("p.client.on exists!");
+            } else if (typeof p.on === "function") {
+                console.log("p.on exists!");
+            } else {
+                console.log("Neither has .on()");
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

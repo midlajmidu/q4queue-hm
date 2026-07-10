@@ -188,11 +188,11 @@ export default function SessionsMonitoringPage() {
                                     {/* Line 3: Actions */}
                                     <div className="pt-1">
                                         <a
-                                            href={`/${s.branch_slug || s.branch?.toLowerCase().replace(/\s+/g, '-')}/dashboard/sessions`}
+                                            href={`/organization-admin/branches/${s.branch_id}`}
                                             className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-lg transition-all shadow-sm"
                                         >
-                                            Open Dashboard
-                                            <ChevronRight size={14} className="text-slate-400" />
+                                            Branch Details
+                                            <ExternalLink size={14} className="text-slate-400" />
                                         </a>
                                     </div>
                                 </div>
@@ -252,11 +252,11 @@ export default function SessionsMonitoringPage() {
                                             </td>
                                             <td className="px-4 py-2.5 text-right">
                                                 <a
-                                                    href={`/${s.branch_slug || s.branch?.toLowerCase().replace(/\s+/g, '-')}/dashboard/sessions`}
+                                                    href={`/organization-admin/branches/${s.branch_id}`}
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm group"
                                                 >
-                                                    Dashboard
-                                                    <ChevronRight size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                                                    <ExternalLink size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                                                    Branch Details
                                                 </a>
                                             </td>
                                     </tr>

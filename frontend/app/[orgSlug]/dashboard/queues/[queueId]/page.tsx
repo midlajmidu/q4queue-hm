@@ -16,9 +16,10 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken } from "@/types/api";
-import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List } from "lucide-react";
+import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
+import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
 
 const formatTime12 = (time24?: string | null) => {
     if (!time24) return "";
@@ -494,6 +495,23 @@ export default function QueueDetailPage({ params }: PageProps) {
     const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false);
     const [waitingSearch, setWaitingSearch] = useState("");
     const [recentSearch, setRecentSearch] = useState("");
+    
+    // WebRTC Calling State
+    const [callModalOpen, setCallModalOpen] = useState(false);
+    const [callTokenNumber, setCallTokenNumber] = useState("");
+    const [callCustomerPhone, setCallCustomerPhone] = useState("");
+    const [callCustomerName, setCallCustomerName] = useState("");
+    const [callTokenId, setCallTokenId] = useState("");
+
+    const handleCall = useCallback((token: any) => {
+        setCallTokenNumber(`${state?.prefix || ""}${token.token_number}`);
+        setCallCustomerPhone(token.customer_phone || "");
+        setCallCustomerName(token.customer_name || "");
+        setCallTokenId(token.id);
+        setCallModalOpen(true);
+    }, [state?.prefix]);
+
+    const [isClient, setIsClient] = useState(false);
     const [waitingPage, setWaitingPage] = useState(1);
     const [recentPage, setRecentPage] = useState(1);
     const PAGE_SIZE = 10;
@@ -1555,6 +1573,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                 >
                                                                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                                 </button>
+                                                                {t.customer_phone && (
+                                                                    <button
+                                                                        onClick={() => handleCall(t)}
+                                                                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-[8px] transition-colors"
+                                                                        title="Call Handset"
+                                                                    >
+                                                                        <Phone width={14} height={14} />
+                                                                    </button>
+                                                                )}
                                                                 {canManageQueue && activeListTab === "waiting" ? (
                                                                     <button
                                                                         onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
@@ -1875,6 +1902,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     queueName={queueName}
                                                     isManual={t.entry_type === "manual"}
                                                     onView={setSelectedToken}
+                                                    onCall={canManageQueue ? handleCall : undefined}
                                                 />
                                             )) : (
                                                 <div className="h-full flex flex-col items-center justify-center p-8 text-center">
@@ -1912,6 +1940,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         queueName={queueName}
                                                         isManual={t.entry_type === "manual"}
                                                         onView={setSelectedToken}
+                                                        onCall={canManageQueue ? handleCall : undefined}
                                                         customTimeStr={customTimeStr || undefined}
                                                         extraActions={
                                                             <>
@@ -1997,6 +2026,18 @@ export default function QueueDetailPage({ params }: PageProps) {
                 <ConfirmModal isOpen={showResetConfirm} title="Reset Queue" message={`Are you sure you want to reset the queue "${state?.queue_name || "this queue"}"? This will delete all tokens and reset the current serving number to 0. This cannot be undone.`} confirmLabel="Reset Queue" confirmVariant="danger" onConfirm={handleReset} onCancel={() => setShowResetConfirm(false)} isLoading={resetting} requireInput={true} requiredText={state?.queue_name || ""} />
                 <ConfirmModal isOpen={!!tokenToRemove} title="Remove Customer" message={`Are you sure you want to remove token ${state?.prefix || ""}${tokenToRemove?.number} from the waiting list? They will be permanently marked as deleted.`} confirmLabel="Remove Token" confirmVariant="danger" onConfirm={handleConfirmRemove} onCancel={() => setTokenToRemove(null)} isLoading={actionLoading === "remove"} />
                 
+                <WebRTCCallModal
+                    isOpen={callModalOpen}
+                    onClose={() => setCallModalOpen(false)}
+                    tokenNumber={callTokenNumber}
+                    customerPhone={callCustomerPhone}
+                    customerName={callCustomerName}
+                    tokenId={callTokenId}
+                    queueId={queueId}
+                    sessionId={state?.session_id}
+                    organizationId={initialQueue?.org_id || user?.org_id || undefined}
+                />
+
                 {/* WhatsApp Confirmation Modal */}
                 <ConfirmModal 
                     isOpen={showWhatsappConfirm} 
@@ -2184,13 +2225,14 @@ export default function QueueDetailPage({ params }: PageProps) {
 
 // ── Recent Token Row ───────────────────────────────────────────────
 const RecentTokenRow = React.memo(function RecentTokenRow({
-    token: t, prefix, queueName, isManual, onView,
+    token: t, prefix, queueName, isManual, onView, onCall
 }: {
     token: RecentToken;
     prefix: string;
     queueName?: string;
     isManual?: boolean;
     onView?: (data: TokenDetailData) => void;
+    onCall?: (tokenNumber: string, phone: string) => void;
 }) {
     const statusClasses: Record<string, string> = {
         serving: "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
@@ -2249,6 +2291,15 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                     </button>
                 )}
+                {onCall && t.customer_phone && (
+                    <button
+                        onClick={() => onCall(`${prefix}${t.token_number}`, t.customer_phone!)}
+                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-[8px] transition-colors"
+                        title="Call Handset"
+                    >
+                        <Phone width={14} height={14} />
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -2264,13 +2315,14 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
 };
 
 const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
-    token: t, prefix, queueName, isManual, onView, customTimeStr, extraActions
+    token: t, prefix, queueName, isManual, onView, onCall, customTimeStr, extraActions
 }: {
     token: RecentToken | WaitingToken;
     prefix: string;
     queueName?: string;
     isManual?: boolean;
     onView?: (data: TokenDetailData) => void;
+    onCall?: (token: any) => void;
     customTimeStr?: string;
     extraActions?: React.ReactNode;
 }) {
@@ -2382,6 +2434,15 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                         </button>
                     )}
+                    {onCall && t.customer_phone && (
+                        <button
+                            onClick={() => onCall(t)}
+                            className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
+                            title="Call Handset"
+                        >
+                            <Phone width={13} height={13} />
+                        </button>
+                    )}
                     {extraActions}
                 </div>
             </div>
@@ -2421,6 +2482,15 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                         {onView && (
                             <button onClick={() => onView(tokenData)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="View Details">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            </button>
+                        )}
+                        {onCall && t.customer_phone && (
+                            <button
+                                onClick={() => onCall(t)}
+                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
+                                title="Call Handset"
+                            >
+                                <Phone width={14} height={14} />
                             </button>
                         )}
                         {extraActions}

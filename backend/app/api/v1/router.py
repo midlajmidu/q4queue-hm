@@ -28,6 +28,8 @@ from app.api.v1.endpoints import (
     whatsapp,
     whatsapp_analytics,
     pairing,
+    plivo,
+    calls,
 )
 
 api_router = APIRouter()
@@ -62,6 +64,9 @@ api_router.include_router(tokens.router, prefix="/tokens", tags=["Tokens"])
 # ── Messages ───────────────────────────────────────────────────────
 api_router.include_router(messages.router, prefix="/messages", tags=["Messages"])
 
+# ── Calls ──────────────────────────────────────────────────────────
+api_router.include_router(calls.router, prefix="/calls", tags=["Calls"])
+
 # ── Organization ───────────────────────────────────────────────────
 api_router.include_router(organization.router, prefix="/organization", tags=["Organization"])
 api_router.include_router(parent_organizations.router, prefix="/parent-organizations", tags=["Parent Organizations"])
@@ -86,3 +91,6 @@ api_router.include_router(tracking.router, prefix="/track", tags=["Tracking"])
 
 # ── Smart TV Pairing ───────────────────────────────────────
 api_router.include_router(pairing.router, prefix="/pairing", tags=["Pairing"])
+
+# ── Plivo WebRTC ───────────────────────────────────────────
+api_router.include_router(plivo.router, prefix="/plivo", tags=["Plivo"])

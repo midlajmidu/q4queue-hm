@@ -4,7 +4,8 @@ import { api } from "@/lib/api";
 import { BranchAdminItem } from "@/types/api";
 import AssignAdminModal from "./AssignAdminModal";
 import ResetAdminPasswordModal from "./ResetAdminPasswordModal";
-import { Shield, Plus, Key } from "lucide-react";
+import { Shield, Plus, Key, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function BranchAdminsOverview({ branchId }: { branchId: string }) {
     const [data, setData] = useState<BranchAdminItem[]>([]);
@@ -20,6 +21,17 @@ export default function BranchAdminsOverview({ branchId }: { branchId: string })
     useEffect(() => {
         loadAdmins();
     }, [loadAdmins]);
+
+    const handleDelete = async (admin: BranchAdminItem) => {
+        if (!confirm(`Are you sure you want to remove ${admin.name} as a branch admin?`)) return;
+        try {
+            await api.deleteOrgAdminStaff(admin.user_id);
+            toast.success("Admin removed successfully");
+            loadAdmins();
+        } catch (error: any) {
+            toast.error(error.message || "Failed to remove admin");
+        }
+    };
 
     if (loading) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
 
@@ -71,13 +83,22 @@ export default function BranchAdminsOverview({ branchId }: { branchId: string })
                                         : 'Never'}
                                 </td>
                                 <td className="px-5 py-3 text-right">
-                                    <button
-                                        onClick={() => setResetAdmin(admin)}
-                                        title="Reset Password"
-                                        className="p-1.5 text-slate-400 hover:text-slate-900 transition-colors"
-                                    >
-                                        <Key size={14} strokeWidth={2} />
-                                    </button>
+                                    <div className="flex items-center justify-end gap-1">
+                                        <button
+                                            onClick={() => setResetAdmin(admin)}
+                                            title="Reset Password"
+                                            className="p-1.5 text-slate-400 hover:text-slate-900 transition-colors"
+                                        >
+                                            <Key size={14} strokeWidth={2} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(admin)}
+                                            title="Remove Admin"
+                                            className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
+                                        >
+                                            <Trash2 size={14} strokeWidth={2} />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

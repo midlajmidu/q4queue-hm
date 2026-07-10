@@ -449,7 +449,7 @@ export default function TrackingPage({ params }: PageProps) {
                             </div>
                         )}
 
-                        <h1 className="text-2xl font-bold tracking-tight mb-1 text-white/95" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{queueName}</h1>
+                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1 text-white/95 px-10 leading-tight" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{queueName}</h1>
                         <p className="text-white/60 text-[10px] font-bold uppercase tracking-[0.25em] mb-4">
                             {queueClosed ? "Currently Closed" : "Now Serving"}
                         </p>
@@ -460,15 +460,15 @@ export default function TrackingPage({ params }: PageProps) {
                                     —
                                 </div>
                             ) : activeServingTokens.length === 1 ? (
-                                <div className="mt-4 text-6xl sm:text-7xl font-black tabular-nums tracking-tighter py-4 sm:py-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex items-center justify-center min-h-[100px] sm:min-h-[120px]" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
+                                <div className="mt-4 text-5xl sm:text-6xl md:text-7xl font-black tabular-nums tracking-tighter py-4 sm:py-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex items-center justify-center min-h-[100px] sm:min-h-[120px] px-4 text-center break-words break-all" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
                                     {prefix}{activeServingTokens[0].token_number}
                                 </div>
                             ) : activeServingTokens.length <= 3 ? (
                                 <div className="mt-4 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl px-4" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
-                                    <div className="flex flex-nowrap items-center justify-center gap-4">
+                                    <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
                                         {activeServingTokens.map((t: any) => (
-                                            <div key={t.id || t.token_number} className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0 border border-white/5">
-                                                <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                            <div key={t.id || t.token_number} className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 sm:px-4 flex flex-col items-center min-w-[80px] shrink-0 border border-white/5 max-w-full">
+                                                <span className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight leading-none text-white break-words break-all text-center">{prefix}{t.token_number}</span>
                                                 {t.assigned_line !== null && (
                                                     <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
                                                 )}
@@ -493,9 +493,9 @@ export default function TrackingPage({ params }: PageProps) {
                                         onMouseUp={handleMouseUpOrLeave}
                                         onMouseLeave={handleMouseUpOrLeave}
                                     >
-                                        {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t: any, idx: number) => (
-                                            <div key={`${t.id || t.token_number}-${idx}`} className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 flex flex-col items-center min-w-[80px] shrink-0 border border-white/5">
-                                                <span className="text-3xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                        {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t: any, i: number) => (
+                                            <div key={`${t.id || t.token_number}-${i}`} className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 sm:px-4 flex flex-col items-center min-w-[80px] shrink-0 mx-2 border border-white/5">
+                                                <span className="text-xl sm:text-2xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
                                                 {t.assigned_line !== null && (
                                                     <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
                                                 )}

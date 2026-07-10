@@ -17,11 +17,12 @@ from app.whatsapp.models import (
 )
 
 from app.audit.models import AuditLog
+from app.models.call_log import CallLog
 
 __all__ = [
     "ParentOrganization", "Organization", "User", "Queue", "Session", "Token", "Message",
     "SystemAnnouncement", "OrganizationAnnouncement",
     "WhatsAppConfig", "WhatsAppTemplate", "WhatsAppMessage",
     "WhatsAppWebhookLog", "WhatsAppUsageStat",
-    "AuditLog"
+    "AuditLog", "CallLog"
 ]

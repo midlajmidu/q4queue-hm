@@ -271,9 +271,28 @@ async function request<T>(
     return resp.json() as Promise<T>;
 }
 
-// ── Public API methods ───────────────────────────────────────────
 export const api = {
     // ── Auth ─────────────────────────────────────────────────────
+    getPlivoWebRTCToken(): Promise<{ username: string; password: string }> {
+        return request<{ username: string; password: string }>("/plivo/webrtc/token", {
+            method: "GET",
+        });
+    },
+
+    // ── Call Logs ────────────────────────────────────────────────────────
+
+    logCall(data: any): Promise<any> {
+        return request("/calls/log", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    getCallLogs(params: Record<string, string>): Promise<any[]> {
+        const query = new URLSearchParams(params).toString();
+        return request(`/calls/logs?${query}`);
+    },
+
     login(data: LoginRequest): Promise<TokenResponse> {
         return request<TokenResponse>("/auth/login", {
             method: "POST",

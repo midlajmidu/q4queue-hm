@@ -15,17 +15,17 @@ export default function QueuesMonitoringPage() {
     const itemsPerPage = 10;
 
     const { selectedBranchId } = useBranchFilter();
-    
+
     const uniqueSessions = useMemo(() => {
         const sessions = queues.map(q => q.session_name).filter(Boolean);
         return Array.from(new Set(sessions));
     }, [queues]);
-    
+
     const filteredQueues = useMemo(() => {
         if (!selectedSession) return queues;
         return queues.filter(q => q.session_name === selectedSession);
     }, [queues, selectedSession]);
-    
+
     // Reset to page 1 when filter changes
     useEffect(() => {
         setCurrentPage(1);
@@ -49,7 +49,7 @@ export default function QueuesMonitoringPage() {
                     setLoading(false);
                 });
         };
-        
+
         loadData();
         const interval = setInterval(loadData, 15000); // 15s polling
         return () => clearInterval(interval);
@@ -92,8 +92,8 @@ export default function QueuesMonitoringPage() {
                         Customer Flow
                     </h2>
                     {uniqueSessions.length > 0 && (
-                        <select 
-                            value={selectedSession} 
+                        <select
+                            value={selectedSession}
                             onChange={(e) => setSelectedSession(e.target.value)}
                             className="text-sm border-slate-200 rounded-md py-1.5 pl-3 pr-8 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700 bg-slate-50 cursor-pointer shadow-sm hover:bg-white transition-colors w-full sm:w-auto"
                         >
@@ -117,11 +117,11 @@ export default function QueuesMonitoringPage() {
                             const isCritical = loadPct >= 90;
                             const isHeavy = loadPct >= 75;
                             const barColor = isCritical ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' :
-                                             isHeavy ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' :
-                                             'bg-indigo-500';
+                                isHeavy ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' :
+                                    'bg-indigo-500';
                             const textColor = isCritical ? 'text-rose-600' :
-                                              isHeavy ? 'text-amber-600' :
-                                              'text-slate-700';
+                                isHeavy ? 'text-amber-600' :
+                                    'text-slate-700';
                             const statusLabel = isCritical ? 'Critical' : isHeavy ? 'Heavy' : 'Normal';
 
                             return (
@@ -132,9 +132,8 @@ export default function QueuesMonitoringPage() {
                                             <h4 className="font-bold text-slate-900 text-sm leading-snug">{q.branch}</h4>
                                             <p className="text-xs text-slate-500 font-medium mt-0.5">{q.queue_name}</p>
                                         </div>
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
-                                            q.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
-                                        }`}>
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${q.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
+                                            }`}>
                                             {q.status === 'Active' && (
                                                 <span className="relative flex h-1.5 w-1.5">
                                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -179,12 +178,12 @@ export default function QueuesMonitoringPage() {
                                     {/* Row 3: Action Button */}
                                     <div className="pt-1">
                                         <a
-                                            href={`/${q.branch_slug}/dashboard/queues`}
+                                            href={`/organization-admin/branches/${q.branch_id}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-lg transition-all shadow-sm"
                                         >
-                                            Open Queue View
+                                            Branch Details
                                             <ExternalLink size={14} className="text-slate-400" />
                                         </a>
                                     </div>
@@ -228,13 +227,13 @@ export default function QueuesMonitoringPage() {
                                                 const isCritical = loadPct >= 90;
                                                 const isHeavy = loadPct >= 75;
                                                 const barColor = isCritical ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' :
-                                                                 isHeavy ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' :
-                                                                 'bg-indigo-500';
+                                                    isHeavy ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' :
+                                                        'bg-indigo-500';
                                                 const textColor = isCritical ? 'text-rose-600' :
-                                                                  isHeavy ? 'text-amber-600' :
-                                                                  'text-slate-700';
+                                                    isHeavy ? 'text-amber-600' :
+                                                        'text-slate-700';
                                                 const statusLabel = isCritical ? 'Critical' : isHeavy ? 'Heavy' : 'Normal';
-                                                
+
                                                 return (
                                                     <div className="flex flex-col gap-1.5 w-32 ml-auto">
                                                         <div className="flex items-end justify-between">
@@ -248,7 +247,7 @@ export default function QueuesMonitoringPage() {
                                                             )}
                                                         </div>
                                                         <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                                                            <div 
+                                                            <div
                                                                 className={`h-full rounded-full transition-all duration-700 ease-out ${barColor}`}
                                                                 style={{ width: `${loadPct}%` }}
                                                             />
@@ -260,9 +259,8 @@ export default function QueuesMonitoringPage() {
                                         <td className="px-4 py-2.5 text-right font-medium text-slate-700">{q.served_today || 0}</td>
                                         <td className="px-4 py-2.5 text-right font-semibold text-slate-600">{q.avg_wait_time || "0m"}</td>
                                         <td className="px-4 py-2.5">
-                                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                                q.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
-                                            }`}>
+                                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${q.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
+                                                }`}>
                                                 {q.status === 'Active' && (
                                                     <span className="relative flex h-1.5 w-1.5">
                                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -274,13 +272,13 @@ export default function QueuesMonitoringPage() {
                                         </td>
                                         <td className="px-4 py-2.5 text-right">
                                             <a
-                                                href={`/${q.branch_slug}/dashboard/queues`}
+                                                href={`/organization-admin/branches/${q.branch_id}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
                                             >
                                                 <ExternalLink size={14} />
-                                                Queues
+                                                Branch Details
                                             </a>
                                         </td>
                                     </tr>
@@ -289,7 +287,7 @@ export default function QueuesMonitoringPage() {
                         </tbody>
                     </table>
                 </div>
-                
+
                 {totalPages > 1 && (
                     <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50">
                         <div className="text-xs text-slate-500">
