@@ -1,7 +1,26 @@
-node_modules
-.next
+# Secrets and environments
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
 next-env.d.ts
-#.env*.local
 *.tsbuildinfo
+
+# Version control
 .git
+.gitignore
+
+# OS files
 .DS_Store
+Thumbs.db

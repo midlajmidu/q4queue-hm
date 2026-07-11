@@ -1782,45 +1782,76 @@ export default function QueueDetailPage({ params }: PageProps) {
                         SECTION: Connect TV
                         ════════════════════════════════════════════ */}
                         {activeSection === "connect_tv" && (
-                            <div className="fade-in bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 p-6 md:p-10 shadow-sm min-h-[calc(100vh-120px)] flex flex-col items-center justify-center relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl" />
-                                <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl" />
-                                
-                                <div className="max-w-md w-full relative z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-xl ring-1 ring-slate-900/5 dark:ring-white/10 p-8">
-                                    <div className="flex flex-col items-center text-center mb-8">
-                                        <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-4 ring-4 ring-white dark:ring-slate-900 shadow-sm">
-                                            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M12 12a2 2 0 100-4 2 2 0 000 4zm4.2 4.2c2.3-2.3 2.3-6.1 0-8.5M19.1 19.1c3.9-3.9 3.9-10.3 0-14.2" />
-                                            </svg>
-                                        </div>
-                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Connect Smart TV</h3>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                                            Open <strong className="text-slate-700 dark:text-slate-300">/display</strong> on your Smart TV and enter the 6-digit pairing code below to connect it to this queue.
-                                        </p>
-                                    </div>
-                                    
-                                    <form onSubmit={handleConnectTV} className="flex flex-col gap-6">
-                                        <div>
-                                            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-2">Pairing Code</label>
-                                            <input
-                                                type="text"
-                                                value={pairingCodeInput}
-                                                onChange={(e) => setPairingCodeInput(e.target.value.toUpperCase())}
-                                                maxLength={6}
-                                                placeholder="e.g. ABC123"
-                                                className="w-full px-4 py-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white font-mono text-center text-3xl font-black tracking-[0.2em] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all uppercase placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                                                required
-                                            />
+                            <div className="fade-in bg-[#f8fafc] dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 p-6 md:p-10 shadow-sm min-h-[calc(100vh-120px)] flex flex-col items-center justify-center relative overflow-hidden">
+                                <div className="max-w-[420px] w-full relative z-10">
+                                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200 dark:border-white/10 p-8 sm:p-10">
+                                        
+                                        <div className="flex flex-col items-center text-center mb-8">
+                                            {/* Premium Icon Container */}
+                                            <div className="relative mb-6">
+                                                <div className="w-16 h-16 bg-gradient-to-br from-indigo-50 to-white dark:from-slate-700 dark:to-slate-800 rounded-2xl border border-indigo-100/80 dark:border-indigo-500/20 shadow-sm flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                                    <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <rect x="2" y="7" width="20" height="15" rx="2" ry="2" strokeWidth="1.8" />
+                                                        <polyline points="17 2 12 7 7 2" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                    {/* Pulse/Signal animation */}
+                                                    <div className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+                                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                      <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white dark:border-slate-800"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Connect Smart TV</h3>
+                                            
+                                            <p className="text-[14px] leading-relaxed text-slate-500 dark:text-slate-400">
+                                                Open <span className="font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">/display</span> on your TV and enter the 6-digit code below to link this queue.
+                                            </p>
                                         </div>
                                         
-                                        <button
-                                            type="submit"
-                                            disabled={isPairing || pairingCodeInput.length < 6}
-                                            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 px-6 rounded-xl transition-all shadow-md shadow-indigo-600/20 disabled:opacity-70 disabled:cursor-not-allowed"
-                                        >
-                                            {isPairing ? <RefreshCw size={18} className="animate-spin" /> : "Connect Display"}
-                                        </button>
-                                    </form>
+                                        <form onSubmit={handleConnectTV} className="flex flex-col gap-6">
+                                            <div>
+                                                <label className="block text-[11px] font-bold tracking-wider text-slate-500 uppercase mb-2">
+                                                    Pairing Code
+                                                </label>
+                                                <div className="relative group">
+                                                    <input
+                                                        type="text"
+                                                        value={pairingCodeInput}
+                                                        onChange={(e) => setPairingCodeInput(e.target.value.toUpperCase())}
+                                                        maxLength={6}
+                                                        placeholder="------"
+                                                        className="w-full h-16 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-center text-3xl font-black tracking-[0.4em] focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 placeholder:text-slate-300 transition-all uppercase"
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            <button
+                                                type="submit"
+                                                disabled={isPairing || pairingCodeInput.length < 6}
+                                                className="relative w-full h-12 flex items-center justify-center gap-2 rounded-xl font-semibold text-[15px] transition-all duration-300 disabled:bg-slate-50 disabled:text-slate-400 disabled:border disabled:border-slate-200 disabled:cursor-not-allowed bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 hover:shadow-lg hover:shadow-indigo-600/30"
+                                            >
+                                                {isPairing ? (
+                                                    <RefreshCw size={18} className="animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        Connect Display
+                                                        <svg className={`w-4 h-4 transition-transform duration-300 ${pairingCodeInput.length === 6 ? 'translate-x-0.5' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                                        </svg>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </form>
+                                    </div>
+                                    
+                                    <div className="mt-8 flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500 text-[11px] font-semibold uppercase tracking-widest">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                        Secure Broadcast
+                                    </div>
                                 </div>
                             </div>
                         )}

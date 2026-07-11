@@ -69,6 +69,7 @@ services:
 
   # ─── Backend ────────────────────────────────────────────────────
   backend:
+    image: q4queue/app:backend-latest
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -90,7 +91,6 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
       # In Ubuntu 24.04 production, swap this to: /var/q4queue_backups:/app/backups
       - ./local_backups:/app/backups
     healthcheck:
@@ -115,6 +115,7 @@ services:
 
   # ─── Frontend ───────────────────────────────────────────────────
   frontend:
+    image: q4queue/app:frontend-latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
