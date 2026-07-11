@@ -48,25 +48,6 @@ export default function WebRTCCallModal({
         isCallingRef.current = false;
         if (timerRef.current) clearInterval(timerRef.current);
         
-        // Log the call if we have an org ID, ensuring it only logs once per modal open
-        if (!hasLoggedRef.current && organizationId) {
-            hasLoggedRef.current = true;
-            try {
-                await api.logCall({
-                    organization_id: organizationId,
-                    queue_id: queueId,
-                    session_id: sessionId,
-                    token_id: tokenId,
-                    customer_name: customerName,
-                    customer_phone: customerPhone,
-                    duration_seconds: durationRef.current
-                });
-            } catch (err) {
-                console.error("Failed to log call", err);
-                hasLoggedRef.current = false; // Allow retry if it failed
-            }
-        }
-        
         if (plivoClientRef.current) {
             const client = plivoClientRef.current;
             try {
@@ -136,8 +117,15 @@ export default function WebRTCCallModal({
                     isCallingRef.current = true;
                     
                     setStatus("Calling customer...");
-                    // Initiate call to customer
-                    client.call(customerPhone);
+                    // Initiate call to customer with metadata for the backend webhook
+                    client.call(customerPhone, {
+                        extraHeaders: {
+                            'X-PH-OrgId': organizationId || queueId || "00000000-0000-0000-0000-000000000000",
+                            'X-PH-QueueId': queueId || "",
+                            'X-PH-SessionId': sessionId || "",
+                            'X-PH-TokenId': tokenId || ""
+                        }
+                    });
                 });
 
                 client.on('onLoginFailed', () => {
@@ -177,7 +165,15 @@ export default function WebRTCCallModal({
                     if (isCallingRef.current) return;
                     isCallingRef.current = true;
                     setStatus("Calling customer...");
-                    client.call(customerPhone);
+                    // Initiate call to customer with metadata for the backend webhook
+                    client.call(customerPhone, {
+                        extraHeaders: {
+                            'X-PH-OrgId': organizationId || queueId || "00000000-0000-0000-0000-000000000000",
+                            'X-PH-QueueId': queueId || "",
+                            'X-PH-SessionId': sessionId || "",
+                            'X-PH-TokenId': tokenId || ""
+                        }
+                    });
                 } else {
                     // Login to the SIP Endpoint
                     client.login(username, password);

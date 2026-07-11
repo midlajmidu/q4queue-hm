@@ -282,7 +282,7 @@ export const api = {
     // ── Call Logs ────────────────────────────────────────────────────────
 
     logCall(data: any): Promise<any> {
-        return request("/calls/log", {
+        return request("/calls/save", {
             method: "POST",
             body: JSON.stringify(data),
         });

@@ -14,7 +14,7 @@ from app.schemas.call_log import CallLogCreate, CallLogRead
 
 router = APIRouter()
 
-@router.post("/log", response_model=CallLogRead)
+@router.post("/save", response_model=CallLogRead)
 async def log_call(
     call_in: CallLogCreate,
     db: AsyncSession = Depends(get_db),
