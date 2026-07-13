@@ -200,8 +200,7 @@ async def notify_queue_event(
                         f"Please proceed to {dest}.{recall_text}\n"
                         f"🎫 Ticket Number: {token_str}\n"
                         f"📋 Queue: {queue_name or org_name_to_use}\n\n"
-                        f"Our staff is {action}.\n\n"
-                        "_Powered by Q4Queue_"
+                        f"Our staff is {action}."
                     )
             elif event_type in ("queue_nearby_5_v3", "queue_nearby_3_v3"):
                 pos_str = str(position) if position else "0"
@@ -220,8 +219,7 @@ async def notify_queue_event(
                             f"🎫 Ticket Number: {token_str}\n"
                             f"👥 Only 5 people are ahead of you.\n\n"
                             "Please be ready.\n\n"
-                            f"Track your queue:\n{track_url}\n\n"
-                            "_Powered by Q4Queue_"
+                            f"Track your queue:\n{track_url}"
                         )
                 else:
                     variables = [token_str, queue_name or org_name_to_use]
@@ -232,8 +230,7 @@ async def notify_queue_event(
                             f"🎫 Ticket Number: {token_str}\n"
                             f"📋 Queue: {queue_name or org_name_to_use}\n"
                             "👥 People Ahead: 3\n\n"
-                            "Please head towards the service area and be ready.\n\n"
-                            "_Powered by Q4Queue_"
+                            "Please head towards the service area and be ready."
                         )
             elif event_type == "queue_completed_v3":
                 variables = [token_str, queue_name or org_name_to_use, org_name_to_use]
@@ -243,8 +240,7 @@ async def notify_queue_event(
                         "Your visit has been completed successfully.\n\n"
                         f"🎫 Ticket Number: {token_str}\n"
                         f"📋 Queue: {queue_name or org_name_to_use}\n\n"
-                        f"Thank you for choosing {org_name_to_use}.\n\n"
-                        "_Powered by Q4Queue_"
+                        f"Thank you for choosing {org_name_to_use}."
                     )
             elif event_type == "queue_skipped_v3":
                 dest = f"Service Lane {assigned_line}" if assigned_line else "the counter"
@@ -255,8 +251,7 @@ async def notify_queue_event(
                         f"Your ticket was skipped at {dest}.\n\n"
                         f"🎫 Ticket Number: {token_str}\n"
                         f"📋 Queue: {queue_name or org_name_to_use}\n\n"
-                        "Please contact our staff if you are still available.\n\n"
-                        "_Powered by Q4Queue_"
+                        "Please contact our staff if you are still available."
                     )
             elif event_type == "queue_removed_v3":
                 variables = [token_str, queue_name or org_name_to_use]
@@ -266,8 +261,7 @@ async def notify_queue_event(
                         "Your queue ticket has been cancelled.\n\n"
                         f"🎫 Ticket Number: {token_str}\n"
                         f"📋 Queue: {queue_name or org_name_to_use}\n\n"
-                        "If this was unexpected, please contact our staff.\n\n"
-                        "_Powered by Q4Queue_"
+                        "If this was unexpected, please contact our staff."
                     )
             elif is_raw_text:
                 logger.warning("Unknown event type for raw message: %s", event_type)

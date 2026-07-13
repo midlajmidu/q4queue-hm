@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     VERSION: str = "0.5.0"
     ENVIRONMENT: str = "development"
     FRONTEND_URL: str = "https://amoebaq.com"
+    PUBLIC_API_URL: str = "https://your-ngrok-url.ngrok-free.app"
 
     # ── Security ──────────────────────────────────────────────────
     SECRET_KEY: str

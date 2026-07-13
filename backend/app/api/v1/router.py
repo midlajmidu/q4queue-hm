@@ -30,6 +30,7 @@ from app.api.v1.endpoints import (
     pairing,
     plivo,
     calls,
+    whatsapp_media,
 )
 
 api_router = APIRouter()
@@ -84,6 +85,7 @@ api_router.include_router(super_admin.router, prefix="/super-admin", tags=["Supe
 # ── WhatsApp ─────────────────────────────────────────────────
 api_router.include_router(whatsapp.router, prefix="/whatsapp", tags=["WhatsApp"])
 api_router.include_router(whatsapp_analytics.router, prefix="/whatsapp/analytics", tags=["WhatsApp Analytics"])
+api_router.include_router(whatsapp_media.router, prefix="/whatsapp/media", tags=["WhatsApp Media"])
 api_router.include_router(whatsapp.webhook_router, prefix="/webhooks", tags=["Webhooks"])
 
 # ── Customer Tracking ───────────────────────────────────────

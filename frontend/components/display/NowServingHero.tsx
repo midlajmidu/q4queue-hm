@@ -56,10 +56,10 @@ export function NowServingHero({
             serviceLines > 20
                 ? "text-xl md:text-2xl"
                 : serviceLines > 12
-                ? "text-2xl md:text-3xl lg:text-4xl"
+                ? "text-2xl md:text-3xl"
                 : serviceLines > 6
-                ? "text-3xl md:text-4xl lg:text-5xl"
-                : "text-4xl md:text-5xl lg:text-6xl";
+                ? "text-3xl md:text-4xl"
+                : "text-4xl md:text-5xl";
 
         const cols =
             serviceLines > 20
@@ -107,7 +107,7 @@ export function NowServingHero({
                                 initial={{ opacity: 0, scale: 0.92 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.25 }}
-                                className={`flex flex-col items-center justify-center p-4 lg:p-6 rounded-xl border transition-all duration-300 ${
+                                className={`flex flex-col items-center justify-center p-4 lg:p-6 rounded-xl border transition-all duration-300 min-w-0 ${
                                     hasToken
                                         ? theme === "dark" ? "bg-white/[0.08] border-white/[0.12]" : "bg-slate-50 border-slate-200"
                                         : theme === "dark" ? "bg-white/[0.02] border-white/[0.04] opacity-40" : "bg-slate-50/50 border-slate-100 opacity-40"
@@ -128,7 +128,7 @@ export function NowServingHero({
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -8 }}
                                         transition={{ duration: 0.2 }}
-                                        className={`font-extrabold tracking-tight leading-none tabular-nums w-full text-center ${tokenSize} ${
+                                        className={`font-extrabold tracking-tight leading-tight tabular-nums w-full text-center px-2 break-words break-all ${tokenSize} ${
                                             hasToken ? primaryText(theme) : theme === "dark" ? "text-slate-700" : "text-slate-300"
                                         }`}
                                     >
@@ -147,10 +147,10 @@ export function NowServingHero({
     if (activeTokens.length > 1) {
         const tokenSize =
             activeTokens.length > 15
-                ? "text-2xl md:text-3xl"
+                ? "text-xl md:text-2xl"
                 : activeTokens.length > 8
-                ? "text-3xl md:text-4xl lg:text-5xl"
-                : "text-4xl md:text-5xl lg:text-6xl";
+                ? "text-2xl md:text-3xl lg:text-4xl"
+                : "text-3xl md:text-4xl lg:text-5xl";
 
         return (
             <div className={`flex-1 ${cardBg(theme)} border ${cardBorder(theme)} ${cardShadow(theme)} rounded-2xl p-5 lg:p-6 flex flex-col overflow-hidden`}>
@@ -168,16 +168,16 @@ export function NowServingHero({
                                 initial={{ opacity: 0, scale: 0.85 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.85 }}
-                                layout
-                                className={`flex flex-col items-center justify-center p-5 lg:p-6 border rounded-xl min-w-[150px] max-w-[220px] ${
-                                    theme === "dark" ? "bg-[rgba(255,255,255,0.05)] border-[rgba(255,255,255,0.1)]" : "bg-slate-50 border-slate-200"
-                                }`}
+                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                className={`flex flex-col items-center justify-center px-8 py-6 rounded-2xl border ${
+                                    theme === "dark" ? "bg-white/[0.08] border-white/[0.12]" : "bg-white border-slate-200 shadow-sm"
+                                } min-w-[140px] max-w-[200px]`}
                             >
-                                <span className={`font-extrabold ${primaryText(theme)} tracking-tight leading-none tabular-nums ${tokenSize}`}>
+                                <span className={`font-black tracking-tight leading-tight tabular-nums w-full text-center px-2 break-words break-all ${tokenSize} ${primaryText(theme)}`}>
                                     {prefix}{token.token_number}
                                 </span>
-                                {serviceLines > 0 && token.assigned_line && (
-                                    <span className={`mt-3 text-[10px] font-medium uppercase tracking-widest ${secondaryText(theme)}`}>
+                                {token.assigned_line && (
+                                    <span className={`text-[11px] font-semibold uppercase tracking-wider mt-3 ${mutedText(theme)}`}>
                                         Counter {String(token.assigned_line).padStart(2, "0")}
                                     </span>
                                 )}
