@@ -2,30 +2,32 @@
 set -e
 
 echo "========================================"
-echo " Building Q4Queue Production Images"
+echo " Building and Pushing Q4Queue Images"
 echo " Platform: linux/amd64"
+echo " Repo: q4queue/app"
 echo "========================================"
 
 # Enable Buildx
 docker buildx create --use >/dev/null 2>&1 || true
 docker buildx inspect --bootstrap
 
-echo "Building Backend Image..."
+echo ""
+echo "Building and Pushing Backend Image..."
 docker buildx build \
   --platform linux/amd64 \
-  -t qrq-backend:latest \
-  --load \
+  -t q4queue/app:backend-latest \
+  --push \
   ./backend
 
-echo "Building Frontend Image..."
+echo ""
+echo "Building and Pushing Frontend Image..."
 docker buildx build \
   --platform linux/amd64 \
-  -t qrq-frontend:latest \
-  --load \
+  -t q4queue/app:frontend-latest \
+  --push \
   ./frontend
 
 echo ""
-echo "✅ AMD64 production images built successfully."
+echo "✅ AMD64 production images successfully built and pushed to Docker Hub!"
+echo "You can now run 'docker compose pull' on the server."
 echo ""
-docker image inspect qrq-backend:latest --format='Backend Platform: {{.Architecture}}/{{.Os}}'
-docker image inspect qrq-frontend:latest --format='Frontend Platform: {{.Architecture}}/{{.Os}}'
