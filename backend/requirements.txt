@@ -33,7 +33,8 @@ email-validator==2.2.0
 python-dateutil==2.9.0.post0
 APScheduler==3.10.4
 
-# Data Export
+# Data Export / Media
 pandas==2.2.2
 openpyxl==3.1.2
 reportlab==4.2.0
+Pillow>=10.0.0

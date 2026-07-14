@@ -232,15 +232,16 @@ async def send_whatsapp_message(
             components = []
             
             # Inject Header for ticket_confirmed_v1 (Image)
-            if template_name == "ticket_confirmed_v1":
+            if template_name == "ticket_confirmed_v1" and token_id:
+                base_url = getattr(settings, "PUBLIC_API_URL", "https://q4queue.com").rstrip("/")
+                ticket_image_url = f"{base_url}/api/v1/whatsapp/media/ticket/{token_id}.png"
                 components.append({
                     "type": "header",
                     "parameters": [
                         {
                             "type": "image",
                             "image": {
-                                # TODO: Replace with actual dynamic ticket image generator URL
-                                "link": "https://www.w3.org/html/logo/downloads/HTML5_Logo_512.png"
+                                "link": ticket_image_url
                             }
                         }
                     ]
@@ -282,8 +283,8 @@ async def send_whatsapp_message(
                 meta_message_id=meta_message_id,
             )
             logger.info(
-                "WhatsApp sent | event=%s phone=%s meta_id=%s",
-                event_type, phone_normalized, meta_message_id,
+                "WhatsApp sent | template=%s phone=%s meta_id=%s",
+                template_name, phone_normalized, meta_message_id,
             )
         else:
             error_data = response.json()
@@ -296,12 +297,12 @@ async def send_whatsapp_message(
                 error_message=error_msg,
             )
             logger.warning(
-                "WhatsApp send failed | event=%s phone=%s status=%d err=%s",
-                event_type, phone_normalized, response.status_code, error_msg,
+                "WhatsApp send failed | template=%s phone=%s status=%d err=%s",
+                template_name, phone_normalized, response.status_code, error_msg,
             )
 
     except Exception as exc:
         logger.error(
-            "WhatsApp send exception | event=%s phone=%s err=%s",
-            event_type, phone, exc,
+            "WhatsApp send exception | template=%s phone=%s err=%s",
+            template_name, phone, exc,
         )
