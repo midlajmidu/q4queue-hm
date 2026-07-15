@@ -233,7 +233,8 @@ async def notify_queue_event(
                             "Please head towards the service area and be ready."
                         )
             elif event_type == "queue_completed_v3":
-                variables = [token_str, queue_name or org_name_to_use, org_name_to_use]
+                # Meta template service_completed_v1 only expects 2 parameters (Ticket, Queue)
+                variables = [token_str, queue_name or org_name_to_use]
                 if is_raw_text:
                     raw_body = (
                         "✅ *Service Completed*\n\n"

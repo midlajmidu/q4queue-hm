@@ -83,6 +83,17 @@ export default function WebRTCCallModal({
         setStatus("Initializing...");
         setCallDuration(0);
         durationRef.current = 0;
+        
+        const handleHungUp = (e: CustomEvent) => {
+            const payload = e.detail;
+            // If the webhook reports the same phone number disconnected, force close
+            if (payload && payload.customer_phone === customerPhone) {
+                setStatus("Call Rejected / Ended");
+                setTimeout(() => cleanupCall(), 1500);
+            }
+        };
+        window.addEventListener("plivo_call_hung_up", handleHungUp as any);
+
         hasLoggedRef.current = false;
         setIsConnected(false);
 
@@ -197,6 +208,7 @@ export default function WebRTCCallModal({
         }
 
         return () => {
+            window.removeEventListener("plivo_call_hung_up", handleHungUp as any);
             if (timerRef.current) clearInterval(timerRef.current);
             if (plivoClientRef.current) {
                 const client = plivoClientRef.current;

@@ -360,9 +360,9 @@ async def call_next(
                 if q_row:
                     import asyncio
                     event_map = {
-                        "done": "queue_completed_v2",
-                        "skipped": "queue_skipped_v2",
-                        "deleted": "queue_removed_v2"
+                        "done": "queue_completed_v3",
+                        "skipped": "queue_skipped_v3",
+                        "deleted": "queue_removed_v3"
                     }
                     # Dispatch fire-and-forget task
                     asyncio.create_task(
@@ -544,7 +544,7 @@ async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UU
             import asyncio
             asyncio.create_task(
                 notify_queue_event(
-                    event_type="queue_removed_v2",
+                    event_type="queue_removed_v3",
                     org_id=org_id,
                     token_id=token.id,
                     queue_id=queue.id,

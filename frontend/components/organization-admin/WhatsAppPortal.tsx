@@ -32,27 +32,35 @@ const STATUS_COLOR: Record<string, string> = {
 
 const EVENT_LABEL: Record<string, string> = {
     "queue_joined_v4": "Joined Queue",
+    "queue_nearby_5_v3": "Position 5 Warning",
+    "queue_nearby_3_v3": "Position 3 Warning (Turn is Near)",
+    "queue_called_v3": "Called to Counter",
+    "queue_completed_v3": "Completed",
+    "queue_skipped_v3": "Skipped",
+    "queue_removed_v3": "Removed",
+    "queue_recalled_v2": "Recalled",
+    
+    // Legacy Events (Keep for historical logs but map to clean names to aggregate seamlessly)
     "queue_nearby_5_v2": "Position 5 Warning",
     "queue_nearby_3_v2": "Position 3 Warning (Turn is Near)",
     "queue_called_v2": "Called to Counter",
     "queue_completed_v2": "Completed",
     "queue_skipped_v2": "Skipped",
     "queue_removed_v2": "Removed",
-    "queue_recalled_v2": "Recalled",
-    "queue_joined_v2": "Joined (Legacy)",
-    "queue_position_v2": "Position (Legacy)",
-    "queue_served_v2": "Called (Legacy)",
+    "queue_joined_v2": "Joined Queue",
+    "queue_position_v2": "Position Warning",
+    "queue_served_v2": "Called to Counter",
     "test": "Test",
 };
 
 const ACTIVE_EVENTS = [
     "queue_joined_v4",
-    "queue_nearby_5_v2",
-    "queue_nearby_3_v2",
-    "queue_called_v2",
-    "queue_completed_v2",
-    "queue_skipped_v2",
-    "queue_removed_v2",
+    "queue_nearby_5_v3",
+    "queue_nearby_3_v3",
+    "queue_called_v3",
+    "queue_completed_v3",
+    "queue_skipped_v3",
+    "queue_removed_v3",
     "queue_recalled_v2",
 ];
 
@@ -163,10 +171,13 @@ export function WhatsAppPortal() {
     }, [loadFilteredData]);
 
     const allEventsToDisplay = useMemo(() => {
-        const displayStats = ACTIVE_EVENTS.map(eventKey => {
-            const found = eventStats.find(s => s.event_type === eventKey);
-            return found || {
-                event_type: eventKey,
+        const aggregated: Record<string, WhatsAppEventStat> = {};
+        
+        // Initialize with ACTIVE_EVENTS to keep order
+        ACTIVE_EVENTS.forEach(eventKey => {
+            const label = EVENT_LABEL[eventKey] || eventKey;
+            aggregated[label] = {
+                event_type: eventKey, // Use active key for underlying ID if needed
                 total: 0,
                 delivered: 0,
                 read: 0,
@@ -175,13 +186,23 @@ export function WhatsAppPortal() {
             };
         });
 
+        // Aggregate actual stats from backend
         eventStats.forEach(stat => {
-            if (!ACTIVE_EVENTS.includes(stat.event_type)) {
-                displayStats.push(stat);
+            const label = EVENT_LABEL[stat.event_type] || stat.event_type;
+            if (!aggregated[label]) {
+                aggregated[label] = { ...stat, event_type: stat.event_type };
+            } else {
+                aggregated[label].total += stat.total;
+                aggregated[label].delivered += stat.delivered;
+                aggregated[label].read += stat.read;
+                aggregated[label].failed += stat.failed;
+                
+                const tot = aggregated[label].total;
+                aggregated[label].success_rate = tot > 0 ? Math.round((aggregated[label].delivered / tot) * 100) : 0;
             }
         });
         
-        return displayStats;
+        return Object.values(aggregated);
     }, [eventStats]);
 
     useEffect(() => {
