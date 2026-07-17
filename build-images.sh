@@ -7,8 +7,9 @@ echo " Platform: linux/amd64"
 echo " Repo: q4queue/app"
 echo "========================================"
 
-# Enable Buildx
-docker buildx create --use >/dev/null 2>&1 || true
+# Enable Buildx with a persistent named builder for caching
+docker buildx create --name q4queue-builder --use >/dev/null 2>&1 || true
+docker buildx use q4queue-builder
 docker buildx inspect --bootstrap
 
 echo ""

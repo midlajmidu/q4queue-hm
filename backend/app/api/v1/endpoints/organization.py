@@ -185,13 +185,24 @@ async def update_organization_settings(
         for session in active_sessions:
             for tpl in org.queue_templates:
                 if tpl["id"] in newly_activated:
+                    queue_name = tpl.get("name", "Queue")
+                    existing_queue = await db.scalar(
+                        select(Queue).where(
+                            Queue.org_id == org.id,
+                            Queue.session_id == session.id,
+                            Queue.name == queue_name
+                        )
+                    )
+                    if existing_queue:
+                        continue
+                        
                     try:
                         await create_queue(
                             db,
                             org_id=org.id,
                             session_id=session.id,
                             data=QueueCreate(
-                                name=tpl.get("name", "Queue"),
+                                name=queue_name,
                                 prefix=tpl.get("defaultPrefix", "A"),
                                 starting_sequence=tpl.get("startingNumber", 1),
                                 service_lines=tpl.get("serviceLines", 0),
@@ -200,7 +211,7 @@ async def update_organization_settings(
                             )
                         )
                     except Exception:
-                        pass # Ignore errors (e.g. queue already exists in this session)
+                        pass # Ignore errors
 
     # Notify all active queues to refresh branding
     active_queues = await db.execute(select(Queue).where(Queue.org_id == org.id, Queue.is_active == True))
