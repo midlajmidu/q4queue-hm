@@ -103,7 +103,8 @@ export default function DisplayQueuePage({ params }: PageProps) {
     const assignedLine = state?.serving_details?.assigned_line;
     const customerName = state?.serving_details?.customer_name;
     const allServingTokens = state?.all_serving_tokens || [];
-    const logoUrl = state?.org_logo_url;
+    const rawLogoUrl = state?.org_logo_url;
+    const logoUrl = rawLogoUrl ? (rawLogoUrl.startsWith('http') ? rawLogoUrl : `${(process.env.NEXT_PUBLIC_API_URL || 'https://amoebaq.com/api/v1').replace('/api/v1', '')}${rawLogoUrl}`) : null;
     const isConnected = status === "connected";
 
     return (
@@ -121,16 +122,9 @@ export default function DisplayQueuePage({ params }: PageProps) {
                 {/* Mobile Header */}
                 <header className={`${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200 shadow-sm"} border-b px-4 py-3 flex items-center justify-between shrink-0 sticky top-0 z-20`}>
                     <div className="flex items-center gap-2">
-                        {logoUrl ? (
-                            <div className="relative h-8 w-24">
-                                <Image src={logoUrl} alt="Logo" fill className="object-contain object-left" />
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <div className={`w-7 h-7 rounded-lg border flex items-center justify-center font-bold text-xs ${isDark ? "bg-white/[0.08] border-white/[0.10] text-slate-400" : "bg-slate-100 border-slate-200 text-slate-600"}`}>Q</div>
-                                <span className={`text-sm font-bold tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>Q4Queue</span>
-                            </div>
-                        )}
+                        <div className="h-7 w-28 flex items-center justify-start">
+                            <img src="/q4queue-main-logo.png" alt="Q4Queue Logo" className="max-h-full max-w-full object-contain object-left" />
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                         {/* Live badge */}
@@ -208,8 +202,8 @@ export default function DisplayQueuePage({ params }: PageProps) {
                 {/* Footer */}
                 <div className={`py-3 flex items-center justify-center shrink-0 border-t ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200"}`}>
                     <span className={`text-[10px] font-medium tracking-[0.2em] uppercase flex items-center gap-1.5 ${isDark ? "text-slate-600" : "text-slate-400"}`}>
-                        Powered by{" "}
-                        <span className={`font-bold text-[10px] tracking-widest ${isDark ? "text-slate-500" : "text-slate-500"}`}>Q4QUEUE</span>
+                        Powered by 
+                        <img src="/q4queue-main-logo.png" alt="Q4Queue Logo" className="h-3 w-auto object-contain opacity-80" />
                     </span>
                 </div>
             </div>
@@ -267,16 +261,9 @@ function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDa
     return (
         <header className={`h-14 ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200"} border-b px-6 flex items-center justify-between shrink-0 z-10 relative transition-colors duration-500`}>
             <div className="flex items-center w-[300px]">
-                {logoUrl ? (
-                    <div className="relative h-10 w-32">
-                        <Image src={logoUrl} alt="Logo" fill className="object-contain object-left" />
-                    </div>
-                ) : (
-                    <div className={`flex items-center gap-3 text-xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
-                        <div className={`w-9 h-9 rounded-lg border flex items-center justify-center font-bold text-sm ${isDark ? "bg-white/[0.08] border-white/[0.10] text-slate-300" : "bg-slate-100 border-slate-200 text-slate-500"}`}>Q</div>
-                        Q4Queue
-                    </div>
-                )}
+                <div className="h-8 w-32 flex items-center justify-start">
+                    <img src="/q4queue-main-logo.png" alt="Q4Queue Logo" className="max-h-full max-w-full object-contain object-left" />
+                </div>
             </div>
             <div className="flex-1" />
             <div className="flex items-center gap-4 w-[400px] justify-end">
@@ -362,7 +349,7 @@ function MobileNowServing({ serving, prefix, serviceLines, allServingTokens, que
                                 <span className={`text-[9px] font-semibold tracking-wider mb-1 ${hasToken ? (isDark ? "text-slate-400" : "text-slate-500") : "text-slate-400"}`}>
                                     {String(counterNum).padStart(2, "0")}
                                 </span>
-                                <span className={`text-sm md:text-base font-medium tracking-tight leading-none tabular-nums break-words w-full text-center ${hasToken ? (isDark ? "text-white" : "text-slate-900") : "text-slate-400"}`}>
+                                <span className={`text-sm md:text-base font-medium tracking-tight leading-none tabular-nums whitespace-nowrap w-full text-center ${hasToken ? (isDark ? "text-white" : "text-slate-900") : "text-slate-400"}`}>
                                     {hasToken ? `${prefix}${activeToken.token_number}` : "—"}
                                 </span>
                             </div>

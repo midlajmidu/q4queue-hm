@@ -125,12 +125,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     syncAuthState();
                     
                     const currentPath = window.location.pathname;
-                    if (currentPath.startsWith("/organization-admin")) {
-                        router.push("/organization-login");
-                    } else if (currentPath.startsWith("/super-admin")) {
-                        router.push("/super-admin/login");
-                    } else {
-                        router.push("/login");
+                    const isAlreadyOnLogin = currentPath === "/login" || currentPath.endsWith("/login") || currentPath === "/organization-login";
+                    
+                    if (!isAlreadyOnLogin) {
+                        if (currentPath.startsWith("/organization-admin")) {
+                            router.push("/organization-login");
+                        } else if (currentPath.startsWith("/super-admin")) {
+                            router.push("/super-admin/login");
+                        } else {
+                            router.push("/login");
+                        }
                     }
                 }
             };
@@ -238,12 +242,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         broadcastEvent("LOGOUT");
         
         const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
-        if (currentPath.startsWith("/organization-admin")) {
-            router.push("/organization-login");
-        } else if (currentPath.startsWith("/super-admin")) {
-            router.push("/super-admin/login");
-        } else {
-            router.push("/login");
+        const isAlreadyOnLogin = currentPath === "/login" || currentPath.endsWith("/login") || currentPath === "/organization-login";
+        
+        if (!isAlreadyOnLogin) {
+            if (currentPath.startsWith("/organization-admin")) {
+                router.push("/organization-login");
+            } else if (currentPath.startsWith("/super-admin")) {
+                router.push("/super-admin/login");
+            } else {
+                router.push("/login");
+            }
         }
     }, [router, syncAuthState, broadcastEvent]);
 

@@ -695,42 +695,7 @@ export function WhatsAppPortal() {
                                 </div>
                             </div>
 
-                            {/* Test Notification */}
-                            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
-                                <div className="p-6 border-b border-slate-100 dark:border-slate-800">
-                                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Send Test Notification</h2>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Verify your setup by sending a test message.</p>
-                                </div>
-                                <div className="p-6 flex-1 flex flex-col justify-center bg-slate-50/30 dark:bg-slate-900/50">
-                                    <div className="space-y-4 max-w-sm mx-auto w-full">
-                                        <div className="text-center mb-6">
-                                            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                                            </div>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">Enter your WhatsApp number with country code to receive a test message immediately.</p>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            placeholder="+1234567890"
-                                            value={testPhone}
-                                            onChange={e => setTestPhone(e.target.value)}
-                                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-sm text-center text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono tracking-wider"
-                                        />
-                                        <button
-                                            onClick={sendTest}
-                                            disabled={sendingTest || !testPhone.trim()}
-                                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-3 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow active:scale-[0.98]"
-                                        >
-                                            {sendingTest ? "Sending..." : "Send Test Message"}
-                                        </button>
-                                        {testMsg && (
-                                            <div className={`text-sm mt-4 font-medium text-center p-3 rounded-lg ${testMsg.includes("✓") ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20" : "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20"}`}>
-                                                {testMsg}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+
                         </div>
                     </div>
                 )}

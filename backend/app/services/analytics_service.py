@@ -23,6 +23,9 @@ async def get_overview_metrics(
 ) -> dict:
     """Fetch aggregated metrics for the dashboard."""
     from dateutil.parser import parse as parse_date
+    from app.models.organization import Organization
+    org = await db.scalar(select(Organization).where(Organization.id == org_id))
+    org_tz_str = org.timezone if org and org.timezone else "UTC"
     
     # Base conditions
     conditions = [Token.org_id == org_id]
@@ -35,7 +38,7 @@ async def get_overview_metrics(
     if start_date:
         try:
             from zoneinfo import ZoneInfo
-            tz = ZoneInfo("Asia/Kolkata")
+            tz = ZoneInfo(org_tz_str)
             dt = parse_date(start_date)
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=tz)
@@ -48,7 +51,7 @@ async def get_overview_metrics(
     if end_date:
         try:
             from zoneinfo import ZoneInfo
-            tz = ZoneInfo("Asia/Kolkata")
+            tz = ZoneInfo(org_tz_str)
             ed = parse_date(end_date)
             if ed.tzinfo is None:
                 ed = ed.replace(tzinfo=tz)
@@ -83,9 +86,10 @@ async def get_overview_metrics(
     for row in count_result.all():
         counts[row[0].value] = row[1]
         
-    # Total visits should NOT include deleted tokens
+    # Total visits includes all tokens (even deleted ones) for accurate dashboard math
     total_visits = counts[TokenStatus.waiting.value] + counts[TokenStatus.serving.value] + \
-                   counts[TokenStatus.done.value] + counts[TokenStatus.skipped.value]
+                   counts[TokenStatus.done.value] + counts[TokenStatus.skipped.value] + \
+                   counts[TokenStatus.deleted.value]
     
     served_visits = counts[TokenStatus.done.value]
     cancelled_visits = counts[TokenStatus.skipped.value] + counts[TokenStatus.deleted.value]
@@ -121,7 +125,7 @@ async def get_overview_metrics(
 
     # 3. Hourly Chart (Visits by hour) - Exclude deleted
     hourly_query = select(
-        func.extract('hour', func.timezone('Asia/Kolkata', Token.created_at)).label('hr'),
+        func.extract('hour', func.timezone(org_tz_str, Token.created_at)).label('hr'),
         func.count(Token.id)
     ).where(and_(*active_conditions)).group_by('hr').order_by('hr')
     
@@ -133,8 +137,8 @@ async def get_overview_metrics(
 
     # 4. Monthly Chart - Exclude deleted
     monthly_query = select(
-        func.extract('month', func.timezone('Asia/Kolkata', Token.created_at)).label('mon'),
-        func.extract('year', func.timezone('Asia/Kolkata', Token.created_at)).label('yr'),
+        func.extract('month', func.timezone(org_tz_str, Token.created_at)).label('mon'),
+        func.extract('year', func.timezone(org_tz_str, Token.created_at)).label('yr'),
         func.count(Token.id)
     ).where(and_(*active_conditions)).group_by('yr', 'mon').order_by('yr', 'mon')
     
@@ -147,7 +151,7 @@ async def get_overview_metrics(
 
     # 5. Daily Timings Chart - Exclude deleted
     daily_timings_query = select(
-        func.date(func.timezone('Asia/Kolkata', Token.created_at)).label('dt'),
+        func.date(func.timezone(org_tz_str, Token.created_at)).label('dt'),
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait'),
         func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve'),
     ).where(and_(*active_conditions)).group_by('dt').order_by('dt')
@@ -194,6 +198,8 @@ async def get_overview_metrics(
         for row in staff_perf_res.all()
     ]
 
+    from app.models.session import Session
+    
     # 7. Recent Activity (for show last details request)
     recent_query = select(
         Token.token_number,
@@ -201,10 +207,15 @@ async def get_overview_metrics(
         Token.created_at,
         Token.served_at,
         Token.completed_at,
+        Token.skipped_at,
+        Token.recalled_at,
         Token.customer_name,
         Queue.name.label('queue_name'),
-        Queue.prefix.label('queue_prefix')
-    ).join(Queue, Token.queue_id == Queue.id).where(
+        Queue.prefix.label('queue_prefix'),
+        Session.title.label('session_title')
+    ).join(Queue, Token.queue_id == Queue.id).outerjoin(
+        Session, Queue.session_id == Session.id
+    ).where(
         and_(*active_conditions)
     ).order_by(Token.created_at.desc()).limit(recent_limit).offset(recent_offset)
     
@@ -217,16 +228,18 @@ async def get_overview_metrics(
             "number": r.token_number,
             "status": r.status.value,
             "queue": r.queue_name,
+            "session_name": r.session_title,
             "customer_name": r.customer_name or "Walk-in",
             "time": r.created_at.isoformat(),
             "served_at": r.served_at.isoformat() if r.served_at else None,
             "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+            "skipped_at": r.skipped_at.isoformat() if r.skipped_at else None,
+            "recalled_at": r.recalled_at.isoformat() if r.recalled_at else None,
         }
         for r in recent_res.all()
     ]
 
     # 8. Longest waiting token for dynamic alerts
-    from app.models.session import Session
     longest_waiting_query = select(
         Queue.name.label('queue_name'),
         Session.title.label('session_title'),
@@ -284,7 +297,11 @@ async def get_history_details(
 ) -> dict:
     """Fetch detailed token history with pagination and filters."""
     from app.models.queue import Queue
+    from app.models.organization import Organization
     from sqlalchemy import or_, cast, String
+    
+    org = await db.scalar(select(Organization).where(Organization.id == org_id))
+    org_tz_str = org.timezone if org and org.timezone else "UTC"
     
     conditions = [Token.org_id == org_id]
     if queue_id:
@@ -429,7 +446,7 @@ async def get_analytics_csv_data(
     if start_date:
         try:
             from zoneinfo import ZoneInfo
-            tz = ZoneInfo("Asia/Kolkata")
+            tz = ZoneInfo(org_tz_str)
             dt = parse_date(start_date)
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=tz)
@@ -442,7 +459,7 @@ async def get_analytics_csv_data(
     if end_date:
         try:
             from zoneinfo import ZoneInfo
-            tz = ZoneInfo("Asia/Kolkata")
+            tz = ZoneInfo(org_tz_str)
             ed = parse_date(end_date)
             if ed.tzinfo is None:
                 ed = ed.replace(tzinfo=tz)
@@ -573,7 +590,11 @@ async def get_cross_branch_analytics(
     from dateutil.parser import parse as parse_date
     from zoneinfo import ZoneInfo
     
-    tz = ZoneInfo("Asia/Kolkata")
+    from app.models.parent_organization import ParentOrganization
+    parent_org = await db.scalar(select(ParentOrganization).where(ParentOrganization.id == parent_org_id))
+    org_tz_str = parent_org.timezone if parent_org and parent_org.timezone else "UTC"
+    
+    tz = ZoneInfo(org_tz_str)
     
     # 1. Resolve branch filters
     org_query = select(Organization.id, Organization.name, Organization.is_active).where(Organization.parent_organization_id == parent_org_id)
@@ -590,7 +611,7 @@ async def get_cross_branch_analytics(
         return {}
 
     # 2. Date filters
-    token_conditions = [Token.org_id.in_(org_ids), Token.status != TokenStatus.deleted]
+    token_conditions = [Token.org_id.in_(org_ids)]
     
     if start_date:
         try:
@@ -614,7 +635,7 @@ async def get_cross_branch_analytics(
         func.count(Token.id).label("total_customers"),
         func.sum(case((Token.status == TokenStatus.done, 1), else_=0)).label("served"),
         func.sum(case((Token.status == TokenStatus.waiting, 1), else_=0)).label("waiting"),
-        func.sum(case((Token.status == TokenStatus.skipped, 1), else_=0)).label("abandoned"),
+        func.sum(case((Token.status.in_([TokenStatus.skipped, TokenStatus.deleted]), 1), else_=0)).label("abandoned"),
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
         func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
     ).where(and_(*token_conditions))
@@ -663,7 +684,7 @@ async def get_cross_branch_analytics(
     
     # 5. Volume Trend (Daily)
     trend_q = select(
-        func.date(func.timezone('Asia/Kolkata', Token.created_at)).label('dt'),
+        func.date(func.timezone(org_tz_str, Token.created_at)).label('dt'),
         func.count(Token.id).label("served")
     ).where(and_(*token_conditions, Token.status == TokenStatus.done)).group_by('dt').order_by('dt')
     
@@ -733,7 +754,7 @@ async def get_cross_branch_analytics(
         
     # 8. Peak Traffic (Hourly distribution)
     peak_q = select(
-        func.extract('hour', func.timezone('Asia/Kolkata', Token.created_at)).label('hr'),
+        func.extract('hour', func.timezone(org_tz_str, Token.created_at)).label('hr'),
         func.count(Token.id).label("arrived"),
         func.sum(case((Token.status == TokenStatus.done, 1), else_=0)).label("served"),
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
@@ -904,8 +925,17 @@ async def get_cross_branch_csv_data(
     import io
     from dateutil.parser import parse as parse_date
     from zoneinfo import ZoneInfo
+    from app.models.organization import Organization
+    
+    # We use UTC for multi-org CSV exports by default, or we could fetch the first org's tz.
+    # For simplicity, we just use UTC here or default to 'Asia/Kolkata' if you really want.
+    org_tz_str = "UTC"
+    if org_ids:
+        first_org = await db.scalar(select(Organization).where(Organization.id == org_ids[0]))
+        if first_org and first_org.timezone:
+            org_tz_str = first_org.timezone
 
-    tz = ZoneInfo("Asia/Kolkata")
+    tz = ZoneInfo(org_tz_str)
     
     conditions = [Token.org_id.in_(org_ids)]
     

@@ -38,10 +38,6 @@ function formatTimeAgo(dateString: string): string {
 function getDynamicTitle(content: string, type: string): string {
     const text = content.toLowerCase();
     
-    // Check keywords first
-    if (text.includes("wait time") || text.includes("staff")) {
-        return "Queue Warning";
-    }
     if (text.includes("maintenance") || text.includes("schedule")) {
         return "Maintenance Info";
     }
@@ -59,8 +55,6 @@ function getDynamicTitle(content: string, type: string): string {
     
     // Default fallbacks based on type
     switch (type) {
-        case "warning":
-            return "System Warning";
         case "success":
             return "System Success";
         case "error":

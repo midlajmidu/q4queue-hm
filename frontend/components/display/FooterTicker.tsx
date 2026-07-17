@@ -42,9 +42,7 @@ export function FooterTicker({ announcement, theme = "light" }: FooterTickerProp
             <div className="flex items-center justify-center">
                 <span className={`text-[10px] font-medium tracking-[0.2em] ${isDark ? "text-slate-600" : "text-slate-400"} uppercase flex items-center gap-2`}>
                     Powered by 
-                    <span className={`font-bold ${isDark ? "text-slate-500" : "text-slate-500"} text-[10px] tracking-widest`}>
-                        Q4QUEUE
-                    </span>
+                    <img src="/q4queue-main-logo.png" alt="Q4Queue Logo" className="h-3 w-auto object-contain opacity-80" />
                 </span>
             </div>
         </footer>

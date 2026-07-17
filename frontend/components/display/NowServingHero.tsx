@@ -109,12 +109,12 @@ export function NowServingHero({
                                 transition={{ duration: 0.25 }}
                                 className={`flex flex-col items-center justify-center p-4 lg:p-6 rounded-xl border transition-all duration-300 min-w-0 ${
                                     hasToken
-                                        ? theme === "dark" ? "bg-white/[0.08] border-white/[0.12]" : "bg-slate-50 border-slate-200"
+                                        ? theme === "dark" ? "bg-white/[0.08] border-white/[0.12]" : "bg-white border-slate-200 shadow-md"
                                         : theme === "dark" ? "bg-white/[0.02] border-white/[0.04] opacity-40" : "bg-slate-50/50 border-slate-100 opacity-40"
                                 }`}
                             >
                                 <span
-                                    className={`text-[10px] lg:text-[11px] font-semibold tracking-[0.15em] uppercase mb-3 ${
+                                    className={`text-[10px] lg:text-[11px] font-semibold tracking-[0.15em] uppercase mb-3 whitespace-nowrap ${
                                         hasToken ? secondaryText(theme) : mutedText(theme)
                                     }`}
                                 >
@@ -128,7 +128,7 @@ export function NowServingHero({
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -8 }}
                                         transition={{ duration: 0.2 }}
-                                        className={`font-extrabold tracking-tight leading-tight tabular-nums w-full text-center px-2 break-words break-all ${tokenSize} ${
+                                        className={`font-extrabold tracking-tight leading-none tabular-nums w-full text-center px-2 whitespace-nowrap ${tokenSize} ${
                                             hasToken ? primaryText(theme) : theme === "dark" ? "text-slate-700" : "text-slate-300"
                                         }`}
                                     >
@@ -169,11 +169,11 @@ export function NowServingHero({
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.85 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                                className={`flex flex-col items-center justify-center px-8 py-6 rounded-2xl border ${
+                                className={`flex flex-col items-center justify-center px-6 py-5 rounded-2xl border ${
                                     theme === "dark" ? "bg-white/[0.08] border-white/[0.12]" : "bg-white border-slate-200 shadow-sm"
-                                } min-w-[140px] max-w-[200px]`}
+                                } min-w-[140px] max-w-full`}
                             >
-                                <span className={`font-black tracking-tight leading-tight tabular-nums w-full text-center px-2 break-words break-all ${tokenSize} ${primaryText(theme)}`}>
+                                <span className={`font-black tracking-tight leading-none tabular-nums w-full text-center px-2 whitespace-nowrap ${tokenSize} ${primaryText(theme)}`}>
                                     {prefix}{token.token_number}
                                 </span>
                                 {token.assigned_line && (

@@ -47,8 +47,13 @@ export interface AnalyticsOverview {
         number: number;
         status: string;
         queue: string;
+        session_name?: string | null;
         customer_name?: string;
         time: string;
+        served_at?: string | null;
+        completed_at?: string | null;
+        skipped_at?: string | null;
+        recalled_at?: string | null;
     }[];
     longest_waiting_queue?: string | null;
     longest_waiting_session?: string | null;
