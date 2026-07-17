@@ -172,7 +172,7 @@ async def leave_queue(
         from app.services.notification_service import notify_queue_event
         background_tasks.add_task(
             notify_queue_event,
-            event_type="queue_removed_v2",
+            event_type="queue_removed_v3",
             org_id=token.org_id,
             token_id=token.id,
             queue_id=token.queue_id,

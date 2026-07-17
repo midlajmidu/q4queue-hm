@@ -111,12 +111,11 @@ DEFAULT_TEMPLATES = [
             "Your visit has been completed successfully.\n\n"
             "🎫 Ticket Number: {{1}}\n"
             "📋 Queue: {{2}}\n\n"
-            "Thank you for choosing {{3}}."
+            "Thank you for choosing us."
         ),
         "variables": {
             "1": "Ticket Number",
             "2": "Queue Name",
-            "3": "Business Name",
         },
         "status": WhatsAppTemplateStatus.approved,
     },

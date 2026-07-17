@@ -16,7 +16,7 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken } from "@/types/api";
-import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone } from "lucide-react";
+import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
@@ -370,7 +370,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                     <div className="w-10 h-10 flex-shrink-0 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
                         <UserPlus className="h-5 w-5 stroke-[2px]" />
                     </div>
-                    
+
                     {/* Clean Typography */}
                     <div className="flex flex-col flex-1 min-w-0 justify-center pt-0.5">
                         {/* Header Row */}
@@ -417,7 +417,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, []);
 
     const [activeSection, setActiveSection] = useState<ActiveSection>("queues");
-    
+
     // TV Pairing state
     const [pairingCodeInput, setPairingCodeInput] = useState("");
     const [isPairing, setIsPairing] = useState(false);
@@ -454,7 +454,7 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
-    
+
     // ── "Updated Ns ago" ticker ───────────────────────────────────
     const [secondsAgo, setSecondsAgo] = useState(0);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -495,7 +495,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false);
     const [waitingSearch, setWaitingSearch] = useState("");
     const [recentSearch, setRecentSearch] = useState("");
-    
+
     // WebRTC Calling State
     const [callModalOpen, setCallModalOpen] = useState(false);
     const [callTokenNumber, setCallTokenNumber] = useState("");
@@ -728,9 +728,9 @@ export default function QueueDetailPage({ params }: PageProps) {
         setActionLoading("add");
         setActionError(null);
         try {
-            const res = await api.adminJoin(queueId, { 
-                name: addName.trim(), 
-                phone: `${addCountryCode}${phoneDigits}`, 
+            const res = await api.adminJoin(queueId, {
+                name: addName.trim(),
+                phone: `${addCountryCode}${phoneDigits}`,
                 pax_count: addPaxCount,
                 send_whatsapp: sendWhatsapp,
                 entry_type: "manual"
@@ -767,7 +767,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                 return;
             }
         }
-        
+
         const num = parseInt(inviteNumber, 10);
         if (isNaN(num)) return;
         executeInviteWithNumber(num, lineNum);
@@ -911,7 +911,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
                                     Back to Sessions
                                 </Link>
-                                <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 -mr-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={20}/></button>
+                                <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 -mr-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={20} /></button>
                             </div>
                             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Managing</div>
@@ -979,8 +979,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         key={item.id}
                                         onClick={() => setActiveSection(item.id)}
                                         className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all text-left ${isActiveItem
-                                                ? "font-semibold text-indigo-700 bg-indigo-50"
-                                                : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                            ? "font-semibold text-indigo-700 bg-indigo-50"
+                                            : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                                             }`}
                                     >
                                         <span className={`flex-shrink-0 ${isActiveItem ? "text-indigo-600" : "text-slate-400"}`}>
@@ -1080,7 +1080,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 </span>
                                             </div>
                                             <span className="hidden md:block mx-3" style={{ width: 1, height: 12, background: T.cardBorder, flexShrink: 0 }} />
-                                            
+
                                             <div className="flex items-center gap-3">
                                                 <button
                                                     onClick={refresh}
@@ -1120,7 +1120,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         </div>
 
                                         <div style={{ width: 1, height: 24, background: T.cardBorder, margin: "0 4px" }} className="hidden md:block" />
-                                        
+
                                         <div className="hidden md:flex items-center gap-2">
                                             {isActive && canManageQueue && (
                                                 <button
@@ -1193,244 +1193,244 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                                         {/* Original single-counter serving hero (only when service_lines === 0) */}
                                         {(state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && (
-                                        <>
-                                        <div className="pt-4 pb-1 px-4 sm:px-6 lg:px-8 w-full flex justify-center">
-                                            <div className="relative w-full max-w-2xl flex flex-col filter drop-shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
-                                            
-                                            {/* 2. The Top Half (Content) */}
-                                            <div className="bg-white dark:bg-slate-900 pt-10 pb-8 px-8 flex flex-col items-center justify-center rounded-t-[1.5rem] relative overflow-hidden">
-                                                
-                                                {/* "NOW SERVING" Pill */}
-                                                <div className="relative z-10 inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 shadow-sm rounded-full px-4 py-1.5 mb-6">
-                                                    <span className="relative flex h-2 w-2">
-                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
-                                                    </span>
-                                                    <span className="text-slate-600 dark:text-slate-300 text-[10px] font-bold tracking-widest uppercase">Now Serving</span>
-                                                </div>
+                                            <>
+                                                <div className="pt-4 pb-1 px-4 sm:px-6 lg:px-8 w-full flex justify-center">
+                                                    <div className="relative w-full max-w-2xl flex flex-col filter drop-shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
 
-                                                {/* The Main Token (A1) */}
-                                                {(!state?.serving_details) ? (
-                                                    <div className="relative z-10 flex flex-col items-center justify-center py-2" style={{ minHeight: 100 }}>
-                                                        <div className="w-12 h-12 mb-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60">
-                                                            <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
-                                                                <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>
-                                                        </div>
-                                                        <span className="text-slate-800 dark:text-slate-200 text-base font-semibold mb-1">
-                                                            No one is being served
-                                                        </span>
-                                                        <span className="text-slate-500 dark:text-slate-400 text-sm mb-4">
-                                                            Ready for next customer
-                                                        </span>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <div className="serving-num relative z-10 text-[96px] leading-none font-extrabold tracking-tight text-slate-900 dark:text-white mb-2" style={{ background: "linear-gradient(135deg, #0f172a 0%, #334155 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }} aria-live="polite" aria-atomic="true">
-                                                            {`${state.prefix || ""}${state.current_serving}`}
-                                                        </div>
+                                                        {/* 2. The Top Half (Content) */}
+                                                        <div className="bg-white dark:bg-slate-900 pt-10 pb-8 px-8 flex flex-col items-center justify-center rounded-t-[1.5rem] relative overflow-hidden">
 
-                                                        {/* Customer Details */}
-                                                        {state?.serving_details && (
-                                                            <div className="fade-in relative z-10 flex flex-col items-center mt-2">
-                                                                <div className="flex items-center gap-2 mb-1">
-                                                                    <h3 className="text-slate-800 dark:text-slate-100 text-lg font-semibold m-0">
-                                                                        {state.serving_details.customer_name}
-                                                                    </h3>
-                                                                    {(state.serving_details.pax_count && state.serving_details.pax_count > 1) && (
-                                                                        <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700" title={`Total Pax: ${state.serving_details.pax_count}`}>
-                                                                            <Users size={10} className="text-slate-400" />
-                                                                            +{state.serving_details.pax_count - 1}
-                                                                        </span>
-                                                                    )}
+                                                            {/* "NOW SERVING" Pill */}
+                                                            <div className="relative z-10 inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 shadow-sm rounded-full px-4 py-1.5 mb-6">
+                                                                <span className="relative flex h-2 w-2">
+                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+                                                                </span>
+                                                                <span className="text-slate-600 dark:text-slate-300 text-[10px] font-bold tracking-widest uppercase">Now Serving</span>
+                                                            </div>
+
+                                                            {/* The Main Token (A1) */}
+                                                            {(!state?.serving_details) ? (
+                                                                <div className="relative z-10 flex flex-col items-center justify-center py-2" style={{ minHeight: 100 }}>
+                                                                    <div className="w-12 h-12 mb-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60">
+                                                                        <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+                                                                            <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                                        </svg>
+                                                                    </div>
+                                                                    <span className="text-slate-800 dark:text-slate-200 text-base font-semibold mb-1">
+                                                                        No one is being served
+                                                                    </span>
+                                                                    <span className="text-slate-500 dark:text-slate-400 text-sm mb-4">
+                                                                        Ready for next customer
+                                                                    </span>
                                                                 </div>
-                                                                
-                                                                <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm mt-1">
-                                                                    <span>{state.serving_details.customer_phone}</span>
+                                                            ) : (
+                                                                <>
+                                                                    <div className="serving-num relative z-10 text-[96px] leading-none font-extrabold tracking-tight text-slate-900 dark:text-white mb-2" style={{ background: "linear-gradient(135deg, #0f172a 0%, #334155 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }} aria-live="polite" aria-atomic="true">
+                                                                        {`${state.prefix || ""}${state.current_serving}`}
+                                                                    </div>
+
+                                                                    {/* Customer Details */}
+                                                                    {state?.serving_details && (
+                                                                        <div className="fade-in relative z-10 flex flex-col items-center mt-2">
+                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                <h3 className="text-slate-800 dark:text-slate-100 text-lg font-semibold m-0">
+                                                                                    {state.serving_details.customer_name}
+                                                                                </h3>
+                                                                                {(state.serving_details.pax_count && state.serving_details.pax_count > 1) && (
+                                                                                    <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700" title={`Total Pax: ${state.serving_details.pax_count}`}>
+                                                                                        <Users size={10} className="text-slate-400" />
+                                                                                        +{state.serving_details.pax_count - 1}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+
+                                                                            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm mt-1">
+                                                                                <span>{state.serving_details.customer_phone}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                        </div>
+
+                                                        {/* 3. The Middle Divider (The Magic CSS Mask) */}
+                                                        <div
+                                                            className="h-12 bg-white dark:bg-slate-900 relative flex items-center justify-center"
+                                                            style={{
+                                                                WebkitMaskImage: 'radial-gradient(circle at 0px 50%, transparent 18px, black 19px), radial-gradient(circle at 100% 50%, transparent 18px, black 19px)',
+                                                                WebkitMaskSize: '51% 100%',
+                                                                WebkitMaskPosition: 'left, right',
+                                                                WebkitMaskRepeat: 'no-repeat',
+                                                                maskImage: 'radial-gradient(circle at 0px 50%, transparent 18px, black 19px), radial-gradient(circle at 100% 50%, transparent 18px, black 19px)',
+                                                                maskSize: '51% 100%',
+                                                                maskPosition: 'left, right',
+                                                                maskRepeat: 'no-repeat'
+                                                            }}
+                                                        >
+                                                            {/* The Dashed Line - calculated width to avoid bleeding into the holes */}
+                                                            <div className="w-[calc(100%-72px)] border-t-[1.5px] border-dashed border-slate-200 dark:border-slate-700"></div>
+                                                        </div>
+
+                                                        {/* 4. The Bottom Half (Stub & Metrics) */}
+                                                        <div className="bg-white dark:bg-slate-900 px-8 pb-6 pt-2 rounded-b-[1.5rem]">
+                                                            <div className="grid grid-cols-4 divide-x divide-slate-100 dark:divide-slate-800">
+
+                                                                {/* Total Customers (Issued) */}
+                                                                <div className="flex flex-col items-center justify-center py-2">
+                                                                    <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums leading-none">{state?.total_issued ?? 0}</span>
+                                                                    <span className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span> Issued
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Remaining (Waiting) */}
+                                                                <div className="flex flex-col items-center justify-center py-2">
+                                                                    <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums leading-none">{state?.waiting_count ?? 0}</span>
+                                                                    <span className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Waiting
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Served */}
+                                                                <div className="flex flex-col items-center justify-center py-2">
+                                                                    <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums leading-none">{state?.done_count ?? 0}</span>
+                                                                    <span className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Served
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Skipped */}
+                                                                <div className="flex flex-col items-center justify-center py-2">
+                                                                    <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums leading-none">{state?.skipped_count ?? 0}</span>
+                                                                    <span className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Skipped
+                                                                    </span>
                                                                 </div>
                                                             </div>
-                                                        )}
-                                                    </>
-                                                )}
-                                            </div>
-
-                                            {/* 3. The Middle Divider (The Magic CSS Mask) */}
-                                            <div 
-                                                className="h-12 bg-white dark:bg-slate-900 relative flex items-center justify-center"
-                                                style={{
-                                                    WebkitMaskImage: 'radial-gradient(circle at 0px 50%, transparent 18px, black 19px), radial-gradient(circle at 100% 50%, transparent 18px, black 19px)',
-                                                    WebkitMaskSize: '51% 100%',
-                                                    WebkitMaskPosition: 'left, right',
-                                                    WebkitMaskRepeat: 'no-repeat',
-                                                    maskImage: 'radial-gradient(circle at 0px 50%, transparent 18px, black 19px), radial-gradient(circle at 100% 50%, transparent 18px, black 19px)',
-                                                    maskSize: '51% 100%',
-                                                    maskPosition: 'left, right',
-                                                    maskRepeat: 'no-repeat'
-                                                }}
-                                            >
-                                                {/* The Dashed Line - calculated width to avoid bleeding into the holes */}
-                                                <div className="w-[calc(100%-72px)] border-t-[1.5px] border-dashed border-slate-200 dark:border-slate-700"></div>
-                                            </div>
-
-                                            {/* 4. The Bottom Half (Stub & Metrics) */}
-                                            <div className="bg-white dark:bg-slate-900 px-8 pb-6 pt-2 rounded-b-[1.5rem]">
-                                                <div className="grid grid-cols-4 divide-x divide-slate-100 dark:divide-slate-800">
-                                                        
-                                                        {/* Total Customers (Issued) */}
-                                                        <div className="flex flex-col items-center justify-center py-2">
-                                                            <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums leading-none">{state?.total_issued ?? 0}</span>
-                                                            <span className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span> Issued
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Remaining (Waiting) */}
-                                                        <div className="flex flex-col items-center justify-center py-2">
-                                                            <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums leading-none">{state?.waiting_count ?? 0}</span>
-                                                            <span className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Waiting
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Served */}
-                                                        <div className="flex flex-col items-center justify-center py-2">
-                                                            <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums leading-none">{state?.done_count ?? 0}</span>
-                                                            <span className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Served
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Skipped */}
-                                                        <div className="flex flex-col items-center justify-center py-2">
-                                                            <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums leading-none">{state?.skipped_count ?? 0}</span>
-                                                            <span className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Skipped
-                                                            </span>
-                                                        </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
 
-                                        {/* Action buttons */}
-                                        {canManageQueue && (
-                                            <div className={`grid gap-3 w-full ${(!state?.serving_details) ? "grid-cols-1" : "grid-cols-2"}`} role="toolbar">
-                                                {(!state?.serving_details) && (
-                                                    <button
-                                                        onClick={handleNext}
-                                                        disabled={isDisabled || isPaused}
-                                                        title={isPaused ? "Queue is currently on a break" : undefined}
-                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg shadow-indigo-500/20 transition-all duration-200 w-full flex justify-center items-center h-[52px] rounded-2xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
-                                                    >
-                                                        {actionLoading === "next" ? (
+                                                {/* Action buttons */}
+                                                {canManageQueue && (
+                                                    <div className={`grid gap-3 w-full ${(!state?.serving_details) ? "grid-cols-1" : "grid-cols-2"}`} role="toolbar">
+                                                        {(!state?.serving_details) && (
+                                                            <button
+                                                                onClick={handleNext}
+                                                                disabled={isDisabled || isPaused}
+                                                                title={isPaused ? "Queue is currently on a break" : undefined}
+                                                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg shadow-indigo-500/20 transition-all duration-200 w-full flex justify-center items-center h-[52px] rounded-2xl text-[15px] gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0"
+                                                            >
+                                                                {actionLoading === "next" ? (
+                                                                    <>
+                                                                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                                        Calling…
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                                                                        Call Next
+                                                                        <kbd className="text-[10px] opacity-50 ml-1 px-1.5 py-0.5 rounded bg-white/15">↵</kbd>
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        )}
+
+                                                        {(!!state?.serving_details) && (
                                                             <>
-                                                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                                Calling…
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                                                                Call Next
-                                                                <kbd className="text-[10px] opacity-50 ml-1 px-1.5 py-0.5 rounded bg-white/15">↵</kbd>
+                                                                <button
+                                                                    onClick={() => performAction("skipped", async () => {
+                                                                        const res = await api.callNext(queueId, "skipped");
+                                                                        if ("message" in res) toast(res.message, "info");
+                                                                        else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
+                                                                    })}
+                                                                    disabled={isDisabled || isPaused}
+                                                                    title={isPaused ? "Queue is currently on a break" : undefined}
+                                                                    className="w-full flex justify-center items-center h-12 rounded-2xl bg-amber-500 text-white text-[14px] font-semibold shadow-lg shadow-amber-500/20 border border-transparent hover:bg-amber-600 hover:shadow-amber-500/30 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                >
+                                                                    {actionLoading === "skipped" ? (
+                                                                        <>
+                                                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                                            Skipping…
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg>
+                                                                            Skip & Next
+                                                                        </>
+                                                                    )}
+                                                                </button>
+
+                                                                <button
+                                                                    onClick={() => performAction("done", async () => {
+                                                                        const res = await api.callNext(queueId, "done");
+                                                                        if ("message" in res) toast(res.message, "info");
+                                                                        else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
+                                                                    })}
+                                                                    disabled={isDisabled || isPaused}
+                                                                    title={isPaused ? "Queue is currently on a break" : undefined}
+                                                                    className="w-full flex justify-center items-center h-12 rounded-2xl bg-emerald-600 text-white text-[14px] font-semibold shadow-lg shadow-emerald-500/20 border border-transparent hover:bg-emerald-700 hover:shadow-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                >
+                                                                    {actionLoading === "done" ? (
+                                                                        <>
+                                                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                                            Completing…
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                                                                            Done & Next
+                                                                        </>
+                                                                    )}
+                                                                </button>
                                                             </>
                                                         )}
-                                                    </button>
+                                                    </div>
                                                 )}
-
-                                                {(!!state?.serving_details) && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => performAction("skipped", async () => {
-                                                                const res = await api.callNext(queueId, "skipped");
-                                                                if ("message" in res) toast(res.message, "info");
-                                                                else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
-                                                            })}
-                                                            disabled={isDisabled || isPaused}
-                                                            title={isPaused ? "Queue is currently on a break" : undefined}
-                                                            className="w-full flex justify-center items-center h-12 rounded-2xl bg-amber-500 text-white text-[14px] font-semibold shadow-lg shadow-amber-500/20 border border-transparent hover:bg-amber-600 hover:shadow-amber-500/30 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            {actionLoading === "skipped" ? (
-                                                                <>
-                                                                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                                    Skipping…
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg>
-                                                                    Skip & Next
-                                                                </>
-                                                            )}
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => performAction("done", async () => {
-                                                                const res = await api.callNext(queueId, "done");
-                                                                if ("message" in res) toast(res.message, "info");
-                                                                else toast(`${state?.prefix || ""}${res.serving} is now serving`, "success");
-                                                            })}
-                                                            disabled={isDisabled || isPaused}
-                                                            title={isPaused ? "Queue is currently on a break" : undefined}
-                                                            className="w-full flex justify-center items-center h-12 rounded-2xl bg-emerald-600 text-white text-[14px] font-semibold shadow-lg shadow-emerald-500/20 border border-transparent hover:bg-emerald-700 hover:shadow-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 transition-all gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            {actionLoading === "done" ? (
-                                                                <>
-                                                                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                                    Completing…
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
-                                                                    Done & Next
-                                                                </>
-                                                            )}
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        )}
-                                        </>
+                                            </>
                                         )} {/* end service_lines === 0 single-counter section */}
 
                                         {/* Quick Actions Toolbar — Desktop (horizontal bar) */}
                                         {canManageQueue && (
-                                        <div className="sticky bottom-0 z-30 mt-auto hidden sm:flex items-center gap-2 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_-4px_20px_rgb(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgb(0,0,0,0.4)] transition-all">
-                                            {/* Manual Entry */}
-                                            <button
-                                                onClick={() => setShowAddForm(true)}
-                                                disabled={isDisabled || isPaused}
-                                                title={isPaused ? "Queue is currently on a break" : undefined}
-                                                className="w-auto h-10 px-5 text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] shadow-[0_4px_12px_rgba(79,70,229,0.25)] hover:shadow-[0_6px_16px_rgba(79,70,229,0.35)] transition-all flex justify-center items-center gap-2 flex-shrink-0 disabled:opacity-50 disabled:shadow-none"
-                                            >
-                                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                                                Add Customer
-                                            </button>
-
-                                            <div className="w-[1px] h-7 bg-slate-200 dark:bg-slate-700/50 mx-1" />
-
-                                            {/* Invite by Number */}
-                                            <form onSubmit={handleInvite} className="flex-1 relative flex items-center group">
-                                                <div className="absolute left-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
-                                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                                                </div>
-                                                <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[70px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
-                                                <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-400 dark:hover:border-indigo-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                                                    Call
+                                            <div className="sticky bottom-0 z-30 mt-auto hidden sm:flex items-center gap-2 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_-4px_20px_rgb(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgb(0,0,0,0.4)] transition-all">
+                                                {/* Manual Entry */}
+                                                <button
+                                                    onClick={() => setShowAddForm(true)}
+                                                    disabled={isDisabled || isPaused}
+                                                    title={isPaused ? "Queue is currently on a break" : undefined}
+                                                    className="w-auto h-10 px-5 text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] shadow-[0_4px_12px_rgba(79,70,229,0.25)] hover:shadow-[0_6px_16px_rgba(79,70,229,0.35)] transition-all flex justify-center items-center gap-2 flex-shrink-0 disabled:opacity-50 disabled:shadow-none"
+                                                >
+                                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                                                    Add Customer
                                                 </button>
-                                            </form>
 
-                                            <div className="w-[1px] h-7 bg-slate-200 dark:bg-slate-700/50 mx-1" />
+                                                <div className="w-[1px] h-7 bg-slate-200 dark:bg-slate-700/50 mx-1" />
 
-                                            {/* Remove by Number */}
-                                            <form onSubmit={handleRemoveByNumber} className="flex-1 relative flex items-center group">
-                                                <div className="absolute left-3.5 text-slate-400 group-focus-within:text-rose-500 transition-colors">
-                                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                </div>
-                                                <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[80px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 dark:focus:border-rose-500/50 transition-all outline-none" />
-                                                <button type="submit" disabled={!removeNumber || isDisabled || isPaused} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-500/20 dark:hover:text-rose-400 dark:hover:border-rose-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                                                    Remove
-                                                </button>
-                                            </form>
-                                        </div>
+                                                {/* Invite by Number */}
+                                                <form onSubmit={handleInvite} className="flex-1 relative flex items-center group">
+                                                    <div className="absolute left-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                                    </div>
+                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[70px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
+                                                    <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-400 dark:hover:border-indigo-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                                                        Call
+                                                    </button>
+                                                </form>
+
+                                                <div className="w-[1px] h-7 bg-slate-200 dark:bg-slate-700/50 mx-1" />
+
+                                                {/* Remove by Number */}
+                                                <form onSubmit={handleRemoveByNumber} className="flex-1 relative flex items-center group">
+                                                    <div className="absolute left-3.5 text-slate-400 group-focus-within:text-rose-500 transition-colors">
+                                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </div>
+                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[80px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 dark:focus:border-rose-500/50 transition-all outline-none" />
+                                                    <button type="submit" disabled={!removeNumber || isDisabled || isPaused} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-500/20 dark:hover:text-rose-400 dark:hover:border-rose-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                                                        Remove
+                                                    </button>
+                                                </form>
+                                            </div>
                                         )}
 
 
@@ -1507,7 +1507,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     )}
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700" style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                                                 {activeListTab === "recent" && (
                                                     paginatedRecent.length > 0 ? paginatedRecent.map((t: RecentToken, i: number) => (
@@ -1533,86 +1533,53 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         </div>
                                                     )
                                                 )}
-                                                
+
                                                 {activeListTab !== "recent" && (
                                                     (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).map((t: WaitingToken, idx: number) => (
-                                                        <div key={t.id} className={`group border-b border-slate-100 dark:border-white/5 px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${idx % 2 === 1 ? "bg-slate-50/30 dark:bg-slate-900/20" : "bg-transparent"}`}>
-                                                            <div className="flex flex-col gap-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-[15px] font-black tabular-nums text-slate-900 dark:text-white min-w-[48px]">
-                                                                        <span className="text-emerald-500">{state?.prefix || ""}</span>{t.token_number}
-                                                                    </span>
-                                                                    <span className={`px-2 py-0.5 rounded-[5px] text-[9.5px] font-bold uppercase tracking-wider ${activeListTab === "waiting" ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" : activeListTab === "skipped" ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"}`}>
-                                                                        {activeListTab === "deleted" ? "Removed" : activeListTab}
-                                                                    </span>
-                                                                    {t.entry_type === "manual"
-                                                                        ? <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">Manual</span>
-                                                                        : <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
-                                                                    }
-                                                                </div>
-                                                                {t.customer_name && (
-                                                                    <div className="text-[11.5px] text-slate-500 dark:text-slate-400 pl-[56px] flex flex-wrap gap-x-2 gap-y-0.5">
-                                                                        <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                                                            {t.customer_name}
-                                                                            {(t.pax_count && t.pax_count > 1) && (
-                                                                                <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700" title={`Total Pax: ${t.pax_count}`}>
-                                                                                    <Users size={10} className="text-slate-400" />
-                                                                                    +{(t.pax_count) - 1}
-                                                                                </span>
-                                                                            )}
-                                                                        </span>
-                                                                        <span>{t.customer_phone}</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <button
-                                                                    onClick={() => setSelectedToken({ token_number: t.token_number, prefix: state?.prefix || "", customer_name: t.customer_name, customer_phone: t.customer_phone, pax_count: t.pax_count, status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: t.entry_type || "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
-                                                                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-[8px] transition-colors"
-                                                                    title="View Details"
-                                                                >
-                                                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                                </button>
-                                                                {t.customer_phone && (
-                                                                    <button
-                                                                        onClick={() => handleCall(t)}
-                                                                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-[8px] transition-colors"
-                                                                        title="Call Handset"
-                                                                    >
-                                                                        <Phone width={14} height={14} />
-                                                                    </button>
-                                                                )}
-                                                                {canManageQueue && activeListTab === "waiting" ? (
-                                                                    <button
-                                                                        onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
-                                                                        className="px-2.5 h-8 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-500/30 rounded-[8px] hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shadow-sm"
-                                                                    >
-                                                                        Remove
-                                                                    </button>
-                                                                ) : canManageQueue && activeListTab === "deleted" ? (
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            performAction(`undo_remove_${t.id}`, async () => {
-                                                                                await api.undoRemoveToken(t.id);
-                                                                                toast(`Restored ${state?.prefix || ""}${t.token_number} back to queue`, "success");
-                                                                                refresh();
-                                                                            });
-                                                                        }}
-                                                                        disabled={actionLoading === `undo_remove_${t.id}`}
-                                                                        className="px-2.5 h-8 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-[8px] hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm disabled:opacity-50"
-                                                                    >
-                                                                        {actionLoading === `undo_remove_${t.id}` ? "..." : "Undo"}
-                                                                    </button>
-                                                                ) : canManageQueue ? (
-                                                                    <button
-                                                                        onClick={() => handleRecallFlow(t.token_number)}
-                                                                        className="px-2.5 h-8 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 rounded-[8px] hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors shadow-sm"
-                                                                    >
-                                                                        Recall
-                                                                    </button>
-                                                                ) : null}
-                                                            </div>
-                                                        </div>
+                                                        <RecentTokenRow
+                                                            key={t.id}
+                                                            token={t}
+                                                            prefix={state?.prefix || ""}
+                                                            queueName={queueName}
+                                                            isManual={t.entry_type === "manual"}
+                                                            onView={setSelectedToken}
+                                                            onCall={canManageQueue ? handleCall : undefined}
+                                                            hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
+                                                            extraActions={
+                                                                <>
+                                                                    {canManageQueue && activeListTab === "waiting" ? (
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); setTokenToRemove({ id: t.id, number: t.token_number }); }}
+                                                                            className="px-2.5 h-7 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-500/30 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shadow-sm ml-1"
+                                                                        >
+                                                                            Remove
+                                                                        </button>
+                                                                    ) : canManageQueue && activeListTab === "deleted" ? (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                performAction(`undo_remove_${t.id}`, async () => {
+                                                                                    await api.undoRemoveToken(t.id);
+                                                                                    toast(`Restored ${state?.prefix || ""}${t.token_number} back to queue`, "success");
+                                                                                    refresh();
+                                                                                });
+                                                                            }}
+                                                                            disabled={actionLoading === `undo_remove_${t.id}`}
+                                                                            className="px-2.5 h-7 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm disabled:opacity-50 ml-1"
+                                                                        >
+                                                                            {actionLoading === `undo_remove_${t.id}` ? "..." : "Undo"}
+                                                                        </button>
+                                                                    ) : canManageQueue ? (
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); handleRecallFlow(t.token_number); }}
+                                                                            className="px-2.5 h-7 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors shadow-sm ml-1"
+                                                                        >
+                                                                            Recall
+                                                                        </button>
+                                                                    ) : null}
+                                                                </>
+                                                            }
+                                                        />
                                                     )) : (
                                                         <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
                                                             <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-slate-100 dark:ring-white/5 shadow-sm">
@@ -1628,7 +1595,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     )
                                                 )}
                                             </div>
-                                            
+
                                             {activeListTab === "recent" && filteredRecent.length > RECENT_PAGE_SIZE && (
                                                 <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
                                                     <span>Showing {paginatedRecent.length} of {filteredRecent.length}</span>
@@ -1638,7 +1605,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     </div>
                                                 </div>
                                             )}
-                                            
+
                                             {activeListTab !== "recent" && (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length > PAGE_SIZE && (
                                                 <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
                                                     <span>Showing {(activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length} of {(activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length}</span>
@@ -1775,9 +1742,10 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 performAction={performAction}
                                 toast={toast}
                                 onOpenMobileMenu={() => setMobileMenuOpen(true)}
+                                hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
                             />
                         )}
-                        
+
                         {/* ═══════════════════════════════════════════
                         SECTION: Connect TV
                         ════════════════════════════════════════════ */}
@@ -1785,7 +1753,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                             <div className="fade-in bg-[#f8fafc] dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 p-6 md:p-10 shadow-sm min-h-[calc(100vh-120px)] flex flex-col items-center justify-center relative overflow-hidden">
                                 <div className="max-w-[420px] w-full relative z-10">
                                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200 dark:border-white/10 p-8 sm:p-10">
-                                        
+
                                         <div className="flex flex-col items-center text-center mb-8">
                                             {/* Premium Icon Container */}
                                             <div className="relative mb-6">
@@ -1796,19 +1764,19 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     </svg>
                                                     {/* Pulse/Signal animation */}
                                                     <div className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
-                                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                                      <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white dark:border-slate-800"></span>
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white dark:border-slate-800"></span>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Connect Smart TV</h3>
-                                            
+
                                             <p className="text-[14px] leading-relaxed text-slate-500 dark:text-slate-400">
                                                 Open <span className="font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">/display</span> on your TV and enter the 6-digit code below to link this queue.
                                             </p>
                                         </div>
-                                        
+
                                         <form onSubmit={handleConnectTV} className="flex flex-col gap-6">
                                             <div>
                                                 <label className="block text-[11px] font-bold tracking-wider text-slate-500 uppercase mb-2">
@@ -1826,7 +1794,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     />
                                                 </div>
                                             </div>
-                                            
+
                                             <button
                                                 type="submit"
                                                 disabled={isPairing || pairingCodeInput.length < 6}
@@ -1845,7 +1813,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </button>
                                         </form>
                                     </div>
-                                    
+
                                     <div className="mt-8 flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500 text-[11px] font-semibold uppercase tracking-widest">
                                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -1862,11 +1830,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                         ════════════════════════════════════════════ */}
                         {activeSection === "waiting_list" && (
                             <div className="fade-in bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 p-4 md:p-6 shadow-sm min-h-[calc(100vh-120px)] flex flex-col overflow-hidden">
-                                <div className="flex items-start gap-3 mb-6">
-                                    <button className="md:hidden mt-0.5 p-1.5 -ml-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
-                                        <Menu size={22} />
-                                    </button>
-                                    <h2 className="text-xl md:text-2xl font-bold break-words text-gray-900 dark:text-white">Queue Lists</h2>
+                                <div className="flex flex-col gap-1 mb-6">
+                                    <div className="flex items-start gap-3">
+                                        <button className="md:hidden mt-0.5 p-1.5 -ml-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
+                                            <Menu size={22} />
+                                        </button>
+                                        <h2 className="text-xl md:text-2xl font-bold break-words text-gray-900 dark:text-white">Queue Lists</h2>
+                                    </div>
+                                    <p className="text-[13px] text-slate-500 md:ml-0 ml-8">Monitor and manage all your queue activities in real time.</p>
                                 </div>
 
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full mb-4">
@@ -1899,26 +1870,31 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${activeListTab === "deleted" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>{state?.deleted_tokens?.length ?? 0}</span>
                                         </button>
                                     </div>
-                                    <div className="relative w-full md:w-64 lg:w-80">
-                                        <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 12, pointerEvents: "none" }}>
-                                            <svg width="14" height="14" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                        </span>
-                                        {activeListTab === "recent" ? (
-                                            <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34 }} />
-                                        ) : (
-                                            <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34 }} />
-                                        )}
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative w-full md:w-64 lg:w-80">
+                                            <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 12, pointerEvents: "none" }}>
+                                                <svg width="14" height="14" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                            </span>
+                                            {activeListTab === "recent" ? (
+                                                <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34, height: 42 }} />
+                                            ) : (
+                                                <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34, height: 42 }} />
+                                            )}
+                                        </div>
+                                        <button className="h-[42px] px-3.5 border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center shrink-0 shadow-sm">
+                                            <Filter size={16} />
+                                        </button>
                                     </div>
                                 </div>
 
                                 <div className="w-full overflow-x-auto border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden flex-1 flex flex-col">
-                                    <div className="hidden md:grid bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" style={{ gridTemplateColumns: '80px 80px 90px 70px 90px 1fr 110px 80px' }}>
+                                    <div className="hidden md:grid gap-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" style={{ gridTemplateColumns: ((state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0) ? '80px 110px 120px 70px 120px 1fr 120px 80px' : '80px 110px 120px 120px 1fr 120px 80px' }}>
                                         <div>Token</div>
                                         <div>Status</div>
-                                        <div>Entry</div>
-                                        <div>Line</div>
+                                        <div>Entry Method</div>
+                                        {((state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0) && <div>Line</div>}
                                         <div>Call Method</div>
-                                        <div>Customer</div>
+                                        <div style={{ paddingLeft: 38 }}>Customer</div>
                                         <div>{activeListTab === "recent" ? "Join Time" : activeListTab === "waiting" ? "Wait Time" : activeListTab === "skipped" ? "Skipped / Recalled" : "Removed At"}</div>
                                         <div className="text-right">Actions</div>
                                     </div>
@@ -1934,6 +1910,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     isManual={t.entry_type === "manual"}
                                                     onView={setSelectedToken}
                                                     onCall={canManageQueue ? handleCall : undefined}
+                                                    hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
                                                 />
                                             )) : (
                                                 <div className="h-full flex flex-col items-center justify-center p-8 text-center">
@@ -1973,6 +1950,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         onView={setSelectedToken}
                                                         onCall={canManageQueue ? handleCall : undefined}
                                                         customTimeStr={customTimeStr || undefined}
+                                                        hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
                                                         extraActions={
                                                             <>
                                                                 {canManageQueue && activeListTab === "waiting" ? (
@@ -2056,7 +2034,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                 <ConfirmModal isOpen={showDeleteConfirm} title="Delete Queue" message={`Are you sure you want to permanently delete the queue "${state?.queue_name || "this queue"}"? All associated tokens and data will be lost forever.`} confirmLabel="Delete Queue" confirmVariant="danger" onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} isLoading={deleting} requireInput={true} requiredText={state?.queue_name || ""} />
                 <ConfirmModal isOpen={showResetConfirm} title="Reset Queue" message={`Are you sure you want to reset the queue "${state?.queue_name || "this queue"}"? This will delete all tokens and reset the current serving number to 0. This cannot be undone.`} confirmLabel="Reset Queue" confirmVariant="danger" onConfirm={handleReset} onCancel={() => setShowResetConfirm(false)} isLoading={resetting} requireInput={true} requiredText={state?.queue_name || ""} />
                 <ConfirmModal isOpen={!!tokenToRemove} title="Remove Customer" message={`Are you sure you want to remove token ${state?.prefix || ""}${tokenToRemove?.number} from the waiting list? They will be permanently marked as deleted.`} confirmLabel="Remove Token" confirmVariant="danger" onConfirm={handleConfirmRemove} onCancel={() => setTokenToRemove(null)} isLoading={actionLoading === "remove"} />
-                
+
                 <WebRTCCallModal
                     isOpen={callModalOpen}
                     onClose={() => setCallModalOpen(false)}
@@ -2070,16 +2048,16 @@ export default function QueueDetailPage({ params }: PageProps) {
                 />
 
                 {/* WhatsApp Confirmation Modal */}
-                <ConfirmModal 
-                    isOpen={showWhatsappConfirm} 
-                    title="Send WhatsApp Update?" 
-                    message={`Do you want to send a WhatsApp notification to ${addName.trim()} containing their token number and tracking link?`} 
-                    confirmLabel="Send with WhatsApp" 
+                <ConfirmModal
+                    isOpen={showWhatsappConfirm}
+                    title="Send WhatsApp Update?"
+                    message={`Do you want to send a WhatsApp notification to ${addName.trim()} containing their token number and tracking link?`}
+                    confirmLabel="Send with WhatsApp"
                     confirmVariant="primary"
                     cancelLabel="Skip WhatsApp"
-                    onConfirm={() => handleConfirmAddCustomer(true)} 
-                    onCancel={() => handleConfirmAddCustomer(false)} 
-                    isLoading={actionLoading === "add"} 
+                    onConfirm={() => handleConfirmAddCustomer(true)}
+                    onCancel={() => handleConfirmAddCustomer(false)}
+                    isLoading={actionLoading === "add"}
                 />
                 {showAddForm && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setShowAddForm(false); }}>
@@ -2138,9 +2116,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddPaxCount(1); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
                                         Cancel
                                     </button>
-                                    <button 
-                                        onClick={handlePreAddCustomer} 
-                                        disabled={!isAddNameValid || !addPhone.trim() || actionLoading === "add" || isPaused} 
+                                    <button
+                                        onClick={handlePreAddCustomer}
+                                        disabled={!isAddNameValid || !addPhone.trim() || actionLoading === "add" || isPaused}
                                         className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                     >
                                         {actionLoading === "add" ? (
@@ -2171,8 +2149,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                             <div className="p-6">
                                 <div className="grid grid-cols-2 gap-3">
                                     {Array.from({ length: state?.service_lines || 0 }).map((_, i) => (
-                                        <button 
-                                            key={i + 1} 
+                                        <button
+                                            key={i + 1}
                                             onClick={() => executeInvite(i + 1)}
                                             className="px-4 py-3 rounded-xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 dark:border-white/10 dark:hover:border-indigo-500 dark:hover:bg-indigo-900/20 text-slate-700 dark:text-slate-200 font-bold text-sm transition-all text-center"
                                         >
@@ -2195,59 +2173,58 @@ export default function QueueDetailPage({ params }: PageProps) {
             {/* Mobile Bottom Dock — rendered at root level to avoid overflow clipping */}
             {activeSection === "queues" && (
                 <div className={`sm:hidden fixed bottom-0 left-0 right-0 z-[9999] transition-transform duration-300 ease-in-out ${isScrollingDown ? "translate-y-full" : "translate-y-0"}`}>
-                {/* Expandable Panel (slides up from bottom) */}
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${mobileQuickExpanded ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"}`}>
-                    <div className="mx-3 mb-2 flex flex-col gap-2">
-                        {/* Invite by Number */}
-                        <form onSubmit={(e) => { handleInvite(e); setMobileQuickExpanded(false); }} className="relative flex items-center group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-1">
-                            <div className="absolute left-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                            </div>
-                            <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused} className="w-full h-11 bg-transparent pl-11 pr-[70px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl" />
-                            <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all hover:bg-indigo-100 disabled:opacity-40">
-                                Call
-                            </button>
-                        </form>
-                        {/* Remove by Number */}
-                        <form onSubmit={(e) => { handleRemoveByNumber(e); setMobileQuickExpanded(false); }} className="relative flex items-center group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-1">
-                            <div className="absolute left-4 text-slate-400 group-focus-within:text-rose-500 transition-colors">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                            </div>
-                            <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused} className="w-full h-11 bg-transparent pl-11 pr-[85px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl" />
-                            <button type="submit" disabled={!removeNumber || isDisabled || isPaused} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl transition-all hover:bg-rose-100 disabled:opacity-40">
-                                Remove
-                            </button>
-                        </form>
+                    {/* Expandable Panel (slides up from bottom) */}
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${mobileQuickExpanded ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"}`}>
+                        <div className="mx-3 mb-2 flex flex-col gap-2">
+                            {/* Invite by Number */}
+                            <form onSubmit={(e) => { handleInvite(e); setMobileQuickExpanded(false); }} className="relative flex items-center group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-1">
+                                <div className="absolute left-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                </div>
+                                <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused} className="w-full h-11 bg-transparent pl-11 pr-[70px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl" />
+                                <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all hover:bg-indigo-100 disabled:opacity-40">
+                                    Call
+                                </button>
+                            </form>
+                            {/* Remove by Number */}
+                            <form onSubmit={(e) => { handleRemoveByNumber(e); setMobileQuickExpanded(false); }} className="relative flex items-center group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-1">
+                                <div className="absolute left-4 text-slate-400 group-focus-within:text-rose-500 transition-colors">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </div>
+                                <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused} className="w-full h-11 bg-transparent pl-11 pr-[85px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl" />
+                                <button type="submit" disabled={!removeNumber || isDisabled || isPaused} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl transition-all hover:bg-rose-100 disabled:opacity-40">
+                                    Remove
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
 
-                {/* Bottom Dock Bar */}
-                <div className="flex items-center gap-2 px-4 py-3 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgb(0,0,0,0.04)]" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
-                    {/* Add Customer — primary CTA */}
-                    <button
-                        onClick={() => setShowAddForm(true)}
-                        disabled={isDisabled || isPaused}
-                        className="flex-1 w-full h-11 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:shadow-none"
-                    >
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                        Add Customer
-                    </button>
+                    {/* Bottom Dock Bar */}
+                    <div className="flex items-center gap-2 px-4 py-3 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgb(0,0,0,0.04)]" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+                        {/* Add Customer — primary CTA */}
+                        <button
+                            onClick={() => setShowAddForm(true)}
+                            disabled={isDisabled || isPaused}
+                            className="flex-1 w-full h-11 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:shadow-none"
+                        >
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                            Add Customer
+                        </button>
 
-                    {/* More Actions Toggle */}
-                    <button
-                        type="button"
-                        onClick={() => setMobileQuickExpanded(prev => !prev)}
-                        className={`w-11 h-11 flex items-center justify-center rounded-xl border transition-all flex-shrink-0 ${
-                            mobileQuickExpanded
+                        {/* More Actions Toggle */}
+                        <button
+                            type="button"
+                            onClick={() => setMobileQuickExpanded(prev => !prev)}
+                            className={`w-11 h-11 flex items-center justify-center rounded-xl border transition-all flex-shrink-0 ${mobileQuickExpanded
                                 ? "bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400"
                                 : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400"
-                        }`}
-                    >
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
-                        </svg>
-                    </button>
-                </div>
+                                }`}
+                        >
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             )}
         </>
@@ -2256,14 +2233,16 @@ export default function QueueDetailPage({ params }: PageProps) {
 
 // ── Recent Token Row ───────────────────────────────────────────────
 const RecentTokenRow = React.memo(function RecentTokenRow({
-    token: t, prefix, queueName, isManual, onView, onCall
+    token: t, prefix, queueName, isManual, onView, onCall, hasServiceLines = true, extraActions
 }: {
-    token: RecentToken;
+    token: RecentToken | WaitingToken;
     prefix: string;
     queueName?: string;
     isManual?: boolean;
     onView?: (data: TokenDetailData) => void;
-    onCall?: (tokenNumber: string, phone: string) => void;
+    onCall?: (token: any) => void;
+    hasServiceLines?: boolean;
+    extraActions?: React.ReactNode;
 }) {
     const statusClasses: Record<string, string> = {
         serving: "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
@@ -2274,63 +2253,75 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
     };
     const sClass = statusClasses[t.status] || "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20";
 
+    let timeStr = "";
+    if (t.status === "done" && (t as RecentToken).completed_at) {
+        timeStr = new Date((t as RecentToken).completed_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (t.status === "serving" && (t as RecentToken).served_at) {
+        timeStr = new Date((t as RecentToken).served_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (t.created_at) {
+        timeStr = new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
     return (
-        <div className="group border-b border-slate-100 dark:border-white/5 px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors bg-transparent">
-            <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                    <span className="text-[15px] font-black tabular-nums text-slate-900 dark:text-white min-w-[48px]">
-                        <span className="text-emerald-500">{prefix}</span>{t.token_number}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-[5px] text-[9.5px] font-bold uppercase tracking-wider border ${sClass}`}>{t.status}</span>
-                    {isManual
-                        ? <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">Manual</span>
-                        : <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center gap-1"><QrCode className="w-2.5 h-2.5" />QR</span>
-                    }
-                    {t.assigned_line != null && (
-                        <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                            Line {t.assigned_line}
-                        </span>
-                    )}
-                    {t.called_via_invite && (
-                        <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400">
-                            Invited
-                        </span>
-                    )}
+        <div 
+            className="group border-b border-slate-100 dark:border-white/5 px-4 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors bg-transparent cursor-pointer"
+            onClick={() => onView?.({ 
+                id: (t as WaitingToken).id,
+                token_number: t.token_number, 
+                prefix: prefix || "", 
+                customer_name: t.customer_name, 
+                customer_phone: t.customer_phone, 
+                pax_count: t.pax_count, 
+                status: t.status, 
+                created_at: t.created_at, 
+                served_at: (t as RecentToken).served_at, 
+                completed_at: (t as RecentToken).completed_at, 
+                entry_type: t.entry_type || "qr", 
+                queue_name: queueName, 
+                called_via_invite: t.called_via_invite,
+                assigned_line: t.assigned_line,
+                skipped_at: (t as WaitingToken).skipped_at,
+                deleted_at: (t as WaitingToken).deleted_at,
+                recalled_at: (t as WaitingToken).recalled_at,
+                removed_by: (t as WaitingToken).removed_by
+            })}
+        >
+            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-[12px] flex-shrink-0" style={{ backgroundColor: `hsl(${t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 90%)`, color: `hsl(${t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 30%)` }}>
+                    {t.customer_name ? t.customer_name.substring(0, 2).toUpperCase() : "WA"}
                 </div>
-                {t.customer_name && (
-                    <div className="text-[11.5px] text-slate-500 dark:text-slate-400 pl-[56px] flex flex-wrap gap-x-2 gap-y-0.5">
-                        <span className="font-semibold text-slate-700 dark:text-slate-300 capitalize">
-                            {t.customer_name}
-                            {(t.pax_count && t.pax_count > 1) && (
-                                <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700" title={`Total Pax: ${t.pax_count}`}>
-                                    <Users size={10} className="text-slate-400" />
-                                    +{(t.pax_count) - 1}
-                                </span>
-                            )}
+                
+                <div className="flex flex-col min-w-0 gap-0.5">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-[14px] text-slate-800 dark:text-slate-100 tracking-tight">
+                            {prefix}{t.token_number}
                         </span>
-                        <span>{t.customer_phone}</span>
+                        <span className="text-[13px] text-slate-600 dark:text-slate-300 truncate">
+                            {t.customer_name || "Walk-in"}
+                        </span>
+                        {(t.pax_count && t.pax_count > 1) ? (
+                            <span className="inline-flex items-center gap-1 font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px] ml-1" title={`Total Pax: ${t.pax_count}`}>
+                                <Users size={10} /> +{(t.pax_count) - 1}
+                            </span>
+                        ) : null}
                     </div>
-                )}
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${sClass.replace("border-slate-200", "border-transparent").replace("bg-slate-50", "bg-slate-100")}`}>
+                            {t.status === "done" && <CheckCircle2 size={12} className="text-emerald-500" />}
+                            {t.status === "serving" && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                            {t.status === "deleted" && <MinusCircle size={12} />}
+                            {t.status === "skipped" && <Hourglass size={12} />}
+                            {t.status === "waiting" && <Clock size={12} />}
+                            <span className="capitalize tracking-wide">{t.status === "done" ? "Done" : t.status === "deleted" ? "Removed" : t.status === "skipped" ? "Skipped" : t.status}</span>
+                        </span>
+                        {timeStr && <span>• {timeStr}</span>}
+                        {hasServiceLines && t.assigned_line != null && <span>• L{t.assigned_line}</span>}
+                    </div>
+                </div>
             </div>
-            <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                {onView && (
-                    <button
-                        onClick={() => onView({ token_number: t.token_number, prefix, customer_name: t.customer_name, customer_phone: t.customer_phone, pax_count: t.pax_count, status: t.status, created_at: t.created_at, served_at: t.served_at, completed_at: t.completed_at, entry_type: isManual ? "manual" : "qr", queue_name: queueName, called_via_invite: t.called_via_invite })}
-                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-[8px] transition-colors"
-                        title="View Details"
-                    >
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    </button>
-                )}
-                {onCall && t.customer_phone && (
-                    <button
-                        onClick={() => onCall(`${prefix}${t.token_number}`, t.customer_phone!)}
-                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-[8px] transition-colors"
-                        title="Call Handset"
-                    >
-                        <Phone width={14} height={14} />
-                    </button>
-                )}
+            
+            <div className="flex items-center gap-2 shrink-0">
+                {extraActions}
             </div>
         </div>
     );
@@ -2338,15 +2329,15 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
 
 // ── Full Recent Token Row ───────────────────────────────────────────────
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-    serving:  { label: "Serving",   cls: "bg-blue-50  text-blue-600  border-blue-200  dark:bg-blue-500/10  dark:text-blue-400  dark:border-blue-500/20"  },
-    done:     { label: "Done",      cls: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" },
-    skipped:  { label: "Skipped",   cls: "bg-amber-50  text-amber-600  border-amber-200  dark:bg-amber-500/10  dark:text-amber-400  dark:border-amber-500/20"  },
-    deleted:  { label: "Removed",   cls: "bg-rose-50   text-rose-600   border-rose-200   dark:bg-rose-500/10   dark:text-rose-400   dark:border-rose-500/20"   },
-    waiting:  { label: "Waiting",   cls: "bg-amber-50  text-amber-600  border-amber-200  dark:bg-amber-500/10  dark:text-amber-400  dark:border-amber-500/20"  },
+    serving: { label: "Serving", cls: "bg-blue-50  text-blue-600  border-blue-200  dark:bg-blue-500/10  dark:text-blue-400  dark:border-blue-500/20" },
+    done: { label: "Done", cls: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" },
+    skipped: { label: "Skipped", cls: "bg-amber-50  text-amber-600  border-amber-200  dark:bg-amber-500/10  dark:text-amber-400  dark:border-amber-500/20" },
+    deleted: { label: "Removed", cls: "bg-rose-50   text-rose-600   border-rose-200   dark:bg-rose-500/10   dark:text-rose-400   dark:border-rose-500/20" },
+    waiting: { label: "Waiting", cls: "bg-amber-50  text-amber-600  border-amber-200  dark:bg-amber-500/10  dark:text-amber-400  dark:border-amber-500/20" },
 };
 
 const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
-    token: t, prefix, queueName, isManual, onView, onCall, customTimeStr, extraActions
+    token: t, prefix, queueName, isManual, onView, onCall, customTimeStr, extraActions, hasServiceLines = true
 }: {
     token: RecentToken | WaitingToken;
     prefix: string;
@@ -2356,14 +2347,16 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
     onCall?: (token: any) => void;
     customTimeStr?: string;
     extraActions?: React.ReactNode;
+    hasServiceLines?: boolean;
 }) {
     const st = STATUS_LABELS[t.status] ?? { label: t.status, cls: "bg-slate-50 text-slate-600 border-slate-200" };
 
     const timeStr = customTimeStr ?? (t.created_at
-        ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
         : "");
 
     const tokenData: TokenDetailData = {
+        id: (t as WaitingToken).id,
         token_number: t.token_number,
         prefix,
         customer_name: t.customer_name,
@@ -2391,7 +2384,7 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
             {/* ── Desktop row ─────────────────────────────── */}
             <div
                 className="hidden md:grid px-4 py-3 items-center gap-3"
-                style={{ gridTemplateColumns: '80px 80px 90px 70px 90px 1fr 110px 80px' }}
+                style={{ gridTemplateColumns: hasServiceLines ? '80px 110px 120px 70px 120px 1fr 120px 80px' : '80px 110px 120px 120px 1fr 120px 80px' }}
             >
                 {/* Token # */}
                 <div className="flex items-center">
@@ -2402,49 +2395,61 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
 
                 {/* Status */}
                 <div>
-                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${st.cls}`}>
-                        {st.label}
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium border ${st.cls}`}>
+                        {t.status === "done" && <CheckCircle2 size={13} />}
+                        {t.status === "deleted" && <MinusCircle size={13} />}
+                        {t.status === "skipped" && <Hourglass size={13} />}
+                        {t.status === "serving" && <Play size={13} />}
+                        {t.status === "waiting" && <Clock size={13} />}
+                        {t.status === "done" ? "Done" : t.status === "deleted" ? "Removed" : t.status === "skipped" ? "Skipped" : st.label}
                     </span>
                 </div>
 
                 {/* Entry Type */}
                 <div>
                     {isManual
-                        ? <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20">Manual</span>
-                        : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20"><QrCode className="w-2.5 h-2.5" />QR</span>
+                        ? <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><User size={13} />Manual</span>
+                        : <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={13} />QR</span>
                     }
                 </div>
 
                 {/* Line */}
-                <div>
-                    {t.assigned_line != null
-                        ? <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">L {t.assigned_line}</span>
-                        : <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
-                    }
-                </div>
+                {hasServiceLines && (
+                    <div>
+                        {t.assigned_line != null
+                            ? <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">L {t.assigned_line}</span>
+                            : <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                        }
+                    </div>
+                )}
 
                 {/* Call Method */}
                 <div>
                     {t.called_via_invite
-                        ? <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-500/10 dark:text-fuchsia-400 dark:border-fuchsia-500/20">Invited</span>
-                        : <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">Call Next</span>
+                        ? <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-500/10 dark:text-fuchsia-400 dark:border-fuchsia-500/20"><Send size={12} />Invited</span>
+                        : <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"><Phone size={12} />Call Next</span>
                     }
                 </div>
 
                 {/* Customer */}
-                <div className="flex flex-col min-w-0">
-                    <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 truncate flex items-center">
-                        {t.customer_name || "Walk-in"}
-                        {(t.pax_count && t.pax_count > 1) && (
-                            <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[9px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700 flex-shrink-0" title={`Total Pax: ${t.pax_count}`}>
-                                <Users size={10} className="text-slate-400" />
-                                +{(t.pax_count) - 1}
-                            </span>
-                        )}
-                    </span>
-                    <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
-                        {t.customer_phone || "No phone"}
-                    </span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] flex-shrink-0" style={{ backgroundColor: `hsl(${t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 90%)`, color: `hsl(${t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 30%)` }}>
+                        {t.customer_name ? t.customer_name.substring(0, 2).toUpperCase() : "WA"}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 truncate flex items-center">
+                            {t.customer_name || "Walk-in"}
+                            {(t.pax_count && t.pax_count > 1) && (
+                                <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[9px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700 flex-shrink-0" title={`Total Pax: ${t.pax_count}`}>
+                                    <Users size={10} className="text-slate-400" />
+                                    +{(t.pax_count) - 1}
+                                </span>
+                            )}
+                        </span>
+                        <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                            {t.customer_phone || "No phone"}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Time */}
@@ -2490,7 +2495,7 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                             ? <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200">Manual</span>
                             : <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200">QR</span>
                         }
-                        {t.assigned_line != null && (
+                        {hasServiceLines && t.assigned_line != null && (
                             <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">L{t.assigned_line}</span>
                         )}
                     </div>
@@ -2549,7 +2554,7 @@ function QueueHistory({
     historyPage, setHistoryPage,
     historyLoading, setHistoryLoading,
     historyPageSize, onViewToken, onRecallToken, performAction, toast,
-    onOpenMobileMenu,
+    onOpenMobileMenu, hasServiceLines
 }: {
     queueId: string; queueName: string; prefix: string;
     queueHistory: TokenHistoryItem[]; setQueueHistory: (d: TokenHistoryItem[]) => void;
@@ -2562,6 +2567,7 @@ function QueueHistory({
     performAction: (action: string, fn: () => Promise<void>) => Promise<void>;
     toast: (msg: string, type: "success" | "error" | "info" | "warning") => void;
     onOpenMobileMenu: () => void;
+    hasServiceLines?: boolean;
 }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -2656,30 +2662,30 @@ function QueueHistory({
                         </div>
                     </div>
                     <div className="flex flex-row items-end gap-3 w-full md:w-auto">
-                     <div className="flex-1 md:w-auto flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold tracking-[0.09em] uppercase text-slate-500">Status</label>
-                        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white w-full md:w-[130px]" style={{ cursor: "pointer", height: 38 }}>
-                            <option value="">All</option>
-                            <option value="done">Completed</option>
-                            <option value="skipped">Skipped</option>
-                            <option value="serving">Serving</option>
-                            <option value="deleted">Removed</option>
-                        </select>
-                    </div>
-                    <button
-                        onClick={handleExport}
-                        disabled={exporting || historyTotal === 0}
-                        className="qd-btn-secondary shrink-0"
-                        style={{ height: 38, padding: "0 14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: (exporting || historyTotal === 0) ? 0.6 : 1, cursor: (exporting || historyTotal === 0) ? "not-allowed" : "pointer" }}
-                    >
-                        {exporting ? (
-                            <span style={{ width: 14, height: 14, border: `2px solid ${T.textMuted}`, borderTopColor: "currentColor", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                        ) : (
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                        )}
-                        <span className="hidden sm:inline">Export CSV</span>
-                        <span className="sm:hidden">Export</span>
-                    </button>
+                        <div className="flex-1 md:w-auto flex flex-col gap-1.5">
+                            <label className="text-[10px] font-bold tracking-[0.09em] uppercase text-slate-500">Status</label>
+                            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white w-full md:w-[130px]" style={{ cursor: "pointer", height: 38 }}>
+                                <option value="">All</option>
+                                <option value="done">Completed</option>
+                                <option value="skipped">Skipped</option>
+                                <option value="serving">Serving</option>
+                                <option value="deleted">Removed</option>
+                            </select>
+                        </div>
+                        <button
+                            onClick={handleExport}
+                            disabled={exporting || historyTotal === 0}
+                            className="qd-btn-secondary shrink-0"
+                            style={{ height: 38, padding: "0 14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: (exporting || historyTotal === 0) ? 0.6 : 1, cursor: (exporting || historyTotal === 0) ? "not-allowed" : "pointer" }}
+                        >
+                            {exporting ? (
+                                <span style={{ width: 14, height: 14, border: `2px solid ${T.textMuted}`, borderTopColor: "currentColor", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
+                            ) : (
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            )}
+                            <span className="hidden sm:inline">Export CSV</span>
+                            <span className="sm:hidden">Export</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -2690,21 +2696,21 @@ function QueueHistory({
                     <table style={{ width: "100%", textAlign: "left", fontSize: 13.5, borderCollapse: "collapse", minWidth: 800 }}>
                         <thead>
                             <tr style={{ background: "#fafbfc", borderBottom: `1px solid ${T.cardBorder}` }}>
-                                {["Token", "Customer", "Status", "Type", "Wait Time", "Service Time", "Staff", "Actions"].map(h => (
+                                {["Token", "Customer", "Status", "Type", "Wait Time", "Service Time", "Staff", ...(hasServiceLines ? ["Line"] : []), "Actions"].map(h => (
                                     <th key={h} style={{ padding: "11px 18px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".09em", whiteSpace: "nowrap" }}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {historyLoading ? (
-                                <tr><td colSpan={8} style={{ padding: "48px", textAlign: "center", }}>
+                                <tr><td colSpan={hasServiceLines ? 9 : 8} style={{ padding: "48px", textAlign: "center", }}>
                                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                                         <span style={{ width: 18, height: 18, border: `2px solid ${T.brandLight}`, borderTopColor: T.brand, borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
                                         <span style={{ fontSize: 13 }}>Loading records…</span>
                                     </div>
                                 </td></tr>
                             ) : queueHistory.length === 0 ? (
-                                <tr><td colSpan={8} style={{ padding: "48px", textAlign: "center", fontSize: 13 }}>No matching history found for this queue.</td></tr>
+                                <tr><td colSpan={hasServiceLines ? 9 : 8} style={{ padding: "48px", textAlign: "center", fontSize: 13 }}>No matching history found for this queue.</td></tr>
                             ) : queueHistory.map(item => {
                                 const isManual = item.entry_type === "manual";
                                 const ss = statusStyleMap[item.status] || { bg: "#f3f4f6", color: "#6b7280", label: item.status };
@@ -2715,33 +2721,52 @@ function QueueHistory({
                                     >
                                         <td style={{ padding: "12px 18px", fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{item.queue_prefix}{item.token_number}</td>
                                         <td style={{ padding: "12px 18px" }}>
-                                            <div style={{ display: "flex", flexDirection: "column" }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                                    <span style={{ fontWeight: 600, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
-                                                        {item.customer_name || "—"}
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] flex-shrink-0" style={{ backgroundColor: `hsl(${item.customer_name ? item.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 90%)`, color: `hsl(${item.customer_name ? item.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 30%)` }}>
+                                                    {item.customer_name ? item.customer_name.substring(0, 2).toUpperCase() : "WA"}
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 truncate flex items-center">
+                                                        {item.customer_name || "Walk-in"}
                                                         {(item.pax_count && item.pax_count > 1) && (
-                                                            <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] shadow-sm border border-slate-200 dark:border-slate-700" style={{ marginLeft: 6 }} title={`Total Pax: ${item.pax_count}`}>
+                                                            <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[9px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700 flex-shrink-0" title={`Total Pax: ${item.pax_count}`}>
                                                                 <Users size={10} className="text-slate-400" />
                                                                 +{(item.pax_count) - 1}
                                                             </span>
                                                         )}
                                                     </span>
+                                                    <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                                                        {item.customer_phone || "No phone"}
+                                                    </span>
                                                 </div>
-                                                <span style={{ fontSize: 12, }}>{item.customer_phone || "—"}</span>
                                             </div>
                                         </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                                                <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: ss.bg, color: ss.color }}>{ss.label}</span>
-                                                {(item as any).assigned_line != null && (
-                                                    <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0" }}>
-                                                        Line {(item as any).assigned_line}
-                                                    </span>
-                                                )}
+                                                {(() => {
+                                                    const cls = item.status === "done" ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+                                                        : item.status === "serving" ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20"
+                                                            : item.status === "waiting" ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20"
+                                                                : item.status === "deleted" ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20"
+                                                                    : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+                                                    return (
+                                                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium border ${cls}`}>
+                                                            {item.status === "done" && <CheckCircle2 size={13} />}
+                                                            {item.status === "deleted" && <MinusCircle size={13} />}
+                                                            {item.status === "skipped" && <Hourglass size={13} />}
+                                                            {item.status === "serving" && <Play size={13} />}
+                                                            {item.status === "waiting" && <Clock size={13} />}
+                                                            {item.status === "done" ? "Done" : item.status === "deleted" ? "Removed" : item.status === "skipped" ? "Skipped" : ss.label}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </div>
                                         </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
-                                            <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".07em", background: isManual ? T.violetBg : T.cyanBg, color: isManual ? T.violet : T.cyan, display: "inline-flex", alignItems: "center", gap: 3 }}>{!isManual && <QrCode className="w-2.5 h-2.5" />}{isManual ? "Manual" : "QR"}</span>
+                                            {isManual
+                                                ? <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><User size={13} />Manual</span>
+                                                : <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={13} />QR</span>
+                                            }
                                         </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums", color: "#059669" }}>
@@ -2759,13 +2784,22 @@ function QueueHistory({
                                                 </div>
                                             ) : "—"}
                                         </td>
+                                        {hasServiceLines && (
+                                            <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
+                                                {(item as any).assigned_line != null ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
+                                                        Line {(item as any).assigned_line}
+                                                    </span>
+                                                ) : "—"}
+                                            </td>
+                                        )}
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                 <button
-                                                    onClick={() => onViewToken({ 
-                                                        token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name, 
-                                                        customer_phone: item.customer_phone, pax_count: item.pax_count, 
-                                                        status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at, 
+                                                    onClick={() => onViewToken({
+                                                        token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name,
+                                                        customer_phone: item.customer_phone, pax_count: item.pax_count,
+                                                        status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at,
                                                         entry_type: isManual ? "manual" : "qr", queue_name: queueName,
                                                         assigned_line: item.assigned_line, served_by_staff_name: item.served_by_staff_name, completed_by_staff_name: item.completed_by_staff_name,
                                                         skipped_at: item.skipped_at, deleted_at: item.deleted_at, recalled_at: item.recalled_at, removed_by: item.removed_by

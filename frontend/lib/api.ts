@@ -1158,15 +1158,48 @@ export const api = {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => {
-                const base64_data = reader.result as string;
-                request<OrganizationSettingsResponse>("/organization/settings/logo", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        filename: file.name,
-                        base64_data: base64_data
-                    }),
-                }).then(resolve).catch(reject);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    const MAX_DIMENSION = 512;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height && width > MAX_DIMENSION) {
+                        height *= MAX_DIMENSION / width;
+                        width = MAX_DIMENSION;
+                    } else if (height > MAX_DIMENSION) {
+                        width *= MAX_DIMENSION / height;
+                        height = MAX_DIMENSION;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0, width, height);
+                        // Compress using webp which supports transparency
+                        const base64_data = canvas.toDataURL("image/webp", 0.8);
+                        
+                        // Replace extension with webp if possible
+                        const filename = file.name.replace(/\.[^/.]+$/, "") + ".webp";
+                        
+                        request<OrganizationSettingsResponse>("/organization/settings/logo", {
+                            method: "POST",
+                            body: JSON.stringify({
+                                filename: filename,
+                                base64_data: base64_data
+                            }),
+                        }).then(resolve).catch(reject);
+                    } else {
+                        reject(new Error("Could not get canvas context"));
+                    }
+                };
+                img.onerror = () => reject(new Error("Failed to load image for compression"));
+                if (event.target?.result) {
+                    img.src = event.target.result as string;
+                }
             };
             reader.onerror = error => reject(error);
         });

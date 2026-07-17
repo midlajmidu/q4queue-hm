@@ -57,7 +57,7 @@ async def webrtc_forward(request: Request):
     action_url_xml = action_url.replace("&", "&amp;")
 
     xml_response = f"""<Response>
-    <Dial callerId="{caller_id}" action="{action_url_xml}">
+    <Dial callerId="{caller_id}" action="{action_url_xml}" timeout="30">
         <Number>{to_number}</Number>
     </Dial>
 </Response>"""
@@ -124,6 +124,20 @@ async def webrtc_hangup(
         )
         db.add(call_log)
         await db.commit()
+
+        # Notify the frontend that the call has ended (so it can stop ringing/close modal)
+        try:
+            from app.websocket.connection_manager import manager
+            await manager.broadcast_to_org(str(o_id), {
+                "type": "CALL_HUNG_UP",
+                "queue_id": str(q_id) if q_id else None,
+                "token_id": token_id if token_id else None,
+                "customer_phone": to_number or "Unknown",
+                "duration": duration_seconds
+            })
+        except Exception as ws_err:
+            print(f"Failed to broadcast CALL_HUNG_UP event: {ws_err}")
+
     except Exception as e:
         print(f"Error logging call from Plivo webhook: {e}")
         

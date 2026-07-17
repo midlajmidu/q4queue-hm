@@ -1580,7 +1580,9 @@ export default function OverviewPage() {
             <div className="drawer-header">
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Interaction Details</h3>
-                <p style={{ margin: "4px 0 0", fontSize: 13, color: C.textSub }}>{drawerAct.queue}</p>
+                <p style={{ margin: "4px 0 0", fontSize: 13, color: C.textSub }}>
+                  {drawerAct.session_name ? `${drawerAct.session_name} • ` : ""}{drawerAct.queue}
+                </p>
               </div>
               <button
                 onClick={() => setDrawerAct(null)}
@@ -1614,13 +1616,33 @@ export default function OverviewPage() {
                 {/* Connector line */}
                 <div style={{ position: "absolute", left: 18, top: 14, bottom: 14, width: 2, background: `linear-gradient(180deg, ${C.brand}33, ${C.border})`, borderRadius: 99 }} />
 
-                {[
-                  { lbl: "Token Issued", time: drawerAct.time, active: true },
-                  { lbl: "Waiting in Queue", time: drawerAct.time, active: ["waiting", "serving", "done"].includes(drawerAct.status) },
-                  { lbl: "Currently Serving", time: drawerAct.served_at || (["serving", "done"].includes(drawerAct.status) ? drawerAct.time : null), active: ["serving", "done"].includes(drawerAct.status) },
-                  { lbl: drawerAct.status === "deleted" ? "Cancelled" : drawerAct.status === "skipped" ? "Skipped" : "Service Completed", time: drawerAct.completed_at || (["done", "deleted", "skipped"].includes(drawerAct.status) ? drawerAct.time : null), active: ["done", "deleted", "skipped"].includes(drawerAct.status) }
-                ].map((step, i) => (
-                  <div key={i} style={{ gap: 18, position: "relative", marginBottom: 28, opacity: step.active ? 1 : 0.35, transition: "opacity .3s ease", display: step.active || i < 2 ? "flex" : "none" }}>
+                {(() => {
+                  const steps = [];
+                  steps.push({ lbl: "Token Issued", time: drawerAct.time, active: true });
+                  
+                  const isWaiting = ["waiting", "serving", "done"].includes(drawerAct.status);
+                  steps.push({ lbl: "Waiting in Queue", time: drawerAct.time, active: isWaiting });
+                  
+                  if (drawerAct.skipped_at) {
+                    steps.push({ lbl: "Skipped", time: drawerAct.skipped_at, active: true });
+                  }
+                  if (drawerAct.recalled_at) {
+                    steps.push({ lbl: "Recalled to Queue", time: drawerAct.recalled_at, active: true });
+                  }
+                  
+                  const hasServed = !!drawerAct.served_at || ["serving", "done"].includes(drawerAct.status);
+                  steps.push({ lbl: "Currently Serving", time: drawerAct.served_at || (hasServed ? drawerAct.time : null), active: hasServed });
+                  
+                  const isDone = ["done", "deleted"].includes(drawerAct.status) || (drawerAct.status === "skipped" && !drawerAct.recalled_at);
+                  let finalLbl = "Service Completed";
+                  if (drawerAct.status === "deleted") finalLbl = "Cancelled";
+                  else if (drawerAct.status === "skipped" && !drawerAct.recalled_at) finalLbl = "Skipped";
+                  
+                  steps.push({ lbl: finalLbl, time: drawerAct.completed_at || (isDone ? (drawerAct.skipped_at || drawerAct.time) : null), active: isDone });
+                  
+                  return steps;
+                })().map((step, i) => (
+                  <div key={i} style={{ gap: 18, position: "relative", marginBottom: 28, opacity: step.active ? 1 : 0.35, transition: "opacity .3s ease", display: "flex" }}>
                     {/* Dot */}
                     <div style={{ position: "relative", zIndex: 2, width: 12, height: 12, borderRadius: "50%", background: step.active ? C.brand : C.pageBg, border: `2px solid ${step.active ? "#fff" : C.border}`, outline: `2px solid ${step.active ? C.brandBorder : "transparent"}`, marginTop: 4, boxShadow: step.active ? `0 0 8px ${C.brandGlow}` : "none", transition: "all .3s ease" }} />
 

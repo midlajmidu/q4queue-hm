@@ -128,7 +128,7 @@ async def cancel_token(
             queue_name, queue_prefix, session_id = row[1], row[2], row[3]
             background_tasks.add_task(
                 notify_queue_event,
-                event_type="queue_removed_v2",
+                event_type="queue_removed_v3",
                 org_id=token.org_id,
                 token_id=token.id,
                 queue_id=token.queue_id,
@@ -318,7 +318,7 @@ async def remove_token(
             queue_name, queue_prefix, session_id = q_row
             background_tasks.add_task(
                 notify_queue_event,
-                event_type="queue_removed_v2",
+                event_type="queue_removed_v3",
                 org_id=token.org_id,
                 token_id=token.id,
                 queue_id=token.queue_id,

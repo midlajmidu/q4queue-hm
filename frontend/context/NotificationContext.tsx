@@ -38,10 +38,6 @@ function formatTimeAgo(dateString: string): string {
 function getDynamicTitle(content: string, type: string): string {
     const text = content.toLowerCase();
     
-    // Check keywords first
-    if (text.includes("wait time") || text.includes("staff")) {
-        return "Queue Warning";
-    }
     if (text.includes("maintenance") || text.includes("schedule")) {
         return "Maintenance Info";
     }
@@ -59,8 +55,6 @@ function getDynamicTitle(content: string, type: string): string {
     
     // Default fallbacks based on type
     switch (type) {
-        case "warning":
-            return "System Warning";
         case "success":
             return "System Success";
         case "error":
@@ -138,6 +132,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                         );
                     } else if (payload.type === "message_read_all") {
                         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                    } else if (payload.type === "CALL_HUNG_UP") {
+                        // Dispatch global window event so WebRTCCallModal can catch it
+                        window.dispatchEvent(new CustomEvent("plivo_call_hung_up", { detail: payload }));
                     } else if (payload.type === "messages_cleared") {
                         setNotifications([]);
                     }

@@ -143,6 +143,7 @@ export default function InsightsPage() {
     const peakPct = totalV > 0 ? Math.round(((peak?.visits ?? 0) / totalV) * 100) : 0;
 
     const wA = timeToSeconds(overview.timings?.avg_waiting_time || "0");
+    const maxW = timeToSeconds(overview.timings?.max_waiting_time || "0");
     const sA = timeToSeconds(overview.timings?.avg_served_time || "0");
 
     const sc = overview.status_counts;
@@ -179,7 +180,7 @@ export default function InsightsPage() {
     return {
       hourly, totalV, avgV, peakPct,
       peakHour: peak?.hour ?? "—", peakVisits: peak?.visits ?? 0,
-      wA, sA,
+      wA, maxW, sA,
       waiting: sc?.waiting ?? 0, served: sc?.served ?? 0, total: sc?.total ?? 0, cancelled: sc?.cancelled ?? 0, invited: sc?.invited ?? 0,
       dailyTimings,
       staffPerformance: overview.staff_performance || []
@@ -289,7 +290,7 @@ export default function InsightsPage() {
                 {([
                   { label: "Total Tokens", val: d.total.toLocaleString() },
                   { label: "Served", val: d.served.toLocaleString() },
-                  { label: "Invited", val: d.invited.toLocaleString() },
+                  { label: "Max Wait", val: formatDuration(d.maxW) },
                   { label: "Avg Wait", val: formatDuration(d.wA) },
                   { label: "Avg Service", val: formatDuration(d.sA) },
                   { label: "Drop-off Rate", val: d.total > 0 ? `${Math.round((d.cancelled / d.total) * 100)}%` : "0%" },

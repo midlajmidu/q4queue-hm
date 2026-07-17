@@ -166,6 +166,7 @@ async def websocket_notifications(
       token (required) — JWT for admin authentication
     """
     channel: Optional[str] = None
+    target_org_id: Optional[str] = None
 
     await websocket.accept()
 
@@ -193,7 +194,7 @@ async def websocket_notifications(
             await websocket.close(code=4401, reason="Invalid or expired token")
             return
 
-        channel = manager.get_notification_channel(org_id_str)
+        channel = manager.get_notification_channel(target_org_id)
 
         async with manager._lock:
             manager._connections[channel].add(websocket)
@@ -215,9 +216,9 @@ async def websocket_notifications(
     except Exception as exc:
         logger.error("WebSocket notifications error | err=%s", exc)
     finally:
-        if org_id:
-            channel = manager.get_notification_channel(str(org_id))
-            await manager.disconnect(channel, websocket)
+        if target_org_id:
+            channel_to_disconnect = manager.get_notification_channel(str(target_org_id))
+            await manager.disconnect(channel_to_disconnect, websocket)
         try:
             from app.monitoring.metrics import WS_DISCONNECTIONS_TOTAL
             WS_DISCONNECTIONS_TOTAL.inc()

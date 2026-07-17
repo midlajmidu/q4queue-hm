@@ -131,7 +131,6 @@ export default function NotificationsPage() {
     { key: "all", label: "All", count: combinedItems.length },
     { key: "announcements", label: "Announcements", count: apiAnnouncements.length },
     { key: "unread", label: "Unread", count: unreadCount },
-    { key: "warning", label: "Warnings" },
     { key: "info", label: "Info" },
     { key: "success", label: "Success" },
     { key: "error", label: "Errors" },

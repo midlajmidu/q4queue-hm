@@ -92,14 +92,14 @@ def generate_ticket_image(
     
     # 3. Branch & Queue (Placed right of the pin icon on the same line)
     branch_text = branch_name.upper()
-    draw.text((560, 665), branch_text, fill=text_dark, font=font_branch)
+    draw.text((450, 665), branch_text, fill=text_dark, font=font_branch)
     
     queue_text = queue_name.upper()
-    draw.text((560, 720), queue_text, fill=text_blue, font=font_queue)
+    draw.text((450, 720), queue_text, fill=text_blue, font=font_queue)
     
     # 4. People Ahead Number (Moved slightly right to be closer to the text)
     people_str = str(people_ahead).zfill(2)
-    draw.text((342, 855), people_str, fill=text_blue, font=font_people)
+    draw.text((385, 855), people_str, fill=text_blue, font=font_people)
     
     # Save to BytesIO
     buffer = BytesIO()

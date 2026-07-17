@@ -75,12 +75,33 @@ class SuccessResponse(BaseModel):
 # ── Endpoints ──────────────────────────────────────────────────────
 
 @router.get("/support-contact", response_model=SupportContactResponse)
-async def get_support_contact(current_user: User = Depends(get_current_active_user)):
+async def get_support_contact(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """Get the platform support contact information."""
     from app.api.v1.endpoints.super_admin import IN_MEMORY_SETTINGS
+    from app.models.parent_organization import ParentOrganization
+    
+    support_email = IN_MEMORY_SETTINGS.get("support_email", "contact@q4queue.com")
+    support_phone = IN_MEMORY_SETTINGS.get("support_phone", "")
+
+    if hasattr(current_user, 'parent_organization_id') and current_user.parent_organization_id:
+        parent_org = await db.scalar(select(ParentOrganization).where(ParentOrganization.id == current_user.parent_organization_id))
+        if parent_org:
+            support_email = parent_org.contact_email or support_email
+            support_phone = parent_org.contact_phone or support_phone
+    elif current_user.org_id:
+        org = await db.scalar(select(Organization).where(Organization.id == current_user.org_id))
+        if org and org.parent_organization_id:
+            parent_org = await db.scalar(select(ParentOrganization).where(ParentOrganization.id == org.parent_organization_id))
+            if parent_org:
+                support_email = parent_org.contact_email or support_email
+                support_phone = parent_org.contact_phone or support_phone
+
     return SupportContactResponse(
-        support_email=IN_MEMORY_SETTINGS.get("support_email", ""),
-        support_phone=IN_MEMORY_SETTINGS.get("support_phone", "")
+        support_email=support_email,
+        support_phone=support_phone
     )
 
 @router.get("/settings", response_model=OrganizationSettingsResponse)
