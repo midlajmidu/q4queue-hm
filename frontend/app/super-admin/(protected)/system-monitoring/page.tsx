@@ -87,11 +87,12 @@ export default function SystemMonitoringPage() {
             </div>
 
             {/* Health Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <StatusIndicator status={data?.api_health || "error"} label="API Health" />
                 <StatusIndicator status={data?.database_health || "error"} label="Database Health" />
                 <StatusIndicator status={data?.redis_health || "error"} label="Redis Health" />
                 <StatusIndicator status={data?.whatsapp_health || "error"} label="WhatsApp Service" />
+                <StatusIndicator status={data?.plivo_health || "error"} label="Plivo Service" />
             </div>
 
             {/* Uptime */}
@@ -120,7 +121,6 @@ export default function SystemMonitoringPage() {
                         </svg>
                         Recent Error Logs
                     </h2>
-                    <span className="text-xs font-medium text-slate-500 bg-slate-800 px-2 py-1 rounded-md border border-slate-700">Simulated Data</span>
                 </div>
                 
                 <div className="overflow-x-auto">
@@ -165,17 +165,6 @@ export default function SystemMonitoringPage() {
                             )}
                         </tbody>
                     </table>
-                </div>
-            </div>
-
-            {/* Developer Alert */}
-            <div className="mt-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
-                <svg className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                <div>
-                    <h3 className="text-sm font-semibold text-amber-400">Developer Note</h3>
-                    <p className="text-sm text-amber-400/80 mt-1">
-                        The content on this page is currently using dummy data for UI testing and demonstration purposes. It is not yet connected to a live database.
-                    </p>
                 </div>
             </div>
         </div>

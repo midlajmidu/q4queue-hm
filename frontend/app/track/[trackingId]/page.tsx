@@ -441,13 +441,6 @@ export default function TrackingPage({ params }: PageProps) {
                             )}
                         </button>
 
-                        {fullLogoUrl && (
-                            <div className="flex justify-center mb-4 mt-2">
-                                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-2.5 rounded-2xl shadow-xl">
-                                    <img src={fullLogoUrl} alt="Organization Logo" className="h-12 object-contain" />
-                                </div>
-                            </div>
-                        )}
 
                         <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1 text-white/95 px-10 leading-tight" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{queueName}</h1>
                         <p className="text-white/60 text-[10px] font-bold uppercase tracking-[0.25em] mb-4">

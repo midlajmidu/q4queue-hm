@@ -31,6 +31,9 @@ import type {
     OrgStats,
     OrgUpdateRequest,
     PaginatedOrgsResponse,
+    OrgUserCreate,
+    OrgUserUpdate,
+    PaginatedOrgUsersResponse,
     PaginatedStaffResponse,
     QueueCreate,
     QueueResponse,
@@ -100,7 +103,10 @@ import type {
     BranchAdminResetPasswordRequest,
     BranchDetailResponse,
     BranchAdminResponse,
+    TenantAnalyticsRow,
+    TenantAnalyticsResponse,
 } from "@/types/api";
+
 
 // ── Error class ──────────────────────────────────────────────────
 export class ApiError extends Error {
@@ -661,7 +667,7 @@ export const api = {
     },
 
     getPlatformAnalytics(): Promise<PlatformAnalytics> {
-        return request<PlatformAnalytics>("/super-admin/stats");
+        return request<PlatformAnalytics>("/super-admin/analytics");
     },
     getOrgAnalytics(timeframe: "daily" | "weekly" | "monthly" = "daily", is_test: boolean = false): Promise<OrgAnalyticsResponse> {
         return request<OrgAnalyticsResponse>(`/super-admin/stats/organizations?timeframe=${timeframe}&is_test=${is_test}`);
@@ -683,6 +689,7 @@ export const api = {
         const qs = new URLSearchParams();
         if (params.search) qs.set("search", params.search);
         if (params.is_test !== undefined) qs.set("is_test", String(params.is_test));
+        if (params.parent_org_id) qs.set("parent_org_id", params.parent_org_id);
         if (params.limit != null) qs.set("limit", String(params.limit));
         if (params.offset != null) qs.set("offset", String(params.offset));
         if (params.sort_by) qs.set("sort_by", params.sort_by);
@@ -693,6 +700,18 @@ export const api = {
 
     getAuditLogs(limit: number = 20, offset: number = 0): Promise<PaginatedAuditLogs> {
         return request<PaginatedAuditLogs>(`/super-admin/audit-logs?limit=${limit}&offset=${offset}`);
+    },
+
+    getTenantAnalytics(params: {
+        start_date: string;
+        end_date: string;
+        parent_org_id?: string;
+        branch_id?: string;
+    }): Promise<TenantAnalyticsResponse> {
+        const qs = new URLSearchParams({ start_date: params.start_date, end_date: params.end_date });
+        if (params.parent_org_id) qs.set("parent_org_id", params.parent_org_id);
+        if (params.branch_id) qs.set("branch_id", params.branch_id);
+        return request<TenantAnalyticsResponse>(`/super-admin/tenant-analytics?${qs.toString()}`);
     },
 
     getSystemAnnouncements(limit: number = 20, offset: number = 0): Promise<PaginatedSystemAnnouncements> {
@@ -721,6 +740,30 @@ export const api = {
 
     getOrganizationDetail(orgId: string): Promise<OrgDetailExtended> {
         return request<OrgDetailExtended>(`/super-admin/organizations/${orgId}`);
+    },
+
+    getOrgUsers(orgId: string, limit: number = 20, offset: number = 0): Promise<PaginatedOrgUsersResponse> {
+        return request<PaginatedOrgUsersResponse>(`/super-admin/organizations/${orgId}/users?limit=${limit}&offset=${offset}`);
+    },
+
+    createOrgUser(orgId: string, data: OrgUserCreate): Promise<User> {
+        return request<User>(`/super-admin/organizations/${orgId}/users`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateOrgUser(orgId: string, userId: string, data: OrgUserUpdate): Promise<User> {
+        return request<User>(`/super-admin/organizations/${orgId}/users/${userId}`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteOrgUser(orgId: string, userId: string): Promise<void> {
+        return request<void>(`/super-admin/organizations/${orgId}/users/${userId}`, {
+            method: "DELETE",
+        });
     },
 
     impersonateOrganization(orgId: string): Promise<TokenResponse> {

@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, EmailStr
 from sqlalchemy import asc, desc, func, or_, select, and_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -148,6 +148,27 @@ class GlobalUserDetail(BaseModel):
     org_slug: str | None
     created_at: datetime
 
+class OrgUserCreate(BaseModel):
+    email: EmailStr
+    first_name: str
+    last_name: str
+    role: Literal["admin", "staff"]
+    password: str = Field(..., min_length=8)
+
+class OrgUserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    role: Optional[Literal["admin", "staff"]] = None
+    is_active: Optional[bool] = None
+    new_password: Optional[str] = Field(default=None, min_length=8)
+
+class PaginatedOrgUsersResponse(BaseModel):
+    items: list[UserResponse]
+    total: int
+    limit: int
+    offset: int
+
 class PaginatedGlobalUsers(BaseModel):
     items: list[GlobalUserDetail]
     total: int
@@ -179,6 +200,7 @@ class SystemMonitoringResponse(BaseModel):
     database_health: str
     redis_health: str
     whatsapp_health: str
+    plivo_health: str
     uptime_seconds: int
     recent_errors: list[ErrorLogItem]
 
@@ -258,6 +280,7 @@ class OrgStats(BaseModel):
     total: int
     active: int
     inactive: int
+    total_parent_orgs: int
 
 
 class PlatformAnalytics(BaseModel):
@@ -285,6 +308,28 @@ class GlobalQueueResponse(BaseModel):
     total: int = 0
     page: int = 1
     pages: int = 1
+
+class TenantAnalyticsRow(BaseModel):
+    branch_id: str
+    branch_name: str
+    branch_slug: str
+    parent_org_id: str | None = None
+    parent_org_name: str | None = None
+    branch_is_active: bool
+    tokens_used: int            # done/serving tokens
+    tokens_skipped_removed: int # skipped/deleted (non-recalled) tokens
+    avg_wait_seconds: float | None = None  # seconds
+    avg_serve_seconds: float | None = None # seconds
+    peak_hour: int | None = None           # 0-23
+    active_queues: int
+    active_staff: int
+    messages_sent: int  # tokens with whatsapp_reminder_sent=True
+
+class TenantAnalyticsResponse(BaseModel):
+    items: list[TenantAnalyticsRow]
+    total: int
+    start_date: str
+    end_date: str
 
 class ResetPasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8)
@@ -361,15 +406,26 @@ async def get_stats(
     elif is_test is False:
         base_q = base_q.where(~test_pattern)
         
+    from app.models.parent_organization import ParentOrganization
+
     total = await db.scalar(base_q) or 0
     active = await db.scalar(
         base_q.where(Organization.is_active == True)  # noqa: E712
     ) or 0
-    return OrgStats(total=total, active=active, inactive=total - active)
+    
+    parent_q = select(func.count(ParentOrganization.id))
+    if is_test is True:
+        parent_q = parent_q.where(ParentOrganization.name.ilike("%test%"))
+    elif is_test is False:
+        parent_q = parent_q.where(~ParentOrganization.name.ilike("%test%"))
+    
+    total_parent_orgs = await db.scalar(parent_q) or 0
+    
+    return OrgStats(total=total, active=active, inactive=total - active, total_parent_orgs=total_parent_orgs)
 
 
 @router.get(
-    "/stats",
+    "/analytics",
     response_model=PlatformAnalytics,
     summary="Platform Analytics & Health",
 )
@@ -453,11 +509,174 @@ async def get_platform_analytics(
         organization_growth=organization_growth
     )
 
+
+@router.get(
+    "/tenant-analytics",
+    response_model=TenantAnalyticsResponse,
+    summary="Detailed Tenant Analytics by Branch",
+)
+async def get_tenant_analytics(
+    start_date: str = Query(..., description="Start date in YYYY-MM-DD format"),
+    end_date: str = Query(..., description="End date in YYYY-MM-DD format"),
+    parent_org_id: Optional[str] = Query(default=None, description="Filter by parent org ID"),
+    branch_id: Optional[str] = Query(default=None, description="Filter by specific branch ID"),
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> TenantAnalyticsResponse:
+    """Return detailed per-branch analytics with token usage, wait/serve times, and activity metrics."""
+    from datetime import datetime, timezone as tz
+    from app.models.parent_organization import ParentOrganization
+    from sqlalchemy import text, case
+
+    # Parse date range — include the full end_date day by advancing to next midnight
+    try:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=tz.utc)
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=tz.utc)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+
+    # ── Build base branch query ──────────────────────────────────────
+    branch_stmt = (
+        select(
+            Organization.id.label("branch_id"),
+            Organization.name.label("branch_name"),
+            Organization.slug.label("branch_slug"),
+            Organization.is_active.label("branch_is_active"),
+            Organization.parent_organization_id.label("parent_org_id"),
+            ParentOrganization.name.label("parent_org_name"),
+        )
+        .outerjoin(ParentOrganization, Organization.parent_organization_id == ParentOrganization.id)
+    )
+
+    # Apply filters
+    if parent_org_id:
+        branch_stmt = branch_stmt.where(Organization.parent_organization_id == parent_org_id)
+    if branch_id:
+        branch_stmt = branch_stmt.where(Organization.id == branch_id)
+
+    # Exclude test orgs
+    test_pattern = or_(
+        Organization.name.ilike("Msg Org%"),
+        Organization.name.ilike("Q Org%"),
+        Organization.name.ilike("%test%"),
+        Organization.slug.ilike("%test%"),
+    )
+    branch_stmt = branch_stmt.where(~test_pattern)
+
+    branches_result = await db.execute(branch_stmt)
+    branches = branches_result.all()
+
+    if not branches:
+        return TenantAnalyticsResponse(items=[], total=0, start_date=start_date, end_date=end_date)
+
+    items = []
+    for branch in branches:
+        bid = branch.branch_id
+
+        # Base token condition for this branch in the date range
+        token_base = and_(
+            Token.org_id == bid,
+            Token.created_at >= start_dt,
+            Token.created_at <= end_dt,
+        )
+
+        # ── Tokens Used (done status) ────────────────────────────────
+        tokens_used = await db.scalar(
+            select(func.count(Token.id)).where(token_base, Token.status.in_(["done", "serving"]))
+        ) or 0
+
+        # ── Tokens Skipped/Removed (skipped or deleted, but NOT recalled back) ──
+        # A recalled token has recalled_at set. If it was recalled, it went back into the queue.
+        # We count skipped/deleted where recalled_at is NULL (meaning it was truly abandoned).
+        tokens_skipped_removed = await db.scalar(
+            select(func.count(Token.id)).where(
+                token_base,
+                Token.status.in_(["skipped", "deleted"]),
+                Token.recalled_at.is_(None),
+            )
+        ) or 0
+
+        # ── Average Wait Time (created_at → served_at) ───────────────
+        avg_wait = await db.scalar(
+            select(
+                func.avg(
+                    func.extract("epoch", Token.served_at - Token.created_at)
+                )
+            ).where(token_base, Token.served_at.isnot(None))
+        )
+
+        # ── Average Serve Time (served_at → completed_at) ───────────
+        avg_serve = await db.scalar(
+            select(
+                func.avg(
+                    func.extract("epoch", Token.completed_at - Token.served_at)
+                )
+            ).where(token_base, Token.served_at.isnot(None), Token.completed_at.isnot(None))
+        )
+
+        # ── Peak Hour ────────────────────────────────────────────────
+        peak_hour_result = await db.execute(
+            select(
+                func.extract("hour", Token.created_at).label("hr"),
+                func.count(Token.id).label("cnt")
+            )
+            .where(token_base)
+            .group_by("hr")
+            .order_by(func.count(Token.id).desc())
+            .limit(1)
+        )
+        peak_row = peak_hour_result.first()
+        peak_hour = int(peak_row.hr) if peak_row else None
+
+        # ── Active Queues (distinct queues with activity) ────────────
+        active_queues = await db.scalar(
+            select(func.count(func.distinct(Token.queue_id))).where(token_base)
+        ) or 0
+
+        # ── Active Staff (distinct users who served tokens) ──────────
+        active_staff = await db.scalar(
+            select(func.count(func.distinct(Token.served_by_id))).where(
+                token_base,
+                Token.served_by_id.isnot(None),
+            )
+        ) or 0
+
+        # ── Messages Sent (tokens with WhatsApp reminder sent) ───────
+        messages_sent = await db.scalar(
+            select(func.count(Token.id)).where(
+                token_base,
+                Token.whatsapp_reminder_sent == True,  # noqa: E712
+            )
+        ) or 0
+
+        items.append(
+            TenantAnalyticsRow(
+                branch_id=str(bid),
+                branch_name=branch.branch_name,
+                branch_slug=branch.branch_slug,
+                parent_org_id=str(branch.parent_org_id) if branch.parent_org_id else None,
+                parent_org_name=branch.parent_org_name,
+                branch_is_active=branch.branch_is_active,
+                tokens_used=tokens_used,
+                tokens_skipped_removed=tokens_skipped_removed,
+                avg_wait_seconds=float(avg_wait) if avg_wait is not None else None,
+                avg_serve_seconds=float(avg_serve) if avg_serve is not None else None,
+                peak_hour=peak_hour,
+                active_queues=active_queues,
+                active_staff=active_staff,
+                messages_sent=messages_sent,
+            )
+        )
+
+    return TenantAnalyticsResponse(items=items, total=len(items), start_date=start_date, end_date=end_date)
+
+
 @router.get(
     "/stats/organizations",
     response_model=OrgAnalyticsResponse,
     summary="Get Organization-Wise Analytics",
 )
+
 async def get_org_analytics(
     timeframe: Literal["daily", "weekly", "monthly"] = Query("daily"),
     is_test: Optional[bool] = Query(default=False, description="Filter test organizations"),
@@ -616,38 +835,23 @@ async def get_system_monitoring(
     if uptime < 1:
         uptime = 1
 
-    now = datetime.utcnow()
-    simulated_errors = [
-        ErrorLogItem(
-            id=str(uuid.uuid4()),
-            timestamp=(now - timedelta(minutes=15)).isoformat() + "Z",
-            severity="error",
-            component="WhatsApp API",
-            message="Connection timeout while refreshing webhook."
-        ),
-        ErrorLogItem(
-            id=str(uuid.uuid4()),
-            timestamp=(now - timedelta(hours=2)).isoformat() + "Z",
-            severity="warning",
-            component="Worker",
-            message="High memory usage detected (85%)."
-        ),
-        ErrorLogItem(
-            id=str(uuid.uuid4()),
-            timestamp=(now - timedelta(hours=14)).isoformat() + "Z",
-            severity="error",
-            component="Database",
-            message="Deadlock detected in transaction."
-        )
-    ]
+    from app.core.config import get_settings
+    from app.redis.client import get_recent_system_errors
+
+    app_settings = get_settings()
+    whatsapp_status = "connected" if app_settings.whatsapp_configured else "error"
+    plivo_status = "connected" if app_settings.PLIVO_WEBRTC_USERNAME and app_settings.PLIVO_WEBRTC_PASSWORD else "error"
+    
+    real_errors = await get_recent_system_errors()
 
     return SystemMonitoringResponse(
         api_health="ok",
         database_health=db_status,
         redis_health=redis_status,
-        whatsapp_health="connected",
+        whatsapp_health=whatsapp_status,
+        plivo_health=plivo_status,
         uptime_seconds=uptime,
-        recent_errors=simulated_errors
+        recent_errors=real_errors
     )
 
 
@@ -741,6 +945,7 @@ async def update_global_settings(
 async def list_organizations(
     search: str = Query(default="", description="Case-insensitive search by name or slug"),
     is_test: Optional[bool] = Query(default=False, description="If True, only show test orgs. If False, hide test orgs."),
+    parent_org_id: Optional[str] = Query(default=None, description="Filter by parent organization ID"),
     limit: int = Query(default=10, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     sort_by: Literal["name", "created_at", "is_active"] = Query(default="created_at"),
@@ -782,6 +987,13 @@ async def list_organizations(
             base_filter = ~test_pattern
         else:
             base_filter = and_(base_filter, ~test_pattern)
+            
+    if parent_org_id:
+        parent_filter = Organization.parent_organization_id == parent_org_id
+        if base_filter is None:
+            base_filter = parent_filter
+        else:
+            base_filter = and_(base_filter, parent_filter)
 
     count_q = select(func.count(Organization.id))
     data_q = select(Organization).options(joinedload(Organization.parent_organization))
@@ -950,6 +1162,9 @@ async def get_organization_detail(
         created_at=org.created_at.isoformat(),
         max_sessions=org.max_sessions,
         max_queues_per_session=org.max_queues_per_session,
+        max_staff=org.max_staff,
+        logo_url=org.logo_url,
+        parent_organization_id=str(org.parent_organization_id) if org.parent_organization_id else None,
         total_users=total_users,
         total_admins=total_admins,
         admin_email=admin_user.email if admin_user else None,
@@ -1218,6 +1433,160 @@ async def impersonate_organization(
     logger.info("Super admin %s impersonated org %s (admin %s)", _super_admin.email, org.slug, admin.email)
 
     return TokenResponse(access_token=token)
+
+
+@router.get(
+    "/organizations/{org_id}/users",
+    response_model=PaginatedOrgUsersResponse,
+    summary="List Organization Users",
+)
+async def list_org_users(
+    org_id: str,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedOrgUsersResponse:
+    import uuid as _uuid
+    try:
+        org_uuid = _uuid.UUID(org_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid org_id.")
+
+    result = await db.execute(select(Organization).where(Organization.id == org_uuid))
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found.")
+
+    count_q = select(func.count(User.id)).where(User.org_id == org_uuid)
+    total = await db.scalar(count_q) or 0
+
+    data_q = select(User).where(User.org_id == org_uuid).order_by(asc(User.created_at)).limit(limit).offset(offset)
+    users = (await db.execute(data_q)).scalars().all()
+
+    return PaginatedOrgUsersResponse(
+        items=users,
+        total=total,
+        limit=limit,
+        offset=offset
+    )
+
+@router.post(
+    "/organizations/{org_id}/users",
+    response_model=UserResponse,
+    summary="Create Organization User",
+)
+async def create_org_user(
+    org_id: str,
+    body: OrgUserCreate,
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
+    import uuid as _uuid
+    try:
+        org_uuid = _uuid.UUID(org_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid org_id.")
+
+    result = await db.execute(select(Organization).where(Organization.id == org_uuid))
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found.")
+
+    email_clash = await db.scalar(select(User).where(User.email == body.email).limit(1))
+    if email_clash:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email is already registered.")
+
+    if body.role == "staff":
+        current_staff_count = await db.scalar(
+            select(func.count(User.id)).where(and_(User.org_id == org_uuid, User.role == "staff"))
+        ) or 0
+        if current_staff_count >= org.max_staff:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Maximum staff limit ({org.max_staff}) reached for this organization.")
+
+    new_user = User(
+        email=body.email,
+        first_name=body.first_name,
+        last_name=body.last_name,
+        role=body.role,
+        password_hash=hash_password(body.password),
+        org_id=org_uuid,
+        is_active=True,
+    )
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    return new_user
+
+@router.patch(
+    "/organizations/{org_id}/users/{user_id}",
+    response_model=UserResponse,
+    summary="Update Organization User",
+)
+async def update_org_user(
+    org_id: str,
+    user_id: str,
+    body: OrgUserUpdate,
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
+    import uuid as _uuid
+    try:
+        org_uuid = _uuid.UUID(org_id)
+        user_uuid = _uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid UUID.")
+
+    result = await db.execute(select(User).where(and_(User.id == user_uuid, User.org_id == org_uuid)))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    if body.email and body.email != user.email:
+        email_clash = await db.scalar(select(User).where(User.email == body.email).limit(1))
+        if email_clash:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email is already registered.")
+        user.email = body.email
+
+    if body.first_name is not None:
+        user.first_name = body.first_name
+    if body.last_name is not None:
+        user.last_name = body.last_name
+    if body.role is not None:
+        user.role = body.role
+    if body.is_active is not None:
+        user.is_active = body.is_active
+    if body.new_password:
+        user.password_hash = hash_password(body.new_password)
+
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+@router.delete(
+    "/organizations/{org_id}/users/{user_id}",
+    summary="Delete Organization User",
+)
+async def delete_org_user(
+    org_id: str,
+    user_id: str,
+    _super_admin: User = Depends(get_current_super_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    import uuid as _uuid
+    try:
+        org_uuid = _uuid.UUID(org_id)
+        user_uuid = _uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid UUID.")
+
+    result = await db.execute(select(User).where(and_(User.id == user_uuid, User.org_id == org_uuid)))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    await db.delete(user)
+    await db.commit()
+    return {"message": "User deleted successfully."}
 
 
 @router.post(

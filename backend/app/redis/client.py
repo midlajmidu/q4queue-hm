@@ -4,6 +4,9 @@ Async Redis connection pool — ready for Pub/Sub, caching, and rate-limiting.
 """
 import logging
 from typing import Optional
+import json
+import uuid
+from datetime import datetime
 
 import redis.asyncio as aioredis
 from redis.asyncio import Redis
@@ -52,3 +55,34 @@ async def disconnect_redis() -> None:
         await _redis_client.aclose()
         _redis_client = None
         logger.info("Redis connection pool closed.")
+
+async def log_system_error(severity: str, component: str, message: str) -> None:
+    """Log an error to the system:recent_errors list in Redis, capped at 50."""
+    try:
+        if _redis_client is None:
+            return
+            
+        error_item = {
+            "id": str(uuid.uuid4()),
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "severity": severity,
+            "component": component,
+            "message": message
+        }
+        key = "system:recent_errors"
+        await _redis_client.lpush(key, json.dumps(error_item))
+        await _redis_client.ltrim(key, 0, 49) # Keep 50
+    except Exception as e:
+        logger.error(f"Failed to log system error to Redis: {e}")
+
+async def get_recent_system_errors() -> list[dict]:
+    """Retrieve recent system errors from Redis."""
+    try:
+        if _redis_client is None:
+            return []
+        
+        items = await _redis_client.lrange("system:recent_errors", 0, -1)
+        return [json.loads(i) for i in items]
+    except Exception as e:
+        logger.error(f"Failed to fetch system errors from Redis: {e}")
+        return []

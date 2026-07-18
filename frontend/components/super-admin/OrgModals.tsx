@@ -16,9 +16,9 @@ export function Badge({ active }: { active: boolean }) {
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClose: () => void; onSaved: (u: OrgDetail) => void }) {
-    const [form, setForm] = useState<OrgUpdateRequest>({ 
-        org_name: org.name, 
-        org_slug: org.slug, 
+    const [form, setForm] = useState<OrgUpdateRequest>({
+        org_name: org.name,
+        org_slug: org.slug,
         is_active: org.is_active,
         max_sessions: org.max_sessions ?? 10,
         max_queues_per_session: org.max_queues_per_session ?? 20,
@@ -37,12 +37,12 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true); setError(null);
-        try { 
+        try {
             const payload = { ...form };
             if (payload.admin_email === org.admin_email || payload.admin_email === "") {
                 delete payload.admin_email; // Don't send if unchanged or empty
             }
-            onSaved(await api.updateOrganization(org.id, payload)); 
+            onSaved(await api.updateOrganization(org.id, payload));
         }
         catch (err) { setError(err instanceof ApiError ? err.detail : "Failed to update organization."); }
         finally { setIsSaving(false); }
@@ -186,7 +186,7 @@ export function ConfirmStatusModal({ org, onClose, onConfirm, isUpdating }: { or
                     </div>
                 </div>
                 <p className="text-sm text-slate-300">
-                    Are you sure you want to {isSuspending ? "suspend" : "activate"} <span className="font-semibold text-white">{org.name}</span>? 
+                    Are you sure you want to {isSuspending ? "suspend" : "activate"} <span className="font-semibold text-white">{org.name}</span>?
                     {isSuspending ? " All users will immediately lose access to their dashboards and queues." : " Users will regain access immediately."}
                 </p>
                 <div className="flex gap-3">
@@ -222,7 +222,7 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                 max_queues_per_session: settings.default_queue_limit || 20,
             }));
         }).catch(err => console.error("Failed to load global limits:", err));
-        
+
         api.listParentOrganizations({ limit: 100 }).then(res => {
             setParentOrgs(res.items || []);
         }).catch(err => console.error("Failed to load parent orgs:", err));
@@ -264,12 +264,12 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                     </div>
                     <div>
                         <label htmlFor="parent-org" className="block text-sm font-medium text-slate-300 mb-1.5">Parent Organization</label>
-                        <select 
-                            id="parent-org" 
-                            value={form.parent_organization_id} 
-                            onChange={(e) => setForm(f => ({ ...f, parent_organization_id: e.target.value }))} 
-                            required 
-                            disabled={isSubmitting} 
+                        <select
+                            id="parent-org"
+                            value={form.parent_organization_id}
+                            onChange={(e) => setForm(f => ({ ...f, parent_organization_id: e.target.value }))}
+                            required
+                            disabled={isSubmitting}
                             className="w-full rounded-xl bg-slate-950 border border-slate-800 text-white px-3.5 py-2.5 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors"
                         >
                             <option value="" disabled>Select a Parent Organization</option>

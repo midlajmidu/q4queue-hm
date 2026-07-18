@@ -653,6 +653,7 @@ export interface SystemMonitoringResponse {
     database_health: string;
     redis_health: string;
     whatsapp_health: string;
+    plivo_health: string;
     uptime_seconds: number;
     recent_errors: ErrorLogItem[];
 }
@@ -671,6 +672,7 @@ export interface OrgStats {
     total: number;
     active: number;
     inactive: number;
+    total_parent_orgs: number;
 }
 
 export interface PlatformAnalytics {
@@ -696,6 +698,30 @@ export interface AuditLogDetail {
     resource_id: string | null;
     details: Record<string, any> | null;
     created_at: string;
+}
+
+export interface TenantAnalyticsRow {
+    branch_id: string;
+    branch_name: string;
+    branch_slug: string;
+    parent_org_id: string | null;
+    parent_org_name: string | null;
+    branch_is_active: boolean;
+    tokens_used: number;
+    tokens_skipped_removed: number;
+    avg_wait_seconds: number | null;
+    avg_serve_seconds: number | null;
+    peak_hour: number | null;
+    active_queues: number;
+    active_staff: number;
+    messages_sent: number;
+}
+
+export interface TenantAnalyticsResponse {
+    items: TenantAnalyticsRow[];
+    total: number;
+    start_date: string;
+    end_date: string;
 }
 
 export interface SystemAnnouncementDetail {
@@ -736,6 +762,7 @@ export interface PaginatedAuditLogs {
 export interface ListOrgsParams {
     search?: string;
     is_test?: boolean;
+    parent_org_id?: string;
     limit?: number;
     offset?: number;
     sort_by?: SortBy;
@@ -1034,4 +1061,30 @@ export interface TrackingResponse {
     served_at?: string | null;
     completed_at?: string | null;
     removed_by?: string | null;
+}
+
+// ── Super Admin Branch User Management ──────────────────────────────────────────────────────────
+
+export interface OrgUserCreate {
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: "admin" | "staff";
+    password: string;
+}
+
+export interface OrgUserUpdate {
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    role?: "admin" | "staff";
+    is_active?: boolean;
+    new_password?: string;
+}
+
+export interface PaginatedOrgUsersResponse {
+    items: User[];
+    total: number;
+    limit: number;
+    offset: number;
 }

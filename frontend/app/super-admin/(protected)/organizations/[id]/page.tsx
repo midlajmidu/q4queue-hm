@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import type { OrgDetailExtended } from "@/types/api";
+import { BranchUsers } from "@/components/super-admin/BranchUsers";
 
 function Stat({ label, value, icon }: { label: string; value: string | number; icon: string }) {
     return (
@@ -231,6 +232,9 @@ export default function OrgDetailPage() {
                     </div>
                 </>
             )}
+
+            {/* Branch Users Management */}
+            {orgId && <BranchUsers orgId={orgId} />}
 
             {/* Reset Password Modal */}
             {showResetModal && (

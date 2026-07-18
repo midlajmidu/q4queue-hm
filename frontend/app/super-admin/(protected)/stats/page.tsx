@@ -1,107 +1,118 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
-import { Badge, EditOrgModal, SecureDeleteModal, ConfirmStatusModal } from "@/components/super-admin/OrgModals";
-import type { OrgAnalyticsDetail, OrgDetail } from "@/types/api";
+import type { TenantAnalyticsRow, TenantAnalyticsResponse } from "@/types/api";
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtSeconds(secs: number | null): string {
+    if (secs === null || secs === undefined) return "—";
+    const m = Math.floor(secs / 60);
+    const s = Math.round(secs % 60);
+    if (m === 0) return `${s}s`;
+    if (s === 0) return `${m}m`;
+    return `${m}m ${s}s`;
+}
+
+function fmtHour(hour: number | null): string {
+    if (hour === null) return "—";
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const h = hour % 12 === 0 ? 12 : hour % 12;
+    return `${h}:00 ${suffix}`;
+}
+
+function toDateString(d: Date): string {
+    return d.toISOString().split("T")[0];
+}
+
+const QUICK_RANGES = [
+    { label: "Today", getDates: () => { const t = new Date(); return [toDateString(t), toDateString(t)]; } },
+    { label: "Last 7 Days", getDates: () => { const t = new Date(); const s = new Date(t); s.setDate(t.getDate() - 6); return [toDateString(s), toDateString(t)]; } },
+    { label: "Last 30 Days", getDates: () => { const t = new Date(); const s = new Date(t); s.setDate(t.getDate() - 29); return [toDateString(s), toDateString(t)]; } },
+    { label: "This Month", getDates: () => { const t = new Date(); return [`${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-01`, toDateString(t)]; } },
+    { label: "Last Month", getDates: () => { const t = new Date(); const first = new Date(t.getFullYear(), t.getMonth() - 1, 1); const last = new Date(t.getFullYear(), t.getMonth(), 0); return [toDateString(first), toDateString(last)]; } },
+];
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function SuperAdminAnalyticsPage() {
-    const [timeframe, setTimeframe] = useState<"daily" | "weekly" | "monthly">("daily");
-    const [activeTab, setActiveTab] = useState<"active" | "test">("active");
-    const [data, setData] = useState<OrgAnalyticsDetail[]>([]);
-    const [loading, setLoading] = useState(true);
+    const today = toDateString(new Date());
+    const thirtyDaysAgo = (() => { const d = new Date(); d.setDate(d.getDate() - 29); return toDateString(d); })();
+
+    const [startDate, setStartDate] = useState(thirtyDaysAgo);
+    const [endDate, setEndDate] = useState(today);
+    const [parentOrgFilter, setParentOrgFilter] = useState("");
+    const [branchFilter, setBranchFilter] = useState("");
+    const [data, setData] = useState<TenantAnalyticsRow[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [parentOrgs, setParentOrgs] = useState<{ id: string; name: string }[]>([]);
+    const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [search, setSearch] = useState("");
+    const [sortBy, setSortBy] = useState<keyof TenantAnalyticsRow>("tokens_used");
+    const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-    // Modal states
-    const [editOrg, setEditOrg] = useState<OrgDetail | null>(null);
-    const [deleteOrg, setDeleteOrg] = useState<OrgDetail | null>(null);
-    const [statusOrg, setStatusOrg] = useState<OrgDetail | null>(null);
-    const [isUpdating, setIsUpdating] = useState(false);
-
-    const loadData = async (tf: "daily" | "weekly" | "monthly", isTest: boolean) => {
+    const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await api.getOrgAnalytics(tf, isTest);
-            setData(res.items || []);
-        } catch (error) {
-            console.error("Failed to load analytics", error);
+            const [res, parentOrgsRes] = await Promise.all([
+                api.getTenantAnalytics({
+                    start_date: startDate,
+                    end_date: endDate,
+                    parent_org_id: parentOrgFilter || undefined,
+                    branch_id: branchFilter || undefined,
+                }),
+                api.listParentOrganizations({ limit: 100 })
+            ]);
+            
+            setData(res.items);
+            setParentOrgs(parentOrgsRes.items.map(p => ({ id: p.id, name: p.name })));
+        } catch (e) {
+            console.error("Failed to load tenant analytics", e);
         } finally {
             setLoading(false);
         }
-    };
+    }, [startDate, endDate, parentOrgFilter, branchFilter]);
 
     useEffect(() => {
-        loadData(timeframe, activeTab === "test");
-    }, [timeframe, activeTab]);
+        loadData();
+    }, [loadData]);
 
-    const handleImpersonate = async (id: string, slug: string, parentSlug: string | null) => {
-        try {
-            const res = await api.impersonateOrganization(id);
-            if (res.access_token) {
-                // Clear any existing org tokens
-                document.cookie.split(";").forEach((c) => {
-                    const eqPos = c.indexOf("=");
-                    const name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim();
-                    if (name.startsWith("qrq_token_")) {
-                        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-                    }
-                });
-                // Set the new org token
-                document.cookie = `qrq_token_${slug}=${res.access_token}; path=/; max-age=86400; SameSite=Lax`;
-                const pSlug = parentSlug || "system";
-                window.location.href = `/super-admin/${pSlug}/${slug}/dashboard`;
-            }
-        } catch (error) {
-            console.error("Impersonation failed:", error);
-            alert("Failed to impersonate organization");
-        }
+    const applyQuickRange = (getDates: () => string[]) => {
+        const [s, e] = getDates();
+        setStartDate(s);
+        setEndDate(e);
     };
 
-    const handleOrgSaved = (updated: OrgDetail) => {
-        setData(prev => prev.map(o => o.id === updated.id ? { ...o, ...updated } : o));
-        setEditOrg(null);
+    const handleSort = (col: keyof TenantAnalyticsRow) => {
+        if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+        else { setSortBy(col); setSortDir("desc"); }
     };
 
-    const handleOrgDeleted = async () => {
-        if (!deleteOrg) return;
-        setIsUpdating(true);
-        try {
-            await api.deleteOrganization(deleteOrg.id);
-            setData(prev => prev.filter(o => o.id !== deleteOrg.id));
-            setDeleteOrg(null);
-        } catch (error) {
-            console.error("Delete failed:", error);
-            alert("Failed to delete organization");
-        } finally {
-            setIsUpdating(false);
-        }
-    };
+    const sortedFiltered = [...data]
+        .filter(r =>
+            r.branch_name.toLowerCase().includes(search.toLowerCase()) ||
+            (r.parent_org_name || "").toLowerCase().includes(search.toLowerCase())
+        )
+        .sort((a, b) => {
+            const av = a[sortBy] ?? 0;
+            const bv = b[sortBy] ?? 0;
+            if (typeof av === "number" && typeof bv === "number")
+                return sortDir === "asc" ? av - bv : bv - av;
+            return 0;
+        });
 
-    const handleStatusConfirm = async () => {
-        if (!statusOrg) return;
-        setIsUpdating(true);
-        try {
-            const updated = await api.updateOrganization(statusOrg.id, {
-                org_name: statusOrg.name,
-                org_slug: statusOrg.slug,
-                is_active: !statusOrg.is_active,
-                max_sessions: statusOrg.max_sessions,
-                max_queues_per_session: statusOrg.max_queues_per_session,
-                max_staff: statusOrg.max_staff
-            });
-            setData(prev => prev.map(o => o.id === updated.id ? { ...o, ...updated } : o));
-            setStatusOrg(null);
-        } catch (error) {
-            console.error("Status update failed:", error);
-            alert("Failed to update organization status");
-        } finally {
-            setIsUpdating(false);
-        }
-    };
-
-    const filteredData = data.filter(d => 
-        d.name.toLowerCase().includes(search.toLowerCase())
+    const SortIcon = ({ col }: { col: keyof TenantAnalyticsRow }) => (
+        <svg className={`w-3 h-3 inline ml-1 ${sortBy === col ? "text-indigo-400" : "text-slate-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {sortBy === col && sortDir === "asc"
+                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />}
+        </svg>
     );
+
+    const totals = sortedFiltered.reduce((acc, r) => ({
+        tokens_used: acc.tokens_used + r.tokens_used,
+        tokens_skipped_removed: acc.tokens_skipped_removed + r.tokens_skipped_removed,
+        messages_sent: acc.messages_sent + r.messages_sent,
+    }), { tokens_used: 0, tokens_skipped_removed: 0, messages_sent: 0 });
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -112,187 +123,249 @@ export default function SuperAdminAnalyticsPage() {
                         <svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                         </svg>
-                        Organization Analytics
+                        Tenant Analytics
                     </h1>
-                    <p className="text-sm text-slate-400 mt-1">Detailed usage metrics and performance across all organizations.</p>
+                    <p className="text-sm text-slate-400 mt-1">Detailed historical usage metrics by branch, with date and organisation filtering.</p>
                 </div>
             </div>
 
-            {/* Toolbar */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-                <div className="p-5 border-b border-slate-800 bg-slate-900/50 flex flex-col md:flex-row gap-4 justify-between">
-                    <div className="flex bg-slate-950 p-1 rounded-xl shrink-0 border border-slate-800">
+            {/* Filters */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-5 space-y-4">
+                {/* Quick ranges */}
+                <div className="flex flex-wrap gap-2">
+                    {QUICK_RANGES.map(r => (
                         <button
-                            onClick={() => setActiveTab("active")}
-                            className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === "active" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-300"}`}
+                            key={r.label}
+                            onClick={() => applyQuickRange(r.getDates)}
+                            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700"
                         >
-                            Active Orgs
+                            {r.label}
                         </button>
-                        <button
-                            onClick={() => setActiveTab("test")}
-                            className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === "test" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-300"}`}
-                        >
-                            Test Orgs
-                        </button>
-                    </div>
+                    ))}
+                </div>
 
-                    {/* Search */}
-                    <div className="relative flex-1 max-w-md">
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                {/* Date + org filters */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label className="text-xs font-semibold text-slate-400 mb-1.5 block uppercase tracking-wide">Start Date</label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={e => setStartDate(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-colors"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs font-semibold text-slate-400 mb-1.5 block uppercase tracking-wide">End Date</label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={e => setEndDate(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-colors"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs font-semibold text-slate-400 mb-1.5 block uppercase tracking-wide">Parent Organisation</label>
+                        <select
+                            value={parentOrgFilter}
+                            onChange={e => { setParentOrgFilter(e.target.value); setBranchFilter(""); }}
+                            className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-colors"
+                        >
+                            <option value="">All Organisations</option>
+                            {parentOrgs.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-xs font-semibold text-slate-400 mb-1.5 block uppercase tracking-wide">Search Branch</label>
                         <input
                             type="search"
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search organization..."
-                            className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-colors"
+                            onChange={e => setSearch(e.target.value)}
+                            placeholder="Branch or org name…"
+                            className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-colors"
                         />
                     </div>
+                </div>
+            </div>
 
-                    {/* Timeframe Toggles & Export */}
-                    <div className="flex gap-2 shrink-0">
-                        <div className="flex bg-slate-950 border border-slate-800 p-1 rounded-xl">
-                            {(["daily", "weekly", "monthly"] as const).map(tf => (
-                                <button
-                                    key={tf}
-                                    onClick={() => setTimeframe(tf)}
-                                    className={`px-4 py-1.5 text-xs font-semibold rounded-lg capitalize transition-colors ${
-                                        timeframe === tf
-                                            ? "bg-slate-800 text-white shadow-sm"
-                                            : "text-slate-400 hover:text-slate-200"
-                                    }`}
-                                >
-                                    {tf}
-                                </button>
-                            ))}
+            {/* Summary Cards */}
+            {!loading && data.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                        { label: "Branches Shown", value: sortedFiltered.length, color: "indigo" },
+                        { label: "Total Tokens Used", value: totals.tokens_used.toLocaleString(), color: "emerald" },
+                        { label: "Total Skipped/Removed", value: totals.tokens_skipped_removed.toLocaleString(), color: "amber" },
+                        { label: "Total Messages Sent", value: totals.messages_sent.toLocaleString(), color: "cyan" },
+                    ].map(c => (
+                        <div key={c.label} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+                            <p className="text-xs text-slate-400 font-medium mb-1">{c.label}</p>
+                            <p className={`text-2xl font-bold text-${c.color}-400`}>{c.value}</p>
                         </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Table */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                    <span className="text-sm text-slate-400">
+                        {loading ? "Fetching data…" : `Showing ${sortedFiltered.length} of ${data.length} branch(es) · ${startDate} to ${endDate}`}
+                    </span>
+                    {!loading && sortedFiltered.length > 0 && (
                         <button
                             onClick={() => {
-                                const headers = ["Organization", "Queue Entries", "Customers Served", "Status", "Avg Wait Time", "Peak Usage Time"];
-                                const rows = filteredData.map(d => [
-                                    d.name,
-                                    d.queue_entries,
-                                    d.customers_served,
-                                    d.is_active ? "Active" : "Inactive",
-                                    d.average_wait_time,
-                                    d.peak_usage_time
+                                const headers = ["Branch", "Parent Org", "Status", "Tokens Used", "Skipped/Removed", "Avg Wait", "Avg Serve", "Peak Hour", "Active Queues", "Active Staff", "Messages Sent"];
+                                const rows = sortedFiltered.map(r => [
+                                    r.branch_name, r.parent_org_name || "—", r.branch_is_active ? "Active" : "Inactive",
+                                    r.tokens_used, r.tokens_skipped_removed, fmtSeconds(r.avg_wait_seconds),
+                                    fmtSeconds(r.avg_serve_seconds), fmtHour(r.peak_hour),
+                                    r.active_queues, r.active_staff, r.messages_sent
                                 ]);
-                                const csvContent = [headers, ...rows].map(e => e.map(f => `"${String(f).replace(/"/g, '""')}"`).join(",")).join("\n");
-                                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `org_analytics_${timeframe}_${new Date().toISOString().split('T')[0]}.csv`;
+                                const csv = [headers, ...rows].map(row => row.map(f => `"${String(f).replace(/"/g, '""')}"`).join(",")).join("\n");
+                                const a = document.createElement("a");
+                                a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+                                a.download = `tenant_analytics_${startDate}_to_${endDate}.csv`;
                                 a.click();
-                                URL.revokeObjectURL(url);
                             }}
-                            className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 text-xs font-semibold rounded-xl transition-colors"
+                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 rounded-lg transition-colors"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                             Export CSV
                         </button>
-                    </div>
+                    )}
                 </div>
 
-                {/* Table */}
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left whitespace-nowrap">
                         <thead className="bg-slate-800/50 text-xs text-slate-400 font-semibold uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4">Organization</th>
-                                <th className="px-6 py-4">Queue Entries</th>
-                                <th className="px-6 py-4">Customers Served</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Avg Wait Time</th>
-                                <th className="px-6 py-4">Peak Usage Time</th>
-                                <th className="px-6 py-4 text-center">Actions</th>
+                                <th className="px-5 py-3">Branch</th>
+                                <th className="px-5 py-3">Parent Org</th>
+                                <th className="px-5 py-3 cursor-pointer hover:text-white select-none" onClick={() => handleSort("tokens_used")}>
+                                    Tokens Used <SortIcon col="tokens_used" />
+                                </th>
+                                <th className="px-5 py-3 cursor-pointer hover:text-white select-none" onClick={() => handleSort("tokens_skipped_removed")}>
+                                    Skipped/Removed <SortIcon col="tokens_skipped_removed" />
+                                </th>
+                                <th className="px-5 py-3 cursor-pointer hover:text-white select-none" onClick={() => handleSort("avg_wait_seconds")}>
+                                    Avg Wait <SortIcon col="avg_wait_seconds" />
+                                </th>
+                                <th className="px-5 py-3 cursor-pointer hover:text-white select-none" onClick={() => handleSort("avg_serve_seconds")}>
+                                    Avg Serve <SortIcon col="avg_serve_seconds" />
+                                </th>
+                                <th className="px-5 py-3">Peak Hour</th>
+                                <th className="px-5 py-3 cursor-pointer hover:text-white select-none" onClick={() => handleSort("active_queues")}>
+                                    Queues <SortIcon col="active_queues" />
+                                </th>
+                                <th className="px-5 py-3 cursor-pointer hover:text-white select-none" onClick={() => handleSort("active_staff")}>
+                                    Staff <SortIcon col="active_staff" />
+                                </th>
+                                <th className="px-5 py-3 cursor-pointer hover:text-white select-none" onClick={() => handleSort("messages_sent")}>
+                                    Msgs <SortIcon col="messages_sent" />
+                                </th>
+                                <th className="px-5 py-3"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/40">
                             {loading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={i} className="animate-pulse">
+                                        {[...Array(11)].map((_, j) => (
+                                            <td key={j} className="px-5 py-4">
+                                                <div className="h-4 bg-slate-800 rounded w-full" />
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            ) : sortedFiltered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center">
-                                        <div className="flex justify-center items-center gap-2 text-slate-400">
-                                            <svg className="animate-spin w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    <td colSpan={11} className="px-6 py-16 text-center text-slate-500">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <svg className="w-10 h-10 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                             </svg>
-                                            Loading analytics...
+                                            <p className="text-sm">No data found. Try adjusting your date range or filters.</p>
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredData.length > 0 ? (
-                                filteredData.map(org => (
-                                    <tr key={org.id} className="hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-slate-200">
-                                            {org.name}
-                                        </td>
-                                        <td className="px-6 py-4 tabular-nums font-semibold text-slate-300">
-                                            {org.queue_entries.toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4 tabular-nums font-semibold text-emerald-400">
-                                            {org.customers_served.toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4"><Badge active={org.is_active} /></td>
-                                        <td className="px-6 py-4 text-amber-400/90 font-medium text-xs">
-                                            <span className="bg-amber-400/10 px-2 py-1 rounded">
-                                                {org.average_wait_time}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-indigo-300 font-medium text-xs">
-                                            <span className="bg-indigo-400/10 border border-indigo-400/20 px-2 py-1 rounded-md">
-                                                {org.peak_usage_time}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <button onClick={() => window.location.href = `/super-admin/usage?org=${org.id}`} aria-label={`View Usage ${org.name}`} title="Usage Monitoring" className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                                                </button>
-                                                <button onClick={() => handleImpersonate(org.id, org.slug, org.parent_slug || null)} aria-label={`Impersonate ${org.name}`} title="Login As" className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                </button>
-                                                <button onClick={() => setEditOrg(org)} aria-label={`Edit ${org.name}`} title="Edit" className="p-1.5 text-slate-400 hover:text-violet-400 hover:bg-violet-500/10 rounded-lg transition-colors">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                                </button>
-                                                <button onClick={() => setStatusOrg(org)} aria-label={org.is_active ? `Suspend ${org.name}` : `Activate ${org.name}`} title={org.is_active ? "Suspend" : "Activate"} className={`p-1.5 rounded-lg transition-colors ${org.is_active ? 'text-amber-500/70 hover:text-amber-400 hover:bg-amber-500/10' : 'text-emerald-500/70 hover:text-emerald-400 hover:bg-emerald-500/10'}`}>
-                                                    {org.is_active ? (
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
-                                                    ) : (
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-                                                    )}
-                                                </button>
-                                                <button onClick={() => setDeleteOrg(org)} aria-label={`Delete ${org.name}`} title="Hard Delete" className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                </button>
+                            ) : sortedFiltered.map(row => (
+                                <>
+                                    <tr
+                                        key={row.branch_id}
+                                        className="hover:bg-slate-800/30 transition-colors cursor-pointer"
+                                        onClick={() => setExpandedRow(expandedRow === row.branch_id ? null : row.branch_id)}
+                                    >
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`w-2 h-2 rounded-full shrink-0 ${row.branch_is_active ? "bg-emerald-500" : "bg-red-500"}`} />
+                                                <span className="font-semibold text-white">{row.branch_name}</span>
                                             </div>
+                                            <span className="text-xs text-slate-500 pl-4">{row.branch_slug}</span>
+                                        </td>
+                                        <td className="px-5 py-4 text-slate-400 text-xs">{row.parent_org_name || "—"}</td>
+                                        <td className="px-5 py-4 font-bold text-emerald-400 tabular-nums">{row.tokens_used.toLocaleString()}</td>
+                                        <td className="px-5 py-4 font-semibold text-amber-400/90 tabular-nums">{row.tokens_skipped_removed.toLocaleString()}</td>
+                                        <td className="px-5 py-4">
+                                            <span className="bg-blue-500/10 text-blue-300 text-xs font-medium px-2 py-0.5 rounded">
+                                                {fmtSeconds(row.avg_wait_seconds)}
+                                            </span>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <span className="bg-violet-500/10 text-violet-300 text-xs font-medium px-2 py-0.5 rounded">
+                                                {fmtSeconds(row.avg_serve_seconds)}
+                                            </span>
+                                        </td>
+                                        <td className="px-5 py-4 text-slate-300 text-xs">{fmtHour(row.peak_hour)}</td>
+                                        <td className="px-5 py-4 tabular-nums text-slate-300">{row.active_queues}</td>
+                                        <td className="px-5 py-4 tabular-nums text-slate-300">{row.active_staff}</td>
+                                        <td className="px-5 py-4 tabular-nums text-cyan-400">{row.messages_sent.toLocaleString()}</td>
+                                        <td className="px-5 py-4 text-slate-500">
+                                            <svg className={`w-4 h-4 transition-transform ${expandedRow === row.branch_id ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                            </svg>
                                         </td>
                                     </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                                        No organizations found for the selected timeframe.
-                                    </td>
-                                </tr>
-                            )}
+                                    {expandedRow === row.branch_id && (
+                                        <tr key={`${row.branch_id}-expanded`} className="bg-slate-950/50">
+                                            <td colSpan={11} className="px-8 py-5">
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                    {[
+                                                        { label: "Branch Status", value: row.branch_is_active ? "Active" : "Inactive", color: row.branch_is_active ? "text-emerald-400" : "text-red-400" },
+                                                        { label: "Branch Slug", value: row.branch_slug, color: "text-slate-300" },
+                                                        { label: "Parent Organisation", value: row.parent_org_name || "No parent", color: "text-indigo-300" },
+                                                        { label: "Total Traffic", value: `${(row.tokens_used + row.tokens_skipped_removed).toLocaleString()} tokens`, color: "text-white" },
+                                                        { label: "Completion Rate", value: row.tokens_used + row.tokens_skipped_removed > 0 ? `${Math.round((row.tokens_used / (row.tokens_used + row.tokens_skipped_removed)) * 100)}%` : "—", color: "text-emerald-400" },
+                                                        { label: "Avg Wait Time", value: fmtSeconds(row.avg_wait_seconds), color: "text-blue-300" },
+                                                        { label: "Avg Serve Time", value: fmtSeconds(row.avg_serve_seconds), color: "text-violet-300" },
+                                                        { label: "Peak Busy Hour", value: fmtHour(row.peak_hour), color: "text-amber-300" },
+                                                    ].map(item => (
+                                                        <div key={item.label} className="bg-slate-900 rounded-xl p-3 border border-slate-800">
+                                                            <p className="text-xs text-slate-500 mb-1">{item.label}</p>
+                                                            <p className={`text-sm font-semibold ${item.color}`}>{item.value}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </>
+                            ))}
                         </tbody>
                     </table>
                 </div>
 
-                {/* Footer Status */}
-                <div className="px-6 py-4 border-t border-slate-800/50 flex items-center justify-between text-xs text-slate-500">
-                    <span>Showing metrics for {filteredData.length} organization(s)</span>
-                    <span className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        Data is live
-                    </span>
-                </div>
+                {!loading && sortedFiltered.length > 0 && (
+                    <div className="px-6 py-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
+                        <span>{sortedFiltered.length} branch(es) shown</span>
+                        <span className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Historical data · Click row to expand
+                        </span>
+                    </div>
+                )}
             </div>
-            {editOrg && <EditOrgModal org={editOrg} onClose={() => setEditOrg(null)} onSaved={handleOrgSaved} />}
-            {deleteOrg && <SecureDeleteModal org={deleteOrg} onClose={() => setDeleteOrg(null)} onConfirm={handleOrgDeleted} isDeleting={isUpdating} />}
-            {statusOrg && <ConfirmStatusModal org={statusOrg} onClose={() => setStatusOrg(null)} onConfirm={handleStatusConfirm} isUpdating={isUpdating} />}
         </div>
     );
 }

@@ -23,7 +23,6 @@ export default function DisplayQueuePage({ params }: PageProps) {
     // Audio State
     const [soundEnabled, setSoundEnabled] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const previousServingRef = useRef<number | null>(null);
     const [isMounted, setIsMounted] = useState(false);
     const [timeString, setTimeString] = useState("");
     const [dateString, setDateString] = useState("");
@@ -51,10 +50,15 @@ export default function DisplayQueuePage({ params }: PageProps) {
         return () => clearInterval(id);
     }, []);
 
+    // Track all serving tokens (all counters) for sound trigger
+    const previousServingTokensRef = useRef<string>("");
+
     useEffect(() => {
         if (!isMounted) return;
-        const enabled = localStorage.getItem("display_sound_enabled") === "true";
-        setSoundEnabled(enabled);
+        const enabled = localStorage.getItem("display_sound_enabled");
+        // Default to true on first load (TV display should have sound on by default)
+        setSoundEnabled(enabled === null ? true : enabled === "true");
+        if (enabled === null) localStorage.setItem("display_sound_enabled", "true");
         const audio = new Audio("/sounds/ringtone-you-would-be-glad-to-know.mp3");
         audio.preload = "auto";
         audio.volume = 1.0;
@@ -80,15 +84,29 @@ export default function DisplayQueuePage({ params }: PageProps) {
         });
     }, []);
 
+    // Fire sound whenever the set of currently-serving tokens changes
+    // This works for both single-counter and multi-counter queues
     useEffect(() => {
         if (!state) return;
-        if (state.current_serving !== 0 && previousServingRef.current !== null && state.current_serving !== previousServingRef.current) {
+        const allTokens = state.all_serving_tokens || [];
+        // Build a stable key from all serving token numbers + assigned lines
+        const currentKey = allTokens
+            .map((t: any) => `${t.assigned_line ?? 0}:${t.token_number}`)
+            .sort()
+            .join(",");
+        // Also include the single current_serving for queues without multi-line
+        const singleKey = String(state.current_serving ?? 0);
+        const fullKey = currentKey || singleKey;
+
+        if (fullKey && fullKey !== "0" && previousServingTokensRef.current !== "" && fullKey !== previousServingTokensRef.current) {
             if (soundEnabled && audioRef.current) {
                 audioRef.current.currentTime = 0;
                 audioRef.current.play().catch(() => { });
             }
         }
-        if (state.current_serving !== 0) previousServingRef.current = state.current_serving;
+        if (fullKey && fullKey !== "0") {
+            previousServingTokensRef.current = fullKey;
+        }
     }, [state, soundEnabled]);
 
     if (!isMounted) return null;
@@ -216,7 +234,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
                 <div className={`absolute inset-0 z-0 transition-colors duration-500 ${isDark ? "bg-[#0a0e1a]" : "bg-[#f5f6f8]"}`}></div>
 
                 {/* Desktop Header */}
-                <DesktopHeader logoUrl={logoUrl} status={status} isActive={state?.is_active ?? false} timeString={timeString} dateString={dateString} isDark={isDark} onToggleTheme={handleToggleTheme} />
+                <DesktopHeader logoUrl={logoUrl} status={status} isActive={state?.is_active ?? false} timeString={timeString} dateString={dateString} isDark={isDark} onToggleTheme={handleToggleTheme} soundEnabled={soundEnabled} onToggleSound={handleToggleSound} />
 
                 {/* 70 / 30 split */}
                 <div className="flex-1 flex gap-5 p-5 overflow-hidden min-h-0 relative z-10">
@@ -248,7 +266,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Desktop Header (extracted to keep main component lean)
 // ─────────────────────────────────────────────────────────────────────────────
-function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDark, onToggleTheme }: {
+function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDark, onToggleTheme, soundEnabled, onToggleSound }: {
     logoUrl?: string | null;
     status: string;
     isActive: boolean;
@@ -256,6 +274,8 @@ function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDa
     dateString: string;
     isDark: boolean;
     onToggleTheme: () => void;
+    soundEnabled: boolean;
+    onToggleSound: () => void;
 }) {
     const isConnected = status === "connected";
     return (
@@ -267,6 +287,31 @@ function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDa
             </div>
             <div className="flex-1" />
             <div className="flex items-center gap-4 w-[400px] justify-end">
+                {/* Sound toggle */}
+                <button
+                    onClick={onToggleSound}
+                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-105 ${
+                        isDark
+                            ? "bg-white/[0.06] border-white/[0.08] text-slate-300 hover:bg-white/[0.1]"
+                            : "bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200"
+                    }`}
+                    title={soundEnabled ? "Sound ON — click to mute" : "Sound OFF — click to enable"}
+                >
+                    {soundEnabled ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                        </svg>
+                    ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                            <line x1="23" y1="9" x2="17" y2="15" />
+                            <line x1="17" y1="9" x2="23" y2="15" />
+                        </svg>
+                    )}
+                </button>
+
                 {/* Theme toggle */}
                 <button
                     onClick={onToggleTheme}

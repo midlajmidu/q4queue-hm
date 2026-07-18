@@ -74,7 +74,7 @@ function OrgUsageRow({ org }: { org: OrgDetail }) {
                 {loading ? <div className="w-8 h-4 bg-slate-800 rounded mx-auto animate-pulse" /> : usage ? <span className="text-sm font-medium text-slate-200">{usage.active_staff}</span> : "-"}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-center">
-                {loading ? <div className="w-8 h-4 bg-slate-800 rounded mx-auto animate-pulse" /> : <span className="text-sm font-medium text-slate-500">N/A</span>}
+                {loading ? <div className="w-8 h-4 bg-slate-800 rounded mx-auto animate-pulse" /> : usage && usage.messages_sent !== undefined ? <span className="text-sm font-medium text-slate-200">{usage.messages_sent}</span> : <span className="text-sm font-medium text-slate-500">N/A</span>}
             </td>
         </tr>
     );

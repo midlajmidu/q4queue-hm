@@ -7,6 +7,7 @@ import { AuditLogDetail } from "@/types/api";
 export default function ActivityFeed() {
     const [logs, setLogs] = useState<AuditLogDetail[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
     const loadLogs = useCallback(async () => {
         setIsLoading(true);
@@ -35,18 +36,48 @@ export default function ActivityFeed() {
     const getActionText = (log: AuditLogDetail) => {
         const actionMap: Record<string, string> = {
             "auth.login": "logged in",
-            "auth.login_failed": "failed to login",
-            "queue.create": "created a queue",
-            "queue.toggle": "toggled a queue",
-            "org.create": "created an organization",
-            "org.update": "updated an organization",
-            "org.delete": "deleted an organization",
+            "auth.login_failed": "failed to log in",
+            "auth.logout": "logged out",
+            "queue.create": "created a new queue",
+            "queue.update": "updated queue settings",
+            "queue.toggle": "toggled queue status",
+            "queue.delete": "deleted a queue",
+            "org.create": "created a new branch",
+            "org.update": "updated branch settings",
+            "org.delete": "deleted a branch",
+            "user.create": "added a new staff member",
+            "user.update": "updated staff details",
+            "user.delete": "removed a staff member",
+            "token.create": "added a customer to queue",
+            "token.serve": "started serving a customer",
+            "token.complete": "completed serving a customer",
+            "token.cancel": "cancelled a customer's token",
+            "message.send": "sent a message",
         };
-        const text = actionMap[log.event_type] || log.event_type;
+        
+        let text = actionMap[log.event_type];
+        if (!text && log.event_type) {
+            text = log.event_type.toLowerCase().replace(/[._]/g, ' ');
+            if (text.includes('create')) text = text.replace('create', 'created');
+            else if (text.includes('update')) text = text.replace('update', 'updated');
+            else if (text.includes('delete')) text = text.replace('delete', 'deleted');
+        } else if (!text) {
+            text = "performed an action";
+        }
+
+        let extra = "";
+        if (log.details) {
+            const nameOrTitle = log.details.name || log.details.queue_name || log.details.email || log.details.title || log.details.status;
+            if (nameOrTitle && typeof nameOrTitle === 'string') {
+                extra = ` "${nameOrTitle}"`;
+            }
+        }
+        
         return (
             <span>
-                <span className="font-semibold text-white">{log.user_email || log.ip_address || "System"}</span> {text}
-                {log.org_name && <span> in <span className="font-medium text-slate-300">{log.org_name}</span></span>}
+                <span className="font-semibold text-white">{log.user_email || "System"}</span> {text}
+                <span className="text-violet-300">{extra}</span>
+                {log.org_name && <span> in branch <span className="font-semibold text-emerald-400">{log.org_name}</span></span>}
             </span>
         );
     };
@@ -96,13 +127,35 @@ export default function ActivityFeed() {
                                 {/* Timeline Dot */}
                                 <div className={`absolute -left-[5px] top-1.5 w-2 h-2 rounded-full ${getActionColor(log.event_type)} shadow-lg ring-4 ring-slate-900 group-hover:scale-125 transition-transform`} />
                                 
-                                <div className="flex flex-col">
-                                    <p className="text-sm text-slate-300 leading-snug">
-                                        {getActionText(log)}
-                                    </p>
-                                    <span className="text-xs text-slate-500 mt-1 font-medium tracking-wide uppercase">
-                                        {formatTime(log.created_at)}
-                                    </span>
+                                <div className="flex flex-col flex-1">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p className="text-sm text-slate-300 leading-snug">
+                                                {getActionText(log)}
+                                            </p>
+                                            <span className="text-xs text-slate-500 mt-1 font-medium tracking-wide uppercase">
+                                                {formatTime(log.created_at)}
+                                            </span>
+                                        </div>
+                                        <button 
+                                            onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                                            className={`p-1.5 rounded-md transition-colors ${expandedLogId === log.id ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}
+                                            title="View Details"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    
+                                    {expandedLogId === log.id && (
+                                        <div className="mt-3 p-3 bg-slate-950/50 rounded-lg border border-slate-800/60 overflow-x-auto shadow-inner">
+                                            <pre className="text-xs text-emerald-400/90 font-mono whitespace-pre-wrap break-words">
+                                                {JSON.stringify(log, null, 2)}
+                                            </pre>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
