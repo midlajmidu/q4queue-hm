@@ -11,7 +11,6 @@ class ParentOrganizationBase(BaseModel):
     is_active: bool = True
     address: Optional[str] = Field(None, max_length=1000)
     logo_url: Optional[str] = Field(None, max_length=500)
-    brand_color: Optional[str] = Field(None, max_length=20)
     timezone: str = "UTC"
     backup_time: str = Field("03:00", max_length=5)
     max_branches: Optional[int] = Field(None, ge=1)
@@ -30,7 +29,6 @@ class ParentOrganizationUpdate(BaseModel):
     is_active: bool | None = None
     address: Optional[str] = Field(None, max_length=1000)
     logo_url: Optional[str] = Field(None, max_length=500)
-    brand_color: Optional[str] = Field(None, max_length=20)
     timezone: str | None = None
     backup_time: str | None = Field(None, max_length=5)
     max_branches: Optional[int] = Field(None, ge=1)

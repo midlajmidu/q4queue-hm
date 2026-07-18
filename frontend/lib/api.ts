@@ -964,6 +964,14 @@ export const api = {
             body: JSON.stringify(data),
         });
     },
+    uploadOrgAdminLogo: (file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return request<{ logo_url: string }>("/organization-admin/settings/logo", {
+            method: "POST",
+            body: formData,
+        });
+    },
     getOrgAdminAnnouncements: () => {
         return request<any[]>("/organization-admin/announcements");
     },

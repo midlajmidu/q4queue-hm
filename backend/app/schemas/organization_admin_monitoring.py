@@ -96,7 +96,6 @@ class BranchOverviewItem(BaseModel):
     whatsapp_success_rate: float = 0.0
     address: str | None = None
     phone_number: str | None = None
-    brand_color: str | None = None
     whatsapp_failed_today: int = 0
     alerts: List[str] = []
 

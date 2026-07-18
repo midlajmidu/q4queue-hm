@@ -77,7 +77,6 @@ async def create_branch(
         slug=request.slug,
         address=request.address,
         phone_number=request.phone_number,
-        brand_color=request.brand_color,
         timezone=request.timezone,
         parent_organization_id=current_user.parent_organization_id
     )
@@ -174,8 +173,6 @@ async def get_branch_details(
         created_at=branch.created_at,
         address=branch.address,
         phone_number=branch.phone_number,
-        brand_color=branch.brand_color,
-        logo_url=branch.logo_url,
         admin_count=len(admins),
         staff_count=staff_count,
         queue_count=queue_count,
@@ -207,8 +204,6 @@ async def update_branch(
         branch.address = request.address
     if request.phone_number is not None:
         branch.phone_number = request.phone_number
-    if request.brand_color is not None:
-        branch.brand_color = request.brand_color
 
     await db.commit()
     await db.refresh(branch)

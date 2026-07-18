@@ -369,7 +369,6 @@ async def list_branches_overview(
             whatsapp_failed_today=0, # Placeholder
             address=b.address,
             phone_number=b.phone_number,
-            brand_color=b.brand_color,
             alerts=alerts
         ))
     return result

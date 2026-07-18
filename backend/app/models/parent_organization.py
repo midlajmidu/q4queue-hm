@@ -50,7 +50,6 @@ class ParentOrganization(Base):
     # ── Settings ───────────────────────────────────────────────────
     address: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    brand_color: Mapped[str | None] = mapped_column(String(20), nullable=True)
     timezone: Mapped[str] = mapped_column(String(50), default="UTC", server_default="UTC", nullable=False)
     backup_time: Mapped[str] = mapped_column(String(5), default="03:00", server_default="03:00", nullable=False)
     max_branches: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)

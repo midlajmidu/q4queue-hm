@@ -24,7 +24,6 @@ class BranchCreateRequest(BaseModel):
     slug: str
     address: str | None = None
     phone_number: str | None = None
-    brand_color: str | None = None
     timezone: str = "Asia/Kolkata"
     
     # Optional Admin Assignment
@@ -37,7 +36,6 @@ class BranchUpdateRequest(BaseModel):
     name: str | None = None
     address: str | None = None
     phone_number: str | None = None
-    brand_color: str | None = None
 
 class BranchStatusUpdate(BaseModel):
     is_active: bool
@@ -62,8 +60,6 @@ class BranchAdminResponse(BaseModel):
 class BranchDetailResponse(BranchStatItem):
     address: str | None
     phone_number: str | None
-    brand_color: str | None
-    logo_url: str | None
     admin_count: int
     staff_count: int
     queue_count: int

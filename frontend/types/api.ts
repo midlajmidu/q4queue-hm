@@ -759,8 +759,6 @@ export interface OrganizationSettingsResponse {
     email: string;
     address: string | null;
     phone_number?: string;
-    logo_url?: string;
-    brand_color?: string;
     queue_templates: QueueTemplate[];
     auto_session_enabled: boolean;
     auto_session_time: string | null;
@@ -771,7 +769,6 @@ export interface OrganizationSettingsUpdate {
     name: string;
     address?: string;
     phone_number?: string;
-    brand_color?: string;
     queue_templates?: QueueTemplate[];
     auto_session_enabled?: boolean;
     auto_session_time?: string | null;

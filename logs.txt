@@ -1,0 +1,200 @@
+queue_backend  | 2026-07-19 02:44:28,701 INFO sqlalchemy.engine.Engine [cached since 551.3s ago] (UUID('32fa7fb0-4b07-4b1a-98d2-b26efe465e6b'),)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 551.3s ago] (UUID('32fa7fb0-4b07-4b1a-98d2-b26efe465e6b'),)
+queue_backend  | 2026-07-19 02:44:28,702 INFO sqlalchemy.engine.Engine SELECT audit_logs.id, audit_logs.event_type, audit_logs.org_id, audit_logs.parent_organization_id, audit_logs.user_id, audit_logs.ip_address, audit_logs.resource_type, audit_logs.resource_id, audit_logs.details, audit_logs.created_at, organizations.id AS id_1, organizations.name, organizations.slug, organizations.is_active, organizations.created_at AS created_at_1, organizations.address, organizations.phone_number, organizations.timezone, organizations.max_sessions, organizations.max_queues_per_session, organizations.max_tokens, organizations.max_staff, organizations.max_waiting_capacity, organizations.queue_templates, organizations.auto_session_enabled, organizations.auto_session_time, organizations.parent_organization_id AS parent_organization_id_1, users.id AS id_2, users.org_id AS org_id_1, users.parent_organization_id AS parent_organization_id_2, users.email, users.first_name, users.last_name, users.password_hash, users.initial_password, users.password_changed_at, users.role, users.is_active AS is_active_1, users.is_first_login, users.last_active_at, users.created_at AS created_at_2 
+queue_backend  | FROM audit_logs LEFT OUTER JOIN organizations ON audit_logs.org_id = organizations.id LEFT OUTER JOIN users ON audit_logs.user_id = users.id 
+queue_backend  | WHERE audit_logs.parent_organization_id = $1::UUID ORDER BY audit_logs.created_at DESC 
+queue_backend  |  LIMIT $2::INTEGER
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT audit_logs.id, audit_logs.event_type, audit_logs.org_id, audit_logs.parent_organization_id, audit_logs.user_id, audit_logs.ip_address, audit_logs.resource_type, audit_logs.resource_id, audit_logs.details, audit_logs.created_at, organizations.id AS id_1, organizations.name, organizations.slug, organizations.is_active, organizations.created_at AS created_at_1, organizations.address, organizations.phone_number, organizations.timezone, organizations.max_sessions, organizations.max_queues_per_session, organizations.max_tokens, organizations.max_staff, organizations.max_waiting_capacity, organizations.queue_templates, organizations.auto_session_enabled, organizations.auto_session_time, organizations.parent_organization_id AS parent_organization_id_1, users.id AS id_2, users.org_id AS org_id_1, users.parent_organization_id AS parent_organization_id_2, users.email, users.first_name, users.last_name, users.password_hash, users.initial_password, users.password_changed_at, users.role, users.is_active AS is_active_1, users.is_first_login, users.last_active_at, users.created_at AS created_at_2 
+queue_backend  | FROM audit_logs LEFT OUTER JOIN organizations ON audit_logs.org_id = organizations.id LEFT OUTER JOIN users ON audit_logs.user_id = users.id 
+queue_backend  | WHERE audit_logs.parent_organization_id = $1::UUID ORDER BY audit_logs.created_at DESC 
+queue_backend  |  LIMIT $2::INTEGER
+queue_backend  | 2026-07-19 02:44:28,702 INFO sqlalchemy.engine.Engine [cached since 531.9s ago] (UUID('f99fe377-88a8-4314-b97b-c7a3c0f9deaf'), 100)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 531.9s ago] (UUID('f99fe377-88a8-4314-b97b-c7a3c0f9deaf'), 100)
+queue_backend  | 2026-07-19 02:44:28,703 INFO sqlalchemy.engine.Engine SELECT organizations.id 
+queue_backend  | FROM organizations 
+queue_backend  | WHERE organizations.parent_organization_id = $1::UUID
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT organizations.id 
+queue_backend  | FROM organizations 
+queue_backend  | WHERE organizations.parent_organization_id = $1::UUID
+queue_backend  | 2026-07-19 02:44:28,703 INFO sqlalchemy.engine.Engine [cached since 532.3s ago] (UUID('f99fe377-88a8-4314-b97b-c7a3c0f9deaf'),)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.3s ago] (UUID('f99fe377-88a8-4314-b97b-c7a3c0f9deaf'),)
+queue_backend  | 2026-07-19 02:44:28,704 INFO sqlalchemy.engine.Engine SELECT organizations.id 
+queue_backend  | FROM organizations 
+queue_backend  | WHERE organizations.parent_organization_id = $1::UUID
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT organizations.id 
+queue_backend  | FROM organizations 
+queue_backend  | WHERE organizations.parent_organization_id = $1::UUID
+queue_backend  | 2026-07-19 02:44:28,704 INFO sqlalchemy.engine.Engine [cached since 532.3s ago] (UUID('f99fe377-88a8-4314-b97b-c7a3c0f9deaf'),)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.3s ago] (UUID('f99fe377-88a8-4314-b97b-c7a3c0f9deaf'),)
+queue_backend  | 2026-07-19 02:44:28,705 INFO sqlalchemy.engine.Engine COMMIT
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | COMMIT
+queue_backend  | 2026-07-19 02:44:28,706 INFO sqlalchemy.engine.Engine SELECT organizations.id 
+queue_backend  | FROM organizations 
+queue_backend  | WHERE organizations.parent_organization_id = $1::UUID
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT organizations.id 
+queue_backend  | FROM organizations 
+queue_backend  | WHERE organizations.parent_organization_id = $1::UUID
+queue_backend  | 2026-07-19 02:44:28,706 INFO sqlalchemy.engine.Engine [cached since 532.3s ago] (UUID('f99fe377-88a8-4314-b97b-c7a3c0f9deaf'),)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.3s ago] (UUID('f99fe377-88a8-4314-b97b-c7a3c0f9deaf'),)
+queue_backend  | 2026-07-19 02:44:28,709 INFO sqlalchemy.engine.Engine SELECT EXTRACT(hour FROM timezone($1::VARCHAR, tokens.created_at)) AS hr, count(tokens.id) AS arrived, sum(CASE WHEN (tokens.status = $2::tokenstatus) THEN $3::INTEGER ELSE $4::INTEGER END) AS served, avg(EXTRACT(epoch FROM tokens.served_at - tokens.created_at)) AS avg_wait_sec 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($7::UUID) AND date(timezone($5::VARCHAR, tokens.created_at)) = $6::DATE GROUP BY hr ORDER BY hr
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT EXTRACT(hour FROM timezone($1::VARCHAR, tokens.created_at)) AS hr, count(tokens.id) AS arrived, sum(CASE WHEN (tokens.status = $2::tokenstatus) THEN $3::INTEGER ELSE $4::INTEGER END) AS served, avg(EXTRACT(epoch FROM tokens.served_at - tokens.created_at)) AS avg_wait_sec 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($7::UUID) AND date(timezone($5::VARCHAR, tokens.created_at)) = $6::DATE GROUP BY hr ORDER BY hr
+queue_backend  | 2026-07-19 02:44:28,709 INFO sqlalchemy.engine.Engine [cached since 531.9s ago] ('Asia/Kolkata', 'done', 1, 0, 'Asia/Kolkata', datetime.date(2026, 7, 19), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 531.9s ago] ('Asia/Kolkata', 'done', 1, 0, 'Asia/Kolkata', datetime.date(2026, 7, 19), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19 02:44:28,712 INFO sqlalchemy.engine.Engine COMMIT
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | COMMIT
+queue_backend  | 2026-07-19 02:44:28,713 INFO sqlalchemy.engine.Engine SELECT organizations.id, organizations.name, organizations.slug, organizations.is_active, organizations.created_at, organizations.address, organizations.phone_number, organizations.timezone, organizations.max_sessions, organizations.max_queues_per_session, organizations.max_tokens, organizations.max_staff, organizations.max_waiting_capacity, organizations.queue_templates, organizations.auto_session_enabled, organizations.auto_session_time, organizations.parent_organization_id 
+queue_backend  | FROM organizations 
+queue_backend  | WHERE organizations.id IN ($1::UUID)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT organizations.id, organizations.name, organizations.slug, organizations.is_active, organizations.created_at, organizations.address, organizations.phone_number, organizations.timezone, organizations.max_sessions, organizations.max_queues_per_session, organizations.max_tokens, organizations.max_staff, organizations.max_waiting_capacity, organizations.queue_templates, organizations.auto_session_enabled, organizations.auto_session_time, organizations.parent_organization_id 
+queue_backend  | FROM organizations 
+queue_backend  | WHERE organizations.id IN ($1::UUID)
+queue_backend  | 2026-07-19 02:44:28,713 INFO sqlalchemy.engine.Engine [cached since 532.2s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'),)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.2s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'),)
+queue_backend  | 2026-07-19 02:44:28,713 INFO sqlalchemy.engine.Engine COMMIT
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | COMMIT
+queue_backend  | 2026-07-19T02:44:28 | INFO     | app.access                     | request | {'request_id': 'unknown', 'method': 'POST', 'path': '/api/v1/users/me/heartbeat', 'status': 200, 'latency_ms': 49.4, 'ip': '167.82.58.132'}
+queue_backend  | 2026-07-19 02:44:28,715 INFO sqlalchemy.engine.Engine SELECT users.id, users.org_id, users.parent_organization_id, users.email, users.first_name, users.last_name, users.password_hash, users.initial_password, users.password_changed_at, users.role, users.is_active, users.is_first_login, users.last_active_at, users.created_at 
+queue_backend  | FROM users 
+queue_backend  | WHERE users.org_id IN ($1::UUID)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT users.id, users.org_id, users.parent_organization_id, users.email, users.first_name, users.last_name, users.password_hash, users.initial_password, users.password_changed_at, users.role, users.is_active, users.is_first_login, users.last_active_at, users.created_at 
+queue_backend  | FROM users 
+queue_backend  | WHERE users.org_id IN ($1::UUID)
+queue_backend  | 2026-07-19 02:44:28,715 INFO sqlalchemy.engine.Engine [cached since 532.2s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'),)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.2s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'),)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | app.access                     | request | {'request_id': 'unknown', 'method': 'GET', 'path': '/api/v1/organization-admin/monitoring/audit', 'status': 200, 'latency_ms': 46.46, 'ip': '167.82.58.132'}
+queue_backend  | 2026-07-19T02:44:28 | INFO     | app.access                     | request | {'request_id': 'unknown', 'method': 'GET', 'path': '/api/v1/organization-admin/analytics/traffic', 'status': 200, 'latency_ms': 49.95, 'ip': '167.82.58.132'}
+queue_backend  | 2026-07-19 02:44:28,716 INFO sqlalchemy.engine.Engine SELECT tokens.status, count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($2::UUID) AND date(tokens.created_at) = $1::DATE GROUP BY tokens.status
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT tokens.status, count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($2::UUID) AND date(tokens.created_at) = $1::DATE GROUP BY tokens.status
+queue_backend  | 2026-07-19 02:44:28,716 INFO sqlalchemy.engine.Engine [cached since 532.2s ago] (datetime.date(2026, 7, 18), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.2s ago] (datetime.date(2026, 7, 18), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19 02:44:28,717 INFO sqlalchemy.engine.Engine SELECT tokens.status, count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($2::UUID) AND date(tokens.created_at) = $1::DATE GROUP BY tokens.status
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT tokens.status, count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($2::UUID) AND date(tokens.created_at) = $1::DATE GROUP BY tokens.status
+queue_backend  | 2026-07-19 02:44:28,717 INFO sqlalchemy.engine.Engine [cached since 532.2s ago] (datetime.date(2026, 7, 17), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.2s ago] (datetime.date(2026, 7, 17), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19 02:44:28,719 INFO sqlalchemy.engine.Engine SELECT count(sessions.id) AS count_1 
+queue_backend  | FROM sessions 
+queue_backend  | WHERE sessions.org_id IN ($2::UUID) AND sessions.session_date = $1::DATE
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT count(sessions.id) AS count_1 
+queue_backend  | FROM sessions 
+queue_backend  | WHERE sessions.org_id IN ($2::UUID) AND sessions.session_date = $1::DATE
+queue_backend  | 2026-07-19 02:44:28,719 INFO sqlalchemy.engine.Engine [cached since 532.1s ago] (datetime.date(2026, 7, 18), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.1s ago] (datetime.date(2026, 7, 18), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19 02:44:28,729 INFO sqlalchemy.engine.Engine SELECT count(queues.id) AS count_1 
+queue_backend  | FROM queues 
+queue_backend  | WHERE queues.org_id IN ($1::UUID) AND queues.is_active = true
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT count(queues.id) AS count_1 
+queue_backend  | FROM queues 
+queue_backend  | WHERE queues.org_id IN ($1::UUID) AND queues.is_active = true
+queue_backend  | 2026-07-19 02:44:28,729 INFO sqlalchemy.engine.Engine [cached since 532.2s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'),)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.2s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'),)
+queue_backend  | 2026-07-19 02:44:28,732 INFO sqlalchemy.engine.Engine SELECT tokens.status, count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($2::UUID) AND date(tokens.created_at) = $1::DATE GROUP BY tokens.status
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT tokens.status, count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($2::UUID) AND date(tokens.created_at) = $1::DATE GROUP BY tokens.status
+queue_backend  | 2026-07-19 02:44:28,732 INFO sqlalchemy.engine.Engine [cached since 532.2s ago] (datetime.date(2026, 7, 18), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.2s ago] (datetime.date(2026, 7, 18), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19 02:44:28,732 INFO sqlalchemy.engine.Engine SELECT avg(EXTRACT(epoch FROM tokens.served_at - tokens.created_at)) AS avg_wait_sec, avg(EXTRACT(epoch FROM tokens.completed_at - tokens.served_at)) AS avg_serve_sec 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($3::UUID) AND date(tokens.created_at) = $1::DATE AND tokens.status = $2::tokenstatus AND tokens.served_at IS NOT NULL
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT avg(EXTRACT(epoch FROM tokens.served_at - tokens.created_at)) AS avg_wait_sec, avg(EXTRACT(epoch FROM tokens.completed_at - tokens.served_at)) AS avg_serve_sec 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($3::UUID) AND date(tokens.created_at) = $1::DATE AND tokens.status = $2::tokenstatus AND tokens.served_at IS NOT NULL
+queue_backend  | 2026-07-19 02:44:28,732 INFO sqlalchemy.engine.Engine [cached since 532.1s ago] (datetime.date(2026, 7, 18), 'done', UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.1s ago] (datetime.date(2026, 7, 18), 'done', UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19 02:44:28,734 INFO sqlalchemy.engine.Engine SELECT count(sessions.id) AS count_1 
+queue_backend  | FROM sessions 
+queue_backend  | WHERE sessions.org_id IN ($2::UUID) AND sessions.created_at >= $1::TIMESTAMP WITH TIME ZONE
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT count(sessions.id) AS count_1 
+queue_backend  | FROM sessions 
+queue_backend  | WHERE sessions.org_id IN ($2::UUID) AND sessions.created_at >= $1::TIMESTAMP WITH TIME ZONE
+queue_backend  | 2026-07-19 02:44:28,734 INFO sqlalchemy.engine.Engine [cached since 532.1s ago] (datetime.datetime(2026, 7, 18, 20, 14, 28, 733792, tzinfo=datetime.timezone.utc), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.1s ago] (datetime.datetime(2026, 7, 18, 20, 14, 28, 733792, tzinfo=datetime.timezone.utc), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19 02:44:28,734 INFO sqlalchemy.engine.Engine SELECT count(sessions.id) AS count_1 
+queue_backend  | FROM sessions 
+queue_backend  | WHERE sessions.org_id IN ($3::UUID) AND sessions.created_at >= $1::TIMESTAMP WITH TIME ZONE AND sessions.created_at < $2::TIMESTAMP WITH TIME ZONE
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT count(sessions.id) AS count_1 
+queue_backend  | FROM sessions 
+queue_backend  | WHERE sessions.org_id IN ($3::UUID) AND sessions.created_at >= $1::TIMESTAMP WITH TIME ZONE AND sessions.created_at < $2::TIMESTAMP WITH TIME ZONE
+queue_backend  | 2026-07-19 02:44:28,734 INFO sqlalchemy.engine.Engine [cached since 532.1s ago] (datetime.datetime(2026, 7, 18, 19, 14, 28, 733792, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 7, 18, 20, 14, 28, 733792, tzinfo=datetime.timezone.utc), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.1s ago] (datetime.datetime(2026, 7, 18, 19, 14, 28, 733792, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 7, 18, 20, 14, 28, 733792, tzinfo=datetime.timezone.utc), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19 02:44:28,735 INFO sqlalchemy.engine.Engine SELECT count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($2::UUID) AND tokens.served_at >= $1::TIMESTAMP WITH TIME ZONE
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($2::UUID) AND tokens.served_at >= $1::TIMESTAMP WITH TIME ZONE
+queue_backend  | 2026-07-19 02:44:28,735 INFO sqlalchemy.engine.Engine [cached since 532.1s ago] (datetime.datetime(2026, 7, 18, 20, 14, 28, 733792, tzinfo=datetime.timezone.utc), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.1s ago] (datetime.datetime(2026, 7, 18, 20, 14, 28, 733792, tzinfo=datetime.timezone.utc), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19 02:44:28,736 INFO sqlalchemy.engine.Engine SELECT count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($3::UUID) AND tokens.served_at >= $1::TIMESTAMP WITH TIME ZONE AND tokens.served_at < $2::TIMESTAMP WITH TIME ZONE
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id IN ($3::UUID) AND tokens.served_at >= $1::TIMESTAMP WITH TIME ZONE AND tokens.served_at < $2::TIMESTAMP WITH TIME ZONE
+queue_backend  | 2026-07-19 02:44:28,736 INFO sqlalchemy.engine.Engine [cached since 532.1s ago] (datetime.datetime(2026, 7, 18, 19, 14, 28, 733792, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 7, 18, 20, 14, 28, 733792, tzinfo=datetime.timezone.utc), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.1s ago] (datetime.datetime(2026, 7, 18, 19, 14, 28, 733792, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 7, 18, 20, 14, 28, 733792, tzinfo=datetime.timezone.utc), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19 02:44:28,737 INFO sqlalchemy.engine.Engine SELECT whatsapp_messages.status, count(whatsapp_messages.id) AS count_1 
+queue_backend  | FROM whatsapp_messages 
+queue_backend  | WHERE whatsapp_messages.organization_id IN ($2::UUID) AND date(whatsapp_messages.created_at) = $1::DATE GROUP BY whatsapp_messages.status
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT whatsapp_messages.status, count(whatsapp_messages.id) AS count_1 
+queue_backend  | FROM whatsapp_messages 
+queue_backend  | WHERE whatsapp_messages.organization_id IN ($2::UUID) AND date(whatsapp_messages.created_at) = $1::DATE GROUP BY whatsapp_messages.status
+queue_backend  | 2026-07-19 02:44:28,737 INFO sqlalchemy.engine.Engine [cached since 532.1s ago] (datetime.date(2026, 7, 18), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.1s ago] (datetime.date(2026, 7, 18), UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'))
+queue_backend  | 2026-07-19 02:44:28,738 INFO sqlalchemy.engine.Engine SELECT tokens.status, count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id = $1::UUID AND date(tokens.created_at) = $2::DATE GROUP BY tokens.status
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT tokens.status, count(tokens.id) AS count_1 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id = $1::UUID AND date(tokens.created_at) = $2::DATE GROUP BY tokens.status
+queue_backend  | 2026-07-19 02:44:28,738 INFO sqlalchemy.engine.Engine [cached since 532.1s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'), datetime.date(2026, 7, 18))
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.1s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'), datetime.date(2026, 7, 18))
+queue_backend  | 2026-07-19 02:44:28,739 INFO sqlalchemy.engine.Engine SELECT count(users.id) AS count_1 
+queue_backend  | FROM users 
+queue_backend  | WHERE users.org_id = $1::UUID AND users.role = $2::VARCHAR AND users.is_active = true
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT count(users.id) AS count_1 
+queue_backend  | FROM users 
+queue_backend  | WHERE users.org_id = $1::UUID AND users.role = $2::VARCHAR AND users.is_active = true
+queue_backend  | 2026-07-19 02:44:28,739 INFO sqlalchemy.engine.Engine [cached since 532.1s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'), 'staff')
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532.1s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'), 'staff')
+queue_backend  | 2026-07-19 02:44:28,741 INFO sqlalchemy.engine.Engine SELECT count(queues.id) AS count_1 
+queue_backend  | FROM queues 
+queue_backend  | WHERE queues.org_id = $1::UUID AND queues.is_active = true
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT count(queues.id) AS count_1 
+queue_backend  | FROM queues 
+queue_backend  | WHERE queues.org_id = $1::UUID AND queues.is_active = true
+queue_backend  | 2026-07-19 02:44:28,741 INFO sqlalchemy.engine.Engine [cached since 532s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'),)
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'),)
+queue_backend  | 2026-07-19 02:44:28,742 INFO sqlalchemy.engine.Engine SELECT avg(EXTRACT(epoch FROM tokens.served_at - tokens.created_at)) AS avg_wait_sec 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id = $1::UUID AND date(tokens.created_at) = $2::DATE AND tokens.status = $3::tokenstatus AND tokens.served_at IS NOT NULL
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | SELECT avg(EXTRACT(epoch FROM tokens.served_at - tokens.created_at)) AS avg_wait_sec 
+queue_backend  | FROM tokens 
+queue_backend  | WHERE tokens.org_id = $1::UUID AND date(tokens.created_at) = $2::DATE AND tokens.status = $3::tokenstatus AND tokens.served_at IS NOT NULL
+queue_backend  | 2026-07-19 02:44:28,742 INFO sqlalchemy.engine.Engine [cached since 532s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'), datetime.date(2026, 7, 18), 'done')
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | [cached since 532s ago] (UUID('3a8417f0-db23-40ef-96d9-6f07938768c4'), datetime.date(2026, 7, 18), 'done')
+queue_backend  | 2026-07-19 02:44:28,745 INFO sqlalchemy.engine.Engine COMMIT
+queue_backend  | 2026-07-19T02:44:28 | INFO     | sqlalchemy.engine.Engine       | COMMIT
+queue_backend  | 2026-07-19T02:44:28 | INFO     | app.access                     | request | {'request_id': 'unknown', 'method': 'GET', 'path': '/api/v1/organization-admin/dashboard', 'status': 200, 'latency_ms': 81.29, 'ip': '167.82.58.132'}
+queue_backend  | 2026-07-19 02:44:42,425 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+queue_backend  | 2026-07-19T02:44:42 | INFO     | sqlalchemy.engine.Engine       | BEGIN (implicit)
+queue_backend  | 2026-07-19 02:44:42,428 INFO sqlalchemy.engine.Engine SELECT 1
+queue_backend  | 2026-07-19T02:44:42 | INFO     | sqlalchemy.engine.Engine       | SELECT 1
+queue_backend  | 2026-07-19 02:44:42,428 INFO sqlalchemy.engine.Engine [cached since 613.8s ago] ()
+queue_backend  | 2026-07-19T02:44:42 | INFO     | sqlalchemy.engine.Engine       | [cached since 613.8s ago] ()
+queue_backend  | 2026-07-19 02:44:42,430 INFO sqlalchemy.engine.Engine ROLLBACK
+queue_backend  | 2026-07-19T02:44:42 | INFO     | sqlalchemy.engine.Engine       | ROLLBACK

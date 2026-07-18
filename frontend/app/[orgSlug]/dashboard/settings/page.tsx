@@ -185,10 +185,6 @@ export default function SettingsPage() {
     const [lastName, setLastName] = useState("");
     const [address, setAddress] = useState("");
     const [phone, setPhone] = useState("");
-    const [brandColor, setBrandColor] = useState("");
-    const [logoUrl, setLogoUrl] = useState("");
-    const [logoFile, setLogoFile] = useState<File | null>(null);
-    const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
     const [infoSuccess, setInfoSuccess] = useState<string | null>(null);
     const [showSuccessModal, setShowSuccessModal] = useState<string | null>(null);
@@ -268,8 +264,6 @@ export default function SettingsPage() {
                 setName(data.name);
                 setAddress(data.address || "");
                 setPhone(data.phone_number || "");
-                setBrandColor(data.brand_color || "");
-                setLogoUrl(data.logo_url || "");
 
                 setFirstName(profile.first_name || "");
                 setLastName(profile.last_name || "");
@@ -286,9 +280,7 @@ export default function SettingsPage() {
         isAdmin ? (
             name !== settings.name ||
             address !== (settings.address || "") ||
-            phone !== (settings.phone_number || "") ||
-            brandColor !== (settings.brand_color || "") ||
-            logoFile !== null
+            phone !== (settings.phone_number || "")
         ) : (
             firstName !== (myProfile?.first_name || "") ||
             lastName !== (myProfile?.last_name || "")
@@ -314,9 +306,6 @@ export default function SettingsPage() {
             setName(settings.name);
             setAddress(settings.address || "");
             setPhone(settings.phone_number || "");
-            setBrandColor(settings.brand_color || "");
-            setLogoFile(null);
-            setLogoPreview(null);
             if (myProfile) {
                 setFirstName(myProfile.first_name || "");
                 setLastName(myProfile.last_name || "");
@@ -358,30 +347,16 @@ export default function SettingsPage() {
 
         try {
             if (isAdmin) {
-                const didUploadLogo = !!logoFile;
-
-                if (logoFile) {
-                    const logoData = await api.uploadOrganizationLogo(logoFile);
-                    if ((logoData as any).access_token) setToken((logoData as any).access_token);
-                }
                 const data = await api.updateOrganizationSettings({
                     name,
                     address: address || undefined,
                     phone_number: phone || undefined,
-                    brand_color: brandColor || undefined,
                 });
                 if ((data as any).access_token) setToken((data as any).access_token);
                 
                 setSettings(data);
-                setLogoUrl(data.logo_url || "");
-                setLogoFile(null);
-                setLogoPreview(null);
 
-                if (didUploadLogo) {
-                    setShowSuccessModal("Logo uploaded and branding settings updated successfully! Refreshing...");
-                } else {
-                    setShowSuccessModal("Settings updated successfully! Refreshing...");
-                }
+                setShowSuccessModal("Settings updated successfully! Refreshing...");
                 setTimeout(() => window.location.reload(), 1500);
             } else {
                 const response = await api.updateMyProfile({
@@ -564,11 +539,7 @@ export default function SettingsPage() {
                                                                 background: '#fff', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                 boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                                                             }}>
-                                                                {logoUrl ? (
-                                                                    <img src={logoUrl.startsWith('http') ? logoUrl : `${(process.env.NEXT_PUBLIC_API_URL || 'https://amoebaq.com/api/v1').replace('/api/v1', '')}${logoUrl}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                                                ) : (
                                                                     <span style={{ fontSize: 20, color: C.textMuted }}>🏢</span>
-                                                                )}
                                                             </div>
                                                             <div>
                                                                 <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{name}</div>
@@ -620,86 +591,6 @@ export default function SettingsPage() {
                                                             <Lock size={12} color={C.textMuted} style={{ cursor: "help" }} />
                                                         </label>
                                                         <input type="email" disabled value={settings?.email || ""} className="premium-input" />
-                                                    </div>
-
-                                                    <div style={{ gridColumn: '1 / -1' }}>
-                                                        <h3 style={{ fontSize: '14px', fontWeight: 600, color: C.text, marginBottom: '16px', marginTop: '8px', borderBottom: `1px solid ${C.borderLight}`, paddingBottom: '8px' }}>Branding</h3>
-                                                    </div>
-
-                                                    <div>
-                                                        <label className="lbl">Brand Color</label>
-                                                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                                                            <input
-                                                                type="color"
-                                                                value={brandColor || "#2563eb"}
-                                                                onChange={(e) => setBrandColor(e.target.value)}
-                                                                style={{ width: 44, height: 44, padding: 0, border: `1px solid ${C.borderLight}`, borderRadius: 8, cursor: 'pointer', background: 'transparent' }}
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                value={brandColor}
-                                                                onChange={(e) => setBrandColor(e.target.value)}
-                                                                placeholder="#2563eb"
-                                                                className="premium-input"
-                                                                style={{ flex: 1 }}
-                                                                pattern="^#[0-9A-Fa-f]{6}$"
-                                                            />
-                                                        </div>
-                                                        <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Used as the primary color on the public ticket page.</p>
-                                                    </div>
-
-                                                    <div style={{ gridColumn: '1 / -1' }}>
-                                                        <label className="lbl">Organization Logo</label>
-                                                        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                                                            <div style={{
-                                                                width: 64, height: 64, borderRadius: 12, border: `1px solid ${C.borderLight}`,
-                                                                background: C.cardBgAlt, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                            }}>
-                                                                {(logoPreview || logoUrl) ? (
-                                                                    <img src={logoPreview || (logoUrl.startsWith('http') ? logoUrl : `${(process.env.NEXT_PUBLIC_API_URL || 'https://amoebaq.com/api/v1').replace('/api/v1', '')}${logoUrl}`)} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                                                ) : (
-                                                                    <span style={{ fontSize: 24, color: C.textMuted }}>🏢</span>
-                                                                )}
-                                                            </div>
-                                                            <div>
-                                                                <input
-                                                                    type="file"
-                                                                    id="logo-upload"
-                                                                    accept="image/*"
-                                                                    style={{ display: 'none' }}
-                                                                    onChange={(e) => {
-                                                                        if (e.target.files && e.target.files[0]) {
-                                                                            const file = e.target.files[0];
-                                                                            const objectUrl = URL.createObjectURL(file);
-                                                                            const img = new Image();
-                                                                            img.onload = () => {
-                                                                                if (img.width > 1024 || img.height > 1024) {
-                                                                                    alert("Image resolution too high. Please upload a profile picture that is 1024x1024 pixels or smaller.");
-                                                                                    e.target.value = ''; // Reset the input
-                                                                                } else {
-                                                                                    setLogoFile(file);
-                                                                                    setLogoPreview(objectUrl);
-                                                                                }
-                                                                            };
-                                                                            img.src = objectUrl;
-                                                                        }
-                                                                    }}
-                                                                />
-                                                                <label htmlFor="logo-upload" style={{ display: 'inline-block', padding: '6px 12px', fontSize: 13, fontWeight: 600, color: C.text, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                                                                    Choose Image
-                                                                </label>
-                                                                {logoFile && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => { setLogoFile(null); setLogoPreview(null); }}
-                                                                        style={{ marginLeft: 8, fontSize: 12, color: C.red, background: 'none', border: 'none', cursor: 'pointer' }}
-                                                                    >
-                                                                        Clear
-                                                                    </button>
-                                                                )}
-                                                                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Recommended: PNG or JPG, max 2MB.</p>
-                                                            </div>
-                                                        </div>
                                                     </div>
                                                 </>
                                             )}
@@ -765,11 +656,13 @@ export default function SettingsPage() {
                                                     }}>
                                                         {settings.parent_org.logo_url ? (
                                                             <img
-                                                                src={settings.parent_org.logo_url.startsWith('http')
-                                                                    ? settings.parent_org.logo_url
-                                                                    : `${process.env.NEXT_PUBLIC_API_URL || 'https://amoebaq.com/api/v1'}${settings.parent_org.logo_url}`}
+                                                                src={settings.parent_org.logo_url}
                                                                 alt="HQ Logo"
                                                                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                                                onError={(e) => {
+                                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                                    (e.target as HTMLImageElement).parentElement!.innerHTML = '<span style="font-size: 22px">🏛️</span>';
+                                                                }}
                                                             />
                                                         ) : (
                                                             <span style={{ fontSize: 22 }}>🏛️</span>

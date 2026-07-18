@@ -133,7 +133,7 @@ async def authenticate_user(
         email=user.email,
         org_slug=org.slug,
         org_name=org.name,
-        org_logo_url=org.logo_url,
+        org_logo_url=None,
         first_name=user.first_name,
         last_name=user.last_name,
         is_first_login=user.is_first_login,

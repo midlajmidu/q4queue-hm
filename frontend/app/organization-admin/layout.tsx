@@ -8,7 +8,7 @@ import { BranchFilterProvider } from "@/context/BranchFilterContext";
 import {
     Building2, LogOut, LayoutDashboard, Users, UserCog,
     Settings, Megaphone, Download, Database, Search,
-    Bell, ChevronRight, Activity, LineChart, MessageCircle, ChevronUp,
+    Bell, ChevronRight, Activity, LineChart, MessageCircle, ChevronDown,
     Menu, X
 } from "lucide-react";
 import Link from "next/link";
@@ -30,6 +30,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
     const [supportContact, setSupportContact] = useState<{support_email: string, support_phone: string} | null>(null);
     const profileRef = useRef<HTMLDivElement>(null);
     const notifRef = useRef<HTMLDivElement>(null);
+    const [orgSettings, setOrgSettings] = useState<{name: string, logo_url: string} | null>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -42,6 +43,9 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
         };
         document.addEventListener("mousedown", handleClickOutside);
         api.getSupportContact().then(setSupportContact).catch(() => {});
+        api.getOrgAdminSettings().then(data => {
+            if (data) setOrgSettings({ name: data.name, logo_url: data.logo_url });
+        }).catch(() => {});
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
@@ -202,66 +206,36 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                         {!isSidebarCollapsed && <span className="truncate">{supportContact?.support_email || "contact@q4queue.com"}</span>}
                                     </a>
                                 </div>
-
                             </div>
-
-                            {/* Profile & Logout in Sidebar */}
-                            <div className="p-4 border-t border-slate-100 shrink-0 bg-white relative" ref={profileRef}>
-
-                                {/* Popover Menu */}
-                                {isProfileMenuOpen && (
-                                    <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
-                                        <div className="px-2.5 py-2 border-b border-slate-100 mb-1.5">
-                                            <p className="text-[10px] font-bold tracking-widest text-slate-400/80 uppercase">Current Role</p>
-                                            <p className="text-xs font-semibold text-slate-700 mt-0.5">Organization Admin</p>
-                                        </div>
-                                        <button
-                                            onClick={() => { setIsProfileMenuOpen(false); logout(); }}
-                                            className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] font-medium text-slate-600 hover:bg-rose-50 hover:text-rose-700 transition-colors w-full text-left group"
-                                        >
-                                            <LogOut size={15} className="text-slate-400 group-hover:text-rose-500 transition-colors" />
-                                            Sign Out
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* Profile Trigger */}
+                            {/* Organization Profile in Sidebar (Bottom) */}
+                            <div className="p-3 border-t border-slate-100 shrink-0 bg-white relative">
                                 <div
-                                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'justify-between p-2'} rounded-xl transition-all cursor-pointer select-none group ${isProfileMenuOpen
-                                            ? 'bg-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,1)] ring-1 ring-slate-200/60'
-                                            : 'bg-transparent hover:bg-slate-50'
-                                        }`}
-                                    title={isSidebarCollapsed ? "Profile & Settings" : undefined}
+                                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-1.5' : 'justify-between p-2'} rounded-xl transition-all cursor-default select-none group bg-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,1)] ring-1 ring-slate-200/60`}
+                                    title={isSidebarCollapsed ? orgSettings?.name || "Organization" : undefined}
                                 >
-                                    <div className={`flex items-center gap-3 min-w-0 ${isSidebarCollapsed ? '' : 'pr-2'}`}>
-                                        <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white font-bold shadow-sm ring-2 ring-white relative">
-                                            {user?.first_name?.charAt(0)?.toUpperCase() || 'U'}
-                                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
-                                        </div>
+                                    <div className={`flex items-center gap-3 min-w-0 ${isSidebarCollapsed ? '' : 'pr-1'}`}>
+                                        {orgSettings?.logo_url ? (
+                                            <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                                                <img src={orgSettings.logo_url} alt="Logo" className="w-full h-full object-contain p-0.5" />
+                                            </div>
+                                        ) : (
+                                            <div className="w-10 h-10 shrink-0 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg shadow-sm border border-indigo-200">
+                                                {orgSettings?.name?.charAt(0) || 'O'}
+                                            </div>
+                                        )}
+                                        
                                         {!isSidebarCollapsed && (
                                             <div className="flex-1 min-w-0 overflow-hidden">
-                                                <div className="text-[13px] font-semibold text-slate-900 truncate w-full group-hover:text-indigo-700 transition-colors">
-                                                    {user?.first_name} {user?.last_name}
-                                                </div>
-                                                <div className="text-[11px] text-slate-500 truncate font-medium w-full">
-                                                    {user?.email}
+                                                <div className="text-[10px] font-bold tracking-widest text-slate-400/80 uppercase mb-0.5">Organization</div>
+                                                <div className="text-sm font-bold text-slate-900 truncate w-full group-hover:text-indigo-700 transition-colors">
+                                                    {orgSettings?.name || "Loading..."}
                                                 </div>
                                             </div>
                                         )}
                                     </div>
-                                    {!isSidebarCollapsed && (
-                                        <div className={`shrink-0 flex items-center justify-center w-6 h-6 rounded-md transition-colors ${isProfileMenuOpen
-                                                ? 'bg-slate-200 text-slate-700'
-                                                : 'text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600'
-                                            }`}>
-                                            <ChevronUp size={14} className={`transition-transform duration-200 ${isProfileMenuOpen ? "rotate-180" : ""}`} />
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </aside>
-
                         {/* Main Content Area */}
                         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50">
 
@@ -318,17 +292,30 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                         </div>
 
                                         {/* Header Profile Trigger */}
-                                        <div className="group relative">
-                                            <button className="flex items-center gap-2 focus:outline-none ml-2">
-                                                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-sm ring-2 ring-slate-50 group-hover:ring-indigo-100 transition-colors">
-                                                    {user?.first_name?.charAt(0)}
+                                        <div className="group relative" ref={profileRef}>
+                                            <button 
+                                                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                                                className="flex items-center gap-3 focus:outline-none ml-2 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+                                            >
+                                                <div className="text-right hidden sm:block">
+                                                    <p className="text-sm font-semibold text-slate-700 leading-tight">{user?.first_name} {user?.last_name}</p>
+                                                    <p className="text-xs font-medium text-slate-500">{user?.email}</p>
                                                 </div>
+                                                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-sm ring-2 ring-slate-50 group-hover:ring-indigo-100 transition-colors relative">
+                                                    {user?.first_name?.charAt(0)}
+                                                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
+                                                </div>
+                                                <ChevronDown size={14} className={`text-slate-400 hidden sm:block transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
                                             </button>
 
-                                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                                                <div className="px-4 py-2 border-b border-slate-100 mb-1">
+                                            <div className={`absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-2 transition-all z-50 ${isProfileMenuOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'}`}>
+                                                <div className="px-4 py-3 border-b border-slate-100 mb-1 sm:hidden">
                                                     <p className="text-sm font-bold text-slate-900 truncate">{user?.first_name} {user?.last_name}</p>
                                                     <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                                                </div>
+                                                <div className="px-4 py-2 border-b border-slate-100 mb-1 hidden sm:block">
+                                                    <p className="text-[10px] font-bold tracking-widest text-slate-400/80 uppercase">Current Role</p>
+                                                    <p className="text-xs font-semibold text-slate-700 mt-0.5">Organization Admin</p>
                                                 </div>
                                                 <Link
                                                     href="/organization-admin/settings"

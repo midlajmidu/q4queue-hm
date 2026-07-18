@@ -20,8 +20,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy project source
 COPY . .
 
-# Ensure the app user owns the project
-RUN chown -R app:app /app
+# Ensure the app user owns the project and the uploads directory
+RUN mkdir -p /app/uploads/logos && chown -R app:app /app
 USER app
 
 # Expose the default port
