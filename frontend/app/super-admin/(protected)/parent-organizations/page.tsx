@@ -98,7 +98,7 @@ export default function ParentOrganizationsPage() {
                             className="w-full pl-10 pr-4 py-2.5 bg-slate-900/60 border border-slate-700/60 rounded-xl text-sm text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm"
                         />
                     </form>
-                    
+
                     <div className="flex gap-3 w-full sm:w-auto">
                         <div className="relative w-full sm:w-auto">
                             <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -115,15 +115,15 @@ export default function ParentOrganizationsPage() {
                                 <option value="inactive">Inactive</option>
                             </select>
                             <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                             </div>
                         </div>
-                        
+
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
                             className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-500 shadow-lg shadow-indigo-600/20 transition-all whitespace-nowrap"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"/></svg>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
                             Add Parent Org
                         </button>
                     </div>
@@ -153,7 +153,7 @@ export default function ParentOrganizationsPage() {
                             )}
                         </tbody>
                     </table>
-                    
+
                     {/* Pagination */}
                     {total > 0 && (
                         <div className="px-6 py-4 border-t border-slate-700/50 flex items-center justify-between bg-slate-800/30">

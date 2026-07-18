@@ -88,8 +88,9 @@ async def authenticate_user(
         logger.warning("Login failed: org_slug required for staff login")
         raise ValueError(_INVALID_CREDENTIALS)
 
+    from sqlalchemy.orm import joinedload
     org_result = await db.execute(
-        select(Organization).where(Organization.slug == org_slug)
+        select(Organization).options(joinedload(Organization.parent_organization)).where(Organization.slug == org_slug)
     )
     org: Organization | None = org_result.scalar_one_or_none()
 
@@ -99,6 +100,10 @@ async def authenticate_user(
 
     if not org.is_active:
         logger.warning("Login failed: org inactive | slug=%s", org_slug)
+        raise ValueError(_INVALID_CREDENTIALS)
+
+    if org.parent_organization and not org.parent_organization.is_active:
+        logger.warning("Login failed: parent org inactive | slug=%s", org_slug)
         raise ValueError(_INVALID_CREDENTIALS)
 
     # ── 3. Find user scoped to THIS org only ───────────────────────

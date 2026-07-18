@@ -180,6 +180,25 @@ if settings.METRICS_ENABLED:
     instrumentator.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
     logger.info("✓ Prometheus metrics exposed at /metrics")
 
+# ── Global Exception Handler ───────────────────────────────────────
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from app.redis.client import log_system_error
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled global exception: %s", exc)
+    await log_system_error(
+        severity="error",
+        component="FastAPI",
+        message=f"{request.method} {request.url.path}: {type(exc).__name__} - {str(exc)}"
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"}
+    )
+
+
 
 # ── REST routes ───────────────────────────────────────────────────
 app.include_router(api_router, prefix="/api/v1")

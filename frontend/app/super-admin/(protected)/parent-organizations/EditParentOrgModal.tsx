@@ -51,7 +51,7 @@ export default function EditParentOrgModal({ parentOrg, isOpen, onClose, onSucce
             <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
             <div className="relative bg-slate-900 border border-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
                 <h3 className="text-lg font-bold text-white mb-4">Edit Parent Organization</h3>
-                
+
                 <form onSubmit={handleSave} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-1">Organization Name</label>

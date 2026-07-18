@@ -725,41 +725,7 @@ export default function OverviewPage() {
   const [drawerAct, setDrawerAct] = useState<any | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  useEffect(() => {
-    // Monitor for high wait times
-    if (overview?.timings?.max_waiting_time) {
-      const waitSec = timeToSeconds(overview.timings.max_waiting_time);
-      if (waitSec > 3600) { // 1 hour
-        const todayDate = new Date().toLocaleDateString();
-        const lastAlertDate = localStorage.getItem("last_high_wait_alert_date");
 
-        if (lastAlertDate !== todayDate) {
-          let locationStr = "one of your queues";
-          
-          if (overview.longest_waiting_queue && overview.longest_waiting_session) {
-            locationStr = `the ${overview.longest_waiting_queue} queue in the ${overview.longest_waiting_session} session`;
-          } else if (overview.longest_waiting_queue) {
-            locationStr = `the ${overview.longest_waiting_queue} queue`;
-          } else if (selectedQueue) {
-            const qName = queues.find(q => q.id === selectedQueue)?.name || "selected queue";
-            locationStr = `the ${qName} queue`;
-          } else if (selectedSession) {
-            const sData = sessions.find(s => s.id === selectedSession);
-            const sName = sData ? (sData.title || sData.session_date) : "selected session";
-            locationStr = `a queue in the ${sName} session`;
-          }
-
-          addAlert({
-            type: "warning",
-            message: `⚠️ Wait times of over 1 hour detected in ${locationStr}! Consider adding more staff now.`,
-            action: { label: "Manage Staff", onClick: () => window.location.href = `${dashBase}/staff` },
-            db: true,
-          });
-          localStorage.setItem("last_high_wait_alert_date", todayDate);
-        }
-      }
-    }
-  }, [overview?.timings?.max_waiting_time, dashBase, addAlert, selectedQueue, selectedSession, queues, sessions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDownloadReport = async () => {
     try {

@@ -146,7 +146,7 @@ async def _process_webhook_internal(payload: dict) -> None:
                     button_text = msg_obj.get("button", {}).get("text", "")
                     button_payload = msg_obj.get("button", {}).get("payload", "")
                     
-                    if "ACTIVATE_LIVE_ALERTS" in button_payload or "Activate" in button_text or "Activate" in button_payload or "Get Live Updates" in button_text or "Get Live Updates" in button_payload:
+                    if "ACTIVATE_LIVE_ALERTS" in button_payload or "Activate" in button_text or "Activate" in button_payload or "Get Live Updates" in button_text or "Get Live Updates" in button_payload or "Receive Live Updates" in button_text or "Receive Live Updates" in button_payload:
                         logger.info("WhatsApp alerts activated for %s", phone)
                         await _activate_whatsapp_alerts(phone, now)
                 else:

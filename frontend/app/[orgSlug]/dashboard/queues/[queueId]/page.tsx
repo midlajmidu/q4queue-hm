@@ -1069,55 +1069,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </div>
 
                                     <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                                        {/* REFRESH PILL */}
-                                        <div className="hidden md:flex items-center justify-between p-2 md:py-[7px] md:px-[14px]" style={{ flexShrink: 0, border: `1px solid ${T.cardBorder}`, borderRadius: 12, background: T.cardBg, boxShadow: "0 1px 3px rgba(0,0,0,.02)" }}>
-                                            <div className="flex items-center gap-2">
-                                                <span style={{ display: "block", width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
-                                                <span className="hidden md:inline" style={{ color: T.textMuted, fontSize: 11 }}>
-                                                    Updated <strong style={{ color: T.textSub, fontWeight: 600 }}>
-                                                        {lastUpdated ? (secondsAgo < 10 ? "Just now" : secondsAgo < 60 ? `${secondsAgo}s ago` : `${Math.floor(secondsAgo / 60)}m ago`) : "Updating..."}
-                                                    </strong>
-                                                </span>
-                                            </div>
-                                            <span className="hidden md:block mx-3" style={{ width: 1, height: 12, background: T.cardBorder, flexShrink: 0 }} />
 
-                                            <div className="flex items-center gap-3">
-                                                <button
-                                                    onClick={refresh}
-                                                    title="Refresh now"
-                                                    className="hidden md:inline-flex items-center justify-center gap-1.5 p-1.5 md:p-0 rounded-md md:rounded-none bg-slate-50 md:bg-transparent border border-gray-200 md:border-none hover:bg-slate-100 md:hover:bg-transparent transition-colors"
-                                                    style={{ fontSize: 11, fontWeight: 600, color: T.textSub, cursor: "pointer", transition: "color .15s" }}
-                                                    onMouseEnter={e => { if (window.innerWidth >= 768) e.currentTarget.style.color = T.brand; }}
-                                                    onMouseLeave={e => { if (window.innerWidth >= 768) e.currentTarget.style.color = T.textSub; }}
-                                                >
-                                                    <RefreshCw size={11} color="currentColor" style={{ marginTop: -1 }} />
-                                                    <span className="hidden md:inline">Refresh</span>
-                                                </button>
-                                                <span className="hidden md:block" style={{ width: 1, height: 12, background: T.cardBorder, flexShrink: 0 }} />
-                                                <label className="inline-flex items-center gap-2 select-none cursor-pointer" onClick={() => setAutoLive(!autoLive)}>
-                                                    <span
-                                                        role="switch"
-                                                        aria-checked={autoLive}
-                                                        style={{
-                                                            display: "inline-block", width: 28, height: 16, borderRadius: 99,
-                                                            background: autoLive ? T.brand : T.cardBorder,
-                                                            position: "relative", flexShrink: 0,
-                                                            transition: "background 0.2s"
-                                                        }}
-                                                    >
-                                                        <span style={{
-                                                            position: "absolute", top: 2, left: autoLive ? 14 : 2,
-                                                            width: 12, height: 12, borderRadius: "50%", background: "#fff",
-                                                            boxShadow: "0 1px 2px rgba(0,0,0,.2)",
-                                                            transition: "left 0.2s"
-                                                        }} />
-                                                    </span>
-                                                    <span className="hidden md:inline" style={{ fontSize: 11, color: autoLive ? T.brand : T.textMuted, whiteSpace: "nowrap", fontWeight: autoLive ? 600 : 400 }}>
-                                                        Auto (Live)
-                                                    </span>
-                                                </label>
-                                            </div>
-                                        </div>
 
                                         <div style={{ width: 1, height: 24, background: T.cardBorder, margin: "0 4px" }} className="hidden md:block" />
 
