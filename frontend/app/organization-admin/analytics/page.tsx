@@ -191,7 +191,7 @@ export default function AnalyticsPage() {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `q4queue_analytics_${new Date().toISOString().split('T')[0]}.csv`);
+            link.setAttribute('download', `q4queue_analytics_${new Date().toISOString().split('T')[0]}.xlsx`);
             document.body.appendChild(link);
             link.click();
             link.parentNode?.removeChild(link);
@@ -217,7 +217,7 @@ export default function AnalyticsPage() {
     if (!data) return null;
 
     return (
-        <div className="space-y-6 pb-20">
+        <div className="space-y-6 pb-20 print:h-auto print:overflow-visible print:pb-0 print:space-y-0 print:bg-white print:w-full">
             {/* Premium Header & Controls */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
                 <div>
@@ -259,7 +259,7 @@ export default function AnalyticsPage() {
                                 <div className="fixed inset-0 z-40" onClick={() => setIsExportMenuOpen(false)}></div>
                                 <div className="absolute right-0 sm:right-0 mt-2.5 w-full sm:w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 z-50 p-2 overflow-hidden ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                                     <div className="flex flex-col space-y-1">
-                                        <button
+                                        {/* <button
                                             onClick={() => {
                                                 setIsExportMenuOpen(false);
                                                 window.print();
@@ -273,7 +273,7 @@ export default function AnalyticsPage() {
                                                 <p>Export as PDF</p>
                                                 <p className="text-[10px] text-slate-400 font-normal mt-0.5 leading-tight">Includes all graphs & visuals</p>
                                             </div>
-                                        </button>
+                                        </button> */}
                                         <button
                                             onClick={() => {
                                                 setIsExportMenuOpen(false);
