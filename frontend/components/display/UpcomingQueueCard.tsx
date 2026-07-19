@@ -14,8 +14,10 @@ interface UpcomingQueueCardProps {
 }
 
 export function UpcomingQueueCard({ waitingTokens, prefix, theme = "light" }: UpcomingQueueCardProps) {
-    const ITEMS_PER_PAGE = 4;
-    const totalPages = Math.ceil(waitingTokens.length / ITEMS_PER_PAGE);
+    // Limit to 10 people total
+    const displayTokens = waitingTokens.slice(0, 10);
+    const ITEMS_PER_PAGE = 5;
+    const totalPages = Math.ceil(displayTokens.length / ITEMS_PER_PAGE);
     const [page, setPage] = useState(0);
 
     useEffect(() => {
@@ -27,9 +29,9 @@ export function UpcomingQueueCard({ waitingTokens, prefix, theme = "light" }: Up
             setPage((p) => (p + 1) % totalPages);
         }, 8000);
         return () => clearInterval(interval);
-    }, [totalPages, waitingTokens.length]);
+    }, [totalPages, displayTokens.length]);
 
-    const visibleTokens = waitingTokens.slice(
+    const visibleTokens = displayTokens.slice(
         page * ITEMS_PER_PAGE,
         (page + 1) * ITEMS_PER_PAGE
     );
@@ -62,10 +64,10 @@ export function UpcomingQueueCard({ waitingTokens, prefix, theme = "light" }: Up
 
             {/* List */}
             <div className="flex-1 flex flex-col min-h-0 relative">
-                {waitingTokens.length > 0 ? (
+                {displayTokens.length > 0 ? (
                     <AnimatePresence mode="wait">
                         <motion.div
-                            key={`page-${page}-${waitingTokens[0]?.token_number}`}
+                            key={`page-${page}-${displayTokens[0]?.token_number}`}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
@@ -90,9 +92,16 @@ export function UpcomingQueueCard({ waitingTokens, prefix, theme = "light" }: Up
                                             <span className={`text-sm font-bold tracking-widest ${mutedText(theme)} tabular-nums min-w-[20px]`}>
                                                 {globalIndex + 1}
                                             </span>
-                                            <span className={`text-3xl font-black ${secondaryText(theme)} tabular-nums`}>
-                                                {prefix}{token.token_number}
-                                            </span>
+                                            <div className="flex items-center gap-4">
+                                                <span className={`text-3xl font-black ${secondaryText(theme)} tabular-nums`}>
+                                                    {prefix}{token.token_number}
+                                                </span>
+                                                {globalIndex === 0 && (
+                                                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 border border-blue-200">
+                                                        You are Next
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="flex items-center gap-4">

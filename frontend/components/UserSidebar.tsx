@@ -61,7 +61,7 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
     }, []);
 
     const isParentDashboard = pathname.startsWith('/organization-admin') || pathname.startsWith('/org-admin') || user?.role === "super_admin";
-    const displaySupportEmail = isParentDashboard ? "support@q4queue.com" : (supportContact?.support_email || "support@q4queue.com");
+    const displaySupportEmail = isParentDashboard ? "contact@q4queue.com" : (supportContact?.support_email || "contact@q4queue.com");
 
     useEffect(() => {
         if (onClose && isOpen) onClose();

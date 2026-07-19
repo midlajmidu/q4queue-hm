@@ -220,7 +220,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
                 {/* Footer */}
                 <div className={`py-3 flex items-center justify-center shrink-0 border-t ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200"}`}>
                     <span className={`text-[10px] font-medium tracking-[0.2em] uppercase flex items-center gap-1.5 ${isDark ? "text-slate-600" : "text-slate-400"}`}>
-                        Powered by 
+                        Powered by
                         <img src="/q4queue-main-logo.png" alt="Q4Queue Logo" className="h-3 w-auto object-contain opacity-80" />
                     </span>
                 </div>
@@ -290,11 +290,10 @@ function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDa
                 {/* Sound toggle */}
                 <button
                     onClick={onToggleSound}
-                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-105 ${
-                        isDark
+                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-105 ${isDark
                             ? "bg-white/[0.06] border-white/[0.08] text-slate-300 hover:bg-white/[0.1]"
                             : "bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200"
-                    }`}
+                        }`}
                     title={soundEnabled ? "Sound ON — click to mute" : "Sound OFF — click to enable"}
                 >
                     {soundEnabled ? (
@@ -315,22 +314,20 @@ function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDa
                 {/* Theme toggle */}
                 <button
                     onClick={onToggleTheme}
-                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-105 ${
-                        isDark
+                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-105 ${isDark
                             ? "bg-white/[0.06] border-white/[0.08] text-slate-300 hover:bg-white/[0.1]"
                             : "bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200"
-                    }`}
+                        }`}
                     title={isDark ? "Switch to light mode" : "Switch to dark mode"}
                 >
                     {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 </button>
 
                 {/* LIVE badge */}
-                <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold border ${
-                    isConnected
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold border ${isConnected
                         ? isDark ? "bg-white/[0.06] text-slate-300 border-white/[0.08]" : "bg-emerald-50 text-emerald-700 border-emerald-200"
                         : "bg-red-500/10 text-red-400 border-red-500/20"
-                }`}>
+                    }`}>
                     <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"}`} />
                     {isConnected ? "LIVE" : "OFFLINE"}
                 </div>

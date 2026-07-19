@@ -96,9 +96,6 @@ export default function OrgAdminDashboard() {
                     </div>
                     <p className="text-sm text-slate-500 mt-1">Real-time enterprise overview for {data.organization_name}.</p>
                 </div>
-                <div className="shrink-0">
-                    <BranchSelector />
-                </div>
             </div>
 
             {/* 1. Executive Overview */}
@@ -125,29 +122,18 @@ export default function OrgAdminDashboard() {
                         iconColor="indigo"
                     />
 
-                    {selectedBranchId ? (
-                        <MetricCard 
-                            title="Active Queues"
-                            value={data.dynamic_insights.active_queues}
-                            subtitle="Running right now"
-                            icon={Activity}
-                            watermarkIcon={Activity}
-                            iconColor="sky"
-                        />
-                    ) : (
-                        <MetricCard 
-                            title="Total Branches"
-                            value={data.global_kpis.total_branches}
-                            subtitle={`${data.global_kpis.active_branches} currently active`}
-                            icon={Building2}
-                            watermarkIcon={Building2}
-                            iconColor="sky"
-                        />
-                    )}
+                    <MetricCard 
+                        title="Total Branches"
+                        value={data.global_kpis.total_branches}
+                        subtitle={`${data.global_kpis.active_branches} currently active`}
+                        icon={Building2}
+                        watermarkIcon={Building2}
+                        iconColor="sky"
+                    />
                     
                     <MetricCard 
-                        title={selectedBranchId ? "Branch Waiting" : "Global Waiting"}
-                        value={selectedBranchId && data.branch_performance?.length > 0 ? data.branch_performance[0].waiting_customers : data.global_kpis.total_customers_waiting}
+                        title="Global Waiting"
+                        value={data.global_kpis.total_customers_waiting}
                         subtitle="vs yesterday average"
                         icon={Clock}
                         watermarkIcon={Clock}
@@ -158,8 +144,8 @@ export default function OrgAdminDashboard() {
                     
                     <div className="col-span-2 lg:col-span-1">
                         <MetricCard 
-                            title={selectedBranchId ? "Branch Served" : "Served Today"}
-                            value={selectedBranchId && data.branch_performance?.length > 0 ? data.branch_performance[0].customers_served_today : data.global_kpis.total_customers_served_today}
+                            title="Served Today"
+                            value={data.global_kpis.total_customers_served_today}
                             subtitle="vs yesterday"
                             icon={UserCheck}
                             watermarkIcon={UserCheck}
@@ -170,6 +156,17 @@ export default function OrgAdminDashboard() {
                     </div>
                 </div>
             </section>
+
+            {/* Branch Filter for insights below */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-4 border-t border-slate-200/60">
+                <div>
+                    <h2 className="text-lg font-semibold text-slate-900">Branch Insights</h2>
+                    <p className="text-sm text-slate-500 mt-1">Filter live operations and traffic by specific branch.</p>
+                </div>
+                <div className="shrink-0">
+                    <BranchSelector />
+                </div>
+            </div>
 
             {/* Traffic Visualization */}
             <TrafficChart />

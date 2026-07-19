@@ -201,9 +201,9 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                 {/* Help Section */}
                                 <div className={`mt-auto mb-2 ${isSidebarCollapsed ? 'mx-2' : 'mx-4'} p-3 rounded-xl bg-slate-50 border border-slate-100/50 shadow-sm`}>
                                     {!isSidebarCollapsed && <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Need Help?</p>}
-                                    <a href="mailto:support@q4queue.com" className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-2 mb-1'} text-[13px] font-medium text-slate-500 hover:text-indigo-600 transition-colors`} title="support@q4queue.com">
+                                    <a href="mailto:contact@q4queue.com" className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-2 mb-1'} text-[13px] font-medium text-slate-500 hover:text-indigo-600 transition-colors`} title="contact@q4queue.com">
                                         <MessageCircle size={14} className="shrink-0" />
-                                        {!isSidebarCollapsed && <span className="truncate">support@q4queue.com</span>}
+                                        {!isSidebarCollapsed && <span className="truncate">contact@q4queue.com</span>}
                                     </a>
                                 </div>
                             </div>
