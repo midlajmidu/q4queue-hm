@@ -912,12 +912,14 @@ from app.models.queue import Queue
 from app.models.user import User
 from app.models.organization import Organization
 
+from typing import AsyncGenerator
+
 async def get_cross_branch_csv_data(
     db: AsyncSession,
     org_ids: List[uuid.UUID],
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-) -> str:
+) -> AsyncGenerator[str, None]:
     import csv
     import io
     from dateutil.parser import parse as parse_date
@@ -975,7 +977,7 @@ async def get_cross_branch_csv_data(
      .where(and_(*conditions))\
      .order_by(Token.created_at.desc())
 
-    result = await db.execute(query)
+    result = await db.stream(query)
     
     output = io.StringIO()
     writer = csv.writer(output)
@@ -984,8 +986,11 @@ async def get_cross_branch_csv_data(
         "Status", "Created At", "Served At", "Completed At", "Skipped At", "Recalled At", "Removed At",
         "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Removed By", "Call Method", "Entry Type"
     ])
+    yield output.getvalue()
+    output.seek(0)
+    output.truncate(0)
 
-    for row in result.all():
+    async for row in result:
         token, q_name, b_name, served_first, served_last, served_email, completed_first, completed_last, completed_email = row
         
         wait_time_mins = ""
@@ -1048,5 +1053,7 @@ async def get_cross_branch_csv_data(
             "Invite by Number" if token.called_via_invite else "Call Next",
             getattr(token, "entry_type", "qr").title()
         ])
-
-    return output.getvalue()
+        
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)

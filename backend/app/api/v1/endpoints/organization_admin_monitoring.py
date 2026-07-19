@@ -497,20 +497,36 @@ async def export_analytics(
     from fastapi.responses import StreamingResponse
     from app.services.analytics_service import get_cross_branch_csv_data
     
+    from app.audit.models import AuditLog
+    
     org_ids = await get_org_ids(db, current_user.parent_organization_id, branch_id)
     if not org_ids:
         raise HTTPException(status_code=404, detail="No branches found")
         
-    csv_data = await get_cross_branch_csv_data(
+    # Log the export action
+    audit = AuditLog(
+        event_type="EXPORT_ANALYTICS",
+        user_id=current_user.id,
+        parent_organization_id=current_user.parent_organization_id,
+        details={
+            "branch_id": str(branch_id) if branch_id else None,
+            "start_date": start_date,
+            "end_date": end_date,
+            "org_ids": [str(oid) for oid in org_ids]
+        }
+    )
+    db.add(audit)
+    await db.commit()
+        
+    csv_generator = get_cross_branch_csv_data(
         db=db,
         org_ids=org_ids,
         start_date=start_date,
         end_date=end_date
     )
     
-    import io
     response = StreamingResponse(
-        iter([csv_data]),
+        csv_generator,
         media_type="text/csv"
     )
     response.headers["Content-Disposition"] = "attachment; filename=cross_branch_analytics.csv"
