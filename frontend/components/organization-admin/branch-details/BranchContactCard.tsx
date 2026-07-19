@@ -4,30 +4,28 @@ import { api } from "@/lib/api";
 import { MapPin, Phone, Mail, User, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
-export default function BranchContactCard({ branchId }: { branchId: string }) {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+export default function BranchContactCard({ branchId, data, onUpdate }: { branchId: string, data: any, onUpdate?: () => void }) {
     const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({ address: "", contact_phone: "" });
 
-    const loadData = () => {
-        setLoading(true);
-        api.getBranchContactDetails(branchId).then(setData).finally(() => setLoading(false));
-    };
-
-    useEffect(() => { loadData(); }, [branchId]);
+    useEffect(() => {
+        if (data) {
+            setEditData({ address: data.address || "", contact_phone: data.contact_phone || "" });
+        }
+    }, [data]);
 
     const handleSave = async () => {
         try {
-            await api.updateBranchContactDetails(branchId, data);
-            toast.success("Contact details updated");
+            await api.updateBranchContactDetails(branchId, editData);
+            toast.success("Contact details updated successfully");
             setIsEditing(false);
-        } catch (e: any) {
-            toast.error(e.message || "Failed to update");
+            if (onUpdate) onUpdate();
+        } catch (error: any) {
+            toast.error(error.message || "Failed to update contact details");
         }
     };
 
-    if (loading) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
-    if (!data) return null;
+    if (!data) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
 
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-6 flex flex-col justify-between group hover:border-slate-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all">
@@ -52,17 +50,17 @@ export default function BranchContactCard({ branchId }: { branchId: string }) {
                             type="text"
                             className="w-full px-3 py-2 text-[13px] font-medium text-slate-900 bg-white rounded-md border border-slate-200 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-shadow placeholder:text-slate-400"
                             placeholder="Phone number"
-                            value={data.contact_phone || ''}
-                            onChange={(e) => setData({...data, contact_phone: e.target.value})}
+                            value={editData.contact_phone}
+                            onChange={(e) => setEditData({...editData, contact_phone: e.target.value})}
                         />
                         <textarea 
                             className="w-full px-3 py-2 text-[13px] font-medium text-slate-900 bg-white rounded-md border border-slate-200 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-shadow resize-none h-20 placeholder:text-slate-400"
                             placeholder="Full address"
-                            value={data.address || ''}
-                            onChange={(e) => setData({...data, address: e.target.value})}
+                            value={editData.address}
+                            onChange={(e) => setEditData({...editData, address: e.target.value})}
                         />
                         <div className="flex justify-end gap-2 pt-1">
-                            <button onClick={() => { setIsEditing(false); loadData(); }} className="px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors">Cancel</button>
+                            <button onClick={() => { setIsEditing(false); setEditData({ address: data.address || "", contact_phone: data.contact_phone || "" }); }} className="px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors">Cancel</button>
                             <button onClick={handleSave} className="px-3 py-1.5 text-[12px] font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-md shadow-sm transition-colors">Save</button>
                         </div>
                     </div>

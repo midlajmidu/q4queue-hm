@@ -3,15 +3,8 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Users, MonitorPlay, Ticket, Activity } from "lucide-react";
 
-export default function BranchExecutiveSummary({ branchId }: { branchId: string }) {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        api.getBranchSummary(branchId).then(setData).finally(() => setLoading(false));
-    }, [branchId]);
-
-    if (loading) {
+export default function BranchExecutiveSummary({ data }: { data: any }) {
+    if (!data) {
         return (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[1, 2, 3, 4].map(i => (
@@ -26,7 +19,6 @@ export default function BranchExecutiveSummary({ branchId }: { branchId: string 
             </div>
         );
     }
-    if (!data) return null;
 
     return (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

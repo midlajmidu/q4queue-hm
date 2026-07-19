@@ -3,16 +3,8 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Activity } from "lucide-react";
 
-export default function BranchHealthCenter({ branchId }: { branchId: string }) {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        api.getBranchHealth(branchId).then(setData).finally(() => setLoading(false));
-    }, [branchId]);
-
-    if (loading) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
-    if (!data) return null;
+export default function BranchHealthCenter({ data }: { data: any }) {
+    if (!data) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
 
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-6 flex flex-col justify-between group hover:border-slate-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all">

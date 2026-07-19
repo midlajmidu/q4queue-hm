@@ -3,15 +3,8 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { MonitorPlay } from "lucide-react";
 
-export default function BranchSessionBreakdown({ branchId }: { branchId: string }) {
-    const [data, setData] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        api.getBranchSessionsOverview(branchId).then(setData).finally(() => setLoading(false));
-    }, [branchId]);
-
-    if (loading) {
+export default function BranchSessionBreakdown({ data }: { data: any[] }) {
+    if (!data) {
         return (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-pulse">
                 <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center gap-2">

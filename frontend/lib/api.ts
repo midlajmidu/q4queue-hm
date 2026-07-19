@@ -1109,6 +1109,9 @@ export const api = {
     },
 
     // ── Enterprise Branch Details (Operations Center) ───────────
+    getBranchDashboard: (branchId: string) => {
+        return request<any>(`/organization-admin/operations/${branchId}/dashboard`);
+    },
     getBranchSummary: (branchId: string) => {
         return request<any>(`/organization-admin/operations/${branchId}/summary`);
     },

@@ -3,15 +3,8 @@ import { useState, useEffect } from "react";
 import { Users } from "lucide-react";
 import { api } from "@/lib/api";
 
-export default function BranchStaffOverview({ branchId }: { branchId: string }) {
-    const [data, setData] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        api.getBranchStaffOverview(branchId).then(setData).finally(() => setLoading(false));
-    }, [branchId]);
-
-    if (loading) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
+export default function BranchStaffOverview({ data }: { data: any[] }) {
+    if (!data) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
 
     return (
         <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm overflow-hidden">

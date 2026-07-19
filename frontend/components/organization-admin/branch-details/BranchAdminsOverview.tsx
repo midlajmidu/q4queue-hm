@@ -7,33 +7,22 @@ import ResetAdminPasswordModal from "./ResetAdminPasswordModal";
 import { Shield, Plus, Key, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function BranchAdminsOverview({ branchId }: { branchId: string }) {
-    const [data, setData] = useState<BranchAdminItem[]>([]);
-    const [loading, setLoading] = useState(true);
+export default function BranchAdminsOverview({ branchId, data, onUpdate }: { branchId: string, data: BranchAdminItem[], onUpdate: () => void }) {
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [resetAdmin, setResetAdmin] = useState<BranchAdminItem | null>(null);
-
-    const loadAdmins = useCallback(() => {
-        setLoading(true);
-        api.getBranchAdminsOverview(branchId).then(setData).finally(() => setLoading(false));
-    }, [branchId]);
-
-    useEffect(() => {
-        loadAdmins();
-    }, [loadAdmins]);
 
     const handleDelete = async (admin: BranchAdminItem) => {
         if (!confirm(`Are you sure you want to remove ${admin.name} as a branch admin?`)) return;
         try {
             await api.deleteOrgAdminStaff(admin.user_id);
             toast.success("Admin removed successfully");
-            loadAdmins();
+            onUpdate();
         } catch (error: any) {
             toast.error(error.message || "Failed to remove admin");
         }
     };
 
-    if (loading) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
+    if (!data) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
 
     return (
         <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm overflow-hidden">
@@ -122,7 +111,7 @@ export default function BranchAdminsOverview({ branchId }: { branchId: string })
                 branchId={branchId}
                 isOpen={isAssignModalOpen}
                 onClose={() => setIsAssignModalOpen(false)}
-                onSuccess={loadAdmins}
+                onSuccess={onUpdate}
             />
 
             <ResetAdminPasswordModal

@@ -3,15 +3,8 @@ import { useState, useEffect } from "react";
 import { TrendingUp, Clock, AlertCircle, Activity } from "lucide-react";
 import { api } from "@/lib/api";
 
-export default function BranchTodayPerformance({ branchId }: { branchId: string }) {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        api.getBranchPerformance(branchId).then(setData).finally(() => setLoading(false));
-    }, [branchId]);
-
-    if (loading) {
+export default function BranchTodayPerformance({ data }: { data: any }) {
+    if (!data) {
         return (
             <div className="bg-white rounded-[24px] shadow-sm border border-slate-200/60 overflow-hidden animate-pulse">
                 <div className="p-6 border-b border-slate-100/80 flex items-center gap-3">
@@ -29,7 +22,6 @@ export default function BranchTodayPerformance({ branchId }: { branchId: string 
             </div>
         );
     }
-    if (!data) return null;
 
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">

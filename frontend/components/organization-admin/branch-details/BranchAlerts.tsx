@@ -3,15 +3,8 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { AlertTriangle } from "lucide-react";
 
-export default function BranchAlerts({ branchId }: { branchId: string }) {
-    const [data, setData] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        api.getBranchAlerts(branchId).then(setData).finally(() => setLoading(false));
-    }, [branchId]);
-
-    if (loading) {
+export default function BranchAlerts({ data }: { data: any[] }) {
+    if (!data) {
         return (
             <div className="space-y-4 animate-pulse">
                 {[1, 2].map(i => (

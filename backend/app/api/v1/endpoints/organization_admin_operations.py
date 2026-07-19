@@ -225,7 +225,8 @@ from app.schemas.organization_admin_operations import (
     BranchExecutiveSummary, BranchPerformanceMetrics, QueueBreakdownItem,
     SessionBreakdownItem, StaffOverviewItem, BranchAdminItem,
     BranchWhatsAppStats, BranchHealthDetails, BranchActivityEvent,
-    BranchAlert, BranchContactDetails, BranchContactDetailsUpdate
+    BranchAlert, BranchContactDetails, BranchContactDetailsUpdate,
+    BranchDashboardResponse, BranchTrafficData, PeakTrafficItem
 )
 
 async def _verify_branch_access(branch_id: uuid.UUID, db: AsyncSession, current_user: User):
@@ -737,3 +738,46 @@ async def get_distinct_queues_for_branch(
     queues = q_res.scalars().all()
     
     return queues
+
+from app.api.v1.endpoints.organization_admin_monitoring import get_traffic_trend
+
+@router.get("/operations/{branch_id}/dashboard", response_model=BranchDashboardResponse)
+async def get_branch_dashboard(
+    branch_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_organization_admin()),
+):
+    branch = await _verify_branch_access(branch_id, db, current_user)
+    
+    summary = await get_branch_summary(branch_id, db, current_user)
+    performance = await get_branch_performance(branch_id, db, current_user)
+    queues = await get_branch_queues(branch_id, db, current_user)
+    sessions = await get_branch_sessions(branch_id, db, current_user)
+    staff = await get_branch_staff(branch_id, db, current_user)
+    admins = await get_branch_admins(branch_id, db, current_user)
+    whatsapp = await get_branch_whatsapp(branch_id, db, current_user)
+    health = await get_branch_health(branch_id, db, current_user)
+    timeline = await get_branch_timeline(branch_id, db, current_user)
+    alerts = await get_branch_alerts(branch_id, db, current_user)
+    contact = await get_branch_contact(branch_id, db, current_user)
+    
+    traffic_data = await get_traffic_trend(db, current_user, branch_id)
+    traffic = BranchTrafficData(
+        peak_traffic=[PeakTrafficItem(**item) for item in traffic_data.get("peak_traffic", [])],
+        peak_hour=traffic_data.get("peak_hour")
+    )
+    
+    return BranchDashboardResponse(
+        summary=summary,
+        performance=performance,
+        queues=queues,
+        sessions=sessions,
+        staff=staff,
+        admins=admins,
+        whatsapp=whatsapp,
+        health=health,
+        timeline=timeline,
+        alerts=alerts,
+        contact=contact,
+        traffic=traffic
+    )

@@ -30,16 +30,20 @@ export default function BranchDetailsPage() {
     const branchId = params.branchId as string;
 
     const [branch, setBranch] = useState<any>(null);
+    const [dashboardData, setDashboardData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
-    const loadBranchHeader = useCallback(async () => {
+    const loadDashboard = useCallback(async () => {
         try {
-            // We just need basic details for the header (name, slug, is_active)
-            const data = await api.getBranchDetails(branchId);
-            setBranch(data);
+            const [branchInfo, dashboard] = await Promise.all([
+                api.getBranchDetails(branchId),
+                api.getBranchDashboard(branchId)
+            ]);
+            setBranch(branchInfo);
+            setDashboardData(dashboard);
         } catch (error: any) {
-            toast.error(error.message || "Failed to load branch details");
+            toast.error(error.message || "Failed to load branch dashboard");
             router.push(`/organization-admin/branches`);
         } finally {
             setIsLoading(false);
@@ -47,8 +51,8 @@ export default function BranchDetailsPage() {
     }, [branchId, router]);
 
     useEffect(() => {
-        loadBranchHeader();
-    }, [loadBranchHeader]);
+        loadDashboard();
+    }, [loadDashboard]);
 
     const handleToggleStatus = () => {
         setIsConfirmModalOpen(true);
@@ -101,7 +105,7 @@ export default function BranchDetailsPage() {
                 ), { duration: 5000 });
             }
             
-            loadBranchHeader();
+            loadDashboard();
         } catch (error: any) {
             toast.error(error.message || "Failed to update status", { id: loadingId });
         }
@@ -160,40 +164,40 @@ export default function BranchDetailsPage() {
                 {/* Modular Layout with Suspense boundaries (implied by components internal loading state) */}
             
             {/* SECTION 1: Executive Summary */}
-            <BranchExecutiveSummary branchId={branchId} />
+            <BranchExecutiveSummary data={dashboardData?.summary} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {/* Left Column: 2/3 width */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* SECTION 2: Today's Performance */}
-                    <BranchTodayPerformance branchId={branchId} />
+                    <BranchTodayPerformance data={dashboardData?.performance} />
 
                     
                     {/* SECTION 3: Queue Breakdown */}
-                    <BranchQueueBreakdown branchId={branchId} />
+                    <BranchQueueBreakdown data={dashboardData?.queues} />
                     
                     {/* SECTION 4: Session Breakdown */}
-                    <BranchSessionBreakdown branchId={branchId} />
+                    <BranchSessionBreakdown data={dashboardData?.sessions} />
                     
                     {/* SECTION 4.5: Branch Admins */}
-                    <BranchAdminsOverview branchId={branchId} />
+                    <BranchAdminsOverview branchId={branchId} data={dashboardData?.admins} onUpdate={loadDashboard} />
 
                     {/* SECTION 5: Staff Overview */}
-                    <BranchStaffOverview branchId={branchId} />
+                    <BranchStaffOverview data={dashboardData?.staff} />
 
                 </div>
 
                 {/* Right Column: 1/3 width */}
                 <div className="space-y-6">
                     {/* SECTION 11: Alerts & Issues */}
-                    <BranchAlerts branchId={branchId} />
+                    <BranchAlerts data={dashboardData?.alerts} />
 
                     {/* SECTION 8: Branch Health Center */}
-                    <BranchHealthCenter branchId={branchId} />
+                    <BranchHealthCenter data={dashboardData?.health} />
                     
                     {/* SECTION 10: Branch Contact Information */}
-                    <BranchContactCard branchId={branchId} />
+                    <BranchContactCard branchId={branchId} data={dashboardData?.contact} onUpdate={loadDashboard} />
                     
                     {/* SECTION 12: Future Enterprise Placeholders */}
                     <BranchFuturePlaceholders />
@@ -202,7 +206,7 @@ export default function BranchDetailsPage() {
                 {/* Full Width Bottom Section */}
                 <div className="lg:col-span-3">
                     {/* SECTION 9: Recent Activity Timeline */}
-                    <BranchActivityTimeline branchId={branchId} />
+                    <BranchActivityTimeline data={dashboardData?.timeline} traffic={dashboardData?.traffic} />
                 </div>
             </div>
 

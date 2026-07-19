@@ -93,3 +93,25 @@ class BranchContactDetails(BaseModel):
 class BranchContactDetailsUpdate(BaseModel):
     address: Optional[str] = None
     contact_phone: Optional[str] = None
+
+class PeakTrafficItem(BaseModel):
+    hour: str
+    customers_arrived: int
+
+class BranchTrafficData(BaseModel):
+    peak_traffic: List[PeakTrafficItem]
+    peak_hour: Optional[str] = None
+
+class BranchDashboardResponse(BaseModel):
+    summary: BranchExecutiveSummary
+    performance: BranchPerformanceMetrics
+    queues: List[QueueBreakdownItem]
+    sessions: List[SessionBreakdownItem]
+    staff: List[StaffOverviewItem]
+    admins: List[BranchAdminItem]
+    whatsapp: BranchWhatsAppStats
+    health: BranchHealthDetails
+    timeline: List[BranchActivityEvent]
+    alerts: List[BranchAlert]
+    contact: BranchContactDetails
+    traffic: BranchTrafficData

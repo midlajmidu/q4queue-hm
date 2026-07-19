@@ -3,63 +3,56 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-export default function BranchActivityTimeline({ branchId }: { branchId: string }) {
+export default function BranchActivityTimeline({ data, traffic: rawTraffic }: { data: any[], traffic: any }) {
     const [logs, setLogs] = useState<any[]>([]);
     const [traffic, setTraffic] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        Promise.all([
-            api.getBranchTimeline(branchId),
-            api.getOrgAdminTrafficChart(branchId)
-        ]).then(([timelineData, trafficData]) => {
-            setLogs(timelineData.slice(0, 3)); // Only show top 3 logs to save space
+        if (data) {
+            setLogs(data.slice(0, 3));
+        }
+        
+        if (rawTraffic && rawTraffic.peak_traffic) {
+            const currentHour = new Date().getHours();
             
-            // Format traffic data for the mini chart
-            if (trafficData && trafficData.peak_traffic) {
-                const currentHour = new Date().getHours();
-                
-                // Helper to parse "5 PM" to 17
-                const parseHour = (hStr: string) => {
-                    if (!hStr || typeof hStr !== 'string') return 9; // Fallback
-                    const parts = hStr.split(' ');
-                    if (parts.length !== 2) return 9;
-                    const [val, ampm] = parts;
-                    let h = parseInt(val);
-                    if (isNaN(h)) return 9;
-                    if (ampm === 'PM' && h !== 12) h += 12;
-                    if (ampm === 'AM' && h === 12) h = 0;
-                    return h;
-                };
+            const parseHour = (hStr: string) => {
+                if (!hStr || typeof hStr !== 'string') return 9;
+                const parts = hStr.split(' ');
+                if (parts.length !== 2) return 9;
+                const [val, ampm] = parts;
+                let h = parseInt(val);
+                if (isNaN(h)) return 9;
+                if (ampm === 'PM' && h !== 12) h += 12;
+                if (ampm === 'AM' && h === 12) h = 0;
+                return h;
+            };
 
-                // Determine the range of hours to show
-                let minHour = 9; // Default start at 9 AM
-                trafficData.peak_traffic.forEach((pt: any) => {
-                    const h = parseHour(pt.hour);
-                    if (h < minHour) minHour = h;
+            let minHour = 9;
+            rawTraffic.peak_traffic.forEach((pt: any) => {
+                const h = parseHour(pt.hour);
+                if (h < minHour) minHour = h;
+            });
+            
+            const endHour = Math.max(currentHour, minHour + 4);
+            
+            const fullDayData = [];
+            for (let i = minHour; i <= endHour; i++) {
+                const ampm = i < 12 ? "AM" : "PM";
+                const disp = i <= 12 ? (i === 0 ? 12 : i) : i - 12;
+                const hourStr = `${disp} ${ampm}`;
+                
+                const existing = rawTraffic.peak_traffic.find((pt: any) => pt.hour === hourStr);
+                fullDayData.push({
+                    time: hourStr,
+                    customers: existing ? existing.customers_arrived : 0
                 });
-                
-                const endHour = Math.max(currentHour, minHour + 4);
-                
-                const fullDayData = [];
-                for (let i = minHour; i <= endHour; i++) {
-                    const ampm = i < 12 ? "AM" : "PM";
-                    const disp = i <= 12 ? (i === 0 ? 12 : i) : i - 12;
-                    const hourStr = `${disp} ${ampm}`;
-                    
-                    const existing = trafficData.peak_traffic.find((pt: any) => pt.hour === hourStr);
-                    fullDayData.push({
-                        time: hourStr,
-                        customers: existing ? existing.customers_arrived : 0
-                    });
-                }
-                
-                setTraffic(fullDayData);
             }
-        }).finally(() => setLoading(false));
-    }, [branchId]);
+            
+            setTraffic(fullDayData);
+        }
+    }, [data, rawTraffic]);
 
-    if (loading) {
+    if (!data || !rawTraffic) {
         return (
             <div className="bg-white rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04)] border border-slate-200 overflow-hidden animate-pulse">
                 <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center">
