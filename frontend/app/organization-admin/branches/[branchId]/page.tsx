@@ -22,7 +22,6 @@ import BranchHealthCenter from "@/components/organization-admin/branch-details/B
 import BranchActivityTimeline from "@/components/organization-admin/branch-details/BranchActivityTimeline";
 import BranchContactCard from "@/components/organization-admin/branch-details/BranchContactCard";
 import BranchAlerts from "@/components/organization-admin/branch-details/BranchAlerts";
-import BranchFuturePlaceholders from "@/components/organization-admin/branch-details/BranchFuturePlaceholders";
 export default function BranchDetailsPage() {
     const { user } = useAuth();
     const router = useRouter();
@@ -33,6 +32,27 @@ export default function BranchDetailsPage() {
     const [dashboardData, setDashboardData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    
+    // Scroll detection for header
+    const [showSubNav, setShowSubNav] = useState(true);
+    const [lastScrollY, setLastScrollY] = useState(0);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            if (currentScrollY > lastScrollY && currentScrollY > 100) {
+                // Scrolling down
+                setShowSubNav(false);
+            } else {
+                // Scrolling up
+                setShowSubNav(true);
+            }
+            setLastScrollY(currentScrollY);
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [lastScrollY]);
 
     const loadDashboard = useCallback(async () => {
         try {
@@ -124,37 +144,54 @@ export default function BranchDetailsPage() {
 
     return (
         <div className="-mt-4 sm:-mt-6 lg:-mt-8 bg-slate-50 min-h-screen pb-12">
-            {/* Minimalist Sub-Navigation Header */}
-            <div className="sticky -top-4 sm:-top-6 lg:-top-8 z-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white/80 backdrop-blur-md border-b border-slate-200 py-3 mb-6">
+            {/* Premium Detail Header */}
+            <div className={`sticky -top-4 sm:-top-6 lg:-top-8 z-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 py-4 mb-8 shadow-sm transition-transform duration-300 ease-in-out ${showSubNav ? 'translate-y-0' : '-translate-y-full'}`}>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between max-w-7xl mx-auto gap-4 sm:gap-0">
-                    <div className="flex items-center gap-3">
-                        <Link href="/organization-admin/branches" className="text-slate-400 hover:text-slate-900 transition-colors" title="Back to Branches">
-                            <ArrowLeft size={18} strokeWidth={2} />
+                    
+                    {/* Left: Title & Status */}
+                    <div className="flex items-center gap-4">
+                        <Link 
+                            href="/organization-admin/branches" 
+                            className="p-2 -ml-2 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" 
+                            title="Back to Branches"
+                        >
+                            <ArrowLeft size={20} strokeWidth={2} />
                         </Link>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-lg font-semibold text-slate-900 tracking-tight">{branch.name}</h1>
-                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase ${branch.is_active ? 'bg-emerald-500/10 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                                <span className={`w-1 h-1 rounded-full ${branch.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                                {branch.is_active ? 'Active' : 'Inactive'}
-                            </span>
+                        
+                        <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
+                            <h1 className="text-xl font-bold text-slate-900 tracking-tight">{branch.name}</h1>
+                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-bold tracking-widest uppercase ${branch.is_active ? 'bg-emerald-50/50 border-emerald-200/60 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${branch.is_active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-400'}`}></div>
+                                {branch.is_active ? 'Live' : 'Inactive'}
+                            </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
-                        <div className="text-xs text-slate-500 hidden sm:block mr-2 font-medium">
-                            <span className="text-slate-400">Ref:</span> {branch.slug}
+
+                    {/* Right: Actions & Meta */}
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                        
+                        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200/60 rounded-lg text-xs font-medium text-slate-600 mr-2">
+                            <span className="text-slate-400 font-normal">Ref:</span> 
+                            {branch.slug}
                         </div>
+
                         <button 
                             onClick={handleToggleStatus}
-                            className="text-xs px-3 py-1.5 font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-md transition-colors shadow-sm"
+                            className={`px-4 py-2 text-sm font-semibold border rounded-lg transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+                                branch.is_active 
+                                ? 'bg-white border-slate-200 text-slate-700 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 focus:ring-rose-500' 
+                                : 'bg-white border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 focus:ring-emerald-500'
+                            }`}
                         >
                             {branch.is_active ? 'Deactivate' : 'Activate'}
                         </button>
+                        
                         <Link
                             href={`/organization-admin/branches/${branchId}/admin#token=${getToken("org_admin") || ""}`}
                             target="_blank"
-                            className="text-xs px-3 py-1.5 font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm flex items-center gap-2 transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-1"
                         >
-                            Dashboard <ExternalLink size={14} />
+                            Dashboard <ExternalLink size={16} strokeWidth={2} />
                         </Link>
                     </div>
                 </div>
@@ -199,8 +236,6 @@ export default function BranchDetailsPage() {
                     {/* SECTION 10: Branch Contact Information */}
                     <BranchContactCard branchId={branchId} data={dashboardData?.contact} onUpdate={loadDashboard} />
                     
-                    {/* SECTION 12: Future Enterprise Placeholders */}
-                    <BranchFuturePlaceholders />
                 </div>
 
                 {/* Full Width Bottom Section */}
@@ -212,11 +247,11 @@ export default function BranchDetailsPage() {
 
             <ConfirmModal
                 isOpen={isConfirmModalOpen}
-                title={branch.is_active ? "Suspend Operations" : "Resume Operations"}
+                title={branch.is_active ? "Deactivate Branch" : "Activate Branch"}
                 message={branch.is_active 
-                    ? `Are you sure you want to suspend operations for ${branch.name}? Staff and admins will lose access to the dashboard until it is reactivated.`
-                    : `Are you sure you want to resume operations for ${branch.name}? Staff and admins will regain access to their dashboard.`}
-                confirmLabel={branch.is_active ? "Suspend Operations" : "Resume Operations"}
+                    ? `Are you sure you want to deactivate ${branch.name}? Staff and admins will lose access to the dashboard until it is reactivated.`
+                    : `Are you sure you want to activate ${branch.name}? Staff and admins will regain access to their dashboard.`}
+                confirmLabel={branch.is_active ? "Deactivate" : "Activate"}
                 confirmVariant={branch.is_active ? "danger" : "primary"}
                 onConfirm={confirmToggle}
                 onCancel={() => setIsConfirmModalOpen(false)}

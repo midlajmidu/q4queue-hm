@@ -7,6 +7,8 @@ import { toast } from "sonner";
 export default function BranchContactCard({ branchId, data, onUpdate }: { branchId: string, data: any, onUpdate?: () => void }) {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ address: "", contact_phone: "" });
+    const [isSaving, setIsSaving] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<{ phone?: boolean, address?: boolean }>({});
 
     useEffect(() => {
         if (data) {
@@ -15,6 +17,21 @@ export default function BranchContactCard({ branchId, data, onUpdate }: { branch
     }, [data]);
 
     const handleSave = async () => {
+        setValidationErrors({});
+        
+        if (editData.contact_phone && !/^[\d\s+\-()]{7,15}$/.test(editData.contact_phone)) {
+            setValidationErrors(prev => ({ ...prev, phone: true }));
+            toast.error("Please enter a valid phone number");
+            return;
+        }
+
+        if (editData.address && editData.address.trim().length === 0) {
+            setValidationErrors(prev => ({ ...prev, address: true }));
+            toast.error("Please enter a valid address");
+            return;
+        }
+
+        setIsSaving(true);
         try {
             await api.updateBranchContactDetails(branchId, editData);
             toast.success("Contact details updated successfully");
@@ -22,6 +39,8 @@ export default function BranchContactCard({ branchId, data, onUpdate }: { branch
             if (onUpdate) onUpdate();
         } catch (error: any) {
             toast.error(error.message || "Failed to update contact details");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -48,20 +67,29 @@ export default function BranchContactCard({ branchId, data, onUpdate }: { branch
                     <div className="space-y-3">
                         <input 
                             type="text"
-                            className="w-full px-3 py-2 text-[13px] font-medium text-slate-900 bg-white rounded-md border border-slate-200 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-shadow placeholder:text-slate-400"
+                            className={`w-full px-3 py-2 text-[13px] font-medium text-slate-900 bg-white rounded-md border focus:outline-none focus:ring-1 transition-shadow placeholder:text-slate-400 ${validationErrors.phone ? 'border-rose-500 text-rose-600 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'}`}
                             placeholder="Phone number"
                             value={editData.contact_phone}
-                            onChange={(e) => setEditData({...editData, contact_phone: e.target.value})}
+                            onChange={(e) => {
+                                setEditData({...editData, contact_phone: e.target.value});
+                                if (validationErrors.phone) setValidationErrors(prev => ({ ...prev, phone: false }));
+                            }}
                         />
                         <textarea 
-                            className="w-full px-3 py-2 text-[13px] font-medium text-slate-900 bg-white rounded-md border border-slate-200 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-shadow resize-none h-20 placeholder:text-slate-400"
+                            className={`w-full px-3 py-2 text-[13px] font-medium text-slate-900 bg-white rounded-md border focus:outline-none focus:ring-1 transition-shadow resize-none h-20 placeholder:text-slate-400 ${validationErrors.address ? 'border-rose-500 text-rose-600 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'}`}
                             placeholder="Full address"
                             value={editData.address}
-                            onChange={(e) => setEditData({...editData, address: e.target.value})}
+                            onChange={(e) => {
+                                setEditData({...editData, address: e.target.value});
+                                if (validationErrors.address) setValidationErrors(prev => ({ ...prev, address: false }));
+                            }}
                         />
                         <div className="flex justify-end gap-2 pt-1">
-                            <button onClick={() => { setIsEditing(false); setEditData({ address: data.address || "", contact_phone: data.contact_phone || "" }); }} className="px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors">Cancel</button>
-                            <button onClick={handleSave} className="px-3 py-1.5 text-[12px] font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-md shadow-sm transition-colors">Save</button>
+                            <button onClick={() => { setIsEditing(false); setEditData({ address: data.address || "", contact_phone: data.contact_phone || "" }); setValidationErrors({}); }} className="px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors" disabled={isSaving}>Cancel</button>
+                            <button onClick={handleSave} disabled={isSaving} className={`flex items-center gap-2 px-3 py-1.5 text-[12px] font-medium text-white bg-slate-900 rounded-md shadow-sm transition-colors ${isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-800'}`}>
+                                {isSaving && <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
+                                Save
+                            </button>
                         </div>
                     </div>
                 ) : (
