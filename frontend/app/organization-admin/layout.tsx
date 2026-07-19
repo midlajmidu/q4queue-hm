@@ -201,9 +201,9 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                 {/* Help Section */}
                                 <div className={`mt-auto mb-2 ${isSidebarCollapsed ? 'mx-2' : 'mx-4'} p-3 rounded-xl bg-slate-50 border border-slate-100/50 shadow-sm`}>
                                     {!isSidebarCollapsed && <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Need Help?</p>}
-                                    <a href={`mailto:${supportContact?.support_email || 'contact@q4queue.com'}`} className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-2 mb-1'} text-[13px] font-medium text-slate-500 hover:text-indigo-600 transition-colors`} title={supportContact?.support_email || "contact@q4queue.com"}>
-                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                                        {!isSidebarCollapsed && <span className="truncate">{supportContact?.support_email || "contact@q4queue.com"}</span>}
+                                    <a href="mailto:support@q4queue.com" className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-2 mb-1'} text-[13px] font-medium text-slate-500 hover:text-indigo-600 transition-colors`} title="support@q4queue.com">
+                                        <MessageCircle size={14} className="shrink-0" />
+                                        {!isSidebarCollapsed && <span className="truncate">support@q4queue.com</span>}
                                     </a>
                                 </div>
                             </div>

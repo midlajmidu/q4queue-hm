@@ -839,15 +839,12 @@ async def get_cross_branch_analytics(
 
     # 11. PAX / Group Size Analytics
     pax_q = select(
-        case(
-            (Token.pax_count >= 5, '5+'),
-            else_=func.cast(Token.pax_count, String)
-        ).label('group_size'),
+        func.cast(Token.pax_count, String).label('group_size'),
         func.count(Token.id).label('token_count'),
         func.sum(Token.pax_count).label('total_pax'),
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
         func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
-    ).where(and_(*token_conditions)).group_by('group_size').order_by('group_size')
+    ).where(and_(*token_conditions)).group_by(Token.pax_count).order_by(Token.pax_count)
 
     pax_res = await db.execute(pax_q)
     pax_analytics = []

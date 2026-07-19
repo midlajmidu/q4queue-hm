@@ -50,6 +50,7 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
     }
     const isAdmin = user?.role === "admin";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin" || isImpersonating;
+    const isOrgAdminUser = user?.role === "organization_admin";
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [supportContact, setSupportContact] = useState<{support_email: string, support_phone: string} | null>(null);
     const { unreadCount } = useNotifications();
@@ -58,6 +59,9 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
     useEffect(() => {
         api.getSupportContact().then(setSupportContact).catch(() => {});
     }, []);
+
+    const isParentDashboard = pathname.startsWith('/organization-admin') || pathname.startsWith('/org-admin') || user?.role === "super_admin";
+    const displaySupportEmail = isParentDashboard ? "support@q4queue.com" : (supportContact?.support_email || "support@q4queue.com");
 
     useEffect(() => {
         if (onClose && isOpen) onClose();
@@ -197,9 +201,9 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                         } /> */}
                         <div className={`mt-6 ${c ? 'mx-2' : 'mx-6'} p-3 rounded-xl bg-white dark:bg-transparent border border-slate-100 dark:border-white/10 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]`}>
                             {!c && <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Need Help?</p>}
-                            <a href={`mailto:${supportContact?.support_email || 'contact@q4queue.com'}`} className={`flex items-center ${c ? 'justify-center' : 'gap-2 mb-2'} text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 transition-colors`} title={supportContact?.support_email || "contact@q4queue.com"}>
+                            <a href={`mailto:${displaySupportEmail}`} className={`flex items-center ${c ? 'justify-center' : 'gap-2 mb-2'} text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 transition-colors`} title={displaySupportEmail}>
                                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                                {!c && <span className="truncate">{supportContact?.support_email || "contact@q4queue.com"}</span>}
+                                {!c && <span className="truncate">{displaySupportEmail}</span>}
                             </a>
                         </div>
                     </>

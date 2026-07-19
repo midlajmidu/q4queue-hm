@@ -7,7 +7,7 @@ import {
     Users, Clock, Building2, TrendingUp, Zap, Server, 
     BarChart3, Activity, Download, ChevronRight, LayoutDashboard,
     AlertCircle, CheckCircle2, TrendingDown, Star, Sparkles, Lightbulb,
-    UserMinus, UserCheck, Target, Layers, FileText, FileSpreadsheet, ChevronDown, UsersRound, BarChart2, Trophy, User
+    UserMinus, UserCheck, Target, Layers, FileText, FileSpreadsheet, ChevronDown, UsersRound, BarChart2, Trophy, User, Boxes, X, ArrowRight, Info
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useBranchFilter } from "@/context/BranchFilterContext";
@@ -29,27 +29,36 @@ export default function AnalyticsPage() {
 
     // Extract Guest Distribution Helpers
     const sizeColors: Record<string, string> = {
-        '1': '#6366f1', // indigo-500 (Matches Volume Trend)
-        '2': '#0ea5e9', // sky-500 (Complements Indigo)
-        '3': '#10b981', // emerald-500 (Matches Staff/Good SLA)
-        '4': '#f59e0b', // amber-500 (Matches Warning SLA)
-        '5+': '#f43f5e' // rose-500 (Matches Critical SLA)
+        '1': '#6366f1', // indigo-500
+        '2': '#10b981', // emerald-500
+        '3': '#0ea5e9', // sky-500
+        '4': '#f59e0b', // amber-500
+        '5': '#f43f5e', // rose-500
+        '6': '#8b5cf6', // violet-500
+        '7': '#ec4899', // pink-500
+        '8': '#14b8a6', // teal-500
+        '9': '#84cc16', // lime-500
+        '10': '#eab308', // yellow-500
+        'Other': '#94a3b8' // slate-400
+    };
+    
+    const getColorForSize = (size: string) => {
+        return sizeColors[size] || '#64748b'; // slate-500 fallback
     };
 
     const sizeLabel = (size: string) => {
-        if (size === '1') return "Solo Guests";
-        if (size === '2') return "Couples / Pairs";
-        if (size === '3') return "Small Groups (3)";
-        if (size === '4') return "Medium Groups (4)";
-        return "Large Groups (5+)";
+        if (size === 'Other') return "Other Sizes";
+        const num = parseInt(size);
+        if (num === 1) return "1 Person";
+        return `${size} People`;
     };
 
     const renderSizeIcon = (size: string) => {
-        if (size === '1') return <User size={14} className="text-indigo-500" />;
-        if (size === '2') return <Users size={14} className="text-emerald-500" />;
-        if (size === '3') return <Users size={14} className="text-amber-500" />;
-        if (size === '4') return <UsersRound size={14} className="text-pink-500" />;
-        return <UsersRound size={14} className="text-red-500" />;
+        if (size === 'Other') return <Boxes size={14} color={getColorForSize(size)} />;
+        const num = parseInt(size);
+        if (num === 1) return <User size={14} color={getColorForSize(size)} />;
+        if (num === 2) return <Users size={14} color={getColorForSize(size)} />;
+        return <UsersRound size={14} color={getColorForSize(size)} />;
     };
 
     const humanTime = (timeStr: string | null) => {
@@ -60,24 +69,53 @@ export default function AnalyticsPage() {
     let paddedPax: any[] = [];
     let totalTokens = 0;
     let totalGuests = 0;
+    
     if (data && data.pax_analytics) {
-        const paxData = data.pax_analytics;
-        ['1', '2', '3', '4', '5+'].forEach(size => {
-            const existing = paxData.find((p: any) => p.group_size === size);
-            if (existing) {
-                paddedPax.push(existing);
-                totalTokens += existing.token_count;
-                totalGuests += existing.total_pax || 0;
-            } else {
-                paddedPax.push({
-                    group_size: size,
-                    token_count: 0,
-                    total_pax: 0,
-                    avg_wait_time: null,
-                    avg_service_time: null
-                });
-            }
+        // First, calculate totals
+        data.pax_analytics.forEach((p: any) => {
+            totalTokens += p.token_count;
+            totalGuests += p.total_pax || 0;
         });
+
+        // Sort by volume descending to find top 5
+        const sortedByVolume = [...data.pax_analytics].sort((a: any, b: any) => b.token_count - a.token_count);
+        
+        const top5 = sortedByVolume.slice(0, 5);
+        const others = sortedByVolume.slice(5);
+
+        // Re-sort the top 5 numerically so they appear in a logical order (e.g. 1, 2, 4, 8)
+        top5.sort((a: any, b: any) => (parseInt(a.group_size) || 0) - (parseInt(b.group_size) || 0));
+
+        paddedPax = [...top5];
+
+        // If there is a long tail, aggregate it into "Other Sizes"
+        if (others.length > 0) {
+            const othersTokenCount = others.reduce((sum, item) => sum + item.token_count, 0);
+            const othersTotalPax = others.reduce((sum, item) => sum + (item.total_pax || 0), 0);
+            
+            // Weighted average for wait and service times
+            const calcWeightedAvg = (items: any[], timeKey: string) => {
+                let totalSecs = 0;
+                items.forEach(item => {
+                    totalSecs += timeToSeconds(item[timeKey]) * item.token_count;
+                });
+                const avgSecs = othersTokenCount > 0 ? Math.round(totalSecs / othersTokenCount) : 0;
+                
+                // Format back to mm:ss string
+                const mins = Math.floor(avgSecs / 60);
+                const secs = avgSecs % 60;
+                return `${mins}m ${secs}s`; // Simulating the human readable format
+            };
+
+            paddedPax.push({
+                group_size: 'Other',
+                token_count: othersTokenCount,
+                total_pax: othersTotalPax,
+                avg_wait_time: calcWeightedAvg(others, 'avg_wait_time'),
+                avg_service_time: calcWeightedAvg(others, 'avg_service_time'),
+                breakdown: others // Keep the raw data for the tooltip
+            });
+        }
     }
 
     const timeToSeconds = (timeStr: string | null) => {
@@ -93,6 +131,7 @@ export default function AnalyticsPage() {
 
     const [staffPage, setStaffPage] = useState(1);
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+    const [selectedGuestGroup, setSelectedGuestGroup] = useState<any | null>(null);
 
     const { selectedBranchId } = useBranchFilter();
 
@@ -289,46 +328,46 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 
                 {/* Efficiency Focus */}
-                <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm p-6 hover:shadow-md transition-shadow">
+                <div className="bg-white rounded-[24px] border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] p-7">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-2.5">
-                            <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600">
+                            <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600">
                                 <Activity size={16} />
                             </div>
-                            <h2 className="font-semibold text-slate-800 text-sm">Efficiency Metrics</h2>
+                            <h2 className="font-bold text-slate-800 text-[15px] tracking-tight">Efficiency Metrics</h2>
                         </div>
-                        <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">Average</span>
+                        <span className="bg-slate-50 text-slate-500 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-slate-100">Average</span>
                     </div>
                     <div className="grid grid-cols-2 gap-y-8 gap-x-6">
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Average duration customers wait before being served.">
                                 <Clock size={14} className="text-slate-400" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Wait Time</span>
+                                <span className="text-xs font-semibold text-slate-500">Wait Time</span>
                             </div>
-                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">{data.time_metrics.avg_wait_time}</span>
+                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{data.time_metrics.avg_wait_time}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Average time staff spends serving each customer.">
                                 <Zap size={14} className="text-amber-500/80" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Service Time</span>
+                                <span className="text-xs font-semibold text-slate-500">Service Time</span>
                             </div>
-                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">{data.time_metrics.avg_service_time}</span>
+                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{data.time_metrics.avg_service_time}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Percentage of queued customers successfully served.">
                                 <CheckCircle2 size={14} className="text-emerald-500/80" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Completion</span>
+                                <span className="text-xs font-semibold text-slate-500">Completion</span>
                             </div>
-                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">{data.customer_metrics.completion_rate}</span>
+                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{data.customer_metrics.completion_rate}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Total number of queue lanes active in this period.">
                                 <Layers size={14} className="text-blue-500/80" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">
+                                <span className="text-xs font-semibold text-slate-500">
                                     {dateRange.preset === "today" ? "Live Queues" : "Queues"}
                                 </span>
                             </div>
-                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">
+                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">
                                 {dateRange.preset === "today" ? data.operations_metrics.active_queues : data.operations_metrics.operated_queues}
                             </span>
                         </div>
@@ -336,80 +375,80 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Volume Focus */}
-                <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm p-6 hover:shadow-md transition-shadow">
+                <div className="bg-white rounded-[24px] border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] p-7">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-2.5">
-                            <div className="bg-emerald-50 p-2 rounded-lg text-emerald-600">
+                            <div className="bg-emerald-50 p-2 rounded-xl text-emerald-600">
                                 <Users size={16} />
                             </div>
-                            <h2 className="font-semibold text-slate-800 text-sm">Volume & Scale</h2>
+                            <h2 className="font-bold text-slate-800 text-[15px] tracking-tight">Volume & Scale</h2>
                         </div>
-                        <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">Total</span>
+                        <span className="bg-slate-50 text-slate-500 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-slate-100">Total</span>
                     </div>
                     <div className="grid grid-cols-2 gap-y-8 gap-x-6">
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Overall number of customers fully processed.">
                                 <Users size={14} className="text-emerald-500/80" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Served</span>
+                                <span className="text-xs font-semibold text-slate-500">Served</span>
                             </div>
-                            <span className="text-2xl font-semibold text-emerald-600 tracking-tight">{data.customer_metrics.customers_served}</span>
+                            <span className="text-[26px] font-black text-emerald-600 tracking-tighter leading-none">{data.customer_metrics.customers_served}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Current volume of customers still in queue.">
                                 <Activity size={14} className="text-indigo-500/80" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Waiting</span>
+                                <span className="text-xs font-semibold text-slate-500">Waiting</span>
                             </div>
-                            <span className="text-2xl font-semibold text-indigo-600 tracking-tight">{data.customer_metrics.customers_waiting}</span>
+                            <span className="text-[26px] font-black text-indigo-600 tracking-tighter leading-none">{data.customer_metrics.customers_waiting}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="The busiest hour by customer volume.">
                                 <TrendingUp size={14} className="text-rose-500/80" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Peak Hour</span>
+                                <span className="text-xs font-semibold text-slate-500">Peak Hour</span>
                             </div>
-                            <span className="text-[17px] font-semibold text-rose-600 tracking-tight leading-tight max-w-[120px]">{data.time_metrics.peak_hour}</span>
+                            <span className="text-[20px] font-black text-rose-600 tracking-tighter leading-tight max-w-[120px]">{data.time_metrics.peak_hour}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Number of active branches generating data.">
                                 <Building2 size={14} className="text-slate-700/80" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Branches</span>
+                                <span className="text-xs font-semibold text-slate-500">Branches</span>
                             </div>
-                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">{data.operations_metrics.active_branches}</span>
+                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{data.operations_metrics.active_branches}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Retention & Load */}
-                <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm p-6 hover:shadow-md transition-shadow md:col-span-2 xl:col-span-1">
+                <div className="bg-white rounded-[24px] border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] p-7 md:col-span-2 xl:col-span-1">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-2.5">
-                            <div className="bg-rose-50 p-2 rounded-lg text-rose-600">
+                            <div className="bg-rose-50 p-2 rounded-xl text-rose-600">
                                 <TrendingDown size={16} />
                             </div>
-                            <h2 className="font-semibold text-slate-800 text-sm">Retention & Load</h2>
+                            <h2 className="font-bold text-slate-800 text-[15px] tracking-tight">Retention & Load</h2>
                         </div>
-                        <span className="bg-rose-50 text-rose-600 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border border-rose-100">Critical</span>
+                        <span className="bg-rose-50 text-rose-600 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-rose-100">Critical</span>
                     </div>
                     <div className="grid grid-cols-2 gap-y-8 gap-x-6">
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Customers who left the queue without service.">
                                 <UserMinus size={14} className="text-rose-400" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Abandoned</span>
+                                <span className="text-xs font-semibold text-slate-500">Abandoned</span>
                             </div>
-                            <span className="text-2xl font-semibold text-rose-600 tracking-tight">{data.customer_metrics.customers_abandoned}</span>
+                            <span className="text-[26px] font-black text-rose-600 tracking-tighter leading-none">{data.customer_metrics.customers_abandoned}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Percentage ratio of abandoned customers.">
                                 <TrendingDown size={14} className="text-rose-400" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Churn Rate</span>
+                                <span className="text-xs font-semibold text-slate-500">Churn Rate</span>
                             </div>
-                            <span className="text-2xl font-semibold text-rose-600 tracking-tight">{data.customer_metrics.abandonment_rate}</span>
+                            <span className="text-[26px] font-black text-rose-600 tracking-tighter leading-none">{data.customer_metrics.abandonment_rate}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Number of staff members currently on shift.">
                                 <UserCheck size={14} className="text-emerald-500/80" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Staff Online</span>
+                                <span className="text-xs font-semibold text-slate-500">Staff Online</span>
                             </div>
-                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">{data.operations_metrics.online_staff}</span>
+                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{data.operations_metrics.online_staff}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Average waiting customers per online staff member.">
@@ -514,9 +553,15 @@ export default function AnalyticsPage() {
                     <div className="flex flex-col gap-1">
                         <h2 className="font-bold text-slate-900 flex items-center gap-2">
                             <UsersRound size={20} className="text-indigo-500" />
-                            Guest Distribution by Group Size
+                            Customer Group Sizes
+                            <div className="relative group/info flex items-center ml-1">
+                                <Info size={14} className="text-slate-400 cursor-help" />
+                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-max px-3 py-2 bg-slate-800 text-white text-xs font-semibold rounded-lg opacity-0 group-hover/info:opacity-100 transition-opacity pointer-events-none z-50">
+                                    Total customer count includes the person who took the ticket.
+                                </div>
+                            </div>
                         </h2>
-                        <p className="text-[13px] font-medium text-slate-500">Comprehensive breakdown of all issued tokens across branches</p>
+                        <p className="text-[13px] font-medium text-slate-500">See how many people are arriving alone, in pairs, or in larger groups.</p>
                     </div>
                 </div>
                 <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
@@ -541,16 +586,19 @@ export default function AnalyticsPage() {
                                             dataKey="token_count"
                                             cornerRadius={4}
                                             stroke="none"
+                                            isAnimationActive={true}
+                                            animationBegin={100}
+                                            animationDuration={800}
                                         >
                                             {paddedPax.filter((d: any) => d.token_count > 0).map((entry: any, index: number) => (
-                                                <Cell key={`cell-${index}`} fill={sizeColors[entry.group_size] || '#94a3b8'} />
+                                                <Cell key={`cell-${index}`} fill={getColorForSize(entry.group_size)} />
                                             ))}
                                         </Pie>
                                         <text x="50%" y="47%" textAnchor="middle" dominantBaseline="middle" className="text-6xl font-black fill-slate-800" style={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
                                             {totalGuests}
                                         </text>
                                         <text x="50%" y="61%" textAnchor="middle" dominantBaseline="middle" className="text-[12px] font-bold fill-slate-400 uppercase tracking-widest">
-                                            Total Guests
+                                            Total People
                                         </text>
                                         <RechartsTooltip 
                                             cursor={false}
@@ -560,7 +608,7 @@ export default function AnalyticsPage() {
                                                     return (
                                                         <div className="bg-white/95 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.08)] min-w-[220px]">
                                                             <div className="flex items-center gap-3 mb-3 pb-3 border-b border-slate-100/80">
-                                                                <div className="w-3.5 h-3.5 rounded-full border shadow-sm" style={{ backgroundColor: sizeColors[data.group_size], borderColor: `${sizeColors[data.group_size]}40` }}></div>
+                                                                <div className="w-3.5 h-3.5 rounded-full border shadow-sm" style={{ backgroundColor: getColorForSize(data.group_size), borderColor: `${getColorForSize(data.group_size)}40` }}></div>
                                                                 <span className="font-bold text-slate-900 text-[14px] leading-none">{sizeLabel(data.group_size)}</span>
                                                             </div>
                                                             <div className="flex flex-col gap-2.5">
@@ -571,11 +619,26 @@ export default function AnalyticsPage() {
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex items-center justify-between">
-                                                                    <span className="text-slate-500 text-[12px] font-medium tracking-wide">Guests</span>
+                                                                    <span className="text-slate-500 text-[12px] font-medium tracking-wide">Total People</span>
                                                                     <div className="flex items-baseline gap-1.5">
                                                                         <span className="font-black text-slate-800 text-[14px] leading-none">{data.total_pax}</span>
                                                                     </div>
                                                                 </div>
+                                                                
+                                                                {/* Dynamic Breakdown for "Other Sizes" */}
+                                                                {data.breakdown && data.breakdown.length > 0 && (
+                                                                    <div className="mt-2 pt-2 border-t border-slate-100 border-dashed">
+                                                                        <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-2">Breakdown</span>
+                                                                        <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+                                                                            {data.breakdown.map((b: any, i: number) => (
+                                                                                <div key={i} className="flex items-center justify-between">
+                                                                                    <span className="text-slate-600 text-[11px] font-medium">{sizeLabel(b.group_size)}</span>
+                                                                                    <span className="text-slate-800 text-[11px] font-bold">{b.token_count} <span className="text-slate-400 text-[9px] font-medium ml-0.5">tkns</span></span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     );
@@ -596,38 +659,32 @@ export default function AnalyticsPage() {
                                 const guestPct = totalGuests > 0 && item.total_pax > 0 ? Math.round((item.total_pax / totalGuests) * 100) : 0;
                                 
                                 return (
-                                    <div key={idx} className={`flex flex-col p-5 rounded-2xl border ${item.token_count === 0 ? 'opacity-40 grayscale-[0.5] border-slate-100' : 'border-slate-200 shadow-sm hover:border-slate-300 hover:shadow-md transition-all'} bg-white`}>
+                                    <div 
+                                        key={idx} 
+                                        onClick={() => setSelectedGuestGroup({ ...item, guestPct })}
+                                        className="flex flex-col p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-slate-300 hover:bg-slate-50/50 cursor-pointer transition-colors bg-white animate-in slide-in-from-bottom-2 duration-500 group" 
+                                        style={{ animationDelay: `${idx * 100}ms` }}
+                                    >
                                         {/* Header: Icon + Name */}
                                         <div className="flex items-center gap-3.5 mb-5">
-                                            <div className="w-10 h-10 rounded-full border flex items-center justify-center shrink-0" style={{ backgroundColor: `${sizeColors[item.group_size]}15`, borderColor: `${sizeColors[item.group_size]}30`, color: sizeColors[item.group_size] }}>
+                                            <div className="w-10 h-10 rounded-full border flex items-center justify-center shrink-0" style={{ backgroundColor: `${getColorForSize(item.group_size)}15`, borderColor: `${getColorForSize(item.group_size)}30` }}>
                                                 {renderSizeIcon(item.group_size)}
                                             </div>
                                             <span className="text-[14px] font-bold text-slate-900 leading-tight">{sizeLabel(item.group_size)}</span>
                                         </div>
 
-                                        {/* Primary Metric: Tokens & Progress */}
-                                        <div className="flex flex-col mb-5">
+                                        {/* Primary Metric: Tokens */}
+                                        <div className="flex flex-col mb-4">
                                             <div className="flex items-baseline gap-2 mb-2">
-                                                <span className="text-[28px] font-black text-slate-800 leading-none tracking-tight">{item.token_count}</span>
+                                                <span className="text-[32px] font-black text-slate-800 leading-none tracking-tight">{item.token_count}</span>
                                                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-none">Tokens</span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex justify-start">
-                                                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${guestPct}%`, backgroundColor: sizeColors[item.group_size] }}></div>
-                                                </div>
-                                                <span className="text-[11px] font-bold text-slate-400 w-8 text-right tabular-nums">{guestPct}%</span>
                                             </div>
                                         </div>
 
-                                        {/* Secondary Metrics: Wait & Play Time */}
-                                        <div className="flex flex-col gap-2.5 pt-4 border-t border-slate-100 mt-auto">
-                                            <div className="flex items-center justify-between text-[12px]">
-                                                <span className="font-medium text-slate-400">Avg Wait</span>
-                                                <span className="font-semibold text-slate-700">{humanTime(item.avg_wait_time)}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between text-[12px]">
-                                                <span className="font-medium text-slate-400">Avg Play</span>
-                                                <span className="font-semibold text-slate-700">{humanTime(item.avg_service_time)}</span>
+                                        <div className="mt-auto flex items-center justify-start">
+                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50/80 px-2.5 py-1.5 rounded-lg border border-indigo-100/50 uppercase tracking-widest group-hover:bg-indigo-100/80 transition-colors">
+                                                View Details
+                                                <ArrowRight size={10} strokeWidth={2.5} />
                                             </div>
                                         </div>
                                     </div>
@@ -642,10 +699,12 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 
                 {/* Cross-Branch Wait Time Benchmark */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <h2 className="font-bold text-slate-900 flex items-center gap-2">
-                            <BarChart3 size={18} className="text-indigo-500" />
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col">
+                    <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-transparent">
+                        <h2 className="font-bold text-slate-800 text-[15px] flex items-center gap-2.5">
+                            <div className="bg-indigo-50 p-1.5 rounded-lg text-indigo-600">
+                                <BarChart3 size={15} />
+                            </div>
                             Cross-Branch Wait Benchmark
                         </h2>
                     </div>
@@ -704,55 +763,47 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Queue Analytics */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <h2 className="font-bold text-slate-900 flex items-center gap-2">
-                            <LayoutDashboard size={18} className="text-indigo-500" />
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col">
+                    <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-transparent">
+                        <h2 className="font-bold text-slate-800 text-[15px] flex items-center gap-2.5">
+                            <div className="bg-indigo-50 p-1.5 rounded-lg text-indigo-600">
+                                <LayoutDashboard size={15} />
+                            </div>
                             Top Queues by Volume
                         </h2>
                     </div>
                     <div className="overflow-x-auto flex-1">
                         <table className="w-full text-left text-[13px] whitespace-nowrap">
-                            <thead className="bg-slate-50/80 border-b border-slate-200">
-                                <tr className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">
-                                    <th className="py-2.5 px-4">Queue Name</th>
-                                    <th className="py-2.5 px-4">Branch</th>
-                                    <th className="py-2.5 px-4 text-right">Served</th>
-                                    <th className="py-2.5 px-4 text-right">Avg Wait</th>
+                            <thead className="text-[10px] uppercase text-slate-400 font-bold tracking-widest">
+                                <tr>
+                                    <th className="py-4 px-6">Queue Name</th>
+                                    <th className="py-4 px-6">Branch</th>
+                                    <th className="py-4 px-6 text-right">Served</th>
+                                    <th className="py-4 px-6 text-right">Avg Wait</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-50">
                                 {data.queue_analytics.length === 0 ? (
                                     <tr><td colSpan={4} className="py-8 px-4 text-center text-slate-400">No queues found</td></tr>
                                 ) : (
                                     <>
                                         {data.queue_analytics.slice((queuePage - 1) * ITEMS_PER_PAGE, queuePage * ITEMS_PER_PAGE).map((item: any, idx: number) => (
-                                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
-                                                <td className="py-2 px-4 font-semibold text-slate-900">{item.queue_name}</td>
-                                                <td className="py-2 px-4 text-slate-500">{item.branch}</td>
-                                                <td className="py-2 px-4 text-right font-medium text-slate-700">{item.customers_served}</td>
-                                                <td className="py-2 px-4 text-right font-medium text-slate-600">{item.avg_wait_time}</td>
-                                            </tr>
-                                        ))}
-                                        {data.queue_analytics.slice((queuePage - 1) * ITEMS_PER_PAGE, queuePage * ITEMS_PER_PAGE).length < ITEMS_PER_PAGE && (
-                                            <tr>
-                                                <td colSpan={4} className="p-0 bg-slate-50/30">
-                                                    <div 
-                                                        className="w-full flex items-center justify-center text-slate-400/60 text-[10px] font-bold uppercase tracking-widest"
-                                                        style={{ height: `${(ITEMS_PER_PAGE - data.queue_analytics.slice((queuePage - 1) * ITEMS_PER_PAGE, queuePage * ITEMS_PER_PAGE).length) * 44}px` }}
-                                                    >
-                                                        — End of Data —
-                                                    </div>
+                                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors cursor-pointer group">
+                                                <td className="py-4 px-6 font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">{item.queue_name}</td>
+                                                <td className="py-4 px-6 text-slate-500 font-medium">{item.branch}</td>
+                                                <td className="py-4 px-6 text-right font-bold text-slate-700">{item.customers_served}</td>
+                                                <td className="py-4 px-6 text-right font-semibold text-slate-500">
+                                                    <span className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md text-xs">{item.avg_wait_time}</span>
                                                 </td>
                                             </tr>
-                                        )}
+                                        ))}
                                     </>
                                 )}
                             </tbody>
                         </table>
                     </div>
                     {data.queue_analytics.length > ITEMS_PER_PAGE && (
-                        <div className="p-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between">
+                        <div className="p-4 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between">
                             <button 
                                 onClick={() => setQueuePage(p => Math.max(1, p - 1))} 
                                 disabled={queuePage === 1}
@@ -775,24 +826,26 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Staff Performance */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <h2 className="font-bold text-slate-900 flex items-center gap-2">
-                            <Users size={18} className="text-emerald-500" />
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col">
+                    <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-transparent">
+                        <h2 className="font-bold text-slate-800 text-[15px] flex items-center gap-2.5">
+                            <div className="bg-emerald-50 p-1.5 rounded-lg text-emerald-600">
+                                <Users size={15} />
+                            </div>
                             Top Performing Staff
                         </h2>
                     </div>
                     <div className="overflow-x-auto flex-1">
                         <table className="w-full text-left text-[13px] whitespace-nowrap">
-                            <thead className="bg-slate-50/80 border-b border-slate-200">
-                                <tr className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">
-                                    <th className="py-2.5 px-4">Staff Name</th>
-                                    <th className="py-2.5 px-4">Branch</th>
-                                    <th className="py-2.5 px-4 text-right">Served</th>
-                                    <th className="py-2.5 px-4 text-right">Avg Service</th>
+                            <thead className="text-[10px] uppercase text-slate-400 font-bold tracking-widest">
+                                <tr>
+                                    <th className="py-4 px-6">Staff Name</th>
+                                    <th className="py-4 px-6">Branch</th>
+                                    <th className="py-4 px-6 text-right">Served</th>
+                                    <th className="py-4 px-6 text-right">Avg Service</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-50">
                                 {data.staff_performance.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="py-12 px-4 text-center">
@@ -805,37 +858,27 @@ export default function AnalyticsPage() {
                                 ) : (
                                     <>
                                         {data.staff_performance.slice((staffPage - 1) * ITEMS_PER_PAGE, staffPage * ITEMS_PER_PAGE).map((item: any, idx: number) => (
-                                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
-                                                <td className="py-2 px-4 font-semibold text-slate-900 flex items-center gap-2">
-                                                    <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[9px] font-bold">
-                                                        {item.staff_name.charAt(0).toUpperCase()}
+                                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors cursor-pointer group">
+                                                <td className="py-4 px-6 font-semibold text-slate-800 flex items-center gap-2.5 group-hover:text-emerald-600 transition-colors">
+                                                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase">
+                                                        {item.staff_name.substring(0,2)}
                                                     </div>
                                                     {item.staff_name}
                                                 </td>
-                                                <td className="py-2 px-4 text-slate-500">{item.branch}</td>
-                                                <td className="py-2 px-4 text-right font-medium text-emerald-600">{item.customers_served}</td>
-                                                <td className="py-2 px-4 text-right font-medium text-slate-600">{item.avg_service_time}</td>
-                                            </tr>
-                                        ))}
-                                        {data.staff_performance.slice((staffPage - 1) * ITEMS_PER_PAGE, staffPage * ITEMS_PER_PAGE).length < ITEMS_PER_PAGE && (
-                                            <tr>
-                                                <td colSpan={4} className="p-0 bg-slate-50/30">
-                                                    <div 
-                                                        className="w-full flex items-center justify-center text-slate-400/60 text-[10px] font-bold uppercase tracking-widest"
-                                                        style={{ height: `${(ITEMS_PER_PAGE - data.staff_performance.slice((staffPage - 1) * ITEMS_PER_PAGE, staffPage * ITEMS_PER_PAGE).length) * 44}px` }}
-                                                    >
-                                                        — End of Data —
-                                                    </div>
+                                                <td className="py-4 px-6 text-slate-500 font-medium">{item.branch}</td>
+                                                <td className="py-4 px-6 text-right font-bold text-emerald-600">{item.customers_served}</td>
+                                                <td className="py-4 px-6 text-right font-semibold text-slate-600">
+                                                    <span className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md text-xs">{item.avg_service_time}</span>
                                                 </td>
                                             </tr>
-                                        )}
+                                        ))}
                                     </>
                                 )}
                             </tbody>
                         </table>
                     </div>
                     {data.staff_performance.length > ITEMS_PER_PAGE && (
-                        <div className="p-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between">
+                        <div className="p-4 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between">
                             <button 
                                 onClick={() => setStaffPage(p => Math.max(1, p - 1))} 
                                 disabled={staffPage === 1}
@@ -857,15 +900,17 @@ export default function AnalyticsPage() {
                     )}
                 </div>
 
-                {/* Peak Traffic Analysis */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <h2 className="font-bold text-slate-900 flex items-center gap-2">
-                            <Activity size={18} className="text-rose-500" />
-                            Hourly Traffic & Wait Time
+                {/* Peak Traffic Chart */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] overflow-hidden lg:col-span-2 flex flex-col">
+                    <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-transparent">
+                        <h2 className="font-bold text-slate-800 text-[15px] flex items-center gap-2.5">
+                            <div className="bg-indigo-50 p-1.5 rounded-lg text-indigo-600">
+                                <TrendingUp size={15} />
+                            </div>
+                            Traffic Volume by Hour
                         </h2>
                     </div>
-                    <div className="p-5 h-[350px] w-full">
+                    <div className="p-6 h-[350px] w-full">
                         {data.peak_traffic.length === 0 ? (
                             <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
                                 <p>No traffic data available</p>
@@ -903,6 +948,83 @@ export default function AnalyticsPage() {
                 </div>
 
             </div>
+
+            {/* Guest Distribution Detail Modal */}
+            {selectedGuestGroup && (
+                <div className="fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-lg flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="relative bg-white/95 backdrop-blur-xl rounded-[28px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] w-full max-w-[380px] overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-slate-200/50">
+                        
+                        {/* Floating Close Button */}
+                        <button 
+                            onClick={() => setSelectedGuestGroup(null)}
+                            className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100/80 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors z-10"
+                        >
+                            <X size={16} strokeWidth={2.5} />
+                        </button>
+
+                        {/* Minimalist Header */}
+                        <div className="px-7 pt-8 pb-6 flex flex-col items-center justify-center text-center">
+                            <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 shadow-sm" style={{ backgroundColor: `${getColorForSize(selectedGuestGroup.group_size)}15`, color: getColorForSize(selectedGuestGroup.group_size) }}>
+                                {renderSizeIcon(selectedGuestGroup.group_size)}
+                            </div>
+                            <span className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">{sizeLabel(selectedGuestGroup.group_size)}</span>
+                            <span className="text-[13px] font-medium text-slate-500">Group Size Details</span>
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="px-7 pb-8">
+                            {/* Borderless Hero Stats */}
+                            <div className="flex items-center justify-center gap-8 mb-8">
+                                <div className="flex flex-col items-center">
+                                    <span className="text-[34px] font-black text-slate-800 leading-none tracking-tighter mb-1">{selectedGuestGroup.token_count}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tokens</span>
+                                </div>
+                                <div className="w-px h-10 bg-slate-200"></div>
+                                <div className="flex flex-col items-center">
+                                    <span className="text-[34px] font-black text-slate-800 leading-none tracking-tighter mb-1">{selectedGuestGroup.total_pax}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest cursor-help border-b border-dashed border-slate-300" title="Total headcount (includes the primary token holder)">Total People</span>
+                                </div>
+                            </div>
+
+                            {/* Grid Service Times */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-slate-50 rounded-2xl p-4 flex flex-col gap-2">
+                                    <div className="flex items-center gap-2 text-amber-500">
+                                        <Clock size={14} />
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Wait</span>
+                                    </div>
+                                    <span className="font-black text-lg text-slate-800 tracking-tight">{humanTime(selectedGuestGroup.avg_wait_time)}</span>
+                                </div>
+                                <div className="bg-slate-50 rounded-2xl p-4 flex flex-col gap-2">
+                                    <div className="flex items-center gap-2 text-indigo-500">
+                                        <Zap size={14} />
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Service</span>
+                                    </div>
+                                    <span className="font-black text-lg text-slate-800 tracking-tight">{humanTime(selectedGuestGroup.avg_service_time)}</span>
+                                </div>
+                            </div>
+
+                            {/* Composition Breakdown */}
+                            {selectedGuestGroup.breakdown && selectedGuestGroup.breakdown.length > 0 && (
+                                <div className="mt-8 pt-6 border-t border-slate-100/80">
+                                    <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest block mb-4">Composition Breakdown</span>
+                                    <div className="flex flex-col max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {selectedGuestGroup.breakdown.map((b: any, i: number) => (
+                                            <div key={i} className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0 group animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: `${i * 100}ms` }}>
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-indigo-400 transition-colors"></div>
+                                                    <span className="text-slate-600 text-[13px] font-semibold">{sizeLabel(b.group_size)}</span>
+                                                </div>
+                                                <span className="text-slate-800 text-[13px] font-black">{b.token_count}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
