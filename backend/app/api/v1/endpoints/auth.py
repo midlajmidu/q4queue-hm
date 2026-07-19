@@ -140,7 +140,7 @@ async def change_first_password(
         org_res = await db.execute(select(Organization).where(Organization.id == current_user.org_id))
         org = org_res.scalar_one_or_none()
         if org:
-            org_slug, org_name, org_logo_url = org.slug, org.name, org.logo_url
+            org_slug, org_name, org_logo_url = org.slug, org.name, getattr(org, 'logo_url', None)
     elif current_user.parent_organization_id:
         parent_org_res = await db.execute(select(ParentOrganization).where(ParentOrganization.id == current_user.parent_organization_id))
         parent_org = parent_org_res.scalar_one_or_none()
