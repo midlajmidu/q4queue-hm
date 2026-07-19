@@ -61,9 +61,33 @@ export default function AnalyticsPage() {
         return <UsersRound size={14} color={getColorForSize(size)} />;
     };
 
+    const timeToSeconds = (timeStr: string | null) => {
+        if (!timeStr || timeStr === "—" || timeStr === "-") return 0;
+        if (timeStr.includes('m') || timeStr.includes('s') || timeStr.includes('h')) {
+            let secs = 0;
+            const hMatch = timeStr.match(/(\d+)h/);
+            const mMatch = timeStr.match(/(\d+)m/);
+            const sMatch = timeStr.match(/(\d+)s/);
+            if (hMatch) secs += parseInt(hMatch[1]) * 3600;
+            if (mMatch) secs += parseInt(mMatch[1]) * 60;
+            if (sMatch) secs += parseInt(sMatch[1]);
+            return secs;
+        }
+        const parts = timeStr.split(':').map(Number);
+        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        if (parts.length === 2) return parts[0] * 60 + parts[1];
+        return 0;
+    };
+
     const humanTime = (timeStr: string | null) => {
-        if (!timeStr || timeStr === "0m") return "—";
-        return timeStr; 
+        if (!timeStr || timeStr === "—" || timeStr === "-") return "—";
+        const secs = timeToSeconds(timeStr);
+        if (secs === 0 && !timeStr.includes("0")) return "—";
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        const s = secs % 60;
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m ${s}s`;
     };
 
     let paddedPax: any[] = [];
@@ -118,13 +142,7 @@ export default function AnalyticsPage() {
         }
     }
 
-    const timeToSeconds = (timeStr: string | null) => {
-        if (!timeStr || timeStr === "0m") return 0;
-        const parts = timeStr.split(':').map(Number);
-        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-        if (parts.length === 2) return parts[0] * 60 + parts[1];
-        return 0;
-    };
+
 
     const maxWaitSeconds = Math.max(...paddedPax.map(p => timeToSeconds(p.avg_wait_time)), 1);
     const maxPlaySeconds = Math.max(...paddedPax.map(p => timeToSeconds(p.avg_service_time)), 1);
@@ -344,14 +362,14 @@ export default function AnalyticsPage() {
                                 <Clock size={14} className="text-slate-400" />
                                 <span className="text-xs font-semibold text-slate-500">Wait Time</span>
                             </div>
-                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{data.time_metrics.avg_wait_time}</span>
+                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{humanTime(data.time_metrics.avg_wait_time)}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Average time staff spends serving each customer.">
                                 <Zap size={14} className="text-amber-500/80" />
                                 <span className="text-xs font-semibold text-slate-500">Service Time</span>
                             </div>
-                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{data.time_metrics.avg_service_time}</span>
+                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{humanTime(data.time_metrics.avg_service_time)}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Percentage of queued customers successfully served.">
@@ -793,7 +811,7 @@ export default function AnalyticsPage() {
                                                 <td className="py-4 px-6 text-slate-500 font-medium">{item.branch}</td>
                                                 <td className="py-4 px-6 text-right font-bold text-slate-700">{item.customers_served}</td>
                                                 <td className="py-4 px-6 text-right font-semibold text-slate-500">
-                                                    <span className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md text-xs">{item.avg_wait_time}</span>
+                                                    <span className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md text-xs">{humanTime(item.avg_wait_time)}</span>
                                                 </td>
                                             </tr>
                                         ))}
@@ -868,7 +886,7 @@ export default function AnalyticsPage() {
                                                 <td className="py-4 px-6 text-slate-500 font-medium">{item.branch}</td>
                                                 <td className="py-4 px-6 text-right font-bold text-emerald-600">{item.customers_served}</td>
                                                 <td className="py-4 px-6 text-right font-semibold text-slate-600">
-                                                    <span className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md text-xs">{item.avg_service_time}</span>
+                                                    <span className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md text-xs">{humanTime(item.avg_service_time)}</span>
                                                 </td>
                                             </tr>
                                         ))}
@@ -930,6 +948,10 @@ export default function AnalyticsPage() {
                                     <YAxis yAxisId="right" orientation="right" tick={{fontSize: 10, fill: '#818cf8'}} axisLine={false} tickLine={false} />
                                     <RechartsTooltip 
                                         contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        formatter={(value, name) => {
+                                            if (name === "Avg Wait (min)") return [`${value} min`, name];
+                                            return [value, name];
+                                        }}
                                     />
                                     <Area yAxisId="left" type="monotone" dataKey="customers_arrived" name="Arrived" stroke="#f43f5e" fillOpacity={1} fill="url(#colorArrived)" />
                                     <Area yAxisId="left" type="monotone" dataKey="customers_served" name="Served" stroke="#10b981" fillOpacity={0.1} fill="#10b981" />

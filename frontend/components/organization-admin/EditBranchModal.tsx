@@ -95,7 +95,7 @@ export default function EditBranchModal({ isOpen, onClose, onUpdated, branch }: 
             setShowDeleteConfirm(true);
             return;
         }
-        
+
         setIsDeleting(true);
         try {
             await api.deleteOrganization(branch.id);
@@ -180,7 +180,7 @@ export default function EditBranchModal({ isOpen, onClose, onUpdated, branch }: 
                                     />
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone Number (For WhatsApp Updates)</label>
                                 <div className="flex rounded-xl shadow-sm border border-slate-200 bg-slate-50 overflow-hidden focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500 transition-all duration-200">
@@ -221,117 +221,115 @@ export default function EditBranchModal({ isOpen, onClose, onUpdated, branch }: 
                             <div className="space-y-4">
                                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2">
                                     <span className="w-6 h-px bg-slate-200"></span>
-                                Configuration
-                                <span className="flex-1 h-px bg-slate-200"></span>
-                            </h3>
+                                    Configuration
+                                    <span className="flex-1 h-px bg-slate-200"></span>
+                                </h3>
 
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Branch Status</label>
-                                    <div className="flex items-center justify-between bg-white border border-slate-200 px-4 py-3.5 rounded-xl shadow-sm">
-                                        <div className="flex flex-col">
-                                            <span className={`text-sm font-bold ${formData.is_active ? 'text-slate-900' : 'text-slate-500'}`}>
-                                                {formData.is_active ? 'Active' : 'Inactive'}
-                                            </span>
-                                            <span className="text-xs text-slate-500 mt-0.5">
-                                                {formData.is_active ? 'Visible to users' : 'Hidden from users'}
-                                            </span>
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Branch Status</label>
+                                        <div className="flex items-center justify-between bg-white border border-slate-200 px-4 py-3.5 rounded-xl shadow-sm">
+                                            <div className="flex flex-col">
+                                                <span className={`text-sm font-bold ${formData.is_active ? 'text-slate-900' : 'text-slate-500'}`}>
+                                                    {formData.is_active ? 'Active' : 'Inactive'}
+                                                </span>
+                                                <span className="text-xs text-slate-500 mt-0.5">
+                                                    {formData.is_active ? 'Visible to users' : 'Hidden from users'}
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, is_active: !prev.is_active }))}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-4 focus:ring-indigo-500/20 ${formData.is_active ? 'bg-indigo-600' : 'bg-slate-300'
+                                                    }`}
+                                            >
+                                                <span
+                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_active ? 'translate-x-6' : 'translate-x-1'
+                                                        } shadow-sm`}
+                                                />
+                                            </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, is_active: !prev.is_active }))}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-4 focus:ring-indigo-500/20 ${
-                                                formData.is_active ? 'bg-indigo-600' : 'bg-slate-300'
-                                            }`}
-                                        >
-                                            <span
-                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                    formData.is_active ? 'translate-x-6' : 'translate-x-1'
-                                                } shadow-sm`}
-                                            />
-                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Danger Zone */}
-                        <div className="pt-6 mt-6 border-t border-slate-200">
-                            <h3 className="text-sm font-bold text-red-600 mb-4 flex items-center gap-2">
-                                <AlertCircle size={16} />
-                                Danger Zone
-                            </h3>
-                            <div className="bg-white border border-red-200 rounded-xl overflow-hidden shadow-sm">
-                                <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                    <div>
-                                        <h4 className="text-sm font-bold text-slate-900">Delete Branch</h4>
-                                        <p className="text-sm text-slate-500 mt-0.5">
-                                            Permanently remove this branch and all its data. This action cannot be undone.
-                                        </p>
+                            {/* Danger Zone */}
+                            <div className="pt-6 mt-6 border-t border-slate-200">
+                                <h3 className="text-sm font-bold text-red-600 mb-4 flex items-center gap-2">
+                                    <AlertCircle size={16} />
+                                    Danger Zone
+                                </h3>
+                                <div className="bg-white border border-red-200 rounded-xl overflow-hidden shadow-sm">
+                                    <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div>
+                                            <h4 className="text-sm font-bold text-slate-900">Delete Branch</h4>
+                                            <p className="text-sm text-slate-500 mt-0.5">
+                                                Permanently remove this branch and all its data. This action cannot be undone.
+                                            </p>
+                                        </div>
+                                        {!showDeleteConfirm && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowDeleteConfirm(true)}
+                                                className="px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap bg-red-50 text-red-700 hover:bg-red-100 border border-transparent"
+                                            >
+                                                Delete Branch
+                                            </button>
+                                        )}
                                     </div>
-                                    {!showDeleteConfirm && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowDeleteConfirm(true)}
-                                            className="px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap bg-red-50 text-red-700 hover:bg-red-100 border border-transparent"
-                                        >
-                                            Delete Branch
-                                        </button>
+
+                                    {showDeleteConfirm && (
+                                        <div className="p-4 bg-red-50/80 border-t border-red-100">
+                                            <div className="flex items-start gap-3 mb-4">
+                                                <div className="p-2 bg-red-100 text-red-600 rounded-lg shrink-0">
+                                                    <AlertCircle size={18} />
+                                                </div>
+                                                <div>
+                                                    <h5 className="text-sm font-bold text-red-900">Are you absolutely sure?</h5>
+                                                    <p className="text-sm text-red-700 mt-1">
+                                                        This action cannot be undone. This will permanently delete the <strong>{branch.name}</strong> branch and remove all associated data.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-white p-3 rounded-lg border border-red-100 shadow-sm">
+                                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                                    Please type <span className="font-mono font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 text-slate-900">{branch.name}</span> to confirm.
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={deleteConfirmationName}
+                                                    onChange={(e) => setDeleteConfirmationName(e.target.value)}
+                                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all mb-4"
+                                                    placeholder={branch.name}
+                                                />
+                                                <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end mt-4">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setShowDeleteConfirm(false);
+                                                            setDeleteConfirmationName("");
+                                                        }}
+                                                        className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleDelete}
+                                                        disabled={isDeleting || deleteConfirmationName !== branch.name}
+                                                        className="w-full sm:w-auto px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                                    >
+                                                        {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                                        Permanently Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
-                                
-                                {showDeleteConfirm && (
-                                    <div className="p-4 bg-red-50/80 border-t border-red-100">
-                                        <div className="flex items-start gap-3 mb-4">
-                                            <div className="p-2 bg-red-100 text-red-600 rounded-lg shrink-0">
-                                                <AlertCircle size={18} />
-                                            </div>
-                                            <div>
-                                                <h5 className="text-sm font-bold text-red-900">Are you absolutely sure?</h5>
-                                                <p className="text-sm text-red-700 mt-1">
-                                                    This action cannot be undone. This will permanently delete the <strong>{branch.name}</strong> branch and remove all associated data.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="bg-white p-3 rounded-lg border border-red-100 shadow-sm">
-                                            <label className="block text-sm font-medium text-slate-700 mb-2">
-                                                Please type <span className="font-mono font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 text-slate-900">{branch.name}</span> to confirm.
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={deleteConfirmationName}
-                                                onChange={(e) => setDeleteConfirmationName(e.target.value)}
-                                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all mb-4"
-                                                placeholder={branch.name}
-                                            />
-                                            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end mt-4">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setShowDeleteConfirm(false);
-                                                        setDeleteConfirmationName("");
-                                                    }}
-                                                    className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleDelete}
-                                                    disabled={isDeleting || deleteConfirmationName !== branch.name}
-                                                    className="w-full sm:w-auto px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                                                >
-                                                    {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                                                    Permanently Delete
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
-                        </div>
-                        
+
                         </div>
                     </form>
                 </div>

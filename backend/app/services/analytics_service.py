@@ -1016,8 +1016,16 @@ async def get_cross_branch_csv_data(
         elif token.removed_by:
             removed_by_label = "Staff"
 
+        # Convert timestamps to local org timezone
+        created_local = token.created_at.astimezone(tz) if token.created_at else None
+        served_local = token.served_at.astimezone(tz) if token.served_at else None
+        completed_local = token.completed_at.astimezone(tz) if token.completed_at else None
+        skipped_local = token.skipped_at.astimezone(tz) if token.skipped_at else None
+        recalled_local = token.recalled_at.astimezone(tz) if token.recalled_at else None
+        deleted_local = token.deleted_at.astimezone(tz) if token.deleted_at else None
+
         writer.writerow([
-            token.created_at.strftime("%Y-%m-%d"),
+            created_local.strftime("%Y-%m-%d") if created_local else "",
             b_name or "Unknown",
             token.token_number,
             q_name or "Unknown",
@@ -1026,12 +1034,12 @@ async def get_cross_branch_csv_data(
             token.customer_age if token.customer_age else "",
             str(token.pax_count) if hasattr(token, 'pax_count') else "1",
             token.status.value,
-            token.created_at.isoformat(),
-            token.served_at.isoformat() if token.served_at else "",
-            token.completed_at.isoformat() if token.completed_at else "",
-            token.skipped_at.isoformat() if token.skipped_at else "",
-            token.recalled_at.isoformat() if token.recalled_at else "",
-            token.deleted_at.isoformat() if token.deleted_at else "",
+            created_local.isoformat() if created_local else "",
+            served_local.isoformat() if served_local else "",
+            completed_local.isoformat() if completed_local else "",
+            skipped_local.isoformat() if skipped_local else "",
+            recalled_local.isoformat() if recalled_local else "",
+            deleted_local.isoformat() if deleted_local else "",
             wait_time_mins,
             serve_time_mins,
             served_by,
