@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import Link from "next/link";
 import { getToken } from "@/lib/auth";
+import ConfirmModal from "@/components/ConfirmModal";
 
 // Import all modular components
 import BranchExecutiveSummary from "@/components/organization-admin/branch-details/BranchExecutiveSummary";
@@ -30,6 +31,7 @@ export default function BranchDetailsPage() {
 
     const [branch, setBranch] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
     const loadBranchHeader = useCallback(async () => {
         try {
@@ -48,14 +50,60 @@ export default function BranchDetailsPage() {
         loadBranchHeader();
     }, [loadBranchHeader]);
 
-    const handleToggleStatus = async () => {
+    const handleToggleStatus = () => {
+        setIsConfirmModalOpen(true);
+    };
+
+    const confirmToggle = async () => {
         if (!branch) return;
+        setIsConfirmModalOpen(false);
+
+        const action = branch.is_active ? 'deactivate' : 'activate';
+        const loadingId = toast.loading(`Initiating branch ${action}...`);
+
         try {
             await api.updateBranchStatus(branchId, !branch.is_active);
-            toast.success(`Branch ${!branch.is_active ? 'activated' : 'deactivated'} successfully`);
+            toast.dismiss(loadingId);
+            
+            if (branch.is_active) {
+                toast.custom((t) => (
+                    <div className="flex flex-row items-start gap-4 p-4 bg-white border border-red-200 rounded-xl shadow-lg shadow-red-900/5 w-full min-w-[340px] max-w-[400px] pointer-events-auto">
+                        <div className="flex-shrink-0 p-2 bg-red-50 rounded-full">
+                            <ShieldAlert className="w-6 h-6 text-red-600" />
+                        </div>
+                        <div className="flex-1 pt-1">
+                            <p className="text-sm font-semibold text-slate-900">Operations Suspended</p>
+                            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                                <strong className="font-medium text-slate-700">{branch.name}</strong> has been deactivated successfully. All access has been immediately revoked.
+                            </p>
+                        </div>
+                        <button onClick={() => toast.dismiss(t)} className="flex-shrink-0 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                ), { duration: 5000 });
+            } else {
+                toast.custom((t) => (
+                    <div className="flex flex-row items-start gap-4 p-4 bg-white border border-emerald-200 rounded-xl shadow-lg shadow-emerald-900/5 w-full min-w-[340px] max-w-[400px] pointer-events-auto">
+                        <div className="flex-shrink-0 p-2 bg-emerald-50 rounded-full">
+                            <ShieldCheck className="w-6 h-6 text-emerald-600" />
+                        </div>
+                        <div className="flex-1 pt-1">
+                            <p className="text-sm font-semibold text-slate-900">Operations Resumed</p>
+                            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                                <strong className="font-medium text-slate-700">{branch.name}</strong> is now live and fully accessible by staff.
+                            </p>
+                        </div>
+                        <button onClick={() => toast.dismiss(t)} className="flex-shrink-0 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                ), { duration: 5000 });
+            }
+            
             loadBranchHeader();
         } catch (error: any) {
-            toast.error(error.message || "Failed to update status");
+            toast.error(error.message || "Failed to update status", { id: loadingId });
         }
     };
 
@@ -157,6 +205,18 @@ export default function BranchDetailsPage() {
                     <BranchActivityTimeline branchId={branchId} />
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={isConfirmModalOpen}
+                title={branch.is_active ? "Suspend Operations" : "Resume Operations"}
+                message={branch.is_active 
+                    ? `Are you sure you want to suspend operations for ${branch.name}? Staff and admins will lose access to the dashboard until it is reactivated.`
+                    : `Are you sure you want to resume operations for ${branch.name}? Staff and admins will regain access to their dashboard.`}
+                confirmLabel={branch.is_active ? "Suspend Operations" : "Resume Operations"}
+                confirmVariant={branch.is_active ? "danger" : "primary"}
+                onConfirm={confirmToggle}
+                onCancel={() => setIsConfirmModalOpen(false)}
+            />
         </div>
         </div>
     );

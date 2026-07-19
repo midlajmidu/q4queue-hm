@@ -30,60 +30,57 @@ export default function BranchContactCard({ branchId }: { branchId: string }) {
     if (!data) return null;
 
     return (
-        <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm flex flex-col relative overflow-hidden group transition-shadow hover:shadow-md hover:shadow-slate-200/50">
-            <div className="px-5 py-4 border-b border-slate-100/80 bg-slate-50/50 flex justify-between items-center">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-6 flex flex-col justify-between group hover:border-slate-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all">
+            <div className="flex justify-between items-start mb-6">
+                <div className="text-sm font-medium text-slate-500">Contact Details</div>
                 <div className="flex items-center gap-2">
-                    <MapPin size={16} strokeWidth={2} className="text-slate-400" />
-                    <h3 className="font-semibold text-slate-900 text-sm">Contact Details</h3>
+                    {!isEditing && (
+                        <button onClick={() => setIsEditing(true)} className="p-2 bg-white rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+                            <Pencil size={14} strokeWidth={2} />
+                        </button>
+                    )}
+                    <div className="p-2 bg-slate-50 rounded-md text-slate-400 border border-slate-100 group-hover:bg-slate-100 group-hover:text-slate-600 transition-colors">
+                        <MapPin size={16} strokeWidth={2} />
+                    </div>
                 </div>
-                {!isEditing && (
-                    <button 
-                        onClick={() => setIsEditing(true)}
-                        className="text-slate-400 hover:text-slate-900 transition-colors"
-                        title="Edit Contact Details"
-                    >
-                        <Pencil size={14} strokeWidth={2} />
-                    </button>
-                )}
             </div>
-            <div className="p-5 flex flex-col justify-center">
+            
+            <div className="flex flex-col mt-2">
                 {isEditing ? (
-                    <div className="space-y-4">
-                        <div className="flex gap-3">
-                            <input 
-                                type="text"
-                                className="flex-1 px-3 py-1.5 text-sm rounded border border-slate-200 focus:outline-none focus:border-slate-400"
-                                placeholder="Phone"
-                                value={data.contact_phone || ''}
-                                onChange={(e) => setData({...data, contact_phone: e.target.value})}
-                            />
-                        </div>
+                    <div className="space-y-3">
+                        <input 
+                            type="text"
+                            className="w-full px-3 py-2 text-[13px] font-medium text-slate-900 bg-white rounded-md border border-slate-200 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-shadow placeholder:text-slate-400"
+                            placeholder="Phone number"
+                            value={data.contact_phone || ''}
+                            onChange={(e) => setData({...data, contact_phone: e.target.value})}
+                        />
                         <textarea 
-                            className="w-full px-3 py-1.5 text-sm rounded border border-slate-200 focus:outline-none focus:border-slate-400 resize-none h-20"
-                            placeholder="Address"
+                            className="w-full px-3 py-2 text-[13px] font-medium text-slate-900 bg-white rounded-md border border-slate-200 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-shadow resize-none h-20 placeholder:text-slate-400"
+                            placeholder="Full address"
                             value={data.address || ''}
                             onChange={(e) => setData({...data, address: e.target.value})}
                         />
-                        <div className="flex justify-end gap-2 pt-2">
-                            <button onClick={() => { setIsEditing(false); loadData(); }} className="px-3 py-1 text-xs font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded">Cancel</button>
-                            <button onClick={handleSave} className="px-3 py-1 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded">Save</button>
+                        <div className="flex justify-end gap-2 pt-1">
+                            <button onClick={() => { setIsEditing(false); loadData(); }} className="px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors">Cancel</button>
+                            <button onClick={handleSave} className="px-3 py-1.5 text-[12px] font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-md shadow-sm transition-colors">Save</button>
                         </div>
                     </div>
                 ) : (
-                    <dl className="space-y-4">
-                        <div className="flex justify-between items-start gap-4">
-                            <dt className="text-[13px] font-medium text-slate-500 w-16 shrink-0">Phone</dt>
-                            <dd className="text-[13px] font-medium text-slate-900 text-right truncate">
-                                {data.contact_phone || <span className="text-slate-400 italic font-normal">Not provided</span>}
-                            </dd>
+                    <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Phone</span>
+                            <span className="text-[14px] font-semibold text-slate-900">
+                                {data.contact_phone || <span className="text-slate-400 italic font-medium">Not provided</span>}
+                            </span>
                         </div>
-                        <div className="flex justify-between items-start gap-4">
-                            <dt className="text-[13px] font-medium text-slate-500 w-16 shrink-0">Address</dt>
-                            <dd className="text-[13px] font-medium text-slate-900 text-right max-h-20 overflow-y-auto">
-                                {data.address || <span className="text-slate-400 italic font-normal">Not provided</span>}
-                            </dd>
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Address</span>
+                            <span className="text-[14px] font-semibold text-slate-900 leading-snug">
+                                {data.address || <span className="text-slate-400 italic font-medium">Not provided</span>}
+                            </span>
                         </div>
-                    </dl>
+                    </div>
                 )}
             </div>
         </div>

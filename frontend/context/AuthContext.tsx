@@ -217,7 +217,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     if (err.status === 429) {
                         setError(err.detail);
                     } else if (err.status === 401) {
-                        if (credentials.login_type === "org_admin") {
+                        if (err.detail && err.detail !== "Invalid credentials") {
+                            setError(err.detail);
+                        } else if (credentials.login_type === "org_admin") {
                             setError("Invalid email or password.");
                         } else {
                             setError("Invalid email, password, or organization.");

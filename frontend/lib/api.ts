@@ -126,7 +126,11 @@ export class ApiError extends Error {
 // ── User-friendly error messages ─────────────────────────────────
 function friendlyMessage(status: number, rawDetail: string): string {
     switch (status) {
-        case 401: return "Session expired. Please sign in again.";
+        case 401: 
+            if (rawDetail === "Invalid credentials" || rawDetail.includes("deactivated")) {
+                return rawDetail;
+            }
+            return "Session expired. Please sign in again.";
         case 403: return "Access denied. You don't have permission for this action.";
         case 404: return "The requested resource was not found.";
         case 409: return rawDetail || "This action conflicts with the current state.";

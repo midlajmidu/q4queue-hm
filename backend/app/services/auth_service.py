@@ -56,7 +56,10 @@ async def authenticate_user(
         )
         user: User | None = user_result.scalar_one_or_none()
 
-        if user and user.is_active and verify_password(plain_password, user.password_hash):
+        if user and verify_password(plain_password, user.password_hash):
+            if not user.is_active:
+                raise ValueError("Your account has been deactivated. Please contact your administrator.")
+            
             from app.models.parent_organization import ParentOrganization
             parent_org_result = await db.execute(
                 select(ParentOrganization).where(ParentOrganization.id == user.parent_organization_id)
@@ -100,11 +103,11 @@ async def authenticate_user(
 
     if not org.is_active:
         logger.warning("Login failed: org inactive | slug=%s", org_slug)
-        raise ValueError(_INVALID_CREDENTIALS)
+        raise ValueError("Your organization has been deactivated. Please contact your administrator.")
 
     if org.parent_organization and not org.parent_organization.is_active:
         logger.warning("Login failed: parent org inactive | slug=%s", org_slug)
-        raise ValueError(_INVALID_CREDENTIALS)
+        raise ValueError("Your organization has been deactivated. Please contact your administrator.")
 
     # ── 3. Find user scoped to THIS org only ───────────────────────
     user_result = await db.execute(
@@ -127,7 +130,7 @@ async def authenticate_user(
     # ── 5. Active check ────────────────────────────────────────────
     if not user.is_active:
         logger.warning("Login failed: user inactive | email=%s org=%s", email, org_slug)
-        raise ValueError(_INVALID_CREDENTIALS)
+        raise ValueError("Your account has been deactivated. Please contact your administrator.")
 
     # ── 6. Issue JWT ───────────────────────────────────────────────
     token = create_access_token(
@@ -181,7 +184,7 @@ async def authenticate_super_admin(
 
     if not user.is_active:
         logger.warning("Super-admin login: user inactive | email=%s", email)
-        raise ValueError(_INVALID_CREDENTIALS)
+        raise ValueError("Your account has been deactivated. Please contact your administrator.")
 
     # Note: org_id is None for super_admin
     token = create_access_token(
