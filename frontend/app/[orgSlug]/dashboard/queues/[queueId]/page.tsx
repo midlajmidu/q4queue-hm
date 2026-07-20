@@ -2010,6 +2010,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                     onConfirm={() => handleConfirmAddCustomer(true)}
                     onCancel={() => handleConfirmAddCustomer(false)}
                     isLoading={actionLoading === "add"}
+                    autoFocusConfirm={true}
                 />
                 {showAddForm && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setShowAddForm(false); }}>
@@ -2215,21 +2216,21 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
     }
 
     return (
-        <div 
+        <div
             className="group border-b border-slate-100 dark:border-white/5 px-4 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors bg-transparent cursor-pointer"
-            onClick={() => onView?.({ 
+            onClick={() => onView?.({
                 id: (t as WaitingToken).id,
-                token_number: t.token_number, 
-                prefix: prefix || "", 
-                customer_name: t.customer_name, 
-                customer_phone: t.customer_phone, 
-                pax_count: t.pax_count, 
-                status: t.status, 
-                created_at: t.created_at, 
-                served_at: (t as RecentToken).served_at, 
-                completed_at: (t as RecentToken).completed_at, 
-                entry_type: t.entry_type || "qr", 
-                queue_name: queueName, 
+                token_number: t.token_number,
+                prefix: prefix || "",
+                customer_name: t.customer_name,
+                customer_phone: t.customer_phone,
+                pax_count: t.pax_count,
+                status: t.status,
+                created_at: t.created_at,
+                served_at: (t as RecentToken).served_at,
+                completed_at: (t as RecentToken).completed_at,
+                entry_type: t.entry_type || "qr",
+                queue_name: queueName,
                 called_via_invite: t.called_via_invite,
                 assigned_line: t.assigned_line,
                 skipped_at: (t as WaitingToken).skipped_at,
@@ -2242,7 +2243,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                 <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-[12px] flex-shrink-0" style={{ backgroundColor: `hsl(${t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 90%)`, color: `hsl(${t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 30%)` }}>
                     {t.customer_name ? t.customer_name.substring(0, 2).toUpperCase() : "WA"}
                 </div>
-                
+
                 <div className="flex flex-col min-w-0 gap-0.5">
                     <div className="flex items-center gap-2">
                         <span className="font-bold text-[14px] text-slate-800 dark:text-slate-100 tracking-tight">
@@ -2271,7 +2272,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                     </div>
                 </div>
             </div>
-            
+
             <div className="flex items-center gap-2 shrink-0">
                 {extraActions}
             </div>

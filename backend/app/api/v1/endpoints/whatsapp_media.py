@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 
 from app.db.deps import get_db
 from app.models.token import Token
@@ -26,7 +26,9 @@ async def get_whatsapp_ticket_image(
     """
     from app.models.queue import Queue
     
-    stmt = select(Token).where(Token.id == token_id)
+    stmt = select(Token).where(
+        or_(Token.id == token_id, Token.tracking_id == token_id)
+    )
     result = await db.execute(stmt)
     token = result.scalar_one_or_none()
     

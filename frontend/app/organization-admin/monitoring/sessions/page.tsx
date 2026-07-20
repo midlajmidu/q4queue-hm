@@ -27,7 +27,7 @@ export default function SessionsMonitoringPage() {
                     setLoading(false);
                 });
         };
-        
+
         loadData();
         const interval = setInterval(loadData, 15000); // 15s polling
         return () => clearInterval(interval);
@@ -37,7 +37,7 @@ export default function SessionsMonitoringPage() {
         return sessions.map((s, idx) => {
             const loadStatus = s.load_status || "Normal";
             const loadPercentage = typeof s.load_percentage === 'number' ? s.load_percentage : 0;
-            
+
             return {
                 ...s,
                 originalIdx: idx,
@@ -97,7 +97,7 @@ export default function SessionsMonitoringPage() {
     };
 
     const SortHeader = ({ field, label, align = 'left' }: { field: string, label: string, align?: 'left' | 'center' | 'right' }) => (
-        <th 
+        <th
             className={`px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors group select-none ${align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'}`}
             onClick={() => handleSort(field)}
         >
@@ -170,9 +170,8 @@ export default function SessionsMonitoringPage() {
                                             <h4 className="font-bold text-slate-900 text-sm leading-snug">{s.branch}</h4>
                                             <p className="text-xs text-slate-500 font-medium mt-0.5">{s.session_name}</p>
                                         </div>
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
-                                            s.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
-                                        }`}>
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${s.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
+                                            }`}>
                                             {s.status === 'Active' && (
                                                 <span className="relative flex h-1.5 w-1.5">
                                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -230,7 +229,7 @@ export default function SessionsMonitoringPage() {
                             ) : (
                                 sortedSessions.map((s: any) => {
                                     const idx = s.originalIdx;
-                                    
+
                                     return (
                                         <tr key={idx} className="hover:bg-slate-50 transition-colors">
                                             <td className="px-4 py-2.5">
@@ -238,9 +237,8 @@ export default function SessionsMonitoringPage() {
                                             </td>
                                             <td className="px-4 py-2.5 font-medium text-slate-700">{s.session_name}</td>
                                             <td className="px-4 py-2.5">
-                                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                                    s.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
-                                                }`}>
+                                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${s.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
+                                                    }`}>
                                                     {s.status === 'Active' && (
                                                         <span className="relative flex h-1.5 w-1.5">
                                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -259,9 +257,9 @@ export default function SessionsMonitoringPage() {
                                                     Branch Details
                                                 </a>
                                             </td>
-                                    </tr>
-                                );
-                            })
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

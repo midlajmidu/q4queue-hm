@@ -179,12 +179,12 @@ export default function JoinQueuePage({ params }: PageProps) {
     const [customerPhone, setCustomerPhone] = useState("");
     const [showCompanions, setShowCompanions] = useState<boolean>(false);
     const [companionInput, setCompanionInput] = useState<string>("1");
-    const paxCount = Math.max(1, (parseInt(companionInput) || 0) + 1);
+    const paxCount = parseInt(companionInput) || 0;
 
     // Derived values
     const isNameValid = /^[A-Za-z\s'-]{2,50}$/.test(customerName.trim());
     const isPhoneValid = /^\d{10}$/.test(customerPhone);
-    const isFormValid = isNameValid && isPhoneValid;
+    const isFormValid = isNameValid && isPhoneValid && companionInput.trim() !== "";
 
     // Called after WhatsApp consent answer
     const doJoin = useCallback(async (sendWhatsApp: boolean) => {
@@ -535,55 +535,27 @@ export default function JoinQueuePage({ params }: PageProps) {
                                     </div>
 
                                     {/* Companions */}
-                                    <div className="pt-2">
-                                        {!showCompanions ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowCompanions(true)}
+                                    <div>
+                                        <label htmlFor="customer-pax" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                            No of Pax <span className="text-emerald-500 ml-0.5">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                id="customer-pax"
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                value={companionInput}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                                    setCompanionInput(val);
+                                                }}
+                                                placeholder="0"
                                                 disabled={isJoining || queueClosed}
-                                                className="w-full group flex items-center justify-center gap-3 py-3.5 px-4 bg-slate-50 border border-slate-200/60 rounded-xl sm:rounded-2xl text-[13px] sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300 disabled:opacity-50 shadow-[0_2px_10px_rgb(0,0,0,0.01)]"
-                                            >
-                                                <div className="w-6 h-6 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-slate-300 transition-transform">
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
-                                                </div>
-                                                No of pax <span className="text-slate-400 font-normal">(optional)</span>
-                                            </button>
-                                        ) : (
-                                            <div className="flex items-center justify-between bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all duration-300">
-                                                <div className="flex items-center gap-3.5 pl-1.5 sm:pl-2">
-                                                    <div className="relative flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-slate-50 border border-slate-200/50 text-slate-600 shadow-sm">
-                                                        <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                                        </svg>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-[14px] sm:text-[15px] font-bold text-slate-900 tracking-tight leading-none mb-1">
-                                                            {paxCount - 1} Pax
-                                                        </div>
-                                                        <div className="text-[11px] sm:text-[12px] font-medium text-slate-500 leading-none">
-                                                            Joining with you
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg sm:rounded-xl p-1.5 border border-slate-100">
-                                                    <input
-                                                        type="text"
-                                                        inputMode="numeric"
-                                                        pattern="[0-9]*"
-                                                        value={companionInput}
-                                                        onChange={(e) => {
-                                                            const val = e.target.value.replace(/[^0-9]/g, '');
-                                                            setCompanionInput(val);
-                                                        }}
-                                                        placeholder="0"
-                                                        disabled={isJoining || queueClosed}
-                                                        className="w-16 sm:w-20 h-9 sm:h-10 mx-1 text-center text-[15px] sm:text-[16px] font-bold text-slate-800 tabular-nums bg-white border border-slate-200/80 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 p-0 [-moz-appearance:_textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none transition-shadow"
-                                                        min="0"
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
+                                                className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium focus:outline-none focus:ring-4 focus:ring-slate-100 focus:border-slate-800 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] disabled:opacity-50"
+                                                min="0"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 

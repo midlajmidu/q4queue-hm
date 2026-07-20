@@ -44,7 +44,7 @@ async def get_overview_metrics(
                 dt = dt.replace(tzinfo=tz)
             else:
                 dt = dt.astimezone(tz)
-            conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
+            conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")))
         except Exception:
             pass
             
@@ -59,7 +59,7 @@ async def get_overview_metrics(
                 ed = ed.astimezone(tz)
             if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
                 ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
-            conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
+            conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")))
         except Exception:
             pass
     
@@ -452,7 +452,7 @@ async def get_analytics_csv_data(
                 dt = dt.replace(tzinfo=tz)
             else:
                 dt = dt.astimezone(tz)
-            conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
+            conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")))
         except Exception:
             pass
             
@@ -467,7 +467,7 @@ async def get_analytics_csv_data(
                 ed = ed.astimezone(tz)
             if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
                 ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
-            conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
+            conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")))
         except Exception:
             pass
 
@@ -618,7 +618,7 @@ async def get_cross_branch_analytics(
             dt = parse_date(start_date)
             if dt.tzinfo is None: dt = dt.replace(tzinfo=tz)
             else: dt = dt.astimezone(tz)
-            token_conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
+            token_conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")))
         except: pass
     if end_date:
         try:
@@ -627,7 +627,7 @@ async def get_cross_branch_analytics(
             else: ed = ed.astimezone(tz)
             if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
                 ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
-            token_conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
+            token_conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")))
         except: pass
 
     # 3. Base Query for Customer & Time Metrics
@@ -942,7 +942,7 @@ async def get_cross_branch_excel_data(
             dt = parse_date(start_date)
             if dt.tzinfo is None: dt = dt.replace(tzinfo=tz)
             else: dt = dt.astimezone(tz)
-            conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
+            conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")))
         except: pass
         
     if end_date:
@@ -952,7 +952,7 @@ async def get_cross_branch_excel_data(
             else: ed = ed.astimezone(tz)
             if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
                 ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
-            conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")).replace(tzinfo=None))
+            conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")))
         except: pass
 
     from sqlalchemy.orm import aliased

@@ -14,6 +14,7 @@ interface Props {
     isLoading?: boolean;
     requireInput?: boolean;
     requiredText?: string;
+    autoFocusConfirm?: boolean;
 }
 
 export default function ConfirmModal({
@@ -28,9 +29,11 @@ export default function ConfirmModal({
     isLoading = false,
     requireInput = false,
     requiredText = "",
+    autoFocusConfirm = false,
 }: Props) {
     const dialogRef = useRef<HTMLDivElement>(null);
     const cancelRef = useRef<HTMLButtonElement>(null);
+    const confirmRef = useRef<HTMLButtonElement>(null);
     const [inputValue, setInputValue] = useState("");
 
     // Auto-focus cancel button or input when opened
@@ -42,6 +45,8 @@ export default function ConfirmModal({
                 if (requireInput) {
                     const input = dialogRef.current?.querySelector("input");
                     input?.focus();
+                } else if (autoFocusConfirm) {
+                    confirmRef.current?.focus();
                 } else {
                     cancelRef.current?.focus();
                 }
@@ -135,6 +140,7 @@ export default function ConfirmModal({
                         {cancelLabel}
                     </button>
                     <button
+                        ref={confirmRef}
                         onClick={onConfirm}
                         disabled={isLoading || (requireInput && inputValue !== requiredText)}
                         className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${btnColor}`}

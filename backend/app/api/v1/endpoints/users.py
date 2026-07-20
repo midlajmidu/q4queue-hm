@@ -79,7 +79,7 @@ async def update_me(
         if org:
             org_slug = org.slug
             org_name = org.name
-            org_logo_url = org.logo_url
+            org_name = org.name
     elif current_user.parent_organization_id:
         parent_org_result = await db.execute(select(ParentOrganization).where(ParentOrganization.id == current_user.parent_organization_id))
         parent_org = parent_org_result.scalar_one_or_none()

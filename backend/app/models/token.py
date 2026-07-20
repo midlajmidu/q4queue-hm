@@ -113,6 +113,8 @@ class Token(Base):
     pax_count: Mapped[int] = mapped_column(Integer, default=1, server_default='1', nullable=False)
     companion_names: Mapped[list[str]] = mapped_column(JSON, nullable=False, server_default='[]')
     whatsapp_alerts_active: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
+    is_whatsapp_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default='true', nullable=False)
+
     whatsapp_window_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     called_via_invite: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
     entry_type: Mapped[str] = mapped_column(String(20), default="qr", server_default="qr", nullable=False)

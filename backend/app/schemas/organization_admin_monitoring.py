@@ -21,6 +21,8 @@ class DynamicInsights(BaseModel):
     active_sessions: int
     active_queues: int
     customers_being_served: int
+    total_visitors_today: int
+    total_served_today: int
     average_wait_time: str
     average_service_time: str
     whatsapp_success_rate: float

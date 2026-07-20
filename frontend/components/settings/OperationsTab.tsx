@@ -43,7 +43,6 @@ export function OperationsTab() {
                 name: currentSettings.name,
                 address: currentSettings.address || undefined,
                 phone_number: currentSettings.phone_number || undefined,
-                brand_color: currentSettings.brand_color || undefined,
                 auto_session_enabled: enabled,
                 auto_session_time: time || null,
                 queue_templates: currentSettings.queue_templates
@@ -81,7 +80,6 @@ export function OperationsTab() {
                 name: currentSettings.name,
                 address: currentSettings.address || undefined,
                 phone_number: currentSettings.phone_number || undefined,
-                brand_color: currentSettings.brand_color || undefined,
                 auto_session_enabled: currentSettings.auto_session_enabled,
                 auto_session_time: currentSettings.auto_session_time,
                 queue_templates: updatedTemplates
@@ -116,7 +114,6 @@ export function OperationsTab() {
                 name: currentSettings.name,
                 address: currentSettings.address || undefined,
                 phone_number: currentSettings.phone_number || undefined,
-                brand_color: currentSettings.brand_color || undefined,
                 auto_session_enabled: currentSettings.auto_session_enabled,
                 auto_session_time: currentSettings.auto_session_time,
                 queue_templates: updatedTemplates
@@ -155,7 +152,6 @@ export function OperationsTab() {
                 name: currentSettings.name,
                 address: currentSettings.address || undefined,
                 phone_number: currentSettings.phone_number || undefined,
-                brand_color: currentSettings.brand_color || undefined,
                 auto_session_enabled: currentSettings.auto_session_enabled,
                 auto_session_time: currentSettings.auto_session_time,
                 queue_templates: updatedTemplates

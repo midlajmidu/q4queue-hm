@@ -175,71 +175,51 @@ export default function OrgAdminDashboard() {
                 {/* Left Column: Live Ops & Insights (2/3 width) */}
                 <div className="lg:col-span-2 space-y-6">
                     
-                    {/* 2. Live Operations */}
+                    {/* 2. Today's Operations */}
                     <section>
                         <div className="flex items-center gap-3 mb-6">
-                            <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Live Operations</h2>
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 shadow-sm">
-                                <span className="relative flex h-1.5 w-1.5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                                </span>
-                                <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-700">Real-time</span>
+                            <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Today's Operations</h2>
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 border border-blue-100 shadow-sm">
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-blue-700">Daily Summary</span>
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {/* Active Sessions */}
+                            {/* Total Visitors Today */}
                             <div className="bg-slate-50/50 rounded-xl p-5 border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between h-full group hover:border-slate-300 transition-colors">
                                 <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-sm font-medium text-slate-600">Active Sessions</h3>
-                                    <div className="text-slate-400 group-hover:text-slate-900 transition-colors">
-                                        <Zap size={16} strokeWidth={2} />
-                                    </div>
-                                </div>
-                                <div>
-                                    <span className="text-2xl font-bold tracking-tight text-slate-900">{data.dynamic_insights.active_sessions}</span>
-                                    <div className="mt-2 flex items-center gap-2">
-                                        <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium ${
-                                            data.dynamic_insights.sessions_trend_direction === 'up' ? 'text-emerald-700 bg-emerald-50 border border-emerald-100/50' :
-                                            data.dynamic_insights.sessions_trend_direction === 'down' ? 'text-rose-700 bg-rose-50 border border-rose-100/50' :
-                                            'text-slate-600 bg-slate-100 border border-slate-200'
-                                        }`}>
-                                            <TrendingUp size={12} strokeWidth={2} className={data.dynamic_insights.sessions_trend_direction === 'down' ? 'rotate-180' : ''} />
-                                            <span>{data.dynamic_insights.sessions_trend_value}%</span>
-                                        </div>
-                                        <span className="text-[11px] text-slate-500">vs last hour</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Being Served */}
-                            <div className="bg-slate-50/50 rounded-xl p-5 border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between h-full group hover:border-slate-300 transition-colors">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-sm font-medium text-slate-600">Being Served</h3>
+                                    <h3 className="text-sm font-medium text-slate-600">Total Visitors Today</h3>
                                     <div className="text-slate-400 group-hover:text-slate-900 transition-colors">
                                         <Users size={16} strokeWidth={2} />
                                     </div>
                                 </div>
                                 <div>
-                                    <span className="text-2xl font-bold tracking-tight text-slate-900">{data.dynamic_insights.customers_being_served}</span>
+                                    <span className="text-2xl font-bold tracking-tight text-slate-900">{data.dynamic_insights.total_visitors_today}</span>
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <span className="text-[11px] text-slate-500">Total joined queue today</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Customers Served Today */}
+                            <div className="bg-slate-50/50 rounded-xl p-5 border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between h-full group hover:border-slate-300 transition-colors">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-sm font-medium text-slate-600">Customers Served</h3>
+                                    <div className="text-slate-400 group-hover:text-slate-900 transition-colors">
+                                        <UserCheck size={16} strokeWidth={2} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className="text-2xl font-bold tracking-tight text-slate-900">{data.dynamic_insights.total_served_today}</span>
                                     <div className="mt-2 flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium ${
-                                                data.dynamic_insights.serving_trend_direction === 'up' ? 'text-emerald-700 bg-emerald-50 border border-emerald-100/50' :
-                                                data.dynamic_insights.serving_trend_direction === 'down' ? 'text-rose-700 bg-rose-50 border border-rose-100/50' :
-                                                'text-slate-600 bg-slate-100 border border-slate-200'
-                                            }`}>
-                                                <TrendingUp size={12} strokeWidth={2} className={data.dynamic_insights.serving_trend_direction === 'down' ? 'rotate-180' : ''} />
-                                                <span>{data.dynamic_insights.serving_trend_value}%</span>
-                                            </div>
-                                            <span className="text-[11px] text-slate-500">vs last hour</span>
+                                            <span className="text-[11px] text-slate-500">Successfully completed today</span>
                                         </div>
                                     </div>
-                                    {/* Capacity Progress Bar */}
+                                    {/* Completion Progress Bar */}
                                     <div className="mt-3.5 w-full h-1 bg-slate-200 rounded-full overflow-hidden">
                                         <div 
                                             className="h-full bg-slate-900 rounded-full transition-all duration-1000" 
-                                            style={{ width: `${Math.min(100, (data.dynamic_insights.customers_being_served / (data.global_kpis.total_customers_waiting || 1)) * 100)}%` }}
+                                            style={{ width: `${data.dynamic_insights.total_visitors_today > 0 ? Math.min(100, (data.dynamic_insights.total_served_today / data.dynamic_insights.total_visitors_today) * 100) : 0}%` }}
                                         ></div>
                                     </div>
                                 </div>
@@ -301,83 +281,7 @@ export default function OrgAdminDashboard() {
                         </div>
                     </section>
 
-                    {/* 3. AI Insights & Communications */}
-                    <section>
-                        <SectionHeader title="System Intelligence" />
-                        <div className="flex flex-col gap-4">
-                            {/* AI Insights Card */}
-                            <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                                <div className="flex items-center gap-2 mb-5">
-                                    <div className="text-slate-900">
-                                        <Sparkles size={16} strokeWidth={2} />
-                                    </div>
-                                    <h3 className="text-sm font-semibold text-slate-900 tracking-tight">System Observations</h3>
-                                </div>
-                                <div className="space-y-3">
-                                    {data.executive_insights.top_performing_branch ? (
-                                        <div className="bg-amber-50/50 rounded-lg p-4 border border-amber-200/80 flex flex-col gap-3 shadow-[0_1px_2px_rgba(0,0,0,0.01)] transition-colors">
-                                            <div className="flex gap-3 items-start pr-4">
-                                                <div className="mt-0.5 text-amber-500 shrink-0">
-                                                    <Trophy size={16} strokeWidth={2} />
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-sm font-semibold text-slate-900 mb-1">Top Performer</h4>
-                                                    <p className="text-xs text-slate-600 leading-relaxed">
-                                                        <strong className="font-medium text-slate-900">{data.executive_insights.top_performing_branch}</strong> has successfully served <strong className="font-medium text-slate-900">{data.executive_insights.most_customers_served} customers</strong> today.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-end pt-1">
-                                                <Link href={`/organization-admin/branches/${data.executive_insights.top_performing_branch_id}`} className="text-[11px] font-medium text-amber-700 bg-white hover:bg-amber-50/80 px-3 py-1.5 rounded border border-amber-200 hover:border-amber-300 transition-colors shadow-sm">
-                                                    Open Branch View
-                                                </Link>
-                                            </div>
-                                        </div>
-                                    ) : null}
-                                    {data.executive_insights.busiest_branch ? (
-                                        <div className="bg-rose-50/50 rounded-lg p-4 border border-rose-200/80 flex flex-col gap-3 shadow-[0_1px_2px_rgba(0,0,0,0.01)] transition-colors">
-                                            <div className="flex gap-3 items-start pr-4 relative">
-                                                <div className="absolute top-0 right-0">
-                                                    <span className="relative flex h-2 w-2">
-                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                                                    </span>
-                                                </div>
-                                                <div className="mt-0.5 text-rose-500 shrink-0">
-                                                    <AlertCircle size={16} strokeWidth={2} />
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-sm font-semibold text-slate-900 mb-1">SLA Breach Risk</h4>
-                                                    <p className="text-xs text-slate-600 leading-relaxed">
-                                                        High load detected at <strong className="font-medium text-slate-900">{data.executive_insights.busiest_branch}</strong>. Queue volume is approaching maximum capacity based on current staff levels.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-end pt-1">
-                                                <Link href={`/organization-admin/branches/${data.executive_insights.busiest_branch_id}`} className="text-[11px] font-medium text-rose-700 bg-white hover:bg-rose-50/80 px-3 py-1.5 rounded border border-rose-200 hover:border-rose-300 transition-colors shadow-sm">
-                                                    Open Branch View
-                                                </Link>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="bg-emerald-50/50 rounded-lg p-4 border border-emerald-200/80 flex gap-3 items-start shadow-[0_1px_2px_rgba(0,0,0,0.01)] transition-colors">
-                                            <div className="mt-0.5 text-emerald-500 shrink-0">
-                                                <CheckCircle2 size={16} strokeWidth={2} />
-                                            </div>
-                                            <div>
-                                                <h4 className="text-sm font-semibold text-slate-900 mb-1">All Systems Nominal</h4>
-                                                <p className="text-xs text-slate-600 leading-relaxed">
-                                                    Branches are operating smoothly within expected parameters.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
 
-
-                        </div>
-                    </section>
                 </div>
 
                 {/* Right Column: Global Activity */}

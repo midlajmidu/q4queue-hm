@@ -75,7 +75,7 @@ async def get_dashboard_metrics(
         return DashboardMetricsResponse(
             organization_name=org_name,
             global_kpis=GlobalKPIs(total_branches=0, active_branches=0, inactive_branches=0, total_staff=0, total_branch_admins=0, total_customers_waiting=0, total_customers_served_today=0, org_health_score=0),
-            dynamic_insights=DynamicInsights(active_sessions=0, active_queues=0, customers_being_served=0, average_wait_time="0m", average_service_time="0m", whatsapp_success_rate=0.0),
+            dynamic_insights=DynamicInsights(active_sessions=0, active_queues=0, customers_being_served=0, total_visitors_today=0, total_served_today=0, average_wait_time="0m", average_service_time="0m", whatsapp_success_rate=0.0),
             executive_insights=ExecutiveInsights(),
             whatsapp_overview=WhatsAppOverview(messages_sent_today=0, delivered=0, failed=0, pending=0, success_rate=0.0),
             branch_health=BranchHealthOverview(healthy_branches=0, warning_branches=0, critical_branches=0),
@@ -84,7 +84,16 @@ async def get_dashboard_metrics(
             max_branches=parent_org.max_branches if parent_org else None
         )
 
-    today = datetime.now(timezone.utc).date()
+    from zoneinfo import ZoneInfo
+    tz_string = parent_org.timezone if parent_org and hasattr(parent_org, 'timezone') else "UTC"
+    try:
+        tz = ZoneInfo(tz_string)
+    except Exception:
+        tz_string = "UTC"
+        tz = ZoneInfo("UTC")
+
+    now_local = datetime.now(tz)
+    today = now_local.date()
 
     # --- GLOBAL KPIs (Unaffected by branch_id) ---
     global_branches_res = await db.execute(select(Organization).where(Organization.id.in_(global_org_ids)))
@@ -95,14 +104,14 @@ async def get_dashboard_metrics(
     
     global_tokens_res = await db.execute(
         select(Token.status, func.count(Token.id))
-        .where(Token.org_id.in_(global_org_ids), func.date(Token.created_at) == today)
+        .where(Token.org_id.in_(global_org_ids), func.date(func.timezone(tz_string, Token.created_at)) == today)
         .group_by(Token.status)
     )
     global_tokens = dict(global_tokens_res.all())
 
     global_tokens_yesterday_res = await db.execute(
         select(Token.status, func.count(Token.id))
-        .where(Token.org_id.in_(global_org_ids), func.date(Token.created_at) == today - timedelta(days=1))
+        .where(Token.org_id.in_(global_org_ids), func.date(func.timezone(tz_string, Token.created_at)) == today - timedelta(days=1))
         .group_by(Token.status)
     )
     global_tokens_yesterday = dict(global_tokens_yesterday_res.all())
@@ -141,7 +150,7 @@ async def get_dashboard_metrics(
     )
     filtered_tokens_res = await db.execute(
         select(Token.status, func.count(Token.id))
-        .where(Token.org_id.in_(filtered_org_ids), func.date(Token.created_at) == today)
+        .where(Token.org_id.in_(filtered_org_ids), func.date(func.timezone(tz_string, Token.created_at)) == today)
         .group_by(Token.status)
     )
     filtered_tokens = dict(filtered_tokens_res.all())
@@ -153,7 +162,7 @@ async def get_dashboard_metrics(
             func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
         ).where(
             Token.org_id.in_(filtered_org_ids),
-            func.date(Token.created_at) == today,
+            func.date(func.timezone(tz_string, Token.created_at)) == today,
             Token.status == TokenStatus.done,
             Token.served_at.isnot(None),
         )
@@ -194,35 +203,39 @@ async def get_dashboard_metrics(
     )
     serve_trend_val, serve_trend_dir = _calc_trend(served_last_hour_res.scalar() or 0, served_prev_hour_res.scalar() or 0)
 
-    dynamic_insights = DynamicInsights(
-        active_sessions=filtered_sessions_res.scalar() or 0,
-        active_queues=filtered_queues_res.scalar() or 0,
-        customers_being_served=filtered_tokens.get(TokenStatus.serving, 0),
-        average_wait_time=_fmt_minutes(tm.avg_wait_sec if tm else None),
-        average_service_time=_fmt_minutes(tm.avg_serve_sec if tm else None),
-        whatsapp_success_rate=100.0,  # Placeholder — WhatsApp computed below
-        sessions_trend_value=sess_trend_val,
-        sessions_trend_direction=sess_trend_dir,
-        serving_trend_value=serve_trend_val,
-        serving_trend_direction=serve_trend_dir
-    )
-
     from app.whatsapp.models import WhatsAppMessage
     messages_res = await db.execute(
         select(WhatsAppMessage.status, func.count(WhatsAppMessage.id))
-        .where(WhatsAppMessage.organization_id.in_(filtered_org_ids), func.date(WhatsAppMessage.created_at) == today)
+        .where(WhatsAppMessage.organization_id.in_(filtered_org_ids), func.date(func.timezone(tz_string, WhatsAppMessage.created_at)) == today)
         .group_by(WhatsAppMessage.status)
     )
     msg_counts = dict(messages_res.all())
     total_msgs = sum(msg_counts.values())
     delivered_msgs = msg_counts.get("delivered", 0) + msg_counts.get("read", 0)
     
+    whatsapp_success_rate = (delivered_msgs / total_msgs * 100) if total_msgs > 0 else 0.0
+
     whatsapp_overview = WhatsAppOverview(
         messages_sent_today=total_msgs,
         delivered=delivered_msgs,
         failed=msg_counts.get("failed", 0),
         pending=msg_counts.get("pending", 0) + msg_counts.get("queued", 0),
-        success_rate=(delivered_msgs / total_msgs * 100) if total_msgs > 0 else 0.0
+        success_rate=whatsapp_success_rate
+    )
+
+    dynamic_insights = DynamicInsights(
+        active_sessions=filtered_sessions_res.scalar() or 0,
+        active_queues=filtered_queues_res.scalar() or 0,
+        customers_being_served=filtered_tokens.get(TokenStatus.serving, 0),
+        total_visitors_today=sum(filtered_tokens.values()),
+        total_served_today=filtered_tokens.get(TokenStatus.done, 0),
+        average_wait_time=_fmt_minutes(tm.avg_wait_sec if tm else None),
+        average_service_time=_fmt_minutes(tm.avg_serve_sec if tm else None),
+        whatsapp_success_rate=whatsapp_success_rate,
+        sessions_trend_value=sess_trend_val,
+        sessions_trend_direction=sess_trend_dir,
+        serving_trend_value=serve_trend_val,
+        serving_trend_direction=serve_trend_dir
     )
 
     # --- BRANCH PERFORMANCE ---
@@ -235,7 +248,7 @@ async def get_dashboard_metrics(
             
         b_tokens_res = await db.execute(
             select(Token.status, func.count(Token.id))
-            .where(Token.org_id == org_id, func.date(Token.created_at) == today)
+            .where(Token.org_id == org_id, func.date(func.timezone(tz_string, Token.created_at)) == today)
             .group_by(Token.status)
         )
         b_t = dict(b_tokens_res.all())
@@ -256,7 +269,7 @@ async def get_dashboard_metrics(
                 func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
             ).where(
                 Token.org_id == org_id,
-                func.date(Token.created_at) == today,
+                func.date(func.timezone(tz_string, Token.created_at)) == today,
                 Token.status == TokenStatus.done,
                 Token.served_at.isnot(None),
             )
@@ -394,47 +407,91 @@ async def get_traffic_trend(
     """
     from zoneinfo import ZoneInfo
     from sqlalchemy import case as sa_case
+    from app.models.parent_organization import ParentOrganization
 
     org_ids = await get_org_ids(db, current_user.parent_organization_id, branch_id)
     if not org_ids:
         return {"peak_traffic": [], "peak_hour": None}
 
-    tz = ZoneInfo("Asia/Kolkata")
-    today_local = datetime.now(tz).date()
+    # Fetch dynamic timezone
+    parent_org_res = await db.execute(select(ParentOrganization.timezone).where(ParentOrganization.id == current_user.parent_organization_id))
+    tz_string = parent_org_res.scalar_one_or_none() or "UTC"
+    
+    try:
+        tz = ZoneInfo(tz_string)
+    except Exception:
+        tz_string = "UTC"
+        tz = ZoneInfo("UTC")
+
+    now_local = datetime.now(tz)
+    today_local = now_local.date()
+    current_hr = now_local.hour
 
     # Filter: tokens created today (local time)
     peak_q = select(
-        func.extract('hour', func.timezone('Asia/Kolkata', Token.created_at)).label('hr'),
+        func.extract('hour', func.timezone(tz_string, Token.created_at)).label('hr'),
         func.count(Token.id).label("arrived"),
         func.sum(sa_case((Token.status == TokenStatus.done, 1), else_=0)).label("served"),
         func.avg(
-            func.extract('epoch', Token.served_at - Token.created_at)
+            sa_case((Token.served_at.isnot(None), func.extract('epoch', Token.served_at - Token.created_at)), else_=None)
         ).label('avg_wait_sec'),
     ).where(
         Token.org_id.in_(org_ids),
-        func.date(func.timezone('Asia/Kolkata', Token.created_at)) == today_local,
+        func.date(func.timezone(tz_string, Token.created_at)) == today_local,
     ).group_by('hr').order_by('hr')
 
     rows = (await db.execute(peak_q)).all()
 
-    max_arrived = max((r.arrived for r in rows), default=0)
-    peak_hr = next((r.hr for r in rows if r.arrived == max_arrived), None)
+    # Create a dictionary of existing data
+    data_by_hr = {int(r.hr): r for r in rows}
+    
+    # Generate contiguous timeline (from 8 AM or earliest token, up to current hour)
+    min_hr_in_data = min(data_by_hr.keys()) if data_by_hr else 8
+    start_hr = min(8, min_hr_in_data)
+    end_hr = max(current_hr, max(data_by_hr.keys()) if data_by_hr else current_hr)
 
     result = []
-    for r in rows:
-        hr = int(r.hr)
+    max_arrived = 0
+    peak_hr = None
+
+    for hr in range(start_hr, end_hr + 1):
         ampm = "AM" if hr < 12 else "PM"
         disp = hr if hr <= 12 else hr - 12
         if disp == 0:
             disp = 12
-        avg_wait_min = round(float(r.avg_wait_sec) / 60, 1) if r.avg_wait_sec else 0
+            
+        if hr in data_by_hr:
+            r = data_by_hr[hr]
+            arrived = r.arrived or 0
+            served = int(r.served or 0)
+            avg_wait_min = round(float(r.avg_wait_sec) / 60, 1) if r.avg_wait_sec else 0
+            
+            if arrived > max_arrived:
+                max_arrived = arrived
+                peak_hr = hr
+        else:
+            arrived = 0
+            served = 0
+            avg_wait_min = 0
+
         result.append({
+            "hr_raw": hr,
             "time_block": f"{disp}:00 {ampm}",
-            "customers_arrived": r.arrived,
-            "customers_served": int(r.served or 0),
+            "customers_arrived": arrived,
+            "customers_served": served,
             "avg_wait_minutes": avg_wait_min,
-            "is_peak": (r.hr == peak_hr),
+            "is_peak": False,
         })
+
+    # Mark the peak hour
+    if peak_hr is not None:
+        for res in result:
+            if res["hr_raw"] == peak_hr:
+                res["is_peak"] = True
+    
+    # Remove temporary key
+    for res in result:
+        res.pop("hr_raw", None)
 
     # Format peak hour label
     peak_label = None

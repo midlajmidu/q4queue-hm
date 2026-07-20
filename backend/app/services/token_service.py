@@ -248,7 +248,9 @@ async def join_queue(
         customer_age=data.age,
         customer_phone=phone_cleaned,
         pax_count=data.pax_count,
-        entry_type=data.entry_type or "qr",
+        called_via_invite=False,
+        entry_type=data.entry_type,
+        is_whatsapp_enabled=data.send_whatsapp,
     )
     db.add(token)
     await db.flush()
@@ -360,7 +362,13 @@ async def call_next(
                 if q_row:
                     import asyncio
                     event_map = {
-                        "done": "queue_completed_v3",
+                        "done": "queue_completed_v3"
+                        
+                        
+                        
+                        
+                        
+                        ,
                         "skipped": "queue_skipped_v3",
                         "deleted": "queue_removed_v3"
                     }

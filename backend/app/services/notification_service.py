@@ -126,14 +126,25 @@ async def notify_queue_event(
             )
             return
 
-        # 3. Fetch missing organization name if needed
-        if not organization_name:
-            from app.models.organization import Organization
-            async with AsyncSessionLocal() as db:
+        # 3. Fetch Token and Org details
+        db_token = None
+        from app.models.organization import Organization
+        from app.models.token import Token
+        from sqlalchemy import select
+        async with AsyncSessionLocal() as db:
+            if token_id:
+                t_res = await db.execute(select(Token).where(Token.id == token_id))
+                db_token = t_res.scalar_one_or_none()
+                
+            if not organization_name:
                 org_res = await db.execute(select(Organization).where(Organization.id == org_id))
                 org = org_res.scalar_one_or_none()
                 if org and org.name:
                     organization_name = org.name
+
+        if db_token and not db_token.is_whatsapp_enabled:
+            logger.debug("WhatsApp disabled for token %s, skipping event=%s", token_id, event_type)
+            return
 
         # 4. Handle Hybrid Logic
         token_str = f"{token_prefix}-{token_number}"
@@ -170,21 +181,17 @@ async def notify_queue_event(
                 logger.warning("No token_id provided for non-join event %s, skipping", event_type)
                 return
 
-            now = datetime.now(timezone.utc)
-            async with AsyncSessionLocal() as db:
-                result = await db.execute(select(Token).where(Token.id == token_id))
-                db_token = result.scalar_one_or_none()
-
-                if not db_token:
-                    logger.warning("Token %s not found in DB for event %s, skipping", token_id, event_type)
-                    return
+            if not db_token:
+                logger.warning("Token %s not found in DB for event %s, skipping", token_id, event_type)
+                return
                 
-                if db_token.whatsapp_alerts_active and db_token.whatsapp_window_expires_at and db_token.whatsapp_window_expires_at >= now:
-                    # User opted in -> cheaper service conversation
-                    is_raw_text = True
-                else:
-                    # User did NOT opt in -> approved Meta template (utility conversation)
-                    is_raw_text = False
+            now = datetime.now(timezone.utc)
+            if db_token.whatsapp_alerts_active and db_token.whatsapp_window_expires_at and db_token.whatsapp_window_expires_at >= now:
+                # User opted in -> cheaper service conversation
+                is_raw_text = True
+            else:
+                # User did NOT opt in -> approved Meta template (utility conversation)
+                is_raw_text = False
 
             # Base vars are no longer used uniformly. Let's do per-event vars.
 

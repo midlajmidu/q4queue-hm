@@ -349,7 +349,7 @@ def _org_to_detail(o: Organization, admin_user: User | None = None) -> OrgDetail
         max_staff=o.max_staff,
         admin_email=admin_user.email if admin_user else None,
         admin_password_changed_at=admin_user.password_changed_at.isoformat() if admin_user and admin_user.password_changed_at else None,
-        logo_url=o.logo_url,
+        logo_url=None,
         parent_organization_id=str(o.parent_organization_id) if o.parent_organization_id else None,
         parent_slug=o.parent_organization.slug if getattr(o, "parent_organization", None) else None,
     )
@@ -1163,7 +1163,7 @@ async def get_organization_detail(
         max_sessions=org.max_sessions,
         max_queues_per_session=org.max_queues_per_session,
         max_staff=org.max_staff,
-        logo_url=org.logo_url,
+        logo_url=None,
         parent_organization_id=str(org.parent_organization_id) if org.parent_organization_id else None,
         total_users=total_users,
         total_admins=total_admins,

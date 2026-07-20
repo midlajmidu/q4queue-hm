@@ -298,6 +298,6 @@ async def build_queue_snapshot(
         "waiting_tokens": waiting_tokens,
         "skipped_tokens": skipped_tokens,
         "deleted_tokens": deleted_tokens,
-        "org_logo_url": org.logo_url if org else None,
-        "org_brand_color": org.brand_color if org else None,
+        "org_logo_url": None,
+        "org_brand_color": None,
     }
