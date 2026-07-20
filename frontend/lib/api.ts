@@ -233,7 +233,12 @@ async function request<T>(
                     if (isOrgAdminPath) {
                         window.location.href = "/organization-login";
                     } else {
-                        window.location.href = isSuperAdminPath ? "/super-admin/login" : "/login";
+                        const redirectUrl = isSuperAdminPath ? "/super-admin/login" : "/login";
+                        if (rawDetail && rawDetail.includes("deactivated")) {
+                            window.location.href = `${redirectUrl}?error=deactivated`;
+                        } else {
+                            window.location.href = redirectUrl;
+                        }
                     }
                 }
             }

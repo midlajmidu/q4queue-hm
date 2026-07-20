@@ -225,9 +225,9 @@ export default function BranchesPage() {
                                         </div>
                                     </div>
                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium shrink-0 border ${branch.health !== 'Offline' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50' :
-                                            'bg-slate-50 text-slate-600 border-slate-200/50'
+                                            'bg-rose-50 text-rose-600 border-rose-200/50'
                                         }`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${branch.health !== 'Offline' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${branch.health !== 'Offline' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                                         {branch.health !== 'Offline' ? 'Active' : 'Inactive'}
                                     </span>
                                 </div>
@@ -391,9 +391,9 @@ export default function BranchesPage() {
                                             </td>
                                             <td className="px-4 py-3 text-left">
                                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${branch.health !== 'Offline' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50' :
-                                                        'bg-slate-50 text-slate-600 border-slate-200/50'
+                                                        'bg-rose-50 text-rose-600 border-rose-200/50'
                                                     }`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${branch.health !== 'Offline' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${branch.health !== 'Offline' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                                                     {branch.health !== 'Offline' ? 'Active' : 'Inactive'}
                                                 </span>
                                             </td>

@@ -183,7 +183,7 @@ export default function StaffMonitoringPage() {
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold">
                                 <th className="p-4">Branch</th>
-                                <th className="p-4">Staff Name</th>
+                                <th className="p-4">User Name</th>
                                 <th className="p-4">Email</th>
                                 <th className="p-4 text-center">Role</th>
                                 <th className="p-4 text-center">Added Date</th>

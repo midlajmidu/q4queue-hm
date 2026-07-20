@@ -1,26 +1,40 @@
 import asyncio
-from sqlalchemy import select, func, and_
-from app.db.session import AsyncSessionLocal
+import os
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select, func
 from app.models.token import Token
-from app.models.organization import Organization
-from datetime import datetime, timezone
-import uuid
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from dotenv import load_dotenv
 
-async def main():
+load_dotenv("backend/.env")
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    DATABASE_URL = "postgresql+asyncpg://admin:securepassword@localhost:5432/queuedb"
+
+engine = create_async_engine(DATABASE_URL)
+AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+async def test():
     async with AsyncSessionLocal() as db:
-        res = await db.execute(select(Token).order_by(Token.created_at.desc()).limit(1))
-        t = res.scalar()
-        if t:
-            print("Latest Token:", t.id, t.org_id, t.status, t.created_at, t.served_at, t.completed_at)
-            
-            # Fetch overview stats
-            from app.services.analytics_service import get_overview_metrics
-            try:
-                metrics = await get_overview_metrics(db, org_id=t.org_id, start_date=t.created_at.strftime('%Y-%m-%d'), end_date=t.created_at.strftime('%Y-%m-%d'))
-                print("Served count:", metrics['status_counts']['served'])
-                print("Total count:", metrics['status_counts']['total'])
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
+        tz_string = "UTC"
+        now_local = datetime.now(ZoneInfo(tz_string))
+        today = now_local.date()
+        
+        q = select(Token.status, func.count(Token.id)).where(
+            func.date(func.timezone(tz_string, Token.created_at)) == today
+        ).group_by(Token.status)
+        
+        res = await db.execute(q)
+        print("Today:", dict(res.all()))
 
-asyncio.run(main())
+        # Let's just select all tokens and their created_at
+        q2 = select(Token.id, Token.status, Token.created_at)
+        res2 = await db.execute(q2)
+        print("\nAll tokens:")
+        for r in res2.all():
+            print(r)
+
+asyncio.run(test())

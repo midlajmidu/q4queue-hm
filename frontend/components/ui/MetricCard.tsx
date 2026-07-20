@@ -80,7 +80,7 @@ export function MetricCard({
             <div className="relative z-10">
                 <div className="flex items-baseline gap-2">
                     <span className="text-3xl font-bold tracking-tight text-slate-900">{value}</span>
-                    {trend && (
+                    {trend && trendValue !== 0 && trendValue !== undefined && (
                         <span className={`text-xs font-medium ${trend === "up" ? "text-emerald-600" : trend === "down" ? "text-rose-600" : "text-slate-500"}`}>
                             {trend === "up" ? "↑" : trend === "down" ? "↓" : "−"} {Math.abs(trendValue || 0)}%
                         </span>

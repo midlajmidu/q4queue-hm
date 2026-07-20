@@ -9,6 +9,8 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 
+import { toast } from "sonner";
+
 export default function LoginPage() {
     const router = useRouter();
     const { login, isLoading, error, isAuthenticated, isHydrated, user } = useAuth();
@@ -17,6 +19,18 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loginType, setLoginType] = useState<"staff" | "org_admin">("staff");
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("error") === "deactivated") {
+                toast.error("This branch has been deactivated by the organization admin.", {
+                    duration: 8000,
+                });
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+    }, []);
 
     // Redirect to dashboard if already logged in
     useEffect(() => {

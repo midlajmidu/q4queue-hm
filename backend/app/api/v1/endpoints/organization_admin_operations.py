@@ -763,7 +763,10 @@ async def get_branch_dashboard(
     
     traffic_data = await get_traffic_trend(db, current_user, branch_id)
     traffic = BranchTrafficData(
-        peak_traffic=[PeakTrafficItem(**item) for item in traffic_data.get("peak_traffic", [])],
+        peak_traffic=[PeakTrafficItem(
+            hour=item["time_block"],
+            customers_arrived=item["customers_arrived"]
+        ) for item in traffic_data.get("peak_traffic", [])],
         peak_hour=traffic_data.get("peak_hour")
     )
     

@@ -857,7 +857,7 @@ export default function AnalyticsPage() {
                         <table className="w-full text-left text-[13px] whitespace-nowrap">
                             <thead className="text-[10px] uppercase text-slate-400 font-bold tracking-widest">
                                 <tr>
-                                    <th className="py-4 px-6">Staff Name</th>
+                                    <th className="py-4 px-6">User Name</th>
                                     <th className="py-4 px-6">Branch</th>
                                     <th className="py-4 px-6 text-right">Served</th>
                                     <th className="py-4 px-6 text-right">Avg Service</th>

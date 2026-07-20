@@ -322,18 +322,7 @@ export default function OrgAdminDashboard() {
                                         Waiting
                                     </th>
                                     <th className="px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-widest text-right">
-                                        <div className="flex items-center justify-end gap-1.5 relative group">
-                                            Serving Capacity 
-                                            <div className="cursor-help text-slate-400">
-                                                <Info size={14} />
-                                            </div>
-                                            {/* Custom Tailwind Tooltip */}
-                                            <div className="absolute top-full right-0 mt-2 w-56 p-2.5 bg-slate-900 text-white text-xs rounded-md shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 normal-case tracking-normal font-medium text-left pointer-events-none">
-                                                Shows how many open counters are actively serving a customer right now.
-                                                {/* Tooltip Arrow */}
-                                                <div className="absolute bottom-full right-4 border-4 border-transparent border-b-slate-900"></div>
-                                            </div>
-                                        </div>
+                                        Currently Serving
                                     </th>
                                     <th className="px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-widest text-right">
                                         Served
@@ -368,22 +357,9 @@ export default function OrgAdminDashboard() {
                                                 <span key={`wait-${b.waiting_customers}`} className={`font-bold text-sm animate-in fade-in duration-500 ${b.waiting_customers > 10 ? 'text-rose-600' : b.waiting_customers > 5 ? 'text-amber-600' : 'text-slate-800'}`}>{b.waiting_customers}</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex flex-col gap-1 items-end justify-center w-full max-w-[120px] ml-auto">
-                                                <div className="flex items-center justify-end w-full text-[10px] font-bold text-slate-500">
-                                                    <span>{b.serving_customers} / {b.active_sessions} counters</span>
-                                                </div>
-                                                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                                    <div 
-                                                        className={`h-full rounded-full transition-all duration-500 ${(() => {
-                                                            const pct = (b.serving_customers / (b.active_sessions || 1)) * 100;
-                                                            if (pct >= 100) return 'bg-rose-500';
-                                                            if (pct >= 80) return 'bg-amber-500';
-                                                            return 'bg-slate-800';
-                                                        })()}`} 
-                                                        style={{ width: `${Math.min(100, (b.serving_customers / (b.active_sessions || 1)) * 100)}%` }}
-                                                    ></div>
-                                                </div>
+                                        <td className="px-4 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <span key={`serving-${b.serving_customers}`} className="font-bold text-sm text-slate-800 animate-in fade-in duration-500">{b.serving_customers}</span>
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-right">

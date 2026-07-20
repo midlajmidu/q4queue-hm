@@ -142,7 +142,7 @@ async def create_staff(
     if clash.scalars().first() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"A user with email '{body.email}' already exists in the system.",
+            detail="An account with this email address already exists.",
         )
         
     from app.models.organization import Organization

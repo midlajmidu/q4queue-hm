@@ -143,6 +143,19 @@ async def get_current_user(
         logger.warning("Token presented for inactive user | user_id=%s", user_id)
         raise _INACTIVE_USER_EXCEPTION
         
+    # ── Branch Deactivation Check ──────────────────────────────────
+    if user.org_id and user.role in ("admin", "staff", "branch_admin"):
+        from app.models.organization import Organization
+        org_res = await db.execute(select(Organization.is_active).where(Organization.id == user.org_id))
+        org_is_active = org_res.scalar_one_or_none()
+        if org_is_active is False:
+            logger.warning("Token presented for inactive branch | user_id=%s org_id=%s", user_id, user.org_id)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="This branch has been deactivated by the organization.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
     # ── JWT Revocation Check ───────────────────────────────────────
     if user.password_changed_at and iat_raw is not None:
         iat_dt = datetime.fromtimestamp(iat_raw, tz=timezone.utc)
