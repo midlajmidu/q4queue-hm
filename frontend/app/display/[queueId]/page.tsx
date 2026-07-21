@@ -333,7 +333,7 @@ function MobileNowServing({ serving, prefix, serviceLines, allServingTokens, que
             {isMulti ? (
                 <div className="px-3 pb-4 pt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                     {counters.map(counterNum => {
-                        const activeToken = activeTokens.find((t: any) => t.assigned_line === counterNum);
+                        const activeToken = activeTokens.find((t: any) => t.assigned_line === counterNum || t.shared_lines?.includes(counterNum));
                         const hasToken = !!activeToken;
                         return (
                             <div

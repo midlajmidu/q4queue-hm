@@ -33,15 +33,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_days_org_id'), 'days', ['org_id'], unique=False)
     # Safe drop for audit_logs (idempotency fix — avoids crash if already dropped)
     for index_name in ['ix_audit_logs_event_type', 'ix_audit_logs_org_id', 'ix_audit_logs_user_id']:
-        op.execute(f"""
-            DO $$
-            BEGIN
-                IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = '{index_name}') THEN
-                    EXECUTE 'DROP INDEX ' || quote_ident('{index_name}');
-                END IF;
-            END
-            $$;
-        """)
+        op.execute(f"DROP INDEX IF EXISTS {index_name}")
     op.execute("DROP TABLE IF EXISTS audit_logs CASCADE")
     op.add_column('queues', sa.Column('day_id', sa.UUID(), nullable=True))
     op.create_index(op.f('ix_queues_day_id'), 'queues', ['day_id'], unique=False)

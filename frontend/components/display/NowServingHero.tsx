@@ -84,24 +84,24 @@ export function NowServingHero({
         const counters = Array.from({ length: serviceLines }, (_, i) => i + 1);
 
         const tokenSize =
-            serviceLines > 20
-                ? "text-xl md:text-2xl"
-                : serviceLines > 12
-                ? "text-2xl md:text-3xl"
-                : serviceLines > 6
-                ? "text-3xl md:text-4xl"
-                : "text-4xl md:text-5xl";
+            serviceLines > 16
+                ? "text-lg sm:text-xl lg:text-2xl"
+                : serviceLines > 8
+                ? "text-xl sm:text-2xl lg:text-3xl"
+                : serviceLines > 4
+                ? "text-2xl sm:text-3xl lg:text-3xl xl:text-4xl"
+                : "text-3xl sm:text-4xl lg:text-5xl";
 
         const cols =
-            serviceLines > 20
-                ? "grid-cols-4 md:grid-cols-5 lg:grid-cols-6"
-                : serviceLines > 12
-                ? "grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                : serviceLines > 6
-                ? "grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
-                
-        const cardPadding = 
+            serviceLines > 16
+                ? "grid-cols-4 lg:grid-cols-6"
+                : serviceLines > 8
+                ? "grid-cols-3 lg:grid-cols-4"
+                : serviceLines > 4
+                ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+                : "grid-cols-2";
+
+        const cardPadding =
             serviceLines > 12 ? "p-2 lg:p-3" : serviceLines > 6 ? "p-3 lg:p-4" : "p-4 lg:p-6";
 
         return (
@@ -130,7 +130,7 @@ export function NowServingHero({
                 <div className={`grid ${cols} gap-2 lg:gap-3 flex-1 overflow-hidden auto-rows-fr`}>
                     {counters.map((counterNum) => {
                         const activeToken = activeTokens.find(
-                            (t) => t.assigned_line === counterNum
+                            (t: any) => t.assigned_line === counterNum || t.shared_lines?.includes(counterNum)
                         );
                         const hasToken = !!activeToken;
                         const isRecentlyCalled = hasToken && recentlyCalled.has(activeToken.token_number);
@@ -168,7 +168,7 @@ export function NowServingHero({
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -8 }}
                                         transition={{ duration: 0.2 }}
-                                        className={`font-extrabold tracking-tight leading-none tabular-nums w-full text-center px-2 whitespace-nowrap ${tokenSize} ${
+                                        className={`font-extrabold tracking-tight leading-none tabular-nums w-full text-center px-2 whitespace-nowrap max-w-full truncate ${tokenSize} ${
                                             hasToken ? primaryText(theme) : theme === "dark" ? "text-slate-700" : "text-slate-300"
                                         } ${isRecentlyCalled ? "text-green-600 drop-shadow-md" : ""}`}
                                     >

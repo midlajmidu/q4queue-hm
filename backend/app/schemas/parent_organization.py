@@ -36,7 +36,7 @@ class ParentOrganizationUpdate(BaseModel):
     default_queue_settings: Optional[Dict[str, Any]] = None
     default_session_settings: Optional[Dict[str, Any]] = None
     whatsapp_preferences: Optional[Dict[str, Any]] = None
-    enable_shared_tokens: bool = False
+    enable_shared_tokens: bool | None = None
 
 class ParentOrganizationResponse(ParentOrganizationBase):
     id: uuid.UUID

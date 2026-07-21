@@ -86,31 +86,29 @@ export function UpcomingQueueCard({ waitingTokens, prefix, theme = "light" }: Up
                                 return (
                                     <div
                                         key={`upcoming-${token.token_number}`}
-                                        className={`flex items-center justify-between px-6 py-6 border-b ${dividerBorder(theme)} last:border-b-0`}
+                                        className={`flex items-center justify-between px-3.5 py-3 lg:px-5 lg:py-3.5 border-b ${dividerBorder(theme)} last:border-b-0 min-w-0 gap-2`}
                                     >
-                                        <div className="flex items-center gap-6">
-                                            <span className={`text-sm font-bold tracking-widest ${mutedText(theme)} tabular-nums min-w-[20px]`}>
+                                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                                            <span className={`text-xs font-bold tracking-wider ${mutedText(theme)} tabular-nums shrink-0 min-w-[16px]`}>
                                                 {globalIndex + 1}
                                             </span>
-                                            <div className="flex items-center gap-4">
-                                                <span className={`text-3xl font-black ${secondaryText(theme)} tabular-nums`}>
-                                                    {prefix}{token.token_number}
+                                            <span className={`text-xl lg:text-2xl font-black ${secondaryText(theme)} tabular-nums shrink-0`}>
+                                                {prefix}{token.token_number}
+                                            </span>
+                                            {globalIndex === 0 && (
+                                                <span className="px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider bg-blue-500/10 text-blue-600 border border-blue-500/20 shrink-0 whitespace-nowrap">
+                                                    You are Next
                                                 </span>
-                                                {globalIndex === 0 && (
-                                                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 border border-blue-200">
-                                                        You are Next
-                                                    </span>
-                                                )}
-                                            </div>
+                                            )}
                                         </div>
 
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2 shrink-0 text-right">
                                             {token.assigned_line && (
-                                                <span className={`text-xs font-medium ${mutedText(theme)}`}>
+                                                <span className={`text-[11px] font-medium ${mutedText(theme)} hidden xl:inline`}>
                                                     Counter {String(token.assigned_line).padStart(2, "0")}
                                                 </span>
                                             )}
-                                            <span className={`text-sm font-bold tracking-wider ${mutedText(theme)} tabular-nums`}>
+                                            <span className={`text-xs font-bold tracking-wider ${mutedText(theme)} tabular-nums shrink-0`}>
                                                 {joinTime}
                                             </span>
                                         </div>
