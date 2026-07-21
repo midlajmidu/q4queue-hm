@@ -45,6 +45,12 @@ async def build_queue_snapshot(
     org_result = await db.execute(select(Organization).where(Organization.id == queue.org_id))
     org = org_result.scalar_one_or_none()
     
+    from app.models.parent_organization import ParentOrganization
+    parent_org = None
+    if org and org.parent_organization_id:
+        parent_org_result = await db.execute(select(ParentOrganization).where(ParentOrganization.id == org.parent_organization_id))
+        parent_org = parent_org_result.scalar_one_or_none()
+    
     # ── Currently serving ──────────────────────────────────────────
     serving_result = await db.execute(
         select(Token)
@@ -94,6 +100,8 @@ async def build_queue_snapshot(
             "served_at": t.served_at.isoformat() if t.served_at else None,
             "entry_type": getattr(t, "entry_type", "qr"),
             "pax_count": getattr(t, "pax_count", 1),
+            "shared_lines": getattr(t, "shared_lines", []),
+            "completed_lines": getattr(t, "completed_lines", []),
         }
         if is_admin:
             sd["customer_phone"] = t.customer_phone
@@ -300,4 +308,5 @@ async def build_queue_snapshot(
         "deleted_tokens": deleted_tokens,
         "org_logo_url": None,
         "org_brand_color": None,
+        "enable_shared_tokens": getattr(org, "enable_shared_tokens", False) or getattr(parent_org, "enable_shared_tokens", False),
     }

@@ -225,6 +225,18 @@ export default function ParentOrganizationsPage() {
                                     placeholder="Leave empty for unlimited"
                                 />
                             </div>
+                            <label className="flex items-center gap-3 cursor-pointer p-4 bg-slate-950/50 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors mt-4">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.enable_shared_tokens || false}
+                                    onChange={(e) => setFormData({ ...formData, enable_shared_tokens: e.target.checked })}
+                                    className="h-4.5 w-4.5 text-indigo-600 focus:ring-indigo-500/30 bg-slate-900 border-slate-600 rounded"
+                                />
+                                <div>
+                                    <div className="text-sm font-semibold text-slate-200">Enable Shared Tokens</div>
+                                    <div className="text-xs text-slate-400 mt-0.5">Allow customers with pax count &gt; 1 to be served on multiple lanes</div>
+                                </div>
+                            </label>
                             <div className="pt-6 flex justify-end gap-3">
                                 <button
                                     type="button"

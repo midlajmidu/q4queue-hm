@@ -1136,6 +1136,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         isGlobalOrOrgAdmin={isGlobalOrOrgAdmin}
                                                         isPaused={(state?.is_paused ?? initialQueue?.is_paused) === true}
                                                         isReadOnly={isReadOnly}
+                                                        enableSharedTokens={state?.enable_shared_tokens ?? false}
                                                     />
                                                 );
                                             }

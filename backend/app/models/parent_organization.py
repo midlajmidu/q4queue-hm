@@ -58,6 +58,7 @@ class ParentOrganization(Base):
     default_queue_settings: Mapped[dict | None] = mapped_column(JSON, server_default='{}', nullable=True)
     default_session_settings: Mapped[dict | None] = mapped_column(JSON, server_default='{}', nullable=True)
     whatsapp_preferences: Mapped[dict | None] = mapped_column(JSON, server_default='{}', nullable=True)
+    enable_shared_tokens: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
 
     # ── Relationships ──────────────────────────────────────────────
     organizations: Mapped[list["Organization"]] = relationship(  # noqa: F821

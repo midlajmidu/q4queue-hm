@@ -92,6 +92,7 @@ export interface SystemMonitoringResponse {
 export interface ParentOrganization {
     id: string;
     name: string;
+    enable_shared_tokens?: boolean;
     slug: string;
     contact_email?: string;
     contact_phone?: string;
@@ -115,10 +116,12 @@ export interface ParentOrganizationCreate {
     contact_phone?: string;
     is_active?: boolean;
     max_branches?: number | null;
+    enable_shared_tokens?: boolean;
 }
 
 export interface ParentOrganizationUpdate {
     name?: string;
+    enable_shared_tokens?: boolean;
     slug?: string;
     contact_email?: string;
     contact_phone?: string;
@@ -415,10 +418,13 @@ export interface ServingToken {
     served_at: string | null;
     called_via_invite?: boolean;
     entry_type?: "manual" | "qr" | "auto" | null;
+    shared_lines?: number[];
+    completed_lines?: number[];
 }
 
 export interface QueueSnapshot {
     type?: string;
+    enable_shared_tokens?: boolean;
     queue_id: string;
     session_id: string;
     queue_name: string;

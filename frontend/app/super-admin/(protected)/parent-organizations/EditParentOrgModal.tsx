@@ -25,6 +25,7 @@ export default function EditParentOrgModal({ parentOrg, isOpen, onClose, onSucce
                 contact_phone: parentOrg.contact_phone || "",
                 is_active: parentOrg.is_active,
                 max_branches: parentOrg.max_branches || null,
+                enable_shared_tokens: parentOrg.enable_shared_tokens || false,
             });
         }
     }, [isOpen, parentOrg]);
@@ -102,6 +103,18 @@ export default function EditParentOrgModal({ parentOrg, isOpen, onClose, onSucce
                             placeholder="Leave empty for unlimited"
                         />
                     </div>
+                    <label className="flex items-center gap-3 cursor-pointer p-3 bg-slate-950/50 border border-slate-800 rounded-lg hover:bg-white/5 transition-colors">
+                        <input
+                            type="checkbox"
+                            checked={formData.enable_shared_tokens || false}
+                            onChange={(e) => setFormData({ ...formData, enable_shared_tokens: e.target.checked })}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500/20 bg-slate-950 border-slate-700 rounded"
+                        />
+                        <div>
+                            <div className="text-sm font-medium text-slate-200">Enable Shared Tokens</div>
+                            <div className="text-xs text-slate-400">Allow customers with pax count &gt; 1 to be served on multiple lanes</div>
+                        </div>
+                    </label>
                     <label className="flex items-center gap-3 cursor-pointer p-3 bg-slate-950/50 border border-slate-800 rounded-lg hover:bg-white/5 transition-colors">
                         <input
                             type="checkbox"
