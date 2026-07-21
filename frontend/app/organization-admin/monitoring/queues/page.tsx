@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "@/lib/api";
 import { ListFilter, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useBranchFilter } from "@/context/BranchFilterContext";
 import BranchSelector from "@/components/organization-admin/BranchSelector";
@@ -177,15 +178,13 @@ export default function QueuesMonitoringPage() {
 
                                     {/* Row 3: Action Button */}
                                     <div className="pt-1">
-                                        <a
+                                        <Link
                                             href={`/organization-admin/branches/${q.branch_id}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
                                             className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-lg transition-all shadow-sm"
                                         >
                                             Branch Details
                                             <ExternalLink size={14} className="text-slate-400" />
-                                        </a>
+                                        </Link>
                                     </div>
                                 </div>
                             );
@@ -271,15 +270,13 @@ export default function QueuesMonitoringPage() {
                                             </span>
                                         </td>
                                         <td className="px-4 py-2.5 text-right">
-                                            <a
+                                            <Link
                                                 href={`/organization-admin/branches/${q.branch_id}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
                                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
                                             >
                                                 <ExternalLink size={14} />
                                                 Branch Details
-                                            </a>
+                                            </Link>
                                         </td>
                                     </tr>
                                 ))
