@@ -171,6 +171,8 @@ class TokenResponse(BaseModel):
     removed_by: Optional[str] = None
     assigned_line: Optional[int] = None
     entry_type: Optional[str] = None
+    shared_lines: list[int] = []
+    completed_lines: list[int] = []
 
     model_config = {"from_attributes": True}
 

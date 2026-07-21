@@ -126,7 +126,7 @@ export class ApiError extends Error {
 // ── User-friendly error messages ─────────────────────────────────
 function friendlyMessage(status: number, rawDetail: string): string {
     switch (status) {
-        case 401: 
+        case 401:
             if (rawDetail === "Invalid credentials" || rawDetail.includes("deactivated")) {
                 return rawDetail;
             }
@@ -361,7 +361,7 @@ export const api = {
         if (params.offset != null) qs.set("offset", String(params.offset));
 
         const q = qs.toString();
-        return request<PaginatedHistoryResponse>(`/stats/history${q ? `?${q}` : ""}`);
+        return request<PaginatedHistoryResponse>(`/stats/history${q ? `?${q}` : ""}`, { cache: "no-store" });
     },
 
     async exportAnalyticsCSV(params: { queueId?: string; sessionId?: string; search?: string; status?: string; startDate?: string; endDate?: string }): Promise<Blob> {
@@ -373,7 +373,7 @@ export const api = {
         if (params.startDate) qs.append("start_date", params.startDate);
         if (params.endDate) qs.append("end_date", params.endDate);
         const q = qs.toString();
-        
+
         const url = `${config.apiBaseUrl}/stats/export${q ? `?${q}` : ""}`;
         const headers = new Headers();
         const token = getToken();
@@ -578,6 +578,19 @@ export const api = {
         });
     },
 
+    shareToken(queueId: string, tokenNumber: number, lineNumber: number): Promise<TokenResponse> {
+        return request<TokenResponse>(`/queues/${queueId}/share-token?token_number=${tokenNumber}&line_number=${lineNumber}`, {
+            method: "POST",
+        });
+    },
+
+    removeSharedToken(queueId: string, lineNumber: number): Promise<any> {
+        return request(`/queues/${queueId}/lines/${lineNumber}/remove-shared`, {
+            method: "POST",
+        });
+    },
+
+
     getToken(tokenId: string): Promise<TokenDetail> {
         return request<TokenDetail>(`/tokens/${tokenId}`);
     },
@@ -609,7 +622,7 @@ export const api = {
             method: "PATCH",
         });
     },
-    
+
     cancelToken(tokenId: string): Promise<{ status: string; token_number: number }> {
         return request<{ status: string; token_number: number }>(`/tokens/${tokenId}/cancel`, {
             method: "POST",
@@ -670,7 +683,7 @@ export const api = {
     getOrganizationStats(): Promise<OrgStats> {
         return request<OrgStats>("/super-admin/stats");
     },
-    
+
     getOrganizationUsage(orgId: string): Promise<OrgUsageResponse> {
         return request<OrgUsageResponse>(`/super-admin/organizations/${orgId}/usage`);
     },
@@ -839,31 +852,31 @@ export const api = {
         }
         return request<ParentOrganizationPage>(`/parent-organizations${queryStr}`);
     },
-    
+
     createParentOrganization(data: ParentOrganizationCreate): Promise<ParentOrganization> {
         return request<ParentOrganization>("/parent-organizations", {
             method: "POST",
             body: JSON.stringify(data),
         });
     },
-    
+
     getParentOrganization(id: string): Promise<ParentOrganization> {
         return request<ParentOrganization>(`/parent-organizations/${id}`);
     },
-    
+
     updateParentOrganization(id: string, data: ParentOrganizationUpdate): Promise<ParentOrganization> {
         return request<ParentOrganization>(`/parent-organizations/${id}`, {
             method: "PUT",
             body: JSON.stringify(data),
         });
     },
-    
+
     deleteParentOrganization(id: string): Promise<{ message: string }> {
         return request<{ message: string }>(`/parent-organizations/${id}`, {
             method: "DELETE",
         });
     },
-    
+
     // ── Branch Backups ────────────────────────────────────────────────
     createBranchBackup(orgId: string): Promise<any> {
         return request<any>(`/super-admin/branches/${orgId}/backups`, {
@@ -910,11 +923,11 @@ export const api = {
             body: JSON.stringify(data),
         });
     },
-    
+
     getParentBranches(id: string): Promise<OrgDetail[]> {
         return request<OrgDetail[]>(`/parent-organizations/${id}/branches`);
     },
-    
+
     createOrganizationAdmin(id: string, data: OrgAdminCreate): Promise<User> {
         return request<User>(`/parent-organizations/${id}/admins`, {
             method: "POST",
@@ -925,7 +938,7 @@ export const api = {
     getParentAdmins(id: string): Promise<User[]> {
         return request<User[]>(`/parent-organizations/${id}/admins`);
     },
-    
+
     // ── Organization Admin Dashboard ──────────────────────────────────
     getOrgAdminDashboard: (branchId?: string) => {
         const query = branchId ? `?branch_id=${branchId}` : '';
@@ -950,7 +963,7 @@ export const api = {
         if (params.start_date) qs.append("start_date", params.start_date);
         if (params.end_date) qs.append("end_date", params.end_date);
         const q = qs.toString();
-        
+
         const url = `${config.apiBaseUrl}/organization-admin/analytics/export${q ? `?${q}` : ""}`;
         const headers = new Headers();
         const token = getToken();
@@ -1053,7 +1066,7 @@ export const api = {
     downloadOrgAdminBackup: async (backupId: string) => {
         const token = getToken();
         if (!token) throw new Error("No token");
-        
+
         // Cannot use standard generic `request` here easily because we need to parse blob.
         // I will just use fetch manually.
         const res = await fetch(`${config.apiBaseUrl}/organization-admin/backups/${backupId}/download`, {
@@ -1062,20 +1075,20 @@ export const api = {
             }
         });
         if (!res.ok) throw new Error("Failed to download backup");
-        
+
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        
+
         // Extract filename from headers if possible
         let filename = `backup-${backupId}.q4backup`;
         const disposition = res.headers.get("content-disposition");
         if (disposition && disposition.includes("filename=")) {
             filename = disposition.split("filename=")[1].replace(/"/g, "");
         }
-        
+
         a.download = filename;
         document.body.appendChild(a);
         a.click();
@@ -1181,7 +1194,7 @@ export const api = {
         });
     },
     resetBranchAdminPassword: (id: string, adminId: string, data: BranchAdminResetPasswordRequest) => {
-        return request<{message: string}>(`/organization-admin/branches/${id}/reset-password?admin_id=${adminId}`, {
+        return request<{ message: string }>(`/organization-admin/branches/${id}/reset-password?admin_id=${adminId}`, {
             method: "POST",
             body: JSON.stringify(data),
         });
@@ -1244,10 +1257,10 @@ export const api = {
                         ctx.drawImage(img, 0, 0, width, height);
                         // Compress using webp which supports transparency
                         const base64_data = canvas.toDataURL("image/webp", 0.8);
-                        
+
                         // Replace extension with webp if possible
                         const filename = file.name.replace(/\.[^/.]+$/, "") + ".webp";
-                        
+
                         request<OrganizationSettingsResponse>("/organization/settings/logo", {
                             method: "POST",
                             body: JSON.stringify({
@@ -1291,7 +1304,7 @@ export const api = {
             body: JSON.stringify(data),
         });
     },
-    
+
     // System
     getActiveSystemAnnouncements(): Promise<SystemAnnouncementDetail[]> {
         return request<SystemAnnouncementDetail[]>("/system/system-announcements/active");

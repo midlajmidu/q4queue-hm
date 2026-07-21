@@ -17,6 +17,7 @@ class ParentOrganizationBase(BaseModel):
     default_queue_settings: Optional[Dict[str, Any]] = Field(default_factory=dict)
     default_session_settings: Optional[Dict[str, Any]] = Field(default_factory=dict)
     whatsapp_preferences: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    enable_shared_tokens: bool = False
 
 class ParentOrganizationCreate(ParentOrganizationBase):
     pass
@@ -35,6 +36,7 @@ class ParentOrganizationUpdate(BaseModel):
     default_queue_settings: Optional[Dict[str, Any]] = None
     default_session_settings: Optional[Dict[str, Any]] = None
     whatsapp_preferences: Optional[Dict[str, Any]] = None
+    enable_shared_tokens: bool = False
 
 class ParentOrganizationResponse(ParentOrganizationBase):
     id: uuid.UUID
@@ -42,6 +44,7 @@ class ParentOrganizationResponse(ParentOrganizationBase):
     updated_at: datetime
     branch_count: int = 0
     admin_count: int = 0
+    enable_shared_tokens: bool = False
     
     model_config = ConfigDict(from_attributes=True)
 

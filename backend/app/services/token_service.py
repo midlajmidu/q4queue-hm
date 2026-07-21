@@ -291,6 +291,25 @@ async def cancel_token_public(db: AsyncSession, *, token_id: uuid.UUID) -> Token
 # Admin API — Call Next
 # ─────────────────────────────────────────────────────────────────────────────
 
+
+def _mark_line_completed(token: Token, line_number: int) -> bool:
+    """
+    Marks a specific line as completed for the token.
+    Returns True if the token is completely done (all assigned/shared lines are completed).
+    """
+    from sqlalchemy.orm.attributes import flag_modified
+    comps = list(getattr(token, "completed_lines", []))
+    if line_number not in comps:
+        comps.append(line_number)
+        token.completed_lines = comps
+        flag_modified(token, "completed_lines")
+
+    main_done = token.assigned_line in comps
+    shared_lines = getattr(token, "shared_lines", [])
+    all_shared_done = all(sl in comps for sl in shared_lines)
+
+    return main_done and all_shared_done
+
 async def call_next(
     db: AsyncSession,
     *,
@@ -318,42 +337,58 @@ async def call_next(
     else:
         target_status = TokenStatus.skipped
 
-    # ── In multi-lane mode, only mark the token on the specified line as done ──
+    # ── Handle currently serving token(s) ──
     if line_number is not None:
-        serving_query = (
-            select(Token)
-            .where(
-                Token.queue_id == queue_id,
-                Token.org_id == org_id,
-                Token.status == TokenStatus.serving,
-                Token.assigned_line == line_number,
-            )
+        # Find token assigned or shared to this line
+        serving_query = select(Token).where(
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,
+            Token.status == TokenStatus.serving
         )
+        serving_result = await db.execute(serving_query)
+        all_serving = serving_result.scalars().all()
+        
+        currently_serving_tokens = []
+        for t in all_serving:
+            if t.assigned_line == line_number or line_number in getattr(t, "shared_lines", []):
+                currently_serving_tokens.append(t)
     else:
-        # Single counter: mark all serving tokens as done
-        serving_query = (
-            select(Token)
-            .where(
-                Token.queue_id == queue_id,
-                Token.org_id == org_id,
-                Token.status == TokenStatus.serving,
-            )
+        serving_query = select(Token).where(
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,
+            Token.status == TokenStatus.serving
         )
-    serving_result = await db.execute(serving_query)
-    currently_serving_tokens = serving_result.scalars().all()
+        serving_result = await db.execute(serving_query)
+        currently_serving_tokens = serving_result.scalars().all()
     
     for currently_serving in currently_serving_tokens:
-        currently_serving.status = target_status
-        if target_status == TokenStatus.done:
-            currently_serving.completed_at = now
-            queue.total_served += 1
-        elif target_status == TokenStatus.deleted:
-            currently_serving.deleted_at = now
+        is_fully_done = True
+        
+        if line_number is not None and action == "done":
+            is_fully_done = _mark_line_completed(currently_serving, line_number)
+            if is_fully_done:
+                currently_serving.status = target_status
+                currently_serving.completed_at = now
+                currently_serving.completed_by_id = user_id
+                queue.total_served += 1
         else:
-            currently_serving.skipped_at = now
-            
-        # If the action was 'done', trigger the completed notification immediately
-        if action in ["done", "skipped", "deleted"]:
+            currently_serving.status = target_status
+            if target_status == TokenStatus.done:
+                currently_serving.completed_at = now
+                currently_serving.completed_by_id = user_id
+                queue.total_served += 1
+            elif target_status == TokenStatus.deleted:
+                currently_serving.deleted_at = now
+            else:
+                from sqlalchemy.orm.attributes import flag_modified
+                currently_serving.skipped_at = now
+                currently_serving.shared_lines = []
+                currently_serving.completed_lines = []
+                flag_modified(currently_serving, "shared_lines")
+                flag_modified(currently_serving, "completed_lines")
+                
+        # If the action was 'done' and token is fully done, trigger notification
+        if is_fully_done and action in ["done", "skipped", "deleted"]:
             try:
                 from app.services.notification_service import notify_queue_event
                 # Need the queue info for the notification
@@ -390,6 +425,21 @@ async def call_next(
                     )
             except Exception as e:
                 logger.error("Failed to dispatch completion notification: %s", e)
+
+    # If in multi-lane, check if there's any shared token left in this lane
+    if line_number is not None:
+        check_query = select(Token).where(
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,
+            Token.status == TokenStatus.serving
+        )
+        check_result = await db.execute(check_query)
+        all_active = check_result.scalars().all()
+        for t in all_active:
+            comps = getattr(t, "completed_lines", [])
+            if (t.assigned_line == line_number or line_number in getattr(t, "shared_lines", [])) and line_number not in comps:
+                # There is still an active token hanging out in this lane, don't pull a new one!
+                return None
 
     # Find next waiting token
     next_result = await db.execute(
@@ -452,22 +502,140 @@ async def clear_line(
             Token.queue_id == queue_id,
             Token.org_id == org_id,
             Token.status == TokenStatus.serving,
-            Token.assigned_line == line_number,
+        )
+    )
+    tokens = result.scalars().all()
+    token = None
+    for t in tokens:
+        if t.assigned_line == line_number or line_number in getattr(t, "shared_lines", []):
+            token = t
+            break
+            
+    if token is None:
+        return False
+        
+    is_fully_done = _mark_line_completed(token, line_number)
+    if is_fully_done:
+        token.status = TokenStatus.done
+        token.completed_at = now
+        q_res = await db.execute(select(Queue).where(Queue.id == queue_id))
+        queue = q_res.scalar_one_or_none()
+        if queue:
+            queue.total_served += 1
+    await db.flush()
+    return True
+
+
+async def share_token(
+    db: AsyncSession,
+    *,
+    queue_id: uuid.UUID,
+    org_id: uuid.UUID,
+    user_id: Optional[uuid.UUID] = None,
+    token_number: int,
+    line_number: int,
+) -> Token:
+    """
+    Share a currently serving token to an additional service line.
+    The token will appear as 'serving' on both the original lane and this new lane.
+    """
+    from sqlalchemy.orm.attributes import flag_modified
+
+    # Find the serving token by token_number
+    result = await db.execute(
+        select(Token).where(
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,
+            Token.token_number == token_number,
+            Token.status == TokenStatus.serving,
         )
     )
     token = result.scalar_one_or_none()
     if token is None:
-        return False
-    token.status = TokenStatus.done
-    token.completed_at = now
-    # Find the queue to update total_served
-    q_res = await db.execute(select(Queue).where(Queue.id == queue_id))
-    queue = q_res.scalar_one_or_none()
-    if queue:
-        queue.total_served += 1
-    await db.flush()
-    return True
+        raise ValueError(f"No serving token #{token_number} found")
 
+    # Validate target line is not already the assigned line
+    if token.assigned_line == line_number:
+        raise ValueError(f"Token is already assigned to lane {line_number}")
+
+    # Validate the target lane is not already in shared_lines
+    shared = list(token.shared_lines or [])
+    if line_number in shared:
+        raise ValueError(f"Token is already shared to lane {line_number}")
+
+    # Validate target line is not already in completed_lines
+    comps = list(token.completed_lines or [])
+    if line_number in comps:
+        raise ValueError(f"Token has already completed service on lane {line_number}")
+
+    # Limit total serving lanes to pax_count
+    pax_count = getattr(token, "pax_count", 1) or 1
+    current_lanes = 1 + len(shared)
+    if current_lanes >= pax_count:
+        raise ValueError(f"Token cannot be shared to more than {pax_count} lane(s) based on Pax count ({pax_count})")
+
+    # Add the lane to shared_lines
+    shared.append(line_number)
+    token.shared_lines = shared
+    flag_modified(token, "shared_lines")
+
+    await db.flush()
+    return token
+
+
+async def remove_shared_token(
+    db: AsyncSession,
+    *,
+    queue_id: uuid.UUID,
+    org_id: uuid.UUID,
+    user_id: Optional[uuid.UUID] = None,
+    line_number: int,
+) -> bool:
+    """
+    Remove a lane's participation in a shared token WITHOUT marking the token as done.
+    This simply frees the lane. The token continues serving on its other lanes.
+    Returns True if a shared token was found and updated.
+    """
+    from sqlalchemy.orm.attributes import flag_modified
+
+    result = await db.execute(
+        select(Token).where(
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,
+            Token.status == TokenStatus.serving,
+        )
+    )
+    tokens = result.scalars().all()
+
+    for token in tokens:
+        shared = list(token.shared_lines or [])
+        if line_number in shared:
+            shared.remove(line_number)
+            token.shared_lines = shared
+            flag_modified(token, "shared_lines")
+
+            # Check if this token is now fully done (because it was the last lane holding it)
+            comps = list(token.completed_lines or [])
+            main_done = token.assigned_line in comps
+            all_shared_done = all(sl in comps for sl in shared)
+            
+            if main_done and all_shared_done:
+                token.status = TokenStatus.done
+                from datetime import datetime, timezone
+                token.completed_at = datetime.now(timezone.utc)
+                if user_id:
+                    token.completed_by_id = user_id
+                
+                # Increment total_served
+                queue = await db.execute(select(Queue).where(Queue.id == token.queue_id))
+                q = queue.scalar_one_or_none()
+                if q:
+                    q.total_served += 1
+
+            await db.flush()
+            return True
+
+    return False
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Admin API — Token state transitions (skip / done / remove)
@@ -642,6 +810,7 @@ async def serve_specific_token(
         .values(status=TokenStatus.skipped, skipped_at=now)
     )
 
+    from sqlalchemy.orm.attributes import flag_modified
     specific_token.status = TokenStatus.serving
     specific_token.served_at = now
     specific_token.served_by_id = user_id
@@ -649,6 +818,11 @@ async def serve_specific_token(
     specific_token.completed_at = None
     specific_token.completed_by_id = None
     specific_token.recalled_at = now
+    specific_token.shared_lines = []
+    specific_token.completed_lines = []
+    flag_modified(specific_token, "shared_lines")
+    flag_modified(specific_token, "completed_lines")
+
     if line_number is not None:
         specific_token.assigned_line = line_number
 

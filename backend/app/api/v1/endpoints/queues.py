@@ -661,3 +661,65 @@ async def clear_line(
         )
     except ValueError as exc:
         _raise_400(exc)
+
+@router.post(
+    "/{queue_id}/share-token",
+    response_model=TokenResponse,
+    summary="Share a currently serving token to another service line",
+)
+async def share_token(
+    token_number: int,
+    line_number: int,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_branch_admin_or_staff()),
+    queue: Queue = Depends(get_queue_for_org),
+) -> TokenResponse:
+    try:
+        token = await token_service.share_token(
+            db,
+            queue_id=queue.id,
+            org_id=current_user.org_id,
+            user_id=current_user.id,
+            token_number=token_number,
+            line_number=line_number,
+        )
+        await db.commit()
+        await db.refresh(token)
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=queue.id,
+            org_id=queue.org_id,
+        )
+        return TokenResponse.model_validate(token)
+    except ValueError as exc:
+        _raise_400(exc)
+
+@router.post(
+    "/{queue_id}/lines/{line_number}/remove-shared",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a line's participation in a shared token",
+)
+async def remove_shared_token(
+    line_number: int,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_branch_admin_or_staff()),
+    queue: Queue = Depends(get_queue_for_org),
+) -> None:
+    try:
+        await token_service.remove_shared_token(
+            db,
+            queue_id=queue.id,
+            org_id=current_user.org_id,
+            user_id=current_user.id,
+            line_number=line_number,
+        )
+        await db.commit()
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=queue.id,
+            org_id=queue.org_id,
+        )
+    except ValueError as exc:
+        _raise_400(exc)
