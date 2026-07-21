@@ -103,27 +103,27 @@ export default function ConfirmModal({
             aria-describedby="modal-message"
         >
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} aria-hidden="true" />
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onCancel} aria-hidden="true" />
 
             {/* Panel */}
             <div
                 ref={dialogRef}
                 onKeyDown={handleKeyDown}
-                className="relative bg-white rounded-xl shadow-2xl max-w-sm w-full p-6"
+                className="relative bg-white dark:bg-slate-900 border border-transparent dark:border-white/10 rounded-[20px] shadow-2xl max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200"
             >
-                <h3 id="modal-title" className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
-                <p id="modal-message" className="text-sm text-gray-600 mb-6">{message}</p>
+                <h3 id="modal-title" className="text-lg font-bold text-slate-900 dark:text-white tracking-tight mb-2">{title}</h3>
+                <p id="modal-message" className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">{message}</p>
                 
                 {requireInput && (
                     <div className="mb-6">
-                        <label className="block text-xs font-medium text-gray-700 mb-2">
-                            Type <span className="font-bold text-gray-900 select-all bg-gray-100 px-1 rounded">{requiredText}</span> to confirm.
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Type <span className="font-bold text-slate-900 dark:text-white select-all bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{requiredText}</span> to confirm.
                         </label>
                         <input
                             type="text"
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                            className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-sm transition-all"
                             placeholder={requiredText}
                         />
                     </div>
@@ -134,7 +134,7 @@ export default function ConfirmModal({
                         ref={cancelRef}
                         onClick={onCancel}
                         disabled={isLoading}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-transparent dark:border-white/10 rounded-xl transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                         aria-label={cancelLabel}
                     >
                         {cancelLabel}
@@ -143,7 +143,7 @@ export default function ConfirmModal({
                         ref={confirmRef}
                         onClick={onConfirm}
                         disabled={isLoading || (requireInput && inputValue !== requiredText)}
-                        className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${btnColor}`}
+                        className={`px-4 py-2 text-sm font-semibold text-white rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${btnColor}`}
                         aria-label={confirmLabel}
                     >
                         {isLoading ? "Processing..." : confirmLabel}

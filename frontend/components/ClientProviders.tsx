@@ -12,8 +12,12 @@ import { AuthProvider } from "@/context/AuthContext";
 
 export default function ClientProviders({ children }: { children: ReactNode }) {
     const pathname = usePathname();
-    const isDashboard = pathname?.includes("/dashboard");
-    const forcedTheme = isDashboard ? undefined : "light";
+    const isBranchStaffDashboard =
+        Boolean(pathname?.includes("/dashboard")) &&
+        !pathname?.includes("/super-admin") &&
+        !pathname?.includes("/org-admin") &&
+        !pathname?.includes("/organization-admin");
+    const forcedTheme = isBranchStaffDashboard ? undefined : "light";
 
     useEffect(() => {
         initGlobalErrorHandlers();

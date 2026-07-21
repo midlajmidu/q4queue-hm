@@ -106,22 +106,22 @@ function NotificationSystem() {
     const dropdownContent = isOpen ? (
         <div
             ref={dropdownRef}
-            className="fixed z-[99999] w-[320px] bg-white rounded-[16px] shadow-[0_4px_24px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.05)] overflow-hidden"
+            className="fixed z-[99999] w-[320px] bg-white dark:bg-[#0b1121] rounded-[16px] shadow-[0_4px_24px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.1)] border border-gray-200 dark:border-white/10 overflow-hidden"
             style={{
                 top: dropPos.top,
                 right: dropPos.right,
             }}
         >
             {/* Header */}
-            <div className="px-4 pt-3.5 pb-2 border-b border-gray-200 bg-gray-50/50">
+            <div className="px-4 pt-3.5 pb-2 border-b border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-slate-900/50">
                 <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
-                        <span className="font-bold text-[13.5px] text-gray-900 tracking-tight">Updates</span>
+                        <span className="font-bold text-[13.5px] text-gray-900 dark:text-white tracking-tight">Updates</span>
                     </div>
                     {activeTab === "notifications" && unreadCount > 0 && (
                         <button
                             onClick={markAllAsRead}
-                            className="text-indigo-600 hover:bg-indigo-50 text-[11.5px] font-semibold px-2.5 py-1 rounded-md transition-colors"
+                            className="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-[11.5px] font-semibold px-2.5 py-1 rounded-md transition-colors"
                         >
                             Mark all read
                         </button>
@@ -131,20 +131,20 @@ function NotificationSystem() {
                 <div className="flex gap-4">
                     <button 
                         onClick={() => setActiveTab("notifications")}
-                        className={`text-[12.5px] font-semibold pb-1.5 border-b-2 transition-colors ${activeTab === "notifications" ? "border-indigo-500 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                        className={`text-[12.5px] font-semibold pb-1.5 border-b-2 transition-colors ${activeTab === "notifications" ? "border-indigo-500 text-indigo-600 dark:text-indigo-400" : "border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"}`}
                     >
                         Alerts
                         {unreadCount > 0 && (
-                            <span className="ml-1.5 bg-indigo-100 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>
+                            <span className="ml-1.5 bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-300 text-[10px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>
                         )}
                     </button>
                     <button 
                         onClick={() => setActiveTab("announcements")}
-                        className={`text-[12.5px] font-semibold pb-1.5 border-b-2 transition-colors ${activeTab === "announcements" ? "border-indigo-500 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                        className={`text-[12.5px] font-semibold pb-1.5 border-b-2 transition-colors ${activeTab === "announcements" ? "border-indigo-500 text-indigo-600 dark:text-indigo-400" : "border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"}`}
                     >
                         Announcements
                         {announcements.length > 0 && (
-                            <span className="ml-1.5 bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-full">{announcements.length}</span>
+                            <span className="ml-1.5 bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-300 text-[10px] px-1.5 py-0.5 rounded-full">{announcements.length}</span>
                         )}
                     </button>
                 </div>
@@ -157,54 +157,54 @@ function NotificationSystem() {
                         notifications.map((n) => (
                             <div
                                 key={n.id}
-                                className={`flex items-start gap-3 p-3 cursor-pointer transition-colors border-b border-gray-100 last:border-none ${!n.isRead ? "bg-indigo-50/30 hover:bg-indigo-50/50" : "hover:bg-gray-50"}`}
+                                className={`flex items-start gap-3 p-3 cursor-pointer transition-colors border-b border-gray-100 dark:border-white/5 last:border-none ${!n.isRead ? "bg-indigo-50/30 dark:bg-indigo-950/20 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/40" : "hover:bg-gray-50 dark:hover:bg-slate-800/40"}`}
                                 onClick={() => markAsRead(n.id)}
                             >
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm ${n.type === "warning" ? "bg-amber-50" : n.type === "success" ? "bg-emerald-50" : n.type === "error" ? "bg-red-50" : "bg-blue-50"}`}>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm ${n.type === "warning" ? "bg-amber-50 dark:bg-amber-950/50" : n.type === "success" ? "bg-emerald-50 dark:bg-emerald-950/50" : n.type === "error" ? "bg-red-50 dark:bg-red-950/50" : "bg-blue-50 dark:bg-blue-950/50"}`}>
                                     {notifIcons[n.type] || "ℹ️"}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className={`m-0 text-[13px] leading-snug tracking-tight ${n.isRead ? "font-medium text-gray-700" : "font-semibold text-gray-900"}`}>
+                                    <p className={`m-0 text-[13px] leading-snug tracking-tight ${n.isRead ? "font-medium text-gray-700 dark:text-slate-300" : "font-semibold text-gray-900 dark:text-white"}`}>
                                         {n.message}
                                     </p>
-                                    <p className="mt-1 text-[11px] font-medium text-gray-500">
+                                    <p className="mt-1 text-[11px] font-medium text-gray-500 dark:text-slate-400">
                                         {n.time}
                                     </p>
                                 </div>
-                                {!n.isRead && <div className="w-2 h-2 bg-indigo-500 rounded-full shrink-0 mt-1.5 shadow-[0_0_0_3px_rgba(238,242,255,1)]" />}
+                                {!n.isRead && <div className="w-2 h-2 bg-indigo-500 rounded-full shrink-0 mt-1.5 shadow-[0_0_0_3px_rgba(238,242,255,1)] dark:shadow-[0_0_0_3px_rgba(11,17,33,1)]" />}
                             </div>
                         ))
                     ) : (
-                        <div className="py-12 px-5 text-center text-gray-500">
-                            <div className="w-12 h-12 rounded-xl bg-gray-100 inline-flex items-center justify-center mb-3.5">
-                                <Icons.Bell size={22} className="text-gray-400" />
+                        <div className="py-12 px-5 text-center text-gray-500 dark:text-slate-400">
+                            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-slate-800 inline-flex items-center justify-center mb-3.5">
+                                <Icons.Bell size={22} className="text-gray-400 dark:text-slate-400" />
                             </div>
-                            <p className="m-0 text-[13.5px] font-semibold text-gray-600">All caught up!</p>
-                            <p className="mt-1 text-[12px] text-gray-400">No new alerts</p>
+                            <p className="m-0 text-[13.5px] font-semibold text-gray-600 dark:text-slate-200">All caught up!</p>
+                            <p className="mt-1 text-[12px] text-gray-400 dark:text-slate-400">No new alerts</p>
                         </div>
                     )
                 )}
 
                 {activeTab === "announcements" && (
                     isLoadingAnnouncements ? (
-                        <div className="py-12 px-5 flex justify-center text-gray-400">Loading...</div>
+                        <div className="py-12 px-5 flex justify-center text-gray-400 dark:text-slate-400">Loading...</div>
                     ) : announcements.length > 0 ? (
                         announcements.map((a) => (
-                            <div key={a.id} className="flex items-start gap-3 p-3 border-b border-gray-100 last:border-none hover:bg-gray-50 transition-colors">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm ${(a as any).type === "warning" ? "bg-amber-50" : (a as any).type === "success" ? "bg-emerald-50" : (a as any).type === "error" ? "bg-red-50" : "bg-blue-50"}`}>
+                            <div key={a.id} className="flex items-start gap-3 p-3 border-b border-gray-100 dark:border-white/5 last:border-none hover:bg-gray-50 dark:hover:bg-slate-800/40 transition-colors">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm ${(a as any).type === "warning" ? "bg-amber-50 dark:bg-amber-950/50" : (a as any).type === "success" ? "bg-emerald-50 dark:bg-emerald-950/50" : (a as any).type === "error" ? "bg-red-50 dark:bg-red-950/50" : "bg-blue-50 dark:bg-blue-950/50"}`}>
                                     {notifIcons[(a as any).type] || "📣"}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="m-0 text-[13px] font-semibold leading-snug tracking-tight text-gray-900">
+                                    <p className="m-0 text-[13px] font-semibold leading-snug tracking-tight text-gray-900 dark:text-white">
                                         {(a as any).title ? (a as any).title : (a as any).message}
                                     </p>
                                     {(a as any).title && (
-                                        <p className="m-0 text-[12px] text-gray-600 mt-0.5">
+                                        <p className="m-0 text-[12px] text-gray-600 dark:text-slate-300 mt-0.5">
                                             {(a as any).message}
                                         </p>
                                     )}
-                                    <p className="mt-1 text-[11px] font-medium text-gray-500 flex items-center gap-1.5">
-                                        <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider ${(a as any).source === 'Organization' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                                    <p className="mt-1 text-[11px] font-medium text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider ${(a as any).source === 'Organization' ? 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
                                             {(a as any).source}
                                         </span>
                                         • {new Date(a.created_at).toLocaleDateString()}
@@ -213,23 +213,23 @@ function NotificationSystem() {
                             </div>
                         ))
                     ) : (
-                        <div className="py-12 px-5 text-center text-gray-500">
-                            <div className="w-12 h-12 rounded-xl bg-gray-100 inline-flex items-center justify-center mb-3.5">
+                        <div className="py-12 px-5 text-center text-gray-500 dark:text-slate-400">
+                            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-slate-800 inline-flex items-center justify-center mb-3.5">
                                 <span className="text-xl">📣</span>
                             </div>
-                            <p className="m-0 text-[13.5px] font-semibold text-gray-600">No Announcements</p>
-                            <p className="mt-1 text-[12px] text-gray-400">You're all caught up!</p>
+                            <p className="m-0 text-[13.5px] font-semibold text-gray-600 dark:text-slate-200">No Announcements</p>
+                            <p className="mt-1 text-[12px] text-gray-400 dark:text-slate-400">You're all caught up!</p>
                         </div>
                     )
                 )}
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-gray-200 bg-gray-50/50 text-center">
+            <div className="p-3 border-t border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-slate-900/50 text-center">
                 <Link
                     href={`${dashBase}/notifications`}
                     onClick={() => setIsOpen(false)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[12.5px] font-semibold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[12.5px] font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
                 >
                     View All Notifications
                     <Icons.ArrowRight size={14} />
@@ -242,13 +242,13 @@ function NotificationSystem() {
         <>
             <button
                 ref={btnRef}
-                className={`relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors focus:outline-none`}
+                className={`relative p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none`}
                 onClick={toggleOpen}
                 aria-label="Updates"
             >
                 <Icons.Bell size={20} />
                 {(unreadCount > 0 || announcements.length > 0) && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_0_2px_#fff]" />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_0_2px_#fff] dark:shadow-[0_0_0_2px_#0b1121]" />
                 )}
             </button>
             {typeof document !== "undefined" && createPortal(dropdownContent, document.body)}
@@ -294,6 +294,12 @@ export function TopBar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
     const pathname = usePathname();
     const { user } = useAuth();
 
+    const isBranchStaffDashboard =
+        Boolean(pathname?.includes("/dashboard")) &&
+        !pathname?.includes("/super-admin") &&
+        !pathname?.includes("/org-admin") &&
+        !pathname?.includes("/organization-admin");
+
     // Simple breadcrumb logic based on pathname segments
     const segments = pathname.split("/").filter(Boolean);
     const dashIndex = segments.indexOf("dashboard");
@@ -318,7 +324,7 @@ export function TopBar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
                 <button
                     onClick={onOpenMobileMenu}
                     className="lg:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-md focus:outline-none transition-colors"
-                    aria-label="Open menu"
+                    aria-label="Open sidebar"
                 >
                     <Icons.Menu size={20} />
                 </button>
@@ -339,7 +345,7 @@ export function TopBar({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) 
             <div className="flex items-center gap-3 sm:gap-4">
                 <LiveClock />
                 <div className="w-px h-5 bg-gray-200 dark:bg-white/10 hidden md:block mx-1" />
-                {/* <ThemeToggle /> */}
+                {isBranchStaffDashboard && <ThemeToggle />}
                 <NotificationSystem />
 
             </div>

@@ -100,37 +100,39 @@ function StatCard({ label, value, sub, color, icon }: {
 
 function StatusBadge({ status }: { status: string }) {
     const s = status.toLowerCase();
-    type Style = { bg: string; color: string; border: string; label: string };
-    const map: Record<string, Style> = {
-        done: { bg: "var(--q-green-bg)", color: "var(--q-green)", border: "var(--q-green-border)", label: "Done" },
-        serving: { bg: "var(--q-blue-bg)", color: "var(--q-blue)", border: "var(--q-blue-border)", label: "Serving" },
-        waiting: { bg: "var(--q-amber-bg)", color: "var(--q-amber)", border: "var(--q-amber-border)", label: "Waiting" },
-        deleted: { bg: "var(--q-red-bg)", color: "var(--q-red)", border: "var(--q-red-border)", label: "Cancelled" },
-        skipped: { bg: "#fdf4ff", color: "#c026d3", border: "#f5d0fe", label: "Skipped" },
+    const map: Record<string, { className: string; label: string }> = {
+        done: { className: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/40", label: "Done" },
+        serving: { className: "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/40", label: "Serving" },
+        waiting: { className: "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/40", label: "Waiting" },
+        deleted: { className: "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900/40", label: "Cancelled" },
+        skipped: { className: "bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-900/40", label: "Skipped" },
     };
-    const st = map[s] ?? { bg: "var(--q-slate-bg)", color: "var(--q-text-muted)", border: "var(--q-border)", label: status };
+    const st = map[s] ?? { className: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700", label: status };
     return (
-        <span style={{
-            display: "inline-flex", alignItems: "center", padding: "3px 9px",
-            borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
-            background: st.bg, color: st.color, border: `0.5px solid ${st.border}`,
-        }}>{st.label}</span>
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${st.className}`}>
+            {st.label}
+        </span>
     );
 }
 
 function WaitTimeBadge({ seconds }: { seconds: number }) {
-    if (seconds < 0) return <span style={{ color: "var(--q-text-muted)" }}>—</span>;
-    const color = seconds > 900 ? "#ef4444" : seconds > 300 ? "#d97706" : "#059669";
-    const bg = seconds > 900 ? "#fef2f2" : seconds > 300 ? "#fffbeb" : "#f0fdf4";
+    if (seconds < 0) return <span className="text-slate-400 dark:text-slate-500">—</span>;
+    const isRed = seconds > 900;
+    const isAmber = seconds > 300;
+    
+    const className = isRed 
+        ? "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900/40" 
+        : isAmber 
+        ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/40" 
+        : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/40";
+        
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     const label = m > 0 ? `${m}m ${s}s` : `${s}s`;
     return (
-        <span className="tabular-nums" style={{
-            display: "inline-flex", alignItems: "center", padding: "2px 8px",
-            borderRadius: 6, fontSize: 12, fontWeight: 600,
-            background: bg, color,
-        }}>{label}</span>
+        <span className={`tabular-nums inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border ${className}`}>
+            {label}
+        </span>
     );
 }
 
@@ -437,8 +439,8 @@ export default function HistoryPage() {
                 >
                     {/* Live indicator */}
                     <div style={{ marginLeft: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#ecfdf5", color: "#059669", padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, letterSpacing: ".05em" }}>
-                            <div style={{ width: 6, height: 6, background: "#059669", borderRadius: "50%", animation: "pulse 2s infinite" }} />
+                        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-900/40">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             LIVE
                         </div>
                         {updatedLabel && (
@@ -562,9 +564,21 @@ export default function HistoryPage() {
                                                 {/* Entry method */}
                                                 <td style={tdStyle}>
                                                     {h.called_via_invite ? (
-                                                        <span style={{ fontSize: 11, background: "#fdf4ff", color: "#c026d3", padding: "2px 7px", borderRadius: 5, border: "1px solid #f5d0fe", fontWeight: 600 }}>Invited</span>
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-900/40">Invited</span>
+                                                    ) : (h.entry_type === "manual" || h.entry_type === "auto") ? (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/40">
+                                                            {h.entry_type === "manual" ? "Manual" : "Auto"}
+                                                        </span>
                                                     ) : (
-                                                        <span style={{ fontSize: 11, background: "var(--q-slate-bg)", color: "var(--q-text-muted)", padding: "2px 7px", borderRadius: 5, border: "1px solid var(--q-border-light)", fontWeight: 600 }}>Walk-in</span>
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200/80 dark:border-cyan-900/40">
+                                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                <rect x="3" y="3" width="7" height="7"/>
+                                                                <rect x="14" y="3" width="7" height="7"/>
+                                                                <rect x="14" y="14" width="7" height="7"/>
+                                                                <rect x="3" y="14" width="7" height="7"/>
+                                                            </svg>
+                                                            QR
+                                                        </span>
                                                     )}
                                                 </td>
                                                 {/* Status */}
@@ -576,9 +590,9 @@ export default function HistoryPage() {
                                                 {/* Called */}
                                                 <td className="tabular-nums" style={{ ...tdStyle, color: "var(--q-text-muted)", fontSize: 12, whiteSpace: "nowrap" }}>
                                                     {h.skipped_at && !h.served_at ? (
-                                                        <span title={`Skipped at ${formatFullTime(h.skipped_at)}`} style={{ color: "#c026d3" }}>Skipped {formatTime(h.skipped_at)}</span>
+                                                        <span title={`Skipped at ${formatFullTime(h.skipped_at)}`} className="text-purple-600 dark:text-purple-400">Skipped {formatTime(h.skipped_at)}</span>
                                                     ) : h.recalled_at ? (
-                                                        <span title={`Recalled at ${formatFullTime(h.recalled_at)}`}>{formatTime(h.served_at)} <span style={{ color: "#6366f1", fontSize: 10, fontWeight: 600 }}>(recalled)</span></span>
+                                                        <span title={`Recalled at ${formatFullTime(h.recalled_at)}`}>{formatTime(h.served_at)} <span className="text-sky-500 dark:text-sky-400 text-[10px] font-semibold">(recalled)</span></span>
                                                     ) : formatTime(h.served_at)}
                                                 </td>
                                                 {/* Wait Time */}
@@ -615,9 +629,7 @@ export default function HistoryPage() {
                                                             completed_by_staff_name: h.completed_by_staff_name,
                                                         })}
                                                         title="View full details"
-                                                        style={{ padding: "5px 8px", background: "transparent", border: "1px solid var(--q-border-light)", borderRadius: 7, cursor: "pointer", color: "var(--q-text-muted)", transition: "all .15s", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600 }}
-                                                        onMouseEnter={e => { e.currentTarget.style.color = "#4f46e5"; e.currentTarget.style.borderColor = "#4f46e5"; e.currentTarget.style.background = "#eef2ff"; }}
-                                                        onMouseLeave={e => { e.currentTarget.style.color = "var(--q-text-muted)"; e.currentTarget.style.borderColor = "var(--q-border-light)"; e.currentTarget.style.background = "transparent"; }}
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-colors"
                                                     >
                                                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                         Details

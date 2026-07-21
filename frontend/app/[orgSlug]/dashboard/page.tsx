@@ -1083,11 +1083,11 @@ export default function OverviewPage() {
 
           {/* ══ ERROR ════════════════════════════════════════════ */}
           {error && (
-            <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: C.redBg, border: `1px solid #fecaca`, color: "#b91c1c", padding: "12px 18px", borderRadius: 10 }}>
+            <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: C.redBg, border: `1px solid ${C.redBorder}`, color: C.red, padding: "12px 18px", borderRadius: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13.5, fontWeight: 500 }}>
-                <Icons.AlertCircle size={16} color="#ef4444" /> {error}
+                <Icons.AlertCircle size={16} color={C.red} /> {error}
               </div>
-              <button onClick={() => loadData(false)} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "6px 12px", background: "#fff", color: "#b91c1c", border: "#e5e7eb", borderRadius: 7, cursor: "pointer" }}>
+              <button onClick={() => loadData(false)} className="hover:opacity-80 transition-opacity" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "6px 12px", background: C.cardBg, color: C.red, border: `1px solid ${C.redBorder}`, borderRadius: 7, cursor: "pointer" }}>
                 <Icons.RefreshCw size={12} color="currentColor" /> Retry
               </button>
             </div>
@@ -1157,14 +1157,14 @@ export default function OverviewPage() {
             <div className="section-label" style={{ marginBottom: 14 }}>Staff Presence</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
               {staff.length === 0 ? (
-                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex justify-between items-center w-full">
+                <div className="bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 p-4 rounded-xl flex justify-between items-center w-full">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
                       <Icons.Users size={16} color="currentColor" />
                     </div>
-                    <span className="text-[14px] font-semibold text-blue-900">Track your team's live performance.</span>
+                    <span className="text-[14px] font-semibold text-blue-900 dark:text-blue-200">Track your team's live performance.</span>
                   </div>
-                  <Link href={`${dashBase}/staff`} className="qa-btn text-[13px] hover:bg-slate-50 transition-colors" style={{ background: "#fff", color: C.brand, borderColor: C.brandBorder, padding: "6px 12px" }}>
+                  <Link href={`${dashBase}/staff`} className="qa-btn text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 shadow-sm">
                     <Icons.UserPlus size={13} color="currentColor" /> Add Staff Member
                   </Link>
                 </div>
@@ -1328,7 +1328,7 @@ export default function OverviewPage() {
                     <div className="p-4" style={{ background: "var(--q-slate-bg)" }}>
                       <div className="flex justify-between items-center mb-3">
                         <span style={{ fontWeight: 700, fontSize: 11, color: C.textMuted, textTransform: "uppercase", letterSpacing: ".05em" }}>Overall Total</span>
-                        <div className="flex items-center gap-1.5 bg-white px-2.5 py-0.5 rounded-md border border-black/5 shadow-sm">
+                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2.5 py-0.5 rounded-md border border-black/5 dark:border-white/10 shadow-sm">
                           <span style={{ fontSize: 10, fontWeight: 600, color: C.textMuted, textTransform: "uppercase" }}>Total</span>
                           <span className="mono tnum" style={{ fontSize: 14, fontWeight: 800, color: C.brand }}>{grandTotal}</span>
                         </div>
@@ -1345,7 +1345,7 @@ export default function OverviewPage() {
                         <div className="flex-1 flex flex-col items-end gap-1">
                           <span style={{ fontSize: 10, fontWeight: 600, color: C.textMuted, textTransform: "uppercase" }}>Overall Progress</span>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", maxWidth: 100, justifyContent: "flex-end" }}>
-                            <div style={{ flex: 1, height: 5, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
+                            <div className="bg-slate-200 dark:bg-slate-700" style={{ flex: 1, height: 5, borderRadius: 99, overflow: "hidden" }}>
                               <div style={{ height: "100%", width: `${overallPct}%`, borderRadius: 99, background: C.brand }} />
                             </div>
                             <span className="mono tnum" style={{ fontSize: 11, fontWeight: 600, color: C.textMuted }}>{overallPct}%</span>
@@ -1397,27 +1397,27 @@ export default function OverviewPage() {
                     ].map(t => {
                       const isActive = feedFilter === t.id;
                       
-                      let baseColors = "text-slate-600 hover:bg-slate-100 hover:text-slate-900 border-transparent";
-                      let activeColors = "bg-white border-slate-200 text-slate-900 shadow-sm";
-                      let badgeColors = "bg-slate-100 text-slate-500 group-hover:bg-slate-200";
-                      let badgeActiveColors = "bg-slate-100 text-slate-600";
+                      let baseColors = "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 border-transparent";
+                      let activeColors = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white shadow-sm";
+                      let badgeColors = "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700";
+                      let badgeActiveColors = "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300";
 
                       if (t.id === "waiting") {
-                        activeColors = "bg-amber-50 border-amber-200 text-amber-700 shadow-sm";
-                        badgeActiveColors = "bg-amber-100 text-amber-700";
-                        badgeColors = "bg-slate-100 text-slate-500 group-hover:bg-amber-100 group-hover:text-amber-700";
+                        activeColors = "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-400 shadow-sm";
+                        badgeActiveColors = "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300";
+                        badgeColors = "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/40 group-hover:text-amber-700 dark:group-hover:text-amber-300";
                       } else if (t.id === "serving") {
-                        activeColors = "bg-blue-50 border-blue-200 text-blue-700 shadow-sm";
-                        badgeActiveColors = "bg-blue-100 text-blue-700";
-                        badgeColors = "bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-700";
+                        activeColors = "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/40 text-blue-700 dark:text-blue-400 shadow-sm";
+                        badgeActiveColors = "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300";
+                        badgeColors = "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 group-hover:text-blue-700 dark:group-hover:text-blue-300";
                       } else if (t.id === "done") {
-                        activeColors = "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm";
-                        badgeActiveColors = "bg-emerald-100 text-emerald-700";
-                        badgeColors = "bg-slate-100 text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-700";
+                        activeColors = "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-sm";
+                        badgeActiveColors = "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300";
+                        badgeColors = "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/40 group-hover:text-emerald-700 dark:group-hover:text-emerald-300";
                       } else if (t.id === "all" && isActive) {
-                        activeColors = "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm";
-                        badgeActiveColors = "bg-indigo-100 text-indigo-700";
+                        activeColors = "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900/40 text-indigo-700 dark:text-indigo-400 shadow-sm";
                       }
+
 
                       return (
                         <button
@@ -1648,7 +1648,7 @@ function MetricCard({
 
   if (isLoading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <div className="shim" style={{ width: "40%", height: 12, borderRadius: 4 }} />
           <div className="shim" style={{ width: 36, height: 36, borderRadius: 10 }} />
@@ -1659,15 +1659,30 @@ function MetricCard({
     );
   }
 
+  const isIndigo = color === "#4f46e5" || color === "#6366f1";
+  const isBlue = color === "#2563eb" || color === "#3b82f6";
+  const isGreen = color === "#059669" || color === "#10b981" || color === "#16a34a";
+  const isRed = color === "#dc2626" || color === "#ef4444";
+
+  const containerDarkClass = isIndigo ? "dark:!bg-indigo-500/15 dark:!border-indigo-500/30"
+    : isBlue ? "dark:!bg-blue-500/15 dark:!border-blue-500/30"
+    : isGreen ? "dark:!bg-emerald-500/15 dark:!border-emerald-500/30"
+    : isRed ? "dark:!bg-rose-500/15 dark:!border-rose-500/30"
+    : "dark:!bg-white/10 dark:!border-white/15";
+
+  const iconDarkClass = isIndigo ? "dark:!text-indigo-400"
+    : isBlue ? "dark:!text-blue-400"
+    : isGreen ? "dark:!text-emerald-400"
+    : isRed ? "dark:!text-rose-400"
+    : "dark:!text-slate-300";
+
   return (
     <div 
-      className="bg-white rounded-2xl transition-all duration-300 relative overflow-hidden" 
+      className="bg-white dark:bg-slate-900/60 dark:backdrop-blur-xl rounded-2xl transition-all duration-300 relative overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm" 
       style={{ 
         padding: "24px", 
         display: "flex", 
         flexDirection: "column",
-        border: "1px solid #e2e8f0",
-        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.5)"
       }}
     >
       {/* Static Gradient Wave Background (Clean & Legible) */}
@@ -1701,38 +1716,29 @@ function MetricCard({
       {/* Header: Label & Icon */}
       <div className="relative z-10 flex items-start justify-between gap-3 mb-4" style={{ minHeight: 44 }}>
         <span 
-          className="font-semibold leading-tight" 
-          style={{ color: muted ? "#94a3b8" : "#475569", fontSize: 13, letterSpacing: "0.01em", paddingTop: 2 }}
+          className="font-semibold leading-tight text-slate-600 dark:text-slate-400 text-[13px] tracking-tight pt-[2px]" 
         >
           {label}
         </span>
         <div 
-          className="shrink-0 flex items-center justify-center relative shadow-sm transition-transform duration-300 group-hover:scale-105" 
-          style={{ width: 38, height: 38, background: bg, border: `1px solid ${border}`, borderRadius: 10 }}
+          className={`shrink-0 flex items-center justify-center relative shadow-sm transition-transform duration-300 group-hover:scale-105 ${containerDarkClass} ${iconDarkClass}`} 
+          style={{ width: 38, height: 38, background: bg, border: `1px solid ${border}`, borderRadius: 10, color: color }}
         >
           {pulse && (
-            <span className="absolute w-2.5 h-2.5 rounded-full" style={{ top: -2, right: -2, background: color, boxShadow: `0 0 0 2.5px white` }} />
+            <span className="absolute w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-slate-900" style={{ top: -2, right: -2, background: color }} />
           )}
-          <Icon size={18} color={color} />
+          <Icon size={18} color="currentColor" />
         </div>
       </div>
 
       {/* Value */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8, position: "relative", zIndex: 10 }}>
         <span 
-          className="mono tnum tracking-tight" 
-          style={{ 
-            fontSize: 36, 
-            fontWeight: 800, 
-            lineHeight: 1,
-            background: muted ? "#94a3b8" : "linear-gradient(135deg, #0f172a 0%, #334155 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent"
-          }}
+          className="mono tnum tracking-tight text-[36px] font-extrabold leading-none text-slate-900 dark:text-white" 
         >
           {value.toLocaleString()}
         </span>
-        {suffix && <span style={{ fontSize: 18, fontWeight: 600, color: muted ? "#94a3b8" : "#64748b" }}>{suffix}</span>}
+        {suffix && <span className="text-[18px] font-semibold text-slate-500 dark:text-slate-400">{suffix}</span>}
       </div>
 
       {/* Footer: Trend & Subtext */}
@@ -1743,18 +1749,18 @@ function MetricCard({
               {trend.up ? <Icons.TrendingUp size={14} strokeWidth={2.5} /> : <Icons.TrendingDown size={14} strokeWidth={2.5} />}
               <span className="tnum" style={{ fontWeight: 700 }}>{trend.pct}%</span>
             </div>
-            <span style={{ color: "#64748b", fontWeight: 500 }}>{comparisonLabel || "vs last session"}</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">{comparisonLabel || "vs last session"}</span>
           </div>
         ) : (
           comparisonLabel ? (
-            <div style={{ fontSize: 13, color: "#64748b", fontWeight: 500, height: 26, display: "flex", alignItems: "center" }}>
+            <div className="text-slate-500 dark:text-slate-400 font-medium text-[13px] h-[26px] flex items-center">
               {comparisonLabel}
             </div>
           ) : null
         )}
         
         {subtext && (
-          <div style={{ fontSize: 12, color: muted ? "#94a3b8" : "#64748b", fontWeight: 600 }}>
+          <div className="text-[12px] text-slate-500 dark:text-slate-400 font-semibold">
             {subtext}
           </div>
         )}
@@ -1823,7 +1829,7 @@ function TimingPanel({ title, avg, max, barPct, warning, iconBg, iconColor, barC
       </div>
 
       {/* Progress bar */}
-      <div style={{ background: "#f1f5f9", borderRadius: 99, overflow: "hidden", height: 4 }}>
+      <div className="bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden h-1">
         <div style={{
           width: `${barPct}%`, height: "100%", borderRadius: 99,
           background: barColor,
@@ -1844,7 +1850,7 @@ function SmartInsightCard({
 }) {
   return (
     <div style={{
-      background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10,
+      background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 10,
       borderLeft: `3px solid ${iconColor}`,
       overflow: "hidden",
     }}>

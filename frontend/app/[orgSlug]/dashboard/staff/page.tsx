@@ -93,27 +93,19 @@ function Avatar({ email, firstName, lastName }: { email: string; firstName?: str
 
 type PresenceState = "online" | "idle" | "offline" | { serving: string };
 
-function StatusBadge({ active, presence }: { active: boolean; presence?: PresenceState }) {
+function StatusBadge({ active }: { active: boolean; presence?: PresenceState }) {
   if (!active) {
     return (
-      <span style={{
-        display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px",
-        borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
-        background: "#f8fafc", color: "#64748b", border: `0.5px solid #e2e8f0`,
-      }}>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", flexShrink: 0 }} />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
         Inactive
       </span>
     );
   }
 
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px",
-      borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
-      background: "#ecfdf5", color: "#059669", border: `0.5px solid #a7f3d0`,
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#059669", flexShrink: 0 }} />
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
       Active
     </span>
   );
@@ -122,13 +114,11 @@ function StatusBadge({ active, presence }: { active: boolean; presence?: Presenc
 function RoleBadge({ role }: { role: string }) {
   const isAdmin = role === "admin";
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", padding: "3px 9px",
-      borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
-      background: isAdmin ? "#eef2ff" : "#f8fafc",
-      color: isAdmin ? "#4f46e5" : "#64748b",
-      border: `0.5px solid ${isAdmin ? "#c7d2fe" : "#e2e8f0"}`,
-    }}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+      isAdmin 
+        ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/40" 
+        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+    }`}>
       {isAdmin ? "Admin" : "Staff"}
     </span>
   );
@@ -233,161 +223,122 @@ function StaffModal({ mode, member, onClose, onSaved }: {
     }
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", height: 42, borderRadius: 10, border: "0.5px solid #e2e8f0",
-    padding: "0 14px", fontSize: 14, fontWeight: 500,
-    color: "#0f172a", background: "#fafbfe", outline: "none", transition: "border-color .15s, box-shadow .15s",
-  };
-
-  const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: 11, fontWeight: 700, color: "#94a3b8",
-    textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8,
-  };
+  const inputCls = "w-full h-10 px-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all";
+  const labelCls = "block text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2";
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} role="dialog" aria-modal="true">
-      <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,41,.45)", backdropFilter: "blur(4px)" }} onClick={onClose} />
-      <div style={{
-        position: "relative", width: "100%", maxWidth: 430,
-        background: "#ffffff", borderRadius: 20,
-        boxShadow: "0 24px 48px rgba(0,0,0,.12), 0 0 0 0.5px rgba(0,0,0,.06)",
-        overflow: "hidden",
-      }}>
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-[430px] bg-white dark:bg-slate-900 rounded-[24px] border border-transparent dark:border-white/10 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "0.5px solid #f1f5f9", background: "#fafbfe" }}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/50">
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", letterSpacing: "-.02em" }}>{isEdit ? "Edit staff member" : "Add staff member"}</h2>
-            <p style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}>{isEdit ? `Editing ${member?.email}` : "Create a new team account"}</p>
+            <h2 className="text-[16px] font-bold text-slate-900 dark:text-white tracking-tight">{isEdit ? "Edit staff member" : "Add staff member"}</h2>
+            <p className="text-[13px] text-slate-400 dark:text-slate-400 mt-0.5">{isEdit ? `Editing ${member?.email}` : "Create a new team account"}</p>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, border: "0.5px solid #e2e8f0", borderRadius: 8, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </button>
         </div>
 
         {/* Modal Body */}
-        <form onSubmit={handleSubmit} style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 18 }} noValidate>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-white dark:bg-slate-900" noValidate>
           {fieldError && (
-            <div style={{ background: "#fef2f2", color: "#b91c1c", fontSize: 13, fontWeight: 500, padding: "12px 14px", borderRadius: 10, border: "0.5px solid #fecaca", display: "flex", gap: 10, alignItems: "flex-start" }}>
-              <svg width={16} height={16} style={{ flexShrink: 0, marginTop: 1 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" /></svg>
+            <div className="bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-xs font-semibold p-3.5 rounded-xl border border-rose-200 dark:border-rose-900/40 flex gap-2.5 items-start">
+              <svg width={16} height={16} className="shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" /></svg>
               {fieldError}
             </div>
           )}
 
           {/* Name fields */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div className="grid grid-cols-2 gap-3.5">
             <div>
-              <label style={labelStyle}>First name <span style={{ color: "#ef4444" }}>*</span></label>
+              <label className={labelCls}>First name <span className="text-rose-500">*</span></label>
               <input
                 type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
                 required disabled={isSaving} placeholder="Jane"
-                style={inputStyle}
-                onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
-                onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }}
+                className={inputCls}
               />
             </div>
             <div>
-              <label style={labelStyle}>Last name <span style={{ color: "#ef4444" }}>*</span></label>
+              <label className={labelCls}>Last name <span className="text-rose-500">*</span></label>
               <input
                 type="text" value={lastName} onChange={e => setLastName(e.target.value)}
                 required disabled={isSaving} placeholder="Smith"
-                style={inputStyle}
-                onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
-                onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }}
+                className={inputCls}
               />
             </div>
           </div>
 
           {/* Email */}
           <div>
-            <label style={labelStyle}>Email address <span style={{ color: "#ef4444" }}>*</span></label>
+            <label className={labelCls}>Email address <span className="text-rose-500">*</span></label>
             <input
               type="email" value={email} onChange={e => setEmail(e.target.value)}
               required disabled={isSaving} placeholder="jane@clinic.com"
-              style={inputStyle}
-              onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
-              onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }}
+              className={inputCls}
             />
           </div>
 
-
-
           {/* Status Toggle (edit only) */}
           {isEdit && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fafbfe", border: "0.5px solid #f1f5f9", borderRadius: 10, padding: "12px 14px" }}>
+            <div className="flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/10 rounded-xl p-3.5">
               <div>
-                <p style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>Account status</p>
-                <p style={{ fontSize: 12.5, color: "#94a3b8", marginTop: 2 }}>{isActive ? "User can log in" : "Access revoked"}</p>
+                <p className="text-[13.5px] font-semibold text-slate-900 dark:text-white">Account status</p>
+                <p className="text-[12.5px] text-slate-400 dark:text-slate-400 mt-0.5">{isActive ? "User can log in" : "Access revoked"}</p>
               </div>
               <button
                 type="button" role="switch" aria-checked={isActive}
                 onClick={() => setIsActive(!isActive)} disabled={isSaving}
-                style={{ width: 44, height: 24, borderRadius: 99, border: "none", cursor: "pointer", padding: 2, background: isActive ? "#4f46e5" : "#e2e8f0", transition: "background .2s", position: "relative" }}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer duration-300 ${isActive ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"}`}
               >
-                <span style={{
-                  display: "block", width: 20, height: 20, borderRadius: "50%", background: "#fff",
-                  boxShadow: "0 1px 3px rgba(0,0,0,.15)", transition: "transform .2s",
-                  transform: isActive ? "translateX(20px)" : "translateX(0)",
-                }} />
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 shadow-sm ${isActive ? "translate-x-6" : "translate-x-1"}`} />
               </button>
             </div>
           )}
 
           {/* Password (create) */}
           {!isEdit && (
-            <>
-              <div style={{ borderTop: "0.5px solid #f1f5f9", paddingTop: 4 }}>
-                <p style={{ ...labelStyle, marginBottom: 16 }}>Set password</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  <div>
-                    <label style={{ ...labelStyle, display: "flex", justifyContent: "space-between" }}>
-                      <span>Password <span style={{ color: "#ef4444" }}>*</span></span>
-                      <span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "#cbd5e1" }}>min 8 chars</span>
-                    </label>
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={isSaving} placeholder="••••••••" style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
-                      onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Confirm password <span style={{ color: "#ef4444" }}>*</span></label>
-                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required disabled={isSaving} placeholder="••••••••" style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
-                      onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }} />
-                  </div>
-                </div>
+            <div className="pt-2 border-t border-slate-100 dark:border-white/10 space-y-3.5">
+              <p className={labelCls}>Set password</p>
+              <div>
+                <label className={`${labelCls} flex justify-between`}>
+                  <span>Password <span className="text-rose-500">*</span></span>
+                  <span className="font-normal normal-case tracking-normal text-slate-400 dark:text-slate-500">min 8 chars</span>
+                </label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={isSaving} placeholder="••••••••" className={inputCls} />
               </div>
-            </>
-          )}
-
-          {/* Reset Password (edit) */}
-          {isEdit && (
-            <div style={{ borderTop: "0.5px solid #f1f5f9", paddingTop: 4 }}>
-              <p style={{ ...labelStyle, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-                Reset password
-                <span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "#cbd5e1", fontSize: 11 }}>optional</span>
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div>
-                  <label style={labelStyle}>New password</label>
-                  <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} disabled={isSaving} placeholder="Leave blank to keep current" style={inputStyle}
-                    onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
-                    onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }} />
-                </div>
-                {newPassword && (
-                  <div>
-                    <label style={labelStyle}>Confirm new password</label>
-                    <input type="password" value={confirmNew} onChange={e => setConfirmNew(e.target.value)} disabled={isSaving} placeholder="••••••••" style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(129,140,248,.12)"; e.currentTarget.style.background = "#fff"; }}
-                      onBlur={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#fafbfe"; }} />
-                  </div>
-                )}
+              <div>
+                <label className={labelCls}>Confirm password <span className="text-rose-500">*</span></label>
+                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required disabled={isSaving} placeholder="••••••••" className={inputCls} />
               </div>
             </div>
           )}
 
+          {/* Reset Password (edit) */}
+          {isEdit && (
+            <div className="pt-2 border-t border-slate-100 dark:border-white/10 space-y-3.5">
+              <p className={`${labelCls} flex items-center gap-2`}>
+                Reset password
+                <span className="font-normal normal-case tracking-normal text-slate-400 dark:text-slate-500 text-[11px]">optional</span>
+              </p>
+              <div>
+                <label className={labelCls}>New password</label>
+                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} disabled={isSaving} placeholder="Leave blank to keep current" className={inputCls} />
+              </div>
+              {newPassword && (
+                <div>
+                  <label className={labelCls}>Confirm new password</label>
+                  <input type="password" value={confirmNew} onChange={e => setConfirmNew(e.target.value)} disabled={isSaving} placeholder="••••••••" className={inputCls} />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Actions */}
-          <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-            <button type="button" onClick={onClose} disabled={isSaving} style={{ flex: 1, height: 42, fontSize: 13.5, fontWeight: 600, color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0", borderRadius: 10, cursor: "pointer" }}>Cancel</button>
-            <button type="submit" disabled={isSaving} style={{ flex: 1.5, height: 42, fontSize: 13.5, fontWeight: 600, color: "#fff", background: isSaving ? "#a5b4fc" : "#4f46e5", border: "none", borderRadius: 10, cursor: isSaving ? "not-allowed" : "pointer", transition: "background .15s" }}>
+          <div className="flex gap-2.5 pt-2">
+            <button type="button" onClick={onClose} disabled={isSaving} className="flex-1 h-10 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-[13.5px] font-semibold transition-colors">Cancel</button>
+            <button type="submit" disabled={isSaving} className="flex-[1.5] h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[13.5px] font-semibold transition-colors shadow-sm disabled:opacity-50">
               {isSaving ? "Saving…" : isEdit ? "Save changes" : "Create staff"}
             </button>
           </div>
@@ -403,24 +354,24 @@ function ConfirmDeactivateModal({ member, onClose, onConfirm, isLoading }: {
   member: StaffMember; onClose: () => void; onConfirm: () => void; isLoading: boolean;
 }) {
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} role="dialog" aria-modal="true">
-      <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,41,.45)", backdropFilter: "blur(4px)" }} onClick={!isLoading ? onClose : undefined} />
-      <div style={{ position: "relative", width: "100%", maxWidth: 400, background: "#fff", borderRadius: 20, boxShadow: "0 24px 48px rgba(0,0,0,.12), 0 0 0 0.5px rgba(0,0,0,.06)", padding: 28 }}>
-        <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
-          <div style={{ width: 46, height: 46, borderRadius: "50%", background: "#fef2f2", border: "0.5px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><path d="M12 9v4m0 4h.01" /></svg>
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={!isLoading ? onClose : undefined} />
+      <div className="relative w-full max-w-[400px] bg-white dark:bg-slate-900 rounded-[24px] border border-transparent dark:border-white/10 shadow-2xl p-7">
+        <div className="flex gap-4 mb-5">
+          <div className="w-11 h-11 rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/40 flex items-center justify-center shrink-0">
+            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-rose-600 dark:text-rose-400" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><path d="M12 9v4m0 4h.01" /></svg>
           </div>
           <div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", letterSpacing: "-.02em" }}>Deactivate staff?</h2>
-            <p style={{ fontSize: 13.5, color: "#64748b", marginTop: 4, lineHeight: 1.5 }}>This user will immediately lose access to the dashboard.</p>
+            <h2 className="text-[17px] font-bold text-slate-900 dark:text-white tracking-tight">Deactivate staff?</h2>
+            <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">This user will immediately lose access to the dashboard.</p>
           </div>
         </div>
-        <div style={{ background: "#fafbfe", border: "0.5px solid #f1f5f9", borderRadius: 10, padding: "12px 14px", marginBottom: 22 }}>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>{member.email}</span>
+        <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-white/10 rounded-xl p-3.5 mb-6">
+          <span className="text-[13.5px] font-semibold text-slate-900 dark:text-white">{member.email}</span>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onClose} disabled={isLoading} style={{ flex: 1, height: 42, fontSize: 13.5, fontWeight: 600, color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0", borderRadius: 10, cursor: "pointer" }}>Cancel</button>
-          <button onClick={onConfirm} disabled={isLoading} style={{ flex: 1.5, height: 42, fontSize: 13.5, fontWeight: 600, color: "#fff", background: isLoading ? "#fca5a5" : "#ef4444", border: "none", borderRadius: 10, cursor: isLoading ? "not-allowed" : "pointer", transition: "background .15s" }}>
+        <div className="flex gap-2.5">
+          <button onClick={onClose} disabled={isLoading} className="flex-1 h-10 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-[13.5px] font-semibold transition-colors">Cancel</button>
+          <button onClick={onConfirm} disabled={isLoading} className="flex-[1.5] h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold transition-colors shadow-sm disabled:opacity-50">
             {isLoading ? "Deactivating…" : "Deactivate"}
           </button>
         </div>
@@ -435,24 +386,24 @@ function ConfirmDeleteModal({ member, onClose, onConfirm, isLoading }: {
   member: StaffMember; onClose: () => void; onConfirm: () => void; isLoading: boolean;
 }) {
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} role="dialog" aria-modal="true">
-      <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,41,.45)", backdropFilter: "blur(4px)" }} onClick={!isLoading ? onClose : undefined} />
-      <div style={{ position: "relative", width: "100%", maxWidth: 400, background: "#fff", borderRadius: 20, boxShadow: "0 24px 48px rgba(0,0,0,.12), 0 0 0 0.5px rgba(0,0,0,.06)", padding: 28 }}>
-        <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
-          <div style={{ width: 46, height: 46, borderRadius: "50%", background: "#fef2f2", border: "0.5px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={!isLoading ? onClose : undefined} />
+      <div className="relative w-full max-w-[400px] bg-white dark:bg-slate-900 rounded-[24px] border border-transparent dark:border-white/10 shadow-2xl p-7">
+        <div className="flex gap-4 mb-5">
+          <div className="w-11 h-11 rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/40 flex items-center justify-center shrink-0">
+            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-rose-600 dark:text-rose-400" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
           </div>
           <div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", letterSpacing: "-.02em" }}>Delete staff member?</h2>
-            <p style={{ fontSize: 13.5, color: "#64748b", marginTop: 4, lineHeight: 1.5 }}>This will permanently remove the user from the system. This action cannot be undone.</p>
+            <h2 className="text-[17px] font-bold text-slate-900 dark:text-white tracking-tight">Delete staff member?</h2>
+            <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">This will permanently remove the user from the system. This action cannot be undone.</p>
           </div>
         </div>
-        <div style={{ background: "#fafbfe", border: "0.5px solid #f1f5f9", borderRadius: 10, padding: "12px 14px", marginBottom: 22 }}>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: "#0f172a" }}>{member.email}</span>
+        <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-white/10 rounded-xl p-3.5 mb-6">
+          <span className="text-[13.5px] font-semibold text-slate-900 dark:text-white">{member.email}</span>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onClose} disabled={isLoading} style={{ flex: 1, height: 42, fontSize: 13.5, fontWeight: 600, color: "#64748b", background: "#fff", border: "0.5px solid #e2e8f0", borderRadius: 10, cursor: "pointer" }}>Cancel</button>
-          <button onClick={onConfirm} disabled={isLoading} style={{ flex: 1.5, height: 42, fontSize: 13.5, fontWeight: 600, color: "#fff", background: isLoading ? "#fca5a5" : "#dc2626", border: "none", borderRadius: 10, cursor: isLoading ? "not-allowed" : "pointer", transition: "background .15s" }}>
+        <div className="flex gap-2.5">
+          <button onClick={onClose} disabled={isLoading} className="flex-1 h-10 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-[13.5px] font-semibold transition-colors">Cancel</button>
+          <button onClick={onConfirm} disabled={isLoading} className="flex-[1.5] h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold transition-colors shadow-sm disabled:opacity-50">
             {isLoading ? "Deleting…" : "Delete permanently"}
           </button>
         </div>
@@ -723,35 +674,39 @@ export default function StaffPage() {
         <div style={{ background: "var(--q-card-bg)", borderRadius: 8, border: "1px solid var(--q-border-light)", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
 
           {/* Toolbar */}
-          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, padding: "16px 20px", borderBottom: "1px solid var(--q-border-light)" }}>
+          <div className="flex items-center flex-wrap gap-3 p-5 border-b border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-900/40">
             {/* Search */}
-            <div style={{ flex: 1, minWidth: 220, position: "relative" }}>
-              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+            <div className="flex-1 min-w-[220px] relative">
+              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
               <input
                 type="search" value={search} onChange={e => handleSearchChange(e.target.value)}
                 placeholder="Search by email…" aria-label="Search staff"
-                style={{ width: "100%", height: 38, borderRadius: 9, border: "1px solid var(--q-borderLight)", paddingLeft: 36, paddingRight: 12, fontSize: 13.5, fontWeight: 500, color: "var(--q-text)", background: "var(--q-card-bg-alt)", outline: "none" }}
-                onFocus={e => { e.currentTarget.style.borderColor = "var(--q-brand)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--q-brand-glow)"; }}
-                onBlur={e => { e.currentTarget.style.borderColor = "var(--q-borderLight)"; e.currentTarget.style.boxShadow = "none"; }}
+                className="w-full h-10 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-10 pr-4 text-[13.5px] font-medium text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
               />
             </div>
 
             {/* Status filter */}
-            <div style={{ position: "relative" }}>
-              <select value={statusFilter} onChange={e => handleFilterChange(e.target.value as "all" | "active" | "inactive")} style={selectStyle} aria-label="Filter by status">
-                <option value="all">All statuses</option>
-                <option value="active">Active only</option>
-                <option value="inactive">Inactive only</option>
+            <div className="relative">
+              <select 
+                value={statusFilter} 
+                onChange={e => handleFilterChange(e.target.value as "all" | "active" | "inactive")} 
+                aria-label="Filter by status"
+                className="h-10 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-4 pr-10 text-[13.5px] font-medium text-slate-900 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all appearance-none cursor-pointer"
+              >
+                <option value="all" className="dark:bg-slate-900">All statuses</option>
+                <option value="active" className="dark:bg-slate-900">Active only</option>
+                <option value="inactive" className="dark:bg-slate-900">Inactive only</option>
               </select>
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><polyline points="6 9 12 15 18 9" /></svg>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
             </div>
 
             {/* Refresh */}
             <button
               onClick={() => loadStaff()} disabled={loading} aria-label="Refresh list"
-              style={{ width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", border: "0.5px solid #e2e8f0", borderRadius: 9, background: "#fafbfe", color: "#64748b", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1, transition: "all .15s" }}
+              className="w-10 h-10 flex items-center justify-center border border-[#E9EDF5] dark:border-white/10 rounded-xl bg-[#F7F9FC] dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/80 transition-colors disabled:opacity-50 cursor-pointer"
+              title="Refresh staff list"
             >
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ animation: loading ? "spin 1s linear infinite" : "none" }}>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className={loading ? "animate-spin" : ""}>
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" />
               </svg>
             </button>

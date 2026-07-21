@@ -613,7 +613,7 @@ export default function SettingsPage() {
                             {/* Headquarters / Parent Org Card */}
                             {activeTab === 'profile' && settings?.parent_org && (
                                 <div className="card" style={{ marginTop: 24 }}>
-                                    <div className="card-header">
+                                    <div className="card-header border-b border-slate-200 dark:border-white/10">
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                             <div style={{
                                                 width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
@@ -630,11 +630,7 @@ export default function SettingsPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <span style={{
-                                            fontSize: 11, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase',
-                                            color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ede9fe',
-                                            borderRadius: 6, padding: '3px 8px'
-                                        }}>
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/40 uppercase tracking-wider">
                                             Read Only
                                         </span>
                                     </div>
@@ -643,34 +639,25 @@ export default function SettingsPage() {
                                         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 20 }}>
                                             {/* Logo + Name banner */}
                                             <div style={{ gridColumn: '1 / -1' }}>
-                                                <div style={{
-                                                    display: 'flex', alignItems: 'center', gap: 16,
-                                                    padding: '16px 20px', borderRadius: 10,
-                                                    background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
-                                                    border: '1px solid #ddd6fe'
-                                                }}>
-                                                    <div style={{
-                                                        width: 52, height: 52, borderRadius: 10, overflow: 'hidden',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        background: '#fff', border: '1px solid #ddd6fe', flexShrink: 0
-                                                    }}>
+                                                <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/10">
+                                                    <div className="w-13 h-13 rounded-xl overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shrink-0">
                                                         {settings.parent_org.logo_url ? (
                                                             <img
                                                                 src={settings.parent_org.logo_url}
                                                                 alt="HQ Logo"
-                                                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                                                className="w-full h-full object-contain"
                                                                 onError={(e) => {
                                                                     (e.target as HTMLImageElement).style.display = 'none';
-                                                                    (e.target as HTMLImageElement).parentElement!.innerHTML = '<span style="font-size: 22px">🏛️</span>';
+                                                                    (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-2xl">🏛️</span>';
                                                                 }}
                                                             />
                                                         ) : (
-                                                            <span style={{ fontSize: 22 }}>🏛️</span>
+                                                            <span className="text-2xl">🏛️</span>
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <div style={{ fontSize: 17, fontWeight: 700, color: '#4c1d95' }}>{settings.parent_org.name}</div>
-                                                        <div style={{ fontSize: 12, color: '#7c3aed', marginTop: 2, fontFamily: 'monospace' }}>
+                                                        <div className="text-[17px] font-bold text-slate-900 dark:text-white">{settings.parent_org.name}</div>
+                                                        <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5 font-mono">
                                                             /{settings.parent_org.slug}
                                                         </div>
                                                     </div>
@@ -728,9 +715,9 @@ export default function SettingsPage() {
 
                             {activeTab === 'security' && (
                                 <div className="card" style={{ marginBottom: 40 }}>
-                                    <div className="card-header border-b border-slate-200">
+                                    <div className="card-header border-b border-slate-200 dark:border-white/10">
                                         <div className="flex items-center gap-2.5">
-                                            <Lock size={18} className="text-slate-500" />
+                                            <Lock size={18} className="text-slate-500 dark:text-slate-400" />
                                             <div>
                                                 <h2 style={{ fontSize: '15px', fontWeight: 700, color: C.text, margin: 0 }}>Security Configuration</h2>
                                                 <p style={{ fontSize: '13px', color: C.textSub, marginTop: 4 }}>To change your password, please verify your identity by entering your current password to receive a secure OTP.</p>
@@ -743,13 +730,13 @@ export default function SettingsPage() {
                                         <div className="w-full">
                                             {pwdStep === 1 ? (
                                                 <div className="max-w-md">
-                                                    <h3 className="text-base font-semibold text-slate-900 mb-1">Verify Identity with Password</h3>
-                                                    <p className="text-[14px] text-slate-500 mb-6">Enter your current password to receive a secure 6-digit OTP via email.</p>
+                                                    <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">Verify Identity with Password</h3>
+                                                    <p className="text-[14px] text-slate-500 dark:text-slate-400 mb-6">Enter your current password to receive a secure 6-digit OTP via email.</p>
                                                     
-                                                    <label className="block text-[14px] font-medium text-slate-700 mb-1.5">Current Password</label>
+                                                    <label className="block text-[14px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Password</label>
                                                     <div className="relative">
-                                                        <input type={showCurrent ? "text" : "password"} required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full bg-white border border-slate-300 text-slate-900 text-[14px] rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow shadow-sm placeholder:text-slate-400" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
-                                                        <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 bg-transparent border-none cursor-pointer">
+                                                        <input type={showCurrent ? "text" : "password"} required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full bg-white dark:bg-slate-800/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-[14px] rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
+                                                        <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-1 bg-transparent border-none cursor-pointer">
                                                             {showCurrent ? <Eye size={18} /> : <EyeOff size={18} />}
                                                         </button>
                                                     </div>
@@ -758,13 +745,13 @@ export default function SettingsPage() {
                                                 <div className="flex flex-col gap-10 w-full max-w-md">
                                                     {/* Step 1: Verify OTP */}
                                                     <div>
-                                                        <h3 className="text-base font-semibold text-slate-900 mb-1">1. Verify Identity with OTP</h3>
-                                                        <p className="text-[14px] text-slate-500 mb-6">A 6-digit verification code has been sent to your registered email.</p>
+                                                        <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">1. Verify Identity with OTP</h3>
+                                                        <p className="text-[14px] text-slate-500 dark:text-slate-400 mb-6">A 6-digit verification code has been sent to your registered email.</p>
                                                         
                                                         <div>
                                                             <div className="flex justify-between items-end mb-2">
-                                                                <label className="block text-[14px] font-medium text-slate-700">6-Digit OTP</label>
-                                                                <span className="text-[13px] text-slate-500">Sent to: <span className="font-medium text-slate-700">{myProfile?.email?.replace(/(.{1}).*@/, "$1******@")}</span></span>
+                                                                <label className="block text-[14px] font-medium text-slate-700 dark:text-slate-300">6-Digit OTP</label>
+                                                                <span className="text-[13px] text-slate-500 dark:text-slate-400">Sent to: <span className="font-medium text-slate-700 dark:text-slate-200">{myProfile?.email?.replace(/(.{1}).*@/, "$1******@")}</span></span>
                                                             </div>
                                                             
                                                             <div className="flex gap-3 mb-4">
@@ -777,19 +764,19 @@ export default function SettingsPage() {
                                                                         ref={(el) => { otpRefs.current[index] = el; }}
                                                                         onChange={(e) => handleOtpChange(index, e.target.value)}
                                                                         onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                                                                        className="w-12 h-14 text-center text-[24px] font-bold border border-slate-300 rounded-lg bg-white text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 transition-all shadow-sm"
+                                                                        className="w-12 h-14 text-center text-[24px] font-bold border border-slate-300 dark:border-white/10 rounded-lg bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 transition-all shadow-sm"
                                                                         placeholder="0"
                                                                     />
                                                                 ))}
                                                             </div>
 
                                                             <div className="flex items-center text-[13px]">
-                                                                <span className="text-slate-500 mr-2">Didn't receive the code?</span>
+                                                                <span className="text-slate-500 dark:text-slate-400 mr-2">Didn't receive the code?</span>
                                                                 <button
                                                                     type="button"
                                                                     onClick={handleResendOtp}
                                                                     disabled={resendTimer > 0 || isResending}
-                                                                    className={`font-medium transition-colors border-none bg-transparent p-0 ${resendTimer > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-700 cursor-pointer'}`}
+                                                                    className={`font-medium transition-colors border-none bg-transparent p-0 ${resendTimer > 0 ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed' : 'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer'}`}
                                                                 >
                                                                     {isResending ? "Sending..." : resendTimer > 0 ? `Resend Code (${resendTimer}s)` : "Resend Code"}
                                                                 </button>
@@ -797,59 +784,59 @@ export default function SettingsPage() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="h-px bg-slate-200 w-full" />
+                                                    <div className="h-px bg-slate-200 dark:bg-white/10 w-full" />
 
                                                     {/* Step 2: Set Password */}
                                                     <div>
-                                                        <h3 className="text-base font-semibold text-slate-900 mb-1">2. Create a New Secure Password</h3>
-                                                        <p className="text-[14px] text-slate-500 mb-6">Once the OTP is verified, you can set your new password below.</p>
+                                                        <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">2. Create a New Secure Password</h3>
+                                                        <p className="text-[14px] text-slate-500 dark:text-slate-400 mb-6">Once the OTP is verified, you can set your new password below.</p>
                                                         
                                                         <div className="space-y-6">
                                                             <div>
-                                                                <label className="block text-[14px] font-medium text-slate-700 mb-1.5">New Password</label>
+                                                                <label className="block text-[14px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">New Password</label>
                                                                 <div className="relative">
-                                                                    <input type={showNew ? "text" : "password"} required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white border border-slate-300 text-slate-900 text-[14px] rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow shadow-sm placeholder:text-slate-400" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
-                                                                    <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 bg-transparent border-none cursor-pointer">
+                                                                    <input type={showNew ? "text" : "password"} required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white dark:bg-slate-800/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-[14px] rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
+                                                                    <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-1 bg-transparent border-none cursor-pointer">
                                                                         {showNew ? <Eye size={18} /> : <EyeOff size={18} />}
                                                                     </button>
                                                                 </div>
                                                                 {newPassword.length > 0 && (
                                                                     <div className="mt-3">
                                                                         <div className="flex justify-between items-center mb-1.5">
-                                                                            <span className="text-[12px] font-semibold text-slate-500">Password Strength</span>
+                                                                            <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Password Strength</span>
                                                                             <span className="text-[12px] font-bold" style={{ color: pwdStrength.color }}>{pwdStrength.label}</span>
                                                                         </div>
-                                                                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                                        <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                                                             <div className="h-full transition-all duration-300" style={{ width: pwdStrength.width, backgroundColor: pwdStrength.color }} />
                                                                         </div>
                                                                     </div>
                                                                 )}
                                                                 
                                                                 <div className="mt-4 flex flex-col gap-2.5">
-                                                                    <div className={`flex items-center gap-2.5 text-[13px] ${newPassword.length >= 8 ? 'text-green-700 font-medium' : 'text-slate-500'}`}>
-                                                                        {newPassword.length >= 8 ? <CheckCircle size={16} className={newPassword.length >= 8 ? 'text-green-600' : 'text-slate-400'} /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                    <div className={`flex items-center gap-2.5 text-[13px] ${newPassword.length >= 8 ? 'text-emerald-700 dark:text-emerald-400 font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                        {newPassword.length >= 8 ? <CheckCircle size={16} className="text-emerald-600 dark:text-emerald-400" /> : <div className="w-4 h-4 rounded-full border border-slate-300 dark:border-slate-600" />}
                                                                         At least 8 characters
                                                                     </div>
-                                                                    <div className={`flex items-center gap-2.5 text-[13px] ${/[0-9]/.test(newPassword) ? 'text-green-700 font-medium' : 'text-slate-500'}`}>
-                                                                        {/[0-9]/.test(newPassword) ? <CheckCircle size={16} className={/[0-9]/.test(newPassword) ? 'text-green-600' : 'text-slate-400'} /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                    <div className={`flex items-center gap-2.5 text-[13px] ${/[0-9]/.test(newPassword) ? 'text-emerald-700 dark:text-emerald-400 font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                        {/[0-9]/.test(newPassword) ? <CheckCircle size={16} className="text-emerald-600 dark:text-emerald-400" /> : <div className="w-4 h-4 rounded-full border border-slate-300 dark:border-slate-600" />}
                                                                         Contains a number
                                                                     </div>
-                                                                    <div className={`flex items-center gap-2.5 text-[13px] ${/[A-Z]/.test(newPassword) ? 'text-green-700 font-medium' : 'text-slate-500'}`}>
-                                                                        {/[A-Z]/.test(newPassword) ? <CheckCircle size={16} className={/[A-Z]/.test(newPassword) ? 'text-green-600' : 'text-slate-400'} /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                    <div className={`flex items-center gap-2.5 text-[13px] ${/[A-Z]/.test(newPassword) ? 'text-emerald-700 dark:text-emerald-400 font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                        {/[A-Z]/.test(newPassword) ? <CheckCircle size={16} className="text-emerald-600 dark:text-emerald-400" /> : <div className="w-4 h-4 rounded-full border border-slate-300 dark:border-slate-600" />}
                                                                         Contains an uppercase letter
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                             <div>
-                                                                <label className="block text-[14px] font-medium text-slate-700 mb-1.5">Confirm New Password</label>
+                                                                <label className="block text-[14px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">Confirm New Password</label>
                                                                 <div className="relative">
-                                                                    <input type={showConfirm ? "text" : "password"} required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-white border border-slate-300 text-slate-900 text-[14px] rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow shadow-sm placeholder:text-slate-400" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
-                                                                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 bg-transparent border-none cursor-pointer">
+                                                                    <input type={showConfirm ? "text" : "password"} required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-white dark:bg-slate-800/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-[14px] rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-shadow shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500" style={{ paddingRight: 48 }} placeholder="••••••••••••" />
+                                                                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-1 bg-transparent border-none cursor-pointer">
                                                                         {showConfirm ? <Eye size={18} /> : <EyeOff size={18} />}
                                                                     </button>
                                                                 </div>
                                                                 {confirmPassword && newPassword !== confirmPassword && (
-                                                                    <p className="mt-2 text-[13px] font-medium text-red-600">Passwords do not match.</p>
+                                                                    <p className="mt-2 text-[13px] font-medium text-red-600 dark:text-rose-400">Passwords do not match.</p>
                                                                 )}
                                                             </div>
                                                         </div>

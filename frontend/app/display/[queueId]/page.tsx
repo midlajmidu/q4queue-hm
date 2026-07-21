@@ -138,12 +138,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
             ═══════════════════════════════════════════════════════════ */}
             <div className={`lg:hidden min-h-screen flex flex-col transition-colors duration-500 ${isDark ? "bg-slate-950 text-slate-100" : "bg-[#f5f6f8] text-slate-900"}`}>
                 {/* Mobile Header */}
-                <header className={`${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200 shadow-sm"} border-b px-4 py-3 flex items-center justify-between shrink-0 sticky top-0 z-20`}>
-                    <div className="flex items-center gap-2">
-                        <div className="h-7 w-28 flex items-center justify-start">
-                            <img src="/q4queue-new_logo.png" alt="Q4Queue Logo" className="max-h-full max-w-full object-contain object-left" />
-                        </div>
-                    </div>
+                <header className={`${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200 shadow-sm"} border-b px-4 py-3 flex items-center justify-end shrink-0 sticky top-0 z-20`}>
                     <div className="flex items-center gap-2">
                         {/* Live badge */}
                         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${isConnected ? (isDark ? "bg-white/[0.06] text-slate-300 border-white/[0.08]" : "bg-emerald-50 text-emerald-700 border-emerald-200") : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
@@ -153,20 +148,6 @@ export default function DisplayQueuePage({ params }: PageProps) {
                         {/* Theme toggle */}
                         <button onClick={handleToggleTheme} className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${isDark ? "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08]" : "bg-white border-slate-200 hover:bg-slate-50 shadow-sm"}`}>
                             {isDark ? <Moon className="w-3.5 h-3.5 text-slate-400" /> : <Sun className="w-3.5 h-3.5 text-slate-500" />}
-                        </button>
-                        {/* Sound toggle */}
-                        <button onClick={handleToggleSound} className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${isDark ? "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08]" : "bg-white border-slate-200 hover:bg-slate-50 shadow-sm"}`}>
-                            {soundEnabled ? (
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isDark ? "#94a3b8" : "#64748b"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                                </svg>
-                            ) : (
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isDark ? "#64748b" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                                    <line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" />
-                                </svg>
-                            )}
                         </button>
                     </div>
                 </header>
@@ -217,11 +198,12 @@ export default function DisplayQueuePage({ params }: PageProps) {
                     </div>
                 </div>
 
-                {/* Footer */}
-                <div className={`py-3 flex items-center justify-center shrink-0 border-t ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200"}`}>
-                    <span className={`text-[10px] font-medium tracking-[0.2em] uppercase flex items-center gap-1.5 ${isDark ? "text-slate-600" : "text-slate-400"}`}>
-                        Powered by
-                        <img src="/q4queue-new_logo.png" alt="Q4Queue Logo" className="h-3 w-auto object-contain opacity-80" />
+                <div className={`py-5 flex items-center justify-center shrink-0 border-t ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200"}`}>
+                    <span className={`text-[10px] font-semibold tracking-[0.2em] uppercase flex items-center`}>
+                        <span className={`translate-x-1 ${isDark ? "text-slate-500" : "text-slate-400"}`}>Powered by</span>
+                        <div className="h-6 flex items-center overflow-visible w-24 -ml-1">
+                            <img src={isDark ? "/q4queue-darkThemeLogo.png" : "/q4queue-new_logo.png"} alt="Q4Queue Logo" className={`h-6 w-auto object-contain origin-left ${isDark ? "scale-[5] translate-x-4 translate-y-0.5" : "scale-[3.5] -translate-x-1 translate-y-1"}`} />
+                        </div>
                     </span>
                 </div>
             </div>
@@ -279,38 +261,8 @@ function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDa
 }) {
     const isConnected = status === "connected";
     return (
-        <header className={`h-14 ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200"} border-b px-6 flex items-center justify-between shrink-0 z-10 relative transition-colors duration-500`}>
-            <div className="flex items-center w-[300px]">
-                <div className="h-8 w-32 flex items-center justify-start">
-                    <img src="/q4queue-new_logo.png" alt="Q4Queue Logo" className="max-h-full max-w-full object-contain object-left" />
-                </div>
-            </div>
-            <div className="flex-1" />
-            <div className="flex items-center gap-4 w-[400px] justify-end">
-                {/* Sound toggle */}
-                <button
-                    onClick={onToggleSound}
-                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-105 ${isDark
-                            ? "bg-white/[0.06] border-white/[0.08] text-slate-300 hover:bg-white/[0.1]"
-                            : "bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200"
-                        }`}
-                    title={soundEnabled ? "Sound ON — click to mute" : "Sound OFF — click to enable"}
-                >
-                    {soundEnabled ? (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                        </svg>
-                    ) : (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                            <line x1="23" y1="9" x2="17" y2="15" />
-                            <line x1="17" y1="9" x2="23" y2="15" />
-                        </svg>
-                    )}
-                </button>
-
+        <header className={`h-16 ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200"} border-b px-8 flex items-center justify-end shrink-0 z-10 relative transition-colors duration-500`}>
+            <div className="flex items-center gap-4">
                 {/* Theme toggle */}
                 <button
                     onClick={onToggleTheme}

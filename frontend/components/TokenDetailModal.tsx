@@ -69,17 +69,17 @@ function calcServiceTime(served?: string | null, completed?: string | null): str
 }
 
 const STATUS_STYLES: Record<string, { badge: string; label: string }> = {
-    waiting: { badge: "bg-amber-100 text-amber-700", label: "Waiting" },
-    serving: { badge: "bg-blue-100 text-blue-700", label: "Serving" },
-    done: { badge: "bg-emerald-100 text-emerald-700", label: "Completed" },
-    skipped: { badge: "bg-gray-100 text-gray-500", label: "Skipped" },
-    deleted: { badge: "bg-red-100 text-red-700", label: "Removed" },
+    waiting: { badge: "bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300", label: "Waiting" },
+    serving: { badge: "bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300", label: "Serving" },
+    done: { badge: "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300", label: "Completed" },
+    skipped: { badge: "bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400", label: "Skipped" },
+    deleted: { badge: "bg-red-100 dark:bg-rose-950/80 text-red-700 dark:text-rose-300", label: "Removed" },
 };
 
 const ENTRY_STYLES: Record<string, string> = {
-    manual: "bg-violet-100 text-violet-700",
-    qr: "bg-cyan-100 text-cyan-700",
-    auto: "bg-orange-100 text-orange-700",
+    manual: "bg-violet-100 dark:bg-violet-950/80 text-violet-700 dark:text-violet-300",
+    qr: "bg-cyan-100 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300",
+    auto: "bg-orange-100 dark:bg-amber-950/80 text-orange-700 dark:text-amber-300",
 };
 
 export default function TokenDetailModal({ token, onClose, onRecall }: TokenDetailModalProps) {
@@ -117,25 +117,27 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
             aria-modal="true"
             aria-label="Token details"
         >
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-transparent dark:border-white/10 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
                 {/* Header */}
-                <div className="bg-gradient-to-br from-blue-600 to-indigo-600 px-6 py-5 flex items-start justify-between">
-                    <div>
-                        <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">Token</p>
+                <div className="bg-gradient-to-br from-blue-600 to-indigo-600 dark:from-slate-800/80 dark:to-slate-900 border-b border-transparent dark:border-white/10 px-6 py-5 flex items-start justify-between relative overflow-hidden">
+                    {/* Subtle glow background element for dark mode */}
+                    <div className="hidden dark:block absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                    <div className="relative z-10">
+                        <p className="text-blue-200 dark:text-indigo-400 text-xs font-bold uppercase tracking-widest mb-1">Token</p>
                         <p className="text-4xl font-black text-white tabular-nums leading-none">
                             {fullToken.prefix || ""}{fullToken.token_number}
                         </p>
                         {fullToken.queue_name && (
-                            <p className="text-blue-200 text-xs mt-2 font-medium">{fullToken.queue_name}</p>
+                            <p className="text-blue-200 dark:text-slate-400 text-xs mt-2 font-medium">{fullToken.queue_name}</p>
                         )}
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 relative z-10">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusInfo.badge}`}>
                             {statusInfo.label}
                         </span>
                         <button
                             onClick={onClose}
-                            className="ml-2 p-1.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                            className="ml-2 p-1.5 rounded-lg text-blue-200 dark:text-slate-400 hover:text-white dark:hover:text-white hover:bg-white/10 dark:hover:bg-slate-800/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
                             aria-label="Close"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,15 +150,15 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                 {/* Customer profile */}
                 <div className="px-6 py-5 space-y-4">
                     {/* Customer info */}
-                    <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-                        <div className="w-12 h-12 rounded-full bg-blue-50 border-2 border-blue-100 flex items-center justify-center flex-shrink-0">
-                            <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-4 pb-4 border-b border-gray-100 dark:border-white/10">
+                        <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/60 border-2 border-blue-100 dark:border-blue-900/40 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-6 h-6 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                         </div>
                         <div className="min-w-0">
-                            <p className="text-base font-bold text-gray-900 truncate">{fullToken.customer_name || "—"}</p>
-                            <p className="text-sm text-gray-500">{fullToken.customer_phone || "—"}</p>
+                            <p className="text-base font-bold text-gray-900 dark:text-white truncate">{fullToken.customer_name || "—"}</p>
+                            <p className="text-sm text-gray-500 dark:text-slate-400">{fullToken.customer_phone || "—"}</p>
                         </div>
                         <span className={`ml-auto px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex-shrink-0 ${ENTRY_STYLES[entryType] || ENTRY_STYLES.manual}`}>
                             {entryType.toUpperCase()}
@@ -214,41 +216,41 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
 
                     {/* Full timestamps */}
                     {fullToken.created_at && (
-                        <div className="pt-3 border-t border-gray-50">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Timestamps</p>
-                            <div className="space-y-1.5 text-xs text-gray-500">
+                        <div className="pt-3 border-t border-gray-50 dark:border-white/10">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-400 mb-2">Timestamps</p>
+                            <div className="space-y-1.5 text-xs text-gray-500 dark:text-slate-400">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-400">Registered</span>
-                                    <span className="font-medium text-gray-700">{fmt(fullToken.created_at)}</span>
+                                    <span className="text-gray-400 dark:text-slate-400">Registered</span>
+                                    <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.created_at)}</span>
                                 </div>
                                 {fullToken.served_at && (
                                     <div className="flex justify-between">
-                                        <span className="text-gray-400">Called</span>
-                                        <span className="font-medium text-gray-700">{fmt(fullToken.served_at)}</span>
+                                        <span className="text-gray-400 dark:text-slate-400">Called</span>
+                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.served_at)}</span>
                                     </div>
                                 )}
                                 {fullToken.skipped_at && (
                                     <div className="flex justify-between">
-                                        <span className="text-gray-400">Last Skipped</span>
-                                        <span className="font-medium text-gray-700">{fmt(fullToken.skipped_at)}</span>
+                                        <span className="text-gray-400 dark:text-slate-400">Last Skipped</span>
+                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.skipped_at)}</span>
                                     </div>
                                 )}
                                 {fullToken.recalled_at && (
                                     <div className="flex justify-between">
-                                        <span className="text-gray-400">Last Recalled</span>
-                                        <span className="font-medium text-gray-700">{fmt(fullToken.recalled_at)}</span>
+                                        <span className="text-gray-400 dark:text-slate-400">Last Recalled</span>
+                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.recalled_at)}</span>
                                     </div>
                                 )}
                                 {fullToken.completed_at && (
                                     <div className="flex justify-between">
-                                        <span className="text-gray-400">Completed</span>
-                                        <span className="font-medium text-gray-700">{fmt(fullToken.completed_at)}</span>
+                                        <span className="text-gray-400 dark:text-slate-400">Completed</span>
+                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.completed_at)}</span>
                                     </div>
                                 )}
                                 {fullToken.deleted_at && (
                                     <div className="flex justify-between">
-                                        <span className="text-gray-400">Removed</span>
-                                        <span className="font-medium text-gray-700">{fmt(fullToken.deleted_at)}</span>
+                                        <span className="text-gray-400 dark:text-slate-400">Removed</span>
+                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.deleted_at)}</span>
                                     </div>
                                 )}
                             </div>
@@ -268,7 +270,7 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                     )}
                     <button
                         onClick={onClose}
-                        className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="w-full py-2.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 font-bold rounded-xl transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                         Close
                     </button>
@@ -288,14 +290,14 @@ function DetailItem({
     highlight?: "emerald" | "amber";
 }) {
     const valCls = highlight === "emerald"
-        ? "text-emerald-700 font-bold"
+        ? "text-emerald-700 dark:text-emerald-400 font-bold"
         : highlight === "amber"
-            ? "text-amber-700 font-bold"
-            : "text-gray-900 font-semibold";
+            ? "text-amber-700 dark:text-amber-400 font-bold"
+            : "text-gray-900 dark:text-white font-semibold";
 
     return (
-        <div className="bg-gray-50 rounded-xl px-3 py-2.5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">{label}</p>
+        <div className="bg-gray-50 dark:bg-slate-800/60 rounded-xl px-3 py-2.5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-400 mb-0.5">{label}</p>
             <p className={`text-sm ${valCls} truncate`}>{value}</p>
         </div>
     );

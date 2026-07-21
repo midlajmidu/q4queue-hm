@@ -191,7 +191,7 @@ export function OperationsTab() {
                             <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white flex items-center gap-2.5">
                                 Automated Daily Sessions
                                 {autoSessionEnabled && (
-                                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold tracking-wider uppercase">Active</span>
+                                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold tracking-wider uppercase">Active</span>
                                 )}
                             </h2>
                             <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-1.5 max-w-lg leading-relaxed">
@@ -225,7 +225,7 @@ export function OperationsTab() {
                                     saveAutoSessionSettings(enabled, autoSessionTime);
                                 }}
                             />
-                            <div className="w-[44px] h-[24px] bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500/20 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                            <div className={`w-[44px] h-[24px] rounded-full transition-colors duration-200 relative after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${autoSessionEnabled ? 'bg-emerald-500 after:translate-x-5' : 'bg-slate-200 dark:bg-slate-700'}`}></div>
                         </label>
                     </div>
                 </div>
@@ -278,7 +278,7 @@ export function OperationsTab() {
                         className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden transition-all duration-200 hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 flex flex-col h-full"
                     >
                         {/* Status Bar Indicator */}
-                        <div className={`h-1 w-full transition-colors ${template.isActive ? 'bg-indigo-500' : 'bg-transparent'}`} />
+                        <div className={`h-1 w-full transition-colors ${template.isActive ? 'bg-emerald-500' : 'bg-transparent'}`} />
                         
                         <div className="p-5 flex flex-col flex-grow">
                             <div className="flex justify-between items-start mb-4">
@@ -305,7 +305,7 @@ export function OperationsTab() {
                             
                             {/* Card Action Bar */}
                             <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/50 flex items-center justify-between">
-                                <span className={`text-[12px] font-bold tracking-wide uppercase transition-colors ${template.isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
+                                <span className={`text-[12px] font-bold tracking-wide uppercase transition-colors ${template.isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
                                     {template.isActive ? "Auto-Creates Daily" : "Manual Usage"}
                                 </span>
                                 <label className="relative inline-flex items-center cursor-pointer" title={template.isActive ? "Deactivate auto-creation" : "Activate auto-creation"}>
@@ -315,7 +315,7 @@ export function OperationsTab() {
                                         checked={template.isActive || false}
                                         onChange={(e) => handleToggleTemplateActive(template.id, e.target.checked)}
                                     />
-                                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500/20 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                    <div className={`w-9 h-5 rounded-full transition-colors duration-200 relative after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all ${template.isActive ? 'bg-emerald-500 after:translate-x-4' : 'bg-slate-200 dark:bg-slate-700'}`}></div>
                                 </label>
                             </div>
                         </div>

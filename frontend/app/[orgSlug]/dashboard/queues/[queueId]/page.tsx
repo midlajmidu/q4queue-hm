@@ -16,7 +16,7 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken } from "@/types/api";
-import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter } from "lucide-react";
+import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
@@ -165,8 +165,6 @@ const QD_STYLES = `
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: ${T.cardBg};
-    color: ${T.textSub};
     border: 1.5px solid ${T.cardBorder};
     border-radius: 8px;
     padding: 13px 22px;
@@ -179,7 +177,6 @@ const QD_STYLES = `
   }
   .qd-btn-secondary:hover:not(:disabled) {
     border-color: ${T.cardBorderHov};
-    background: #f8f9fc;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0,0,0,.07);
   }
@@ -259,7 +256,6 @@ const QD_STYLES = `
   .qd-input:focus {
     border-color: ${T.brand};
     box-shadow: 0 0 0 3px rgba(91,94,244,.12);
-    background: #fff;
   }
   .qd-input::placeholder { color: ${T.textMuted}; }
 
@@ -904,21 +900,21 @@ export default function QueueDetailPage({ params }: PageProps) {
                 {/* Mobile Sidebar Overlay */}
                 <div className={`md:hidden fixed inset-0 z-[99999] transition-opacity duration-300 ${mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-                    <div className={`absolute top-0 left-0 bottom-0 w-[280px] bg-white shadow-2xl transition-transform duration-300 ease-in-out ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+                    <div className={`absolute top-0 left-0 bottom-0 w-[280px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/10 shadow-2xl transition-transform duration-300 ease-in-out ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
                         <div className="p-4 flex flex-col h-full">
-                            <div className="flex justify-between items-center pb-4 border-b border-slate-200 mb-4">
-                                <Link href={`${dashBase}/sessions`} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
+                            <div className="flex justify-between items-center pb-4 border-b border-slate-200 dark:border-white/10 mb-4">
+                                <Link href={`${dashBase}/sessions`} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
                                     Back to Sessions
                                 </Link>
-                                <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 -mr-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={20} /></button>
+                                <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 -mr-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-white rounded-lg transition-colors"><X size={20} /></button>
                             </div>
-                            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-100 dark:border-white/10 mb-6">
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Managing</div>
-                                <div className="text-sm font-bold text-slate-900 truncate" title={queueName}>{queueName}</div>
-                                <div className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1.5">
+                                <div className="text-sm font-bold text-slate-900 dark:text-white truncate" title={queueName}>{queueName}</div>
+                                <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-[pulse-dot_2s_infinite]" />
-                                    {isPaused ? <span className="text-amber-600">Paused</span> : isActive ? "Active" : <span className="text-red-600">Inactive</span>}
+                                    {isPaused ? <span className="text-amber-600 dark:text-amber-400">Paused</span> : isActive ? "Active" : <span className="text-rose-600 dark:text-rose-400">Inactive</span>}
                                 </div>
                             </div>
                             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-2">Queue Management</div>
@@ -926,8 +922,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 {navItems.map((item) => {
                                     const isActiveItem = activeSection === item.id;
                                     return (
-                                        <button key={item.id} onClick={() => { setActiveSection(item.id); setMobileMenuOpen(false); }} className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all text-left ${isActiveItem ? "font-semibold text-indigo-700 bg-indigo-50" : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
-                                            <span className={`flex-shrink-0 ${isActiveItem ? "text-indigo-600" : "text-slate-400"}`}>{item.icon}</span>
+                                        <button key={item.id} onClick={() => { setActiveSection(item.id); setMobileMenuOpen(false); }} className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all text-left ${isActiveItem ? "font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60" : "font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}>
+                                            <span className={`flex-shrink-0 ${isActiveItem ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}>{item.icon}</span>
                                             <span className="truncate flex-1">{item.label}</span>
                                         </button>
                                     );
@@ -939,16 +935,16 @@ export default function QueueDetailPage({ params }: PageProps) {
 
 
                 {/* ── Refactored Sidebar ─────────────────────────────────── */}
-                <aside className="hidden md:flex flex-col bg-white border-r border-slate-200" style={{ width: 260, flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}>
+                <aside className="hidden md:flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/10" style={{ width: 260, flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}>
 
                     {/* Top Container */}
                     <div className="p-4 flex flex-col h-full">
 
                         {/* 1. Top Action */}
-                        <div className="pb-4 border-b border-slate-200 mb-4">
+                        <div className="pb-4 border-b border-slate-200 dark:border-white/10 mb-4">
                             <Link
                                 href={`${dashBase}/sessions`}
-                                className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+                                className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                             >
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
                                 Back to Sessions
@@ -956,12 +952,12 @@ export default function QueueDetailPage({ params }: PageProps) {
                         </div>
 
                         {/* 2. Context Card */}
-                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6">
+                        <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-100 dark:border-white/10 mb-6">
                             <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Managing</div>
-                            <div className="text-sm font-bold text-slate-900 truncate" title={queueName}>{queueName}</div>
-                            <div className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1.5">
+                            <div className="text-sm font-bold text-slate-900 dark:text-white truncate" title={queueName}>{queueName}</div>
+                            <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-[pulse-dot_2s_infinite]" />
-                                {isPaused ? <span className="text-amber-600">Paused</span> : isActive ? "Active" : <span className="text-red-600">Inactive</span>}
+                                {isPaused ? <span className="text-amber-600 dark:text-amber-400">Paused</span> : isActive ? "Active" : <span className="text-rose-600 dark:text-rose-400">Inactive</span>}
                             </div>
                         </div>
 
@@ -979,11 +975,11 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         key={item.id}
                                         onClick={() => setActiveSection(item.id)}
                                         className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all text-left ${isActiveItem
-                                            ? "font-semibold text-indigo-700 bg-indigo-50"
-                                            : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                            ? "font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60"
+                                            : "font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                                             }`}
                                     >
-                                        <span className={`flex-shrink-0 ${isActiveItem ? "text-indigo-600" : "text-slate-400"}`}>
+                                        <span className={`flex-shrink-0 ${isActiveItem ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}>
                                             {item.icon}
                                         </span>
                                         <span className="truncate flex-1">{item.label}</span>
@@ -997,7 +993,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                     </div>
 
                     {/* 5. Bottom Shell */}
-                    <div className="mt-auto border-t border-slate-200 p-4">
+                    <div className="mt-auto border-t border-slate-200 dark:border-white/10 p-4">
                         <ConnectionBadge status={status} />
                     </div>
                 </aside>
@@ -1026,38 +1022,38 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
                                             </p>
                                             {(state?.open_time || initialQueue?.open_time) && (state?.close_time || initialQueue?.close_time) && (
-                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold shadow-sm mt-2">
-                                                    <Clock className="w-3.5 h-3.5 text-blue-500" />
+                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold shadow-sm mt-2">
+                                                    <Clock className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
                                                     <span>{formatTime12(state?.open_time || initialQueue?.open_time)} - {formatTime12(state?.close_time || initialQueue?.close_time)}</span>
                                                 </div>
                                             )}
                                         </div>
                                         <div className="relative md:hidden flex-shrink-0 mt-1">
-                                            <button className="p-1 -mr-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors" onClick={() => setMobileActionsOpen(prev => !prev)}>
+                                            <button className="p-1 -mr-1 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" onClick={() => setMobileActionsOpen(prev => !prev)}>
                                                 <MoreVertical size={24} />
                                             </button>
                                             {mobileActionsOpen && (
                                                 <>
                                                     <div className="fixed inset-0 z-[40]" onClick={() => setMobileActionsOpen(false)} />
-                                                    <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 shadow-xl rounded-xl p-2 z-[50] flex flex-col gap-1 text-left">
+                                                    <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-[50] flex flex-col gap-1 text-left">
                                                         {isActive && canManageQueue && (
-                                                            <button onClick={() => { handlePauseToggle(); setMobileActionsOpen(false); }} disabled={isDisabled || pausing} className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2">
+                                                            <button onClick={() => { handlePauseToggle(); setMobileActionsOpen(false); }} disabled={isDisabled || pausing} className="text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
                                                                 {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
                                                                 {isPaused ? "Resume" : "Take a Break"}
                                                             </button>
                                                         )}
                                                         {!isStaff && canManageQueue && (
-                                                            <button onClick={() => { setShowResetConfirm(true); setMobileActionsOpen(false); }} disabled={isDisabled || resetting} className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2">
+                                                            <button onClick={() => { setShowResetConfirm(true); setMobileActionsOpen(false); }} disabled={isDisabled || resetting} className="text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
                                                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                                                 Reset Queue
                                                             </button>
                                                         )}
-                                                        <a href={`/display/${queueId}`} target="_blank" rel="noopener noreferrer" onClick={() => setMobileActionsOpen(false)} className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2">
+                                                        <a href={`/display/${queueId}`} target="_blank" rel="noopener noreferrer" onClick={() => setMobileActionsOpen(false)} className="text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
                                                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                                             Display Screen
                                                         </a>
                                                         {!isStaff && canManageQueue && (
-                                                            <button onClick={() => { setShowDeleteConfirm(true); setMobileActionsOpen(false); }} className="text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg flex items-center gap-2">
+                                                            <button onClick={() => { setShowDeleteConfirm(true); setMobileActionsOpen(false); }} className="text-left px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-lg flex items-center gap-2">
                                                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                                 Delete Queue
                                                             </button>
@@ -1071,14 +1067,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
 
 
-                                        <div style={{ width: 1, height: 24, background: T.cardBorder, margin: "0 4px" }} className="hidden md:block" />
+                                        <div className="hidden md:block border-r border-slate-200 dark:border-white/10 h-6 mx-1" />
 
                                         <div className="hidden md:flex items-center gap-2">
                                             {isActive && canManageQueue && (
                                                 <button
                                                     onClick={handlePauseToggle}
                                                     disabled={isDisabled || pausing}
-                                                    className={`bg-white border ${isPaused ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-50"} shadow-sm ring-1 ring-slate-900/5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2`}
+                                                    className={`bg-white dark:bg-slate-800 border ${isPaused ? "border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/80" : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700"} shadow-sm text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2`}
                                                 >
                                                     {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
                                                     {isPaused ? "Resume" : "Take a Break"}
@@ -1088,7 +1084,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <button
                                                     onClick={() => setShowResetConfirm(true)}
                                                     disabled={isDisabled || resetting}
-                                                    className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+                                                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
                                                 >
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                                     Reset
@@ -1099,7 +1095,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 href={`/display/${queueId}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+                                                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
                                             >
                                                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                                 Display
@@ -1107,7 +1103,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             {!isStaff && canManageQueue && (
                                                 <button
                                                     onClick={() => setShowDeleteConfirm(true)}
-                                                    className="bg-white border border-slate-100 shadow-sm ring-1 ring-slate-900/5 text-slate-600 hover:text-slate-900 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+                                                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-rose-50 dark:hover:bg-rose-950/60 hover:border-rose-200 dark:hover:border-rose-900/40 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
                                                 >
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                     Delete
@@ -1611,9 +1607,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </div>
                                 </div>
 
-                                <div className="qd-card w-full max-w-2xl" style={{ padding: 28 }}>
+                                <div className="qd-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-2xl p-6 sm:p-7">
                                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                                        <h3 className="text-gray-500 dark:text-slate-400" style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", margin: 0 }}>Announcement</h3>
+                                        <h3 className="text-slate-500 dark:text-slate-400" style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", margin: 0 }}>Announcement</h3>
                                         {(state?.announcement || initialQueue?.announcement) && !isEditingAnnouncement && (
                                             <span className="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontSize: 10, fontWeight: 800, padding: "2px 9px", borderRadius: 5, textTransform: "uppercase", letterSpacing: ".07em" }}>Active</span>
                                         )}
@@ -1626,15 +1622,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 onChange={e => setAnnouncementInput(e.target.value)}
                                                 placeholder="Enter a message to display to all customers waiting…"
                                                 disabled={isDisabled || actionLoading === "announcement"}
-                                                style={{ width: "100%", padding: "12px 14px", background: "#fafbfc", border: `1.5px solid ${T.cardBorder}`, borderRadius: 10, fontSize: 14, resize: "none", height: 120, outline: "none", transition: "border-color .18s" }}
-                                                onFocus={e => (e.currentTarget.style.borderColor = T.brand)}
-                                                onBlur={e => (e.currentTarget.style.borderColor = T.cardBorder)}
+                                                className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:border-indigo-500 dark:focus:border-indigo-500 transition-colors"
+                                                style={{ resize: "none", height: 120 }}
                                             />
                                             <div style={{ display: "flex", gap: 8 }}>
-                                                <button type="submit" disabled={isDisabled || actionLoading === "announcement"} style={{ padding: "9px 20px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 9, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
+                                                <button type="submit" disabled={isDisabled || actionLoading === "announcement"} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-sm transition-colors">
                                                     {actionLoading === "announcement" ? "Saving…" : "Save Announcement"}
                                                 </button>
-                                                <button type="button" onClick={() => setIsEditingAnnouncement(false)} disabled={isDisabled} className="text-gray-600 dark:text-slate-300 dark:bg-slate-800 dark:border-white/10" style={{ padding: "9px 18px", background: "#f4f5f8", border: `1px solid ${T.cardBorder}`, borderRadius: 9, fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}>
+                                                <button type="button" onClick={() => setIsEditingAnnouncement(false)} disabled={isDisabled} className="text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-white/10 font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors">
                                                     Cancel
                                                 </button>
                                             </div>
@@ -1642,20 +1637,19 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     ) : (
                                         <div>
                                             {(state?.announcement ?? initialQueue?.announcement) ? (
-                                                <div style={{ padding: "14px 16px", borderRadius: 10, border: `1px solid ${T.brandBorder}`, fontSize: 14, whiteSpace: "pre-wrap", lineHeight: 1.65, marginBottom: 16 }}>
+                                                <div className="bg-indigo-50/50 dark:bg-indigo-950/40 text-slate-900 dark:text-white border border-indigo-200 dark:border-indigo-900/50 rounded-xl p-4 text-sm leading-relaxed mb-4 whitespace-pre-wrap">
                                                     {state?.announcement ?? initialQueue?.announcement}
                                                 </div>
                                             ) : (
-                                                <div style={{ padding: "28px 16px", background: "#fafbfc", borderRadius: 10, border: `1.5px dashed ${T.cardBorder}`, textAlign: "center", marginBottom: 16 }}>
-                                                    <svg width="28" height="28" fill="none" stroke={T.textMuted} viewBox="0 0 24 24" style={{ opacity: .4, margin: "0 auto 8px" }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
-                                                    <p className="text-gray-500 dark:text-slate-400" style={{ fontSize: 13, fontStyle: "italic", margin: 0 }}>No active announcement. Set one below to inform waiting customers.</p>
+                                                <div className="p-7 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-white/10 text-center mb-4">
+                                                    <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-slate-400 dark:text-slate-500 mx-auto mb-2 opacity-60"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+                                                    <p className="text-xs italic text-slate-500 dark:text-slate-400">No active announcement. Set one below to inform waiting customers.</p>
                                                 </div>
                                             )}
                                             <button
                                                 onClick={() => setIsEditingAnnouncement(true)}
                                                 disabled={isDisabled}
-                                                className="w-full md:w-auto"
-                                                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 18px", background: T.brand, color: "#fff", border: "#e5e7eb", borderRadius: 9, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}
+                                                className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2"
                                             >
                                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                                 {(state?.announcement ?? initialQueue?.announcement) ? "Edit Announcement" : "Set Announcement"}
@@ -1702,75 +1696,128 @@ export default function QueueDetailPage({ params }: PageProps) {
                         SECTION: Connect TV
                         ════════════════════════════════════════════ */}
                         {activeSection === "connect_tv" && (
-                            <div className="fade-in bg-[#f8fafc] dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 p-6 md:p-10 shadow-sm min-h-[calc(100vh-120px)] flex flex-col items-center justify-center relative overflow-hidden">
-                                <div className="max-w-[420px] w-full relative z-10">
-                                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200 dark:border-white/10 p-8 sm:p-10">
+                            <div className="fade-in max-w-5xl mx-auto space-y-8 py-2">
+                                <div className="flex items-start gap-3">
+                                    <button className="md:hidden mt-0.5 p-1.5 -ml-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
+                                        <Menu size={22} />
+                                    </button>
+                                    <div className="flex-1">
+                                        <h1 className="qd-section-title text-xl md:text-2xl font-bold break-words text-slate-900 dark:text-white">Connect Smart TV</h1>
+                                        <p className="qd-section-sub text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">Link an external TV screen or digital display to broadcast live queue status in real-time.</p>
+                                    </div>
+                                </div>
 
-                                        <div className="flex flex-col items-center text-center mb-8">
-                                            {/* Premium Icon Container */}
-                                            <div className="relative mb-6">
-                                                <div className="w-16 h-16 bg-gradient-to-br from-indigo-50 to-white dark:from-slate-700 dark:to-slate-800 rounded-2xl border border-indigo-100/80 dark:border-indigo-500/20 shadow-sm flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                                                    <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <rect x="2" y="7" width="20" height="15" rx="2" ry="2" strokeWidth="1.8" />
-                                                        <polyline points="17 2 12 7 7 2" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                    {/* Pulse/Signal animation */}
-                                                    <div className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch">
+                                    {/* Primary Pairing Form Card */}
+                                    <div className="md:col-span-7 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-7 sm:p-9 shadow-sm flex flex-col justify-between relative overflow-hidden">
+                                        <div className="space-y-6">
+                                            <div className="flex items-center gap-4 pb-6 border-b border-slate-100 dark:border-white/10">
+                                                <div className="relative shrink-0">
+                                                    <div className="w-14 h-14 bg-gradient-to-br from-indigo-50 to-indigo-100/70 dark:from-indigo-950/80 dark:to-slate-800 rounded-2xl border border-indigo-200/60 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm">
+                                                        <Tv size={26} strokeWidth={1.8} />
+                                                    </div>
+                                                    <div className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
                                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                                        <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white dark:border-slate-800"></span>
+                                                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900"></span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">TV Pairing Terminal</h2>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Enter the 6-digit pairing code displayed on your Smart TV screen</p>
+                                                </div>
+                                            </div>
+
+                                            <form onSubmit={handleConnectTV} className="space-y-6">
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
+                                                            Pairing Code
+                                                        </label>
+                                                        <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-md">6 Digits</span>
+                                                    </div>
+                                                    
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            value={pairingCodeInput}
+                                                            onChange={(e) => setPairingCodeInput(e.target.value.toUpperCase())}
+                                                            maxLength={6}
+                                                            placeholder="6-DIGIT CODE"
+                                                            className="w-full h-16 rounded-2xl border-2 border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white font-mono text-center text-2xl sm:text-3xl font-black tracking-[0.4em] focus:outline-none focus:border-indigo-500 dark:focus:border-indigo-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-4 focus:ring-indigo-500/10 placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all uppercase"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    type="submit"
+                                                    disabled={isPairing || pairingCodeInput.length < 6}
+                                                    className="w-full h-13 py-3.5 flex items-center justify-center gap-2 rounded-2xl font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white shadow-md shadow-indigo-600/20"
+                                                >
+                                                    {isPairing ? (
+                                                        <RefreshCw size={18} className="animate-spin" />
+                                                    ) : (
+                                                        <>
+                                                            Link TV Screen
+                                                            <ArrowRight size={16} className={`transition-transform duration-200 ${pairingCodeInput.length === 6 ? 'translate-x-1' : ''}`} />
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </form>
+                                        </div>
+
+                                        <div className="mt-8 pt-5 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
+                                            <span className="flex items-center gap-1.5">
+                                                <ShieldCheck size={15} className="text-emerald-500" />
+                                                Secure WebSockets Broadcast
+                                            </span>
+                                            <span className="inline-flex items-center gap-1">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                Auto-Sync Ready
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Step-by-Step Setup Guide Card */}
+                                    <div className="md:col-span-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-7 sm:p-9 shadow-sm flex flex-col justify-between space-y-6">
+                                        <div className="space-y-5">
+                                            <div className="pb-4 border-b border-slate-100 dark:border-white/10">
+                                                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">Quick Setup Guide</h3>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">3 simple steps to pair your TV display</p>
+                                            </div>
+
+                                            <div className="space-y-3.5">
+                                                <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5 transition-colors">
+                                                    <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                                        1
+                                                    </div>
+                                                    <div className="text-xs space-y-1 min-w-0">
+                                                        <p className="font-bold text-slate-800 dark:text-slate-200">Open Browser on TV</p>
+                                                        <p className="text-slate-500 dark:text-slate-400 leading-relaxed">Navigate to <code className="bg-slate-200/60 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[11px] font-mono text-indigo-600 dark:text-indigo-300">/display</code> on your Smart TV web browser.</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5 transition-colors">
+                                                    <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                                        2
+                                                    </div>
+                                                    <div className="text-xs space-y-1 min-w-0">
+                                                        <p className="font-bold text-slate-800 dark:text-slate-200">Get 6-Digit Code</p>
+                                                        <p className="text-slate-500 dark:text-slate-400 leading-relaxed">Note the unique 6-digit code displayed on the TV screen.</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-start gap-3.5 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5 transition-colors">
+                                                    <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                                        3
+                                                    </div>
+                                                    <div className="text-xs space-y-1 min-w-0">
+                                                        <p className="font-bold text-slate-800 dark:text-slate-200">Pair & Broadcast</p>
+                                                        <p className="text-slate-500 dark:text-slate-400 leading-relaxed">Type code in terminal & click Link TV to broadcast live.</p>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Connect Smart TV</h3>
-
-                                            <p className="text-[14px] leading-relaxed text-slate-500 dark:text-slate-400">
-                                                Open <span className="font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">/display</span> on your TV and enter the 6-digit code below to link this queue.
-                                            </p>
                                         </div>
-
-                                        <form onSubmit={handleConnectTV} className="flex flex-col gap-6">
-                                            <div>
-                                                <label className="block text-[11px] font-bold tracking-wider text-slate-500 uppercase mb-2">
-                                                    Pairing Code
-                                                </label>
-                                                <div className="relative group">
-                                                    <input
-                                                        type="text"
-                                                        value={pairingCodeInput}
-                                                        onChange={(e) => setPairingCodeInput(e.target.value.toUpperCase())}
-                                                        maxLength={6}
-                                                        placeholder="------"
-                                                        className="w-full h-16 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-center text-3xl font-black tracking-[0.4em] focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 placeholder:text-slate-300 transition-all uppercase"
-                                                        required
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <button
-                                                type="submit"
-                                                disabled={isPairing || pairingCodeInput.length < 6}
-                                                className="relative w-full h-12 flex items-center justify-center gap-2 rounded-xl font-semibold text-[15px] transition-all duration-300 disabled:bg-slate-50 disabled:text-slate-400 disabled:border disabled:border-slate-200 disabled:cursor-not-allowed bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 hover:shadow-lg hover:shadow-indigo-600/30"
-                                            >
-                                                {isPairing ? (
-                                                    <RefreshCw size={18} className="animate-spin" />
-                                                ) : (
-                                                    <>
-                                                        Connect Display
-                                                        <svg className={`w-4 h-4 transition-transform duration-300 ${pairingCodeInput.length === 6 ? 'translate-x-0.5' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                                        </svg>
-                                                    </>
-                                                )}
-                                            </button>
-                                        </form>
-                                    </div>
-
-                                    <div className="mt-8 flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500 text-[11px] font-semibold uppercase tracking-widest">
-                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                        </svg>
-                                        Secure Broadcast
                                     </div>
                                 </div>
                             </div>
@@ -2253,7 +2300,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                             {t.customer_name || "Walk-in"}
                         </span>
                         {(t.pax_count && t.pax_count > 1) ? (
-                            <span className="inline-flex items-center gap-1 font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px] ml-1" title={`Total Pax: ${t.pax_count}`}>
+                            <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded text-[10px] ml-1" title={`Total Pax: ${t.pax_count}`}>
                                 <Users size={10} /> +{(t.pax_count) - 1}
                             </span>
                         ) : null}
@@ -2598,17 +2645,17 @@ function QueueHistory({
             </div>
 
             {/* Filters */}
-            <div className="qd-card" style={{ padding: "12px 16px" }}>
+            <div className="qd-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-3.5 sm:p-4">
                 <div className="flex flex-col md:flex-row items-start md:items-end gap-3 w-full">
                     <div className="w-full md:flex-1 flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold tracking-[0.09em] uppercase text-slate-500">Search Customers</label>
+                        <label className="text-[10px] font-bold tracking-[0.09em] uppercase text-slate-500 dark:text-slate-400">Search Customers</label>
                         <div style={{ position: "relative" }}>
                             <span style={{ position: "absolute", inset: "0 auto 0 0", display: "flex", alignItems: "center", paddingLeft: 11, pointerEvents: "none" }}>
-                                <svg width="14" height="14" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-slate-400 dark:text-slate-500"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </span>
-                            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Name, token #, or phone…" className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34, height: 38 }} />
+                            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Name, token #, or phone…" className="w-full pl-9 pr-8 py-2 text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors" style={{ height: 38 }} />
                             {searchQuery && (
-                                <button onClick={() => setSearchQuery("")} style={{ position: "absolute", inset: "0 0 0 auto", display: "flex", alignItems: "center", paddingRight: 11, background: "transparent", border: "none", cursor: "pointer" }}>
+                                <button onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" style={{ position: "absolute", inset: "0 0 0 auto", display: "flex", alignItems: "center", paddingRight: 11, background: "transparent", border: "none", cursor: "pointer" }}>
                                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                             )}
@@ -2616,20 +2663,19 @@ function QueueHistory({
                     </div>
                     <div className="flex flex-row items-end gap-3 w-full md:w-auto">
                         <div className="flex-1 md:w-auto flex flex-col gap-1.5">
-                            <label className="text-[10px] font-bold tracking-[0.09em] uppercase text-slate-500">Status</label>
-                            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white w-full md:w-[130px]" style={{ cursor: "pointer", height: 38 }}>
-                                <option value="">All</option>
-                                <option value="done">Completed</option>
-                                <option value="skipped">Skipped</option>
-                                <option value="serving">Serving</option>
-                                <option value="deleted">Removed</option>
+                            <label className="text-[10px] font-bold tracking-[0.09em] uppercase text-slate-500 dark:text-slate-400">Status</label>
+                            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full md:w-[130px] px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer transition-colors" style={{ height: 38 }}>
+                                <option value="" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">All</option>
+                                <option value="done" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Completed</option>
+                                <option value="skipped" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Skipped</option>
+                                <option value="serving" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Serving</option>
+                                <option value="deleted" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Removed</option>
                             </select>
                         </div>
                         <button
                             onClick={handleExport}
                             disabled={exporting || historyTotal === 0}
-                            className="qd-btn-secondary shrink-0"
-                            style={{ height: 38, padding: "0 14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, opacity: (exporting || historyTotal === 0) ? 0.6 : 1, cursor: (exporting || historyTotal === 0) ? "not-allowed" : "pointer" }}
+                            className="shrink-0 h-[38px] px-3.5 flex items-center justify-center gap-1.5 font-semibold text-xs rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                         >
                             {exporting ? (
                                 <span style={{ width: 14, height: 14, border: `2px solid ${T.textMuted}`, borderTopColor: "currentColor", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
@@ -2644,13 +2690,13 @@ function QueueHistory({
             </div>
 
             {/* Table */}
-            <div className="qd-card w-full overflow-x-auto rounded-lg shadow-sm border border-slate-100" style={{ overflow: "hidden" }}>
+            <div className="qd-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 w-full overflow-x-auto rounded-2xl shadow-sm" style={{ overflow: "hidden" }}>
                 <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", textAlign: "left", fontSize: 13.5, borderCollapse: "collapse", minWidth: 800 }}>
                         <thead>
-                            <tr style={{ background: "#fafbfc", borderBottom: `1px solid ${T.cardBorder}` }}>
+                            <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-white/10">
                                 {["Token", "Customer", "Status", "Type", "Wait Time", "Service Time", "Staff", ...(hasServiceLines ? ["Line"] : []), "Actions"].map(h => (
-                                    <th key={h} style={{ padding: "11px 18px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".09em", whiteSpace: "nowrap" }}>{h}</th>
+                                    <th key={h} className="text-slate-500 dark:text-slate-400" style={{ padding: "11px 18px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".09em", whiteSpace: "nowrap" }}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
@@ -2659,20 +2705,17 @@ function QueueHistory({
                                 <tr><td colSpan={hasServiceLines ? 9 : 8} style={{ padding: "48px", textAlign: "center", }}>
                                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                                         <span style={{ width: 18, height: 18, border: `2px solid ${T.brandLight}`, borderTopColor: T.brand, borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
-                                        <span style={{ fontSize: 13 }}>Loading records…</span>
+                                        <span className="text-slate-600 dark:text-slate-400" style={{ fontSize: 13 }}>Loading records…</span>
                                     </div>
                                 </td></tr>
                             ) : queueHistory.length === 0 ? (
-                                <tr><td colSpan={hasServiceLines ? 9 : 8} style={{ padding: "48px", textAlign: "center", fontSize: 13 }}>No matching history found for this queue.</td></tr>
+                                <tr><td colSpan={hasServiceLines ? 9 : 8} className="text-slate-500 dark:text-slate-400" style={{ padding: "48px", textAlign: "center", fontSize: 13 }}>No matching history found for this queue.</td></tr>
                             ) : queueHistory.map(item => {
                                 const isManual = item.entry_type === "manual";
                                 const ss = statusStyleMap[item.status] || { bg: "#f3f4f6", color: "#6b7280", label: item.status };
                                 return (
-                                    <tr key={item.id} style={{ /*border*/ borderBottom: `1px solid #f4f5f8`, transition: "background .12s" }}
-                                        onMouseEnter={e => (e.currentTarget.style.background = "var(--q-row-alt)")}
-                                        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                                    >
-                                        <td style={{ padding: "12px 18px", fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{item.queue_prefix}{item.token_number}</td>
+                                    <tr key={item.id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="text-slate-900 dark:text-white" style={{ padding: "12px 18px", fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{item.queue_prefix}{item.token_number}</td>
                                         <td style={{ padding: "12px 18px" }}>
                                             <div className="flex items-center gap-2.5 min-w-0">
                                                 <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] flex-shrink-0" style={{ backgroundColor: `hsl(${item.customer_name ? item.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 90%)`, color: `hsl(${item.customer_name ? item.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 30%)` }}>
@@ -2721,29 +2764,29 @@ function QueueHistory({
                                                 : <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={13} />QR</span>
                                             }
                                         </td>
-                                        <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
-                                        <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums", color: "#059669" }}>
+                                        <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
+                                        <td className="text-emerald-600 dark:text-emerald-400 font-medium" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
                                             {calcSvcTime(item.served_at, item.completed_at)}
                                         </td>
-                                        <td style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5 }}>
+                                        <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5 }}>
                                             {(item.completed_by_staff_name || item.served_by_staff_name) ? (
                                                 <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                                                     {item.completed_by_staff_name && (
-                                                        <span style={{ color: "#374151" }} title="Completed By">C: {item.completed_by_staff_name}</span>
+                                                        <span className="text-slate-800 dark:text-slate-200" title="Completed By">C: {item.completed_by_staff_name}</span>
                                                     )}
                                                     {(item.served_by_staff_name && item.served_by_staff_name !== item.completed_by_staff_name) && (
-                                                        <span style={{ color: "#6b7280", fontSize: "11px" }} title="Served By">S: {item.served_by_staff_name}</span>
+                                                        <span className="text-slate-500 dark:text-slate-400 text-[11px]" title="Served By">S: {item.served_by_staff_name}</span>
                                                     )}
                                                 </div>
-                                            ) : "—"}
+                                            ) : <span className="text-slate-400 dark:text-slate-500">—</span>}
                                         </td>
                                         {hasServiceLines && (
-                                            <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
+                                            <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                                 {(item as any).assigned_line != null ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
                                                         Line {(item as any).assigned_line}
                                                     </span>
-                                                ) : "—"}
+                                                ) : <span className="text-slate-400 dark:text-slate-500">—</span>}
                                             </td>
                                         )}
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
@@ -2757,9 +2800,8 @@ function QueueHistory({
                                                         assigned_line: item.assigned_line, served_by_staff_name: item.served_by_staff_name, completed_by_staff_name: item.completed_by_staff_name,
                                                         skipped_at: item.skipped_at, deleted_at: item.deleted_at, recalled_at: item.recalled_at, removed_by: item.removed_by
                                                     })}
-                                                    style={{ padding: "6px", background: "transparent", border: "#e5e7eb", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
-                                                    onMouseEnter={e => { e.currentTarget.style.color = T.blue; e.currentTarget.style.background = T.blueBg; }}
-                                                    onMouseLeave={e => { e.currentTarget.style.color = "inherit"; e.currentTarget.style.background = "transparent"; }}
+                                                    className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-lg transition-colors"
+                                                    title="View Details"
                                                 >
                                                     <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                 </button>
@@ -2773,16 +2815,16 @@ function QueueHistory({
                 </div>
 
                 {historyTotal > historyPageSize && (
-                    <div style={{ background: "#fafbfc", padding: "14px 20px", borderTop: `1px solid ${T.cardBorder}`, display: "flex", flexDirection: "column", gap: 10, alignItems: "center", justifyContent: "space-between" }} className="sm:flex-row">
-                        <p style={{ fontSize: 12.5, margin: 0 }}>
-                            Showing <strong style={{}}>{(historyPage - 1) * historyPageSize + 1}</strong>–<strong style={{}}>{Math.min(historyPage * historyPageSize, historyTotal)}</strong> of <strong style={{}}>{historyTotal}</strong> customers
+                    <div className="bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-white/10 p-3.5 sm:px-5 flex flex-col sm:flex-row gap-2.5 items-center justify-between">
+                        <p className="text-xs text-slate-600 dark:text-slate-400" style={{ margin: 0 }}>
+                            Showing <strong className="text-slate-900 dark:text-white">{(historyPage - 1) * historyPageSize + 1}</strong>–<strong className="text-slate-900 dark:text-white">{Math.min(historyPage * historyPageSize, historyTotal)}</strong> of <strong className="text-slate-900 dark:text-white">{historyTotal}</strong> customers
                         </p>
                         <div style={{ display: "flex", gap: 4 }}>
                             {[
                                 { label: "«", onClick: () => setHistoryPage(1), disabled: historyPage === 1 },
                                 { label: "Prev", onClick: () => setHistoryPage(p => Math.max(1, p - 1)), disabled: historyPage === 1 },
                             ].map(btn => (
-                                <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled} style={{ padding: "5px 10px", fontSize: 12.5, fontWeight: 700, background: "#fff", border: `1px solid ${T.cardBorder}`, borderRadius: 7, cursor: btn.disabled ? "not-allowed" : "pointer", opacity: btn.disabled ? .4 : 1 }}>{btn.label}</button>
+                                <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled} className="px-2.5 py-1 text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">{btn.label}</button>
                             ))}
 
                             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {

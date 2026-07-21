@@ -269,7 +269,7 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                                 </div>
                                 {!c && (
                                     <div
-                                        className={`shrink-0 p-1.5 rounded-lg transition-colors text-slate-400 group-hover:text-red-600 group-hover:bg-red-50/80`}
+                                        className="shrink-0 p-1.5 rounded-lg transition-colors text-slate-400 dark:text-slate-500 group-hover:text-rose-600 dark:group-hover:text-rose-400 group-hover:bg-rose-50 dark:group-hover:bg-rose-950/60"
                                         title="Sign out"
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

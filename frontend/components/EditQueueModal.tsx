@@ -83,13 +83,13 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-slate-900/5">
-                <h3 className="text-xl font-bold text-slate-800 mb-6 tracking-tight">Edit Queue Settings</h3>
+            <div className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative bg-white dark:bg-slate-900 border border-transparent dark:border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-slate-900/5">
+                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 tracking-tight">Edit Queue Settings</h3>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Queue Name</label>
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Queue Name</label>
                         <input
                             ref={inputRef}
                             type="text"
@@ -98,32 +98,32 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                             placeholder="e.g. General Consultation"
                             required
                             maxLength={150}
-                            className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
+                            className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
                             disabled={isLoading}
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Token Prefix</label>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Token Prefix</label>
                             <input
                                 type="text"
                                 value={prefix}
                                 onChange={(e) => setPrefix(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase())}
                                 placeholder="A"
                                 maxLength={3}
-                                className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
+                                className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
                                 disabled={isLoading}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Start Sequence</label>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Start Sequence</label>
                             <input
                                 type="number"
                                 min="1"
                                 value={startingSequence}
                                 onChange={(e) => setStartingSequence(parseInt(e.target.value))}
-                                className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
+                                className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
                                 disabled={isLoading}
                             />
                         </div>
@@ -131,22 +131,22 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Open Time (Optional)</label>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Open Time (Optional)</label>
                             <input
                                 type="time"
                                 value={openTime}
                                 onChange={(e) => setOpenTime(e.target.value)}
-                                className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
+                                className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
                                 disabled={isLoading}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Close Time (Optional)</label>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Close Time (Optional)</label>
                             <input
                                 type="time"
                                 value={closeTime}
                                 onChange={(e) => setCloseTime(e.target.value)}
-                                className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
+                                className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
                                 disabled={isLoading}
                             />
                         </div>
@@ -154,22 +154,22 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
 
                     {/* Queue Type */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Queue Mode</label>
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Queue Mode</label>
                         <div className="grid grid-cols-2 gap-3">
                             {/* Normal */}
                             <button
                                 type="button"
                                 onClick={() => setQueueType("normal")}
                                 className={`flex flex-col items-start gap-2 p-3 rounded-xl border-2 text-left transition-all ${queueType === "normal"
-                                    ? "border-blue-500 bg-blue-50"
-                                    : "border-slate-200 hover:border-slate-300 bg-white"
+                                    ? "border-blue-500 dark:border-blue-500 bg-blue-50 dark:bg-blue-950/60"
+                                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800"
                                     }`}
                             >
                                 <div>
-                                    <div className={`text-sm font-semibold ${queueType === "normal" ? "text-blue-700" : "text-slate-700"}`}>
+                                    <div className={`text-sm font-semibold ${queueType === "normal" ? "text-blue-700 dark:text-blue-300" : "text-slate-700 dark:text-slate-300"}`}>
                                         Single Counter
                                     </div>
-                                    <div className="text-xs text-slate-500 mt-0.5">One serving station</div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">One serving station</div>
                                 </div>
                             </button>
 
@@ -178,28 +178,28 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                 type="button"
                                 onClick={() => setQueueType("service_lines")}
                                 className={`flex flex-col items-start gap-2 p-3 rounded-xl border-2 text-left transition-all ${queueType === "service_lines"
-                                    ? "border-purple-500 bg-purple-50"
-                                    : "border-slate-200 hover:border-slate-300 bg-white"
+                                    ? "border-purple-500 dark:border-purple-500 bg-purple-50 dark:bg-purple-950/60"
+                                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800"
                                     }`}
                             >
                                 <div>
-                                    <div className={`text-sm font-semibold ${queueType === "service_lines" ? "text-purple-700" : "text-slate-700"}`}>
+                                    <div className={`text-sm font-semibold ${queueType === "service_lines" ? "text-purple-700 dark:text-purple-300" : "text-slate-700 dark:text-slate-300"}`}>
                                         Service Lanes
                                     </div>
-                                    <div className="text-xs text-slate-500 mt-0.5">Multiple lanes / counters</div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Multiple lanes / counters</div>
                                 </div>
                             </button>
                         </div>
                         {queueType === "service_lines" && (
-                            <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100 animate-in fade-in slide-in-from-top-2">
-                                <label className="block text-sm font-semibold text-purple-900 mb-1.5">Number of Service Lanes</label>
+                            <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-950/60 rounded-xl border border-purple-100 dark:border-purple-900/40 animate-in fade-in slide-in-from-top-2">
+                                <label className="block text-sm font-semibold text-purple-900 dark:text-purple-300 mb-1.5">Number of Service Lanes</label>
                                 <input
                                     type="number"
                                     min="2"
                                     max="20"
                                     value={serviceLines}
                                     onChange={(e) => setServiceLines(parseInt(e.target.value) || 2)}
-                                    className="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 text-sm text-purple-900 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                    className="w-full rounded-xl border border-purple-200 dark:border-purple-900/60 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-purple-900 dark:text-purple-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                     disabled={isLoading}
                                 />
                             </div>
@@ -207,7 +207,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                     </div>
 
                     {error && (
-                        <div className="bg-red-50 text-red-700 text-sm font-medium p-3 rounded-xl border border-red-200">
+                        <div className="bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-sm font-medium p-3 rounded-xl border border-rose-200 dark:border-rose-900/40">
                             {error}
                         </div>
                     )}
@@ -217,7 +217,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                             type="button"
                             onClick={onClose}
                             disabled={isLoading}
-                            className="px-4 py-2.5 text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-colors"
+                            className="px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-white/10 rounded-xl transition-colors"
                         >
                             Cancel
                         </button>

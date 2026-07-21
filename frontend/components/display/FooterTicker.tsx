@@ -39,10 +39,12 @@ export function FooterTicker({ announcement, theme = "light" }: FooterTickerProp
             )}
 
             {/* Centered Modern Branding */}
-            <div className="flex items-center justify-center">
-                <span className={`text-[10px] font-medium tracking-[0.2em] ${isDark ? "text-slate-600" : "text-slate-400"} uppercase flex items-center gap-2`}>
-                    Powered by 
-                    <img src="/q4queue-new_logo.png" alt="Q4Queue Logo" className="h-3 w-auto object-contain opacity-80" />
+            <div className="flex items-center justify-center py-2">
+                <span className={`text-sm font-semibold tracking-[0.2em] ${isDark ? "text-slate-500" : "text-slate-400"} uppercase flex items-center`}>
+                    <span className="translate-x-2">Powered by</span>
+                    <div className="h-10 flex items-center overflow-visible w-40 -ml-2">
+                        <img src={isDark ? "/q4queue-darkThemeLogo.png" : "/q4queue-new_logo.png"} alt="Q4Queue Logo" className={`h-10 w-auto object-contain origin-left ${isDark ? "scale-[4] translate-x-2 translate-y-1" : "scale-[3.5] -translate-x-1 translate-y-1.5"}`} />
+                    </div>
                 </span>
             </div>
         </footer>

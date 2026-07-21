@@ -90,7 +90,7 @@ function fmtTime(iso?: string | null) {
 
 function StatCard({ label, value, color, icon: Icon, trend }: { label: string; value: number | string; color: string; icon: any; trend?: string }) {
     return (
-        <div className="bg-white rounded-[16px] border border-[#E9EDF5] p-5 shadow-[0_4px_20px_rgba(15,23,42,0.03)] flex flex-col justify-between h-full">
+        <div className="bg-white dark:bg-slate-900/60 dark:backdrop-blur-xl rounded-[16px] border border-[#E9EDF5] dark:border-white/10 p-5 shadow-sm flex flex-col justify-between h-full">
             <div className="flex items-start justify-between mb-4">
                 <div 
                     className="w-10 h-10 rounded-xl flex items-center justify-center bg-opacity-10" 
@@ -99,16 +99,16 @@ function StatCard({ label, value, color, icon: Icon, trend }: { label: string; v
                     <Icon size={20} strokeWidth={2.5} />
                 </div>
                 {trend && (
-                    <span className="text-[11px] font-bold tracking-wider px-2 py-1 rounded-md bg-slate-50 text-slate-500 border border-slate-100">
+                    <span className="text-[11px] font-bold tracking-wider px-2 py-1 rounded-md bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-white/10">
                         {trend}
                     </span>
                 )}
             </div>
             <div>
-                <div className="text-[28px] font-bold tracking-tight text-slate-900 leading-none mb-1.5" style={{ color }}>
+                <div className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white leading-none mb-1.5" style={{ color }}>
                     {value}
                 </div>
-                <div className="text-[13px] font-medium text-[#6B7280]">
+                <div className="text-[13px] font-medium text-[#6B7280] dark:text-slate-400">
                     {label}
                 </div>
             </div>
@@ -320,31 +320,31 @@ export function WhatsAppPortal() {
     }
 
     return (
-        <div className="space-y-6 w-full pb-12 bg-[#F7F9FC] min-h-screen">
+        <div className="space-y-6 w-full pb-12 bg-transparent min-h-screen">
             {/* Hero Section */}
-            <div className="bg-white rounded-[24px] p-8 shadow-[0_10px_40px_rgba(15,23,42,0.04)] border border-[#E9EDF5] relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-50/50 via-white to-white opacity-60 pointer-events-none"></div>
+            <div className="bg-white dark:bg-slate-900/60 dark:backdrop-blur-xl rounded-[24px] p-8 shadow-sm border border-[#E9EDF5] dark:border-white/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-50/50 dark:from-indigo-950/20 via-white dark:via-transparent to-white dark:to-transparent opacity-60 pointer-events-none"></div>
                 <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-[#111827] tracking-tight mb-2">
+                        <h1 className="text-2xl font-bold text-[#111827] dark:text-white tracking-tight mb-2">
                             Communication Hub
                         </h1>
-                        <p className="text-[14px] text-[#6B7280]">
+                        <p className="text-[14px] text-[#6B7280] dark:text-slate-400">
                             Manage WhatsApp notifications, delivery analytics and messaging settings for this branch.
                         </p>
                     </div>
-                    <div className="shrink-0 flex items-center gap-3 bg-[#F7F9FC] px-4 py-3 rounded-2xl border border-[#E9EDF5]">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                            <MessageSquareText size={20} className="text-emerald-500" strokeWidth={2} />
+                    <div className="shrink-0 flex items-center gap-3 bg-[#F7F9FC] dark:bg-slate-800/60 px-4 py-3 rounded-2xl border border-[#E9EDF5] dark:border-white/10">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center">
+                            <MessageSquareText size={20} className="text-emerald-500 dark:text-emerald-400" strokeWidth={2} />
                         </div>
                         <div>
-                            <div className="text-[14px] font-bold text-[#111827]">WhatsApp</div>
+                            <div className="text-[14px] font-bold text-[#111827] dark:text-white">WhatsApp</div>
                             <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                 </span>
-                                <span className="text-[12px] font-medium text-emerald-600">Connected</span>
+                                <span className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400">Connected</span>
                             </div>
                         </div>
                     </div>
@@ -354,16 +354,16 @@ export function WhatsAppPortal() {
             {/* Sub-header & Tabs */}
             <div className="pt-2 pb-4">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center">
-                        <BellRing size={16} className="text-indigo-500" />
+                    <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center">
+                        <BellRing size={16} className="text-indigo-500 dark:text-indigo-400" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold text-[#111827]">WhatsApp Analytics & Settings</h2>
-                        <p className="text-[12px] text-[#6B7280]">Monitor message delivery and configure notifications for your organization.</p>
+                        <h2 className="text-lg font-bold text-[#111827] dark:text-white">WhatsApp Analytics & Settings</h2>
+                        <p className="text-[12px] text-[#6B7280] dark:text-slate-400">Monitor message delivery and configure notifications for your organization.</p>
                     </div>
                 </div>
 
-                <div className="flex border-b border-[#E9EDF5] mt-6 gap-8">
+                <div className="flex border-b border-[#E9EDF5] dark:border-white/10 mt-6 gap-8">
                     {tabs.map((tab) => {
                         const Icon = TAB_ICONS[tab.id];
                         const isActive = activeTab === tab.id;
@@ -373,8 +373,8 @@ export function WhatsAppPortal() {
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={`pb-3 text-[14px] font-semibold transition-all duration-200 border-b-2 flex items-center gap-2 ${
                                     isActive 
-                                    ? "border-[#2563EB] text-[#2563EB]" 
-                                    : "border-transparent text-[#6B7280] hover:text-[#111827] hover:border-slate-300"
+                                    ? "border-[#2563EB] dark:border-indigo-400 text-[#2563EB] dark:text-indigo-400" 
+                                    : "border-transparent text-[#6B7280] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700"
                                 }`}
                             >
                                 <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
@@ -389,62 +389,62 @@ export function WhatsAppPortal() {
                 {activeTab === "overview" && (
                     <div className="space-y-6">
                         {/* Premium Filter Card */}
-                        <div className="bg-white p-5 rounded-[16px] shadow-[0_4px_20px_rgba(15,23,42,0.03)] border border-[#E9EDF5] flex flex-col lg:flex-row gap-4 items-end">
+                        <div className="bg-white dark:bg-slate-900/60 dark:backdrop-blur-xl p-5 rounded-[16px] shadow-sm border border-[#E9EDF5] dark:border-white/10 flex flex-col lg:flex-row gap-4 items-end">
                             <div className="flex-1 w-full relative">
-                                <label className="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider mb-1.5">Start Date</label>
+                                <label className="block text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider mb-1.5">Start Date</label>
                                 <div className="relative">
                                     <input 
                                         type="date" 
                                         value={startDate} 
                                         onChange={e => setStartDate(e.target.value)}
-                                        className="w-full h-11 bg-[#F7F9FC] border border-[#E9EDF5] rounded-xl pl-10 pr-4 text-[13px] font-medium text-[#111827] focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all"
+                                        className="w-full h-11 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-10 pr-4 text-[13px] font-medium text-[#111827] dark:text-slate-200 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all dark:scheme-dark"
                                     />
-                                    <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280]" />
+                                    <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-slate-500" />
                                 </div>
                             </div>
                             <div className="flex-1 w-full relative">
-                                <label className="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider mb-1.5">End Date</label>
+                                <label className="block text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider mb-1.5">End Date</label>
                                 <div className="relative">
                                     <input 
                                         type="date" 
                                         value={endDate} 
                                         onChange={e => setEndDate(e.target.value)}
-                                        className="w-full h-11 bg-[#F7F9FC] border border-[#E9EDF5] rounded-xl pl-10 pr-4 text-[13px] font-medium text-[#111827] focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all"
+                                        className="w-full h-11 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-10 pr-4 text-[13px] font-medium text-[#111827] dark:text-slate-200 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all dark:scheme-dark"
                                     />
-                                    <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280]" />
+                                    <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-slate-500" />
                                 </div>
                             </div>
                             <div className="flex-1 w-full relative">
-                                <label className="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider mb-1.5">Queue</label>
+                                <label className="block text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider mb-1.5">Queue</label>
                                 <div className="relative">
                                     <select 
                                         value={filterQueueId} 
                                         onChange={e => setFilterQueueId(e.target.value)}
-                                        className="w-full h-11 bg-[#F7F9FC] border border-[#E9EDF5] rounded-xl pl-4 pr-10 text-[13px] font-medium text-[#111827] focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all appearance-none"
+                                        className="w-full h-11 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-4 pr-10 text-[13px] font-medium text-[#111827] dark:text-slate-200 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all appearance-none"
                                     >
-                                        <option value="">All Queues</option>
-                                        {queues.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
+                                        <option value="" className="dark:bg-slate-900">All Queues</option>
+                                        {queues.map(q => <option key={q.id} value={q.id} className="dark:bg-slate-900">{q.name}</option>)}
                                     </select>
-                                    <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none" />
+                                    <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-slate-500 pointer-events-none" />
                                 </div>
                             </div>
                             <div className="flex-1 w-full relative">
-                                <label className="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider mb-1.5">Session</label>
+                                <label className="block text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider mb-1.5">Session</label>
                                 <div className="relative">
                                     <select 
                                         value={filterSessionId} 
                                         onChange={e => setFilterSessionId(e.target.value)}
-                                        className="w-full h-11 bg-[#F7F9FC] border border-[#E9EDF5] rounded-xl pl-4 pr-10 text-[13px] font-medium text-[#111827] focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all appearance-none"
+                                        className="w-full h-11 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-4 pr-10 text-[13px] font-medium text-[#111827] dark:text-slate-200 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all appearance-none"
                                     >
-                                        <option value="">All Sessions</option>
-                                        {sessions.map(s => <option key={s.id} value={s.id}>{new Date(s.session_date).toLocaleDateString()}</option>)}
+                                        <option value="" className="dark:bg-slate-900">All Sessions</option>
+                                        {sessions.map(s => <option key={s.id} value={s.id} className="dark:bg-slate-900">{new Date(s.session_date).toLocaleDateString()}</option>)}
                                     </select>
-                                    <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none" />
+                                    <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-slate-500 pointer-events-none" />
                                 </div>
                             </div>
                             <button 
                                 onClick={() => { setStartDate(""); setEndDate(""); setFilterQueueId(""); setFilterSessionId(""); }}
-                                className="h-11 px-5 flex items-center justify-center gap-2 text-[13px] font-semibold text-[#6366F1] bg-[#6366F1]/5 hover:bg-[#6366F1]/10 rounded-xl transition-colors whitespace-nowrap border border-transparent"
+                                className="h-11 px-5 flex items-center justify-center gap-2 text-[13px] font-semibold text-[#6366F1] dark:text-indigo-400 bg-[#6366F1]/5 dark:bg-indigo-500/10 hover:bg-[#6366F1]/10 dark:hover:bg-indigo-500/20 rounded-xl transition-colors whitespace-nowrap border border-transparent"
                             >
                                 <FilterX size={16} />
                                 Clear Filters
@@ -461,16 +461,16 @@ export function WhatsAppPortal() {
                         </div>
 
                         {/* Events Table */}
-                        <div className="bg-white rounded-[24px] border border-[#E9EDF5] overflow-hidden shadow-[0_4px_20px_rgba(15,23,42,0.03)]">
-                            <div className="px-6 py-5 border-b border-[#E9EDF5] bg-white flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                                    <BarChart3 size={16} className="text-indigo-500" strokeWidth={2.5} />
+                        <div className="bg-white dark:bg-slate-900/60 dark:backdrop-blur-xl rounded-[24px] border border-[#E9EDF5] dark:border-white/10 overflow-hidden shadow-sm">
+                            <div className="px-6 py-5 border-b border-[#E9EDF5] dark:border-white/10 bg-white dark:bg-slate-900/40 flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center">
+                                    <BarChart3 size={16} className="text-indigo-500 dark:text-indigo-400" strokeWidth={2.5} />
                                 </div>
-                                <h3 className="font-bold text-[#111827] text-[16px]">Performance By Event Type</h3>
+                                <h3 className="font-bold text-[#111827] dark:text-white text-[16px]">Performance By Event Type</h3>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-[14px]">
-                                    <thead className="bg-[#F7F9FC] text-[#6B7280] text-[11px] uppercase tracking-wider font-bold">
+                                    <thead className="bg-[#F7F9FC] dark:bg-slate-800/50 text-[#6B7280] dark:text-slate-400 text-[11px] uppercase tracking-wider font-bold">
                                         <tr>
                                             <th className="px-6 py-4">Event Type</th>
                                             <th className="px-6 py-4">Total Sent</th>
@@ -480,25 +480,25 @@ export function WhatsAppPortal() {
                                             <th className="px-6 py-4">Success Rate</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-[#E9EDF5] text-[#111827]">
+                                    <tbody className="divide-y divide-[#E9EDF5] dark:divide-white/10 text-[#111827] dark:text-slate-200">
                                         {allEventsToDisplay.length === 0 ? (
-                                            <tr><td colSpan={6} className="px-6 py-12 text-center text-[#6B7280] font-medium">No data available for these filters.</td></tr>
+                                            <tr><td colSpan={6} className="px-6 py-12 text-center text-[#6B7280] dark:text-slate-400 font-medium">No data available for these filters.</td></tr>
                                         ) : allEventsToDisplay.map((s, i) => (
-                                            <tr key={i} className="hover:bg-slate-50/50 transition-colors duration-200">
-                                                <td className="px-6 py-4 font-semibold flex items-center gap-3">
+                                            <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors duration-200">
+                                                <td className="px-6 py-4 font-semibold flex items-center gap-3 text-[#111827] dark:text-slate-200">
                                                     <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
                                                     {EVENT_LABEL[s.event_type] || s.event_type}
                                                 </td>
-                                                <td className="px-6 py-4 font-semibold text-[#111827]">{s.total}</td>
-                                                <td className="px-6 py-4 text-emerald-500 font-semibold">{s.delivered}</td>
-                                                <td className="px-6 py-4 text-blue-600 font-semibold">{s.read}</td>
-                                                <td className="px-6 py-4 text-red-500 font-semibold">{s.failed}</td>
+                                                <td className="px-6 py-4 font-semibold text-[#111827] dark:text-white">{s.total}</td>
+                                                <td className="px-6 py-4 text-emerald-500 dark:text-emerald-400 font-semibold">{s.delivered}</td>
+                                                <td className="px-6 py-4 text-blue-600 dark:text-blue-400 font-semibold">{s.read}</td>
+                                                <td className="px-6 py-4 text-red-500 dark:text-red-400 font-semibold">{s.failed}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-24 h-1.5 bg-[#F7F9FC] border border-[#E9EDF5] rounded-full overflow-hidden">
+                                                        <div className="w-24 h-1.5 bg-[#F7F9FC] dark:bg-slate-800 border border-[#E9EDF5] dark:border-white/10 rounded-full overflow-hidden">
                                                             <div className="h-full bg-slate-300 rounded-full transition-all duration-500" style={{ width: `${s.success_rate}%`, backgroundColor: s.success_rate >= 90 ? '#10B981' : s.success_rate >= 50 ? '#F59E0B' : '#EF4444' }}></div>
                                                         </div>
-                                                        <span className="font-bold text-[#111827] text-[13px]">{s.success_rate}%</span>
+                                                        <span className="font-bold text-[#111827] dark:text-white text-[13px]">{s.success_rate}%</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -512,35 +512,35 @@ export function WhatsAppPortal() {
                 )}
 
                 {activeTab === "history" && (
-                    <div className="bg-white rounded-[24px] border border-[#E9EDF5] overflow-hidden shadow-[0_4px_20px_rgba(15,23,42,0.03)]">
-                        <div className="p-5 border-b border-[#E9EDF5] bg-white flex flex-col sm:flex-row gap-4 items-center">
+                    <div className="bg-white dark:bg-slate-900/60 dark:backdrop-blur-xl rounded-[24px] border border-[#E9EDF5] dark:border-white/10 overflow-hidden shadow-sm">
+                        <div className="p-5 border-b border-[#E9EDF5] dark:border-white/10 bg-white dark:bg-slate-900/40 flex flex-col sm:flex-row gap-4 items-center">
                             <div className="flex-1 w-full relative">
-                                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280]" />
-                                <input type="text" placeholder="Search by name or phone..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full h-11 bg-[#F7F9FC] border border-[#E9EDF5] rounded-xl pl-10 pr-4 text-[13px] font-medium text-[#111827] focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all" />
+                                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-slate-500" />
+                                <input type="text" placeholder="Search by name or phone..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full h-11 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-10 pr-4 text-[13px] font-medium text-[#111827] dark:text-slate-200 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all placeholder:text-[#6B7280] dark:placeholder:text-slate-500" />
                             </div>
                             <div className="relative w-full sm:w-auto">
-                                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full sm:w-auto h-11 bg-[#F7F9FC] border border-[#E9EDF5] rounded-xl pl-4 pr-10 text-[13px] font-medium text-[#111827] focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all appearance-none">
-                                    <option value="">All Statuses</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="sent">Sent</option>
-                                    <option value="delivered">Delivered</option>
-                                    <option value="read">Read</option>
-                                    <option value="failed">Failed</option>
-                                    <option value="skipped">Skipped</option>
+                                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full sm:w-auto h-11 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-4 pr-10 text-[13px] font-medium text-[#111827] dark:text-slate-200 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all appearance-none">
+                                    <option value="" className="dark:bg-slate-900">All Statuses</option>
+                                    <option value="pending" className="dark:bg-slate-900">Pending</option>
+                                    <option value="sent" className="dark:bg-slate-900">Sent</option>
+                                    <option value="delivered" className="dark:bg-slate-900">Delivered</option>
+                                    <option value="read" className="dark:bg-slate-900">Read</option>
+                                    <option value="failed" className="dark:bg-slate-900">Failed</option>
+                                    <option value="skipped" className="dark:bg-slate-900">Skipped</option>
                                 </select>
-                                <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none" />
+                                <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-slate-500 pointer-events-none" />
                             </div>
                             <div className="relative w-full sm:w-auto">
-                                <select value={filterEventType} onChange={e => setFilterEventType(e.target.value)} className="w-full sm:w-auto h-11 bg-[#F7F9FC] border border-[#E9EDF5] rounded-xl pl-4 pr-10 text-[13px] font-medium text-[#111827] focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all appearance-none">
-                                    <option value="">All Events</option>
-                                    {ACTIVE_EVENTS.map(ev => <option key={ev} value={ev}>{EVENT_LABEL[ev] || ev}</option>)}
+                                <select value={filterEventType} onChange={e => setFilterEventType(e.target.value)} className="w-full sm:w-auto h-11 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-4 pr-10 text-[13px] font-medium text-[#111827] dark:text-slate-200 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all appearance-none">
+                                    <option value="" className="dark:bg-slate-900">All Events</option>
+                                    {ACTIVE_EVENTS.map(ev => <option key={ev} value={ev} className="dark:bg-slate-900">{EVENT_LABEL[ev] || ev}</option>)}
                                 </select>
-                                <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none" />
+                                <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-slate-500 pointer-events-none" />
                             </div>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-[14px]">
-                                <thead className="bg-[#F7F9FC] text-[#6B7280] text-[11px] uppercase tracking-wider font-bold">
+                                <thead className="bg-[#F7F9FC] dark:bg-slate-800/50 text-[#6B7280] dark:text-slate-400 text-[11px] uppercase tracking-wider font-bold">
                                     <tr>
                                         <th className="px-6 py-4">Customer / Phone</th>
                                         <th className="px-6 py-4">Event</th>
@@ -549,21 +549,21 @@ export function WhatsAppPortal() {
                                         <th className="px-6 py-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[#E9EDF5] text-[#111827]">
+                                <tbody className="divide-y divide-[#E9EDF5] dark:divide-white/10 text-[#111827] dark:text-slate-200">
                                     {logs?.items.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="px-6 py-12 text-center text-[#6B7280] font-medium">
+                                            <td colSpan={5} className="px-6 py-12 text-center text-[#6B7280] dark:text-slate-400 font-medium">
                                                 No messages sent yet.
                                             </td>
                                         </tr>
                                     ) : logs?.items.map((m: WhatsAppMessage) => (
-                                        <tr key={m.id} className="hover:bg-slate-50/50 transition-colors duration-200">
+                                        <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors duration-200">
                                             <td className="px-6 py-4">
-                                                <div className="font-semibold text-[#111827]">{m.customer_name || "Unknown"}</div>
-                                                <div className="font-mono text-[12px] text-[#6B7280] mt-1">{m.customer_phone}</div>
+                                                <div className="font-semibold text-[#111827] dark:text-white">{m.customer_name || "Unknown"}</div>
+                                                <div className="font-mono text-[12px] text-[#6B7280] dark:text-slate-400 mt-1">{m.customer_phone}</div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className="bg-[#F7F9FC] text-[#6B7280] px-2.5 py-1 rounded-md text-[11px] font-bold border border-[#E9EDF5]">
+                                                <span className="bg-[#F7F9FC] dark:bg-slate-800 text-[#6B7280] dark:text-slate-300 px-2.5 py-1 rounded-md text-[11px] font-bold border border-[#E9EDF5] dark:border-white/10">
                                                     {EVENT_LABEL[m.event_type || ""] || m.event_type || "—"}
                                                 </span>
                                             </td>
@@ -573,18 +573,18 @@ export function WhatsAppPortal() {
                                                     <span className="capitalize">{m.status === "skipped" ? "Skipped (No Opt-in)" : m.status}</span>
                                                 </span>
                                                 {m.error_message && (
-                                                    <div className="text-[10px] text-red-500 mt-1.5 max-w-[200px] truncate" title={m.error_message}>
+                                                    <div className="text-[10px] text-red-500 dark:text-red-400 mt-1.5 max-w-[200px] truncate" title={m.error_message}>
                                                         {m.error_message}
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 text-[#6B7280] text-[13px] font-medium">
+                                            <td className="px-6 py-4 text-[#6B7280] dark:text-slate-400 text-[13px] font-medium">
                                                 {fmtTime(m.sent_at)}
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <button 
                                                     onClick={() => setSelectedMessage(m)}
-                                                    className="inline-flex items-center justify-center p-2 rounded-xl text-[#6B7280] hover:text-[#2563EB] hover:bg-blue-50 transition-colors duration-200"
+                                                    className="inline-flex items-center justify-center p-2 rounded-xl text-[#6B7280] dark:text-slate-400 hover:text-[#2563EB] dark:hover:text-indigo-400 hover:bg-blue-50 dark:hover:bg-indigo-950/50 transition-colors duration-200"
                                                     title="View Details"
                                                 >
                                                     <Eye size={18} />
@@ -597,22 +597,22 @@ export function WhatsAppPortal() {
                         </div>
                         
                         {logs && logs.total > 50 && (
-                            <div className="px-6 py-4 border-t border-[#E9EDF5] flex items-center justify-between bg-white">
-                                <div className="text-[13px] text-[#6B7280]">
-                                    Showing <span className="font-bold text-[#111827]">{(currentPage - 1) * 50 + 1}</span> to <span className="font-bold text-[#111827]">{Math.min(currentPage * 50, logs.total)}</span> of <span className="font-bold text-[#111827]">{logs.total}</span> entries
+                            <div className="px-6 py-4 border-t border-[#E9EDF5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-slate-900/40">
+                                <div className="text-[13px] text-[#6B7280] dark:text-slate-400">
+                                    Showing <span className="font-bold text-[#111827] dark:text-white">{(currentPage - 1) * 50 + 1}</span> to <span className="font-bold text-[#111827] dark:text-white">{Math.min(currentPage * 50, logs.total)}</span> of <span className="font-bold text-[#111827] dark:text-white">{logs.total}</span> entries
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                         disabled={currentPage === 1}
-                                        className="h-9 px-4 flex items-center justify-center text-[13px] font-semibold rounded-xl border border-[#E9EDF5] bg-white text-[#111827] hover:bg-[#F7F9FC] disabled:opacity-50 transition-colors"
+                                        className="h-9 px-4 flex items-center justify-center text-[13px] font-semibold rounded-xl border border-[#E9EDF5] dark:border-white/10 bg-white dark:bg-slate-800 text-[#111827] dark:text-slate-200 hover:bg-[#F7F9FC] dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
                                     >
                                         Previous
                                     </button>
                                     <button
                                         onClick={() => setCurrentPage(p => p + 1)}
                                         disabled={currentPage * 50 >= logs.total}
-                                        className="h-9 px-4 flex items-center justify-center text-[13px] font-semibold rounded-xl border border-[#E9EDF5] bg-white text-[#111827] hover:bg-[#F7F9FC] disabled:opacity-50 transition-colors"
+                                        className="h-9 px-4 flex items-center justify-center text-[13px] font-semibold rounded-xl border border-[#E9EDF5] dark:border-white/10 bg-white dark:bg-slate-800 text-[#111827] dark:text-slate-200 hover:bg-[#F7F9FC] dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
                                     >
                                         Next
                                     </button>
@@ -625,15 +625,15 @@ export function WhatsAppPortal() {
                 {activeTab === "settings" && (
                     <div className="max-w-4xl space-y-8">
                         {/* Global Enable */}
-                        <div className="bg-white rounded-[24px] border border-[#E9EDF5] p-8 shadow-[0_4px_20px_rgba(15,23,42,0.03)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div className="bg-white dark:bg-slate-900/60 dark:backdrop-blur-xl rounded-[24px] border border-[#E9EDF5] dark:border-white/10 p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                             <div>
-                                <h2 className="text-lg font-bold text-[#111827]">Master Switch</h2>
-                                <p className="text-[14px] text-[#6B7280] mt-1 max-w-lg">
+                                <h2 className="text-lg font-bold text-[#111827] dark:text-white">Master Switch</h2>
+                                <p className="text-[14px] text-[#6B7280] dark:text-slate-400 mt-1 max-w-lg">
                                     Toggle all WhatsApp notifications globally. If paused, NO messages will be sent to any customer.
                                 </p>
                             </div>
                             <label className="flex items-center gap-3 cursor-pointer shrink-0">
-                                <div className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 ${config?.is_enabled ? "bg-[#10B981]" : "bg-[#E9EDF5]"}`}>
+                                <div className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 ${config?.is_enabled ? "bg-[#10B981]" : "bg-[#E9EDF5] dark:bg-slate-800"}`}>
                                     <input type="checkbox" className="sr-only" checked={config?.is_enabled ?? true} onChange={(e) => handleSettingChange("is_enabled", e.target.checked)} />
                                     <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${config?.is_enabled ? "translate-x-7" : "translate-x-1"}`} />
                                 </div>
@@ -642,31 +642,31 @@ export function WhatsAppPortal() {
 
                         <div className="grid grid-cols-1 gap-8">
                             {/* Notification Settings */}
-                            <div className="bg-white rounded-[24px] border border-[#E9EDF5] shadow-[0_4px_20px_rgba(15,23,42,0.03)] overflow-hidden flex flex-col">
-                                <div className="p-8 border-b border-[#E9EDF5] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="bg-white dark:bg-slate-900/60 dark:backdrop-blur-xl rounded-[24px] border border-[#E9EDF5] dark:border-white/10 shadow-sm overflow-hidden flex flex-col">
+                                <div className="p-8 border-b border-[#E9EDF5] dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                     <div>
-                                        <h2 className="text-base font-bold text-[#111827] mb-1">Notification Settings</h2>
-                                        <p className="text-[14px] text-[#6B7280]">Manage how notifications flow to your customers.</p>
+                                        <h2 className="text-base font-bold text-[#111827] dark:text-white mb-1">Notification Settings</h2>
+                                        <p className="text-[14px] text-[#6B7280] dark:text-slate-400">Manage how notifications flow to your customers.</p>
                                     </div>
                                     <div className="flex gap-3">
                                         <button
                                             onClick={() => handleEnableAll(true)}
-                                            className="h-9 px-4 text-[13px] font-semibold text-[#10B981] bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors"
+                                            className="h-9 px-4 text-[13px] font-semibold text-[#10B981] dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 rounded-xl transition-colors"
                                         >
                                             Enable All
                                         </button>
                                         <button
                                             onClick={() => handleEnableAll(false)}
-                                            className="h-9 px-4 text-[13px] font-semibold text-[#6B7280] bg-[#F7F9FC] hover:bg-[#E9EDF5] rounded-xl transition-colors border border-[#E9EDF5]"
+                                            className="h-9 px-4 text-[13px] font-semibold text-[#6B7280] dark:text-slate-300 bg-[#F7F9FC] dark:bg-slate-800 hover:bg-[#E9EDF5] dark:hover:bg-slate-700 rounded-xl transition-colors border border-[#E9EDF5] dark:border-white/10"
                                         >
                                             Disable All
                                         </button>
                                     </div>
                                 </div>
                                 
-                                <div className="p-8 space-y-6 flex-1 bg-white">
+                                <div className="p-8 space-y-6 flex-1 bg-white dark:bg-slate-900/40">
                                     {/* Toggle Items */}
-                                    <div className="divide-y divide-[#E9EDF5]">
+                                    <div className="divide-y divide-[#E9EDF5] dark:divide-white/10">
                                         {[
                                             {
                                                 key: "notify_queue_joined",
@@ -719,15 +719,15 @@ export function WhatsAppPortal() {
                                         ].map((setting) => (
                                             <div key={setting.key} className="py-6 flex items-start justify-between gap-4 group">
                                                 <div className="flex gap-4">
-                                                    <div className="mt-1 flex items-center justify-center w-10 h-10 rounded-xl bg-[#F7F9FC] text-[#6B7280] group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">
+                                                    <div className="mt-1 flex items-center justify-center w-10 h-10 rounded-xl bg-[#F7F9FC] dark:bg-slate-800 text-[#6B7280] dark:text-slate-400 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/50 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
                                                         <setting.icon size={20} strokeWidth={2} />
                                                     </div>
                                                     <div>
-                                                        <div className="text-[14px] font-bold text-[#111827]">{setting.title}</div>
-                                                        <div className="text-[13px] text-[#6B7280] mt-1 leading-relaxed max-w-xl">{setting.desc}</div>
+                                                        <div className="text-[14px] font-bold text-[#111827] dark:text-white">{setting.title}</div>
+                                                        <div className="text-[13px] text-[#6B7280] dark:text-slate-400 mt-1 leading-relaxed max-w-xl">{setting.desc}</div>
                                                     </div>
                                                 </div>
-                                                <div className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer duration-300 mt-2 ${config?.[setting.key as keyof WhatsAppOrgConfig] ? "bg-[#10B981]" : "bg-[#E9EDF5]"}`} onClick={() => handleSettingChange(setting.key as keyof WhatsAppOrgConfig, !(config?.[setting.key as keyof WhatsAppOrgConfig] ?? true))}>
+                                                <div className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer duration-300 mt-2 ${config?.[setting.key as keyof WhatsAppOrgConfig] ? "bg-[#10B981]" : "bg-[#E9EDF5] dark:bg-slate-800"}`} onClick={() => handleSettingChange(setting.key as keyof WhatsAppOrgConfig, !(config?.[setting.key as keyof WhatsAppOrgConfig] ?? true))}>
                                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 shadow-sm ${config?.[setting.key as keyof WhatsAppOrgConfig] ? "translate-x-6" : "translate-x-1"}`} />
                                                 </div>
                                             </div>
@@ -740,55 +740,55 @@ export function WhatsAppPortal() {
                 )}
 
                 {selectedMessage && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/40 backdrop-blur-sm p-4">
-                        <div className="bg-white rounded-[24px] shadow-[0_20px_60px_rgba(15,23,42,0.1)] w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
-                            <div className="px-8 py-6 border-b border-[#E9EDF5] flex justify-between items-center bg-white">
-                                <h3 className="font-bold text-[18px] text-[#111827] flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                                        <MessageSquareText size={16} className="text-indigo-500" strokeWidth={2.5} />
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/60 backdrop-blur-sm p-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-[#E9EDF5] dark:border-white/10 shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+                            <div className="px-8 py-6 border-b border-[#E9EDF5] dark:border-white/10 flex justify-between items-center bg-white dark:bg-slate-900">
+                                <h3 className="font-bold text-[18px] text-[#111827] dark:text-white flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center">
+                                        <MessageSquareText size={16} className="text-indigo-500 dark:text-indigo-400" strokeWidth={2.5} />
                                     </div>
                                     Message Log Details
                                 </h3>
                                 <button 
                                     onClick={() => setSelectedMessage(null)} 
-                                    className="w-8 h-8 flex items-center justify-center text-[#6B7280] hover:text-[#111827] hover:bg-[#F7F9FC] rounded-full transition-colors"
+                                    className="w-8 h-8 flex items-center justify-center text-[#6B7280] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white hover:bg-[#F7F9FC] dark:hover:bg-slate-800 rounded-full transition-colors"
                                 >
                                     <XCircle size={20} />
                                 </button>
                             </div>
                             
-                            <div className="p-8 overflow-y-auto space-y-8 bg-white">
-                                <div className="grid grid-cols-2 gap-x-8 gap-y-6 bg-[#F7F9FC] p-6 rounded-[16px] border border-[#E9EDF5]">
+                            <div className="p-8 overflow-y-auto space-y-8 bg-white dark:bg-slate-900">
+                                <div className="grid grid-cols-2 gap-x-8 gap-y-6 bg-[#F7F9FC] dark:bg-slate-800/60 p-6 rounded-[16px] border border-[#E9EDF5] dark:border-white/10">
                                     <div>
-                                        <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Customer</div>
-                                        <div className="mt-1 font-bold text-[#111827]">{selectedMessage.customer_name || "Unknown"}</div>
+                                        <div className="text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider">Customer</div>
+                                        <div className="mt-1 font-bold text-[#111827] dark:text-white">{selectedMessage.customer_name || "Unknown"}</div>
                                     </div>
                                     <div>
-                                        <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Phone</div>
-                                        <div className="mt-1 font-mono text-[13px] text-[#6B7280]">{selectedMessage.customer_phone}</div>
+                                        <div className="text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider">Phone</div>
+                                        <div className="mt-1 font-mono text-[13px] text-[#6B7280] dark:text-slate-300">{selectedMessage.customer_phone}</div>
                                     </div>
                                     <div>
-                                        <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Event</div>
+                                        <div className="text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider">Event</div>
                                         <div className="mt-2">
-                                            <span className="bg-white text-[#6B7280] px-3 py-1.5 rounded-md text-[11px] font-bold border border-[#E9EDF5] shadow-sm">
+                                            <span className="bg-white dark:bg-slate-800 text-[#6B7280] dark:text-slate-300 px-3 py-1.5 rounded-md text-[11px] font-bold border border-[#E9EDF5] dark:border-white/10 shadow-sm">
                                                 {EVENT_LABEL[selectedMessage.event_type || ""] || selectedMessage.event_type || "—"}
                                             </span>
                                         </div>
                                     </div>
                                     <div>
-                                        <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Status</div>
+                                        <div className="text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider">Status</div>
                                         <div className="mt-2 flex items-center gap-1.5 font-bold" style={{ color: STATUS_COLOR[selectedMessage.status] }}>
                                             {STATUS_ICON[selectedMessage.status as keyof typeof STATUS_ICON]} 
                                             <span className="capitalize">{selectedMessage.status === "skipped" ? "Skipped (No Opt-in)" : selectedMessage.status}</span>
                                         </div>
                                     </div>
                                     <div>
-                                        <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Timestamp</div>
-                                        <div className="mt-1 text-[13px] text-[#111827] font-semibold">{fmtTime(selectedMessage.sent_at || selectedMessage.created_at)}</div>
+                                        <div className="text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider">Timestamp</div>
+                                        <div className="mt-1 text-[13px] text-[#111827] dark:text-white font-semibold">{fmtTime(selectedMessage.sent_at || selectedMessage.created_at)}</div>
                                     </div>
                                     <div>
-                                        <div className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Meta Message ID</div>
-                                        <div className="mt-1 text-[11px] font-mono text-[#6B7280] truncate" title={selectedMessage.meta_message_id || ""}>
+                                        <div className="text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider">Meta Message ID</div>
+                                        <div className="mt-1 text-[11px] font-mono text-[#6B7280] dark:text-slate-400 truncate" title={selectedMessage.meta_message_id || ""}>
                                             {selectedMessage.meta_message_id || "—"}
                                         </div>
                                     </div>
@@ -796,20 +796,20 @@ export function WhatsAppPortal() {
                                 
                                 {(selectedMessage.error_message || selectedMessage.error_code) && (
                                     <div>
-                                        <div className="text-[11px] font-bold text-red-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                        <div className="text-[11px] font-bold text-red-500 dark:text-red-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                                             <AlertTriangle size={14} />
                                             Error Details
                                         </div>
-                                        <div className="p-5 bg-red-50 border border-red-100 text-red-700 rounded-[16px] text-[13px] whitespace-pre-wrap leading-relaxed">
-                                            {selectedMessage.error_code && <div className="font-mono text-[11px] mb-2 font-bold bg-white/50 inline-block px-2 py-1 rounded">Code: {selectedMessage.error_code}</div>}
+                                        <div className="p-5 bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/30 text-red-700 dark:text-red-300 rounded-[16px] text-[13px] whitespace-pre-wrap leading-relaxed">
+                                            {selectedMessage.error_code && <div className="font-mono text-[11px] mb-2 font-bold bg-white/50 dark:bg-slate-800/50 inline-block px-2 py-1 rounded">Code: {selectedMessage.error_code}</div>}
                                             {selectedMessage.error_message}
                                         </div>
                                     </div>
                                 )}
 
                                 <div>
-                                    <div className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider mb-2">Message Payload</div>
-                                    <div className="p-5 bg-[#111827] rounded-[16px] overflow-hidden">
+                                    <div className="text-[11px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider mb-2">Message Payload</div>
+                                    <div className="p-5 bg-[#111827] dark:bg-slate-950 rounded-[16px] overflow-hidden border border-transparent dark:border-white/10">
                                         <pre className="text-[12px] font-mono text-emerald-400 whitespace-pre-wrap overflow-x-auto leading-relaxed">
                                             {selectedMessage.rendered_body || JSON.stringify(selectedMessage.template_variables, null, 2) || "No payload logged"}
                                         </pre>
@@ -817,10 +817,10 @@ export function WhatsAppPortal() {
                                 </div>
                             </div>
                             
-                            <div className="px-8 py-5 border-t border-[#E9EDF5] bg-white flex justify-end">
+                            <div className="px-8 py-5 border-t border-[#E9EDF5] dark:border-white/10 bg-white dark:bg-slate-900 flex justify-end">
                                 <button 
                                     onClick={() => setSelectedMessage(null)}
-                                    className="h-10 px-6 bg-white border border-[#E9EDF5] hover:bg-[#F7F9FC] text-[#111827] rounded-xl text-[14px] font-bold transition-colors shadow-sm"
+                                    className="h-10 px-6 bg-white dark:bg-slate-800 border border-[#E9EDF5] dark:border-white/10 hover:bg-[#F7F9FC] dark:hover:bg-slate-700 text-[#111827] dark:text-white rounded-xl text-[14px] font-bold transition-colors shadow-sm"
                                 >
                                     Close
                                 </button>

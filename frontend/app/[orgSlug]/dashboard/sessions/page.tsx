@@ -278,13 +278,13 @@ export default function SessionsPage() {
             {/* ── Page Header ── */}
             <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
                 <div>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 mb-2 tracking-wide uppercase">
-                        <Link href={dashBase} className="hover:text-indigo-600 transition-colors">Organization</Link>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-300" strokeWidth={3} />
-                        <span className="text-slate-600">Sessions</span>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 mb-2 tracking-wide uppercase">
+                        <Link href={dashBase} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Organization</Link>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" strokeWidth={3} />
+                        <span className="text-slate-600 dark:text-slate-300">Sessions</span>
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight m-0">Sessions</h1>
-                    <p className="text-sm text-slate-500 mt-1 font-medium">Monitor and manage your daily queue operations.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight m-0">Sessions</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Monitor and manage your daily queue operations.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full sm:w-auto">
                     <div className="flex gap-2 w-full sm:w-auto">
@@ -293,27 +293,27 @@ export default function SessionsPage() {
                             <select
                                 value={selectedQueue}
                                 onChange={(e) => setSelectedQueue(e.target.value)}
-                                className="w-full h-10 pl-3 pr-8 bg-white border border-slate-200 shadow-sm rounded-xl text-sm text-slate-700 font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer transition-all"
+                                className="w-full h-10 pl-3 pr-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 shadow-sm rounded-xl text-sm text-slate-700 dark:text-slate-200 font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer transition-all"
                             >
-                                <option value="">All Queues</option>
+                                <option value="" className="dark:bg-slate-900">All Queues</option>
                                 {queueList.map(name => (
-                                    <option key={name} value={name}>{name}</option>
+                                    <option key={name} value={name} className="dark:bg-slate-900">{name}</option>
                                 ))}
                             </select>
-                            <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                            <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none w-4 h-4 text-slate-400 dark:text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
                         </div>
                         {/* Date filter */}
-                        <div className="flex-1 sm:flex-initial flex items-center gap-2 h-10 bg-white border border-slate-200 shadow-sm rounded-xl px-3 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
-                            <svg className="w-4 h-4 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={4} width={18} height={18} rx={2} /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+                        <div className="flex-1 sm:flex-initial flex items-center gap-2 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 shadow-sm rounded-xl px-3 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
+                            <svg className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={4} width={18} height={18} rx={2} /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
                             <input
                                 type="date"
                                 value={filterDate}
                                 max={toLocalDateStr()}
                                 onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
-                                className="bg-transparent border-none outline-none text-sm text-slate-700 font-medium w-full"
+                                className="bg-transparent border-none outline-none text-sm text-slate-700 dark:text-slate-200 font-medium w-full dark:scheme-dark"
                             />
                             {filterDate && (
-                                <button onClick={() => { setFilterDate(""); setPage(1); }} className="p-0.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors shrink-0">
+                                <button onClick={() => { setFilterDate(""); setPage(1); }} className="p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0">
                                     <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
                                 </button>
                             )}
@@ -375,11 +375,11 @@ export default function SessionsPage() {
                                 <div key={group.label} className="relative">
                                     {/* ── Group header ── */}
                                     <div className="flex items-center gap-4 mb-4 pt-4 pb-2">
-                                        <div className="px-3 py-1 bg-white border border-slate-200 shadow-sm rounded-lg">
-                                            <span className="text-[11px] font-extrabold tracking-widest text-slate-500 uppercase whitespace-nowrap">{group.label}</span>
+                                        <div className="px-3 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 shadow-sm rounded-lg">
+                                            <span className="text-[11px] font-extrabold tracking-widest text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap">{group.label}</span>
                                         </div>
-                                        <div className="flex-1 h-px bg-slate-200" />
-                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">{group.sessions.length} {group.sessions.length === 1 ? "session" : "sessions"}</span>
+                                        <div className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
+                                        <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider whitespace-nowrap">{group.sessions.length} {group.sessions.length === 1 ? "session" : "sessions"}</span>
                                     </div>
 
                                     {/* ── Session cards ── */}
@@ -391,7 +391,7 @@ export default function SessionsPage() {
                                                 <Link
                                                     key={session.id}
                                                     href={`${dashBase}/sessions/${session.id}/queues`}
-                                                    className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100 p-4 sm:p-5 flex flex-col sm:flex-row sm:justify-between sm:items-center w-full transition-all duration-300 group cursor-pointer relative overflow-hidden"
+                                                    className="bg-white dark:bg-slate-900/60 dark:backdrop-blur-xl rounded-xl border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md hover:border-blue-100 dark:hover:border-indigo-500/30 p-4 sm:p-5 flex flex-col sm:flex-row sm:justify-between sm:items-center w-full transition-all duration-300 group cursor-pointer relative overflow-hidden"
                                                 >
                                                     {/* Sinusoidal Wave Texture */}
                                                     <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl z-0">
@@ -416,11 +416,11 @@ export default function SessionsPage() {
                                                         {/* Title + badge */}
                                                         <div className="flex flex-col gap-1 min-w-0">
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-base font-semibold text-slate-900 capitalize truncate">
+                                                                <span className="text-base font-semibold text-slate-900 dark:text-white capitalize truncate">
                                                                     {session.title || (today ? "Today's Session" : formatShortDate(session.session_date))}
                                                                 </span>
                                                                 {today && (
-                                                                    <span className="relative flex items-center gap-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold px-2 py-0.5 rounded-md text-[10px] uppercase tracking-widest shrink-0">
+                                                                    <span className="relative flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50 font-bold px-2 py-0.5 rounded-md text-[10px] uppercase tracking-widest shrink-0">
                                                                         <span className="relative flex h-2 w-2">
                                                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                                                                             <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
@@ -433,18 +433,18 @@ export default function SessionsPage() {
                                                     </div>
 
                                                     {/* Right Content */}
-                                                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-4 sm:mt-0 pt-3 sm:pt-0 border-t border-slate-100 sm:border-0 shrink-0 relative z-10 flex-wrap sm:flex-nowrap">
+                                                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-4 sm:mt-0 pt-3 sm:pt-0 border-t border-slate-100 dark:border-white/5 sm:border-0 shrink-0 relative z-10 flex-wrap sm:flex-nowrap">
                                                         {/* Unified Metrics Stream Row */}
                                                         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                                                             {/* Queues Pill */}
-                                                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5 text-slate-600 font-semibold text-xs transition-colors group-hover:bg-white group-hover:border-slate-200">
+                                                            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-white/5 rounded-lg px-3 py-1.5 text-slate-600 dark:text-slate-300 font-semibold text-xs transition-colors group-hover:bg-white dark:group-hover:bg-slate-800 group-hover:border-slate-200 dark:group-hover:border-white/10">
                                                                 <Layers className="w-3.5 h-3.5 text-blue-500" strokeWidth={2.5} />
-                                                                <span>{session.queue_count} <span className="font-medium text-slate-400">Queues</span></span>
+                                                                <span>{session.queue_count} <span className="font-medium text-slate-400 dark:text-slate-500">Queues</span></span>
                                                             </div>
                                                             {/* Served Pill */}
-                                                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5 text-slate-600 font-semibold text-xs transition-colors group-hover:bg-white group-hover:border-slate-200">
+                                                            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-white/5 rounded-lg px-3 py-1.5 text-slate-600 dark:text-slate-300 font-semibold text-xs transition-colors group-hover:bg-white dark:group-hover:bg-slate-800 group-hover:border-slate-200 dark:group-hover:border-white/10">
                                                                 <Users className="w-3.5 h-3.5 text-sky-500" strokeWidth={2.5} />
-                                                                <span>{served} <span className="font-medium text-slate-400">Served</span></span>
+                                                                <span>{served} <span className="font-medium text-slate-400 dark:text-slate-500">Served</span></span>
                                                             </div>
                                                         </div>
 
@@ -453,7 +453,7 @@ export default function SessionsPage() {
                                                             {canEditSession && (
                                                                 <button
                                                                     onClick={(e) => handleEditClick(session, e)}
-                                                                    className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-2 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all duration-200"
+                                                                    className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-2 rounded-lg text-slate-300 dark:text-slate-600 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-all duration-200"
                                                                     aria-label="Edit session"
                                                                 >
                                                                     <Edit2 className="w-[18px] h-[18px]" strokeWidth={2} />
@@ -463,13 +463,13 @@ export default function SessionsPage() {
                                                                 <button
                                                                     onClick={(e) => handleDelete(session, e)}
                                                                     disabled={deletingId === session.id}
-                                                                    className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
+                                                                    className="opacity-100 sm:opacity-0 group-hover:opacity-100 p-2 rounded-lg text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-all duration-200"
                                                                     aria-label="Delete session"
                                                                 >
                                                                     <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
                                                                 </button>
                                                             )}
-                                                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-600 transition-colors duration-300 group-hover:translate-x-1" strokeWidth={2.5} />
+                                                            <ChevronRight className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-blue-600 dark:group-hover:text-indigo-400 transition-colors duration-300 group-hover:translate-x-1" strokeWidth={2.5} />
                                                         </div>
                                                     </div>
                                                 </Link>
@@ -483,13 +483,13 @@ export default function SessionsPage() {
 
                     {/* Pagination */}
                     {total > LIMIT && (
-                        <div className="flex items-center justify-between py-4 mt-8 border-t border-slate-100">
-                            <span className="text-sm font-medium text-slate-500">
-                                Showing <span className="font-bold text-slate-700">{(page - 1) * LIMIT + 1}</span> to <span className="font-bold text-slate-700">{Math.min(page * LIMIT, total)}</span> of <span className="font-bold text-slate-700">{total}</span>
+                        <div className="flex items-center justify-between py-4 mt-8 border-t border-slate-100 dark:border-white/10">
+                            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                                Showing <span className="font-bold text-slate-700 dark:text-slate-200">{(page - 1) * LIMIT + 1}</span> to <span className="font-bold text-slate-700 dark:text-slate-200">{Math.min(page * LIMIT, total)}</span> of <span className="font-bold text-slate-700 dark:text-slate-200">{total}</span>
                             </span>
                             <div className="flex gap-2">
-                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-1.5 text-sm font-medium bg-white border border-slate-200 rounded-lg shadow-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">Previous</button>
-                                <button onClick={() => setPage(p => p + 1)} disabled={page * LIMIT >= total} className="px-4 py-1.5 text-sm font-medium bg-white border border-slate-200 rounded-lg shadow-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">Next</button>
+                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-1.5 text-sm font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg shadow-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all">Previous</button>
+                                <button onClick={() => setPage(p => p + 1)} disabled={page * LIMIT >= total} className="px-4 py-1.5 text-sm font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg shadow-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all">Next</button>
                             </div>
                         </div>
                     )}
@@ -507,15 +507,15 @@ export default function SessionsPage() {
             {/* ── Create Session Modal ── */}
             {showCreate && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setShowCreate(false)} />
-                    <div className="relative bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setShowCreate(false)} />
+                    <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xl max-w-md w-full p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
                         <div className="mb-6">
-                            <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1.5">New Session</h3>
-                            <p className="text-sm text-slate-500 font-medium">Select a date and optional title for the new session.</p>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-1.5">New Session</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Select a date and optional title for the new session.</p>
                         </div>
                         <form onSubmit={handleCreate} noValidate className="flex flex-col gap-4">
                             <div>
-                                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-2">
                                     Session Date <span className="text-red-500">*</span>
                                 </label>
                                 <input
@@ -525,11 +525,11 @@ export default function SessionsPage() {
                                     onChange={(e) => setNewDate(e.target.value)}
                                     max={toLocalDateStr()}
                                     required
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all dark:scheme-dark"
                                 />
                             </div>
                             <div>
-                                <label className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                <label className="flex items-center justify-between text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-2">
                                     <span>Title</span>
                                     <span className="normal-case tracking-normal font-medium">Optional</span>
                                 </label>
@@ -539,17 +539,17 @@ export default function SessionsPage() {
                                     onChange={(e) => setNewTitle(e.target.value)}
                                     placeholder="e.g. Morning Clinic"
                                     maxLength={200}
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                 />
                             </div>
                             {createError && (
-                                <div className="p-3 rounded-xl bg-red-50 text-red-700 text-sm font-medium border border-red-200 flex items-start gap-2 shadow-sm">
+                                <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 text-sm font-medium border border-red-200 dark:border-red-900/40 flex items-start gap-2 shadow-sm">
                                     <svg className="w-4 h-4 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx={12} cy={12} r={10} /><path d="M12 8v4m0 4h.01" /></svg>
                                     <span>{createError}</span>
                                 </div>
                             )}
-                            <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100">
-                                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
+                            <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100 dark:border-white/10">
+                                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
                                 <button type="submit" disabled={createLoading || !newDate} className="flex-[1.5] py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-500/20 hover:-translate-y-0.5 transition-all active:translate-y-0">
                                     {createLoading ? "Creating..." : "Create Session"}
                                 </button>
@@ -562,15 +562,15 @@ export default function SessionsPage() {
             {/* ── Edit Session Modal ── */}
             {isEditModalOpen && editingSession && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsEditModalOpen(false)} />
-                    <div className="relative bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsEditModalOpen(false)} />
+                    <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xl max-w-md w-full p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
                         <div className="mb-6">
-                            <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1.5">Edit Session</h3>
-                            <p className="text-sm text-slate-500 font-medium">Update the title for this session.</p>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-1.5">Edit Session</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Update the title for this session.</p>
                         </div>
                         <form onSubmit={handleEditSubmit} noValidate className="flex flex-col gap-4">
                             <div>
-                                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-2">
                                     Session Name
                                 </label>
                                 <input
@@ -579,11 +579,11 @@ export default function SessionsPage() {
                                     onChange={(e) => setEditSessionTitle(e.target.value)}
                                     placeholder="e.g. Morning Clinic"
                                     maxLength={200}
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                 />
                             </div>
-                            <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100">
-                                <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
+                            <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100 dark:border-white/10">
+                                <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
                                 <button type="submit" disabled={editLoading} className="flex-[1.5] py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-500/20 hover:-translate-y-0.5 transition-all active:translate-y-0">
                                     {editLoading ? "Saving..." : "Save Changes"}
                                 </button>
@@ -596,20 +596,20 @@ export default function SessionsPage() {
             {/* ── Delete Confirmation Modal ── */}
             {sessionToDelete && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setSessionToDelete(null)} />
-                    <div className="relative bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setSessionToDelete(null)} />
+                    <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-4 mb-4">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 text-red-500 shrink-0">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/50 text-red-500 dark:text-red-400 shrink-0">
                                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 tracking-tight">Delete Session?</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Delete Session?</h3>
                         </div>
-                        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                            Are you sure you want to delete the session on <strong className="text-slate-800">{new Date(sessionToDelete.session_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</strong>?
-                            <span className="block mt-2 text-red-600 font-semibold bg-red-50 p-2 rounded-lg border border-red-100/50">This will delete all associated queues and tokens. This action cannot be undone.</span>
+                        <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+                            Are you sure you want to delete the session on <strong className="text-slate-800 dark:text-white">{new Date(sessionToDelete.session_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</strong>?
+                            <span className="block mt-2 text-red-600 dark:text-red-400 font-semibold bg-red-50 dark:bg-red-950/40 p-2 rounded-lg border border-red-100/50 dark:border-red-900/30">This will delete all associated queues and tokens. This action cannot be undone.</span>
                         </p>
-                        <div className="flex gap-3 pt-2 border-t border-slate-100">
-                            <button type="button" onClick={() => setSessionToDelete(null)} className="flex-1 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
+                        <div className="flex gap-3 pt-2 border-t border-slate-100 dark:border-white/10">
+                            <button type="button" onClick={() => setSessionToDelete(null)} className="flex-1 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
                             <button type="button" onClick={handleDeleteConfirm} className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm shadow-red-500/20 hover:-translate-y-0.5 transition-all active:translate-y-0">Delete</button>
                         </div>
                     </div>
