@@ -380,7 +380,12 @@ async def call_next(
             elif target_status == TokenStatus.deleted:
                 currently_serving.deleted_at = now
             else:
+                from sqlalchemy.orm.attributes import flag_modified
                 currently_serving.skipped_at = now
+                currently_serving.shared_lines = []
+                currently_serving.completed_lines = []
+                flag_modified(currently_serving, "shared_lines")
+                flag_modified(currently_serving, "completed_lines")
                 
         # If the action was 'done' and token is fully done, trigger notification
         if is_fully_done and action in ["done", "skipped", "deleted"]:
@@ -805,6 +810,7 @@ async def serve_specific_token(
         .values(status=TokenStatus.skipped, skipped_at=now)
     )
 
+    from sqlalchemy.orm.attributes import flag_modified
     specific_token.status = TokenStatus.serving
     specific_token.served_at = now
     specific_token.served_by_id = user_id
@@ -812,6 +818,11 @@ async def serve_specific_token(
     specific_token.completed_at = None
     specific_token.completed_by_id = None
     specific_token.recalled_at = now
+    specific_token.shared_lines = []
+    specific_token.completed_lines = []
+    flag_modified(specific_token, "shared_lines")
+    flag_modified(specific_token, "completed_lines")
+
     if line_number is not None:
         specific_token.assigned_line = line_number
 
