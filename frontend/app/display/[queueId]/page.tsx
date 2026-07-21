@@ -202,7 +202,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
                     <span className={`text-[10px] font-semibold tracking-[0.2em] uppercase flex items-center`}>
                         <span className={`translate-x-1 ${isDark ? "text-slate-500" : "text-slate-400"}`}>Powered by</span>
                         <div className="h-6 flex items-center overflow-visible w-24 -ml-1">
-                            <img src={isDark ? "/q4queue-darkThemeLogo.png" : "/q4queue-new_logo.png"} alt="Q4Queue Logo" className={`h-6 w-auto object-contain origin-left ${isDark ? "scale-[5] translate-x-4 translate-y-0.5" : "scale-[3.5] -translate-x-1 translate-y-1"}`} />
+                            <img src={isDark ? "/q4queue-darkThemeLogo.png" : "/q4queue-new_logo.png"} alt="Q4Queue Logo" className={`h-6 w-auto object-contain origin-left ${isDark ? "scale-[4] translate-x-1.5 translate-y-0.5" : "scale-[3.5] -translate-x-1 translate-y-1"}`} />
                         </div>
                     </span>
                 </div>
