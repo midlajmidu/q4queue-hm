@@ -120,22 +120,35 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                 style={{ width: c ? 72 : 256 }}
                 role="complementary"
             >
-                {/* ── Header ── */}
-                <div className={`h-14 flex items-center flex-shrink-0 border-b ${c ? "justify-center px-0" : "justify-between px-4"} border-gray-200 dark:border-white/5`}>
-                    {!c && (
-                        <Link href={dashBase} className="flex items-center gap-3 focus:outline-none rounded-lg py-1 pl-1">
+                <div className={`h-16 py-2 flex items-center flex-shrink-0 border-b relative ${c ? "justify-center px-0" : "justify-between px-4"} border-gray-200 dark:border-white/5`}>
+                    <Link href={dashBase} className={`flex items-center focus:outline-none rounded-lg ${c ? "justify-center w-full" : "gap-3 py-2 -ml-1"}`}>
+                        {c ? (
+                            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">Q</div>
+                        ) : (
                             <Logo size="sm" className="" />
-                        </Link>
-                    )}
-                    {/* Toggle button */}
+                        )}
+                    </Link>
+                    
+                    {/* Desktop Collapse Toggle */}
                     <button
                         onClick={onToggleCollapse}
-                        className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 focus:outline-none text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 dark:hover:text-slate-300`}
+                        className="hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 z-50 items-center justify-center w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-full shadow-sm transition-all duration-200 focus:outline-none text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 dark:hover:text-slate-300"
                         aria-label={c ? "Expand sidebar" : "Collapse sidebar"}
                     >
-                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                             className={`transition-transform duration-300 ${c ? "rotate-180" : ""}`}>
-                            <path d="M11 19V5" /><path d="m5 12 6-6" /><path d="m5 12 6 6" /><path d="M19 5v14" />
+                            <path d="m15 18-6-6 6-6"/>
+                        </svg>
+                    </button>
+
+                    {/* Mobile Close Button */}
+                    <button
+                        onClick={onClose}
+                        className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors focus:outline-none"
+                        aria-label="Close sidebar"
+                    >
+                        <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 6 6 18" /><path d="m6 6 12 12" />
                         </svg>
                     </button>
                 </div>

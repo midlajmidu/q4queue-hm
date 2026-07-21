@@ -141,7 +141,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
                 <header className={`${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200 shadow-sm"} border-b px-4 py-3 flex items-center justify-between shrink-0 sticky top-0 z-20`}>
                     <div className="flex items-center gap-2">
                         <div className="h-7 w-28 flex items-center justify-start">
-                            <img src="/q4queue-main-logo.png" alt="Q4Queue Logo" className="max-h-full max-w-full object-contain object-left" />
+                            <img src="/q4queue-new_logo.png" alt="Q4Queue Logo" className="max-h-full max-w-full object-contain object-left" />
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -221,7 +221,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
                 <div className={`py-3 flex items-center justify-center shrink-0 border-t ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200"}`}>
                     <span className={`text-[10px] font-medium tracking-[0.2em] uppercase flex items-center gap-1.5 ${isDark ? "text-slate-600" : "text-slate-400"}`}>
                         Powered by
-                        <img src="/q4queue-main-logo.png" alt="Q4Queue Logo" className="h-3 w-auto object-contain opacity-80" />
+                        <img src="/q4queue-new_logo.png" alt="Q4Queue Logo" className="h-3 w-auto object-contain opacity-80" />
                     </span>
                 </div>
             </div>
@@ -282,7 +282,7 @@ function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDa
         <header className={`h-14 ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200"} border-b px-6 flex items-center justify-between shrink-0 z-10 relative transition-colors duration-500`}>
             <div className="flex items-center w-[300px]">
                 <div className="h-8 w-32 flex items-center justify-start">
-                    <img src="/q4queue-main-logo.png" alt="Q4Queue Logo" className="max-h-full max-w-full object-contain object-left" />
+                    <img src="/q4queue-new_logo.png" alt="Q4Queue Logo" className="max-h-full max-w-full object-contain object-left" />
                 </div>
             </div>
             <div className="flex-1" />

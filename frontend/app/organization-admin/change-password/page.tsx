@@ -92,7 +92,7 @@ export default function OrganizationAdminChangePasswordPage() {
                 >
                     <div className="mb-6 flex flex-col items-start">
                         <Link href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg" aria-label="Go to home page">
-                            <Image src="/q4queue-main-logo.png" alt="Q4Queue Logo" width={180} height={45} className="h-9 w-auto object-contain" priority />
+                            <Image src="/q4queue-new_logo.png" alt="Q4Queue Logo" width={180} height={45} className="h-9 w-auto object-contain" priority />
                         </Link>
                         <h1 className="font-heading text-2xl font-bold text-slate-900 mt-6 tracking-tight">
                             Secure Your Account

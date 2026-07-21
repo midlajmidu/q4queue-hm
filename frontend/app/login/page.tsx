@@ -122,7 +122,7 @@ export default function LoginPage() {
                     {/* Logo */}
                     <div className="flex-none mb-12 lg:mb-16">
                         <Link href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg" aria-label="Go to home page">
-                            <Image src="/q4queue-main-logo.png" alt="Q4Queue Logo" width={140} height={35} className="h-7 sm:h-8 w-auto object-contain" priority />
+                            <Image src="/q4queue-new_logo.png" alt="Q4Queue Logo" width={140} height={35} className="h-7 sm:h-8 w-auto object-contain" priority />
                         </Link>
                     </div>
 

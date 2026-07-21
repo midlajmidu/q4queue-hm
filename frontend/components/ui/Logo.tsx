@@ -8,21 +8,21 @@ interface LogoProps {
 
 export function Logo({ className, size = "md" }: LogoProps) {
   const sizeMap = {
-    sm: "h-7",   // Dashboard header
-    md: "h-9",
-    lg: "h-12",  // Landing navbar
+    sm: "h-10 scale-[2.3] translate-y-1 md:h-12 md:scale-[3] md:translate-y-1.5", 
+    md: "h-12 scale-[3] translate-y-1.5",
+    lg: "h-16 scale-[3] translate-y-1.5",
   };
 
   const heightClass = sizeMap[size];
 
   return (
-    <div className={cn("flex items-center group select-none cursor-pointer", className)}>
+    <div className={cn("flex items-center group select-none cursor-pointer overflow-visible", className)}>
       <Image
-        src="/q4queue-main-logo.png"
+        src="/q4queue-new_logo.png"
         alt="Q4Queue Logo"
-        width={760}
-        height={219}
-        className={cn("object-contain w-auto", heightClass)}
+        width={1536}
+        height={1024}
+        className={cn("object-contain w-auto transform origin-left transition-all", heightClass)}
         priority
       />
     </div>

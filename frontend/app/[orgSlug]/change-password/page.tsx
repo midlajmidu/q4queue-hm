@@ -98,7 +98,7 @@ export default function ChangePasswordPage() {
                 {/* Logo */}
                 <div className="text-center mb-8 flex justify-center">
                     <Link href="/" className="inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-1" aria-label="Go to home page">
-                        <Image src="/newLogo2.png" alt="Q4Queue Logo" width={642} height={543} className="h-24 w-auto object-contain" priority />
+                        <Image src="/q4queue-new_logo.png" alt="Q4Queue Logo" width={140} height={35} className="h-24 w-auto object-contain" priority />
                     </Link>
                 </div>
 

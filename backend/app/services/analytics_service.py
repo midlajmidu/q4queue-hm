@@ -821,21 +821,24 @@ async def get_cross_branch_analytics(
     
     abandonment_pct = (abandoned / total_customers * 100) if total_customers > 0 else 0
     if abandonment_pct > 10:
-        insights.append(f"Insight: You experienced a {round(abandonment_pct, 1)}% abandonment rate today. This correlates heavily with peak traffic bottlenecks.")
+        insights.append(f"🚨 Insight: You experienced a {round(abandonment_pct, 1)}% abandonment rate today. This correlates heavily with peak traffic bottlenecks.")
         
     network_avg_wait = float(m_row.avg_wait_sec or 0)
     if network_avg_wait > 0 and branch_ranking:
         for b in branch_ranking:
             if b['raw_wait_sec'] > (network_avg_wait * 1.5) and b['raw_wait_sec'] > 300: # at least 5 mins and 1.5x avg
-                insights.append(f"Warning: {b['branch']} has an average wait time of {b['avg_wait_time']}, which is significantly higher than the network average.")
+                insights.append(f"🚨 Warning: {b['branch']} has an average wait time of {b['avg_wait_time']}, which is significantly higher than the network average.")
                 break # Just alert the worst offender
                 
-    if not insights and branch_ranking:
-        top_branch = branch_ranking[0]
-        if top_branch['customers_served'] > 0:
-            insights.append(f"All systems normal. {top_branch['branch']} is leading with {top_branch['customers_served']} customers served and a {top_branch['completion_rate']} completion rate.")
+    if not insights:
+        if branch_ranking:
+            top_branch = branch_ranking[0]
+            if top_branch['customers_served'] > 0:
+                insights.append(f"💡 All systems normal. {top_branch['branch']} is leading with {top_branch['customers_served']} customers served and a {top_branch['completion_rate']} completion rate.")
+            else:
+                insights.append(f"💡 {top_branch['branch']} is currently the most active branch, though service completion data is still accumulating.")
         else:
-            insights.append(f"{top_branch['branch']} is currently the most active branch, though service completion data is still accumulating.")
+            insights.append("💡 AI is currently collecting data. Strategic insights will be generated automatically as queue activity begins.")
 
     # 11. PAX / Group Size Analytics
     pax_q = select(
