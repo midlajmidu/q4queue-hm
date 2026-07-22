@@ -43,11 +43,39 @@ export default function WebRTCCallModal({
     };
 
     const hasLoggedRef = useRef<boolean>(false);
+    const callStartTimeRef = useRef<number>(0);
+
+    const saveCallRecord = async () => {
+        if (hasLoggedRef.current) return;
+        hasLoggedRef.current = true;
+
+        let duration = durationRef.current;
+        if (duration === 0 && callStartTimeRef.current > 0) {
+            duration = Math.max(1, Math.round((Date.now() - callStartTimeRef.current) / 1000));
+        }
+
+        try {
+            await api.logCall({
+                organization_id: organizationId || undefined,
+                queue_id: queueId || undefined,
+                session_id: sessionId || undefined,
+                token_id: tokenId || undefined,
+                customer_name: customerName || undefined,
+                customer_phone: customerPhone,
+                duration_seconds: duration,
+            });
+            console.log("Call logged successfully, duration_seconds:", duration);
+        } catch (err) {
+            console.error("Failed to log call record:", err);
+        }
+    };
 
     const cleanupCall = async () => {
         isCallingRef.current = false;
         if (timerRef.current) clearInterval(timerRef.current);
-        
+
+        await saveCallRecord();
+
         if (plivoClientRef.current) {
             const client = plivoClientRef.current;
             try {
@@ -69,8 +97,9 @@ export default function WebRTCCallModal({
         setIsConnected(false);
         setCallDuration(0);
         durationRef.current = 0;
+        callStartTimeRef.current = 0;
         setStatus("Disconnected");
-        
+
         // Close modal immediately
         onClose();
         setStatus("Initializing...");
@@ -83,7 +112,8 @@ export default function WebRTCCallModal({
         setStatus("Initializing...");
         setCallDuration(0);
         durationRef.current = 0;
-        
+        callStartTimeRef.current = Date.now();
+
         const handleHungUp = (e: CustomEvent) => {
             const payload = e.detail;
             // If the webhook reports the same phone number disconnected, force close
@@ -126,8 +156,9 @@ export default function WebRTCCallModal({
                 client.on('onLogin', () => {
                     if (isCallingRef.current) return;
                     isCallingRef.current = true;
-                    
+
                     setStatus("Calling customer...");
+                    callStartTimeRef.current = Date.now();
                     // Initiate call to customer with metadata for the backend webhook
                     client.call(customerPhone, {
                         extraHeaders: {
@@ -150,15 +181,13 @@ export default function WebRTCCallModal({
                 client.on('onCallAnswered', () => {
                     setStatus("Connected (Active)");
                     setIsConnected(true);
-                    
+                    callStartTimeRef.current = Date.now();
+
                     // Start timer
                     if (timerRef.current) clearInterval(timerRef.current);
                     timerRef.current = setInterval(() => {
-                        setCallDuration(prev => {
-                            const next = prev + 1;
-                            durationRef.current = next;
-                            return next;
-                        });
+                        durationRef.current += 1;
+                        setCallDuration(durationRef.current);
                     }, 1000);
                 });
 
@@ -166,7 +195,7 @@ export default function WebRTCCallModal({
                     setStatus(`Call Failed: ${cause}`);
                     setTimeout(() => cleanupCall(), 2000);
                 });
-                
+
                 client.on('onCallTerminated', () => {
                     cleanupCall();
                 });
@@ -176,6 +205,7 @@ export default function WebRTCCallModal({
                     if (isCallingRef.current) return;
                     isCallingRef.current = true;
                     setStatus("Calling customer...");
+                    callStartTimeRef.current = Date.now();
                     // Initiate call to customer with metadata for the backend webhook
                     client.call(customerPhone, {
                         extraHeaders: {
@@ -219,7 +249,7 @@ export default function WebRTCCallModal({
                     client.removeAllListeners('onCallAnswered');
                     client.removeAllListeners('onCallFailed');
                     client.removeAllListeners('onCallTerminated');
-                } catch(e) {}
+                } catch (e) { }
             }
         };
     }, [isOpen, customerPhone]);
@@ -229,7 +259,7 @@ export default function WebRTCCallModal({
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
             <div className="relative w-full max-w-sm bg-slate-900 rounded-3xl p-8 shadow-2xl flex flex-col items-center border border-slate-700/50">
-                
+
                 {/* Header */}
                 <h3 className="text-white text-lg font-semibold tracking-wide mb-1">
                     Calling {tokenNumber}

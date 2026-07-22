@@ -1094,3 +1094,45 @@ export interface PaginatedOrgUsersResponse {
     limit: number;
     offset: number;
 }
+
+// ── Call Logs & Analytics Types ──────────────────────────────────────────────────
+
+export interface CallLogItem {
+    id: string;
+    organization_id: string;
+    queue_id?: string | null;
+    session_id?: string | null;
+    token_id?: string | null;
+    customer_name?: string | null;
+    customer_phone: string;
+    duration_seconds: number;
+    billable_minutes: number;
+    called_by_id?: string | null;
+    called_by_name?: string | null;
+    queue_name?: string | null;
+    created_at: string;
+}
+
+export interface StaffCallStat {
+    staff_id?: string | null;
+    staff_name: string;
+    call_count: number;
+    total_duration_seconds: number;
+    total_billable_minutes: number;
+}
+
+export interface CallLogsOverviewResponse {
+    total_calls: number;
+    total_duration_seconds: number;
+    total_billable_minutes: number;
+    avg_duration_seconds: number;
+    staff_stats: StaffCallStat[];
+}
+
+export interface PaginatedCallLogsResponse {
+    items: CallLogItem[];
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+}
