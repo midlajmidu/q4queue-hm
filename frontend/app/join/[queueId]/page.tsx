@@ -1,7 +1,7 @@
 "use client";
 
 import React, { use, useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useQueueSocket } from "@/hooks/useQueueSocket";
 import { Clock } from "lucide-react";
@@ -160,6 +160,24 @@ export default function JoinQueuePage({ params }: PageProps) {
     const rawQueueId = use(params).queueId;
     const queueId = rawQueueId.length >= 36 ? rawQueueId.slice(-36) : rawQueueId;
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const [qrToken, setQrToken] = useState<string | null>(null);
+
+    useEffect(() => {
+        const token = searchParams.get("qrToken");
+        if (token) {
+            setQrToken(token);
+            sessionStorage.setItem(`qr_token_${queueId}`, token);
+            // Hide token from URL bar for visual security
+            window.history.replaceState({}, "", window.location.pathname);
+        } else {
+            // Check if it was saved in this tab's session (survives refreshes, but not link sharing)
+            const savedToken = sessionStorage.getItem(`qr_token_${queueId}`);
+            if (savedToken) {
+                setQrToken(savedToken);
+            }
+        }
+    }, [searchParams, queueId]);
 
     const { state: live, status: wsStatus } = useQueueSocket(queueId);
 
@@ -198,6 +216,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                 phone: `${countryCode}${customerPhone}`,
                 pax_count: paxCount,
                 send_whatsapp: sendWhatsApp,
+                qr_token: qrToken || undefined,
             };
 
             const data = await api.joinQueue(queueId, payload);

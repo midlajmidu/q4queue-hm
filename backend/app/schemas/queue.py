@@ -66,6 +66,7 @@ class JoinRequest(BaseModel):
     pax_count: int = Field(default=1, ge=1)
     send_whatsapp: bool = Field(default=True)
     entry_type: Optional[str] = Field(default="qr")
+    qr_token: Optional[str] = Field(default=None, description="Single-use QR validation token")
 
     @field_validator("name", mode="before")
     @classmethod

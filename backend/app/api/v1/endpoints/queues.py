@@ -26,6 +26,7 @@ import uuid
 from typing import Union
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks, Query
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import (
@@ -51,7 +52,9 @@ from app.schemas.queue import (
     AnnouncementUpdate,
 )
 from app.services import queue_service, token_service
-from app.middleware.rate_limiter import join_rate_limit, api_rate_limit
+from app.middleware.rate_limiter import api_rate_limit, join_rate_limit
+from app.redis.client import get_redis
+from app.core.config import get_settings
 from app.audit.service import record_event
 from app.services.notification_service import notify_queue_event
 
@@ -349,6 +352,32 @@ async def reset_queue(
 # Public — Customer joins queue
 # ─────────────────────────────────────────────────────────────────────────────
 
+@router.get(
+    "/{queue_id}/scan",
+    summary="QR Code Scan Redirect",
+    description="Generates a single-use QR token and redirects to the join page.",
+)
+async def scan_queue_qr(
+    queue_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    # Verify queue exists and is active
+    from sqlalchemy import select
+    result = await db.execute(select(Queue).where(Queue.id == queue_id))
+    queue = result.scalar_one_or_none()
+    if not queue or not queue.is_active:
+        settings = get_settings()
+        return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?error=inactive")
+
+    # Generate single-use token and store in Redis for 60 seconds
+    redis = get_redis()
+    qr_token = uuid.uuid4().hex
+    await redis.setex(f"qr_token:{queue_id}:{qr_token}", 60, "VALID")
+
+    settings = get_settings()
+    return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?qrToken={qr_token}")
+
+
 @router.post(
     "/{queue_id}/tokens",
     response_model=JoinResponse,
@@ -373,10 +402,28 @@ async def create_token(
 
     SECURITY NOTE: This is a public, unauthenticated endpoint. The only data
     it acts on is the queue_id (public knowledge — printed on QR codes).
-    The join_queue service uses _lock_queue_public which does NOT expose
-    any other org's data; it just joins whatever public queue is at that ID.
     """
+    if not body.qr_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This QR code has already been claimed or is no longer valid. Please ask staff to scan a new one."
+        )
+
+    redis = get_redis()
+    token_key = f"qr_token:{queue_id}:{body.qr_token}"
+    
+    # Atomically delete the token. If it returns 0, it means it didn't exist (expired or already used).
+    # This prevents double-submit race conditions where two rapid requests both read 'valid'.
+    deleted_count = await redis.delete(token_key)
+    if deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This QR code has already been claimed or is no longer valid. Please ask staff to scan a new one."
+        )
+
     try:
+        # Atomic token generation via queue service uses _lock_queue_public which does NOT expose
+        # any other org's data; it just joins whatever public queue is at that ID.
         result = await token_service.join_queue(db, queue_id=queue_id, data=body)
         # org_id comes from the queue row that was already fetched inside join_queue
         # We re-read it from the result rather than making a second DB round-trip
