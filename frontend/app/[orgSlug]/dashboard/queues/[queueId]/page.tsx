@@ -20,6 +20,8 @@ import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X,
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Logo } from "@/components/ui/Logo";
 
 const formatTime12 = (time24?: string | null) => {
     if (!time24) return "";
@@ -418,6 +420,9 @@ export default function QueueDetailPage({ params }: PageProps) {
     const [pairingCodeInput, setPairingCodeInput] = useState("");
     const [isPairing, setIsPairing] = useState(false);
 
+    const [qrPairingCodeInput, setQrPairingCodeInput] = useState("");
+    const [isQrPairing, setIsQrPairing] = useState(false);
+
     const handleConnectTV = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!pairingCodeInput.trim()) {
@@ -430,12 +435,33 @@ export default function QueueDetailPage({ params }: PageProps) {
                 pair_code: pairingCodeInput.trim().toUpperCase(),
                 queue_id: queueId
             });
-            sonnerToast.success("TV connected successfully!");
+            sonnerToast.success("TV Screen connected successfully!");
             setPairingCodeInput("");
         } catch (err: any) {
             sonnerToast.error(err.message || "Invalid or expired pairing code.");
         } finally {
             setIsPairing(false);
+        }
+    };
+
+    const handleConnectQrShowcase = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!qrPairingCodeInput.trim()) {
+            sonnerToast.error("Please enter a pairing code.");
+            return;
+        }
+        setIsQrPairing(true);
+        try {
+            await api.connectPairingCode({
+                pair_code: qrPairingCodeInput.trim().toUpperCase(),
+                queue_id: queueId
+            });
+            sonnerToast.success("QR Showcase Device connected successfully!");
+            setQrPairingCodeInput("");
+        } catch (err: any) {
+            sonnerToast.error(err.message || "Invalid or expired pairing code.");
+        } finally {
+            setIsQrPairing(false);
         }
     };
 
@@ -929,6 +955,11 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     );
                                 })}
                             </nav>
+                            
+                            <div className="mt-auto pt-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between">
+                                <ConnectionBadge status={status} />
+                                <ThemeToggle />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -993,8 +1024,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                     </div>
 
                     {/* 5. Bottom Shell */}
-                    <div className="mt-auto border-t border-slate-200 dark:border-white/10 p-4">
+                    <div className="mt-auto border-t border-slate-200 dark:border-white/10 p-4 flex items-center justify-between">
                         <ConnectionBadge status={status} />
+                        <ThemeToggle />
                     </div>
                 </aside>
 
@@ -1583,12 +1615,93 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <Menu size={22} />
                                     </button>
                                     <div className="flex-1">
-                                        <h1 className="qd-section-title text-xl md:text-2xl font-bold break-words text-gray-900 dark:text-white">QR Code</h1>
+                                        <h1 className="qd-section-title text-xl md:text-2xl font-bold break-words text-gray-900 dark:text-white">QR Code Showcase</h1>
                                         <p className="qd-section-sub">Share this QR code or link so customers can join the queue from their phones.</p>
                                     </div>
                                 </div>
-                                <div className="w-full max-w-md">
-                                    <QueueQRCode queueId={queueId} queueName={queueName} isCollapsible={false} />
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch mt-4">
+                                    {/* Left side: Static QR Code */}
+                                    <div className="md:col-span-5 flex flex-col h-full">
+                                        <QueueQRCode queueId={queueId} queueName={queueName} isCollapsible={false} className="h-full flex-1 rounded-3xl" />
+                                    </div>
+
+                                    {/* Right side: Pair Showcase Device */}
+                                    <div className="md:col-span-7 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-white/10 p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
+                                        <div className="space-y-8">
+                                            {/* Header */}
+                                            <div className="flex items-start gap-5 pb-6 border-b border-slate-100 dark:border-white/5">
+                                                <div className="w-12 h-12 rounded-xl bg-indigo-50/50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                    <QrCode size={24} strokeWidth={1.5} />
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-xl font-medium tracking-tight text-slate-900 dark:text-white">Pair Showcase Device</h2>
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                                                        Open <span className="font-mono text-indigo-700 dark:text-indigo-300 font-medium bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">/qr</span> on your tablet or phone, then enter the 6-digit code below to cast your queue.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Form & Segmented PIN Input */}
+                                            <form onSubmit={handleConnectQrShowcase} className="space-y-8">
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-xs font-medium tracking-widest text-slate-400 dark:text-slate-500 uppercase">
+                                                            Pairing Code
+                                                        </label>
+                                                    </div>
+                                                    
+                                                    {/* Segmented PIN Input Box */}
+                                                    <div className="relative cursor-pointer">
+                                                        <input
+                                                            type="text"
+                                                            value={qrPairingCodeInput}
+                                                            onChange={(e) => setQrPairingCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                                                            maxLength={6}
+                                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                            required
+                                                        />
+                                                        
+                                                        <div className="grid grid-cols-6 gap-2 sm:gap-3">
+                                                            {Array.from({ length: 6 }).map((_, i) => {
+                                                                const char = qrPairingCodeInput[i] || "";
+                                                                const isActive = qrPairingCodeInput.length === i;
+                                                                return (
+                                                                    <div
+                                                                        key={i}
+                                                                        className={`h-16 sm:h-20 rounded-xl border flex items-center justify-center font-mono text-2xl sm:text-3xl font-light transition-all duration-300 ${
+                                                                            char
+                                                                                ? "border-indigo-600 dark:border-indigo-400 bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm"
+                                                                                : isActive
+                                                                                ? "border-indigo-400 dark:border-indigo-500 bg-white dark:bg-slate-900 ring-1 ring-indigo-400 dark:ring-indigo-500"
+                                                                                : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-slate-300"
+                                                                        }`}
+                                                                    >
+                                                                        {char || (isActive ? <span className="w-px h-6 bg-indigo-500 animate-pulse"></span> : "")}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    type="submit"
+                                                    disabled={isQrPairing || qrPairingCodeInput.length < 6}
+                                                    className="w-full h-14 flex items-center justify-center gap-2 rounded-xl font-medium tracking-wide text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/10"
+                                                >
+                                                    {isQrPairing ? (
+                                                        <RefreshCw size={18} className="animate-spin" />
+                                                    ) : (
+                                                        <>
+                                                            Link Device
+                                                            <ArrowRight size={16} className={`transition-transform duration-300 ${qrPairingCodeInput.length === 6 ? 'translate-x-1' : ''}`} />
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -2141,7 +2254,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                             <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
                                 <div>
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Select Service Lane</h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Which line is calling Token {state?.prefix || ""}{inviteNumber}?</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Which lane is calling Token {state?.prefix || ""}{inviteNumber}?</p>
                                 </div>
                                 <button onClick={() => setShowInviteLineModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-900/5 p-2 rounded-full">
                                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -2155,7 +2268,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             onClick={() => executeInvite(i + 1)}
                                             className="px-4 py-3 rounded-xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 dark:border-white/10 dark:hover:border-indigo-500 dark:hover:bg-indigo-900/20 text-slate-700 dark:text-slate-200 font-bold text-sm transition-all text-center"
                                         >
-                                            Line {i + 1}
+                                            Lane {i + 1}
                                         </button>
                                     ))}
                                 </div>
@@ -2288,7 +2401,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
             })}
         >
             <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-[12px] flex-shrink-0" style={{ backgroundColor: `hsl(${t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 90%)`, color: `hsl(${t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 30%)` }}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-[12px] flex-shrink-0 bg-[hsl(var(--hue),70%,90%)] text-[hsl(var(--hue),70%,30%)] dark:bg-[hsl(var(--hue),40%,25%)] dark:text-[hsl(var(--hue),70%,85%)]" style={{ "--hue": t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200 } as React.CSSProperties}>
                     {t.customer_name ? t.customer_name.substring(0, 2).toUpperCase() : "WA"}
                 </div>
 
@@ -2434,7 +2547,7 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
 
                 {/* Customer */}
                 <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] flex-shrink-0" style={{ backgroundColor: `hsl(${t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 90%)`, color: `hsl(${t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 30%)` }}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] flex-shrink-0 bg-[hsl(var(--hue),70%,90%)] text-[hsl(var(--hue),70%,30%)] dark:bg-[hsl(var(--hue),40%,25%)] dark:text-[hsl(var(--hue),70%,85%)]" style={{ "--hue": t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200 } as React.CSSProperties}>
                         {t.customer_name ? t.customer_name.substring(0, 2).toUpperCase() : "WA"}
                     </div>
                     <div className="flex flex-col min-w-0">
@@ -2719,7 +2832,7 @@ function QueueHistory({
                                         <td className="text-slate-900 dark:text-white" style={{ padding: "12px 18px", fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{item.queue_prefix}{item.token_number}</td>
                                         <td style={{ padding: "12px 18px" }}>
                                             <div className="flex items-center gap-2.5 min-w-0">
-                                                <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] flex-shrink-0" style={{ backgroundColor: `hsl(${item.customer_name ? item.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 90%)`, color: `hsl(${item.customer_name ? item.customer_name.charCodeAt(0) * 20 % 360 : 200}, 70%, 30%)` }}>
+                                                <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] flex-shrink-0 bg-[hsl(var(--hue),70%,90%)] text-[hsl(var(--hue),70%,30%)] dark:bg-[hsl(var(--hue),40%,25%)] dark:text-[hsl(var(--hue),70%,85%)]" style={{ "--hue": item.customer_name ? item.customer_name.charCodeAt(0) * 20 % 360 : 200 } as React.CSSProperties}>
                                                     {item.customer_name ? item.customer_name.substring(0, 2).toUpperCase() : "WA"}
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
@@ -2785,7 +2898,7 @@ function QueueHistory({
                                             <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                                 {(item as any).assigned_line != null ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
-                                                        Line {(item as any).assigned_line}
+                                                        Lane {(item as any).assigned_line}
                                                     </span>
                                                 ) : <span className="text-slate-400 dark:text-slate-500">—</span>}
                                             </td>

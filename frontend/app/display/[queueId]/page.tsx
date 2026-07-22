@@ -6,10 +6,12 @@ import { NowServingHero } from "@/components/display/NowServingHero";
 import { WaitingCountCard } from "@/components/display/WaitingCountCard";
 import { UpcomingQueueCard } from "@/components/display/UpcomingQueueCard";
 import { FooterTicker } from "@/components/display/FooterTicker";
+import { useTheme } from "next-themes";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Logo } from "@/components/ui/Logo";
 import { ServingToken } from "@/types/api";
 import type { DisplayTheme } from "@/components/display/displayTheme";
-import Image from "next/image";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, Volume2, VolumeX, Maximize, ExternalLink } from "lucide-react";
 
 interface PageProps {
     params: Promise<{ queueId: string }>;
@@ -26,18 +28,11 @@ export default function DisplayQueuePage({ params }: PageProps) {
     const [isMounted, setIsMounted] = useState(false);
     const [timeString, setTimeString] = useState("");
     const [dateString, setDateString] = useState("");
-    const [isDark, setIsDark] = useState(false);
-
+    const { theme: nextTheme, resolvedTheme } = useTheme();
+    const isDark = nextTheme === "dark" || resolvedTheme === "dark";
     const theme: DisplayTheme = isDark ? "dark" : "light";
 
     useEffect(() => { setIsMounted(true); }, []);
-
-    // Load theme preference from localStorage
-    useEffect(() => {
-        if (!isMounted) return;
-        const savedTheme = localStorage.getItem("display_theme");
-        if (savedTheme === "dark") setIsDark(true);
-    }, [isMounted]);
 
     useEffect(() => {
         const update = () => {
@@ -65,24 +60,9 @@ export default function DisplayQueuePage({ params }: PageProps) {
         audioRef.current = audio;
     }, [isMounted]);
 
-    const handleToggleSound = useCallback(() => {
-        if (!soundEnabled && audioRef.current) {
-            audioRef.current.play().then(() => {
-                if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
-            }).catch(() => { });
-        }
-        const newState = !soundEnabled;
-        localStorage.setItem("display_sound_enabled", String(newState));
-        setSoundEnabled(newState);
-    }, [soundEnabled]);
-
-    const handleToggleTheme = useCallback(() => {
-        setIsDark(prev => {
-            const next = !prev;
-            localStorage.setItem("display_theme", next ? "dark" : "light");
-            return next;
-        });
-    }, []);
+    const handleToggleSound = () => {
+        setSoundEnabled(!soundEnabled);
+    };
 
     // Fire sound whenever the set of currently-serving tokens changes
     // This works for both single-counter and multi-counter queues
@@ -146,9 +126,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
                             {isConnected ? "LIVE" : "OFFLINE"}
                         </div>
                         {/* Theme toggle */}
-                        <button onClick={handleToggleTheme} className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${isDark ? "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08]" : "bg-white border-slate-200 hover:bg-slate-50 shadow-sm"}`}>
-                            {isDark ? <Moon className="w-3.5 h-3.5 text-slate-400" /> : <Sun className="w-3.5 h-3.5 text-slate-500" />}
-                        </button>
+                        <ThemeToggle />
                     </div>
                 </header>
 
@@ -200,9 +178,8 @@ export default function DisplayQueuePage({ params }: PageProps) {
 
                 <div className={`py-5 flex items-center justify-center shrink-0 border-t ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200"}`}>
                     <span className={`text-[10px] font-semibold tracking-[0.2em] uppercase flex items-center`}>
-                        <span className={`translate-x-1 ${isDark ? "text-slate-500" : "text-slate-400"}`}>Powered by</span>
-                        <div className="h-6 flex items-center overflow-visible w-24 -ml-1">
-                            <img src={isDark ? "/q4queue-darkThemeLogo.png" : "/q4queue-new_logo.png"} alt="Q4Queue Logo" className={`h-6 w-auto object-contain origin-left ${isDark ? "scale-[4] translate-x-1.5 translate-y-0.5" : "scale-[3.5] -translate-x-1 translate-y-1"}`} />
+                        <div className="flex items-center gap-4">
+                            <Logo size="sm" className="hidden sm:flex" />
                         </div>
                     </span>
                 </div>
@@ -216,7 +193,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
                 <div className={`absolute inset-0 z-0 transition-colors duration-500 ${isDark ? "bg-[#0a0e1a]" : "bg-[#f5f6f8]"}`}></div>
 
                 {/* Desktop Header */}
-                <DesktopHeader logoUrl={logoUrl} status={status} isActive={state?.is_active ?? false} timeString={timeString} dateString={dateString} isDark={isDark} onToggleTheme={handleToggleTheme} soundEnabled={soundEnabled} onToggleSound={handleToggleSound} />
+                <DesktopHeader logoUrl={logoUrl} status={status} isActive={state?.is_active ?? false} timeString={timeString} dateString={dateString} isDark={isDark} soundEnabled={soundEnabled} onToggleSound={handleToggleSound} />
 
                 {/* 70 / 30 split */}
                 <div className="flex-1 flex gap-5 p-5 overflow-hidden min-h-0 relative z-10">
@@ -248,14 +225,13 @@ export default function DisplayQueuePage({ params }: PageProps) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Desktop Header (extracted to keep main component lean)
 // ─────────────────────────────────────────────────────────────────────────────
-function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDark, onToggleTheme, soundEnabled, onToggleSound }: {
+function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDark, soundEnabled, onToggleSound }: {
     logoUrl?: string | null;
     status: string;
     isActive: boolean;
     timeString: string;
     dateString: string;
     isDark: boolean;
-    onToggleTheme: () => void;
     soundEnabled: boolean;
     onToggleSound: () => void;
 }) {
@@ -264,16 +240,7 @@ function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDa
         <header className={`h-16 ${isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-slate-200"} border-b px-8 flex items-center justify-end shrink-0 z-10 relative transition-colors duration-500`}>
             <div className="flex items-center gap-4">
                 {/* Theme toggle */}
-                <button
-                    onClick={onToggleTheme}
-                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-105 ${isDark
-                            ? "bg-white/[0.06] border-white/[0.08] text-slate-300 hover:bg-white/[0.1]"
-                            : "bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200"
-                        }`}
-                    title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-                >
-                    {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </button>
+                <ThemeToggle />
 
                 {/* LIVE badge */}
                 <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold border ${isConnected

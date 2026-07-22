@@ -223,7 +223,7 @@ export function NowServingHero({
                                 </span>
                                 {token.assigned_line && (
                                     <span className={`text-[11px] font-semibold uppercase tracking-wider mt-3 ${mutedText(theme)}`}>
-                                        Counter {String(token.assigned_line).padStart(2, "0")}
+                                        Lane {String(token.assigned_line).padStart(2, "0")}
                                     </span>
                                 )}
                             </motion.div>

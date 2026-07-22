@@ -463,7 +463,7 @@ export default function TrackingPage({ params }: PageProps) {
                                             <div key={t.id || t.token_number} className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 sm:px-4 flex flex-col items-center min-w-[80px] shrink-0 border border-white/5 max-w-full">
                                                 <span className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight leading-none text-white break-words break-all text-center">{prefix}{t.token_number}</span>
                                                 {t.assigned_line !== null && (
-                                                    <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
+                                                    <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Lane {t.assigned_line}</span>
                                                 )}
                                             </div>
                                         ))}
@@ -490,7 +490,7 @@ export default function TrackingPage({ params }: PageProps) {
                                             <div key={`${t.id || t.token_number}-${i}`} className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 sm:px-4 flex flex-col items-center min-w-[80px] shrink-0 mx-2 border border-white/5">
                                                 <span className="text-xl sm:text-2xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
                                                 {t.assigned_line !== null && (
-                                                    <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Line {t.assigned_line}</span>
+                                                    <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Lane {t.assigned_line}</span>
                                                 )}
                                             </div>
                                         ))}
@@ -570,7 +570,7 @@ export default function TrackingPage({ params }: PageProps) {
                                             <div className="mt-1 text-emerald-50 text-[11px] sm:text-xs font-semibold uppercase tracking-wider flex items-center gap-2 flex-wrap">
                                                 Proceed to
                                                 <span className="text-[11px] sm:text-xs font-black bg-white text-emerald-700 px-2.5 py-0.5 rounded shadow-sm">
-                                                    Line {myAssignedLine}
+                                                    Lane {myAssignedLine}
                                                 </span>
                                             </div>
                                         ) : (

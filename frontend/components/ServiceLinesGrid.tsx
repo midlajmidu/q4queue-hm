@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { ServingToken } from "@/types/api";
 import { CheckCircle, PhoneCall, FastForward, UserPlus, Check, ChevronDown, LayoutGrid, List, Users, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { createPortal } from "react-dom";
 
 interface Props {
     queueId: string;
@@ -542,7 +543,14 @@ function ShareTokenModal({
     prefix: string;
     onShare: (tokenNumber: number) => void;
 }) {
-    if (!isOpen) return null;
+    const [mounted, setMounted] = React.useState(false);
+    
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!isOpen || !mounted) return null;
+    
     const availableTokens = allServingTokens.filter(t => {
         const isAlreadyInThisLane = t.assigned_line === lineNum || (t.shared_lines || []).includes(lineNum);
         if (isAlreadyInThisLane) return false;
@@ -556,9 +564,10 @@ function ShareTokenModal({
 
         return true;
     });
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
+    
+    const modalContent = (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={onClose} />
             <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Share Token to Lane {lineNum}</h3>
                 <p className="text-sm text-slate-500 mb-4">Select an active token from another lane to process simultaneously.</p>
@@ -591,4 +600,6 @@ function ShareTokenModal({
             </div>
         </div>
     );
+
+    return createPortal(modalContent, document.body);
 }

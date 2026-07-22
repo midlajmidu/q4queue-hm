@@ -172,7 +172,7 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                             <DetailItem label="Number of Pax" value={String(fullToken.pax_count)} highlight="emerald" />
                         )}
                         {fullToken.assigned_line != null && (
-                            <DetailItem label="Line Number" value={String(fullToken.assigned_line)} highlight="emerald" />
+                            <DetailItem label="Lane Number" value={String(fullToken.assigned_line)} highlight="emerald" />
                         )}
 
                         <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
