@@ -24,13 +24,15 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
     useEffect(() => {
         if (!isMounted) return;
         
-        // Point the QR code directly to the backend /scan endpoint for dynamic redirect
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
+        
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
         const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
         
         let fullApiUrl = normalizedApiUrl;
         if (!normalizedApiUrl.startsWith("http")) {
-            fullApiUrl = window.location.origin + normalizedApiUrl;
+            fullApiUrl = normalizedAppUrl + normalizedApiUrl;
         }
 
         setJoinUrl(`${fullApiUrl}/queues/${queueId}/scan`);
