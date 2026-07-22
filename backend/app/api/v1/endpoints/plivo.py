@@ -80,11 +80,11 @@ async def webrtc_hangup(
     """
     form_data = await request.form()
     
-    # Plivo provides DialBLegDuration for the connected duration (in seconds)
-    duration_str = form_data.get("DialBLegDuration", form_data.get("Duration", "0"))
+    # Plivo provides DialBLegDuration or BillDuration for the connected duration (in seconds)
+    duration_str = form_data.get("DialBLegDuration") or form_data.get("BillDuration") or form_data.get("Duration") or "0"
     try:
-        duration_seconds = int(duration_str)
-    except ValueError:
+        duration_seconds = int(float(duration_str))
+    except (ValueError, TypeError):
         duration_seconds = 0
         
     to_number = form_data.get("To", "").replace(" ", "+")
@@ -101,7 +101,6 @@ async def webrtc_hangup(
             pass
 
         # Robustness: Always fetch the actual org_id from the queue if we have the queue_id.
-        # This prevents IntegrityErrors if the frontend accidentally sends queue_id in place of org_id.
         if q_id:
             from app.models.queue import Queue
             from sqlalchemy import select
@@ -111,7 +110,15 @@ async def webrtc_hangup(
                 o_id = queue.org_id
                 
         if not o_id:
-            print(f"Warning: Plivo webhook could not determine valid organization_id (org_id={org_id}, queue_id={queue_id}). Skipping log.")
+            from app.models.organization import Organization
+            from sqlalchemy import select
+            res = await db.execute(select(Organization).where(Organization.is_active == True).limit(1))
+            first_org = res.scalar_one_or_none()
+            if first_org:
+                o_id = first_org.id
+
+        if not o_id:
+            print(f"Warning: Plivo webhook could not determine valid organization_id. Skipping log.")
             return Response(content="ok")
 
         call_log = CallLog(
@@ -140,5 +147,5 @@ async def webrtc_hangup(
 
     except Exception as e:
         print(f"Error logging call from Plivo webhook: {e}")
-        
     return Response(content="ok")
+

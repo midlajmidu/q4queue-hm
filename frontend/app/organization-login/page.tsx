@@ -193,12 +193,6 @@ export default function LoginPage() {
                             </button>
                         </form>
 
-                        <div className="flex items-center justify-center mt-6 text-[13px]">
-                            <Link href="#" className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors">
-                                Forgot your password?
-                            </Link>
-                        </div>
-
                         <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center mb-8 lg:mb-0">
                             <Link 
                                 href="/login" 

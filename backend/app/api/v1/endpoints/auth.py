@@ -15,7 +15,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.deps import get_db
-from app.schemas.auth import LoginRequest, TokenResponse, ChangeFirstPasswordRequest
+from app.schemas.auth import (
+    LoginRequest,
+    TokenResponse,
+    ChangeFirstPasswordRequest,
+    ForgotPasswordOtpRequest,
+    ResetPasswordWithOtpRequest,
+)
 from app.services.auth_service import authenticate_user
 from app.middleware.rate_limiter import login_rate_limit, api_rate_limit
 from app.audit.service import record_event
@@ -165,3 +171,97 @@ async def change_first_password(
         access_token=token,
         force_password_change=False
     )
+
+
+@router.post(
+    "/forgot-password-otp",
+    summary="Request Password Reset OTP",
+    dependencies=[Depends(api_rate_limit)],
+)
+async def request_forgot_password_otp(
+    body: ForgotPasswordOtpRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Generate and send a 6-digit OTP to the user's email if the user exists.
+    """
+    import secrets
+    from sqlalchemy import select
+    from app.models.organization import Organization
+    from app.redis.client import get_redis
+    from app.services.email_service import send_otp_email
+
+    clean_email = body.email.strip().lower()
+    query = select(User).where(User.email.ilike(clean_email))
+    
+    if body.organization_slug and body.organization_slug.strip():
+        query = query.join(Organization, User.org_id == Organization.id).where(Organization.slug == body.organization_slug.strip())
+        
+    res = await db.execute(query)
+    user = res.scalars().first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="This email address is not registered with us. Please check your email address."
+        )
+
+    otp = "".join(str(secrets.randbelow(10)) for _ in range(6))
+    redis = get_redis()
+    otp_key = f"otp:forgot_pwd:{clean_email}"
+    await redis.setex(otp_key, 300, otp)
+    await send_otp_email(user.email, otp)
+        
+    return {"message": "A verification OTP has been sent to your email address."}
+
+
+@router.post(
+    "/reset-password-with-otp",
+    summary="Reset Password using Email OTP",
+    dependencies=[Depends(api_rate_limit)],
+)
+async def reset_password_with_otp(
+    body: ResetPasswordWithOtpRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Verify OTP and update user's password.
+    """
+    from datetime import datetime, timezone
+    from sqlalchemy import select
+    from app.models.organization import Organization
+    from app.redis.client import get_redis
+
+    clean_email = body.email.strip().lower()
+    redis = get_redis()
+    otp_key = f"otp:forgot_pwd:{clean_email}"
+    
+    stored_otp = await redis.get(otp_key)
+    if not stored_otp or stored_otp != body.otp.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP. Please request a new code."
+        )
+
+    query = select(User).where(User.email.ilike(clean_email))
+    if body.organization_slug and body.organization_slug.strip():
+        query = query.join(Organization, User.org_id == Organization.id).where(Organization.slug == body.organization_slug.strip())
+
+    res = await db.execute(query.with_for_update())
+    user = res.scalars().first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User account not found."
+        )
+
+    user.password_hash = hash_password(body.new_password)
+    user.password_changed_at = datetime.now(timezone.utc)
+    user.is_first_login = False
+    
+    await db.commit()
+    await redis.delete(otp_key)
+
+    return {"message": "Password reset successfully. You can now log in with your new password."}
+

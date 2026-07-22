@@ -32,3 +32,16 @@ class TokenResponse(BaseModel):
 
 class ChangeFirstPasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8)
+
+
+class ForgotPasswordOtpRequest(BaseModel):
+    email: EmailStr
+    organization_slug: str | None = Field(None, max_length=100)
+
+
+class ResetPasswordWithOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=8)
+    organization_slug: str | None = Field(None, max_length=100)
+

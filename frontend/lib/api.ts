@@ -34,6 +34,8 @@ import type {
     OrgUserCreate,
     OrgUserUpdate,
     PaginatedOrgUsersResponse,
+    PaginatedCallLogsResponse,
+    CallLogsOverviewResponse,
     PaginatedStaffResponse,
     QueueCreate,
     QueueResponse,
@@ -294,7 +296,7 @@ export const api = {
         });
     },
 
-    // ── Call Logs ────────────────────────────────────────────────────────
+    // ── Call Logs & Analytics ────────────────────────────────────────────────────────
 
     logCall(data: any): Promise<any> {
         return request("/calls/save", {
@@ -303,9 +305,20 @@ export const api = {
         });
     },
 
-    getCallLogs(params: Record<string, string>): Promise<any[]> {
-        const query = new URLSearchParams(params).toString();
-        return request(`/calls/logs?${query}`);
+    getCallLogs(params?: { queue_id?: string; staff_id?: string; search?: string; page?: number; limit?: number }): Promise<PaginatedCallLogsResponse> {
+        const queryParams = new URLSearchParams();
+        if (params?.queue_id) queryParams.append("queue_id", params.queue_id);
+        if (params?.staff_id) queryParams.append("staff_id", params.staff_id);
+        if (params?.search) queryParams.append("search", params.search);
+        if (params?.page) queryParams.append("page", params.page.toString());
+        if (params?.limit) queryParams.append("limit", params.limit.toString());
+        const q = queryParams.toString();
+        return request<PaginatedCallLogsResponse>(`/calls/logs${q ? `?${q}` : ""}`);
+    },
+
+    getCallLogsOverview(queue_id?: string): Promise<CallLogsOverviewResponse> {
+        const q = queue_id ? `?queue_id=${queue_id}` : "";
+        return request<CallLogsOverviewResponse>(`/calls/overview${q}`);
     },
 
     login(data: LoginRequest): Promise<TokenResponse> {
@@ -321,6 +334,21 @@ export const api = {
             body: JSON.stringify(data),
         });
     },
+
+    requestForgotPasswordOtp(data: { email: string; organization_slug?: string }): Promise<{ message: string }> {
+        return request<{ message: string }>("/auth/forgot-password-otp", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    resetPasswordWithOtp(data: { email: string; otp: string; new_password: string; organization_slug?: string }): Promise<{ message: string }> {
+        return request<{ message: string }>("/auth/reset-password-with-otp", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
 
     // ── TV Pairing ────────────────────────────────────────────────
     generatePairingCode(): Promise<{ code: string }> {
