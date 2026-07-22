@@ -242,6 +242,15 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+
+  /* Prevent Chrome autofill from overriding background color with light blue/yellow */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:active {
+      transition: background-color 5000s ease-in-out 0s !important;
+      -webkit-text-fill-color: var(--q-text) !important;
+  }
 }
 
 /* Flash animation for TV display when serving number changes */

@@ -1745,9 +1745,13 @@ function MetricCard({
       <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6, position: "relative", zIndex: 10, minHeight: 44 }}>
         {trend ? (
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 2, color: trend.up ? "#059669" : "#e11d48", background: trend.up ? "#ecfdf5" : "#fff1f2", padding: "3px 8px", borderRadius: 8, border: `1px solid ${trend.up ? "#d1fae5" : "#ffe4e6"}` }}>
+            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-bold ${
+              trend.up
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30"
+                : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/30"
+            }`}>
               {trend.up ? <Icons.TrendingUp size={14} strokeWidth={2.5} /> : <Icons.TrendingDown size={14} strokeWidth={2.5} />}
-              <span className="tnum" style={{ fontWeight: 700 }}>{trend.pct}%</span>
+              <span className="tnum font-bold">{trend.pct}%</span>
             </div>
             <span className="text-slate-500 dark:text-slate-400 font-medium">{comparisonLabel || "vs last session"}</span>
           </div>

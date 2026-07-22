@@ -7,7 +7,7 @@ import Link from "next/link";
 
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Building2, Mail, Lock } from "lucide-react";
 
 import { toast } from "sonner";
 
@@ -117,16 +117,16 @@ export default function LoginPage() {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                    className="w-full h-full bg-white rounded-3xl flex flex-col px-8 sm:px-12 lg:px-16 xl:px-24 py-10 relative overflow-y-auto hide-scrollbar shadow-2xl"
+                    className="w-full h-full bg-white rounded-3xl flex flex-col px-8 sm:px-12 lg:px-16 xl:px-24 py-10 relative overflow-y-auto hide-scrollbar shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] border border-slate-100"
                 >
-                    {/* Logo */}
-                    <div className="flex-none mb-12 lg:mb-16">
-                        <Link href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg" aria-label="Go to home page">
-                            <Image src="/q4queue-new_logo.png" alt="Q4Queue Logo" width={140} height={35} className="h-7 sm:h-8 w-auto object-contain" priority />
-                        </Link>
-                    </div>
+                    <div className="w-full max-w-[420px] flex flex-col justify-center my-auto py-6">
+                        {/* Logo */}
+                        <div className="mb-8 sm:mb-10 -ml-9 sm:-ml-12">
+                            <Link href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg overflow-visible" aria-label="Go to home page">
+                                <Image src="/q4queue-new_logo.png" alt="Q4Queue Logo" width={300} height={80} className="h-12 sm:h-14 w-auto object-contain origin-left scale-[2.7] sm:scale-[3.0]" priority />
+                            </Link>
+                        </div>
 
-                    <div className="w-full max-w-[420px] flex flex-col justify-center my-auto">
                         <div className="mb-8 flex flex-col items-start">
                             <h1 className="font-heading text-[28px] sm:text-[32px] font-bold text-slate-900 tracking-tight">
                                 Welcome back!
@@ -157,37 +157,56 @@ export default function LoginPage() {
 
                             <div className="space-y-1.5">
                                 <label htmlFor="org-slug" className="block text-[13px] font-bold text-slate-800">
-                                    {loginType === "staff" ? "Branch Slug *" : "Organization Slug *"}
+                                    {loginType === "staff" ? "Branch Slug" : "Organization Slug"} <span className="text-indigo-600">*</span>
                                 </label>
-                                <input
-                                    id="org-slug"
-                                    type="text"
-                                    value={orgSlug}
-                                    onChange={(e) => setOrgSlug(e.target.value)}
-                                    required
-                                    autoComplete="organization"
-                                    className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 outline-none transition-all placeholder:text-slate-400"
-                                    disabled={isLoading}
-                                />
+                                <div className="relative flex items-center rounded-xl border-2 border-slate-300/80 bg-slate-50/50 hover:bg-slate-50/90 hover:border-slate-400 focus-within:border-indigo-600 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:bg-white transition-all">
+                                    <div className="pl-3.5 text-slate-400 pointer-events-none flex items-center justify-center">
+                                        <Building2 className="w-4 h-4" />
+                                    </div>
+                                    <input
+                                        id="org-slug"
+                                        type="text"
+                                        value={orgSlug}
+                                        onChange={(e) => setOrgSlug(e.target.value)}
+                                        required
+                                        autoComplete="organization"
+                                        placeholder="Enter your branch slug"
+                                        className="w-full rounded-xl bg-transparent pl-2.5 pr-3.5 py-2.5 text-[15px] font-medium text-slate-900 outline-none placeholder:text-slate-400/70 placeholder:font-normal transition-all focus:placeholder:opacity-0"
+                                        disabled={isLoading}
+                                    />
+                                </div>
                             </div>
 
                             <div className="space-y-1.5">
-                                <label htmlFor="email" className="block text-[13px] font-bold text-slate-800">Email *</label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    autoComplete="email"
-                                    className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 outline-none transition-all placeholder:text-slate-400"
-                                    disabled={isLoading}
-                                />
+                                <label htmlFor="email" className="block text-[13px] font-bold text-slate-800">
+                                    Email <span className="text-indigo-600">*</span>
+                                </label>
+                                <div className="relative flex items-center rounded-xl border-2 border-slate-300/80 bg-slate-50/50 hover:bg-slate-50/90 hover:border-slate-400 focus-within:border-indigo-600 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:bg-white transition-all">
+                                    <div className="pl-3.5 text-slate-400 pointer-events-none flex items-center justify-center">
+                                        <Mail className="w-4 h-4" />
+                                    </div>
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                        autoComplete="email"
+                                        placeholder="name@company.com"
+                                        className="w-full rounded-xl bg-transparent pl-2.5 pr-3.5 py-2.5 text-[15px] font-medium text-slate-900 outline-none placeholder:text-slate-400/70 placeholder:font-normal transition-all focus:placeholder:opacity-0"
+                                        disabled={isLoading}
+                                    />
+                                </div>
                             </div>
 
                             <div className="space-y-1.5">
-                                <label htmlFor="password" title="Password" className="block text-[13px] font-bold text-slate-800">Password *</label>
-                                <div className="relative">
+                                <label htmlFor="password" title="Password" className="block text-[13px] font-bold text-slate-800">
+                                    Password <span className="text-indigo-600">*</span>
+                                </label>
+                                <div className="relative flex items-center rounded-xl border-2 border-slate-300/80 bg-slate-50/50 hover:bg-slate-50/90 hover:border-slate-400 focus-within:border-indigo-600 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:bg-white transition-all">
+                                    <div className="pl-3.5 text-slate-400 pointer-events-none flex items-center justify-center">
+                                        <Lock className="w-4 h-4" />
+                                    </div>
                                     <input
                                         id="password"
                                         type={showPassword ? "text" : "password"}
@@ -195,7 +214,8 @@ export default function LoginPage() {
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
                                         autoComplete="current-password"
-                                        className="w-full rounded-lg border border-slate-200 bg-white pl-3.5 pr-10 py-2.5 text-[15px] text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 outline-none transition-all placeholder:text-slate-400"
+                                        placeholder="Enter your password"
+                                        className="w-full rounded-xl bg-transparent pl-2.5 pr-10 py-2.5 text-[15px] font-medium text-slate-900 outline-none placeholder:text-slate-400/70 placeholder:font-normal transition-all focus:placeholder:opacity-0"
                                         disabled={isLoading}
                                     />
                                     <button
@@ -214,7 +234,7 @@ export default function LoginPage() {
                                 type="submit"
                                 disabled={isLoading || !orgSlug || !email || !password}
                                 aria-label="Log in"
-                                className="w-full h-[46px] mt-2 bg-[#f4f4f5] text-slate-400 font-semibold text-[15px] rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 enabled:bg-indigo-600 enabled:text-white enabled:hover:bg-indigo-700 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+                                className="w-full h-12 mt-3 bg-slate-100 text-slate-400 border border-slate-200 font-bold text-[15px] rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 enabled:bg-indigo-600 enabled:text-white enabled:border-transparent enabled:hover:bg-indigo-700 enabled:shadow-md enabled:shadow-indigo-500/20 enabled:active:scale-[0.99] disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {isLoading ? (
                                     <>
