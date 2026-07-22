@@ -52,7 +52,7 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
     }
 
     // ── Error state ──
-    if (status === "error" && !queueData) {
+    if (status === "disconnected" && !queueData) {
         return (
             <div className="qr-showcase-page qr-showcase-loading">
                 <div className="qr-showcase-error-icon">
