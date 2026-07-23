@@ -369,10 +369,10 @@ async def scan_queue_qr(
         settings = get_settings()
         return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?error=inactive")
 
-    # Generate single-use token and store in Redis for 60 seconds
+    # Generate single-use token and store in Redis for 600 seconds (10 minutes)
     redis = get_redis()
     qr_token = uuid.uuid4().hex
-    await redis.setex(f"qr_token:{queue_id}:{qr_token}", 60, "VALID")
+    await redis.setex(f"qr_token:{queue_id}:{qr_token}", 600, "VALID")
 
     settings = get_settings()
     return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?qrToken={qr_token}")
