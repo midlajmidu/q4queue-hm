@@ -24,6 +24,16 @@ SECURITY:
 import logging
 import uuid
 from typing import Union
+import hmac
+import hashlib
+import base64
+import pyotp
+
+def get_qr_secret_seed(queue_id: uuid.UUID, secret_key: str) -> str:
+    """Generate a deterministic base32 seed for TOTP based on queue_id and app secret."""
+    h = hmac.new(secret_key.encode(), str(queue_id).encode(), hashlib.sha256).digest()
+    return base64.b32encode(h).decode('utf-8')[:32]
+
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks, Query
 from fastapi.responses import RedirectResponse
@@ -353,29 +363,58 @@ async def reset_queue(
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.get(
-    "/{queue_id}/scan",
-    summary="QR Code Scan Redirect",
-    description="Generates a single-use QR token and redirects to the join page.",
+    "/{queue_id}/qr-config",
+    summary="Get Queue QR Secret Seed",
+    description="Returns the deterministic secret seed for TOTP dynamic QR code generation.",
 )
-async def scan_queue_qr(
+async def get_queue_qr_config(
     queue_id: uuid.UUID,
     db: AsyncSession = Depends(get_db)
 ):
+    from sqlalchemy import select
+    result = await db.execute(select(Queue).where(Queue.id == queue_id))
+    queue = result.scalar_one_or_none()
+    if not queue:
+        raise HTTPException(status_code=404, detail="Queue not found")
+    
+    settings = get_settings()
+    seed = get_qr_secret_seed(queue_id, settings.SECRET_KEY)
+    return {"qr_secret_seed": seed, "interval": 15}
+
+
+@router.get(
+    "/{queue_id}/scan",
+    summary="QR Code Scan Redirect",
+    description="Validates dynamic TOTP, generates a single-use QR token, and redirects to the join page.",
+)
+async def scan_queue_qr(
+    queue_id: uuid.UUID,
+    totp: Union[str, None] = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    settings = get_settings()
+    
     # Verify queue exists and is active
     from sqlalchemy import select
     result = await db.execute(select(Queue).where(Queue.id == queue_id))
     queue = result.scalar_one_or_none()
     if not queue or not queue.is_active:
-        settings = get_settings()
         return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?error=inactive")
+
+    # Validate TOTP if secret seed & totp validation is enforced
+    seed = get_qr_secret_seed(queue_id, settings.SECRET_KEY)
+    totp_verifier = pyotp.TOTP(seed, interval=15)
+    
+    if not totp or not totp_verifier.verify(totp, valid_window=1):
+        return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?error=expired_qr")
 
     # Generate single-use token and store in Redis for 600 seconds (10 minutes)
     redis = get_redis()
     qr_token = uuid.uuid4().hex
     await redis.setex(f"qr_token:{queue_id}:{qr_token}", 600, "VALID")
 
-    settings = get_settings()
     return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?qrToken={qr_token}")
+
 
 
 @router.post(

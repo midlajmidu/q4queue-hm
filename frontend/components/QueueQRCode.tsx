@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
+import { TOTP, NobleCryptoPlugin, ScureBase32Plugin } from "otplib";
+import { getSystemTime, getQueueQrConfig } from "@/lib/api";
 
 interface QueueQRCodeProps {
     queueId: string;
@@ -10,9 +12,16 @@ interface QueueQRCodeProps {
     className?: string;
 }
 
+const totp = new TOTP({
+    period: 15,
+    crypto: new NobleCryptoPlugin(),
+    base32: new ScureBase32Plugin(),
+});
+
 export default function QueueQRCode({ queueId, queueName, isCollapsible = false, className = "" }: QueueQRCodeProps) {
     const [joinUrl, setJoinUrl] = useState("");
     const [isExpanded, setIsExpanded] = useState(!isCollapsible);
+    const [timeLeft, setTimeLeft] = useState(15);
     const qrRef = useRef<HTMLDivElement>(null);
 
     const [isMounted, setIsMounted] = useState(false);
@@ -22,21 +31,65 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
     }, []);
 
     useEffect(() => {
-        if (!isMounted) return;
-        
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-        const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
-        
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
-        const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
-        
-        let fullApiUrl = normalizedApiUrl;
-        if (!normalizedApiUrl.startsWith("http")) {
-            fullApiUrl = normalizedAppUrl + normalizedApiUrl;
-        }
+        if (!isMounted || !queueId) return;
 
-        setJoinUrl(`${fullApiUrl}/queues/${queueId}/scan`);
-    }, [queueId, queueName, isMounted]);
+        let isCancelled = false;
+        let timerId: NodeJS.Timeout | null = null;
+
+        const initAndStartTotp = async () => {
+            try {
+                // 1. Fetch Server Time & Queue Seed
+                const [{ server_time }, { qr_secret_seed }] = await Promise.all([
+                    getSystemTime().catch(() => ({ server_time: Math.floor(Date.now() / 1000) })),
+                    getQueueQrConfig(queueId),
+                ]);
+
+                if (isCancelled) return;
+
+                const timeOffset = server_time * 1000 - Date.now();
+
+                const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+                const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
+                
+                const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
+                const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
+                
+                let fullApiUrl = normalizedApiUrl;
+                if (!normalizedApiUrl.startsWith("http")) {
+                    fullApiUrl = normalizedAppUrl + normalizedApiUrl;
+                }
+
+                const updateCode = async () => {
+                    const nowWithOffset = Date.now() + timeOffset;
+                    const seconds = Math.floor(nowWithOffset / 1000);
+                    const remaining = 15 - (seconds % 15);
+                    setTimeLeft(remaining);
+
+                    try {
+                        const token = await totp.generate({ secret: qr_secret_seed, epoch: seconds });
+                        const fullUrl = `${fullApiUrl}/queues/${queueId}/scan?totp=${token}`;
+                        setJoinUrl(fullUrl);
+                    } catch (err) {
+                        console.error("Failed to generate TOTP:", err);
+                    }
+                };
+
+                await updateCode();
+                timerId = setInterval(updateCode, 1000);
+            } catch (error) {
+                console.error("Failed to initialize dynamic QR code:", error);
+            }
+        };
+
+
+        initAndStartTotp();
+
+        return () => {
+            isCancelled = true;
+            if (timerId) clearInterval(timerId);
+        };
+    }, [queueId, isMounted]);
+
 
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -162,7 +215,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
 
             <div className={`transition-all duration-300 ease-in-out ${isExpanded ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
                 <div className={`p-6 flex flex-col items-center ${isCollapsible ? "border-t border-slate-100 dark:border-white/10" : ""}`}>
-                    <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-white/10 mb-4 flex items-center justify-center w-full" ref={qrRef}>
+                    <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-white/10 mb-3 flex items-center justify-center w-full" ref={qrRef}>
                         <div className="bg-white p-3.5 rounded-xl shadow-md flex items-center justify-center">
                             <QRCodeCanvas
                                 value={joinUrl}
@@ -173,9 +226,22 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                         </div>
                     </div>
 
-                    <a href={joinUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline mb-4 truncate w-full max-w-[250px] text-center opacity-90 transition-colors" title={joinUrl}>
+                    <a href={joinUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline mb-3 truncate w-full max-w-[250px] text-center opacity-90 transition-colors" title={joinUrl}>
                         {joinUrl}
                     </a>
+
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 text-xs font-medium mb-4 shadow-xs transition-all duration-300">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
+                        </span>
+                        <span className="tracking-wide">QR Refreshes In</span>
+                        <span className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-200/80 dark:bg-slate-700/80 px-1.5 py-0.5 rounded-md">
+                            {timeLeft}s
+                        </span>
+                    </div>
+
+
 
                     <div className="flex gap-3 w-full">
                         <button

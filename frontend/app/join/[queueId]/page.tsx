@@ -164,6 +164,13 @@ export default function JoinQueuePage({ params }: PageProps) {
     const [qrToken, setQrToken] = useState<string | null>(null);
 
     useEffect(() => {
+        const errorParam = searchParams.get("error");
+        if (errorParam === "expired_qr") {
+            setError("This QR code has expired or is no longer valid. Please scan the current active QR code on the display screen.");
+        } else if (errorParam === "inactive") {
+            setError("This queue is currently inactive or closed. Please ask staff for assistance.");
+        }
+
         const token = searchParams.get("qrToken");
         if (token) {
             setQrToken(token);
@@ -178,6 +185,7 @@ export default function JoinQueuePage({ params }: PageProps) {
             }
         }
     }, [searchParams, queueId]);
+
 
     const { state: live, status: wsStatus } = useQueueSocket(queueId);
 

@@ -6,8 +6,14 @@ import { useQueueSocket } from "@/hooks/useQueueSocket";
 import { QRCodeCanvas } from "qrcode.react";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
-// import { ThemeToggle } from "@/components/ThemeToggle";
-// import { useTheme } from "next-themes";
+import { TOTP, NobleCryptoPlugin, ScureBase32Plugin } from "otplib";
+import { getSystemTime, getQueueQrConfig } from "@/lib/api";
+
+const totp = new TOTP({
+    period: 15,
+    crypto: new NobleCryptoPlugin(),
+    base32: new ScureBase32Plugin(),
+});
 
 export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ queueId: string }> }) {
     const rawQueueId = use(params).queueId;
@@ -16,6 +22,7 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
     const { state: queueData, status } = useQueueSocket(queueId);
 
     const [joinUrl, setJoinUrl] = useState("");
+    const [timeLeft, setTimeLeft] = useState(15);
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -23,21 +30,63 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
     }, []);
 
     useEffect(() => {
-        if (!isMounted) return;
+        if (!isMounted || !queueId) return;
 
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-        const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
+        let isCancelled = false;
+        let timerId: NodeJS.Timeout | null = null;
 
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
-        const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
+        const initAndStartTotp = async () => {
+            try {
+                const [{ server_time }, { qr_secret_seed }] = await Promise.all([
+                    getSystemTime().catch(() => ({ server_time: Math.floor(Date.now() / 1000) })),
+                    getQueueQrConfig(queueId),
+                ]);
 
-        let fullApiUrl = normalizedApiUrl;
-        if (!normalizedApiUrl.startsWith("http")) {
-            fullApiUrl = normalizedAppUrl + normalizedApiUrl;
-        }
+                if (isCancelled) return;
 
-        setJoinUrl(`${fullApiUrl}/queues/${queueId}/scan`);
+                const timeOffset = server_time * 1000 - Date.now();
+
+                const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+                const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
+
+                const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
+                const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
+
+                let fullApiUrl = normalizedApiUrl;
+                if (!normalizedApiUrl.startsWith("http")) {
+                    fullApiUrl = normalizedAppUrl + normalizedApiUrl;
+                }
+
+                const updateCode = async () => {
+                    const nowWithOffset = Date.now() + timeOffset;
+                    const seconds = Math.floor(nowWithOffset / 1000);
+                    const remaining = 15 - (seconds % 15);
+                    setTimeLeft(remaining);
+
+                    try {
+                        const token = await totp.generate({ secret: qr_secret_seed, epoch: seconds });
+                        const fullUrl = `${fullApiUrl}/queues/${queueId}/scan?totp=${token}`;
+                        setJoinUrl(fullUrl);
+                    } catch (err) {
+                        console.error("Failed to generate TOTP:", err);
+                    }
+                };
+
+                await updateCode();
+                timerId = setInterval(updateCode, 1000);
+            } catch (error) {
+                console.error("Failed to initialize dynamic QR code:", error);
+            }
+        };
+
+        initAndStartTotp();
+
+        return () => {
+            isCancelled = true;
+            if (timerId) clearInterval(timerId);
+        };
     }, [queueId, isMounted]);
+
 
 
 
@@ -376,8 +425,18 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
                             <p className="qr-showcase-instruction-desc">
                                 Open your phone camera and point it at the QR code to get your digital ticket instantly.
                             </p>
+                            <div className="mt-4 flex justify-center">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold shadow-xs">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
+                                    </span>
+                                    QR Refreshes In <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-200/80 px-1.5 py-0.5 rounded">{timeLeft}s</span>
+                                </span>
+                            </div>
                         </div>
                     </div>
+
 
                     {/* Footer */}
                     <div className="qr-showcase-footer">

@@ -39,3 +39,12 @@ async def get_active_announcements(
         )
         for row in rows
     ]
+
+@router.get(
+    "/time",
+    summary="Get current server time",
+    description="Returns the current server Unix timestamp to synchronize TOTP generation.",
+)
+async def get_system_time():
+    import time
+    return {"server_time": int(time.time())}
