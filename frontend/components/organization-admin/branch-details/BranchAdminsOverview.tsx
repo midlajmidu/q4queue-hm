@@ -6,10 +6,13 @@ import AssignAdminModal from "./AssignAdminModal";
 import ResetAdminPasswordModal from "./ResetAdminPasswordModal";
 import { Shield, Plus, Key, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtDateTime } from "@/lib/tzformat";
 
 export default function BranchAdminsOverview({ branchId, data, onUpdate }: { branchId: string, data: BranchAdminItem[], onUpdate: () => void }) {
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [resetAdmin, setResetAdmin] = useState<BranchAdminItem | null>(null);
+    const tz = useBranchTimezone();
 
     const [adminToDelete, setAdminToDelete] = useState<BranchAdminItem | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -75,7 +78,7 @@ export default function BranchAdminsOverview({ branchId, data, onUpdate }: { bra
                                 </td>
                                 <td className="px-5 py-3 text-slate-500 text-xs">
                                     {admin.last_login && admin.last_login !== 'Never' 
-                                        ? new Date(admin.last_login).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) 
+                                        ? fmtDateTime(admin.last_login, tz) 
                                         : 'Never'}
                                 </td>
                                 <td className="px-5 py-3 text-right">

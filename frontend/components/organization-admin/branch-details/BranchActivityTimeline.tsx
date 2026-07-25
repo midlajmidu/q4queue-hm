@@ -1,19 +1,21 @@
-"use client";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtTime, nowInTz } from "@/lib/tzformat";
 
 export default function BranchActivityTimeline({ data, traffic: rawTraffic }: { data: any[], traffic: any }) {
     const [logs, setLogs] = useState<any[]>([]);
     const [traffic, setTraffic] = useState<any[]>([]);
 
+    const tz = useBranchTimezone();
     useEffect(() => {
         if (data) {
             setLogs(data.slice(0, 3));
         }
         
         if (rawTraffic && rawTraffic.peak_traffic) {
-            const currentHour = new Date().getHours();
+            const currentHour = nowInTz(tz).getHours();
             
             const parseHour = (hStr: string) => {
                 if (!hStr || typeof hStr !== 'string') return 9;
@@ -168,7 +170,7 @@ export default function BranchActivityTimeline({ data, traffic: rawTraffic }: { 
                                     <div className="text-[13px] font-semibold text-slate-900">{event.event_type}</div>
                                     <div className="text-[13px] text-slate-500 mt-0.5 leading-snug">{event.description}</div>
                                     <div className="text-[11px] font-medium text-slate-400 mt-1.5 uppercase tracking-wider">
-                                        {new Date(event.timestamp).toLocaleString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                                        {fmtTime(event.timestamp, tz)}
                                     </div>
                                 </div>
                             </div>

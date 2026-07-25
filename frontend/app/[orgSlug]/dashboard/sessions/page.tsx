@@ -8,34 +8,35 @@ import { api, ApiError } from "@/lib/api";
 import type { SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashBase } from "@/hooks/useDashBase";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { nowInTz, localTodayStr, fmtDate } from "@/lib/tzformat";
 
 // ─── Date helpers ────────────────────────────────────────────────
-function toLocalDateStr(): string {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+function toLocalDateStr(tz: string): string {
+    return localTodayStr(tz);
 }
 
-function isToday(dateStr: string): boolean {
-    return dateStr === toLocalDateStr();
+function isToday(dateStr: string, tz: string): boolean {
+    return dateStr === toLocalDateStr(tz);
 }
 
-function isYesterday(dateStr: string): boolean {
-    const y = new Date();
+function isYesterday(dateStr: string, tz: string): boolean {
+    const y = nowInTz(tz);
     y.setDate(y.getDate() - 1);
     const ys = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, "0")}-${String(y.getDate()).padStart(2, "0")}`;
     return dateStr === ys;
 }
 
-function isTomorrow(dateStr: string): boolean {
-    const t = new Date();
+function isTomorrow(dateStr: string, tz: string): boolean {
+    const t = nowInTz(tz);
     t.setDate(t.getDate() + 1);
     const ts = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
     return dateStr === ts;
 }
 
-function isThisWeek(dateStr: string): boolean {
+function isThisWeek(dateStr: string, tz: string): boolean {
     const d = new Date(dateStr + "T12:00:00");
-    const now = new Date();
+    const now = nowInTz(tz);
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
@@ -45,41 +46,41 @@ function isThisWeek(dateStr: string): boolean {
     return d >= startOfWeek && d <= endOfWeek;
 }
 
-function formatFullDate(dateStr: string): string {
+function formatFullDate(dateStr: string, tz: string): string {
+    return fmtDate(dateStr + "T12:00:00", tz);
+}
+
+function formatShortDate(dateStr: string, tz: string): string {
     const d = new Date(dateStr + "T12:00:00");
-    return d.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short", timeZone: tz });
 }
 
-function formatShortDate(dateStr: string): string {
+function getDayNumber(dateStr: string, tz: string): string {
     const d = new Date(dateStr + "T12:00:00");
-    return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" });
+    return d.toLocaleDateString("en-US", { day: "numeric", timeZone: tz });
 }
 
-function getDayNumber(dateStr: string): string {
-    return new Date(dateStr + "T12:00:00").getDate().toString();
-}
-
-function getMonthShort(dateStr: string): string {
-    return new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+function getMonthShort(dateStr: string, tz: string): string {
+    return new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", { month: "short", timeZone: tz }).toUpperCase();
 }
 
 type TimelineLabel = "Today" | "Tomorrow" | "Yesterday" | "This Week" | "Earlier";
 
-function getTimelineGroup(dateStr: string): TimelineLabel {
-    if (isToday(dateStr)) return "Today";
-    if (isTomorrow(dateStr)) return "Tomorrow";
-    if (isYesterday(dateStr)) return "Yesterday";
-    if (isThisWeek(dateStr)) return "This Week";
+function getTimelineGroup(dateStr: string, tz: string): TimelineLabel {
+    if (isToday(dateStr, tz)) return "Today";
+    if (isTomorrow(dateStr, tz)) return "Tomorrow";
+    if (isYesterday(dateStr, tz)) return "Yesterday";
+    if (isThisWeek(dateStr, tz)) return "This Week";
     return "Earlier";
 }
 
 interface GroupedSessions { label: TimelineLabel; sessions: SessionResponse[] }
 
-function groupByTimeline(sessions: SessionResponse[]): GroupedSessions[] {
+function groupByTimeline(sessions: SessionResponse[], tz: string): GroupedSessions[] {
     const order: TimelineLabel[] = ["Tomorrow", "Today", "Yesterday", "This Week", "Earlier"];
     const map = new Map<TimelineLabel, SessionResponse[]>();
     for (const s of sessions) {
-        const label = getTimelineGroup(s.session_date);
+        const label = getTimelineGroup(s.session_date, tz);
         if (!map.has(label)) map.set(label, []);
         map.get(label)!.push(s);
     }
@@ -88,6 +89,7 @@ function groupByTimeline(sessions: SessionResponse[]): GroupedSessions[] {
 
 // ─── Component ───────────────────────────────────────────────────
 export default function SessionsPage() {
+    const tz = useBranchTimezone();
     const { user, isReadOnly, isImpersonating } = useAuth();
     const dashBase = useDashBase();
     const router = useRouter();
@@ -110,7 +112,7 @@ export default function SessionsPage() {
 
     // Create modal
     const [showCreate, setShowCreate] = useState(false);
-    const [newDate, setNewDate] = useState(() => toLocalDateStr());
+    const [newDate, setNewDate] = useState(() => toLocalDateStr(tz));
     const [newTitle, setNewTitle] = useState("");
     const [createLoading, setCreateLoading] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
@@ -167,12 +169,12 @@ export default function SessionsPage() {
 
     useEffect(() => {
         if (showCreate) {
-            setNewDate(toLocalDateStr());
+            setNewDate(toLocalDateStr(tz));
             setNewTitle("");
             setCreateError(null);
             setTimeout(() => dateRef.current?.focus(), 100);
         }
-    }, [showCreate]);
+    }, [showCreate, tz]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -180,7 +182,7 @@ export default function SessionsPage() {
             setCreateError("Please select a session date.");
             return;
         }
-        if (newDate > toLocalDateStr()) {
+        if (newDate > toLocalDateStr(tz)) {
             setCreateError("Future dates are not allowed. Please select today or a past date.");
             return;
         }
@@ -190,7 +192,7 @@ export default function SessionsPage() {
             const created = await api.createSession({ session_date: newDate, title: newTitle.trim() || undefined });
             setShowCreate(false);
             
-            const titleText = newTitle.trim() ? `"${newTitle.trim()}"` : `for ${formatShortDate(newDate)}`;
+            const titleText = newTitle.trim() ? `"${newTitle.trim()}"` : `for ${formatShortDate(newDate, tz)}`;
             
             // Professional Success Toast matching "Queue Created" design
             toast.custom((t) => (
@@ -271,7 +273,7 @@ export default function SessionsPage() {
         );
     }, [sessions, selectedQueue]);
 
-    const grouped = useMemo(() => groupByTimeline(filteredSessions), [filteredSessions]);
+    const grouped = useMemo(() => groupByTimeline(filteredSessions, tz), [filteredSessions, tz]);
 
     return (
         <div>
@@ -308,7 +310,7 @@ export default function SessionsPage() {
                             <input
                                 type="date"
                                 value={filterDate}
-                                max={toLocalDateStr()}
+                                max={toLocalDateStr(tz)}
                                 onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
                                 className="bg-transparent border-none outline-none text-sm text-slate-700 dark:text-slate-200 font-medium w-full dark:scheme-dark"
                             />
@@ -385,7 +387,7 @@ export default function SessionsPage() {
                                     {/* ── Session cards ── */}
                                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                         {group.sessions.map((session) => {
-                                            const today = isToday(session.session_date);
+                                            const today = isToday(session.session_date, tz);
                                             const served = session.total_served ?? 0;
                                             return (
                                                 <Link
@@ -409,15 +411,15 @@ export default function SessionsPage() {
                                                     <div className="flex items-center gap-4 sm:gap-5 min-w-0 w-full sm:w-auto relative z-10">
                                                         {/* Date Badge */}
                                                         <div className="flex flex-col items-center justify-center bg-gradient-to-b from-indigo-500 to-indigo-700 rounded-lg w-[54px] h-[58px] shrink-0 shadow-sm shadow-indigo-500/30">
-                                                            <span className="text-[10px] font-semibold text-indigo-200 uppercase tracking-widest leading-none mt-1">{getMonthShort(session.session_date)}</span>
-                                                            <span className="text-[20px] font-bold text-white leading-none mt-1">{getDayNumber(session.session_date)}</span>
+                                                            <span className="text-[10px] font-semibold text-indigo-200 uppercase tracking-widest leading-none mt-1">{getMonthShort(session.session_date, tz)}</span>
+                                                            <span className="text-[20px] font-bold text-white leading-none mt-1">{getDayNumber(session.session_date, tz)}</span>
                                                         </div>
 
                                                         {/* Title + badge */}
                                                         <div className="flex flex-col gap-1 min-w-0">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-base font-semibold text-slate-900 dark:text-white capitalize truncate">
-                                                                    {session.title || (today ? "Today's Session" : formatShortDate(session.session_date))}
+                                                                    {session.title || (today ? "Today's Session" : formatShortDate(session.session_date, tz))}
                                                                 </span>
                                                                 {today && (
                                                                     <span className="relative flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50 font-bold px-2 py-0.5 rounded-md text-[10px] uppercase tracking-widest shrink-0">
@@ -523,7 +525,7 @@ export default function SessionsPage() {
                                     type="date"
                                     value={newDate}
                                     onChange={(e) => setNewDate(e.target.value)}
-                                    max={toLocalDateStr()}
+                                    max={toLocalDateStr(tz)}
                                     required
                                     className="w-full rounded-xl border border-slate-200 dark:border-white/10 px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all dark:scheme-dark"
                                 />

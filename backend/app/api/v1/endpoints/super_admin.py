@@ -524,14 +524,14 @@ async def get_tenant_analytics(
     db: AsyncSession = Depends(get_db),
 ) -> TenantAnalyticsResponse:
     """Return detailed per-branch analytics with token usage, wait/serve times, and activity metrics."""
-    from datetime import datetime, timezone as tz
-    from app.models.parent_organization import ParentOrganization
-    from sqlalchemy import text, case
+    from app.core.tz_helpers import get_org_timezone, safe_zoneinfo, tz_hour_clause
+    tz_name = await get_org_timezone(db, target_org_id)
+    tz_obj = safe_zoneinfo(tz_name)
 
     # Parse date range — include the full end_date day by advancing to next midnight
     try:
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=tz.utc)
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=tz.utc)
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=tz_obj)
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=tz_obj)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
 
@@ -617,7 +617,7 @@ async def get_tenant_analytics(
         # ── Peak Hour ────────────────────────────────────────────────
         peak_hour_result = await db.execute(
             select(
-                func.extract("hour", Token.created_at).label("hr"),
+                tz_hour_clause(Token.created_at, tz_name).label("hr"),
                 func.count(Token.id).label("cnt")
             )
             .where(token_base)

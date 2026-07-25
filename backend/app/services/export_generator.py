@@ -13,19 +13,28 @@ from app.models.token import Token
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from app.models.parent_organization import ParentOrganization
+from app.core.tz_helpers import safe_zoneinfo, to_org_local, to_org_local_date, to_org_local_time, get_org_timezone
 
 EXPORTS_DIR = "exports"
 os.makedirs(EXPORTS_DIR, exist_ok=True)
 
 async def _resolve_date_bounds(db: AsyncSession, job: ExportJob):
-    parent_org = await db.get(ParentOrganization, job.parent_org_id)
-    tz_name = parent_org.timezone if parent_org and parent_org.timezone else "UTC"
-    
+    branch_ids = job.filters.get("branch_ids", [])
+    tz_name = "Asia/Kolkata"
+    if branch_ids and len(branch_ids) == 1:
+        from app.core.tz_helpers import get_org_timezone
+        tz_name = await get_org_timezone(db, uuid.UUID(branch_ids[0]))
+    else:
+        parent_org = await db.get(ParentOrganization, job.parent_org_id)
+        if parent_org and parent_org.timezone:
+            tz_name = parent_org.timezone
+            
     try:
         from zoneinfo import ZoneInfo
         tz = ZoneInfo(tz_name)
     except Exception:
-        tz = timezone.utc
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo("Asia/Kolkata")
 
     now = datetime.now(tz)
     start_date = None
@@ -70,7 +79,7 @@ async def _get_org_ids(db: AsyncSession, parent_org_id: uuid.UUID, filters: dict
     
     res = await db.execute(stmt)
     orgs = res.scalars().all()
-    return [o.id for o in orgs], {o.id: o.name for o in orgs}, [o for o in orgs]
+    return [o.id for o in orgs], {o.id: o.name for o in orgs}, {o.id: (o.timezone or "Asia/Kolkata") for o in orgs}, [o for o in orgs]
 
 def _apply_date_filter(stmt, start_date, end_date, tz):
     if start_date:
@@ -173,7 +182,7 @@ def _format_time(seconds: float) -> str:
 
 async def _report_executive_summary(job: ExportJob, db: AsyncSession, file_path: str, format_type: str):
     start_date, end_date, tz = await _resolve_date_bounds(db, job)
-    org_ids, org_name_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
+    org_ids, org_name_map, org_tz_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
     
     if not org_ids:
         return [{"Message": "No branches found."}]
@@ -316,7 +325,7 @@ async def _report_executive_summary(job: ExportJob, db: AsyncSession, file_path:
 
 async def _report_branch_performance(job: ExportJob, db: AsyncSession, file_path: str, format_type: str):
     start_date, end_date, tz = await _resolve_date_bounds(db, job)
-    org_ids, org_name_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
+    org_ids, org_name_map, org_tz_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
     
     if not org_ids:
         return [{"Message": "No branches found."}]
@@ -436,7 +445,7 @@ async def _report_branch_performance(job: ExportJob, db: AsyncSession, file_path
 
 async def _report_staff_performance(job: ExportJob, db: AsyncSession, file_path: str, format_type: str):
     start_date, end_date, tz = await _resolve_date_bounds(db, job)
-    org_ids, org_name_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
+    org_ids, org_name_map, org_tz_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
     
     if not org_ids:
         return [{"Message": "No branches found."}]
@@ -493,7 +502,7 @@ async def _report_staff_performance(job: ExportJob, db: AsyncSession, file_path:
             "Branch": org_name_map.get(r.org_id, "Unknown"),
             "Role": r.role.capitalize(),
             "Status": online,
-            "Last Active": r.last_active_at.strftime("%Y-%m-%d %H:%M") if r.last_active_at else "Never",
+            "Last Active": to_org_local(r.last_active_at, org_tz_map.get(r.org_id, "Asia/Kolkata")) if r.last_active_at else "Never",
             "Customers Served": r.served,
             "Customers Completed": r.completed,
             "Service Completion %": f"{serve_rate}%",
@@ -534,7 +543,7 @@ async def _report_staff_performance(job: ExportJob, db: AsyncSession, file_path:
 
 async def _report_waiting_time_analysis(job: ExportJob, db: AsyncSession, file_path: str, format_type: str):
     start_date, end_date, tz = await _resolve_date_bounds(db, job)
-    org_ids, org_name_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
+    org_ids, org_name_map, org_tz_map, orgs = await _get_org_ids(db, job.parent_org_id, job.filters)
     
     if not org_ids:
         return [{"Message": "No branches found."}]
@@ -749,6 +758,7 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
     stmt = (
         select(
             Organization.name.label("branch_name"),
+            Organization.timezone.label("branch_timezone"),
             date_col.label("date"),
             Queue.name.label("queue_name"),
             Token.token_number,
@@ -799,32 +809,18 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         
     # 3. Date Range
     date_range = filters.get("date_range", "All Time")
-    now = datetime.now(timezone.utc)
-    today = now.date()
+    start_date, end_date, tz = await _resolve_date_bounds(db, job)
     
-    if date_range == "Today":
-        stmt = stmt.where(date_col == today)
-    elif date_range == "Yesterday":
-        stmt = stmt.where(date_col == today - timedelta(days=1))
-    elif date_range == "Last 7 Days":
-        stmt = stmt.where(date_col >= today - timedelta(days=7))
-    elif date_range == "Last 30 Days":
-        stmt = stmt.where(date_col >= today - timedelta(days=30))
-    elif date_range == "This Month":
-        start_of_month = today.replace(day=1)
-        stmt = stmt.where(date_col >= start_of_month)
-    elif date_range == "Last Month":
-        start_of_this_month = today.replace(day=1)
-        end_of_last_month = start_of_this_month - timedelta(days=1)
-        start_of_last_month = end_of_last_month.replace(day=1)
-        stmt = stmt.where(date_col.between(start_of_last_month, end_of_last_month))
-    elif date_range == "Custom Date Range":
-        c_start = filters.get("custom_start_date")
-        c_end = filters.get("custom_end_date")
-        if c_start:
-            stmt = stmt.where(date_col >= datetime.strptime(c_start, "%Y-%m-%d").date())
-        if c_end:
-            stmt = stmt.where(date_col <= datetime.strptime(c_end, "%Y-%m-%d").date())
+    if start_date and end_date and date_range != "All Time":
+        from sqlalchemy import or_, and_
+        start_dt = datetime.combine(start_date, datetime.min.time()).replace(tzinfo=tz)
+        end_dt = datetime.combine(end_date, datetime.max.time()).replace(tzinfo=tz)
+        stmt = stmt.where(
+            or_(
+                and_(Token.created_at >= start_dt, Token.created_at <= end_dt),
+                Session.session_date.between(start_date, end_date)
+            )
+        )
 
     # Order by hierarchy
     stmt = stmt.order_by(
@@ -849,6 +845,7 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
 
     for r in records:
         branch = r.branch_name
+        branch_tz = r.branch_timezone or "Asia/Kolkata"
         q_name = r.queue_name
         unique_branches.add(branch)
         unique_queues.add(f"{branch}-{q_name}")
@@ -886,12 +883,9 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         elif r.completed_email:
             completed_by_name = r.completed_email.split('@')[0]
 
-
-        # Pax Count
         pax_count_raw = getattr(r, 'pax_count', 1)
         pax_count_str = str(pax_count_raw)
 
-        # Entry Type
         if r.entry_type == "manual":
             entry_type_label = "Manual"
         elif r.entry_type == "qr":
@@ -901,7 +895,6 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         else:
             entry_type_label = r.entry_type or ""
 
-        # Format Removed By
         removed_by_label = ""
         if r.removed_by == "customer":
             removed_by_label = "Customer"
@@ -910,36 +903,42 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         elif r.removed_by:
             removed_by_label = "Staff"
 
+        # Format local date and timestamps in branch local timezone
+        local_date = str(r.date) if r.date else (to_org_local_date(r.created_at, branch_tz) if r.created_at else "")
+        created_time = to_org_local_time(r.created_at, branch_tz)
+        served_time = to_org_local_time(r.served_at, branch_tz)
+        completed_time = to_org_local_time(r.completed_at, branch_tz)
+        skipped_time = to_org_local_time(r.skipped_at, branch_tz)
+        recalled_time = to_org_local_time(r.recalled_at, branch_tz)
+        removed_time = to_org_local_time(r.deleted_at, branch_tz)
+
+        status_str = r.status.value if hasattr(r.status, 'value') else str(r.status)
+
         formatted_data.append({
             "Branch Name": branch,
-            "Date": r.date.strftime("%Y-%m-%d") if r.date else "",
+            "Date": local_date,
             "Queue Name": q_name,
             "Token Number": r.token_number,
             "Service Line": r.assigned_line if r.assigned_line is not None else "",
             "Customer Name": r.customer_name or "",
             "Customer Phone": r.customer_phone or "",
             "Pax": pax_count_str,
-            "Status": r.status.title(),
-            "Created At": r.created_at.strftime("%H:%M:%S") if r.created_at else "",
-            "Served At": r.served_at.strftime("%H:%M:%S") if r.served_at else "",
-            "Completed At": r.completed_at.strftime("%H:%M:%S") if r.completed_at else "",
-            "Skipped At": r.skipped_at.strftime("%H:%M:%S") if r.skipped_at else "",
-            "Recalled At": r.recalled_at.strftime("%H:%M:%S") if r.recalled_at else "",
-            "Removed At": r.deleted_at.strftime("%H:%M:%S") if r.deleted_at else "",
+            "Status": status_str.title(),
+            "Created At": created_time,
+            "Served At": served_time,
+            "Completed At": completed_time,
+            "Skipped At": skipped_time,
+            "Recalled At": recalled_time,
+            "Removed At": removed_time,
             "Wait Time (mins)": wait_mins,
             "Serve Time (mins)": serve_mins,
             "Served By": staff_name,
             "Completed By": completed_by_name,
             "Removed By": removed_by_label,
-            "Call Method": "Skipped" if r.status == "skipped" else "Normal",
-            "Entry Type": entry_type_label
+            "Call Method": "Skipped" if status_str == "skipped" else "Normal",
+            "Entry Type": entry_type_label,
+            "Timezone": branch_tz,
         })
-
-    # Add Called At back as empty
-    for row in formatted_data:
-        # insert Called At after Created At
-        # Since dictionaries are ordered in Python 3.7+, we'll rebuild the dict to ensure column order
-        pass
 
     # Rebuild data with exact columns in the required order
     final_data = []
@@ -967,7 +966,8 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             "Completed By": r.get("Completed By", ""),
             "Removed By": r.get("Removed By", ""),
             "Call Method": r.get("Call Method", ""),
-            "Entry Type": r.get("Entry Type", "")
+            "Entry Type": r.get("Entry Type", ""),
+            "Timezone": r.get("Timezone", "")
         })
 
     df = pd.DataFrame(final_data)

@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtDateTime } from "@/lib/tzformat";
 import {
     CallLogItem,
     CallLogsOverviewResponse,
@@ -31,6 +33,7 @@ interface Props {
 }
 
 export function CallLogsSection({ queueId, isDark = false }: Props) {
+    const tz = useBranchTimezone();
     const [subTab, setSubTab] = useState<"overview" | "history">("overview");
 
     // Overview State
@@ -338,12 +341,7 @@ export function CallLogsSection({ queueId, isDark = false }: Props) {
                                         history.items.map((item) => (
                                             <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                                                 <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap">
-                                                    {new Date(item.created_at).toLocaleString("en-US", {
-                                                        month: "short",
-                                                        day: "numeric",
-                                                        hour: "2-digit",
-                                                        minute: "2-digit",
-                                                    })}
+                                                    {fmtDateTime(item.created_at, tz)}
                                                 </td>
                                                 <td className="py-3.5 px-4 font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                                                     {item.called_by_name || "Staff Member"}

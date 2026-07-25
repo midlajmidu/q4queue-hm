@@ -11,6 +11,8 @@ import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays, Calenda
 import { toast } from "sonner";
 import { Bookmark } from "lucide-react";
 import type { QueueTemplate } from "@/types/api";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { nowInTz, localTodayStr, fmtDate } from "@/lib/tzformat";
 
 interface PageProps {
     params: Promise<{ sessionId: string }>;
@@ -26,13 +28,8 @@ function formatWeekday(dateStr: string): string {
     return d.toLocaleDateString("en-US", { weekday: "long" });
 }
 
-function isToday(dateStr: string): boolean {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${yyyy}-${mm}-${dd}`;
-    return dateStr === todayStr;
+function isToday(dateStr: string, tz: string): boolean {
+    return dateStr === localTodayStr(tz);
 }
 
 function shiftDate(dateStr: string, days: number): string {
@@ -53,6 +50,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
     const isStaff = user?.role === "staff";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
     const canManageQueues = !isGlobalOrOrgAdmin && !isReadOnly;
+    const tz = useBranchTimezone();
 
 
     const [session, setSession] = useState<SessionResponse | null>(null);
@@ -333,7 +331,7 @@ export default function SessionQueuesPage({ params }: PageProps) {
                                 >
                                     <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                                     {session ? formatMonthDayYear(session.session_date) : "Session Queues"}
-                                    {session && isToday(session.session_date) && (
+                                    {session && isToday(session.session_date, tz) && (
                                         <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/40 px-2 py-0.5 rounded-md hidden sm:inline-block">Today</span>
                                     )}
                                 </button>

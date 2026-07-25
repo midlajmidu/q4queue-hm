@@ -10,6 +10,8 @@ import type { SystemAnnouncementDetail } from "@/types/api";
 import { createPortal } from "react-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Bell, ChevronRight, Search, Menu, ArrowRight } from "lucide-react";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { tzAbbr } from "@/lib/timezones";
 
 // Map to Icons object for convenience
 const Icons = { Bell, ChevronRight, Search, Menu, ArrowRight };
@@ -259,6 +261,7 @@ function NotificationSystem() {
 
 function LiveClock() {
     const [time, setTime] = useState<Date | null>(null);
+    const tz = useBranchTimezone();
 
     useEffect(() => {
         setTime(new Date());
@@ -268,8 +271,9 @@ function LiveClock() {
 
     if (!time) return <div className="hidden md:block w-[150px] h-[32px] animate-pulse bg-slate-100 dark:bg-slate-800/50 rounded-lg" />;
 
-    const timeStr = time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    const dateStr = time.toLocaleDateString([], { month: 'short', day: 'numeric', weekday: 'short' });
+    const timeStr = time.toLocaleTimeString("en-US", { hour: 'numeric', minute: '2-digit', timeZone: tz });
+    const dateStr = time.toLocaleDateString("en-US", { month: 'short', day: 'numeric', weekday: 'short', timeZone: tz });
+    const abbr = tzAbbr(tz);
 
     return (
         <div className="hidden md:flex items-center h-8 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors select-none cursor-default group">
@@ -281,7 +285,7 @@ function LiveClock() {
                 </div>
                 
                 <div className="flex items-center gap-1.5 tracking-tight">
-                    <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">{timeStr}</span>
+                    <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">{timeStr} <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold ml-0.5">{abbr}</span></span>
                     <span className="text-[13px] font-medium text-slate-300 dark:text-slate-600">/</span>
                     <span className="text-[13px] font-medium text-slate-500 dark:text-slate-400">{dateStr}</span>
                 </div>

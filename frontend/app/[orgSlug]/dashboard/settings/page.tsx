@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { OrganizationSettingsResponse, User } from "@/types/api";
-import { Lock, CheckCircle, AlertCircle, Eye, EyeOff, Building2, Shield, Zap } from "lucide-react";
+import { Lock, CheckCircle, AlertCircle, Eye, EyeOff, Building2, Shield, Zap, Globe } from "lucide-react";
 import { PageWrapper } from "@/components/PageWrapper";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useRef } from "react";
 import { setToken } from "@/lib/auth";
 import { OperationsTab } from "@/components/settings/OperationsTab";
+import { TIMEZONES } from "@/lib/timezones";
 
 const C = {
     // bg
@@ -185,6 +186,7 @@ export default function SettingsPage() {
     const [lastName, setLastName] = useState("");
     const [address, setAddress] = useState("");
     const [phone, setPhone] = useState("");
+    const [timezone, setTimezone] = useState("Asia/Kolkata");
 
     const [infoSuccess, setInfoSuccess] = useState<string | null>(null);
     const [showSuccessModal, setShowSuccessModal] = useState<string | null>(null);
@@ -260,10 +262,11 @@ export default function SettingsPage() {
                     api.getMyProfile()
                 ]);
                 setSettings(data);
-                setMyProfile(profile);
+                setSettings(data);
                 setName(data.name);
                 setAddress(data.address || "");
                 setPhone(data.phone_number || "");
+                setTimezone(data.timezone || "Asia/Kolkata");
 
                 setFirstName(profile.first_name || "");
                 setLastName(profile.last_name || "");
@@ -280,7 +283,8 @@ export default function SettingsPage() {
         isAdmin ? (
             name !== settings.name ||
             address !== (settings.address || "") ||
-            phone !== (settings.phone_number || "")
+            phone !== (settings.phone_number || "") ||
+            timezone !== (settings.timezone || "Asia/Kolkata")
         ) : (
             firstName !== (myProfile?.first_name || "") ||
             lastName !== (myProfile?.last_name || "")
@@ -306,6 +310,7 @@ export default function SettingsPage() {
             setName(settings.name);
             setAddress(settings.address || "");
             setPhone(settings.phone_number || "");
+            setTimezone(settings.timezone || "Asia/Kolkata");
             if (myProfile) {
                 setFirstName(myProfile.first_name || "");
                 setLastName(myProfile.last_name || "");
@@ -351,6 +356,7 @@ export default function SettingsPage() {
                     name,
                     address: address || undefined,
                     phone_number: phone || undefined,
+                    timezone: timezone || undefined,
                 });
                 if ((data as any).access_token) setToken((data as any).access_token);
                 
@@ -575,6 +581,27 @@ export default function SettingsPage() {
                                                     <div>
                                                         <label className="lbl">Contact Phone</label>
                                                         <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="premium-input" placeholder="(555) 123-4567" />
+                                                    </div>
+
+                                                    {/* Timezone */}
+                                                    <div style={{ gridColumn: '1 / -1' }}>
+                                                        <label className="lbl" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                            <Globe size={11} color={C.textMuted} />
+                                                            Branch Timezone
+                                                        </label>
+                                                        <select
+                                                            value={timezone}
+                                                            onChange={(e) => setTimezone(e.target.value)}
+                                                            className="ov-sel"
+                                                            style={{ width: '100%', minWidth: 0 }}
+                                                        >
+                                                            {TIMEZONES.map(tz => (
+                                                                <option key={tz.value} value={tz.value}>{tz.label}</option>
+                                                            ))}
+                                                        </select>
+                                                        <p style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>
+                                                            All reports, timestamps, and counters for this branch will use this timezone.
+                                                        </p>
                                                     </div>
 
                                                     <div>

@@ -7,6 +7,8 @@ import type { AnalyticsOverview, SessionResponse, QueueResponse } from "@/types/
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useAlert } from "@/context/AlertContext";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtTime, fmtDateTime } from "@/lib/tzformat";
 import { useNotifications } from "@/context/NotificationContext";
 
 // ─── Helpers ─────────────────────────────────────────────────────
@@ -694,6 +696,7 @@ const STYLES = `
 
 // ════════════════════════════════════════════════════════════════
 export default function OverviewPage() {
+  const tz = useBranchTimezone();
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
   const [prevOverview, setPrevOverview] = useState<AnalyticsOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -758,9 +761,9 @@ export default function OverviewPage() {
         item.status,
         item.customer_name || "-",
         item.customer_phone || "-",
-        item.created_at ? new Date(item.created_at).toLocaleString() : "-",
-        item.served_at ? new Date(item.served_at).toLocaleString() : "-",
-        item.completed_at ? new Date(item.completed_at).toLocaleString() : "-"
+        item.created_at ? fmtDateTime(item.created_at, tz) : "-",
+        item.served_at ? fmtDateTime(item.served_at, tz) : "-",
+        item.completed_at ? fmtDateTime(item.completed_at, tz) : "-"
       ]);
 
       const csvContent = [
@@ -1490,7 +1493,7 @@ export default function OverviewPage() {
                             </td>
                             <td className="py-4 px-5 text-right">
                               <span className="mono tnum text-[12px] font-medium text-slate-500">
-                                {act.time ? new Date(act.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : "Just now"}
+                                {act.time ? fmtTime(act.time, tz) : "Just now"}
                               </span>
                             </td>
                           </tr>
@@ -1615,7 +1618,7 @@ export default function OverviewPage() {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: C.text, lineHeight: 1.4 }}>{step.lbl}</div>
                       <div className="tabular-nums" style={{ fontSize: 12, color: C.textMuted, marginTop: 5, fontWeight: 500 }}>
-                        {step.time ? new Date(step.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}
+                        {step.time ? fmtTime(step.time, tz) : "—"}
                       </div>
                     </div>
                   </div>
