@@ -1558,3 +1558,16 @@ export const getDistinctQueues = async (branchId: string, token: string) => {
     if (!response.ok) throw new Error('Failed to fetch distinct queues');
     return response.json();
 };
+
+export const getSystemTime = async (): Promise<{ server_time: number }> => {
+    const response = await fetch(`${config.apiBaseUrl}/system/time`);
+    if (!response.ok) throw new Error('Failed to fetch system time');
+    return response.json();
+};
+
+export const getQueueQrConfig = async (queueId: string): Promise<{ qr_secret_seed: string; interval: number }> => {
+    const response = await fetch(`${config.apiBaseUrl}/queues/${queueId}/qr-config`);
+    if (!response.ok) throw new Error('Failed to fetch QR config');
+    return response.json();
+};
+

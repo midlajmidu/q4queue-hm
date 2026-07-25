@@ -91,9 +91,11 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      - ./backend/app:/app/app
       # In Ubuntu 24.04 production, swap this to: /var/q4queue_backups:/app/backups
       - ./local_backups:/app/backups
       - uploads_data:/app/uploads
+
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
       interval: 15s

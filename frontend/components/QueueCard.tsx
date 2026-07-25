@@ -121,7 +121,7 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
         <div className={`bg-white dark:bg-slate-900 rounded-xl border ${isActive ? 'border-slate-200/80 dark:border-white/10' : 'border-slate-200/60 dark:border-white/10 opacity-75'} p-5 shadow-sm relative overflow-hidden flex flex-col justify-between group transition-all`}>
             {/* Slanted Ticket Watermark */}
             {isActive ? (
-                <Ticket className="absolute -bottom-10 -right-6 w-56 h-56 text-slate-900 dark:text-white opacity-[0.06] dark:opacity-[0.04] -rotate-45 pointer-events-none select-none z-0 transition-all duration-500 group-hover:scale-110 group-hover:-rotate-[40deg]" />
+                <Ticket className="absolute -bottom-10 -right-6 w-56 h-56 text-slate-900 dark:text-white opacity-[0.06] dark:opacity-[0.04] -rotate-45 pointer-events-none select-none z-0 transition-all duration-500 group-hover:scale-110 group-hover:-rotate-45" />
             ) : (
                 <svg
                     viewBox="0 0 24 24"
@@ -130,7 +130,7 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="absolute -bottom-10 -right-6 w-56 h-56 text-slate-900 dark:text-white opacity-[0.08] dark:opacity-[0.04] -rotate-45 pointer-events-none select-none z-0 transition-all duration-500 group-hover:scale-110 group-hover:-rotate-[40deg]"
+                    className="absolute -bottom-10 -right-6 w-56 h-56 text-slate-900 dark:text-white opacity-[0.08] dark:opacity-[0.04] -rotate-45 pointer-events-none select-none z-0 transition-all duration-500 group-hover:scale-110 group-hover:-rotate-45"
                 >
                     {/* Left piece (clean lightning bolt tear) */}
                     <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h6 L12 14 L8 9 L12 5 H4a2 2 0 0 0-2 2Z" />
