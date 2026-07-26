@@ -1,12 +1,13 @@
 "use client";
 
-import { ReactNode, useState, useCallback } from "react";
+import { ReactNode, useState, useCallback, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Sidebar from "@/components/UserSidebar";
 import { TopBar } from "@/components/TopBar";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { usePathname, useParams } from "next/navigation";
+import { api } from "@/lib/api";
 
 import { AlertBannerContainer } from "@/components/AlertBannerContainer";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -16,6 +17,7 @@ import { AdminViewBanner } from "@/components/AdminViewBanner";
 import SystemBanner from "@/components/SystemBanner";
 import { OrganizationAnnouncementsBanner } from "@/components/OrganizationAnnouncementsBanner";
 import { useHeartbeat } from "@/hooks/useHeartbeat";
+import { BranchTimezoneContext } from "@/context/BranchTimezoneContext";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
     useHeartbeat();
@@ -27,6 +29,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const orgSlug = params?.orgSlug || user?.org_slug;
     const dashBase = orgSlug ? `/${orgSlug}/dashboard` : "/dashboard";
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [branchTimezone, setBranchTimezone] = useState("Asia/Kolkata");
+
+    // Fetch branch timezone once on mount
+    useEffect(() => {
+        api.getOrganizationSettings()
+            .then(s => { if (s?.timezone) setBranchTimezone(s.timezone); })
+            .catch(() => { /* keep default */ });
+    }, []);
 
     const handleCloseSidebar = useCallback(() => {
         setIsMobileMenuOpen(false);
@@ -43,6 +53,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return (
         <ProtectedRoute>
             <NotificationProvider>
+                <BranchTimezoneContext.Provider value={branchTimezone}>
                 <div className="flex h-screen overflow-hidden bg-slate-50/60 dark:bg-slate-950">
                     {/* Main sidebar – shown on all pages except the queue detail page */}
                 {!isManageQueuePage && (
@@ -116,6 +127,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 }}
                 onCancel={() => setIsLogoutModalOpen(false)}
             />
+            </BranchTimezoneContext.Provider>
             </NotificationProvider>
         </ProtectedRoute>
     );

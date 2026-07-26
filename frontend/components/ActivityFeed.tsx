@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtTime, fmtDateTime, nowInTz } from "@/lib/tzformat";
 import { AuditLogDetail } from "@/types/api";
 
 export default function ActivityFeed() {
@@ -82,12 +84,13 @@ export default function ActivityFeed() {
         );
     };
 
+    const tz = useBranchTimezone();
     const formatTime = (isoString: string) => {
         const date = new Date(isoString);
-        const today = new Date();
+        const today = nowInTz(tz);
         const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
-        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        return isToday ? timeStr : `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${timeStr}`;
+        const timeStr = fmtTime(isoString, tz);
+        return isToday ? timeStr : fmtDateTime(isoString, tz);
     };
 
     return (

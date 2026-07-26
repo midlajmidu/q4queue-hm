@@ -795,6 +795,7 @@ export interface OrganizationSettingsResponse {
     queue_templates: QueueTemplate[];
     auto_session_enabled: boolean;
     auto_session_time: string | null;
+    timezone: string;
     parent_org?: ParentOrgSummary | null;
 }
 
@@ -805,6 +806,7 @@ export interface OrganizationSettingsUpdate {
     queue_templates?: QueueTemplate[];
     auto_session_enabled?: boolean;
     auto_session_time?: string | null;
+    timezone?: string;
 }
 
 export interface QueueTemplate {

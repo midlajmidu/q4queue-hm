@@ -333,7 +333,9 @@ async def list_branches_overview(
     
     result = []
     for b in branches:
-        today = datetime.now(timezone.utc).date()
+        from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
+        b_tz = await get_org_timezone(db, b.id)
+        today = local_today(b_tz)
         s_res = await db.execute(select(func.count(Session.id)).where(Session.org_id == b.id, Session.session_date == today))
         active_s = s_res.scalar() or 0
         q_res = await db.execute(select(func.count(Queue.id)).where(Queue.org_id == b.id, Queue.is_active == True))
@@ -341,7 +343,7 @@ async def list_branches_overview(
 
         b_tokens_res = await db.execute(
             select(Token.status, func.count(Token.id))
-            .where(Token.org_id == b.id, func.date(Token.created_at) == today)
+            .where(Token.org_id == b.id, tz_date_clause(Token.created_at, b_tz) == today)
             .group_by(Token.status)
         )
         b_t = dict(b_tokens_res.all())
@@ -712,12 +714,16 @@ async def monitor_queues(
     if not queues_data:
         return []
         
-    today = datetime.now(timezone.utc).date()
+    from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
+    # Look up org timezone for the first queue's branch or fallback
+    first_q, first_org, _ = queues_data[0]
+    b_tz = await get_org_timezone(db, first_org.id)
+    today = local_today(b_tz)
     queue_ids = [q.id for q, _, _ in queues_data]
     
     tokens_res = await db.execute(
         select(Token.queue_id, Token.status, func.count(Token.id))
-        .where(Token.queue_id.in_(queue_ids), func.date(Token.created_at) == today)
+        .where(Token.queue_id.in_(queue_ids), tz_date_clause(Token.created_at, b_tz) == today)
         .group_by(Token.queue_id, Token.status)
     )
     
@@ -738,7 +744,7 @@ async def monitor_queues(
             func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec')
         ).where(
             Token.queue_id.in_(queue_ids),
-            func.date(Token.created_at) == today,
+            tz_date_clause(Token.created_at, b_tz) == today,
             Token.status == TokenStatus.done,
             Token.served_at.isnot(None),
         ).group_by(Token.queue_id)

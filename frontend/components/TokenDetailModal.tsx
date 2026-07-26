@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtTime, fmtDateTime } from "@/lib/tzformat";
 
 export interface TokenDetailData {
     id?: string;
@@ -33,18 +35,6 @@ interface TokenDetailModalProps {
     onRecall?: () => void;
 }
 
-function fmt(iso: string | null | undefined): string {
-    if (!iso) return "—";
-    return new Date(iso).toLocaleString([], {
-        month: "short", day: "numeric", year: "numeric",
-        hour: "2-digit", minute: "2-digit",
-    });
-}
-
-function fmtTime(iso: string | null | undefined): string {
-    if (!iso) return "—";
-    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
 
 function calcWaitingTime(created?: string | null, served?: string | null, status?: string): string {
     if (!served) {
@@ -98,11 +88,11 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
 
     if (!fullToken) return null;
 
+    const tz = useBranchTimezone();
     const statusInfo = STATUS_STYLES[fullToken.status] ?? { badge: "bg-gray-100 text-gray-500", label: fullToken.status };
     const entryType = fullToken.entry_type ?? "manual";
     const waitingTime = calcWaitingTime(fullToken.created_at, fullToken.served_at, fullToken.status);
     const serviceTime = calcServiceTime(fullToken.served_at, fullToken.completed_at);
-    
 
     // Close on backdrop click
     const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -179,13 +169,13 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         {fullToken.called_via_invite !== undefined && (
                             <DetailItem label="Call Method" value={fullToken.called_via_invite ? "Invited by No." : "Call Next"} highlight={fullToken.called_via_invite ? "amber" : undefined} />
                         )}
-                        <DetailItem label="Created" value={fmtTime(fullToken.created_at)} />
-                        <DetailItem label="Called" value={fmtTime(fullToken.served_at)} />
+                        <DetailItem label="Created" value={fmtTime(fullToken.created_at, tz)} />
+                        <DetailItem label="Called" value={fmtTime(fullToken.served_at, tz)} />
                         {fullToken.completed_at && (
-                            <DetailItem label="Completed" value={fmtTime(fullToken.completed_at)} />
+                            <DetailItem label="Completed" value={fmtTime(fullToken.completed_at, tz)} />
                         )}
                         {fullToken.deleted_at && (
-                            <DetailItem label="Removed" value={fmtTime(fullToken.deleted_at)} highlight="amber" />
+                            <DetailItem label="Removed" value={fmtTime(fullToken.deleted_at, tz)} highlight="amber" />
                         )}
                         {fullToken.status === "deleted" && fullToken.removed_by && (
                             <DetailItem 
@@ -221,36 +211,36 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                             <div className="space-y-1.5 text-xs text-gray-500 dark:text-slate-400">
                                 <div className="flex justify-between">
                                     <span className="text-gray-400 dark:text-slate-400">Registered</span>
-                                    <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.created_at)}</span>
+                                    <span className="font-medium text-gray-700 dark:text-slate-200">{fmtDateTime(fullToken.created_at, tz)}</span>
                                 </div>
                                 {fullToken.served_at && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-400 dark:text-slate-400">Called</span>
-                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.served_at)}</span>
+                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmtDateTime(fullToken.served_at, tz)}</span>
                                     </div>
                                 )}
                                 {fullToken.skipped_at && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-400 dark:text-slate-400">Last Skipped</span>
-                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.skipped_at)}</span>
+                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmtDateTime(fullToken.skipped_at, tz)}</span>
                                     </div>
                                 )}
                                 {fullToken.recalled_at && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-400 dark:text-slate-400">Last Recalled</span>
-                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.recalled_at)}</span>
+                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmtDateTime(fullToken.recalled_at, tz)}</span>
                                     </div>
                                 )}
                                 {fullToken.completed_at && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-400 dark:text-slate-400">Completed</span>
-                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.completed_at)}</span>
+                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmtDateTime(fullToken.completed_at, tz)}</span>
                                     </div>
                                 )}
                                 {fullToken.deleted_at && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-400 dark:text-slate-400">Removed</span>
-                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmt(fullToken.deleted_at)}</span>
+                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmtDateTime(fullToken.deleted_at, tz)}</span>
                                     </div>
                                 )}
                             </div>

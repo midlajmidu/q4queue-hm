@@ -46,6 +46,7 @@ class OrganizationSettingsResponse(BaseModel):
     queue_templates: list[dict] = []
     auto_session_enabled: bool = False
     auto_session_time: Optional[str] = None
+    timezone: str = "Asia/Kolkata"
     access_token: Optional[str] = None
     parent_org: Optional[ParentOrgSummary] = None
 
@@ -58,6 +59,7 @@ class OrganizationSettingsUpdate(BaseModel):
     queue_templates: Optional[list[dict]] = None
     auto_session_enabled: Optional[bool] = None
     auto_session_time: Optional[str] = None
+    timezone: Optional[str] = Field(None, max_length=64)
 
 class ChangePasswordRequest(BaseModel):
     otp: str = Field(..., min_length=6, max_length=6)
@@ -141,6 +143,7 @@ async def get_organization_settings(
         queue_templates=org.queue_templates if org.queue_templates is not None else [],
         auto_session_enabled=org.auto_session_enabled,
         auto_session_time=org.auto_session_time,
+        timezone=org.timezone or "Asia/Kolkata",
         parent_org=parent_org_summary,
     )
 
@@ -166,6 +169,15 @@ async def update_organization_settings(
     org.name = data.name
     org.address = data.address
     org.phone_number = data.phone_number
+    if data.timezone is not None:
+        # Validate timezone string
+        try:
+            from zoneinfo import ZoneInfo
+            ZoneInfo(data.timezone)  # raises if invalid
+            org.timezone = data.timezone
+        except Exception:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail=f"Invalid timezone: {data.timezone}")
 
     old_active_templates = {t["id"] for t in (org.queue_templates or []) if t.get("isActive") is True}
 
@@ -257,6 +269,7 @@ async def update_organization_settings(
         queue_templates=org.queue_templates if org.queue_templates is not None else [],
         auto_session_enabled=org.auto_session_enabled,
         auto_session_time=org.auto_session_time,
+        timezone=org.timezone or "Asia/Kolkata",
         access_token=token,
     )
 

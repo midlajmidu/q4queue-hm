@@ -8,26 +8,21 @@ import { useParams } from "next/navigation";
 import { StandardPageHeader } from "@/components/StandardPageHeader";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtTime, fmtDateTime, fmtDate, localTodayStr, nowInTz } from "@/lib/tzformat";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function formatDate(dateStr: string): string {
-    return new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", {
-        weekday: "short", month: "short", day: "numeric", year: "numeric"
-    });
+function formatDate(dateStr: string, tz: string): string {
+    return fmtDate(dateStr + "T12:00:00", tz);
 }
 
-function formatTime(isoStr: string | null | undefined): string {
-    if (!isoStr) return "—";
-    return new Date(isoStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function formatTime(isoStr: string | null | undefined, tz: string): string {
+    return fmtTime(isoStr, tz);
 }
 
-function formatFullTime(isoStr: string | null | undefined): string {
-    if (!isoStr) return "—";
-    return new Date(isoStr).toLocaleString([], {
-        month: "short", day: "numeric",
-        hour: "2-digit", minute: "2-digit", second: "2-digit"
-    });
+function formatFullTime(isoStr: string | null | undefined, tz: string): string {
+    return fmtDateTime(isoStr, tz);
 }
 
 function getLocalDateStr(d: Date): string {
@@ -195,9 +190,9 @@ export default function HistoryPage() {
     const params = useParams();
     const orgSlug = params?.orgSlug as string;
 
-    const now = new Date();
-    const today = getLocalDateStr(now);
-    const last7 = getLocalDateStr(new Date(now.getTime() - 6 * 86400000));
+    const tz = useBranchTimezone();
+    const today = localTodayStr(tz);
+    const last7 = getLocalDateStr(new Date(nowInTz(tz).getTime() - 6 * 86400000));
 
     const [sessions, setSessions] = useState<SessionResponse[]>([]);
     const [queues, setQueues] = useState<QueueResponse[]>([]);
@@ -380,7 +375,7 @@ export default function HistoryPage() {
                                 <div style={{ position: "relative" }}>
                                     <select value={selectedSessionId} onChange={e => { setSelectedSessionId(e.target.value); setOffset(0); }} style={selectStyle}>
                                         <option value="">All Sessions</option>
-                                        {sessions.map(s => <option key={s.id} value={s.id}>{formatDate(s.session_date)}</option>)}
+                                        {sessions.map(s => <option key={s.id} value={s.id}>{formatDate(s.session_date, tz)}</option>)}
                                     </select>
                                     <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--q-text-muted)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><polyline points="6 9 12 15 18 9" /></svg>
                                 </div>
@@ -583,17 +578,17 @@ export default function HistoryPage() {
                                                 </td>
                                                 {/* Status */}
                                                 <td style={tdStyle}><StatusBadge status={h.status} /></td>
-                                                {/* Issued */}
+                                                 {/* Issued */}
                                                 <td className="tabular-nums" style={{ ...tdStyle, color: "var(--q-text-muted)", fontSize: 12, whiteSpace: "nowrap" }}>
-                                                    {formatFullTime(h.created_at)}
+                                                    {formatFullTime(h.created_at, tz)}
                                                 </td>
                                                 {/* Called */}
                                                 <td className="tabular-nums" style={{ ...tdStyle, color: "var(--q-text-muted)", fontSize: 12, whiteSpace: "nowrap" }}>
                                                     {h.skipped_at && !h.served_at ? (
-                                                        <span title={`Skipped at ${formatFullTime(h.skipped_at)}`} className="text-purple-600 dark:text-purple-400">Skipped {formatTime(h.skipped_at)}</span>
+                                                        <span title={`Skipped at ${formatFullTime(h.skipped_at, tz)}`} className="text-purple-600 dark:text-purple-400">Skipped {formatTime(h.skipped_at, tz)}</span>
                                                     ) : h.recalled_at ? (
-                                                        <span title={`Recalled at ${formatFullTime(h.recalled_at)}`}>{formatTime(h.served_at)} <span className="text-sky-500 dark:text-sky-400 text-[10px] font-semibold">(recalled)</span></span>
-                                                    ) : formatTime(h.served_at)}
+                                                        <span title={`Recalled at ${formatFullTime(h.recalled_at, tz)}`}>{formatTime(h.served_at, tz)} <span className="text-sky-500 dark:text-sky-400 text-[10px] font-semibold">(recalled)</span></span>
+                                                    ) : formatTime(h.served_at, tz)}
                                                 </td>
                                                 {/* Wait Time */}
                                                 <td style={tdStyle}><WaitTimeBadge seconds={waitSec} /></td>

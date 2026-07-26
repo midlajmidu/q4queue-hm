@@ -3,11 +3,14 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
-import { QueueResponse } from "@/types/api";
+import type { QueueResponse } from "@/types/api";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtDate, fmtTime } from "@/lib/tzformat";
 import { toast } from "sonner";
 
 export default function TrashPage() {
-    const { user, isImpersonating } = useAuth();
+    const tz = useBranchTimezone();
+    const { user, isReadOnly, isImpersonating } = useAuth();
     const canRestore = user?.role === "super_admin" || user?.role === "organization_admin" || isImpersonating;
 
     const [queues, setQueues] = useState<QueueResponse[]>([]);
@@ -65,14 +68,12 @@ export default function TrashPage() {
 
     const groupedQueues = useMemo(() => {
         return filteredQueues.reduce((acc, queue) => {
-            const date = new Date(queue.created_at).toLocaleDateString("en-US", {
-                weekday: "long", year: "numeric", month: "long", day: "numeric",
-            });
+            const date = fmtDate(queue.created_at, tz);
             if (!acc[date]) acc[date] = [];
             acc[date].push(queue);
             return acc;
         }, {} as Record<string, QueueResponse[]>);
-    }, [filteredQueues]);
+    }, [filteredQueues, tz]);
 
     const hasActiveFilters = filterDate || filterName;
 
@@ -219,7 +220,7 @@ export default function TrashPage() {
                                         <td className="py-4 px-5">
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="text-[13px] font-semibold text-slate-900 dark:text-white">
-                                                    {queue.session_date ? new Date(queue.session_date + "T00:00:00").toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "No Date"}
+                                                    {queue.session_date ? fmtDate(queue.session_date + "T00:00:00", tz) : "No Date"}
                                                 </span>
                                                 <span className="text-[11px] font-medium text-slate-500">
                                                     {queue.session_title || "Unnamed Session"}
@@ -229,10 +230,10 @@ export default function TrashPage() {
                                         <td className="py-4 px-5">
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="text-[13px] font-semibold text-slate-900 dark:text-white">
-                                                    {new Date(queue.created_at).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                    {fmtDate(queue.created_at, tz)}
                                                 </span>
                                                 <span className="text-[11px] font-medium text-slate-500">
-                                                    {new Date(queue.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                                    {fmtTime(queue.created_at, tz)}
                                                 </span>
                                             </div>
                                         </td>

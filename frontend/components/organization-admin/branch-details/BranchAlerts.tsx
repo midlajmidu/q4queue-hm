@@ -2,8 +2,11 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { AlertTriangle } from "lucide-react";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtTime } from "@/lib/tzformat";
 
 export default function BranchAlerts({ data }: { data: any[] }) {
+    const tz = useBranchTimezone();
     if (!data) {
         return (
             <div className="space-y-4 animate-pulse">
@@ -38,7 +41,7 @@ export default function BranchAlerts({ data }: { data: any[] }) {
                                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
                                 {alert.severity}
                             </span>
-                            <span className="text-[11px] font-medium text-rose-700/70">{new Date(alert.timestamp).toLocaleString(undefined, { hour: 'numeric', minute: '2-digit' })}</span>
+                            <span className="text-[11px] font-medium text-rose-700/70">{fmtTime(alert.timestamp, tz)}</span>
                         </div>
                     </div>
                 </div>

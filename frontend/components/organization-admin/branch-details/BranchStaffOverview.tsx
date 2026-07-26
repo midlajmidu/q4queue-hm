@@ -2,8 +2,11 @@
 import { useState, useEffect } from "react";
 import { Users } from "lucide-react";
 import { api } from "@/lib/api";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtDateTime } from "@/lib/tzformat";
 
 export default function BranchStaffOverview({ data }: { data: any[] }) {
+    const tz = useBranchTimezone();
     if (!data) return <div className="h-40 bg-slate-100 animate-pulse rounded-2xl"></div>;
 
     return (
@@ -39,7 +42,7 @@ export default function BranchStaffOverview({ data }: { data: any[] }) {
                                 <td className="px-5 py-3 text-center text-sm text-slate-600 tabular-nums">{s.customers_served_today}</td>
                                 <td className="px-5 py-3 text-slate-500 text-xs">
                                     {s.last_login && s.last_login !== 'Never' 
-                                        ? new Date(s.last_login).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) 
+                                        ? fmtDateTime(s.last_login, tz) 
                                         : 'Never'}
                                 </td>
                             </tr>

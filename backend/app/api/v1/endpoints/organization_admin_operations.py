@@ -249,8 +249,9 @@ async def get_branch_summary(
 ):
     await _verify_branch_access(branch_id, db, current_user)
     
-    from datetime import datetime, timezone
-    today = datetime.now(timezone.utc).date()
+    from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
+    tz_name = await get_org_timezone(db, branch_id)
+    today = local_today(tz_name)
     
     # Staff counts
     staff_res = await db.execute(select(func.count(User.id)).where(User.org_id == branch_id, User.role == "staff"))
@@ -266,16 +267,16 @@ async def get_branch_summary(
     active_sessions = as_res.scalar() or 0
     
     # Token stats
-    wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == "waiting"))
+    wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == "waiting"))
     customers_waiting = wait_res.scalar() or 0
     
-    serv_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.serving))
+    serv_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.serving))
     customers_being_served = serv_res.scalar() or 0
     
-    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.done))
+    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.done))
     customers_served_today = comp_res.scalar() or 0
     
-    tot_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today))
+    tot_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today))
     tokens_issued_today = tot_res.scalar() or 0
 
     return BranchExecutiveSummary(
@@ -297,19 +298,20 @@ async def get_branch_performance(
 ):
     await _verify_branch_access(branch_id, db, current_user)
     
-    from datetime import datetime, timezone
-    today = datetime.now(timezone.utc).date()
+    from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
+    tz_name = await get_org_timezone(db, branch_id)
+    today = local_today(tz_name)
     
-    wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.waiting))
+    wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.waiting))
     customers_waiting = wait_res.scalar() or 0
     
-    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.done))
+    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.done))
     customers_served_today = comp_res.scalar() or 0
     
-    canc_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.skipped))
+    canc_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.skipped))
     cancelled_tokens = canc_res.scalar() or 0
     
-    tot_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, func.date(Token.created_at) == today))
+    tot_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today))
     total_tokens = tot_res.scalar() or 0
     
     completion_rate = f"{round((customers_served_today / total_tokens) * 100)}%" if total_tokens > 0 else "0%"
@@ -317,14 +319,14 @@ async def get_branch_performance(
     # Wait time & service time approximation
     avg_wait = await db.execute(
         select(func.avg(func.extract('epoch', Token.served_at) - func.extract('epoch', Token.created_at)))
-        .where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.served_at != None)
+        .where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.served_at != None)
     )
     avg_wait_sec = avg_wait.scalar() or 0
     avg_wait_str = f"{int(avg_wait_sec // 60)}m {int(avg_wait_sec % 60)}s"
     
     avg_svc = await db.execute(
         select(func.avg(func.extract('epoch', Token.completed_at) - func.extract('epoch', Token.served_at)))
-        .where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.completed_at != None, Token.served_at != None)
+        .where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.completed_at != None, Token.served_at != None)
     )
     avg_svc_sec = avg_svc.scalar() or 0
     avg_svc_str = f"{int(avg_svc_sec // 60)}m {int(avg_svc_sec % 60)}s"
@@ -347,21 +349,22 @@ async def get_branch_queues(
     try:
         await _verify_branch_access(branch_id, db, current_user)
         
-        from datetime import datetime, timezone
-        today = datetime.now(timezone.utc).date()
+        from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
+        tz_name = await get_org_timezone(db, branch_id)
+        today = local_today(tz_name)
         
         queues_res = await db.execute(select(Queue).where(Queue.org_id == branch_id).order_by(Queue.created_at.desc()))
         queues = queues_res.scalars().all()
         
         results = []
         for q in queues:
-            wait_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.waiting))
-            serv_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.serving))
-            comp_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.status == TokenStatus.done))
+            wait_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.waiting))
+            serv_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.serving))
+            comp_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.done))
             
             avg_wait = await db.execute(
                 select(func.avg(func.extract('epoch', Token.served_at) - func.extract('epoch', Token.created_at)))
-                .where(Token.queue_id == q.id, func.date(Token.created_at) == today, Token.served_at.isnot(None))
+                .where(Token.queue_id == q.id, tz_date_clause(Token.created_at, tz_name) == today, Token.served_at.isnot(None))
             )
             avg_wait_sec = avg_wait.scalar() or 0
             avg_wait_str = f"{int(avg_wait_sec // 60)}m" if avg_wait_sec > 0 else "-"
@@ -394,8 +397,9 @@ async def get_branch_sessions(
 ):
     await _verify_branch_access(branch_id, db, current_user)
     
-    from datetime import datetime, timezone
-    today = datetime.now(timezone.utc).date()
+    from app.core.tz_helpers import get_org_timezone, local_today
+    tz_name = await get_org_timezone(db, branch_id)
+    today = local_today(tz_name)
     
     sessions_res = await db.execute(select(Session).where(Session.org_id == branch_id, Session.session_date == today).order_by(Session.created_at.desc()))
     sessions = sessions_res.scalars().all()
@@ -499,14 +503,15 @@ async def get_branch_whatsapp(
 ):
     await _verify_branch_access(branch_id, db, current_user)
     
-    from datetime import datetime, timezone
-    today = datetime.now(timezone.utc).date()
+    from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
+    tz_name = await get_org_timezone(db, branch_id)
+    today = local_today(tz_name)
     
     from app.whatsapp.models import WhatsAppMessage
     
     msgs_res = await db.execute(
         select(WhatsAppMessage.status, func.count(WhatsAppMessage.id))
-        .where(WhatsAppMessage.organization_id == branch_id, func.date(WhatsAppMessage.created_at) == today)
+        .where(WhatsAppMessage.organization_id == branch_id, tz_date_clause(WhatsAppMessage.created_at, tz_name) == today)
         .group_by(WhatsAppMessage.status)
     )
     counts = dict(msgs_res.all())
@@ -542,8 +547,9 @@ async def get_branch_health(
 ):
     branch = await _verify_branch_access(branch_id, db, current_user)
     
-    from datetime import datetime, timezone
-    today = datetime.now(timezone.utc).date()
+    from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
+    tz_name = await get_org_timezone(db, branch_id)
+    today = local_today(tz_name)
     
     # Just checking if any queues/sessions are active
     aq_res = await db.execute(select(func.count(Queue.id)).where(Queue.org_id == branch_id, Queue.is_active == True))
@@ -553,7 +559,7 @@ async def get_branch_health(
     active_sessions = as_res.scalar() or 0
     
     from app.whatsapp.models import WhatsAppMessage
-    wa_failed_res = await db.execute(select(func.count(WhatsAppMessage.id)).where(WhatsAppMessage.organization_id == branch_id, func.date(WhatsAppMessage.created_at) == today, WhatsAppMessage.status == "failed"))
+    wa_failed_res = await db.execute(select(func.count(WhatsAppMessage.id)).where(WhatsAppMessage.organization_id == branch_id, tz_date_clause(WhatsAppMessage.created_at, tz_name) == today, WhatsAppMessage.status == "failed"))
     wa_failed = wa_failed_res.scalar() or 0
     
     health_score = 100
@@ -634,8 +640,9 @@ async def get_branch_alerts(
 ):
     branch = await _verify_branch_access(branch_id, db, current_user)
     
-    from datetime import datetime, timezone
-    today = datetime.now(timezone.utc).date()
+    from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
+    tz_name = await get_org_timezone(db, branch_id)
+    today = local_today(tz_name)
     
     alerts = []
     
@@ -646,7 +653,7 @@ async def get_branch_alerts(
     queue_wait_res = await db.execute(
         select(Queue.name, func.count(Token.id))
         .join(Token, Token.queue_id == Queue.id)
-        .where(Queue.org_id == branch_id, Token.status == TokenStatus.waiting, func.date(Token.created_at) == today)
+        .where(Queue.org_id == branch_id, Token.status == TokenStatus.waiting, tz_date_clause(Token.created_at, tz_name) == today)
         .group_by(Queue.id)
     )
     for q_name, w_count in queue_wait_res.all():
@@ -654,7 +661,7 @@ async def get_branch_alerts(
             alerts.append(BranchAlert(id=uuid.uuid4(), issue=f"Queue Overflow: '{q_name}' has {w_count} customers waiting", severity="Warning", timestamp=datetime.now(timezone.utc).isoformat()))
 
     # Staffing Alert (Customers waiting but no active staff)
-    tot_wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, Token.status == TokenStatus.waiting, func.date(Token.created_at) == today))
+    tot_wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, Token.status == TokenStatus.waiting, tz_date_clause(Token.created_at, tz_name) == today))
     tot_waiting = tot_wait_res.scalar() or 0
     if tot_waiting > 0:
         staff_res = await db.execute(select(func.count(User.id)).where(User.org_id == branch_id, User.role == "staff", User.is_active == True))
@@ -665,14 +672,14 @@ async def get_branch_alerts(
     # Wait Time Alert (> 25 mins)
     wait_time_res = await db.execute(
         select(func.avg(func.extract('epoch', Token.served_at - Token.created_at)))
-        .where(Token.org_id == branch_id, func.date(Token.created_at) == today, Token.status == TokenStatus.serving)
+        .where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.serving)
     )
     avg_wait_sec = wait_time_res.scalar() or 0
     if avg_wait_sec > (25 * 60):
         alerts.append(BranchAlert(id=uuid.uuid4(), issue=f"High Wait Times: Average wait time is {int(avg_wait_sec // 60)} minutes", severity="Medium", timestamp=datetime.now(timezone.utc).isoformat()))
         
     from app.whatsapp.models import WhatsAppMessage
-    wa_failed_res = await db.execute(select(func.count(WhatsAppMessage.id)).where(WhatsAppMessage.organization_id == branch_id, func.date(WhatsAppMessage.created_at) == today, WhatsAppMessage.status == "failed"))
+    wa_failed_res = await db.execute(select(func.count(WhatsAppMessage.id)).where(WhatsAppMessage.organization_id == branch_id, tz_date_clause(WhatsAppMessage.created_at, tz_name) == today, WhatsAppMessage.status == "failed"))
     wa_failed = wa_failed_res.scalar() or 0
     if wa_failed > 0:
         alerts.append(BranchAlert(id=uuid.uuid4(), issue=f"{wa_failed} WhatsApp messages failed to deliver today", severity="Medium", timestamp=datetime.now(timezone.utc).isoformat()))

@@ -6,6 +6,8 @@ import type { AnalyticsOverview } from "@/types/api";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { PageWrapper } from "@/components/PageWrapper";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { localTodayStr, nowInTz, fmtDateShort } from "@/lib/tzformat";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
@@ -115,8 +117,9 @@ export default function InsightsPage() {
       return `${year}-${month}-${day}`;
   };
 
-  const now = new Date();
-  const today = getLocalDateStr(now);
+  const tz = useBranchTimezone();
+  const now = nowInTz(tz);
+  const today = localTodayStr(tz);
   const lastWeek = getLocalDateStr(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000));
   const thirtyDays = getLocalDateStr(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000));
 
@@ -172,7 +175,7 @@ export default function InsightsPage() {
 
     const dailyTimings = paddedTimings.map(dt => ({
       ...dt,
-      dateFormatted: new Date(dt.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      dateFormatted: fmtDateShort(dt.date, tz),
       avg_wait_min: dt.avg_wait / 60,
       avg_serve_min: dt.avg_serve / 60
     }));

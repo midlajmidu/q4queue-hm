@@ -22,6 +22,8 @@ import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtTime, fmtDateTime, nowInTz } from "@/lib/tzformat";
 
 const formatTime12 = (time24?: string | null) => {
     if (!time24) return "";
@@ -356,6 +358,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
     const canManageQueue = !isGlobalOrOrgAdmin && !isReadOnly;
     const { toast } = useToast();
+    const tz = useBranchTimezone();
 
     const handleNewCustomer = useCallback((data: any) => {
         sonnerToast.custom((t) => (
@@ -375,7 +378,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">New Customer</span>
                             <span className="text-[11px] font-medium text-slate-400 whitespace-nowrap ml-2">
-                                {data.time ? new Date(data.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                                {data.time ? fmtTime(data.time, tz) : ""}
                             </span>
                         </div>
                         {/* Primary Subject */}
@@ -2039,17 +2042,17 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).map((t: WaitingToken, idx: number) => {
                                                 let customTimeStr = "";
                                                 if (activeListTab === "waiting") {
-                                                    const waitMins = Math.floor((Date.now() - new Date(t.created_at || Date.now()).getTime()) / 60000);
+                                                    const waitMins = Math.floor((nowInTz(tz).getTime() - new Date(t.created_at || nowInTz(tz)).getTime()) / 60000);
                                                     customTimeStr = waitMins < 1 ? "< 1 min wait" : `${waitMins} min${waitMins !== 1 ? "s" : ""} wait`;
                                                 } else if (activeListTab === "skipped") {
                                                     if (t.recalled_at && t.skipped_at && new Date(t.recalled_at) > new Date(t.skipped_at)) {
-                                                        customTimeStr = `Recalled ${new Date(t.recalled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                                        customTimeStr = `Recalled ${fmtTime(t.recalled_at, tz)}`;
                                                     } else if (t.skipped_at) {
-                                                        customTimeStr = `Skipped ${new Date(t.skipped_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                                        customTimeStr = `Skipped ${fmtTime(t.skipped_at, tz)}`;
                                                     }
                                                 } else if (activeListTab === "deleted") {
                                                     if (t.deleted_at) {
-                                                        customTimeStr = `Removed ${new Date(t.deleted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                                        customTimeStr = `Removed ${fmtTime(t.deleted_at, tz)}`;
                                                     }
                                                 }
 
@@ -2358,6 +2361,7 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
     hasServiceLines?: boolean;
     extraActions?: React.ReactNode;
 }) {
+    const tz = useBranchTimezone();
     const statusClasses: Record<string, string> = {
         serving: "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
         done: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
@@ -2369,11 +2373,11 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
 
     let timeStr = "";
     if (t.status === "done" && (t as RecentToken).completed_at) {
-        timeStr = new Date((t as RecentToken).completed_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        timeStr = fmtTime((t as RecentToken).completed_at!, tz);
     } else if (t.status === "serving" && (t as RecentToken).served_at) {
-        timeStr = new Date((t as RecentToken).served_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        timeStr = fmtTime((t as RecentToken).served_at!, tz);
     } else if (t.created_at) {
-        timeStr = new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        timeStr = fmtTime(t.created_at, tz);
     }
 
     return (
@@ -2463,10 +2467,11 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
     extraActions?: React.ReactNode;
     hasServiceLines?: boolean;
 }) {
+    const tz = useBranchTimezone();
     const st = STATUS_LABELS[t.status] ?? { label: t.status, cls: "bg-slate-50 text-slate-600 border-slate-200" };
 
     const timeStr = customTimeStr ?? (t.created_at
-        ? new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+        ? fmtTime(t.created_at, tz)
         : "");
 
     const tokenData: TokenDetailData = {

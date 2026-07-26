@@ -6,6 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { api, ApiError } from "@/lib/api";
 import { useDashBase } from "@/hooks/useDashBase";
 import type { QueueResponse } from "@/types/api";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtTime, nowInTz } from "@/lib/tzformat";
 import ConfirmModal from "@/components/ConfirmModal";
 import EditQueueModal from "@/components/EditQueueModal";
 import { Hash, UserCheck, Activity, Trash2, Square, Clock, CalendarDays, Ticket, TicketSlash, Pause, Play, Pencil } from "lucide-react";
@@ -98,13 +100,13 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
         return () => clearInterval(interval);
     }, [isActive]);
 
+    const tz = useBranchTimezone();
     const formatTime = (iso: string) => {
-        const d = new Date(iso);
-        return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return fmtTime(iso, tz);
     };
 
     const getElapsed = (iso: string) => {
-        const diffMs = Date.now() - new Date(iso).getTime();
+        const diffMs = nowInTz(tz).getTime() - new Date(iso).getTime();
         const mins = Math.floor(diffMs / 60_000);
         const days = Math.floor(mins / (60 * 24));
         const hrs = Math.floor((mins % (60 * 24)) / 60);

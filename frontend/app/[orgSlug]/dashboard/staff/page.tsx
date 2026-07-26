@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { StaffMember, StaffCreate, StaffUpdate, QueueResponse } from "@/types/api";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { fmtDate } from "@/lib/tzformat";
 import { useAuth } from "@/hooks/useAuth";
 import { StandardPageHeader } from "@/components/StandardPageHeader";
 import Link from "next/link";
@@ -570,7 +572,8 @@ export default function StaffPage() {
     }
   }, [deleteMember, toast]);
 
-  const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const tz = useBranchTimezone();
+  const fmt = (iso: string) => fmtDate(iso, tz);
 
   const activeCount = members.filter(m => m.is_active).length;
   const inactiveCount = members.filter(m => !m.is_active).length;

@@ -422,6 +422,10 @@ async def get_analytics_csv_data(
     from sqlalchemy import and_
     from app.models.queue import Queue
     from app.models.user import User
+    from app.models.organization import Organization
+    from app.core.tz_helpers import safe_zoneinfo, to_org_local, to_org_local_date, get_org_timezone
+
+    org_tz_str = await get_org_timezone(db, org_id)
 
     conditions = [Token.org_id == org_id]
     if queue_id:
@@ -498,7 +502,7 @@ async def get_analytics_csv_data(
     writer.writerow([
         "Date", "Token Number", "Queue", "Service Line", "Customer Name", "Customer Phone", "Age", "Pax",
         "Status", "Created At", "Served At", "Completed At", "Skipped At", "Recalled At", "Removed At",
-        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Removed By", "Call Method", "Entry Type"
+        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Removed By", "Call Method", "Entry Type", "Timezone"
     ])
 
     for row in result.all():
@@ -540,7 +544,7 @@ async def get_analytics_csv_data(
 
         token_display = f"{q_prefix or ''}{token.token_number}"
         writer.writerow([
-            token.created_at.strftime("%Y-%m-%d"),
+            to_org_local_date(token.created_at, org_tz_str),
             token_display,
             q_name or "Unknown",
             service_line,
@@ -548,20 +552,21 @@ async def get_analytics_csv_data(
             token.customer_phone or "",
             token.customer_age if token.customer_age else "",
             pax_count_str,
-            token.status.value,
-            token.created_at.isoformat(),
-            token.served_at.isoformat() if token.served_at else "",
-            token.completed_at.isoformat() if token.completed_at else "",
-            token.skipped_at.isoformat() if token.skipped_at else "",
-            token.recalled_at.isoformat() if token.recalled_at else "",
-            token.deleted_at.isoformat() if token.deleted_at else "",
+            token.status.value if hasattr(token.status, 'value') else str(token.status),
+            to_org_local(token.created_at, org_tz_str),
+            to_org_local(token.served_at, org_tz_str),
+            to_org_local(token.completed_at, org_tz_str),
+            to_org_local(token.skipped_at, org_tz_str),
+            to_org_local(token.recalled_at, org_tz_str),
+            to_org_local(token.deleted_at, org_tz_str),
             wait_time_mins,
             serve_time_mins,
             served_by,
             completed_by,
             removed_by_label,
             "Invite by Number" if token.called_via_invite else "Call Next",
-            entry_method
+            entry_method,
+            org_tz_str
         ])
 
     return output.getvalue()
