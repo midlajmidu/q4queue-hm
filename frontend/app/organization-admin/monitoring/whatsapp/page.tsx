@@ -52,7 +52,7 @@ export default function WhatsAppMonitoringPage() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-100">
                     <h2 className="font-bold text-slate-900 flex items-center gap-2">
                         <MessageSquare size={18} className="text-indigo-600" />

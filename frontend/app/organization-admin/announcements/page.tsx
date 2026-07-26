@@ -110,7 +110,7 @@ export default function OrganizationAnnouncementsPage() {
                         setFormData({ title: "", message: "", type: "info", start_time: "", end_time: "" });
                         setShowModal(true);
                     }}
-                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
+                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
                 >
                     <Plus size={16} />
                     New Announcement
@@ -120,7 +120,7 @@ export default function OrganizationAnnouncementsPage() {
             {loading ? (
                 <div className="text-center py-12 text-slate-500 text-sm">Loading announcements...</div>
             ) : announcements.length === 0 ? (
-                <div className="bg-white rounded-lg border border-slate-200 p-12 text-center shadow-sm">
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center shadow-sm">
                     <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                         <Megaphone size={20} className="text-slate-400" />
                     </div>
@@ -130,7 +130,7 @@ export default function OrganizationAnnouncementsPage() {
             ) : (
                 <div className="space-y-3">
                     {announcements.map((ann) => (
-                        <div key={ann.id} className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-colors group">
+                        <div key={ann.id} className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:border-slate-300 transition-colors group">
                             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                                 <div className="flex gap-4">
                                     <div className="mt-0.5 shrink-0">{getTypeIcon(ann.type)}</div>
@@ -179,7 +179,7 @@ export default function OrganizationAnnouncementsPage() {
 
             {showModal && (
                 <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden border border-slate-200">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200/80">
                         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                             <h2 className="text-lg font-medium text-slate-900">{editingId ? "Edit Announcement" : "Create Announcement"}</h2>
                         </div>

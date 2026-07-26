@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { api } from "@/lib/api";
-import { Users, ExternalLink, ArrowUp, ArrowDown, Activity, ChevronRight, Flame, CheckCircle2 } from "lucide-react";
+import { Users, ExternalLink, ArrowUp, ArrowDown, Activity, Building2 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useBranchFilter } from "@/context/BranchFilterContext";
 import BranchSelector from "@/components/organization-admin/BranchSelector";
@@ -29,7 +29,7 @@ export default function SessionsMonitoringPage() {
         };
 
         loadData();
-        const interval = setInterval(loadData, 15000); // 15s polling
+        const interval = setInterval(loadData, 15000);
         return () => clearInterval(interval);
     }, [selectedBranchId]);
 
@@ -98,7 +98,7 @@ export default function SessionsMonitoringPage() {
 
     const SortHeader = ({ field, label, align = 'left' }: { field: string, label: string, align?: 'left' | 'center' | 'right' }) => (
         <th
-            className={`px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors group select-none ${align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'}`}
+            className={`px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors group select-none ${align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'}`}
             onClick={() => handleSort(field)}
         >
             <div className={`flex items-center gap-1 ${align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : 'justify-start'}`}>
@@ -113,16 +113,21 @@ export default function SessionsMonitoringPage() {
 
     if (loading) {
         return (
-            <div className="flex h-64 items-center justify-center">
-                <LoadingSpinner />
+            <div className="flex h-64 items-center justify-center gap-3 text-slate-400">
+                <LoadingSpinner size="md" />
+                <span className="text-sm font-medium">Loading data...</span>
             </div>
         );
     }
 
+    const activeCount = sessions.filter(s => s.status === 'Active').length;
+    const inactiveCount = sessions.filter(s => s.status !== 'Active').length;
+    const branchCount = new Set(sessions.map(s => s.branch)).size;
+
     return (
         <div className="space-y-6">
             {/* Premium Header & Controls */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 pb-6 border-b border-slate-200/60">
                 <div>
                     <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500">
                         Live Session Monitoring
@@ -136,37 +141,85 @@ export default function SessionsMonitoringPage() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-4 border-b border-slate-100">
-                    <h2 className="font-bold text-slate-900 flex items-center gap-2">
-                        <Users size={18} className="text-indigo-600" />
-                        Operational Status
-                    </h2>
+            {/* Summary Stat Tiles */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4.5 flex items-center justify-between">
+                    <div className="min-w-0">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Active Sessions</p>
+                        <p className="text-2xl font-bold tracking-tight text-slate-900 mt-1">{activeCount}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Currently open</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50/80 border border-emerald-100/80 flex items-center justify-center shrink-0">
+                        <Activity size={18} className="text-emerald-600" />
+                    </div>
                 </div>
-                {/* Mobile View Feed (spacious cards on small screens) */}
+
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4.5 flex items-center justify-between">
+                    <div className="min-w-0">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Branches</p>
+                        <p className="text-2xl font-bold tracking-tight text-slate-900 mt-1">{branchCount}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">With active sessions</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50/80 border border-indigo-100/80 flex items-center justify-center shrink-0">
+                        <Building2 size={18} className="text-indigo-600" />
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4.5 flex items-center justify-between">
+                    <div className="min-w-0">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Inactive Sessions</p>
+                        <p className="text-2xl font-bold tracking-tight text-slate-900 mt-1">{inactiveCount}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Closed or paused</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-slate-100/80 border border-slate-200/80 flex items-center justify-center shrink-0">
+                        <Users size={18} className="text-slate-500" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Sessions Table */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                            <Activity size={16} className="text-indigo-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-semibold text-slate-900">Operational Status</h2>
+                            <p className="text-xs text-slate-400 mt-0.5">{sessions.length} sessions tracked</p>
+                        </div>
+                    </div>
+                    {/* Live indicator */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                        </span>
+                        <span className="text-xs font-semibold text-emerald-700">Live</span>
+                    </div>
+                </div>
+
+                {/* Mobile View */}
                 <div className="block md:hidden divide-y divide-slate-100 bg-white">
                     {sessions.length === 0 ? (
-                        <div className="p-12 text-center">
-                            <div className="w-14 h-14 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm mx-auto mb-4">
-                                <Activity size={28} />
+                        <div className="py-20 text-center px-6">
+                            <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-4">
+                                <Activity size={24} className="text-slate-300" />
                             </div>
-                            <h3 className="text-base font-bold text-slate-900">No active sessions</h3>
-                            <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">All queues are currently clear. When branches start serving customers, they will appear here in real-time.</p>
+                            <h3 className="text-sm font-semibold text-slate-700">No active sessions</h3>
+                            <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">When branches start serving customers, sessions will appear here in real-time.</p>
                         </div>
                     ) : (
                         sortedSessions.map((s: any) => {
                             const idx = s.originalIdx;
-
                             return (
-                                <div key={idx} className="p-4 space-y-4 hover:bg-slate-50/30 transition-colors">
-                                    {/* Line 1: Branch/Session and Status */}
+                                <div key={idx} className="p-4 space-y-4 hover:bg-slate-50/60 transition-colors">
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
-                                            <h4 className="font-bold text-slate-900 text-sm leading-snug">{s.branch}</h4>
-                                            <p className="text-xs text-slate-500 font-medium mt-0.5">{s.session_name}</p>
+                                            <h4 className="font-semibold text-slate-900 text-sm leading-snug">{s.branch}</h4>
+                                            <p className="text-xs text-slate-400 font-medium mt-0.5">{s.session_name}</p>
                                         </div>
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${s.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
-                                            }`}>
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${s.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-600 border border-slate-200'}`}>
                                             {s.status === 'Active' && (
                                                 <span className="relative flex h-1.5 w-1.5">
                                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -176,64 +229,64 @@ export default function SessionsMonitoringPage() {
                                             {s.status}
                                         </span>
                                     </div>
-
-
-
-                                    {/* Line 3: Actions */}
-                                    <div className="pt-1">
-                                        <a
-                                            href={`/organization-admin/branches/${s.branch_id}`}
-                                            className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-lg transition-all shadow-sm"
-                                        >
-                                            Branch Details
-                                            <ExternalLink size={14} className="text-slate-400" />
-                                        </a>
+                                    <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100 text-xs">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-500 font-medium">Staff Present</span>
+                                            <span className="font-semibold text-slate-900">{s.staffPresentNum}/{s.staffTotalNum} staff</span>
+                                        </div>
                                     </div>
+                                    <a
+                                        href={`/organization-admin/branches/${s.branch_id}`}
+                                        className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors"
+                                    >
+                                        Branch Details
+                                        <ExternalLink size={13} />
+                                    </a>
                                 </div>
                             );
                         })
                     )}
                 </div>
 
-                {/* Desktop View Table (visible on large viewports) */}
+                {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[800px]">
+                    <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
-                                <SortHeader field="branch" label="Branch" />
-                                <SortHeader field="session_name" label="Session Name" />
+                            <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] uppercase tracking-widest text-slate-400 font-semibold">
+                                <SortHeader field="branch" label="Branch / Session" />
+                                <SortHeader field="staff_present" label="Staff Present" align="center" />
                                 <SortHeader field="status" label="Status" />
-                                <th className="px-4 py-3 text-right">Actions</th>
+                                <th className="px-6 py-3.5 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-[13px]">
                             {sessions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="p-16 text-center bg-slate-50/30">
-                                        <div className="flex flex-col items-center justify-center space-y-4">
-                                            <div className="w-14 h-14 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm">
-                                                <Activity size={28} />
-                                            </div>
-                                            <div className="space-y-1 max-w-sm">
-                                                <h3 className="text-[15px] font-bold text-slate-900">No active sessions</h3>
-                                                <p className="text-[13px] text-slate-500 font-medium">All queues are currently clear. When branches start serving customers, they will appear here in real-time.</p>
-                                            </div>
+                                    <td colSpan={4} className="py-20 text-center">
+                                        <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-4">
+                                            <Activity size={24} className="text-slate-300" />
                                         </div>
+                                        <h3 className="text-sm font-semibold text-slate-700">No active sessions</h3>
+                                        <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">When branches start serving customers, they will appear here in real-time.</p>
                                     </td>
                                 </tr>
                             ) : (
                                 sortedSessions.map((s: any) => {
                                     const idx = s.originalIdx;
-
                                     return (
-                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-4 py-2.5">
+                                        <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                                            <td className="px-6 py-3.5">
                                                 <div className="font-semibold text-slate-900">{s.branch}</div>
+                                                <div className="text-xs text-slate-400 mt-0.5">{s.session_name}</div>
                                             </td>
-                                            <td className="px-4 py-2.5 font-medium text-slate-700">{s.session_name}</td>
-                                            <td className="px-4 py-2.5">
-                                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${s.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-700 border border-slate-200'
-                                                    }`}>
+                                            <td className="px-6 py-3.5 text-center">
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                                    <Users size={12} className="text-slate-400" />
+                                                    {s.staffPresentNum}/{s.staffTotalNum}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-3.5">
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${s.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-600 border border-slate-200'}`}>
                                                     {s.status === 'Active' && (
                                                         <span className="relative flex h-1.5 w-1.5">
                                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -243,12 +296,12 @@ export default function SessionsMonitoringPage() {
                                                     {s.status}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-2.5 text-right">
+                                            <td className="px-6 py-3.5 text-right">
                                                 <a
                                                     href={`/organization-admin/branches/${s.branch_id}`}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm group"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors"
                                                 >
-                                                    <ExternalLink size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                                                    <ExternalLink size={13} />
                                                     Branch Details
                                                 </a>
                                             </td>

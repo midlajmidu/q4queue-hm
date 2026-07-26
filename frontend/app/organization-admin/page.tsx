@@ -96,7 +96,10 @@ export default function OrgAdminDashboard() {
 
             {/* 1. Executive Overview */}
             <section>
-                <SectionHeader title="Executive Overview" />
+                <div className="mb-6">
+                    <h2 className="text-lg font-semibold text-slate-900">Executive Overview</h2>
+                    <p className="text-sm text-slate-500 mt-1">Key metrics and enterprise health across all branches.</p>
+                </div>
                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
                     {/* Total Staff Card (Replaced Org Health) */}
                     <MetricCard 

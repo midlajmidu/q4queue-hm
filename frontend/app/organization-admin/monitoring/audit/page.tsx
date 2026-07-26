@@ -265,7 +265,7 @@ export default function AuditLogsPage() {
                 </div>
 
                 {/* Main Table Card */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                     {/* Desktop View Table — table-fixed enforces column widths, no scrollbar */}
                     <div className="hidden md:block">
                         <table className="w-full text-left border-collapse table-fixed">
@@ -374,7 +374,7 @@ export default function AuditLogsPage() {
                                                 {isExpanded && (
                                                     <tr className="bg-slate-50/60 border-t border-indigo-100/60">
                                                         <td colSpan={6} className="px-5 py-4">
-                                                            <div className="bg-white rounded-lg border border-slate-200/60 p-4 shadow-xs">
+                                                            <div className="bg-white rounded-xl border border-slate-200/60 p-4 shadow-xs">
                                                                 <div className="flex items-center gap-2 mb-3">
                                                                     <Info className="w-4 h-4 text-slate-400" />
                                                                     <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Event Metadata</h4>

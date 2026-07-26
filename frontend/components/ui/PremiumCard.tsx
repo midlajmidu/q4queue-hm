@@ -17,15 +17,16 @@ export function PremiumCard({
     return (
         <div 
             className={cn(
-                "bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden",
+                "bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden",
                 hoverEffect && "hover:shadow-md transition-shadow duration-200",
+                !hoverEffect && "transition-all duration-200",
                 gradientBorder && "border-0 p-[1px] bg-gradient-to-b from-slate-200 to-slate-100",
                 className
             )} 
             {...props}
         >
             {gradientBorder ? (
-                <div className="bg-white rounded-[11px] h-full">
+                <div className="bg-white rounded-[15px] h-full">
                     {children}
                 </div>
             ) : (

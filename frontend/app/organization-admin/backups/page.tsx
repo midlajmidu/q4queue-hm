@@ -157,7 +157,7 @@ export default function OrganizationBackupsPage() {
                 <div className="space-y-6 animate-in fade-in duration-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Status Card */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
                             <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2 mb-4">
                                 <Database size={20} className="text-indigo-600" />
                                 Automated Backup Status
@@ -262,7 +262,7 @@ export default function OrganizationBackupsPage() {
                     </div>
 
                     {/* History Table */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-slate-200 flex justify-between items-center">
                             <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                                 <History size={20} className="text-slate-600" />

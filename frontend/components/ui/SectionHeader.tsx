@@ -10,15 +10,18 @@ interface SectionHeaderProps {
 
 export function SectionHeader({ title, description, icon: Icon, action }: SectionHeaderProps) {
     return (
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 mb-6">
             <div className="flex items-start gap-3">
                 {Icon && (
-                    <div className="mt-1">
-                        <Icon className="text-slate-400" size={20} />
+                    <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <Icon className="text-slate-400" size={16} />
                     </div>
                 )}
                 <div>
-                    <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{title}</h2>
+                    <h2 className="text-sm font-semibold text-slate-800 leading-tight">{title}</h2>
+                    {description && (
+                        <p className="text-xs text-slate-400 mt-0.5 leading-snug">{description}</p>
+                    )}
                 </div>
             </div>
             {action && (

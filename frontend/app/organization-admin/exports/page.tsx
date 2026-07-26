@@ -113,7 +113,7 @@ export default function ExportsPage() {
                 </button>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-8">
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-start gap-4">
                         <div className="p-3 bg-indigo-50 rounded-xl shrink-0">
@@ -159,7 +159,7 @@ export default function ExportsPage() {
             </div>
 
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Export History</h2>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                 {/* Mobile View Feed (spacious cards on small screens) */}
                 <div className="block md:hidden divide-y divide-slate-100 bg-white">
                     {isLoading ? (
