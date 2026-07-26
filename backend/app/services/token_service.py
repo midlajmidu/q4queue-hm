@@ -79,6 +79,41 @@ async def _lock_queue_for_org(
     return queue
 
 
+async def _log_audit(
+    db: AsyncSession,
+    *,
+    event_type: str,
+    org_id: Optional[uuid.UUID] = None,
+    user_id: Optional[uuid.UUID] = None,
+    resource_type: Optional[str] = "token",
+    resource_id: Optional[str] = None,
+    details: Optional[dict] = None,
+) -> None:
+    try:
+        from app.models.organization import Organization
+        from app.audit.service import record_event
+
+        parent_org_id = None
+        if org_id:
+            res = await db.execute(
+                select(Organization.parent_organization_id).where(Organization.id == org_id)
+            )
+            parent_org_id = res.scalar_one_or_none()
+
+        await record_event(
+            event_type=event_type,
+            org_id=org_id,
+            parent_org_id=parent_org_id,
+            user_id=user_id,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            details=details,
+        )
+    except Exception as e:
+        logger.error("Error in token_service _log_audit: %s", e)
+
+
+
 async def _count_waiting_ahead(
     db: AsyncSession,
     *,
@@ -387,6 +422,19 @@ async def call_next(
                 flag_modified(currently_serving, "shared_lines")
                 flag_modified(currently_serving, "completed_lines")
                 
+        # Audit log token status transition
+        if is_fully_done:
+            audit_tag = "COMPLETE_TOKEN" if action == "done" else "SKIP_TOKEN" if action == "skipped" else "REMOVE_TOKEN"
+            await _log_audit(
+                db,
+                event_type=audit_tag,
+                org_id=org_id,
+                user_id=user_id,
+                resource_type="token",
+                resource_id=str(currently_serving.id),
+                details={"token_number": currently_serving.token_number, "customer_name": currently_serving.customer_name}
+            )
+
         # If the action was 'done' and token is fully done, trigger notification
         if is_fully_done and action in ["done", "skipped", "deleted"]:
             try:
@@ -397,13 +445,7 @@ async def call_next(
                 if q_row:
                     import asyncio
                     event_map = {
-                        "done": "queue_completed_v3"
-                        
-                        
-                        
-                        
-                        
-                        ,
+                        "done": "queue_completed_v3",
                         "skipped": "queue_skipped_v3",
                         "deleted": "queue_removed_v3"
                     }
@@ -465,6 +507,17 @@ async def call_next(
         # In multi-lane mode, assign the token to the specified line
         if line_number is not None:
             next_token.assigned_line = line_number
+
+        await _log_audit(
+            db,
+            event_type="CALL_NEXT_TOKEN",
+            org_id=org_id,
+            user_id=user_id,
+            resource_type="token",
+            resource_id=str(next_token.id),
+            details={"token_number": next_token.token_number, "customer_name": next_token.customer_name, "line_number": line_number}
+        )
+
 
     await db.flush()
 
@@ -662,7 +715,7 @@ async def _get_token_for_org(
     return token
 
 
-async def skip_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID) -> Token:
+async def skip_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID, user_id: uuid.UUID | None = None) -> Token:
     token = await _get_token_for_org(db, token_id=token_id, org_id=org_id)
     if token.status != TokenStatus.waiting:
         raise ValueError(f"Cannot skip token with status '{token.status}'")
@@ -670,6 +723,16 @@ async def skip_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID
     token.status = TokenStatus.skipped
     token.skipped_at = datetime.now(timezone.utc)
     await db.flush()
+
+    await _log_audit(
+        db,
+        event_type="SKIP_TOKEN",
+        org_id=org_id,
+        user_id=user_id,
+        resource_type="token",
+        resource_id=str(token.id),
+        details={"token_number": token.token_number, "customer_name": token.customer_name}
+    )
     return token
 
 
@@ -686,10 +749,20 @@ async def complete_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.
     token.completed_by_id = user_id
     queue.total_served += 1
     await db.flush()
+
+    await _log_audit(
+        db,
+        event_type="COMPLETE_TOKEN",
+        org_id=org_id,
+        user_id=user_id,
+        resource_type="token",
+        resource_id=str(token.id),
+        details={"token_number": token.token_number, "customer_name": token.customer_name}
+    )
     return token
 
 
-async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID, removed_by: str = "admin") -> Token:
+async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID, user_id: uuid.UUID | None = None, removed_by: str = "admin") -> Token:
     token = await _get_token_for_org(db, token_id=token_id, org_id=org_id)
     # SECURITY FIX: use org-scoped lock to avoid cross-tenant DoS
     queue = await _lock_queue_for_org(db, token.queue_id, org_id)
@@ -737,11 +810,20 @@ async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UU
             logger.error("Failed to dispatch removal notification for serving token: %s", e)
     else:
         raise ValueError("Cannot remove completed or already skipped/deleted token")
+
+    await _log_audit(
+        db,
+        event_type="REMOVE_TOKEN",
+        org_id=org_id,
+        user_id=user_id,
+        resource_type="token",
+        resource_id=str(token.id),
+        details={"token_number": token.token_number, "customer_name": token.customer_name, "removed_by": removed_by}
+    )
     return token
 
 
-
-async def undo_remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID) -> Token:
+async def undo_remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UUID, user_id: uuid.UUID | None = None) -> Token:
     token = await _get_token_for_org(db, token_id=token_id, org_id=org_id)
     # SECURITY FIX: use org-scoped lock to avoid cross-tenant DoS
     await _lock_queue_for_org(db, token.queue_id, org_id)
@@ -754,7 +836,18 @@ async def undo_remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uu
     token.completed_at = None
     token.deleted_at = None
     await db.flush()
+
+    await _log_audit(
+        db,
+        event_type="RESTORE_TOKEN",
+        org_id=org_id,
+        user_id=user_id,
+        resource_type="token",
+        resource_id=str(token.id),
+        details={"token_number": token.token_number, "customer_name": token.customer_name}
+    )
     return token
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -101,9 +101,13 @@ async def login(
 
     await record_event(
         event_type="auth.login",
+        user_id=user.id,
+        org_id=user.org_id,
+        parent_org_id=user.parent_organization_id,
         ip_address=client_ip,
         details={"email": body.email, "org_slug": body.organization_slug, "user_agent": user_agent},
     )
+
     return TokenResponse(
         access_token=token,
         force_password_change=user.is_first_login

@@ -40,9 +40,16 @@ export default function WhatsAppMonitoringPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900">WhatsApp Status</h1>
-                <p className="text-sm text-slate-500 mt-1">Monitor recent WhatsApp notification events across branches.</p>
+            {/* Premium Header & Controls */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
+                <div>
+                    <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500">
+                        WhatsApp Status
+                    </h1>
+                    <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 mt-2">
+                        <span className="leading-none font-medium text-slate-500">Monitor recent WhatsApp notification events across branches.</span>
+                    </div>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

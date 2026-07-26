@@ -823,27 +823,44 @@ async def monitor_audit(
 ):
     if not current_user.parent_organization_id:
         return []
-        
+
+    parent_org_id = current_user.parent_organization_id
+
+    # Get all branch IDs under this parent organization
+    branch_ids = await get_org_ids(db, parent_org_id, None)
+
     from app.audit.models import AuditLog
+
+    log_conditions = [AuditLog.parent_organization_id == parent_org_id]
+    if branch_ids:
+        log_conditions.append(AuditLog.org_id.in_(branch_ids))
+
     query = (
         select(AuditLog, Organization, User)
         .outerjoin(Organization, AuditLog.org_id == Organization.id)
         .outerjoin(User, AuditLog.user_id == User.id)
-        .where(AuditLog.parent_organization_id == current_user.parent_organization_id)
+        .where(or_(*log_conditions))
+        .where(AuditLog.event_type != "token.join")  # Exclude customer join events
     )
+
     if branch_id:
-        query = query.where(AuditLog.org_id == branch_id)
-        
-    query = query.order_by(AuditLog.created_at.desc()).limit(100)
+        query = query.where(
+            or_(
+                AuditLog.org_id == branch_id,
+                Organization.id == branch_id,
+            )
+        )
+
+    query = query.order_by(AuditLog.created_at.desc()).limit(200)
     result = await db.execute(query)
     logs_data = result.all()
-    
+
     items = []
     for log, org, u in logs_data:
         branch_name = org.name if org else "Organization Wide"
         branch_slug = org.slug if org else "org-wide"
-        user_email = u.email if u else "System"
-        
+        user_email = u.email if u else "Staff / System"
+
         items.append(AuditMonitorItem(
             id=log.id,
             timestamp=log.created_at,
@@ -856,3 +873,6 @@ async def monitor_audit(
             details=log.details if isinstance(log.details, dict) else None
         ))
     return items
+
+
+

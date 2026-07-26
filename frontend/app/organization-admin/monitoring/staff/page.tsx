@@ -54,10 +54,15 @@ export default function StaffMonitoringPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 pb-6 border-b border-slate-200/60 mb-6">
+            {/* Premium Header & Controls */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Staff Monitoring</h1>
-                    <p className="text-sm text-slate-500 mt-1">Monitor all staff members and branch admins across the organization.</p>
+                    <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500">
+                        Staff Monitoring
+                    </h1>
+                    <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 mt-2">
+                        <span className="leading-none font-medium text-slate-500">Monitor all staff members and branch admins across the organization.</span>
+                    </div>
                 </div>
                 <div className="shrink-0">
                     <BranchSelector />

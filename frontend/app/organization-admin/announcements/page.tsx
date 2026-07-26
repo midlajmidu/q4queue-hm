@@ -93,11 +93,16 @@ export default function OrganizationAnnouncementsPage() {
     };
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-6">
+            {/* Premium Header & Controls */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">Organization Announcements</h1>
-                    <p className="text-slate-500 text-sm mt-1">Broadcast messages to all branch dashboards.</p>
+                    <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500">
+                        Organization Announcements
+                    </h1>
+                    <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 mt-2">
+                        <span className="leading-none font-medium text-slate-500">Broadcast messages to all branch dashboards.</span>
+                    </div>
                 </div>
                 <button
                     onClick={() => {

@@ -93,18 +93,20 @@ export default function ExportsPage() {
     };
 
     return (
-        <div className="p-4 sm:p-8 max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="space-y-6">
+            {/* Premium Header & Controls */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                        <DownloadCloud className="text-indigo-600" />
+                    <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500">
                         Download Center
                     </h1>
-                    <p className="text-slate-500 mt-1">Request and download enterprise data reports.</p>
+                    <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 mt-2">
+                        <span className="leading-none font-medium text-slate-500">Request and download enterprise data reports.</span>
+                    </div>
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200 shrink-0"
                 >
                     <Plus size={18} />
                     New Export Request

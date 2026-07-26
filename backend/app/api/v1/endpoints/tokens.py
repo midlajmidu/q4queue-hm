@@ -27,9 +27,11 @@ from app.models.user import User
 from app.schemas.queue import TokenResponse, TokenRestoreResponse
 from app.services import token_service
 from app.services.notification_service import notify_queue_event
+from app.audit.service import record_event
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
 
 
 @router.get(
@@ -175,7 +177,7 @@ async def skip_token(
         q_row = q_result.one_or_none()
 
         updated = await token_service.skip_token(
-            db, token_id=token.id, org_id=token.org_id
+            db, token_id=token.id, org_id=token.org_id, user_id=current_user.id
         )
         background_tasks.add_task(
             token_service.notify_queue_update,
@@ -199,6 +201,20 @@ async def skip_token(
                 tracking_id=str(getattr(token, "tracking_id", "")),
                 session_id=session_id,
             )
+
+        await record_event(
+            event_type="SKIP_TOKEN",
+            org_id=token.org_id,
+            parent_org_id=current_user.parent_organization_id,
+            user_id=current_user.id,
+            resource_type="token",
+            resource_id=str(token.id),
+            details={
+                "token_number": token.token_number,
+                "customer_name": token.customer_name,
+                "queue_name": q_row[0] if q_row else None,
+            }
+        )
 
     except ValueError as exc:
         msg = str(exc)
@@ -261,6 +277,20 @@ async def complete_token(
                 session_id=session_id,
             )
 
+        await record_event(
+            event_type="COMPLETE_TOKEN",
+            org_id=token.org_id,
+            parent_org_id=current_user.parent_organization_id,
+            user_id=current_user.id,
+            resource_type="token",
+            resource_id=str(token.id),
+            details={
+                "token_number": token.token_number,
+                "customer_name": token.customer_name,
+                "queue_name": q_row[0] if q_row else None,
+            }
+        )
+
     except ValueError as exc:
         msg = str(exc)
         code = 404 if "not found" in msg.lower() else 400
@@ -306,7 +336,7 @@ async def remove_token(
         saved_token_id = token.id
 
         updated = await token_service.remove_token(
-            db, token_id=token.id, org_id=token.org_id
+            db, token_id=token.id, org_id=token.org_id, user_id=current_user.id, removed_by=current_user.role
         )
         background_tasks.add_task(
             token_service.notify_queue_update,
@@ -331,6 +361,20 @@ async def remove_token(
                 session_id=session_id,
             )
 
+        await record_event(
+            event_type="REMOVE_TOKEN",
+            org_id=saved_org_id,
+            parent_org_id=current_user.parent_organization_id,
+            user_id=current_user.id,
+            resource_type="token",
+            resource_id=str(saved_token_id),
+            details={
+                "token_number": saved_number,
+                "customer_name": saved_name,
+                "queue_name": q_row[0] if q_row else None,
+            }
+        )
+
     except ValueError as exc:
         msg = str(exc)
         code = 404 if "not found" in msg.lower() else 400
@@ -354,8 +398,27 @@ async def undo_remove_token(
     """
     try:
         updated = await token_service.undo_remove_token(
-            db, token_id=token.id, org_id=token.org_id
+            db, token_id=token.id, org_id=token.org_id, user_id=current_user.id
         )
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=token.queue_id,
+            org_id=token.org_id,
+        )
+
+        await record_event(
+            event_type="RESTORE_TOKEN",
+            org_id=token.org_id,
+            parent_org_id=current_user.parent_organization_id,
+            user_id=current_user.id,
+            resource_type="token",
+            resource_id=str(token.id),
+            details={
+                "token_number": token.token_number,
+                "customer_name": token.customer_name,
+            }
+        )
+
         background_tasks.add_task(
             token_service.notify_queue_update,
             queue_id=token.queue_id,

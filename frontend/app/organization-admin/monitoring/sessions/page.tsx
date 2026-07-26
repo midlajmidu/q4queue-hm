@@ -121,19 +121,14 @@ export default function SessionsMonitoringPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 pb-6 border-b border-slate-200/60 mb-6">
+            {/* Premium Header & Controls */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Live Session Monitoring</h1>
-                    <div className="flex items-center flex-wrap gap-2 text-sm text-slate-500 mt-2">
-                        <span>Monitor all active sessions across all branches in real-time.</span>
-                        <span className="hidden sm:inline text-slate-300">•</span>
-                        <div className="flex items-center gap-2 text-slate-500 font-mono text-[10px] tracking-widest uppercase font-semibold bg-slate-100/50 px-2 py-0.5 rounded-md border border-slate-200/50">
-                            <span className="relative flex h-1.5 w-1.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                            </span>
-                            Updated just now
-                        </div>
+                    <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500">
+                        Live Session Monitoring
+                    </h1>
+                    <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 mt-2">
+                        <span className="leading-none font-medium text-slate-500">Monitor all active sessions across all branches in real-time.</span>
                     </div>
                 </div>
                 <div className="shrink-0">

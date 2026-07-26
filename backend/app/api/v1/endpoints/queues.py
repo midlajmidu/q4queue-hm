@@ -508,14 +508,25 @@ async def create_token(
             _raise_404(exc)
         _raise_400(exc)
 
+    parent_org_id = None
+    if queue:
+        from app.models.organization import Organization as OrgModel
+        org_res = await db.execute(sa_select(OrgModel).where(OrgModel.id == queue.org_id))
+        org_obj = org_res.scalar_one_or_none()
+        if org_obj:
+            parent_org_id = org_obj.parent_organization_id
+
     await record_event(
         event_type="token.join",
+        org_id=queue.org_id if queue else None,
+        parent_org_id=parent_org_id,
         ip_address=request.client.host if request.client else None,
         resource_type="queue",
         resource_id=str(queue_id),
         details={"token_number": result.token_number, "customer_name": body.name},
     )
     return result
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -703,6 +714,30 @@ async def call_next(
                 org_id=queue.org_id,
                 serving_token_number=result.serving,
             )
+
+        event_tag = "CALL_NEXT_TOKEN"
+        if action == "skipped":
+            event_tag = "SKIP_TOKEN"
+        elif action in ["deleted", "removed"]:
+            event_tag = "REMOVE_TOKEN"
+        elif action == "done":
+            event_tag = "COMPLETE_TOKEN"
+
+        await record_event(
+            event_type=event_tag,
+            org_id=current_user.org_id,
+            parent_org_id=current_user.parent_organization_id,
+            user_id=current_user.id,
+            resource_type="queue",
+            resource_id=str(queue.id),
+            details={
+                "queue_name": queue.name,
+                "token_number": result.serving if result else None,
+                "action": action,
+                "line_number": line_number,
+            }
+        )
+
     except PermissionError as exc:
         _raise_403(exc)
     except ValueError as exc:
@@ -714,6 +749,7 @@ async def call_next(
     if result is None:
         return NoTokenResponse()
     return result
+
 
 
 @router.post(

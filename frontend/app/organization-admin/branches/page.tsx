@@ -100,43 +100,48 @@ export default function BranchesPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Premium Header & Controls */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
                 <div>
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-2xl font-bold text-slate-900">Branch Overview</h1>
-                        {dashboardData?.max_branches ? (
-                            <div className="flex items-center gap-3 px-3 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                <div className="flex items-center gap-1.5">
-                                    <Building2 className="w-4 h-4 text-slate-400" />
-                                    <span className="text-sm font-medium text-slate-600">
-                                        <span className="text-slate-900 font-bold">{dashboardData.global_kpis?.total_branches || dashboardData.branch_count || 0}</span>
-                                        <span className="mx-1 text-slate-300">/</span>
-                                        {dashboardData.max_branches} Branches
-                                    </span>
-                                </div>
-                                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-500 ${(() => {
-                                            const pct = ((dashboardData.global_kpis?.total_branches || dashboardData.branch_count || 0) / dashboardData.max_branches) * 100;
-                                            if (pct >= 100) return 'bg-rose-500';
-                                            if (pct >= 80) return 'bg-amber-500';
-                                            return 'bg-indigo-500';
-                                        })()}`}
-                                        style={{ width: `${Math.min(100, ((dashboardData.global_kpis?.total_branches || dashboardData.branch_count || 0) / dashboardData.max_branches) * 100)}%` }}
-                                    ></div>
-                                </div>
-                            </div>
-                        ) : null}
+                    <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500">
+                        Branch Overview
+                    </h1>
+                    <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 mt-2">
+                        <span className="leading-none font-medium text-slate-500">Monitor all branches and their current health status.</span>
                     </div>
-                    <p className="text-slate-500 text-sm mt-1">Monitor all branches and their current health status.</p>
                 </div>
-                <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 group"
-                >
-                    <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
-                    Create Branch
-                </button>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 shrink-0">
+                    {dashboardData?.max_branches ? (
+                        <div className="flex items-center gap-3 px-3 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm">
+                            <div className="flex items-center gap-1.5">
+                                <Building2 className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm font-medium text-slate-600">
+                                    <span className="text-slate-900 font-bold">{dashboardData.global_kpis?.total_branches || dashboardData.branch_count || 0}</span>
+                                    <span className="mx-1 text-slate-300">/</span>
+                                    {dashboardData.max_branches} Branches
+                                </span>
+                            </div>
+                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-500 ${(() => {
+                                        const pct = ((dashboardData.global_kpis?.total_branches || dashboardData.branch_count || 0) / dashboardData.max_branches) * 100;
+                                        if (pct >= 100) return 'bg-rose-500';
+                                        if (pct >= 80) return 'bg-amber-500';
+                                        return 'bg-indigo-500';
+                                    })()}`}
+                                    style={{ width: `${Math.min(100, ((dashboardData.global_kpis?.total_branches || dashboardData.branch_count || 0) / dashboardData.max_branches) * 100)}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    ) : null}
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 group"
+                    >
+                        <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
+                        Create Branch
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">

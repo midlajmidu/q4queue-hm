@@ -82,19 +82,15 @@ export default function OrgAdminDashboard() {
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
             
-            {/* Header Area */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            {/* Premium Header & Controls */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
                 <div>
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-semibold text-slate-900">Command Center</h1>
-                        {!loading && data && (
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200">
-                                <Clock size={10} className="text-slate-400" />
-                                <span className="text-[10px] font-medium text-slate-500">Updated {timeAgo}</span>
-                            </div>
-                        )}
+                    <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500">
+                        Command Center
+                    </h1>
+                    <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 mt-2">
+                        <span className="leading-none font-medium text-slate-500">Real-time enterprise overview for {data.organization_name}.</span>
                     </div>
-                    <p className="text-sm text-slate-500 mt-1">Real-time enterprise overview for {data.organization_name}.</p>
                 </div>
             </div>
 
