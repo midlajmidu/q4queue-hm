@@ -584,6 +584,8 @@ export default function JoinQueuePage({ params }: PageProps) {
                                             />
                                         </div>
                                     </div>
+
+
                                 </div>
 
                                 {/* Take Token button */}

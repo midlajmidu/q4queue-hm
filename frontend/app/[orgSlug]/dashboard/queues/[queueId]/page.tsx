@@ -727,7 +727,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, [addName]);
     const [addCountryCode, setAddCountryCode] = useState("+91");
     const [addPhone, setAddPhone] = useState("");
-    const [addPaxCount, setAddPaxCount] = useState<number>(1);
+    const [addPaxCount, setAddPaxCount] = useState<string>("1");
     const [showWhatsappConfirm, setShowWhatsappConfirm] = useState(false);
     const [addFormError, setAddFormError] = useState<string | null>(null);
     const isAddNameValid = /^[A-Za-z\s'-]{2,50}$/.test(addName.trim());
@@ -756,18 +756,19 @@ export default function QueueDetailPage({ params }: PageProps) {
             const res = await api.adminJoin(queueId, {
                 name: addName.trim(),
                 phone: `${addCountryCode}${phoneDigits}`,
-                pax_count: addPaxCount,
+                pax_count: parseInt(addPaxCount) || 1,
                 send_whatsapp: sendWhatsapp,
                 entry_type: "manual"
             });
             toast(`Token ${state?.prefix || ""}${res.token_number} created`, "success");
             setShowAddForm(false);
-            setAddName(""); setAddPhone(""); setAddPaxCount(1);
+            setAddName(""); setAddPhone(""); setAddPaxCount("1");
         } catch (err: unknown) {
             if (err instanceof ApiError) toast(err.detail, "error");
             else toast("Failed to add customer", "error");
         } finally { setActionLoading(null); }
     }, [queueId, addName, addPhone, addPaxCount, addCountryCode, state?.prefix, toast]);
+
 
     const executeInviteWithNumber = useCallback(async (num: number, lineNum?: number) => {
         setActionLoading("invite");
@@ -2217,8 +2218,23 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Number of Pax <span className="text-red-500">*</span></label>
-                                    <input type="number" min="1" max="10" value={addPaxCount} onChange={e => { const val = parseInt(e.target.value); if (!isNaN(val)) setAddPaxCount(Math.min(10, Math.max(1, val))); }} className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            value={addPaxCount}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                setAddPaxCount(val);
+                                            }}
+                                            placeholder="1"
+                                            className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                        />
+                                    </div>
                                 </div>
+
+
                             </div>
                             <div className="px-6 py-5 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-white/5 flex items-center gap-3 justify-between">
                                 <div className="flex-1">
@@ -2230,7 +2246,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddPaxCount(1); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+                                    <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddPaxCount("1"); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
                                         Cancel
                                     </button>
                                     <button
