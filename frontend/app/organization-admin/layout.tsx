@@ -65,18 +65,21 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                 href={href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 title={isSidebarCollapsed ? label : undefined}
-                className={`group relative flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3'} py-2 rounded-lg text-[13px] font-medium transition-all duration-150 border ${isActive
-                        ? "bg-indigo-50/80 text-indigo-700 border-indigo-100/60 shadow-sm"
-                        : "border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                className={`group relative flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3'} py-2 rounded-xl text-[13px] transition-all duration-200 ${isActive
+                        ? "bg-white/95 backdrop-blur-xs text-indigo-950 font-bold border border-slate-200/90 shadow-xs"
+                        : "border border-transparent text-slate-600 font-medium hover:bg-white/60 hover:text-slate-900"
                     }`}
             >
                 {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-600 rounded-r-md" />
+                    <div className="absolute left-1 top-2 bottom-2 w-1 bg-indigo-600 rounded-full shadow-2xs" />
                 )}
-                <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center w-full' : ''}`}>
-                    <Icon size={18} strokeWidth={isActive ? 2.5 : 2} className={`transition-colors duration-150 shrink-0 ${isActive ? "text-indigo-700" : "text-slate-400 group-hover:text-slate-600"}`} />
+                <div className={`flex items-center gap-2.5 ${isSidebarCollapsed ? 'justify-center w-full' : ''} ${isActive ? 'pl-1.5' : ''}`}>
+                    <Icon size={17} strokeWidth={isActive ? 2.25 : 1.75} className={`transition-colors duration-150 shrink-0 ${isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"}`} />
                     {!isSidebarCollapsed && <span className="tracking-tight whitespace-nowrap overflow-hidden">{label}</span>}
                 </div>
+                {isActive && !badge && !isSidebarCollapsed && (
+                    <ChevronRight size={13} className="text-indigo-500 shrink-0 ml-auto mr-0.5" />
+                )}
                 {badge && (
                     <div className={`${isSidebarCollapsed ? 'absolute top-1 right-1' : 'ml-auto flex items-center'}`}>
                         {isSidebarCollapsed ? (
@@ -137,18 +140,36 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                         )}
 
                         {/* Enterprise Sidebar */}
-                        <aside className={`bg-white border-r border-slate-200 flex flex-col h-full shrink-0 transition-all duration-300 w-[260px] ${isSidebarCollapsed ? 'md:w-[72px]' : 'md:w-[260px]'
+                        <aside className={`bg-white border-r border-slate-200/80 flex flex-col h-full shrink-0 transition-all duration-300 w-[260px] ${isSidebarCollapsed ? 'md:w-[72px]' : 'md:w-[260px]'
                             } fixed md:sticky inset-y-0 left-0 z-50 md:z-20 md:flex ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-                            }`}>
+                            } relative`}>
+                            {/* Organic Wavy Vector Wallpaper Layers (Constrained to Sidebar Bounds) */}
+                            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                                <div className="absolute inset-0 bg-gradient-to-b from-indigo-50/50 via-slate-50/20 to-white" />
+                                {/* Top Wavy Organic Shapes */}
+                                <svg className="absolute w-[340px] h-[640px] -top-10 -left-10 text-indigo-400/15" viewBox="0 0 100 200" preserveAspectRatio="none" fill="none">
+                                    <path d="M0,0 C35,45 65,25 100,65 C65,105 35,85 0,125 C45,165 75,145 100,200 L0,200 Z" fill="currentColor" opacity="0.16" />
+                                    <path d="M100,0 C65,55 25,35 0,85 C45,135 75,115 100,165 L100,0 Z" fill="currentColor" opacity="0.09" />
+                                    <path d="M0,20 C40,60 80,40 100,90 Q40,140 0,180" stroke="currentColor" strokeWidth="0.5" strokeDasharray="3 3" fill="none" opacity="0.28" />
+                                </svg>
+                                {/* Bottom Waves */}
+                                <svg className="absolute w-[300px] h-[420px] -bottom-10 -right-10 text-indigo-500/15" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none">
+                                    <path d="M0,100 C30,70 70,85 100,45 L100,100 Z" fill="currentColor" opacity="0.15" />
+                                    <path d="M0,100 Q50,60 100,80" stroke="currentColor" strokeWidth="0.5" fill="none" opacity="0.2" />
+                                </svg>
+                            </div>
+
+                            {/* Collapse Toggle Button (Positioned cleanly on sidebar border) */}
                             <button
                                 onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                                className="absolute -right-3 top-7 bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full p-1 shadow-sm z-50 hover:bg-slate-50 transition-colors hidden md:block"
+                                className="absolute -right-3.5 top-6 bg-white border border-slate-300 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 rounded-full p-1.5 shadow-md z-50 transition-all hover:scale-105 hidden md:flex items-center justify-center cursor-pointer"
+                                aria-label="Toggle Sidebar"
                             >
                                 <ChevronRight size={14} className={`transition-transform duration-300 ${isSidebarCollapsed ? "" : "rotate-180"}`} />
                             </button>
 
                             {/* Logo */}
-                            <div className="h-16 flex items-center justify-between px-4 shrink-0 border-b border-slate-100 overflow-hidden">
+                            <div className="h-16 flex items-center justify-between px-4 shrink-0 border-b border-slate-100/80 overflow-hidden relative z-10 bg-white/40 backdrop-blur-xs">
                                 <Link href="/organization-admin" className="focus:outline-none transition-opacity hover:opacity-80 flex items-center justify-center">
                                     {isSidebarCollapsed ? (
                                         <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">Q</div>
@@ -165,12 +186,12 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                             </div>
 
                             {/* Navigation */}
-                            <div className="flex-1 overflow-y-auto py-5 px-3 flex flex-col gap-8 scrollbar-thin">
+                            <div className="flex-1 overflow-y-auto py-3.5 px-3 flex flex-col gap-4 scrollbar-thin relative z-10">
 
                                 {/* Core */}
                                 <div>
-                                    <h3 className={`px-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase mb-2 transition-all duration-200 ${isSidebarCollapsed ? 'opacity-0 h-0 overflow-hidden m-0' : ''}`}>Overview</h3>
-                                    <div className="space-y-1">
+                                    <h3 className={`px-3 text-[11px] font-bold tracking-widest text-slate-400 uppercase mb-1 transition-all duration-200 ${isSidebarCollapsed ? 'opacity-0 h-0 overflow-hidden m-0' : ''}`}>Overview</h3>
+                                    <div className="space-y-0.5">
                                         <NavLink href="/organization-admin" icon={LayoutDashboard} label="Command Center" />
                                         <NavLink href="/organization-admin/branches" icon={Building2} label="Branches" />
                                         <NavLink href="/organization-admin/analytics" icon={LineChart} label="Analytics" />
@@ -179,8 +200,8 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
 
                                 {/* Live Operations */}
                                 <div>
-                                    <h3 className={`px-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase mb-2 transition-all duration-200 ${isSidebarCollapsed ? 'opacity-0 h-0 overflow-hidden m-0' : ''}`}>Live Operations</h3>
-                                    <div className="space-y-1">
+                                    <h3 className={`px-3 text-[11px] font-bold tracking-widest text-slate-400 uppercase mb-1 transition-all duration-200 ${isSidebarCollapsed ? 'opacity-0 h-0 overflow-hidden m-0' : ''}`}>Live Operations</h3>
+                                    <div className="space-y-0.5">
                                         <NavLink href="/organization-admin/monitoring/sessions" icon={Users} label="Live Sessions" />
                                         <NavLink href="/organization-admin/monitoring/queues" icon={Activity} label="Active Queues" />
                                         <NavLink href="/organization-admin/monitoring/staff" icon={UserCog} label="Staff Presence" />
@@ -189,8 +210,8 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
 
                                 {/* Administration */}
                                 <div>
-                                    <h3 className={`px-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase mb-2 transition-all duration-200 ${isSidebarCollapsed ? 'opacity-0 h-0 overflow-hidden m-0' : ''}`}>Administration</h3>
-                                    <div className="space-y-1">
+                                    <h3 className={`px-3 text-[11px] font-bold tracking-widest text-slate-400 uppercase mb-1 transition-all duration-200 ${isSidebarCollapsed ? 'opacity-0 h-0 overflow-hidden m-0' : ''}`}>Administration</h3>
+                                    <div className="space-y-0.5">
                                         <NavLink href="/organization-admin/monitoring/audit" icon={Database} label="Audit Logs" />
                                         <NavLink href="/organization-admin/announcements" icon={Megaphone} label="Announcements" />
                                         <NavLink href="/organization-admin/exports" icon={Download} label="Data Exports" />
@@ -199,35 +220,37 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                 </div>
 
                                 {/* Help Section */}
-                                <div className={`mt-auto mb-2 ${isSidebarCollapsed ? 'mx-2' : 'mx-4'} p-3 rounded-xl bg-slate-50 border border-slate-100/50 shadow-sm`}>
-                                    {!isSidebarCollapsed && <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Need Help?</p>}
-                                    <a href="mailto:contact@q4queue.com" className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-2 mb-1'} text-[13px] font-medium text-slate-500 hover:text-indigo-600 transition-colors`} title="contact@q4queue.com">
-                                        <MessageCircle size={14} className="shrink-0" />
+                                <div className={`mt-auto mb-1 ${isSidebarCollapsed ? 'mx-1' : 'mx-3'} p-2.5 rounded-xl bg-white/60 backdrop-blur-xs border border-slate-200/60 shadow-2xs group hover:bg-white/80 transition-colors`}>
+                                    {!isSidebarCollapsed && <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Need Help?</p>}
+                                    <a href="mailto:contact@q4queue.com" className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-2'} text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors`} title="contact@q4queue.com">
+                                        <div className="w-6 h-6 rounded-lg bg-white border border-slate-200/60 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors shrink-0">
+                                            <MessageCircle size={13} />
+                                        </div>
                                         {!isSidebarCollapsed && <span className="truncate">contact@q4queue.com</span>}
                                     </a>
                                 </div>
                             </div>
                             {/* Organization Profile in Sidebar (Bottom) */}
-                            <div className="p-3 border-t border-slate-100 shrink-0 bg-white relative">
+                            <div className="p-3 border-t border-slate-100/80 shrink-0 bg-white/40 backdrop-blur-xs relative z-10">
                                 <div
-                                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-1.5' : 'justify-between p-2'} rounded-xl transition-all cursor-default select-none group bg-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,1)] ring-1 ring-slate-200/60`}
+                                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-1.5' : 'justify-between p-2.5'} rounded-xl transition-all cursor-default select-none group bg-slate-50/80 border border-slate-200/60 hover:bg-slate-100/60`}
                                     title={isSidebarCollapsed ? orgSettings?.name || "Organization" : undefined}
                                 >
                                     <div className={`flex items-center gap-3 min-w-0 ${isSidebarCollapsed ? '' : 'pr-1'}`}>
                                         {orgSettings?.logo_url ? (
-                                            <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                                            <div className="w-9 h-9 shrink-0 flex items-center justify-center bg-white rounded-lg shadow-2xs border border-slate-200 overflow-hidden">
                                                 <img src={orgSettings.logo_url} alt="Logo" className="w-full h-full object-contain p-0.5" />
                                             </div>
                                         ) : (
-                                            <div className="w-10 h-10 shrink-0 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg shadow-sm border border-indigo-200">
+                                            <div className="w-9 h-9 shrink-0 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-2xs border border-indigo-700/20">
                                                 {orgSettings?.name?.charAt(0) || 'O'}
                                             </div>
                                         )}
                                         
                                         {!isSidebarCollapsed && (
                                             <div className="flex-1 min-w-0 overflow-hidden">
-                                                <div className="text-[10px] font-bold tracking-widest text-slate-400/80 uppercase mb-0.5">Organization</div>
-                                                <div className="text-sm font-bold text-slate-900 truncate w-full group-hover:text-indigo-700 transition-colors">
+                                                <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-0.5">Organization</div>
+                                                <div className="text-xs font-bold text-slate-900 truncate w-full group-hover:text-indigo-600 transition-colors">
                                                     {orgSettings?.name || "Loading..."}
                                                 </div>
                                             </div>

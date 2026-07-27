@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { 
     Users, Clock, Building2, TrendingUp, Zap, Server, 
     BarChart3, Activity, Download, ChevronRight, LayoutDashboard,
-    AlertCircle, CheckCircle2, TrendingDown, Star, Sparkles, Lightbulb,
+    AlertCircle, CheckCircle2, TrendingDown, Star, Sparkles,
     UserMinus, UserCheck, Target, Layers, FileText, FileSpreadsheet, ChevronDown, UsersRound, BarChart2, Trophy, User, Boxes, X, ArrowRight, Info
 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -221,18 +221,18 @@ export default function AnalyticsPage() {
             {/* Premium Header & Controls */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-6 pb-6 border-b border-slate-200/60">
                 <div>
-                    <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500">
+                    <h1 className="text-[22px] font-extrabold tracking-tight text-slate-900">
                         Executive Dashboard
                     </h1>
-                    <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 mt-2">
-                        <span className="leading-none font-medium text-slate-500">Historical data, operational insights, and performance metrics.</span>
-                        <span className="hidden sm:flex items-center text-slate-300 leading-none">•</span>
-                        <div className="flex items-center gap-1.5 text-slate-500 font-mono text-[10px] tracking-widest uppercase font-semibold bg-slate-100/50 px-2 py-1 rounded-md border border-slate-200/50 leading-none">
+                    <div className="flex items-center flex-wrap gap-2.5 mt-1.5">
+                        <span className="text-[13px] font-medium text-slate-500">Operational insights & performance metrics</span>
+                        <span className="hidden sm:flex items-center text-slate-300 leading-none">·</span>
+                        <div className="flex items-center gap-1.5 font-mono text-[10px] tracking-widest uppercase font-semibold bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md border border-emerald-100/80 leading-none">
                             <span className="relative flex h-1.5 w-1.5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                             </span>
-                            <span>Updated just now</span>
+                            <span>Live</span>
                         </div>
                     </div>
                 </div>
@@ -259,21 +259,6 @@ export default function AnalyticsPage() {
                                 <div className="fixed inset-0 z-40" onClick={() => setIsExportMenuOpen(false)}></div>
                                 <div className="absolute right-0 sm:right-0 mt-2.5 w-full sm:w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 z-50 p-2 overflow-hidden ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                                     <div className="flex flex-col space-y-1">
-                                        {/* <button
-                                            onClick={() => {
-                                                setIsExportMenuOpen(false);
-                                                window.print();
-                                            }}
-                                            className="flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 font-medium group"
-                                        >
-                                            <div className="bg-slate-100 group-hover:bg-indigo-100 p-1.5 rounded-md transition-colors">
-                                                <FileText size={14} className="text-slate-500 group-hover:text-indigo-600 transition-colors" />
-                                            </div>
-                                            <div>
-                                                <p>Export as PDF</p>
-                                                <p className="text-[10px] text-slate-400 font-normal mt-0.5 leading-tight">Includes all graphs & visuals</p>
-                                            </div>
-                                        </button> */}
                                         <button
                                             onClick={() => {
                                                 setIsExportMenuOpen(false);
@@ -297,191 +282,191 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            {/* Apple Liquid Glass AI Insights Panel */}
-            {data.insights && data.insights.length > 0 && (
-                <div className="relative overflow-hidden rounded-2xl bg-[#fbfbfd]/70 backdrop-blur-2xl border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.06),inset_0_1px_0_0_rgba(255,255,255,0.9)]">
-                    {/* Liquid Abstract Orbs */}
-                    <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-500/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse z-0"></div>
-                    <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-500/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 z-0"></div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-48 bg-emerald-400/5 rounded-full mix-blend-multiply filter blur-3xl opacity-50 z-0"></div>
 
-                    <div className="relative z-10 p-6 md:p-7 flex flex-col md:flex-row items-start md:items-center gap-6">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-3">
-                                {data.insights[0].includes("🚨") ? (
-                                    <AlertCircle size={15} className="text-rose-500" />
-                                ) : (
-                                    <Lightbulb size={15} className="text-slate-500" />
-                                )}
-                                <h3 className={`font-bold uppercase tracking-widest text-[11px] pt-0.5 ${data.insights[0].includes("🚨") ? "text-rose-500" : "text-slate-500"}`}>
-                                    {data.insights[0].includes("🚨") ? "Critical Alert" : "AI Strategic Insight"}
-                                </h3>
-                            </div>
-                            <h2 className={`text-xl font-semibold leading-relaxed tracking-tight ${data.insights[0].includes("🚨") ? "text-rose-900" : "text-slate-800"}`}>
-                                {data.insights[0]}
-                            </h2>
-                        </div>
-                        {data.insights.length > 1 && (
-                            <div className="w-full md:w-1/3 border-t md:border-t-0 md:border-l border-slate-200/60 pt-4 md:pt-0 md:pl-6">
-                                <ul className="space-y-3">
-                                    {data.insights.slice(1).map((insight: string, idx: number) => {
-                                        const isAlert = insight.includes("🚨");
-                                        const isInsight = insight.includes("💡");
-                                        const color = isAlert ? "bg-rose-500" : (isInsight ? "bg-amber-500" : "bg-blue-500");
-                                        return (
-                                            <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-600 font-medium">
-                                                <div className={`w-1.5 h-1.5 rounded-full ${color} mt-1.5 shrink-0 shadow-sm`} />
-                                                <span className={`leading-snug ${isAlert ? 'text-rose-900' : ''}`}>{insight}</span>
-                                            </li>
-                                        )
-                                    })}
-                                </ul>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
 
-            {/* Merged High-Density KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                
-                {/* Efficiency Focus */}
-                <div className="bg-white rounded-[24px] border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] p-7">
-                    <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center gap-2.5">
-                            <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600">
+                {/* ── Card 1: Efficiency Metrics ── */}
+                <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 shrink-0">
                                 <Activity size={16} />
                             </div>
-                            <h2 className="font-bold text-slate-800 text-[15px] tracking-tight">Efficiency Metrics</h2>
+                            <div>
+                                <h2 className="font-bold text-slate-800 text-[13px] tracking-tight leading-none">Efficiency Metrics</h2>
+                                <p className="text-[10.5px] font-medium text-slate-400 mt-0.5">Averages across the period</p>
+                            </div>
                         </div>
-                        <span className="bg-slate-50 text-slate-500 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-slate-100">Average</span>
+                        <span className="bg-slate-50 text-slate-500 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-200/60">Avg</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-y-8 gap-x-6">
+
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-5">
                         <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Average duration customers wait before being served.">
-                                <Clock size={14} className="text-slate-400" />
-                                <span className="text-xs font-semibold text-slate-500">Wait Time</span>
+                            <div className="flex items-center gap-1.5 cursor-help" title="Average duration customers wait before being served.">
+                                <Clock size={11} className="text-slate-400 shrink-0" />
+                                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Wait Time</span>
                             </div>
-                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{humanTime(data.time_metrics.avg_wait_time)}</span>
+                            <span className="text-[24px] font-black text-slate-800 tracking-tighter leading-none">{humanTime(data.time_metrics.avg_wait_time)}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Average time staff spends serving each customer.">
-                                <Zap size={14} className="text-amber-500/80" />
-                                <span className="text-xs font-semibold text-slate-500">Service Time</span>
+                            <div className="flex items-center gap-1.5 cursor-help" title="Average time staff spends serving each customer.">
+                                <Zap size={11} className="text-amber-400 shrink-0" />
+                                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Service Time</span>
                             </div>
-                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{humanTime(data.time_metrics.avg_service_time)}</span>
+                            <span className="text-[24px] font-black text-slate-800 tracking-tighter leading-none">{humanTime(data.time_metrics.avg_service_time)}</span>
+                        </div>
+
+                        <div className="col-span-2 border-t border-slate-100" />
+
+                        <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center gap-1.5 cursor-help" title="Percentage of queued customers successfully served.">
+                                <CheckCircle2 size={11} className="text-emerald-500 shrink-0" />
+                                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Completion</span>
+                            </div>
+                            {(() => {
+                                const val = parseFloat(data.customer_metrics.completion_rate);
+                                const color = val >= 70 ? 'text-emerald-600' : val >= 40 ? 'text-amber-500' : 'text-rose-500';
+                                return <span className={`text-[24px] font-black tracking-tighter leading-none ${color}`}>{data.customer_metrics.completion_rate}</span>;
+                            })()}
                         </div>
                         <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Percentage of queued customers successfully served.">
-                                <CheckCircle2 size={14} className="text-emerald-500/80" />
-                                <span className="text-xs font-semibold text-slate-500">Completion</span>
-                            </div>
-                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{data.customer_metrics.completion_rate}</span>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Total number of queue lanes active in this period.">
-                                <Layers size={14} className="text-blue-500/80" />
-                                <span className="text-xs font-semibold text-slate-500">
+                            <div className="flex items-center gap-1.5 cursor-help" title="Total number of queue lanes active in this period.">
+                                <Layers size={11} className="text-blue-400 shrink-0" />
+                                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">
                                     {dateRange.preset === "today" ? "Live Queues" : "Queues"}
                                 </span>
                             </div>
-                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">
+                            <span className="text-[24px] font-black text-slate-800 tracking-tighter leading-none">
                                 {dateRange.preset === "today" ? data.operations_metrics.active_queues : data.operations_metrics.operated_queues}
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Volume Focus */}
-                <div className="bg-white rounded-[24px] border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] p-7">
-                    <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center gap-2.5">
-                            <div className="bg-emerald-50 p-2 rounded-xl text-emerald-600">
+                {/* ── Card 2: Volume & Scale ── */}
+                <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shrink-0">
                                 <Users size={16} />
                             </div>
-                            <h2 className="font-bold text-slate-800 text-[15px] tracking-tight">Volume & Scale</h2>
+                            <div>
+                                <h2 className="font-bold text-slate-800 text-[13px] tracking-tight leading-none">Volume & Scale</h2>
+                                <p className="text-[10.5px] font-medium text-slate-400 mt-0.5">Totals for the period</p>
+                            </div>
                         </div>
-                        <span className="bg-slate-50 text-slate-500 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-slate-100">Total</span>
+                        <span className="bg-slate-50 text-slate-500 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-200/60">Total</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-y-8 gap-x-6">
+
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-5">
                         <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Overall number of customers fully processed.">
-                                <Users size={14} className="text-emerald-500/80" />
-                                <span className="text-xs font-semibold text-slate-500">Served</span>
+                            <div className="flex items-center gap-1.5 cursor-help" title="Overall number of customers fully processed.">
+                                <Users size={11} className="text-emerald-500 shrink-0" />
+                                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Served</span>
                             </div>
-                            <span className="text-[26px] font-black text-emerald-600 tracking-tighter leading-none">{data.customer_metrics.customers_served}</span>
+                            <span className="text-[24px] font-black text-emerald-600 tracking-tighter leading-none">{data.customer_metrics.customers_served}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Current volume of customers still in queue.">
-                                <Activity size={14} className="text-indigo-500/80" />
-                                <span className="text-xs font-semibold text-slate-500">Waiting</span>
+                            <div className="flex items-center gap-1.5 cursor-help" title="Current volume of customers still in queue.">
+                                <Activity size={11} className="text-indigo-500 shrink-0" />
+                                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Waiting</span>
                             </div>
-                            <span className="text-[26px] font-black text-indigo-600 tracking-tighter leading-none">{data.customer_metrics.customers_waiting}</span>
+                            <span className="text-[24px] font-black text-indigo-600 tracking-tighter leading-none">{data.customer_metrics.customers_waiting}</span>
+                        </div>
+
+                        <div className="col-span-2 border-t border-slate-100" />
+
+                        <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center gap-1.5 cursor-help" title="The busiest hour by customer volume.">
+                                <TrendingUp size={11} className="text-slate-400 shrink-0" />
+                                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Peak Hour</span>
+                            </div>
+                            <span className="text-[16px] font-black text-slate-800 tracking-tight leading-snug">{data.time_metrics.peak_hour || "—"}</span>
                         </div>
                         <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="The busiest hour by customer volume.">
-                                <TrendingUp size={14} className="text-rose-500/80" />
-                                <span className="text-xs font-semibold text-slate-500">Peak Hour</span>
+                            <div className="flex items-center gap-1.5 cursor-help" title="Number of active branches generating data.">
+                                <Building2 size={11} className="text-slate-400 shrink-0" />
+                                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Branches</span>
                             </div>
-                            <span className="text-[20px] font-black text-rose-600 tracking-tighter leading-tight max-w-[120px]">{data.time_metrics.peak_hour}</span>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Number of active branches generating data.">
-                                <Building2 size={14} className="text-slate-700/80" />
-                                <span className="text-xs font-semibold text-slate-500">Branches</span>
-                            </div>
-                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{data.operations_metrics.active_branches}</span>
+                            <span className="text-[24px] font-black text-slate-800 tracking-tighter leading-none">{data.operations_metrics.active_branches}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Retention & Load */}
-                <div className="bg-white rounded-[24px] border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] p-7 md:col-span-2 xl:col-span-1">
-                    <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center gap-2.5">
-                            <div className="bg-rose-50 p-2 rounded-xl text-rose-600">
-                                <TrendingDown size={16} />
+                {/* ── Card 3: Retention & Load — dynamic severity ── */}
+                {(() => {
+                    const churnVal = parseFloat(data.customer_metrics.abandonment_rate);
+                    const isCritical = churnVal > 30;
+                    const isWarn = churnVal > 15 && churnVal <= 30;
+                    const badgeLabel = isCritical ? 'Critical' : isWarn ? 'Monitor' : 'Healthy';
+                    const badgeCls = isCritical
+                        ? 'bg-rose-50 text-rose-600 border-rose-100'
+                        : isWarn ? 'bg-amber-50 text-amber-600 border-amber-100'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-100';
+                    const iconBg = isCritical ? 'bg-rose-50 text-rose-600' : isWarn ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600';
+                    const churnColor = isCritical ? 'text-rose-600' : isWarn ? 'text-amber-500' : 'text-emerald-600';
+                    return (
+                        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 md:col-span-2 xl:col-span-1">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+                                        <TrendingDown size={16} />
+                                    </div>
+                                    <div>
+                                        <h2 className="font-bold text-slate-800 text-[13px] tracking-tight leading-none">Retention & Load</h2>
+                                        <p className="text-[10.5px] font-medium text-slate-400 mt-0.5">Abandonment & staffing</p>
+                                    </div>
+                                </div>
+                                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border ${badgeCls}`}>{badgeLabel}</span>
                             </div>
-                            <h2 className="font-bold text-slate-800 text-[15px] tracking-tight">Retention & Load</h2>
-                        </div>
-                        <span className="bg-rose-50 text-rose-600 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-rose-100">Critical</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-y-8 gap-x-6">
-                        <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Customers who left the queue without service.">
-                                <UserMinus size={14} className="text-rose-400" />
-                                <span className="text-xs font-semibold text-slate-500">Abandoned</span>
+
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-1.5 cursor-help" title="Customers who left the queue without service.">
+                                        <UserMinus size={11} className="text-rose-400 shrink-0" />
+                                        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Abandoned</span>
+                                    </div>
+                                    <span className="text-[24px] font-black text-rose-600 tracking-tighter leading-none">{data.customer_metrics.customers_abandoned}</span>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-1.5 cursor-help" title="Percentage ratio of abandoned customers.">
+                                        <TrendingDown size={11} className="text-rose-400 shrink-0" />
+                                        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Churn Rate</span>
+                                    </div>
+                                    <span className={`text-[24px] font-black tracking-tighter leading-none ${churnColor}`}>{data.customer_metrics.abandonment_rate}</span>
+                                </div>
+
+                                <div className="col-span-2 border-t border-slate-100" />
+
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-1.5 cursor-help" title="Number of staff members currently on shift.">
+                                        <UserCheck size={11} className="text-emerald-500 shrink-0" />
+                                        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Staff Online</span>
+                                    </div>
+                                    <span className="text-[24px] font-black text-slate-800 tracking-tighter leading-none">{data.operations_metrics.online_staff}</span>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-1.5 cursor-help" title="Average waiting customers per online staff member.">
+                                        <Target size={11} className="text-indigo-500 shrink-0" />
+                                        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Load / Staff</span>
+                                    </div>
+                                    <span className="text-[24px] font-black text-slate-800 tracking-tighter leading-none">
+                                        {data.operations_metrics.online_staff > 0
+                                            ? (data.customer_metrics.customers_waiting / data.operations_metrics.online_staff).toFixed(1)
+                                            : "—"}
+                                    </span>
+                                </div>
                             </div>
-                            <span className="text-[26px] font-black text-rose-600 tracking-tighter leading-none">{data.customer_metrics.customers_abandoned}</span>
                         </div>
-                        <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Percentage ratio of abandoned customers.">
-                                <TrendingDown size={14} className="text-rose-400" />
-                                <span className="text-xs font-semibold text-slate-500">Churn Rate</span>
-                            </div>
-                            <span className="text-[26px] font-black text-rose-600 tracking-tighter leading-none">{data.customer_metrics.abandonment_rate}</span>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Number of staff members currently on shift.">
-                                <UserCheck size={14} className="text-emerald-500/80" />
-                                <span className="text-xs font-semibold text-slate-500">Staff Online</span>
-                            </div>
-                            <span className="text-[26px] font-black text-slate-800 tracking-tighter leading-none">{data.operations_metrics.online_staff}</span>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1.5 text-slate-500 cursor-help w-max" title="Average waiting customers per online staff member.">
-                                <Target size={14} className="text-indigo-500/80" />
-                                <span className="text-xs font-medium border-b border-dashed border-slate-300">Load / Staff</span>
-                            </div>
-                            <span className="text-2xl font-semibold text-slate-900 tracking-tight">
-                                {data.operations_metrics.online_staff > 0 ? (data.customer_metrics.customers_waiting / data.operations_metrics.online_staff).toFixed(1) : "-"}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                    );
+                })()}
             </div>
 
             {/* Volume Trend Chart */}
+
+
+
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
                 <div className="flex items-center justify-between mb-6">
                     <div>
@@ -565,98 +550,139 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            {/* Guest Distribution (Full Width) */}
-            <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-sm overflow-hidden flex flex-col mb-6 mt-6">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <div className="flex flex-col gap-1">
-                        <h2 className="font-bold text-slate-900 flex items-center gap-2">
-                            <UsersRound size={20} className="text-indigo-500" />
-                            Customer Group Sizes
-                            <div className="relative group/info flex items-center ml-1">
-                                <Info size={14} className="text-slate-400 cursor-help" />
-                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-max px-3 py-2 bg-slate-800 text-white text-xs font-semibold rounded-lg opacity-0 group-hover/info:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Total customer count includes the person who took the ticket.
-                                </div>
-                            </div>
-                        </h2>
-                        <p className="text-[13px] font-medium text-slate-500">See how many people are arriving alone, in pairs, or in larger groups.</p>
+            {/* Customer Group Sizes - Premium Redesign */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden mb-6 mt-6">
+                {/* Header */}
+                <div className="px-7 py-5 border-b border-slate-100 flex items-start justify-between">
+                    <div className="flex items-start gap-3.5">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0 border border-indigo-100/60">
+                            <UsersRound size={17} className="text-indigo-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-[15px] font-bold text-slate-900 leading-tight">Customer Group Sizes</h2>
+                            <p className="text-[13px] font-medium text-slate-500 mt-0.5 flex items-center gap-1.5">
+                                How many people arrive alone, in pairs, or in larger groups
+                                <span className="relative group/info inline-flex items-center">
+                                    <Info size={12} className="text-slate-400 cursor-help" />
+                                    <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-max px-3 py-2 bg-slate-800 text-white text-xs font-semibold rounded-lg opacity-0 group-hover/info:opacity-100 transition-opacity pointer-events-none z-50">
+                                        Total customer count includes the person who took the ticket.
+                                    </span>
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    {/* Summary badges */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        <div className="px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200/80 text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">Total People</p>
+                            <p className="text-[16px] font-black text-slate-800 leading-none">{totalGuests}</p>
+                        </div>
+                        <div className="px-3 py-1.5 bg-indigo-50 rounded-lg border border-indigo-100/60 text-center">
+                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider leading-none mb-0.5">Total Tickets</p>
+                            <p className="text-[16px] font-black text-indigo-700 leading-none">{totalTokens}</p>
+                        </div>
                     </div>
                 </div>
-                <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
-                    {/* Left Side: Visual Pie Chart (Hero) - 35% Width */}
-                    <div className="w-full lg:w-[35%] p-8 flex flex-col items-center justify-center bg-slate-50/20">
-                        <div className="w-full h-[280px]">
-                            {totalTokens === 0 ? (
-                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-sm">
-                                    <UsersRound size={32} className="mb-2 opacity-20" />
-                                    No guest data available
-                                </div>
-                            ) : (
+
+                {totalTokens === 0 ? (
+                    <div className="py-20 flex flex-col items-center justify-center text-slate-400">
+                        <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-center mb-4">
+                            <UsersRound size={28} className="opacity-30" />
+                        </div>
+                        <p className="text-[14px] font-semibold text-slate-500">No group data available</p>
+                        <p className="text-[12px] text-slate-400 mt-1">Data will appear once customers start using the queue</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col lg:flex-row">
+                        {/* Left: Donut Chart + Legend */}
+                        <div className="w-full lg:w-[38%] px-6 py-7 flex flex-col items-center border-b lg:border-b-0 lg:border-r border-slate-100">
+
+                            {/* Section micro-label */}
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em] mb-5 self-start">Distribution</p>
+
+                            {/* Donut Ring — clean, no wrapper border */}
+                            <div className="w-full" style={{ height: '210px' }}>
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
+                                    <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                                         <Pie
                                             data={paddedPax.filter((d: any) => d.token_count > 0)}
                                             cx="50%"
                                             cy="50%"
-                                            innerRadius={80}
-                                            outerRadius={105}
-                                            paddingAngle={3}
+                                            innerRadius={68}
+                                            outerRadius={95}
+                                            paddingAngle={2}
                                             dataKey="token_count"
                                             cornerRadius={4}
                                             stroke="none"
                                             isAnimationActive={true}
-                                            animationBegin={100}
-                                            animationDuration={800}
+                                            animationBegin={60}
+                                            animationDuration={650}
                                         >
                                             {paddedPax.filter((d: any) => d.token_count > 0).map((entry: any, index: number) => (
                                                 <Cell key={`cell-${index}`} fill={getColorForSize(entry.group_size)} />
                                             ))}
                                         </Pie>
-                                        <text x="50%" y="47%" textAnchor="middle" dominantBaseline="middle" className="text-6xl font-black fill-slate-800" style={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+
+                                        {/* Center: big number */}
+                                        <text
+                                            x="50%" y="44%"
+                                            textAnchor="middle" dominantBaseline="middle"
+                                            style={{ fontWeight: 900, fontSize: '32px', fill: '#0f172a', letterSpacing: '-0.04em' }}
+                                        >
                                             {totalGuests}
                                         </text>
-                                        <text x="50%" y="61%" textAnchor="middle" dominantBaseline="middle" className="text-[12px] font-bold fill-slate-400 uppercase tracking-widest">
-                                            Total People
+                                        {/* Center: "people" label */}
+                                        <text
+                                            x="50%" y="57%"
+                                            textAnchor="middle" dominantBaseline="middle"
+                                            style={{ fontWeight: 600, fontSize: '11px', fill: '#94a3b8', letterSpacing: '0.06em' }}
+                                        >
+                                            people
                                         </text>
-                                        <RechartsTooltip 
+                                        {/* Center: tickets count (small indigo pill) */}
+                                        <text
+                                            x="50%" y="70%"
+                                            textAnchor="middle" dominantBaseline="middle"
+                                            style={{ fontWeight: 800, fontSize: '12px', fill: '#6366f1' }}
+                                        >
+                                            {totalTokens} tickets
+                                        </text>
+
+                                        <RechartsTooltip
                                             cursor={false}
                                             content={({ active, payload }: any) => {
                                                 if (active && payload && payload.length) {
-                                                    const data = payload[0].payload;
+                                                    const d = payload[0].payload;
+                                                    const pct = totalTokens > 0 ? Math.round((d.token_count / totalTokens) * 100) : 0;
+                                                    const color = getColorForSize(d.group_size);
                                                     return (
-                                                        <div className="bg-white/95 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.08)] min-w-[220px]">
-                                                            <div className="flex items-center gap-3 mb-3 pb-3 border-b border-slate-100/80">
-                                                                <div className="w-3.5 h-3.5 rounded-full border shadow-sm" style={{ backgroundColor: getColorForSize(data.group_size), borderColor: `${getColorForSize(data.group_size)}40` }}></div>
-                                                                <span className="font-bold text-slate-900 text-[14px] leading-none">{sizeLabel(data.group_size)}</span>
+                                                        <div
+                                                            className="bg-white p-4 rounded-2xl border border-slate-100 min-w-[168px]"
+                                                            style={{ boxShadow: `0 12px 36px -6px ${color}30, 0 4px 12px -2px rgba(0,0,0,0.08)` }}
+                                                        >
+                                                            {/* Header row */}
+                                                            <div className="flex items-center gap-2.5 mb-3 pb-2.5 border-b border-slate-100">
+                                                                <div
+                                                                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                                                                    style={{ backgroundColor: `${color}18` }}
+                                                                >
+                                                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-slate-900 text-[13px] leading-none">{sizeLabel(d.group_size)}</p>
+                                                                    <p className="text-[10px] font-semibold mt-0.5" style={{ color }}>{pct}% of tickets</p>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex flex-col gap-2.5">
-                                                                <div className="flex items-center justify-between">
-                                                                    <span className="text-slate-500 text-[12px] font-medium tracking-wide">Tokens</span>
-                                                                    <div className="flex items-baseline gap-1.5">
-                                                                        <span className="font-black text-slate-800 text-[14px] leading-none">{data.token_count}</span>
-                                                                    </div>
+                                                            {/* 2-col metric tiles */}
+                                                            <div className="grid grid-cols-2 gap-1.5">
+                                                                <div className="bg-slate-50 rounded-lg px-2.5 py-2 text-center">
+                                                                    <p className="text-[17px] font-black text-slate-800 leading-none">{d.token_count}</p>
+                                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">Tickets</p>
                                                                 </div>
-                                                                <div className="flex items-center justify-between">
-                                                                    <span className="text-slate-500 text-[12px] font-medium tracking-wide">Total People</span>
-                                                                    <div className="flex items-baseline gap-1.5">
-                                                                        <span className="font-black text-slate-800 text-[14px] leading-none">{data.total_pax}</span>
-                                                                    </div>
+                                                                <div className="rounded-lg px-2.5 py-2 text-center" style={{ backgroundColor: `${color}12` }}>
+                                                                    <p className="text-[17px] font-black leading-none" style={{ color }}>{d.total_pax}</p>
+                                                                    <p className="text-[9px] font-bold uppercase tracking-wide mt-0.5" style={{ color: `${color}aa` }}>People</p>
                                                                 </div>
-                                                                
-                                                                {/* Dynamic Breakdown for "Other Sizes" */}
-                                                                {data.breakdown && data.breakdown.length > 0 && (
-                                                                    <div className="mt-2 pt-2 border-t border-slate-100 border-dashed">
-                                                                        <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-2">Breakdown</span>
-                                                                        <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
-                                                                            {data.breakdown.map((b: any, i: number) => (
-                                                                                <div key={i} className="flex items-center justify-between">
-                                                                                    <span className="text-slate-600 text-[11px] font-medium">{sizeLabel(b.group_size)}</span>
-                                                                                    <span className="text-slate-800 text-[11px] font-bold">{b.token_count} <span className="text-slate-400 text-[9px] font-medium ml-0.5">tkns</span></span>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                )}
                                                             </div>
                                                         </div>
                                                     );
@@ -666,52 +692,88 @@ export default function AnalyticsPage() {
                                         />
                                     </PieChart>
                                 </ResponsiveContainer>
-                            )}
+                            </div>
+
+                            {/* Legend — clean card with mini bars */}
+                            <div className="w-full mt-4 rounded-xl border border-slate-200/70 overflow-hidden bg-white shadow-sm">
+                                {paddedPax.filter((d: any) => d.token_count > 0).map((item: any, idx: number, arr: any[]) => {
+                                    const pct = totalTokens > 0 ? Math.round((item.token_count / totalTokens) * 100) : 0;
+                                    // Ensure bar is always visible: min 6% visual width so even 1% groups show a sliver
+                                    const barWidth = Math.max(pct, 6);
+                                    const color = getColorForSize(item.group_size);
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={`flex items-center gap-3 px-3.5 py-2.5 ${idx < arr.length - 1 ? 'border-b border-slate-100' : ''}`}
+                                        >
+                                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                                            <span className="text-[11.5px] font-semibold text-slate-700 shrink-0 w-[70px] truncate">{sizeLabel(item.group_size)}</span>
+                                            <div className="flex-1 h-[5px] bg-slate-100 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full transition-all duration-700"
+                                                    style={{ width: `${barWidth}%`, backgroundColor: color, opacity: pct < 6 ? 0.6 : 1 }}
+                                                />
+                                            </div>
+                                            <span className="text-[11px] font-black shrink-0 w-8 text-right tabular-nums" style={{ color }}>{pct}%</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Right Side: The Metric Grid - 65% Width */}
-                    <div className="w-full lg:w-[65%] p-8 bg-white flex items-center justify-center">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
+                        {/* Right: Group Rows with Progress Bars */}
+                        <div className="w-full lg:w-[62%] px-7 py-6 flex flex-col justify-center gap-1">
                             {paddedPax.map((item: any, idx: number) => {
+                                const tokenPct = totalTokens > 0 && item.token_count > 0 ? Math.round((item.token_count / totalTokens) * 100) : 0;
                                 const guestPct = totalGuests > 0 && item.total_pax > 0 ? Math.round((item.total_pax / totalGuests) * 100) : 0;
-                                
+                                const color = getColorForSize(item.group_size);
                                 return (
-                                    <div 
-                                        key={idx} 
+                                    <div
+                                        key={idx}
                                         onClick={() => setSelectedGuestGroup({ ...item, guestPct })}
-                                        className="flex flex-col p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-slate-300 hover:bg-slate-50/50 cursor-pointer transition-colors bg-white animate-in slide-in-from-bottom-2 duration-500 group" 
-                                        style={{ animationDelay: `${idx * 100}ms` }}
+                                        className="group flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-slate-50/70 cursor-pointer transition-all duration-150 border border-transparent hover:border-slate-200/60"
                                     >
-                                        {/* Header: Icon + Name */}
-                                        <div className="flex items-center gap-3.5 mb-5">
-                                            <div className="w-10 h-10 rounded-full border flex items-center justify-center shrink-0" style={{ backgroundColor: `${getColorForSize(item.group_size)}15`, borderColor: `${getColorForSize(item.group_size)}30` }}>
-                                                {renderSizeIcon(item.group_size)}
-                                            </div>
-                                            <span className="text-[14px] font-bold text-slate-900 leading-tight">{sizeLabel(item.group_size)}</span>
+                                        {/* Icon Tile */}
+                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-150" style={{ backgroundColor: `${color}15`, borderColor: `${color}30` }}>
+                                            {renderSizeIcon(item.group_size)}
                                         </div>
 
-                                        {/* Primary Metric: Tokens */}
-                                        <div className="flex flex-col mb-4">
-                                            <div className="flex items-baseline gap-2 mb-2">
-                                                <span className="text-[32px] font-black text-slate-800 leading-none tracking-tight">{item.token_count}</span>
-                                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-none">Tokens</span>
+                                        {/* Label + Progress */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-[13px] font-bold text-slate-800">{sizeLabel(item.group_size)}</span>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <span className="text-[11px] font-semibold text-slate-500">{item.total_pax} <span className="text-slate-400 font-medium">people</span></span>
+                                                    <span className="text-[11px] font-black px-2 py-0.5 rounded-full" style={{ backgroundColor: `${color}15`, color: color }}>{tokenPct}%</span>
+                                                </div>
+                                            </div>
+                                            {/* Progress bar */}
+                                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full transition-all duration-700"
+                                                    style={{ width: `${tokenPct}%`, backgroundColor: color }}
+                                                />
                                             </div>
                                         </div>
 
-                                        <div className="mt-auto flex items-center justify-start">
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50/80 px-2.5 py-1.5 rounded-lg border border-indigo-100/50 uppercase tracking-widest group-hover:bg-indigo-100/80 transition-colors">
-                                                View Details
-                                                <ArrowRight size={10} strokeWidth={2.5} />
-                                            </div>
+                                        {/* Token Count */}
+                                        <div className="shrink-0 text-right pl-2">
+                                            <span className="text-[20px] font-black text-slate-800 leading-none block">{item.token_count}</span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">tickets</span>
                                         </div>
+
+                                        {/* Chevron */}
+                                        <ChevronRight size={15} className="text-slate-300 shrink-0 group-hover:text-slate-500 transition-colors" />
                                     </div>
                                 );
                             })}
                         </div>
                     </div>
-                </div>
+                )}
             </div>
+
+
+
 
             {/* Complex Tables Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
