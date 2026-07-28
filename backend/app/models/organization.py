@@ -57,6 +57,8 @@ class Organization(Base):
     auto_session_enabled: Mapped[bool] = mapped_column(Boolean, server_default='false', nullable=False)
     auto_session_time: Mapped[str | None] = mapped_column(String(5), nullable=True) # HH:MM format
     enable_shared_tokens: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
+    is_whatsapp_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default='true', nullable=False)
+
 
     # ── Relationships ──────────────────────────────────────────────
     parent_organization_id: Mapped[uuid.UUID | None] = mapped_column(

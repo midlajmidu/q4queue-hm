@@ -246,11 +246,16 @@ export default function JoinQueuePage({ params }: PageProps) {
         }
     }, [isFormValid, isJoining, customerName, customerPhone, paxCount, queueId, router]);
 
-    // Clicking the button → show modal first
+    // Clicking the button → show modal if whatsapp enabled, else join directly
     const handleJoin = useCallback(() => {
         if (!isFormValid || isJoining) return;
-        setShowWhatsAppModal(true);
-    }, [isFormValid, isJoining]);
+        if (live?.is_whatsapp_enabled === false) {
+            doJoin(false);
+        } else {
+            setShowWhatsAppModal(true);
+        }
+    }, [isFormValid, isJoining, live?.is_whatsapp_enabled, doJoin]);
+
 
 
     // ── Restore from localStorage on mount ────────────────────────

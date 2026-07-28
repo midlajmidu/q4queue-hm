@@ -20,7 +20,9 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
         org_name: org.name,
         org_slug: org.slug,
         is_active: org.is_active,
+        is_whatsapp_enabled: (org as any).is_whatsapp_enabled !== false,
         max_sessions: org.max_sessions ?? 10,
+
         max_queues_per_session: org.max_queues_per_session ?? 20,
         max_staff: org.max_staff ?? 5,
         admin_email: org.admin_email || ""
@@ -88,6 +90,15 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
                         </div>
                     </div>
                     <div className="flex items-center justify-between py-1">
+                        <div>
+                            <span className="text-sm font-medium text-slate-300">WhatsApp Messaging</span>
+                            <p className="text-xs text-slate-400">Enable/disable WhatsApp notifications for this branch</p>
+                        </div>
+                        <button type="button" role="switch" aria-checked={(form as any).is_whatsapp_enabled !== false} onClick={() => setForm(f => ({ ...f, is_whatsapp_enabled: (f as any).is_whatsapp_enabled === false }))} disabled={isSaving} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${(form as any).is_whatsapp_enabled !== false ? "bg-emerald-500" : "bg-slate-600"}`}>
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${(form as any).is_whatsapp_enabled !== false ? "translate-x-6" : "translate-x-1"}`} />
+                        </button>
+                    </div>
+                    <div className="flex items-center justify-between py-1">
                         <span className="text-sm font-medium text-slate-300">Status</span>
                         <div className="flex items-center gap-3">
                             <span className="text-sm text-slate-400">{form.is_active ? "Active" : "Inactive"}</span>
@@ -96,6 +107,7 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
                             </button>
                         </div>
                     </div>
+
                     <div className="flex gap-3 pt-1">
                         <button type="button" onClick={onClose} disabled={isSaving} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl transition-colors">Cancel</button>
                         <button type="submit" disabled={isSaving || !form.org_name || !form.org_slug} className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed">

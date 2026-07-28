@@ -151,11 +151,33 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
         global_cfg = await get_global_config(db)
         global_enabled = bool(global_cfg and global_cfg.is_enabled)
         
+        from app.models.organization import Organization
+        from sqlalchemy import select
+        org_res = await db.execute(select(Organization).where(Organization.id == org_id))
+        org_obj = org_res.scalar_one_or_none()
+        plan_enabled = getattr(org_obj, "is_whatsapp_enabled", True) if org_obj else True
+
+        if not plan_enabled:
+            return {
+                "global_enabled": global_enabled,
+                "plan_enabled": False,
+                "is_enabled": False,
+                "notify_queue_joined": False,
+                "notify_position_5": False,
+                "notify_position_3": False,
+                "notify_called": False,
+                "notify_completed": False,
+                "notify_skipped": False,
+                "notify_recalled": False,
+                "notify_removed": False,
+            }
+
         org_cfg = await get_org_config(db, org_id)
         if not org_cfg:
             # Opt-out model: default all to True
             return {
                 "global_enabled": global_enabled,
+                "plan_enabled": True,
                 "is_enabled": True,
                 "notify_queue_joined": True,
                 "notify_position_5": True,
@@ -169,7 +191,9 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
         
         return {
             "global_enabled": global_enabled,
+            "plan_enabled": True,
             "is_enabled": org_cfg.is_enabled,
+
             "notify_queue_joined": org_cfg.notify_queue_joined,
             "notify_position_5": org_cfg.notify_position_5,
             "notify_position_3": org_cfg.notify_position_3,

@@ -93,6 +93,7 @@ export interface ParentOrganization {
     id: string;
     name: string;
     enable_shared_tokens?: boolean;
+    is_whatsapp_enabled?: boolean;
     slug: string;
     contact_email?: string;
     contact_phone?: string;
@@ -117,17 +118,20 @@ export interface ParentOrganizationCreate {
     is_active?: boolean;
     max_branches?: number | null;
     enable_shared_tokens?: boolean;
+    is_whatsapp_enabled?: boolean;
 }
 
 export interface ParentOrganizationUpdate {
     name?: string;
     enable_shared_tokens?: boolean;
+    is_whatsapp_enabled?: boolean;
     slug?: string;
     contact_email?: string;
     contact_phone?: string;
     is_active?: boolean;
     max_branches?: number | null;
 }
+
 
 export interface AssignBranchesRequest {
     branch_ids: string[];
@@ -425,7 +429,9 @@ export interface ServingToken {
 export interface QueueSnapshot {
     type?: string;
     enable_shared_tokens?: boolean;
+    is_whatsapp_enabled?: boolean;
     queue_id: string;
+
     session_id: string;
     queue_name: string;
     prefix: string;
@@ -574,6 +580,7 @@ export interface OrgDetail {
     name: string;
     slug: string;
     is_active: boolean;
+    is_whatsapp_enabled?: boolean;
     created_at: string;
     max_sessions: number;
     max_queues_per_session: number;
@@ -609,17 +616,20 @@ export interface OrgCreateRequest {
     max_sessions: number;
     max_queues_per_session: number;
     max_staff?: number;
+    is_whatsapp_enabled?: boolean;
 }
 
 export interface OrgUpdateRequest {
     org_name: string;
     org_slug: string;
     is_active: boolean;
+    is_whatsapp_enabled?: boolean;
     max_sessions?: number;
     max_queues_per_session?: number;
     max_staff?: number;
     admin_email?: string;
 }
+
 
 export interface OrgCreateResponse {
     organization: OrgDetail;

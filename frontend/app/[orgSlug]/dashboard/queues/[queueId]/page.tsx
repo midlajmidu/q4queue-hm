@@ -740,13 +740,6 @@ export default function QueueDetailPage({ params }: PageProps) {
         if (!showAddForm) setAddFormError(null);
     }, [showAddForm]);
 
-    const handlePreAddCustomer = useCallback(async () => {
-        const phoneDigits = addPhone.replace(/\D/g, "");
-        if (!isAddNameValid || phoneDigits.length !== 10) { setAddFormError("Please enter a valid name and 10 digit phone number"); return; }
-        setAddFormError(null);
-        setShowWhatsappConfirm(true);
-    }, [addPhone, isAddNameValid]);
-
     const handleConfirmAddCustomer = useCallback(async (sendWhatsapp: boolean) => {
         setShowWhatsappConfirm(false);
         const phoneDigits = addPhone.replace(/\D/g, "");
@@ -768,6 +761,18 @@ export default function QueueDetailPage({ params }: PageProps) {
             else toast("Failed to add customer", "error");
         } finally { setActionLoading(null); }
     }, [queueId, addName, addPhone, addPaxCount, addCountryCode, state?.prefix, toast]);
+
+    const handlePreAddCustomer = useCallback(async () => {
+        const phoneDigits = addPhone.replace(/\D/g, "");
+        if (!isAddNameValid || phoneDigits.length !== 10) { setAddFormError("Please enter a valid name and 10 digit phone number"); return; }
+        setAddFormError(null);
+        if (state?.is_whatsapp_enabled === false) {
+            handleConfirmAddCustomer(false);
+        } else {
+            setShowWhatsappConfirm(true);
+        }
+    }, [addPhone, isAddNameValid, state?.is_whatsapp_enabled, handleConfirmAddCustomer]);
+
 
 
     const executeInviteWithNumber = useCallback(async (num: number, lineNum?: number) => {
