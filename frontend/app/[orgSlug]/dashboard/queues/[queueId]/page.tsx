@@ -2307,10 +2307,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="e.g. 1234567890" maxLength={10} className="flex-1 h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
                                             </div>
                                         </div>
-<<<<<<< Updated upstream
-                                        <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="e.g. 1234567890" maxLength={10} className="flex-1 h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
-                                    </div>
-                                </div>
+
                                 <div className="space-y-1.5">
                                     <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Number of Pax <span className="text-red-500">*</span></label>
                                     <div className="relative">
@@ -2328,16 +2325,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         />
                                     </div>
                                 </div>
-
-
-=======
-                                        <div className="space-y-1.5">
-                                            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Number of Pax <span className="text-red-500">*</span></label>
-                                            <input type="number" min="1" max="10" value={addPaxCount} onChange={e => { const val = parseInt(e.target.value); if (!isNaN(val)) setAddPaxCount(Math.min(10, Math.max(1, val))); }} className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
-                                        </div>
-                                    </>
-                                )}
->>>>>>> Stashed changes
+                            </>
+                        )}
                             </div>
                             <div className="px-6 py-5 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-white/5 flex items-center gap-3 justify-between">
                                 <div className="flex-1">
