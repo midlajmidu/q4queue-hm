@@ -26,7 +26,9 @@ export default function EditParentOrgModal({ parentOrg, isOpen, onClose, onSucce
                 is_active: parentOrg.is_active,
                 max_branches: parentOrg.max_branches || null,
                 enable_shared_tokens: parentOrg.enable_shared_tokens || false,
+                is_whatsapp_enabled: parentOrg.is_whatsapp_enabled !== false,
             });
+
         }
     }, [isOpen, parentOrg]);
 
@@ -118,6 +120,18 @@ export default function EditParentOrgModal({ parentOrg, isOpen, onClose, onSucce
                     <label className="flex items-center gap-3 cursor-pointer p-3 bg-slate-950/50 border border-slate-800 rounded-lg hover:bg-white/5 transition-colors">
                         <input
                             type="checkbox"
+                            checked={formData.is_whatsapp_enabled !== false}
+                            onChange={(e) => setFormData({ ...formData, is_whatsapp_enabled: e.target.checked })}
+                            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500/20 bg-slate-950 border-slate-700 rounded"
+                        />
+                        <div>
+                            <div className="text-sm font-medium text-slate-200">Enable WhatsApp Messaging</div>
+                            <div className="text-xs text-slate-400">Enables WhatsApp notifications across all branches of this organization</div>
+                        </div>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer p-3 bg-slate-950/50 border border-slate-800 rounded-lg hover:bg-white/5 transition-colors">
+                        <input
+                            type="checkbox"
                             checked={formData.is_active || false}
                             onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500/20 bg-slate-950 border-slate-700 rounded"
@@ -127,6 +141,7 @@ export default function EditParentOrgModal({ parentOrg, isOpen, onClose, onSucce
                             <div className="text-xs text-slate-400">Allow logins for this organization</div>
                         </div>
                     </label>
+
 
                     <div className="pt-4 flex justify-end gap-3">
                         <button

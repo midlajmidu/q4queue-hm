@@ -136,15 +136,19 @@ async def notify_queue_event(
                 t_res = await db.execute(select(Token).where(Token.id == token_id))
                 db_token = t_res.scalar_one_or_none()
                 
-            if not organization_name:
-                org_res = await db.execute(select(Organization).where(Organization.id == org_id))
-                org = org_res.scalar_one_or_none()
-                if org and org.name:
+            org_res = await db.execute(select(Organization).where(Organization.id == org_id))
+            org = org_res.scalar_one_or_none()
+            if org:
+                if not getattr(org, "is_whatsapp_enabled", True):
+                    logger.debug("WhatsApp disabled for branch %s, skipping event=%s", org_id, event_type)
+                    return
+                if org.name and not organization_name:
                     organization_name = org.name
 
         if db_token and not db_token.is_whatsapp_enabled:
             logger.debug("WhatsApp disabled for token %s, skipping event=%s", token_id, event_type)
             return
+
 
         # 4. Handle Hybrid Logic
         token_str = f"{token_prefix}-{token_number}"

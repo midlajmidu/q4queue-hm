@@ -319,6 +319,26 @@ export function WhatsAppPortal() {
         return <div className="text-center p-12 text-slate-500 font-medium">Loading WhatsApp analytics...</div>;
     }
 
+    if (config && (config as any).plan_enabled === false) {
+        return (
+            <div className="space-y-6 w-full pb-12 bg-transparent min-h-screen">
+                <div className="bg-white dark:bg-slate-900/60 rounded-[24px] p-12 shadow-sm border border-[#E9EDF5] dark:border-white/10 text-center max-w-2xl mx-auto mt-12">
+                    <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                        <MessageSquareText size={32} className="text-amber-500" strokeWidth={1.5} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">WhatsApp Messaging is Not Included in Your Plan</h2>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
+                        Your organization does not currently have WhatsApp notification support enabled. If you would like to enable automated WhatsApp updates for your queue customers, please contact the Q4Queue support team.
+                    </p>
+                    <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs border border-slate-200 dark:border-slate-700">
+                        <span>Need WhatsApp Support? Contact Q4Queue Support</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+
     return (
         <div className="space-y-6 w-full pb-12 bg-transparent min-h-screen">
             {/* Hero Section */}

@@ -309,4 +309,6 @@ async def build_queue_snapshot(
         "org_logo_url": None,
         "org_brand_color": None,
         "enable_shared_tokens": getattr(org, "enable_shared_tokens", False) or getattr(parent_org, "enable_shared_tokens", False),
+        "is_whatsapp_enabled": getattr(org, "is_whatsapp_enabled", True),
     }
+

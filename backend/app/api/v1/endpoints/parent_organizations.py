@@ -156,9 +156,19 @@ async def update_parent_organization(
     for field, value in update_data.items():
         setattr(parent_org, field, value)
 
+    if "is_whatsapp_enabled" in update_data and update_data["is_whatsapp_enabled"] is not None:
+        from app.models.organization import Organization
+        from sqlalchemy import update
+        await db.execute(
+            update(Organization)
+            .where(Organization.parent_organization_id == parent_org.id)
+            .values(is_whatsapp_enabled=update_data["is_whatsapp_enabled"])
+        )
+
     await db.commit()
     await db.refresh(parent_org)
     return parent_org
+
 
 @router.post("/{id}/assign-branches")
 async def assign_branches(

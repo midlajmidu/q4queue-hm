@@ -88,6 +88,7 @@ class OrgUpdateRequest(BaseModel):
     org_name: str = Field(..., min_length=2)
     org_slug: str = Field(..., min_length=2)
     is_active: bool
+    is_whatsapp_enabled: bool | None = None
     admin_email: str | None = None
     max_sessions: int | None = Field(None, ge=1)
     max_queues_per_session: int | None = Field(None, ge=1)
@@ -104,6 +105,7 @@ class OrgDetail(BaseModel):
     name: str
     slug: str
     is_active: bool
+    is_whatsapp_enabled: bool = True
     created_at: str
     max_sessions: int
     max_queues_per_session: int
@@ -113,8 +115,10 @@ class OrgDetail(BaseModel):
     admin_password_changed_at: str | None = None
     logo_url: str | None = None
     parent_organization_id: str | None = None
+    parent_slug: str | None = None
 
     model_config = {"from_attributes": True}
+
 
 
 class OrgDetailExtended(OrgDetail):
@@ -345,6 +349,7 @@ def _org_to_detail(o: Organization, admin_user: User | None = None) -> OrgDetail
         name=o.name,
         slug=o.slug,
         is_active=o.is_active,
+        is_whatsapp_enabled=getattr(o, "is_whatsapp_enabled", True),
         created_at=o.created_at.isoformat(),
         max_sessions=o.max_sessions,
         max_queues_per_session=o.max_queues_per_session,
@@ -355,6 +360,7 @@ def _org_to_detail(o: Organization, admin_user: User | None = None) -> OrgDetail
         parent_organization_id=str(o.parent_organization_id) if o.parent_organization_id else None,
         parent_slug=o.parent_organization.slug if getattr(o, "parent_organization", None) else None,
     )
+
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
@@ -1267,6 +1273,9 @@ async def update_organization(
     org.name = body.org_name
     org.slug = body.org_slug
     org.is_active = body.is_active
+    if body.is_whatsapp_enabled is not None:
+        org.is_whatsapp_enabled = body.is_whatsapp_enabled
+
     
     if body.max_sessions is not None:
         org.max_sessions = body.max_sessions
