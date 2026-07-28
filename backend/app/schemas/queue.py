@@ -132,12 +132,14 @@ class TokenRestoreResponse(BaseModel):
     customer_name: str
     customer_age: Optional[int] = None
     customer_phone: str
-    pax_count: int
+    pax_count: int = 1
+    companion_names: list[str] = []
     created_at: datetime
     served_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
 
 
 # ── Admin next ────────────────────────────────────────────────────────────────

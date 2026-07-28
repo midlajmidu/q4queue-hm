@@ -30,9 +30,11 @@ from sqlalchemy.orm import joinedload
 from app.core.deps import get_current_super_admin
 from app.db.deps import get_db
 from app.models.organization import Organization
+from app.models.parent_organization import ParentOrganization
 from app.models.user import User
 from app.models.queue import Queue
 from app.models.token import Token, TokenStatus
+
 from app.models.system_announcement import SystemAnnouncement
 from app.audit.models import AuditLog
 from app.core.security import hash_password, create_access_token
@@ -525,13 +527,12 @@ async def get_tenant_analytics(
 ) -> TenantAnalyticsResponse:
     """Return detailed per-branch analytics with token usage, wait/serve times, and activity metrics."""
     from app.core.tz_helpers import get_org_timezone, safe_zoneinfo, tz_hour_clause
-    tz_name = await get_org_timezone(db, target_org_id)
-    tz_obj = safe_zoneinfo(tz_name)
+    from datetime import timezone as dt_tz
 
-    # Parse date range — include the full end_date day by advancing to next midnight
+    # Parse date range
     try:
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=tz_obj)
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=tz_obj)
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=dt_tz.utc)
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=dt_tz.utc)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
 
@@ -554,12 +555,10 @@ async def get_tenant_analytics(
     if branch_id:
         branch_stmt = branch_stmt.where(Organization.id == branch_id)
 
-    # Exclude test orgs
+    # Exclude dummy test orgs
     test_pattern = or_(
         Organization.name.ilike("Msg Org%"),
         Organization.name.ilike("Q Org%"),
-        Organization.name.ilike("%test%"),
-        Organization.slug.ilike("%test%"),
     )
     branch_stmt = branch_stmt.where(~test_pattern)
 
@@ -572,6 +571,7 @@ async def get_tenant_analytics(
     items = []
     for branch in branches:
         bid = branch.branch_id
+        tz_name = await get_org_timezone(db, bid)
 
         # Base token condition for this branch in the date range
         token_base = and_(
@@ -586,8 +586,6 @@ async def get_tenant_analytics(
         ) or 0
 
         # ── Tokens Skipped/Removed (skipped or deleted, but NOT recalled back) ──
-        # A recalled token has recalled_at set. If it was recalled, it went back into the queue.
-        # We count skipped/deleted where recalled_at is NULL (meaning it was truly abandoned).
         tokens_skipped_removed = await db.scalar(
             select(func.count(Token.id)).where(
                 token_base,
@@ -627,6 +625,7 @@ async def get_tenant_analytics(
         )
         peak_row = peak_hour_result.first()
         peak_hour = int(peak_row.hr) if peak_row else None
+
 
         # ── Active Queues (distinct queues with activity) ────────────
         active_queues = await db.scalar(

@@ -82,11 +82,13 @@ async def get_token(
         customer_name=token.customer_name,
         customer_age=token.customer_age,
         customer_phone=token.customer_phone,
-        companion_names=token.companion_names,
+        pax_count=getattr(token, "pax_count", 1),
+        companion_names=getattr(token, "companion_names", []),
         created_at=token.created_at,
         served_at=token.served_at,
         completed_at=token.completed_at,
     )
+
 
 
 @router.post(
