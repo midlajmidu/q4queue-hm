@@ -249,6 +249,16 @@ export interface SessionCreate {
 }
 
 // ── Queue ────────────────────────────────────────────────────────
+export interface CustomField {
+    id: string;
+    key: string;
+    label: string;
+    type: "text" | "number" | "phone" | "email" | "date" | "select" | "textarea";
+    required: boolean;
+    order: number;
+    options?: string[];
+}
+
 export interface QueueCreate {
     name: string;
     prefix?: string;
@@ -256,6 +266,7 @@ export interface QueueCreate {
     open_time?: string;
     close_time?: string;
     service_lines?: number;
+    custom_fields?: CustomField[] | null;
 }
 
 export interface QueueResponse {
@@ -277,6 +288,7 @@ export interface QueueResponse {
     open_time?: string;
     close_time?: string;
     created_at: string;
+    custom_fields?: CustomField[] | null;
 }
 
 export interface PaginatedQueueResponse {
@@ -317,6 +329,8 @@ export interface JoinRequest {
     pax_count: number;
     send_whatsapp?: boolean;
     entry_type?: string;
+    qr_token?: string;
+    custom_data?: Record<string, any> | null;
 }
 
 export interface JoinResponse {
@@ -347,6 +361,7 @@ export interface TokenRestoreResponse {
     created_at: string;
     served_at: string | null;
     completed_at: string | null;
+    custom_data?: Record<string, any> | null;
 }
 
 export interface PublicTokenResponse {
@@ -386,6 +401,7 @@ export interface RecentToken {
     skipped_at?: string | null;
     deleted_at?: string | null;
     recalled_at?: string | null;
+    custom_data?: Record<string, any> | null;
 }
 
 export interface WaitingToken {
@@ -406,6 +422,7 @@ export interface WaitingToken {
     skipped_at?: string | null;
     deleted_at?: string | null;
     recalled_at?: string | null;
+    custom_data?: Record<string, any> | null;
 }
 
 export interface ServingToken {
@@ -457,6 +474,7 @@ export interface QueueSnapshot {
     deleted_tokens?: WaitingToken[];
     org_logo_url?: string | null;
     org_brand_color?: string | null;
+    custom_fields?: CustomField[] | null;
 }
 
 export type QueueUpdate = QueueSnapshot;

@@ -286,6 +286,7 @@ async def join_queue(
         called_via_invite=False,
         entry_type=data.entry_type,
         is_whatsapp_enabled=data.send_whatsapp,
+        custom_data=data.custom_data,
     )
     db.add(token)
     await db.flush()

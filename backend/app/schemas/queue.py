@@ -29,6 +29,7 @@ class QueueUpdate(BaseModel):
     open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     service_lines: Optional[int] = Field(None, ge=0)
+    custom_fields: Optional[list] = None
 
 class AnnouncementUpdate(BaseModel):
     announcement: Optional[str] = Field(None, max_length=500)
@@ -51,6 +52,7 @@ class QueueResponse(BaseModel):
     service_lines: int = 0
     open_time: Optional[str] = None
     close_time: Optional[str] = None
+    custom_fields: Optional[list] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -67,6 +69,7 @@ class JoinRequest(BaseModel):
     send_whatsapp: bool = Field(default=True)
     entry_type: Optional[str] = Field(default="qr")
     qr_token: Optional[str] = Field(default=None, description="Single-use QR validation token")
+    custom_data: Optional[dict] = None
 
     @field_validator("name", mode="before")
     @classmethod
@@ -174,6 +177,7 @@ class TokenResponse(BaseModel):
     removed_by: Optional[str] = None
     assigned_line: Optional[int] = None
     entry_type: Optional[str] = None
+    custom_data: Optional[dict] = None
     shared_lines: list[int] = []
     completed_lines: list[int] = []
 

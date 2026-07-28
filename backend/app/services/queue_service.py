@@ -1,3 +1,5 @@
+
+
 """
 app/services/queue_service.py
 Queue management business logic with strict multi-tenant enforcement.
@@ -94,6 +96,9 @@ async def update_queue(
     for key, value in kwargs.items():
         if hasattr(queue, key):
             setattr(queue, key, value)
+            if key == "custom_fields":
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(queue, "custom_fields")
     await db.commit()
     await db.refresh(queue)
     return queue

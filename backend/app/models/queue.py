@@ -22,7 +22,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -59,6 +59,7 @@ class Queue(Base):
     starting_sequence: Mapped[int] = mapped_column(
         Integer, nullable=False, default=1, server_default="1"
     )
+    custom_fields: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
     current_token_number: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0
     )

@@ -206,11 +206,17 @@ export default function JoinQueuePage({ params }: PageProps) {
     const [showCompanions, setShowCompanions] = useState<boolean>(false);
     const [companionInput, setCompanionInput] = useState<string>("1");
     const paxCount = parseInt(companionInput) || 0;
+    const [customData, setCustomData] = useState<Record<string, any>>({});
 
     // Derived values
     const isNameValid = /^[A-Za-z\s'-]{2,50}$/.test(customerName.trim());
     const isPhoneValid = /^\d{10}$/.test(customerPhone);
-    const isFormValid = isNameValid && isPhoneValid && companionInput.trim() !== "";
+    const isLegacyFormValid = isNameValid && isPhoneValid && companionInput.trim() !== "";
+    const hasCustomFieldsConfigured = Array.isArray(live?.custom_fields);
+    const customFieldsList = live?.custom_fields || [];
+    const isFormValid = hasCustomFieldsConfigured
+        ? (customFieldsList.length > 0 && !customFieldsList.some(f => f.required && !customData[f.key]))
+        : isLegacyFormValid;
 
     // Called after WhatsApp consent answer
     const doJoin = useCallback(async (sendWhatsApp: boolean) => {
@@ -219,12 +225,18 @@ export default function JoinQueuePage({ params }: PageProps) {
         setError(null);
 
         try {
+            const resolvedName = customData['name'] || customData['full_name'] || customerName.trim() || 'Walk-in Customer';
+            const rawPhone = customData['phone'] || customData['phone_number'] || customerPhone;
+            const resolvedPhone = rawPhone ? `${countryCode}${rawPhone.replace(/\D/g, "")}` : '+910000000000';
+            const resolvedPax = parseInt(customData['pax'] || customData['group_size'] || String(paxCount)) || 1;
+
             const payload = {
-                name: customerName.trim(),
-                phone: `${countryCode}${customerPhone}`,
-                pax_count: paxCount,
+                name: resolvedName,
+                phone: resolvedPhone,
+                pax_count: resolvedPax,
                 send_whatsapp: sendWhatsApp,
                 qr_token: qrToken || undefined,
+                custom_data: hasCustomFieldsConfigured ? customData : undefined
             };
 
             const data = await api.joinQueue(queueId, payload);
@@ -244,13 +256,28 @@ export default function JoinQueuePage({ params }: PageProps) {
             setError(err instanceof ApiError ? err.detail : "Failed to join queue. Please try again.");
             setIsJoining(false);
         }
-    }, [isFormValid, isJoining, customerName, customerPhone, paxCount, queueId, router]);
+    }, [isLegacyFormValid, isJoining, customerName, customerPhone, paxCount, queueId, router, customData, hasCustomFieldsConfigured]);
 
     // Clicking the button → show modal first
     const handleJoin = useCallback(() => {
-        if (!isFormValid || isJoining) return;
+        if (isJoining) return;
+        if (hasCustomFieldsConfigured) {
+            if (customFieldsList.length === 0) {
+                setError("Queue registration is currently unavailable because no input fields are configured.");
+                return;
+            }
+            for (const field of customFieldsList) {
+                if (field.required && !customData[field.key]) {
+                    setError(`Please fill out the required field: ${field.label}`);
+                    return;
+                }
+            }
+        } else {
+            if (!isLegacyFormValid) return;
+        }
+        setError(null);
         setShowWhatsAppModal(true);
-    }, [isFormValid, isJoining]);
+    }, [isLegacyFormValid, isJoining, hasCustomFieldsConfigured, customFieldsList, customData]);
 
 
     // ── Restore from localStorage on mount ────────────────────────
@@ -491,101 +518,195 @@ export default function JoinQueuePage({ params }: PageProps) {
 
                                 {/* Customer info form */}
                                 <div className="space-y-3.5">
-                                    {/* Name */}
-                                    <div>
-                                        <label htmlFor="customer-name" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                                            Full Name <span className="text-emerald-500 ml-0.5">*</span>
-                                        </label>
-                                        <input
-                                            id="customer-name"
-                                            type="text"
-                                            value={customerName}
-                                            onChange={(e) => setCustomerName(e.target.value)}
-                                            placeholder="Enter your name"
-                                            required
-                                            maxLength={50}
-                                            autoComplete="name"
-                                            disabled={isJoining || queueClosed}
-                                            className={`w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white border ${debouncedCustomerName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedCustomerName.trim()) ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : 'border-slate-200/80 focus:border-slate-800 focus:ring-slate-100'} rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50`}
-                                        />
-                                        {debouncedCustomerName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedCustomerName.trim()) && (
-                                            <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1.5 font-medium ml-1" role="alert">
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
-                                                Please enter a valid name.
-                                            </p>
-                                        )}
-                                    </div>
-
-
-
-                                    {/* Phone Number */}
-                                    <div>
-                                        <label htmlFor="customer-phone" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                                            Phone Number <span className="text-emerald-500 ml-0.5">*</span>
-                                        </label>
-                                        <div className={`flex bg-white rounded-xl sm:rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border ${customerPhone.length > 0 && !isPhoneValid ? 'border-red-300 focus-within:border-red-500 focus-within:ring-red-100' : 'border-slate-200/80 focus-within:border-slate-800 focus-within:ring-slate-100'} focus-within:ring-4 transition-all duration-300 overflow-hidden`}>
-                                            <div className="relative flex items-center border-r border-slate-100 bg-slate-50/30">
-                                                <select
-                                                    value={countryCode}
-                                                    onChange={(e) => setCountryCode(e.target.value)}
+                                    {hasCustomFieldsConfigured ? (
+                                        customFieldsList.length === 0 ? (
+                                            <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 rounded-2xl p-5 text-center my-2">
+                                                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                                </div>
+                                                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Registration Unavailable</h4>
+                                                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                    No registration fields have been configured for this queue by the branch administrator. Please contact staff for assistance.
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            customFieldsList.slice().sort((a, b) => a.order - b.order).map((field) => (
+                                                <div key={field.id}>
+                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                                        {field.label} {field.required && <span className="text-emerald-500 ml-0.5">*</span>}
+                                                    </label>
+                                                    
+                                                    {field.type === 'textarea' ? (
+                                                        <textarea
+                                                            value={customData[field.key] || ""}
+                                                            onChange={e => setCustomData({ ...customData, [field.key]: e.target.value })}
+                                                            disabled={isJoining || queueClosed}
+                                                            className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none resize-none h-24 disabled:opacity-50"
+                                                            placeholder={`Enter ${field.label}`}
+                                                        />
+                                                    ) : field.type === 'select' ? (
+                                                        <div className="relative">
+                                                            <select
+                                                                value={customData[field.key] || ""}
+                                                                onChange={e => setCustomData({ ...customData, [field.key]: e.target.value })}
+                                                                disabled={isJoining || queueClosed}
+                                                                className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none appearance-none disabled:opacity-50"
+                                                            >
+                                                                <option value="" disabled>Select {field.label}</option>
+                                                                {field.options?.map(opt => (
+                                                                    <option key={opt} value={opt}>{opt}</option>
+                                                                ))}
+                                                            </select>
+                                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                            </div>
+                                                        </div>
+                                                    ) : field.type === 'phone' ? (
+                                                        <div className="flex bg-white rounded-xl sm:rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-200/80 focus-within:border-slate-800 focus-within:ring-slate-100 focus-within:ring-4 transition-all duration-300 overflow-hidden">
+                                                            <div className="relative flex items-center border-r border-slate-100 bg-transparent">
+                                                                <select
+                                                                    value={countryCode}
+                                                                    onChange={(e) => setCountryCode(e.target.value)}
+                                                                    disabled={isJoining || queueClosed}
+                                                                    className="appearance-none bg-transparent pl-4 sm:pl-5 pr-8 py-3 sm:py-3.5 text-sm sm:text-[15px] font-medium text-slate-600 focus:outline-none cursor-pointer disabled:opacity-50"
+                                                                >
+                                                                    {COUNTRY_CODES.map((c) => (
+                                                                        <option key={c.code} value={c.code}>
+                                                                            {c.flag} {c.code}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                                </div>
+                                                            </div>
+                                                            <input
+                                                                type="tel"
+                                                                value={customData[field.key] || ""}
+                                                                onChange={e => setCustomData({ ...customData, [field.key]: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                                                                disabled={isJoining || queueClosed}
+                                                                placeholder="e.g. 1234567890"
+                                                                maxLength={10}
+                                                                className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium focus:outline-none disabled:opacity-50"
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <input
+                                                            type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : 'text'}
+                                                            min={field.type === 'number' ? 1 : undefined}
+                                                            max={field.type === 'number' ? 999 : undefined}
+                                                            value={customData[field.key] || ""}
+                                                            onChange={e => {
+                                                                let val = e.target.value;
+                                                                if (field.type === 'number' && val.length > 3) {
+                                                                    val = val.slice(0, 3);
+                                                                }
+                                                                setCustomData({ ...customData, [field.key]: val });
+                                                            }}
+                                                            disabled={isJoining || queueClosed}
+                                                            placeholder={`Enter ${field.label}`}
+                                                            className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none disabled:opacity-50"
+                                                        />
+                                                    )}
+                                                </div>
+                                            ))
+                                        )
+                                    ) : (
+                                        <>
+                                            {/* Default Fields: Name, Phone, Pax */}
+                                            <div>
+                                                <label htmlFor="customer-name" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                                    Full Name <span className="text-emerald-500 ml-0.5">*</span>
+                                                </label>
+                                                <input
+                                                    id="customer-name"
+                                                    type="text"
+                                                    value={customerName}
+                                                    onChange={(e) => setCustomerName(e.target.value)}
+                                                    placeholder="Enter your name"
+                                                    required
+                                                    maxLength={50}
+                                                    autoComplete="name"
                                                     disabled={isJoining || queueClosed}
-                                                    className="appearance-none bg-transparent pl-4 sm:pl-5 pr-8 py-3 sm:py-3.5 text-sm sm:text-[15px] font-medium text-slate-600 focus:outline-none cursor-pointer disabled:opacity-50"
-                                                >
-                                                    {COUNTRY_CODES.map((c) => (
-                                                        <option key={c.code} value={c.code}>
-                                                            {c.flag} {c.code}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                    className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50"
+                                                />
+                                                {debouncedCustomerName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedCustomerName.trim()) && (
+                                                    <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1.5 font-medium ml-1" role="alert">
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
+                                                        Please enter a valid name.
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="customer-phone" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                                    Phone Number <span className="text-emerald-500 ml-0.5">*</span>
+                                                </label>
+                                                <div className="flex bg-white rounded-xl sm:rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-200/80 focus-within:border-slate-800 focus-within:ring-slate-100 focus-within:ring-4 transition-all duration-300 overflow-hidden">
+                                                    <div className="relative flex items-center border-r border-slate-100 bg-transparent">
+                                                        <select
+                                                            value={countryCode}
+                                                            onChange={(e) => setCountryCode(e.target.value)}
+                                                            disabled={isJoining || queueClosed}
+                                                            className="appearance-none bg-transparent pl-4 sm:pl-5 pr-8 py-3 sm:py-3.5 text-sm sm:text-[15px] font-medium text-slate-600 focus:outline-none cursor-pointer disabled:opacity-50"
+                                                        >
+                                                            {COUNTRY_CODES.map((c) => (
+                                                                <option key={c.code} value={c.code}>
+                                                                    {c.flag} {c.code}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                    </div>
+                                                    <input
+                                                        id="customer-phone"
+                                                        type="tel"
+                                                        value={customerPhone}
+                                                        onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                                                        placeholder="e.g. 1234567890"
+                                                        required
+                                                        maxLength={10}
+                                                        disabled={isJoining || queueClosed}
+                                                        className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium focus:outline-none disabled:opacity-50"
+                                                    />
+                                                </div>
+                                                {customerPhone.length > 0 && !isPhoneValid && (
+                                                    <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1.5 font-medium ml-1" role="alert">
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
+                                                        Please enter a valid 10-digit number.
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="customer-pax" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                                    No of Pax <span className="text-emerald-500 ml-0.5">*</span>
+                                                </label>
+                                                <div className="relative">
+                                                    <input
+                                                        id="customer-pax"
+                                                        type="number"
+                                                        min="1"
+                                                        max="999"
+                                                        value={companionInput}
+                                                        onChange={(e) => {
+                                                            let val = e.target.value;
+                                                            if (val.length > 3) {
+                                                                val = val.slice(0, 3);
+                                                            }
+                                                            setCompanionInput(val);
+                                                        }}
+                                                        placeholder="0"
+                                                        required
+                                                        disabled={isJoining || queueClosed}
+                                                        className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none disabled:opacity-50"
+                                                    />
                                                 </div>
                                             </div>
-                                            <input
-                                                id="customer-phone"
-                                                type="tel"
-                                                value={customerPhone}
-                                                onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                                                placeholder="e.g. 1234567890"
-                                                required
-                                                maxLength={10}
-                                                disabled={isJoining || queueClosed}
-                                                className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium focus:outline-none disabled:opacity-50"
-                                            />
-                                        </div>
-                                        {customerPhone.length > 0 && !isPhoneValid && (
-                                            <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1.5 font-medium ml-1" role="alert">
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
-                                                Please enter a valid 10-digit number.
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Companions */}
-                                    <div>
-                                        <label htmlFor="customer-pax" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                                            No of Pax <span className="text-emerald-500 ml-0.5">*</span>
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                id="customer-pax"
-                                                type="text"
-                                                inputMode="numeric"
-                                                pattern="[0-9]*"
-                                                value={companionInput}
-                                                onChange={(e) => {
-                                                    const val = e.target.value.replace(/[^0-9]/g, '');
-                                                    setCompanionInput(val);
-                                                }}
-                                                placeholder="0"
-                                                disabled={isJoining || queueClosed}
-                                                className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium focus:outline-none focus:ring-4 focus:ring-slate-100 focus:border-slate-800 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] disabled:opacity-50"
-                                                min="0"
-                                            />
-                                        </div>
-                                    </div>
-
-
+                                        </>
+                                    )}
                                 </div>
 
                                 {/* Take Token button */}

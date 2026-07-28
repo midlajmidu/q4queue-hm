@@ -201,6 +201,16 @@ async def update_queue_details(
             org_id=queue.org_id,
             **update_data
         )
+        try:
+            from app.websocket.helpers import build_queue_snapshot
+            from app.websocket.routes import manager
+            snapshot_public = await build_queue_snapshot(db, queue_id=queue.id, is_admin=False)
+            snapshot_admin = await build_queue_snapshot(db, queue_id=queue.id, is_admin=True)
+            await manager.broadcast(queue.id, snapshot_public, is_admin=False)
+            await manager.broadcast(queue.id, snapshot_admin, is_admin=True)
+        except Exception as ws_err:
+            logger.warning("Failed to broadcast queue update snapshot: %s", ws_err)
+
         return QueueResponse.model_validate(updated)
     except Exception as e:
         logger.error("Failed to update queue: %s", e)

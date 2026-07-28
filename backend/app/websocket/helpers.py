@@ -173,6 +173,7 @@ async def build_queue_snapshot(
             token_data["customer_phone"] = t.customer_phone
             token_data["companion_names"] = t.companion_names
             token_data["removed_by"] = getattr(t, "removed_by", None)
+            token_data["custom_data"] = getattr(t, "custom_data", None)
         recent_tokens.append(token_data)
 
     # ── Waiting tokens (all of them, or limit 50 for large queues) ──
@@ -210,6 +211,7 @@ async def build_queue_snapshot(
             token_data["customer_phone"] = t.customer_phone
             token_data["companion_names"] = t.companion_names
             token_data["removed_by"] = getattr(t, "removed_by", None)
+            token_data["custom_data"] = getattr(t, "custom_data", None)
         waiting_tokens.append(token_data)
 
     # ── Skipped tokens (all of them, or limit 50) ──
@@ -308,5 +310,6 @@ async def build_queue_snapshot(
         "deleted_tokens": deleted_tokens,
         "org_logo_url": None,
         "org_brand_color": None,
+        "custom_fields": getattr(queue, "custom_fields", None),
         "enable_shared_tokens": getattr(org, "enable_shared_tokens", False) or getattr(parent_org, "enable_shared_tokens", False),
     }

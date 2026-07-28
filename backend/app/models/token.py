@@ -27,7 +27,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -108,6 +108,7 @@ class Token(Base):
     customer_name: Mapped[str] = mapped_column(String(120), nullable=False)
     customer_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     customer_phone: Mapped[str] = mapped_column(String(20), nullable=False)
+    custom_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     removed_by: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     assigned_line: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     pax_count: Mapped[int] = mapped_column(Integer, default=1, server_default='1', nullable=False)

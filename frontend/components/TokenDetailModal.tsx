@@ -27,6 +27,7 @@ export interface TokenDetailData {
     deleted_at?: string | null;
     skipped_at?: string | null;
     recalled_at?: string | null;
+    custom_data?: Record<string, any> | null;
 }
 
 interface TokenDetailModalProps {
@@ -74,6 +75,7 @@ const ENTRY_STYLES: Record<string, string> = {
 
 export default function TokenDetailModal({ token, onClose, onRecall }: TokenDetailModalProps) {
     const [fullToken, setFullToken] = useState<TokenDetailData | null>(token);
+    const tz = useBranchTimezone();
 
     useEffect(() => {
         setFullToken(token);
@@ -87,8 +89,6 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
     }, [token]);
 
     if (!fullToken) return null;
-
-    const tz = useBranchTimezone();
     const statusInfo = STATUS_STYLES[fullToken.status] ?? { badge: "bg-gray-100 text-gray-500", label: fullToken.status };
     const entryType = fullToken.entry_type ?? "manual";
     const waitingTime = calcWaitingTime(fullToken.created_at, fullToken.served_at, fullToken.status);
@@ -169,11 +169,7 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         {fullToken.called_via_invite !== undefined && (
                             <DetailItem label="Call Method" value={fullToken.called_via_invite ? "Invited by No." : "Call Next"} highlight={fullToken.called_via_invite ? "amber" : undefined} />
                         )}
-                        <DetailItem label="Created" value={fmtTime(fullToken.created_at, tz)} />
-                        <DetailItem label="Called" value={fmtTime(fullToken.served_at, tz)} />
-                        {fullToken.completed_at && (
-                            <DetailItem label="Completed" value={fmtTime(fullToken.completed_at, tz)} />
-                        )}
+
                         {fullToken.deleted_at && (
                             <DetailItem label="Removed" value={fmtTime(fullToken.deleted_at, tz)} highlight="amber" />
                         )}
@@ -187,9 +183,7 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         {fullToken.served_by_staff_name && (
                             <DetailItem label="Served By" value={fullToken.served_by_staff_name} />
                         )}
-                        {fullToken.completed_by_staff_name && (
-                            <DetailItem label="Completed By" value={fullToken.completed_by_staff_name} />
-                        )}
+
                         <DetailItem
                             label="Waiting Time"
                             value={waitingTime}
@@ -201,6 +195,18 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                                 value={serviceTime}
                                 highlight="emerald"
                             />
+                        )}
+                        {fullToken.custom_data && Object.keys(fullToken.custom_data).length > 0 && (
+                            <>
+                                {Object.entries(fullToken.custom_data).map(([key, value]) => {
+                                    // Skip mapping duplicated known keys
+                                    if (key === 'name' || key === 'full_name' || key === 'phone' || key === 'phone_number' || key === 'pax' || key === 'group_size') return null;
+                                    
+                                    // Format key to label roughly
+                                    const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                    return <DetailItem key={key} label={label} value={String(value)} />;
+                                })}
+                            </>
                         )}
                     </div>
 

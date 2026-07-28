@@ -16,7 +16,7 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken } from "@/types/api";
-import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck } from "lucide-react";
+import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck, Settings2 } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
@@ -24,6 +24,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { fmtTime, fmtDateTime, nowInTz } from "@/lib/tzformat";
+import QueueTokenSettings from "@/components/organization-admin/queue/QueueTokenSettings";
 
 const formatTime12 = (time24?: string | null) => {
     if (!time24) return "";
@@ -331,7 +332,7 @@ interface PageProps {
     params: Promise<{ queueId: string }>;
 }
 
-type ActiveSection = "queues" | "waiting_list" | "qrcode" | "announcement" | "history" | "connect_tv";
+type ActiveSection = "queues" | "waiting_list" | "qrcode" | "announcement" | "history" | "connect_tv" | "settings";
 
 const COUNTRY_CODES = [
     { code: "+91", country: "India", flag: "🇮🇳" },
@@ -730,6 +731,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     const [addPaxCount, setAddPaxCount] = useState<string>("1");
     const [showWhatsappConfirm, setShowWhatsappConfirm] = useState(false);
     const [addFormError, setAddFormError] = useState<string | null>(null);
+    const [addCustomData, setAddCustomData] = useState<Record<string, any>>({});
     const isAddNameValid = /^[A-Za-z\s'-]{2,50}$/.test(addName.trim());
 
     useEffect(() => {
@@ -740,12 +742,32 @@ export default function QueueDetailPage({ params }: PageProps) {
         if (!showAddForm) setAddFormError(null);
     }, [showAddForm]);
 
+    const hasAdminCustomFieldsConfigured = Array.isArray(state?.custom_fields);
+    const adminCustomFieldsList = state?.custom_fields || [];
+
     const handlePreAddCustomer = useCallback(async () => {
-        const phoneDigits = addPhone.replace(/\D/g, "");
-        if (!isAddNameValid || phoneDigits.length !== 10) { setAddFormError("Please enter a valid name and 10 digit phone number"); return; }
-        setAddFormError(null);
-        setShowWhatsappConfirm(true);
-    }, [addPhone, isAddNameValid]);
+        if (hasAdminCustomFieldsConfigured) {
+            if (adminCustomFieldsList.length === 0) {
+                setAddFormError("Cannot add customer: No token fields are configured in Token Settings.");
+                return;
+            }
+            // Validate required custom fields
+            for (const field of adminCustomFieldsList) {
+                if (field.required && !addCustomData[field.key]) {
+                    setAddFormError(`Please fill out the required field: ${field.label}`);
+                    return;
+                }
+            }
+            setAddFormError(null);
+            setShowWhatsappConfirm(true);
+        } else {
+            // Legacy validation
+            const phoneDigits = addPhone.replace(/\D/g, "");
+            if (!isAddNameValid || phoneDigits.length < 7) { setAddFormError("Please enter a valid name and phone number"); return; }
+            setAddFormError(null);
+            setShowWhatsappConfirm(true);
+        }
+    }, [addPhone, isAddNameValid, hasAdminCustomFieldsConfigured, adminCustomFieldsList, addCustomData]);
 
     const handleConfirmAddCustomer = useCallback(async (sendWhatsapp: boolean) => {
         setShowWhatsappConfirm(false);
@@ -753,21 +775,27 @@ export default function QueueDetailPage({ params }: PageProps) {
         setActionLoading("add");
         setActionError(null);
         try {
+            const resolvedName = addCustomData['name'] || addCustomData['full_name'] || addName.trim() || 'Walk-in Customer';
+            const rawPhone = addCustomData['phone'] || addCustomData['phone_number'] || addPhone;
+            const resolvedPhone = rawPhone ? `${addCountryCode}${rawPhone.replace(/\D/g, "")}` : '+910000000000';
+            const resolvedPax = parseInt(addCustomData['pax'] || addCustomData['group_size'] || String(addPaxCount)) || 1;
+
             const res = await api.adminJoin(queueId, {
-                name: addName.trim(),
-                phone: `${addCountryCode}${phoneDigits}`,
-                pax_count: parseInt(addPaxCount) || 1,
+                name: resolvedName,
+                phone: resolvedPhone,
+                pax_count: resolvedPax,
                 send_whatsapp: sendWhatsapp,
-                entry_type: "manual"
+                entry_type: "manual",
+                custom_data: hasAdminCustomFieldsConfigured ? addCustomData : undefined
             });
             toast(`Token ${state?.prefix || ""}${res.token_number} created`, "success");
             setShowAddForm(false);
-            setAddName(""); setAddPhone(""); setAddPaxCount("1");
+            setAddName(""); setAddPhone(""); setAddPaxCount("1"); setAddCustomData({});
         } catch (err: unknown) {
             if (err instanceof ApiError) toast(err.detail, "error");
             else toast("Failed to add customer", "error");
         } finally { setActionLoading(null); }
-    }, [queueId, addName, addPhone, addPaxCount, addCountryCode, state?.prefix, toast]);
+    }, [queueId, addName, addPhone, addPaxCount, addCountryCode, state?.prefix, hasAdminCustomFieldsConfigured, addCustomData, toast]);
 
 
     const executeInviteWithNumber = useCallback(async (num: number, lineNum?: number) => {
@@ -906,6 +934,10 @@ export default function QueueDetailPage({ params }: PageProps) {
         {
             id: "connect_tv", label: "Connect TV",
             icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M12 12a2 2 0 100-4 2 2 0 000 4zm4.2 4.2c2.3-2.3 2.3-6.1 0-8.5M19.1 19.1c3.9-3.9 3.9-10.3 0-14.2" /></svg>,
+        },
+        {
+            id: "settings", label: "Token Settings",
+            icon: <Settings2 width="15" height="15" strokeWidth="1.8" />,
         },
     ];
 
@@ -2143,6 +2175,18 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 </div>
                             </div>
                         )}
+
+                        {activeSection === "settings" && (
+                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both max-w-4xl mx-auto">
+                                <QueueTokenSettings 
+                                    queueId={queueId} 
+                                    initialFields={state?.custom_fields ?? initialQueue?.custom_fields ?? null}
+                                    onUpdate={(fields) => {
+                                        refresh();
+                                    }}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -2189,30 +2233,81 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                             </div>
-                            <div className="p-6 flex flex-col gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Full Name <span className="text-red-500">*</span></label>
-                                    <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="e.g. Jane Doe" maxLength={50} className={`w-full h-11 bg-slate-50 dark:bg-slate-950 border ${debouncedAddName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedAddName.trim()) ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-indigo-500 focus:border-indigo-500'} rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 transition-all outline-none`} />
-                                    {debouncedAddName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedAddName.trim()) && (
-                                        <p className="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01" /></svg>
-                                            Please enter a valid name (letters only, min 2 chars).
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Phone Number <span className="text-red-500">*</span></label>
-                                    <div className="flex gap-2">
-                                        <div className="relative">
-                                            <select value={addCountryCode} onChange={e => setAddCountryCode(e.target.value)} className="h-11 pl-3 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer transition-all">
-                                                {COUNTRY_CODES.map((c) => (
-                                                    <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                            <div className="p-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+                                {hasAdminCustomFieldsConfigured ? (
+                                    adminCustomFieldsList.length === 0 ? (
+                                        <div className="text-center py-6 px-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-dashed border-amber-300 dark:border-amber-800/60">
+                                            <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">No Fields Configured</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                You have not configured any input fields in Token Settings. Please add fields or restore default fields first.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        adminCustomFieldsList.slice().sort((a, b) => a.order - b.order).map((field) => (
+                                            <div key={field.id} className="space-y-1.5">
+                                                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                                    {field.label} {field.required && <span className="text-red-500">*</span>}
+                                                </label>
+                                                
+                                                {field.type === 'textarea' ? (
+                                                    <textarea
+                                                        value={addCustomData[field.key] || ""}
+                                                        onChange={e => setAddCustomData({ ...addCustomData, [field.key]: e.target.value })}
+                                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none resize-none h-24"
+                                                        placeholder={`Enter ${field.label}`}
+                                                    />
+                                                ) : field.type === 'select' ? (
+                                                    <select
+                                                        value={addCustomData[field.key] || ""}
+                                                        onChange={e => setAddCustomData({ ...addCustomData, [field.key]: e.target.value })}
+                                                        className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                                    >
+                                                        <option value="" disabled>Select {field.label}</option>
+                                                        {field.options?.map(opt => (
+                                                            <option key={opt} value={opt}>{opt}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        type={field.type === 'phone' ? 'tel' : field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : 'text'}
+                                                        value={addCustomData[field.key] || ""}
+                                                        onChange={e => setAddCustomData({ ...addCustomData, [field.key]: e.target.value })}
+                                                        placeholder={`Enter ${field.label}`}
+                                                        className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                                    />
+                                                )}
+                                            </div>
+                                        ))
+                                    )
+                                ) : (
+                                    <>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Full Name <span className="text-red-500">*</span></label>
+                                            <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="e.g. Jane Doe" maxLength={50} className={`w-full h-11 bg-slate-50 dark:bg-slate-950 border ${debouncedAddName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedAddName.trim()) ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-indigo-500 focus:border-indigo-500'} rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 transition-all outline-none`} />
+                                            {debouncedAddName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedAddName.trim()) && (
+                                                <p className="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01" /></svg>
+                                                    Please enter a valid name (letters only, min 2 chars).
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Phone Number <span className="text-red-500">*</span></label>
+                                            <div className="flex gap-2">
+                                                <div className="relative">
+                                                    <select value={addCountryCode} onChange={e => setAddCountryCode(e.target.value)} className="h-11 pl-3 pr-8 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer transition-all">
+                                                        {COUNTRY_CODES.map((c) => (
+                                                            <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                    </div>
+                                                </div>
+                                                <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="e.g. 1234567890" maxLength={10} className="flex-1 h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
                                             </div>
                                         </div>
+<<<<<<< Updated upstream
                                         <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="e.g. 1234567890" maxLength={10} className="flex-1 h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
                                     </div>
                                 </div>
@@ -2235,6 +2330,14 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 </div>
 
 
+=======
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Number of Pax <span className="text-red-500">*</span></label>
+                                            <input type="number" min="1" max="10" value={addPaxCount} onChange={e => { const val = parseInt(e.target.value); if (!isNaN(val)) setAddPaxCount(Math.min(10, Math.max(1, val))); }} className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" />
+                                        </div>
+                                    </>
+                                )}
+>>>>>>> Stashed changes
                             </div>
                             <div className="px-6 py-5 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-white/5 flex items-center gap-3 justify-between">
                                 <div className="flex-1">
