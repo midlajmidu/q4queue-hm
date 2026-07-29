@@ -82,7 +82,7 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
         if (token && token.id && !token.customer_phone) {
             api.restoreToken(token.id).then(data => {
                 setFullToken(prev => prev ? { ...prev, ...data } : null);
-            }).catch(() => {});
+            }).catch(() => { });
         }
     }, [token]);
 
@@ -157,38 +157,29 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
 
                     {/* Detail grid */}
                     <div className="grid grid-cols-2 gap-3">
-                        <DetailItem label="Phone Number" value={fullToken.customer_phone || "Not Provided"} />
-                        {(fullToken.pax_count && fullToken.pax_count > 1) && (
-                            <DetailItem label="Number of Pax" value={String(fullToken.pax_count)} highlight="emerald" />
-                        )}
+                        <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
                         {fullToken.assigned_line != null && (
                             <DetailItem label="Lane Number" value={String(fullToken.assigned_line)} highlight="emerald" />
                         )}
-
-                        <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
+                        {(fullToken.pax_count && fullToken.pax_count > 1) && (
+                            <DetailItem label="Number of Pax" value={String(fullToken.pax_count)} highlight="emerald" />
+                        )}
                         {fullToken.called_via_invite !== undefined && (
                             <DetailItem label="Call Method" value={fullToken.called_via_invite ? "Invited by No." : "Call Next"} highlight={fullToken.called_via_invite ? "amber" : undefined} />
                         )}
-                        <DetailItem label="Created" value={fmtTime(fullToken.created_at, tz)} />
-                        <DetailItem label="Called" value={fmtTime(fullToken.served_at, tz)} />
-                        {fullToken.completed_at && (
-                            <DetailItem label="Completed" value={fmtTime(fullToken.completed_at, tz)} />
-                        )}
-                        {fullToken.deleted_at && (
-                            <DetailItem label="Removed" value={fmtTime(fullToken.deleted_at, tz)} highlight="amber" />
-                        )}
-                        {fullToken.status === "deleted" && fullToken.removed_by && (
-                            <DetailItem 
-                                label="Removed By" 
-                                value={fullToken.removed_by === "customer" ? "Customer" : (fullToken.removed_by === "session_end" ? "System (Session End)" : "Staff")} 
-                                highlight="amber" 
-                            />
-                        )}
+
                         {fullToken.served_by_staff_name && (
                             <DetailItem label="Served By" value={fullToken.served_by_staff_name} />
                         )}
                         {fullToken.completed_by_staff_name && (
                             <DetailItem label="Completed By" value={fullToken.completed_by_staff_name} />
+                        )}
+                        {fullToken.status === "deleted" && fullToken.removed_by && (
+                            <DetailItem
+                                label="Removed By"
+                                value={fullToken.removed_by === "customer" ? "Customer" : (fullToken.removed_by === "session_end" ? "System (Session End)" : "Staff")}
+                                highlight="amber"
+                            />
                         )}
                         <DetailItem
                             label="Waiting Time"
@@ -203,6 +194,7 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                             />
                         )}
                     </div>
+
 
                     {/* Full timestamps */}
                     {fullToken.created_at && (

@@ -904,17 +904,32 @@ async def serve_specific_token(
     )
 
     from sqlalchemy.orm.attributes import flag_modified
+    
+    # Check if this token was previously called or skipped (i.e. is being recalled)
+    is_recall = (specific_token.served_at is not None) or (specific_token.skipped_at is not None) or (specific_token.status == TokenStatus.skipped)
+
     specific_token.status = TokenStatus.serving
-    specific_token.served_at = now
+
+    if is_recall:
+        # Preserve initial call time (or use skipped_at if served_at was not recorded)
+        if not specific_token.served_at:
+            specific_token.served_at = specific_token.skipped_at or now
+        # Update recalled_at to current recall timestamp
+        specific_token.recalled_at = now
+    else:
+        # Initial call
+        specific_token.served_at = now
+        specific_token.recalled_at = None
+
     specific_token.served_by_id = user_id
     specific_token.called_via_invite = True
     specific_token.completed_at = None
     specific_token.completed_by_id = None
-    specific_token.recalled_at = now
     specific_token.shared_lines = []
     specific_token.completed_lines = []
     flag_modified(specific_token, "shared_lines")
     flag_modified(specific_token, "completed_lines")
+
 
     if line_number is not None:
         specific_token.assigned_line = line_number
@@ -1066,3 +1081,4 @@ async def send_called_and_reminder_notifications(
 
     except Exception as exc:
         logger.error("send_called_and_reminder_notifications error: %s", exc)
+
