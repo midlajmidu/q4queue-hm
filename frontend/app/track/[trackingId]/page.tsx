@@ -704,44 +704,7 @@ export default function TrackingPage({ params }: PageProps) {
                                     </div>
                                 </div>
 
-                                {/* Customer Details */}
-                                {(joinData?.customer_name || joinData?.customer_phone || (joinData?.custom_data && Object.keys(joinData.custom_data).length > 0)) && (
-                                    <div className="px-6 pb-6 pt-1">
-                                        <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 text-left">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Your Details</p>
-                                            <div className="space-y-2.5">
-                                                {joinData?.customer_name && joinData.customer_name !== "Walk-in Customer" && (
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-slate-500 font-medium">Name</span>
-                                                        <span className="text-slate-800 font-semibold">{joinData.customer_name}</span>
-                                                    </div>
-                                                )}
-                                                {joinData?.customer_phone && joinData.customer_phone !== "+910000000000" && (
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-slate-500 font-medium">Phone</span>
-                                                        <span className="text-slate-800 font-semibold">{joinData.customer_phone}</span>
-                                                    </div>
-                                                )}
-                                                {joinData?.pax_count > 1 && (
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-slate-500 font-medium">Group Size</span>
-                                                        <span className="text-slate-800 font-semibold">{joinData.pax_count}</span>
-                                                    </div>
-                                                )}
-                                                {joinData?.custom_data && Object.keys(joinData.custom_data).map(key => {
-                                                    if (key === 'name' || key === 'full_name' || key === 'phone' || key === 'phone_number' || key === 'pax' || key === 'group_size') return null;
-                                                    const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                                                    return (
-                                                        <div key={key} className="flex justify-between items-center text-sm">
-                                                            <span className="text-slate-500 font-medium">{label}</span>
-                                                            <span className="text-slate-800 font-semibold">{String(joinData.custom_data[key])}</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+
                             </div>
 
                                 <div className="flex justify-center my-4">

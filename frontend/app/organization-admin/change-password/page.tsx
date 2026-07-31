@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { setToken, getCurrentUser } from "@/lib/auth";
-import Image from "next/image";
-import Link from "next/link";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 
@@ -90,14 +89,11 @@ export default function OrganizationAdminChangePasswordPage() {
                     transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                     className="w-full max-w-md mx-auto flex flex-col justify-center h-full my-auto"
                 >
-                    <div className="mb-6 flex flex-col items-start">
-                        <Link href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg" aria-label="Go to home page">
-                            <Image src="/q4queue-new_logo.png" alt="Q4Queue Logo" width={300} height={80} className="h-12 w-auto object-contain origin-left scale-[2.2] translate-y-1" priority />
-                        </Link>
-                        <h1 className="font-heading text-2xl font-bold text-slate-900 mt-6 tracking-tight">
-                            Secure Your Account
+                    <div className="mb-8 flex flex-col items-start">
+                        <h1 className="font-heading text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                            Welcome to <span className="text-primary">Q4Queue</span>
                         </h1>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <p className="text-sm text-slate-500 mt-3 leading-relaxed">
                             For security reasons, please change your password before accessing the enterprise dashboard.
                         </p>
                     </div>
@@ -123,9 +119,7 @@ export default function OrganizationAdminChangePasswordPage() {
 
                         {/* New Password */}
                         <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                                <label className="block text-xs font-bold text-slate-900">New Password</label>
-                            </div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">New Password</label>
                             <div className="relative">
                                 <input
                                     type={showPassword ? "text" : "password"}
@@ -133,7 +127,7 @@ export default function OrganizationAdminChangePasswordPage() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full rounded-xl border-2 border-slate-200 bg-white pl-4 pr-12 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-4 pr-12 py-3 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400"
                                     disabled={loading}
                                 />
                                 <button
@@ -150,9 +144,7 @@ export default function OrganizationAdminChangePasswordPage() {
 
                         {/* Confirm Password */}
                         <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                                <label className="block text-xs font-bold text-slate-900">Confirm New Password</label>
-                            </div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">Confirm New Password</label>
                             <div className="relative">
                                 <input
                                     type={showConfirm ? "text" : "password"}
@@ -160,7 +152,7 @@ export default function OrganizationAdminChangePasswordPage() {
                                     value={confirm}
                                     onChange={(e) => setConfirm(e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full rounded-xl border-2 border-slate-200 bg-white pl-4 pr-12 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:ring-0 outline-none transition-all placeholder:text-slate-400 font-medium"
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-4 pr-12 py-3 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400"
                                     disabled={loading}
                                 />
                                 <button
@@ -178,7 +170,7 @@ export default function OrganizationAdminChangePasswordPage() {
                         <button
                             type="submit"
                             disabled={loading || !password || !confirm}
-                            className="w-full h-11 mt-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center shadow-sm"
+                            className="w-full h-12 mt-2 bg-primary text-primary-foreground font-semibold rounded-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {loading ? (
                                 <>

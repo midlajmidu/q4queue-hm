@@ -93,27 +93,20 @@ export default function ChangePasswordPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full max-w-[420px] relative z-10"
+                className="w-full max-w-[460px] relative z-10"
             >
-                {/* Logo */}
-                <div className="text-center mb-8 flex justify-center">
-                    <Link href="/" className="inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-1" aria-label="Go to home page">
-                        <Image src="/q4queue-new_logo.png" alt="Q4Queue Logo" width={140} height={35} className="h-24 w-auto object-contain" priority />
-                    </Link>
-                </div>
-
                 {/* Main Card */}
-                <div className="glass-card rounded-2xl p-7 md:p-8 space-y-6 bg-white shadow-xl shadow-slate-200/50 border border-slate-100">
-                    <div className="text-center pb-5 border-b border-border/50">
-                        <h1 className="font-heading text-xl font-bold text-slate-900">
+                <div className="glass-card rounded-2xl px-8 py-10 md:px-10 md:py-12 space-y-8 bg-white shadow-xl shadow-slate-200/50 border border-slate-100">
+                    <div className="text-center pb-6 border-b border-border/50">
+                        <h1 className="font-heading text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
                             Welcome to <span className="text-primary">Q4Queue</span>
                         </h1>
-                        <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+                        <p className="text-sm text-slate-500 mt-3 leading-relaxed max-w-xs mx-auto">
                             For security reasons, you must change your password before accessing the dashboard for the first time.
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                         <AnimatePresence>
                             {error && (
                                 <motion.div
@@ -131,9 +124,7 @@ export default function ChangePasswordPage() {
 
                         {/* New Password */}
                         <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                                <label className="block text-sm font-semibold text-slate-900">New Password</label>
-                            </div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">New Password</label>
                             <div className="relative">
                                 <input
                                     type={showPassword ? "text" : "password"}
@@ -141,7 +132,7 @@ export default function ChangePasswordPage() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-4 pr-12 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400"
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-4 pr-12 py-3 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400"
                                     disabled={loading}
                                 />
                                 <button
@@ -158,9 +149,7 @@ export default function ChangePasswordPage() {
 
                         {/* Confirm Password */}
                         <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                                <label className="block text-sm font-semibold text-slate-900">Confirm New Password</label>
-                            </div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">Confirm New Password</label>
                             <div className="relative">
                                 <input
                                     type={showConfirm ? "text" : "password"}
@@ -168,7 +157,7 @@ export default function ChangePasswordPage() {
                                     value={confirm}
                                     onChange={(e) => setConfirm(e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-4 pr-12 py-2.5 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400"
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-4 pr-12 py-3 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400"
                                     disabled={loading}
                                 />
                                 <button
@@ -186,7 +175,7 @@ export default function ChangePasswordPage() {
                         <button
                             type="submit"
                             disabled={loading || !password || !confirm}
-                            className="w-full h-11 mt-4 bg-primary text-primary-foreground font-semibold rounded-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="w-full h-12 mt-2 bg-primary text-primary-foreground font-semibold rounded-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {loading ? (
                                 <>
@@ -207,7 +196,7 @@ export default function ChangePasswordPage() {
             </motion.div>
 
             {/* Minimal footer */}
-            <p className="relative z-10 text-center text-xs text-slate-400 mt-8">
+            <p className="relative z-10 text-center text-xs text-slate-400 mt-6">
                 © {new Date().getFullYear()} Q4Queue
             </p>
         </main>
