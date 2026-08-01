@@ -28,13 +28,11 @@ async def create_queue(
     db: AsyncSession,
     *,
     org_id: uuid.UUID,
-    session_id: Optional[uuid.UUID] = None,
     data: QueueCreate,
 ) -> Queue:
-    """Create a new queue under the given org."""
+    """Create a new persistent queue under the given org."""
     queue = Queue(
         org_id=org_id,
-        session_id=session_id,
         name=data.name,
         prefix=data.prefix,
         starting_sequence=data.starting_sequence,
@@ -44,7 +42,7 @@ async def create_queue(
     db.add(queue)
     await db.commit()
     await db.refresh(queue)
-    logger.info("Queue created | id=%s org=%s session=%s name=%r", queue.id, org_id, session_id, queue.name)
+    logger.info("Queue created | id=%s org=%s name=%r", queue.id, org_id, queue.name)
     return queue
 
 
@@ -156,7 +154,7 @@ async def list_trash_queues(
     offset: int = 0,
 ) -> list[Queue]:
     """List soft-deleted queues for an organization."""
-    query = select(Queue).options(joinedload(Queue.session)).where(
+    query = select(Queue).where(
         Queue.org_id == org_id,
         Queue.is_deleted == True
     ).order_by(Queue.deleted_at.desc()).limit(limit).offset(offset)
@@ -174,20 +172,6 @@ async def restore_queue(
     if not queue.is_deleted:
         return queue # Already active
 
-    # Check limit for the queue's session
-    if queue.session_id:
-        from app.models.organization import Organization
-        org = await db.scalar(select(Organization).where(Organization.id == org_id))
-        if org:
-            current_queues_count = await db.scalar(
-                select(func.count(Queue.id)).where(
-                    Queue.session_id == queue.session_id,
-                    Queue.is_deleted == False
-                )
-            ) or 0
-            if current_queues_count >= org.max_queues_per_session:
-                raise ValueError(f"Cannot restore: Session limit reached (maximum {org.max_queues_per_session} queues allowed).")
-
     queue.is_deleted = False
     queue.deleted_at = None
     queue.is_active = True
@@ -196,46 +180,4 @@ async def restore_queue(
     logger.info("Queue restored | id=%s org=%s", queue_id, org_id)
     return queue
 
-async def reset_queue(
-    db: AsyncSession,
-    *,
-    queue_id: uuid.UUID,
-    org_id: uuid.UUID,
-) -> Queue:
-    """
-    Reset a queue for a new day/session.
-
-    This generates a **new session_id** so that any token pages still open
-    from the previous session will detect the mismatch and stop tracking.
-    All previous tokens are hard-deleted to reclaim storage.
-    """
-    from sqlalchemy import delete
-    result = await db.execute(
-        select(Queue).where(
-            Queue.id == queue_id,
-            Queue.org_id == org_id,
-        ).with_for_update()
-    )
-    queue = result.scalar_one_or_none()
-    if queue is None:
-        raise ValueError(f"Queue {queue_id} not found")
-
-    # Soft-delete all tokens from the old session so tracking links still work
-    from app.models.token import TokenStatus
-    await db.execute(
-        update(Token)
-        .where(Token.queue_id == queue_id)
-        .values(status=TokenStatus.deleted, completed_at=func.now(), removed_by="session_end")
-    )
-
-    # Rotate the session and reset counters
-    queue.token_session_id = uuid.uuid4()
-    queue.current_token_number = queue.starting_sequence - 1
-    queue.total_served = 0
-    await db.commit()
-    logger.info(
-        "Queue reset | id=%s org=%s new_token_session=%s",
-        queue_id, org_id, queue.token_session_id,
-    )
-    return queue
 

@@ -46,9 +46,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         setIsSidebarCollapsed(prev => !prev);
     }, []);
 
-    // On "Manage Queue" pages, the queue page itself has its own inner sidebar
-    // so we keep the main sidebar hidden but still apply normal layout padding
-    const isManageQueuePage = pathname?.match(/\/dashboard\/queues\/[0-9a-f-]{36}/i);
+    // On Token Management pages (inside a session), it has its own inner sidebar
+    // so we keep the main sidebar hidden.
+    const isManageQueuePage = pathname?.match(/\/dashboard\/queues\/[0-9a-f-]{36}\/sessions\//i);
 
     return (
         <ProtectedRoute>

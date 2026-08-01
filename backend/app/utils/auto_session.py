@@ -6,8 +6,8 @@ from sqlalchemy import select
 from app.db.session import AsyncSessionLocal
 from app.models.organization import Organization
 from app.models.session import Session
-from app.schemas.session import SessionCreate
-from app.services.session_service import create_session
+from app.models.queue import Queue
+from app.services.session_service import get_or_create_active_session
 
 logger = logging.getLogger(__name__)
 
@@ -45,28 +45,9 @@ async def check_and_rollover_sessions():
         
         for org in orgs:
             try:
-                # Create a new session for the current date
-                # Local time for session date
-                local_now = datetime.now(ZoneInfo("Asia/Kolkata"))
-                session_date = local_now.date()
-                
-                # Verify we don't already have one for this date
-                existing_today = await db.execute(
-                    select(Session).where(
-                        Session.org_id == org.id,
-                        Session.session_date == session_date
-                    )
-                )
-                if not existing_today.scalar_one_or_none():
-                    logger.info(f"Auto-creating new session for org {org.slug} at {current_time_str}")
-                    
-                    data = SessionCreate(
-                        session_date=session_date,
-                        title=f"Auto Session ({local_now.strftime('%b %d')})"
-                    )
-                    
-                    await create_session(db, org_id=org.id, data=data)
-                else:
-                    logger.info(f"Skipping auto-session for org {org.slug} - session already exists for {session_date}")
+                queues = await db.execute(select(Queue).where(Queue.org_id == org.id, Queue.is_active == True))
+                for queue in queues.scalars().all():
+                    await get_or_create_active_session(db, queue_id=queue.id, org_id=org.id)
+                logger.info(f"Auto-session rollover completed for org {org.slug} at {current_time_str}")
             except Exception as e:
-                logger.error(f"Failed to auto-rollover session for org {org.slug}: {e}")
+                logger.error(f"Failed to auto-rollover sessions for org {org.slug}: {e}")

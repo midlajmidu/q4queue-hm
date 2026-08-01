@@ -604,21 +604,12 @@ async def monitor_sessions(
     
     today = datetime.now(timezone.utc).date()
     
-    active_queue_sessions_subq = (
-        select(Queue.session_id)
-        .where(Queue.is_active == True)
-        .distinct()
-    )
-    
     query = (
         select(Session, Organization)
         .join(Organization, Session.org_id == Organization.id)
         .where(
             Session.org_id.in_(org_ids),
-            or_(
-                Session.session_date == today,
-                Session.id.in_(active_queue_sessions_subq)
-            )
+            Session.session_date == today
         )
     )
     res = await db.execute(query)
@@ -627,27 +618,31 @@ async def monitor_sessions(
     if not sessions_data:
         return []
 
-    session_ids = [s.id for s, org in sessions_data]
+    session_queue_map = {s.queue_id: s.id for s, org in sessions_data}
+    queue_ids = list(session_queue_map.keys())
 
     # Aggregate tokens per session
     token_query = (
         select(
-            Queue.session_id,
+            Token.queue_id,
             Token.status,
             func.count(Token.id).label("count")
         )
-        .select_from(Queue)
-        .join(Token, Token.queue_id == Queue.id)
-        .where(Queue.session_id.in_(session_ids))
-        .group_by(Queue.session_id, Token.status)
+        .select_from(Token)
+        .where(
+            Token.queue_id.in_(queue_ids),
+            func.date(func.timezone('UTC', Token.created_at)) == today
+        )
+        .group_by(Token.queue_id, Token.status)
     )
     token_res = await db.execute(token_query)
     
     from collections import defaultdict
     session_tokens = defaultdict(lambda: {"waiting": 0, "serving": 0, "done": 0})
-    for sid, status, count in token_res.all():
+    for qid, status, count in token_res.all():
         status_val = status.value if hasattr(status, 'value') else status
-        if status_val in session_tokens[sid]:
+        sid = session_queue_map.get(qid)
+        if sid and status_val in session_tokens[sid]:
             session_tokens[sid][status_val] += count
 
     # Count staff per org
@@ -703,10 +698,8 @@ async def monitor_queues(
     if not org_ids:
         return []
         
-    query = select(Queue, Organization, Session).join(
+    query = select(Queue, Organization).join(
         Organization, Queue.org_id == Organization.id
-    ).outerjoin(
-        Session, Queue.session_id == Session.id
     ).where(Queue.org_id.in_(org_ids), Queue.is_active == True)
     res = await db.execute(query)
     queues_data = res.all()
@@ -716,10 +709,10 @@ async def monitor_queues(
         
     from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
     # Look up org timezone for the first queue's branch or fallback
-    first_q, first_org, _ = queues_data[0]
+    first_q, first_org = queues_data[0]
     b_tz = await get_org_timezone(db, first_org.id)
     today = local_today(b_tz)
-    queue_ids = [q.id for q, _, _ in queues_data]
+    queue_ids = [q.id for q, _ in queues_data]
     
     tokens_res = await db.execute(
         select(Token.queue_id, Token.status, func.count(Token.id))
@@ -752,7 +745,7 @@ async def monitor_queues(
     wait_times = {row.queue_id: row.avg_wait_sec for row in wait_res.all()}
     
     items = []
-    for q, org, sess in queues_data:
+    for q, org in queues_data:
         counts = token_counts.get(q.id, {"waiting": 0, "serving": 0, "done": 0})
         waiting = counts["waiting"]
         served = counts["done"]
@@ -765,7 +758,7 @@ async def monitor_queues(
         
         items.append(QueueMonitorItem(
             id=q.id, branch=org.name, branch_id=org.id, branch_slug=org.slug, queue_name=q.name,
-            session_name=sess.title if sess else None,
+            session_name=None,
             current_token="-", waiting=waiting, served_today=served, avg_wait_time=avg_wait_str, 
             status="Active" if q.is_active else "Inactive", load_percentage=load_percentage, is_active=q.is_active
         ))

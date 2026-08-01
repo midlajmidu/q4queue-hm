@@ -6,8 +6,7 @@ Design decisions:
   - current_token_number is locked with SELECT FOR UPDATE during join/next
     to guarantee atomic increment with zero duplicates under concurrency.
   - prefix (e.g. "A", "B") lets orgs run labelled queues side-by-side.
-  - Unique(name, org_id, session_id) — same name allowed in different sessions.
-  - session_id FK links to the sessions table for date-grouping.
+  - Unique(name, org_id) — queue names are unique per organization.
 """
 import uuid
 from datetime import datetime
@@ -32,7 +31,7 @@ class Queue(Base):
     __tablename__ = "queues"
 
     __table_args__ = (
-        UniqueConstraint("name", "org_id", "session_id", name="uq_queue_name_org_session"),
+        UniqueConstraint("name", "org_id", name="uq_queue_name_org"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -44,12 +43,7 @@ class Queue(Base):
         nullable=False,
         index=True,
     )
-    session_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("sessions.id", ondelete="CASCADE"),
-        nullable=True,
-        index=True,
-    )
+
     token_session_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), nullable=False, default=uuid.uuid4, index=True
     )
@@ -83,17 +77,9 @@ class Queue(Base):
     tokens: Mapped[list["Token"]] = relationship(  # noqa: F821
         "Token", back_populates="queue", lazy="noload"
     )
-    session: Mapped[Optional["Session"]] = relationship(  # noqa: F821
-        "Session", back_populates="queues", lazy="noload"
+    sessions: Mapped[list["Session"]] = relationship(  # noqa: F821
+        "Session", back_populates="queue", lazy="noload"
     )
-
-    @property
-    def session_title(self) -> Optional[str]:
-        return self.session.title if getattr(self, "session", None) else None
-
-    @property
-    def session_date(self) -> Optional[str]:
-        return self.session.session_date.isoformat() if getattr(self, "session", None) and self.session.session_date else None
 
     def __repr__(self) -> str:
         return f"<Queue id={self.id} name={self.name!r} org={self.org_id}>"

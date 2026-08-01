@@ -3,9 +3,9 @@ app/models/session.py
 Session (date-based) model — groups queues by date within an org.
 
 Design decisions:
-  - One session per date per org (UNIQUE constraint).
-  - Optional title for human-readable labelling (e.g., "Morning Clinic").
-  - Cascades: deleting a session deletes all its queues and their tokens.
+  - Unique(queue_id, session_date).
+  - Optional title for human-readable labelling (e.g., "YYYY-MM-DD").
+  - Cascades: deleting a session deletes all its tokens.
 """
 import uuid
 from datetime import date, datetime
@@ -29,7 +29,7 @@ class Session(Base):
     __tablename__ = "sessions"
 
     __table_args__ = (
-        UniqueConstraint("org_id", "session_date", name="uq_session_org_date"),
+        UniqueConstraint("queue_id", "session_date", name="uq_session_queue_date"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -41,6 +41,12 @@ class Session(Base):
         nullable=False,
         index=True,
     )
+    queue_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("queues.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     session_date: Mapped[date] = mapped_column(Date, nullable=False)
     title: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -48,8 +54,8 @@ class Session(Base):
     )
 
     # ── Relationships ──────────────────────────────────────────────
-    queues: Mapped[List["Queue"]] = relationship(  # noqa: F821
-        "Queue", back_populates="session", lazy="noload"
+    queue: Mapped["Queue"] = relationship(  # noqa: F821
+        "Queue", back_populates="sessions", lazy="noload"
     )
 
     def __repr__(self) -> str:

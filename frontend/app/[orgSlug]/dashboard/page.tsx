@@ -2,6 +2,7 @@
 "use client";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { AnalyticsOverview, SessionResponse, QueueResponse } from "@/types/api";
 import Link from "next/link";
@@ -705,11 +706,7 @@ export default function OverviewPage() {
   const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
 
 
-  const [sessions, setSessions] = useState<SessionResponse[]>([]);
   const [queues, setQueues] = useState<QueueResponse[]>([]);
-  const [liveQueues, setLiveQueues] = useState<QueueResponse[]>([]);
-  const [selectedSession, setSelectedSession] = useState("");
-  const { addAlert } = useAlert();
 
   // ── Demo Alerts ──────────────────────────────────────
   // useEffect(() => {
@@ -740,7 +737,7 @@ export default function OverviewPage() {
       let total = 1; // Start with > 0 to enter the loop
 
       while (offset < total) {
-        const res = await api.getHistory({ sessionId: selectedSession || undefined, limit, offset });
+        const res = await api.getHistory({ queueId: selectedQueue || undefined, limit, offset });
         if (!res.items || res.items.length === 0) break;
 
         allItems = allItems.concat(res.items);
@@ -749,7 +746,7 @@ export default function OverviewPage() {
       }
 
       if (allItems.length === 0) {
-        addAlert({ type: "info", message: "No history found to download." });
+        toast.info("No history found to download.");
         return;
       }
 
@@ -779,9 +776,9 @@ export default function OverviewPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      addAlert({ type: "success", message: "Report downloaded successfully.", db: true });
+      toast.success("Report downloaded successfully.");
     } catch (err) {
-      addAlert({ type: "error", message: "Failed to download report.", db: true });
+      toast.error("Failed to download report.");
     } finally {
       setIsDownloading(false);
     }
@@ -806,7 +803,7 @@ export default function OverviewPage() {
 
     try {
       const data = await api.getOverview({
-        sessionId: selectedSession || undefined, queueId: selectedQueue || undefined,
+        queueId: selectedQueue || undefined,
         recentLimit: LIMIT, recentOffset: (recentPage - 1) * LIMIT
       });
       // Ignore if this request was aborted (a newer one is in flight)
@@ -823,24 +820,18 @@ export default function OverviewPage() {
         setIsRefreshing(false);
       }
     }
-  }, [selectedSession, selectedQueue, recentPage]);
+  }, [selectedQueue, recentPage]);
 
   useEffect(() => {
-    api.listSessions(100, 0).then(res => {
-      setSessions(res.items);
-      if (res.items.length >= 2)
-        api.getOverview({ sessionId: res.items[1].id, recentLimit: 0, recentOffset: 0 }).then(setPrevOverview).catch(() => { });
-      if (res.items.length >= 1)
-        api.listSessionQueues(res.items[0].id, 100, 0).then(r => setLiveQueues(r.items)).catch(() => { });
+    api.listQueues().then(r => {
+      setQueues(r || []);
+      if (r && r.length > 0 && !selectedQueue) {
+        setSelectedQueue(r[0].id);
+      }
     }).catch(console.error);
   }, []);
 
-  useEffect(() => {
-    if (selectedSession) {
-      api.listSessionQueues(selectedSession, 100, 0).then(r => setQueues(r.items)).catch(() => setQueues([]));
-    } else { setQueues([]); setSelectedQueue(""); }
-    setRecentPage(1);
-  }, [selectedSession]);
+
 
   useEffect(() => { loadData(); }, [loadData, recentPage]);
 
@@ -897,7 +888,7 @@ export default function OverviewPage() {
   const crColor = completionRate >= 90 ? C.green : (completionRate >= 75 ? C.amber : C.red);
   const crBg = completionRate >= 90 ? C.greenBg : (completionRate >= 75 ? C.amberBg : C.redBg);
   const crBorder = completionRate >= 90 ? "#a7f3d0" : (completionRate >= 75 ? "#fde68a" : "#fecaca");
-  const activeQueues = liveQueues.filter(q => q.is_active);
+  const activeQueues = queues.filter(q => q.is_active);
 
   // ── Global drawer escape ──────────────────────────────
   useEffect(() => {
@@ -1027,19 +1018,7 @@ export default function OverviewPage() {
             <div className="flex flex-col md:flex-row gap-4 md:gap-6 md:items-center mt-6 pt-6 border-t border-black/5">
               {[
                 {
-                  id: "filter-session", lbl: "SESSION", val: selectedSession, set: setSelectedSession, dis: false,
-                  opts: <>
-                    <option value="">All Sessions</option>
-                    {sessions.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {new Date(s.session_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                        {s.title ? ` — ${s.title}` : ""}
-                      </option>
-                    ))}
-                  </>,
-                },
-                {
-                  id: "filter-queue", lbl: "QUEUE", val: selectedQueue, set: setSelectedQueue, dis: !selectedSession,
+                  id: "filter-queue", lbl: "QUEUE", val: selectedQueue, set: setSelectedQueue, dis: false,
                   opts: <>
                     <option value="">All Queues</option>
                     {queues.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
@@ -1071,7 +1050,7 @@ export default function OverviewPage() {
                   Download Report
                 </button>
 
-                <Link href={`${dashBase}/sessions?action=create`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.brand, color: "#fff", borderColor: C.brandDark, boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
+                <Link href={`${dashBase}/queues?action=create`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.brand, color: "#fff", borderColor: C.brandDark, boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
                   <Icons.Play size={13} color="currentColor" />
                   Start Session
                 </Link>
@@ -1532,7 +1511,7 @@ export default function OverviewPage() {
                 <p className="text-[13px] text-slate-500 dark:text-slate-400 text-center max-w-sm mb-5">
                   Activity will appear once your queue session begins.
                 </p>
-                <Link href={`${dashBase}/sessions?action=create`} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-bold cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white border border-transparent transition-all shadow-sm hover:-translate-y-0.5 hover:shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
+                <Link href={`${dashBase}/queues?action=create`} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-bold cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white border border-transparent transition-all shadow-sm hover:-translate-y-0.5 hover:shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
                   <Icons.Play size={14} color="currentColor" /> Start Session
                 </Link>
               </div>

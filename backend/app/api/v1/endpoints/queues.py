@@ -23,7 +23,8 @@ SECURITY:
 """
 import logging
 import uuid
-from typing import Union
+import datetime
+from typing import Union, Optional
 import hmac
 import hashlib
 import base64
@@ -138,6 +139,76 @@ async def list_trash_queues(
     """List all soft-deleted queues for the authenticated organization."""
     queues = await queue_service.list_trash_queues(db, org_id=current_user.org_id)
     return [QueueResponse.model_validate(q) for q in queues]
+
+from app.schemas.session import SessionResponse, PaginatedSessionResponse, SessionCreate
+
+@router.post(
+    "/{queue_id}/sessions",
+    response_model=SessionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Queue Session",
+)
+async def create_queue_session(
+    queue_id: uuid.UUID,
+    body: SessionCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_branch_admin_or_staff()),
+) -> SessionResponse:
+    """Create a new session for a queue on a specified date. Limit 1 session per day per queue."""
+    from app.services.session_service import create_queue_session as create_session_service
+    try:
+        session = await create_session_service(
+            db, queue_id=queue_id, org_id=current_user.org_id, data=body
+        )
+        return SessionResponse.model_validate(session)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+@router.get(
+    "/{queue_id}/active-session",
+    response_model=SessionResponse,
+    summary="Get or Create Active Session",
+)
+async def get_active_session(
+    queue_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_branch_admin_or_staff()),
+) -> SessionResponse:
+    """Gets today's active session for the queue, creating it if it doesn't exist."""
+    from app.services.session_service import get_or_create_active_session
+    try:
+        session = await get_or_create_active_session(db, queue_id=queue_id, org_id=current_user.org_id)
+        return SessionResponse.model_validate(session)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+@router.get(
+    "/{queue_id}/sessions",
+    response_model=PaginatedSessionResponse,
+    summary="List Queue Sessions",
+)
+async def list_queue_sessions(
+    queue_id: uuid.UUID,
+    limit: int = 20,
+    offset: int = 0,
+    date: Optional[datetime.date] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_branch_admin_or_staff()),
+) -> PaginatedSessionResponse:
+    """Lists historical sessions for a queue."""
+    from app.services.session_service import list_sessions
+    try:
+        res = await list_sessions(
+            db, 
+            queue_id=queue_id, 
+            org_id=current_user.org_id, 
+            limit=limit, 
+            offset=offset,
+            session_date=date,
+        )
+        return PaginatedSessionResponse(**res)
+    except ValueError as exc:
+        _raise_404(exc)
 
 
 @router.get(
@@ -343,34 +414,7 @@ async def restore_queue(
     return QueueResponse.model_validate(updated)
 
 
-@router.post(
-    "/{queue_id}/reset",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Reset Queue",
-)
-async def reset_queue(
-    background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_admin_queue_for_org),
-) -> None:
-    """
-    Reset a queue — delete all tokens, restart counter.
-    SECURITY: queue ownership verified by dependency.
-    """
-    try:
-        await queue_service.reset_queue(db, queue_id=queue.id, org_id=queue.org_id)
-        background_tasks.add_task(
-            token_service.notify_queue_update,
-            queue_id=queue.id,
-            org_id=queue.org_id,
-        )
-    except ValueError as exc:
-        _raise_404(exc)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Public — Customer joins queue
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get(
     "/{queue_id}/qr-config",

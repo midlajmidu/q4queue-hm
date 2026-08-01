@@ -41,52 +41,7 @@ def _raise_400(exc: Exception) -> NoReturn:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Session Endpoints
-# ─────────────────────────────────────────────────────────────────────────────
 
-@router.post(
-    "",
-    response_model=SessionResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create Session",
-    dependencies=[Depends(api_rate_limit)],
-)
-async def create_session(
-    body: SessionCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin_or_staff()),
-) -> SessionResponse:
-    """Create a new date-based session for the authenticated organization."""
-    try:
-        return await session_service.create_session(
-            db, org_id=current_user.org_id, data=body
-        )
-    except ValueError as exc:
-        _raise_400(exc)
-
-
-@router.get(
-    "",
-    response_model=PaginatedSessionResponse,
-    summary="List Sessions",
-)
-async def list_sessions(
-    limit: int = 20,
-    offset: int = 0,
-    session_date: Optional[date] = None,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-) -> PaginatedSessionResponse:
-    """List all sessions for the authenticated organization, newest first."""
-    res = await session_service.list_sessions(
-        db, 
-        org_id=current_user.org_id, 
-        limit=limit, 
-        offset=offset,
-        session_date=session_date
-    )
-    return PaginatedSessionResponse(**res)
 
 
 @router.get(
@@ -107,24 +62,13 @@ async def get_session(
     except ValueError as exc:
         _raise_404(exc)
 
-    # Count queues for this session
-    from sqlalchemy import select, func
-    from app.models.queue import Queue
-    count_result = await db.execute(
-        select(func.count(Queue.id)).where(
-            Queue.session_id == session_id,
-            Queue.org_id == current_user.org_id,
-        )
-    )
-    queue_count = count_result.scalar() or 0
-
     return SessionResponse(
         id=session.id,
         org_id=session.org_id,
+        queue_id=session.queue_id,
         session_date=session.session_date,
         title=session.title,
         created_at=session.created_at,
-        queue_count=queue_count,
     )
 
 @router.patch(
@@ -170,62 +114,3 @@ async def delete_session(
         _raise_404(exc)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Session-Scoped Queue Endpoints
-# ─────────────────────────────────────────────────────────────────────────────
-
-@router.get(
-    "/{session_id}/queues",
-    response_model=PaginatedQueueResponse,
-    summary="List Queues in Session",
-)
-async def list_session_queues(
-    session_id: uuid.UUID,
-    limit: int = 20,
-    offset: int = 0,
-    name: Optional[str] = None,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-) -> PaginatedQueueResponse:
-    """List all queues within a specific session."""
-    try:
-        res = await session_service.list_session_queues(
-            db, 
-            session_id=session_id, 
-            org_id=current_user.org_id, 
-            limit=limit, 
-            offset=offset,
-            name=name
-        )
-    except ValueError as exc:
-        _raise_404(exc)
-    
-    return PaginatedQueueResponse(
-        items=[QueueResponse.model_validate(q) for q in res["items"]],
-        total=res["total"],
-        limit=res["limit"],
-        offset=res["offset"]
-    )
-
-
-@router.post(
-    "/{session_id}/queues",
-    response_model=QueueResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create Queue in Session",
-    dependencies=[Depends(api_rate_limit)],
-)
-async def create_session_queue(
-    session_id: uuid.UUID,
-    body: QueueCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin_or_staff()),
-) -> QueueResponse:
-    """Create a queue within a specific session."""
-    try:
-        queue = await session_service.create_session_queue(
-            db, session_id=session_id, org_id=current_user.org_id, data=body
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    return QueueResponse.model_validate(queue)

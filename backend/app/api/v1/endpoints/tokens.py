@@ -114,7 +114,7 @@ async def cancel_token(
 
         # Fetch token + queue details before cancellation (for notification)
         result = await db.execute(
-            select(Token, Queue.name, Queue.prefix, Queue.session_id)
+            select(Token, Queue.name, Queue.prefix)
             .join(Queue, Token.queue_id == Queue.id)
             .where(Token.id == token_id)
         )
@@ -129,7 +129,7 @@ async def cancel_token(
         )
 
         if row:
-            queue_name, queue_prefix, session_id = row[1], row[2], row[3]
+            queue_name, queue_prefix = row[1], row[2]
             background_tasks.add_task(
                 notify_queue_event,
                 event_type="queue_removed_v3",
@@ -142,7 +142,6 @@ async def cancel_token(
                 token_prefix=queue_prefix,
                 queue_name=queue_name,
                 tracking_id=str(getattr(token, "tracking_id", "")),
-                session_id=session_id,
             )
 
         return {"status": "cancelled", "token_number": token.token_number}
@@ -174,7 +173,7 @@ async def skip_token(
         from app.models.queue import Queue
 
         q_result = await db.execute(
-            select(Queue.name, Queue.prefix, Queue.session_id).where(Queue.id == token.queue_id)
+            select(Queue.name, Queue.prefix).where(Queue.id == token.queue_id)
         )
         q_row = q_result.one_or_none()
 
@@ -188,7 +187,7 @@ async def skip_token(
         )
 
         if q_row:
-            queue_name, queue_prefix, session_id = q_row
+            queue_name, queue_prefix = q_row
             background_tasks.add_task(
                 notify_queue_event,
                 event_type="queue_skipped_v2",
@@ -201,7 +200,6 @@ async def skip_token(
                 token_prefix=queue_prefix,
                 queue_name=queue_name,
                 tracking_id=str(getattr(token, "tracking_id", "")),
-                session_id=session_id,
             )
 
         await record_event(
@@ -249,7 +247,7 @@ async def complete_token(
         from app.models.queue import Queue
 
         q_result = await db.execute(
-            select(Queue.name, Queue.prefix, Queue.session_id).where(Queue.id == token.queue_id)
+            select(Queue.name, Queue.prefix).where(Queue.id == token.queue_id)
         )
         q_row = q_result.one_or_none()
 
@@ -263,10 +261,10 @@ async def complete_token(
         )
 
         if q_row:
-            queue_name, queue_prefix, session_id = q_row
+            queue_name, queue_prefix = q_row
             background_tasks.add_task(
                 notify_queue_event,
-                event_type="queue_completed_v2",
+                event_type="queue_completed_v3",
                 org_id=token.org_id,
                 token_id=token.id,
                 queue_id=token.queue_id,
@@ -276,7 +274,6 @@ async def complete_token(
                 token_prefix=queue_prefix,
                 queue_name=queue_name,
                 tracking_id=str(getattr(token, "tracking_id", "")),
-                session_id=session_id,
             )
 
         await record_event(
@@ -324,7 +321,7 @@ async def remove_token(
         from app.models.queue import Queue
 
         q_result = await db.execute(
-            select(Queue.name, Queue.prefix, Queue.session_id).where(Queue.id == token.queue_id)
+            select(Queue.name, Queue.prefix).where(Queue.id == token.queue_id)
         )
         q_row = q_result.one_or_none()
 
@@ -347,7 +344,7 @@ async def remove_token(
         )
 
         if q_row:
-            queue_name, queue_prefix, session_id = q_row
+            queue_name, queue_prefix = q_row
             background_tasks.add_task(
                 notify_queue_event,
                 event_type="queue_removed_v3",
@@ -360,7 +357,6 @@ async def remove_token(
                 token_prefix=queue_prefix,
                 queue_name=queue_name,
                 tracking_id=str(getattr(token, "tracking_id", "")),
-                session_id=session_id,
             )
 
         await record_event(

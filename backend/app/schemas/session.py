@@ -21,11 +21,10 @@ class SessionUpdate(BaseModel):
 class SessionResponse(BaseModel):
     id: uuid.UUID
     org_id: uuid.UUID
+    queue_id: uuid.UUID
     session_date: date
     title: Optional[str] = None
     created_at: datetime
-    queue_count: int = 0
-    queue_names: list[str] = []
     total_served: int = 0
     total_issued: int = 0
 

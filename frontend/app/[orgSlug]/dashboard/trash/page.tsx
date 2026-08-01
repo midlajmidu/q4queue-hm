@@ -217,16 +217,7 @@ export default function TrashPage() {
                                                 {queue.prefix}
                                             </span>
                                         </td>
-                                        <td className="py-4 px-5">
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="text-[13px] font-semibold text-slate-900 dark:text-white">
-                                                    {queue.session_date ? fmtDate(queue.session_date + "T00:00:00", tz) : "No Date"}
-                                                </span>
-                                                <span className="text-[11px] font-medium text-slate-500">
-                                                    {queue.session_title || "Unnamed Session"}
-                                                </span>
-                                            </div>
-                                        </td>
+
                                         <td className="py-4 px-5">
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="text-[13px] font-semibold text-slate-900 dark:text-white">

@@ -148,7 +148,7 @@ async def leave_queue(
     Triggers queue.cancelled WhatsApp notification.
     """
     result = await db.execute(
-        select(Token, Queue.name, Queue.prefix, Queue.session_id)
+        select(Token, Queue.name, Queue.prefix)
         .join(Queue, Token.queue_id == Queue.id)
         .where(Token.tracking_id == tracking_id)
     )
@@ -160,7 +160,7 @@ async def leave_queue(
             detail="Token not found",
         )
 
-    token, queue_name, queue_prefix, session_id = row
+    token, queue_name, queue_prefix = row
 
     try:
         updated = await token_service.cancel_token_public(db, token_id=token.id)
@@ -182,7 +182,6 @@ async def leave_queue(
             token_prefix=queue_prefix,
             queue_name=queue_name,
             tracking_id=str(getattr(token, "tracking_id", "")),
-            session_id=session_id,
         )
         return {"status": "cancelled", "token_number": updated.token_number}
     except ValueError as exc:

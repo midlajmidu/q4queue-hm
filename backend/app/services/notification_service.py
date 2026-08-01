@@ -138,9 +138,24 @@ async def notify_queue_event(
                 
             if not organization_name:
                 org_res = await db.execute(select(Organization).where(Organization.id == org_id))
-                org = org_res.scalar_one_or_none()
-                if org and org.name:
-                    organization_name = org.name
+                org_db = org_res.scalar_one_or_none()
+                if org_db:
+                    organization_name = org_db.name
+                    
+            if not session_id and queue_id:
+                from app.models.session import Session
+                from app.core.tz_helpers import get_org_timezone
+                from sqlalchemy import func
+                tz_name = await get_org_timezone(db, org_id)
+                sess = await db.scalar(
+                    select(Session.id)
+                    .where(
+                        Session.queue_id == queue_id,
+                        Session.session_date == func.date(func.timezone(tz_name, func.now()))
+                    )
+                )
+                if sess:
+                    session_id = sess
 
         if db_token and not db_token.is_whatsapp_enabled:
             logger.debug("WhatsApp disabled for token %s, skipping event=%s", token_id, event_type)

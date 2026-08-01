@@ -788,7 +788,7 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
         )
         .select_from(Token)
         .join(Organization, Token.org_id == Organization.id)
-        .outerjoin(Session, Token.session_id == Session.id)
+        .outerjoin(Session, and_(Token.queue_id == Session.queue_id, func.date(func.timezone(func.coalesce(Organization.timezone, 'UTC'), Token.created_at)) == Session.session_date))
         .join(Queue, Token.queue_id == Queue.id)
         .outerjoin(User, Token.served_by_id == User.id)
         .outerjoin(CompletedByUser, Token.completed_by_id == CompletedByUser.id)

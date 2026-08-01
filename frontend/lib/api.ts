@@ -445,23 +445,27 @@ export const api = {
     },
 
     // ── Sessions ─────────────────────────────────────────────────
-    listSessions(limit?: number, offset?: number, sessionDate?: string): Promise<PaginatedSessionResponse> {
+    listQueueSessions(queueId: string, limit?: number, offset?: number, date?: string): Promise<PaginatedSessionResponse> {
         const ps = new URLSearchParams();
         if (limit != null) ps.append("limit", String(limit));
         if (offset != null) ps.append("offset", String(offset));
-        if (sessionDate) ps.append("session_date", sessionDate);
-        return request<PaginatedSessionResponse>(`/sessions${ps.toString() ? `?${ps}` : ""}`);
+        if (date && date.trim()) ps.append("date", date.trim());
+        return request<PaginatedSessionResponse>(`/queues/${queueId}/sessions${ps.toString() ? `?${ps}` : ""}`);
+    },
+
+    createQueueSession(queueId: string, data: { session_date: string; title?: string }): Promise<SessionResponse> {
+        return request<SessionResponse>(`/queues/${queueId}/sessions`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    getActiveSession(queueId: string): Promise<SessionResponse> {
+        return request<SessionResponse>(`/queues/${queueId}/active-session`);
     },
 
     getSession(sessionId: string): Promise<SessionResponse> {
         return request<SessionResponse>(`/sessions/${sessionId}`);
-    },
-
-    createSession(data: SessionCreate): Promise<SessionResponse> {
-        return request<SessionResponse>("/sessions", {
-            method: "POST",
-            body: JSON.stringify(data),
-        });
     },
 
     updateSession(sessionId: string, data: { title: string }): Promise<void> {
@@ -477,21 +481,7 @@ export const api = {
         });
     },
 
-    // ── Queues (session-scoped) ──────────────────────────────────
-    listSessionQueues(sessionId: string, limit?: number, offset?: number, name?: string): Promise<PaginatedQueueResponse> {
-        const ps = new URLSearchParams();
-        if (limit != null) ps.append("limit", String(limit));
-        if (offset != null) ps.append("offset", String(offset));
-        if (name) ps.append("name", name);
-        return request<PaginatedQueueResponse>(`/sessions/${sessionId}/queues${ps.toString() ? `?${ps}` : ""}`);
-    },
 
-    createSessionQueue(sessionId: string, data: QueueCreate): Promise<QueueResponse> {
-        return request<QueueResponse>(`/sessions/${sessionId}/queues`, {
-            method: "POST",
-            body: JSON.stringify(data),
-        });
-    },
 
     // ── Queues ───────────────────────────────────────────────────
     listQueues(): Promise<QueueResponse[]> {
@@ -541,11 +531,7 @@ export const api = {
         });
     },
 
-    resetQueue(queueId: string): Promise<void> {
-        return request<void>(`/queues/${queueId}/reset`, {
-            method: "POST",
-        });
-    },
+
 
     listTrashQueues(): Promise<QueueResponse[]> {
         return request<QueueResponse[]>("/queues/trash");

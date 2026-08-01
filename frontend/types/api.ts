@@ -227,11 +227,10 @@ export interface BranchDetailResponse extends BranchStatItem {
 export interface SessionResponse {
     id: string;
     org_id: string;
+    queue_id: string;
     session_date: string;
     title: string;
     created_at: string;
-    queue_count: number;
-    queue_names: string[];
     total_served: number;
     total_issued: number;
 }
@@ -272,10 +271,6 @@ export interface QueueCreate {
 export interface QueueResponse {
     id: string;
     org_id: string;
-    session_id: string | null;
-    session_title?: string | null;
-    session_date?: string | null;
-    token_session_id: string;
     name: string;
     prefix: string;
     announcement: string | null;

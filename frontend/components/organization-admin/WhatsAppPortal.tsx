@@ -125,14 +125,12 @@ export function WhatsAppPortal() {
     const [logs, setLogs] = useState<PaginatedWhatsAppMessages | null>(null);
     const [selectedMessage, setSelectedMessage] = useState<WhatsAppMessage | null>(null);
     const [queues, setQueues] = useState<QueueResponse[]>([]);
-    const [sessions, setSessions] = useState<SessionResponse[]>([]);
     const [loading, setLoading] = useState(true);
     
     // Filters
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [filterQueueId, setFilterQueueId] = useState("");
-    const [filterSessionId, setFilterSessionId] = useState("");
     const [filterStatus, setFilterStatus] = useState("");
     const [filterEventType, setFilterEventType] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
@@ -149,7 +147,7 @@ export function WhatsAppPortal() {
     // Reset pagination on filter change
     useEffect(() => {
         setCurrentPage(1);
-    }, [startDate, endDate, filterQueueId, filterSessionId, filterStatus, filterEventType, debouncedSearchQuery]);
+    }, [startDate, endDate, filterQueueId, filterStatus, filterEventType, debouncedSearchQuery]);
 
     // Settings state
     const [testPhone, setTestPhone] = useState("");
@@ -158,14 +156,12 @@ export function WhatsAppPortal() {
 
     const loadInitialData = useCallback(async () => {
         try {
-            const [cfg, qs, ss] = await Promise.all([
+            const [cfg, qs] = await Promise.all([
                 api.getOrgWhatsAppConfig().catch(() => null),
                 api.listQueues().catch(() => []),
-                api.listSessions(100).catch(() => ({ items: [] as SessionResponse[] })),
             ]);
             if (cfg) setConfig(cfg);
             setQueues(qs || []);
-            setSessions(ss?.items || []);
         } catch (e) {
             console.error("Failed to load initial data", e);
         }
@@ -178,7 +174,6 @@ export function WhatsAppPortal() {
                 startDate: startDate || undefined,
                 endDate: endDate || undefined,
                 queueId: filterQueueId || undefined,
-                sessionId: filterSessionId || undefined,
             };
             
             const historyParams = {
@@ -202,7 +197,7 @@ export function WhatsAppPortal() {
         } finally {
             setLoading(false);
         }
-    }, [startDate, endDate, filterQueueId, filterSessionId, filterStatus, filterEventType, debouncedSearchQuery, currentPage]);
+    }, [startDate, endDate, filterQueueId, filterStatus, filterEventType, debouncedSearchQuery, currentPage]);
 
     useEffect(() => { 
         loadFilteredData();
@@ -428,22 +423,9 @@ export function WhatsAppPortal() {
                                     <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-slate-500 pointer-events-none" />
                                 </div>
                             </div>
-                            <div className="flex-1 w-full relative">
-                                <label className="block text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider mb-1.5">Session</label>
-                                <div className="relative">
-                                    <select 
-                                        value={filterSessionId} 
-                                        onChange={e => setFilterSessionId(e.target.value)}
-                                        className="w-full h-11 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-4 pr-10 text-[13px] font-medium text-[#111827] dark:text-slate-200 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all appearance-none"
-                                    >
-                                        <option value="" className="dark:bg-slate-900">All Sessions</option>
-                                        {sessions.map(s => <option key={s.id} value={s.id} className="dark:bg-slate-900">{new Date(s.session_date).toLocaleDateString()}</option>)}
-                                    </select>
-                                    <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-slate-500 pointer-events-none" />
-                                </div>
-                            </div>
+
                             <button 
-                                onClick={() => { setStartDate(""); setEndDate(""); setFilterQueueId(""); setFilterSessionId(""); }}
+                                onClick={() => { setStartDate(""); setEndDate(""); setFilterQueueId(""); }}
                                 className="h-11 px-5 flex items-center justify-center gap-2 text-[13px] font-semibold text-[#6366F1] dark:text-indigo-400 bg-[#6366F1]/5 dark:bg-indigo-500/10 hover:bg-[#6366F1]/10 dark:hover:bg-indigo-500/20 rounded-xl transition-colors whitespace-nowrap border border-transparent"
                             >
                                 <FilterX size={16} />

@@ -194,51 +194,37 @@ async def update_organization_settings(
     newly_activated = new_active_templates - old_active_templates
 
     if newly_activated:
-        from datetime import datetime
-        from zoneinfo import ZoneInfo
-        from app.models.session import Session
         from app.services.queue_service import create_queue
         from app.schemas.queue import QueueCreate
 
-        local_now = datetime.now(ZoneInfo("Asia/Kolkata"))
-        active_sessions_result = await db.execute(
-            select(Session).where(
-                Session.org_id == org.id,
-                Session.session_date >= local_now.date()
-            )
-        )
-        active_sessions = active_sessions_result.scalars().all()
-
-        for session in active_sessions:
-            for tpl in org.queue_templates:
-                if tpl["id"] in newly_activated:
-                    queue_name = tpl.get("name", "Queue")
-                    existing_queue = await db.scalar(
-                        select(Queue).where(
-                            Queue.org_id == org.id,
-                            Queue.session_id == session.id,
-                            Queue.name == queue_name
+        for tpl in org.queue_templates or []:
+            if tpl.get("id") in newly_activated:
+                queue_name = tpl.get("name", "Queue")
+                existing_queue = await db.scalar(
+                    select(Queue).where(
+                        Queue.org_id == org.id,
+                        Queue.name == queue_name,
+                        Queue.is_deleted == False
+                    )
+                )
+                if existing_queue:
+                    continue
+                    
+                try:
+                    await create_queue(
+                        db,
+                        org_id=org.id,
+                        data=QueueCreate(
+                            name=queue_name,
+                            prefix=tpl.get("defaultPrefix", "A"),
+                            starting_sequence=tpl.get("startingNumber", 1),
+                            service_lines=tpl.get("serviceLines", 0),
+                            open_time=tpl.get("openTime"),
+                            close_time=tpl.get("closeTime")
                         )
                     )
-                    if existing_queue:
-                        continue
-                        
-                    try:
-                        await create_queue(
-                            db,
-                            org_id=org.id,
-                            session_id=session.id,
-                            data=QueueCreate(
-                                name=queue_name,
-                                prefix=tpl.get("defaultPrefix", "A"),
-                                starting_sequence=tpl.get("startingNumber", 1),
-                                service_lines=tpl.get("serviceLines", 0),
-                                open_time=tpl.get("openTime"),
-                                close_time=tpl.get("closeTime")
-                            )
-                        )
-                    except Exception:
-                        pass # Ignore errors
+                except Exception:
+                    pass # Ignore errors
 
     # Notify all active queues to refresh branding
     active_queues = await db.execute(select(Queue).where(Queue.org_id == org.id, Queue.is_active == True))

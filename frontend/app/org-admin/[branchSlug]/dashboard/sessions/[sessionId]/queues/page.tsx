@@ -1,1 +1,1 @@
-export { default } from "@/app/[orgSlug]/dashboard/sessions/[sessionId]/queues/page";
+export { default } from "@/app/[orgSlug]/dashboard/queues/[queueId]/page";

@@ -63,12 +63,15 @@ async def get_overview_metrics(
         except Exception:
             pass
     
-    # If session_id (date session) is provided, we must join with Queue or filter by a session_id on Token
-    # Current Token.session_id stores the rotating token_session_id, so we join to filter by date session.
     join_queue = False
     if session_id:
-        join_queue = True
-        conditions.append(Queue.session_id == session_id)
+        from app.models.session import Session
+        sess = await db.scalar(select(Session).where(Session.id == session_id))
+        if sess:
+            conditions.append(Token.queue_id == sess.queue_id)
+            conditions.append(func.date(func.timezone(org_tz_str, Token.created_at)) == sess.session_date)
+        else:
+            conditions.append(Token.id == None)
 
     # Filter out deleted tokens from most metrics
     active_conditions = conditions.copy()
@@ -214,7 +217,7 @@ async def get_overview_metrics(
         Queue.prefix.label('queue_prefix'),
         Session.title.label('session_title')
     ).join(Queue, Token.queue_id == Queue.id).outerjoin(
-        Session, Queue.session_id == Session.id
+        Session, and_(Token.queue_id == Session.queue_id, func.date(func.timezone(org_tz_str, Token.created_at)) == Session.session_date)
     ).where(
         and_(*active_conditions)
     ).order_by(Token.created_at.desc()).limit(recent_limit).offset(recent_offset)
@@ -245,7 +248,7 @@ async def get_overview_metrics(
         Session.title.label('session_title'),
         Session.session_date.label('session_date')
     ).select_from(Token).join(Queue, Token.queue_id == Queue.id).outerjoin(
-        Session, Queue.session_id == Session.id
+        Session, and_(Token.queue_id == Session.queue_id, func.date(func.timezone(org_tz_str, Token.created_at)) == Session.session_date)
     ).where(
         and_(*active_conditions, Token.status == TokenStatus.waiting)
     ).order_by(Token.created_at.asc()).limit(1)
@@ -319,8 +322,13 @@ async def get_history_details(
     
     join_queue = False
     if session_id:
-        join_queue = True
-        conditions.append(Queue.session_id == session_id)
+        from app.models.session import Session
+        sess = await db.scalar(select(Session).where(Session.id == session_id))
+        if sess:
+            conditions.append(Token.queue_id == sess.queue_id)
+            conditions.append(func.date(func.timezone(org_tz_str, Token.created_at)) == sess.session_date)
+        else:
+            conditions.append(Token.id == None)
 
     from sqlalchemy.orm import aliased
     from app.models.user import User
@@ -444,8 +452,13 @@ async def get_analytics_csv_data(
 
     join_queue = False
     if session_id:
-        join_queue = True
-        conditions.append(Queue.session_id == session_id)
+        from app.models.session import Session
+        sess = await db.scalar(select(Session).where(Session.id == session_id))
+        if sess:
+            conditions.append(Token.queue_id == sess.queue_id)
+            conditions.append(func.date(func.timezone(org_tz_str, Token.created_at)) == sess.session_date)
+        else:
+            conditions.append(Token.id == None)
 
     if start_date:
         try:

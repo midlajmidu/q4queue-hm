@@ -408,11 +408,22 @@ async def get_branch_sessions(
     for s in sessions:
         operator_name = "Staff Member"
         
-        comp_res = await db.execute(select(func.count(Token.id)).where(Token.session_id == s.id, Token.status == TokenStatus.done))
+        comp_res = await db.execute(
+            select(func.count(Token.id)).where(
+                Token.queue_id == s.queue_id,
+                func.date(func.timezone(tz_name, Token.created_at)) == s.session_date,
+                Token.status == TokenStatus.done
+            )
+        )
         
         avg_svc = await db.execute(
             select(func.avg(func.extract('epoch', Token.completed_at) - func.extract('epoch', Token.served_at)))
-            .where(Token.session_id == s.id, Token.completed_at != None, Token.served_at != None)
+            .where(
+                Token.queue_id == s.queue_id,
+                func.date(func.timezone(tz_name, Token.created_at)) == s.session_date,
+                Token.completed_at != None,
+                Token.served_at != None
+            )
         )
         avg_svc_sec = avg_svc.scalar() or 0
         avg_svc_str = f"{int(avg_svc_sec // 60)}m {int(avg_svc_sec % 60)}s" if avg_svc_sec > 0 else "-"

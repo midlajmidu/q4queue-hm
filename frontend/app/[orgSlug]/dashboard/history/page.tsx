@@ -194,9 +194,7 @@ export default function HistoryPage() {
     const today = localTodayStr(tz);
     const last7 = getLocalDateStr(new Date(nowInTz(tz).getTime() - 6 * 86400000));
 
-    const [sessions, setSessions] = useState<SessionResponse[]>([]);
     const [queues, setQueues] = useState<QueueResponse[]>([]);
-    const [selectedSessionId, setSelectedSessionId] = useState("");
     const [selectedQueueId, setSelectedQueueId] = useState("");
     const [selectedStatus, setSelectedStatus] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
@@ -224,7 +222,6 @@ export default function HistoryPage() {
         setExporting(true);
         try {
             const blob = await api.exportAnalyticsCSV({
-                sessionId: selectedSessionId || undefined,
                 queueId: selectedQueueId || undefined,
                 search: debouncedSearch || undefined,
             });
@@ -245,21 +242,8 @@ export default function HistoryPage() {
     };
 
     useEffect(() => {
-        api.listSessions(100, 0).then(res => setSessions(res.items || [])).finally(() => setIsLoading(false));
+        api.listQueues().then(setQueues).finally(() => setIsLoading(false));
     }, []);
-
-    useEffect(() => {
-        if (selectedSessionId) {
-            api.listSessionQueues(selectedSessionId, 100, 0).then(res => {
-                setQueues(res.items || []);
-                setSelectedQueueId("");
-                setOffset(0);
-            });
-        } else {
-            setQueues([]);
-            setSelectedQueueId("");
-        }
-    }, [selectedSessionId]);
 
     const loadHistory = useCallback(async (isSilent = false) => {
         if (!isSilent) setIsLoading(true);
@@ -267,7 +251,6 @@ export default function HistoryPage() {
         try {
             const [historyData, overviewData] = await Promise.all([
                 api.getHistory({
-                    sessionId: selectedSessionId || undefined,
                     queueId: selectedQueueId || undefined,
                     search: debouncedSearch || undefined,
                     status: selectedStatus || undefined,
@@ -275,7 +258,6 @@ export default function HistoryPage() {
                     offset,
                 }),
                 api.getOverview({
-                    sessionId: selectedSessionId || undefined,
                     queueId: selectedQueueId || undefined,
                     startDate: startDate || undefined,
                     endDate: endDate || undefined,
@@ -292,7 +274,7 @@ export default function HistoryPage() {
             if (!isSilent) setIsLoading(false);
             setIsRefreshing(false);
         }
-    }, [selectedSessionId, selectedQueueId, offset, debouncedSearch, selectedStatus, startDate, endDate]);
+    }, [selectedQueueId, offset, debouncedSearch, selectedStatus, startDate, endDate]);
 
     useEffect(() => {
         loadHistory();
@@ -369,23 +351,11 @@ export default function HistoryPage() {
                                 </div>
                             </div>
 
-                            {/* Session */}
-                            <div>
-                                <p style={{ fontSize: 10, fontWeight: 700, color: "var(--q-text-muted)", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 5 }}>Session</p>
-                                <div style={{ position: "relative" }}>
-                                    <select value={selectedSessionId} onChange={e => { setSelectedSessionId(e.target.value); setOffset(0); }} style={selectStyle}>
-                                        <option value="">All Sessions</option>
-                                        {sessions.map(s => <option key={s.id} value={s.id}>{formatDate(s.session_date, tz)}</option>)}
-                                    </select>
-                                    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--q-text-muted)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><polyline points="6 9 12 15 18 9" /></svg>
-                                </div>
-                            </div>
-
                             {/* Queue */}
                             <div>
                                 <p style={{ fontSize: 10, fontWeight: 700, color: "var(--q-text-muted)", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 5 }}>Queue</p>
                                 <div style={{ position: "relative" }}>
-                                    <select value={selectedQueueId} onChange={e => { setSelectedQueueId(e.target.value); setOffset(0); }} disabled={!selectedSessionId} style={{ ...selectStyle, opacity: !selectedSessionId ? 0.5 : 1 }}>
+                                    <select value={selectedQueueId} onChange={e => { setSelectedQueueId(e.target.value); setOffset(0); }} style={selectStyle}>
                                         <option value="">All Queues</option>
                                         {queues.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
                                     </select>
@@ -518,7 +488,7 @@ export default function HistoryPage() {
                                                     <p style={{ fontSize: 14, fontWeight: 600, color: "var(--q-text)", marginBottom: 4 }}>No records found</p>
                                                     <p style={{ fontSize: 13, color: "var(--q-text-muted)" }}>Try adjusting your filters or date range.</p>
                                                 </div>
-                                                <button onClick={() => { setSelectedSessionId(""); setSelectedQueueId(""); setSelectedStatus(""); setSearchQuery(""); }}
+                                                <button onClick={() => { setSelectedQueueId(""); setSelectedStatus(""); setSearchQuery(""); }}
                                                     style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 13, fontWeight: 600, border: "1px solid var(--q-border-light)", borderRadius: 8, cursor: "pointer", background: "var(--q-card-bg)", color: "var(--q-text)", transition: "all .15s" }}>
                                                     Clear all filters
                                                 </button>
