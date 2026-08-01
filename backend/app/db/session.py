@@ -17,7 +17,7 @@ settings = get_settings()
 # ── Engine (created once at module import) ────────────────────────────────────
 engine: AsyncEngine = create_async_engine(
     settings.database_url_async,
-    echo=not settings.is_production,       # SQL logging in dev only
+    echo=False,                              # Disable verbose SQL logging for high performance
     pool_size=settings.DB_POOL_SIZE,
     max_overflow=settings.DB_MAX_OVERFLOW,
     pool_timeout=settings.DB_POOL_TIMEOUT,

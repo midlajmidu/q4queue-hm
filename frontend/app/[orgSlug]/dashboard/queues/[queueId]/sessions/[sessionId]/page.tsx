@@ -403,6 +403,20 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, []);
 
     const [autoLive, setAutoLive] = useState(true);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem("q4_inner_sidebar_collapsed");
+        if (saved === "true") setSidebarCollapsed(true);
+    }, []);
+
+    const toggleSidebar = () => {
+        setSidebarCollapsed(prev => {
+            const next = !prev;
+            localStorage.setItem("q4_inner_sidebar_collapsed", String(next));
+            return next;
+        });
+    };
 
     const { state, status, refresh } = useQueueSocket(queueId, {
         token: token || undefined,
@@ -1004,47 +1018,74 @@ export default function QueueDetailPage({ params }: PageProps) {
                 </div>
 
 
-                {/* ── Refactored Sidebar ─────────────────────────────────── */}
-                <aside className="hidden md:flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/10" style={{ width: 260, flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}>
-
+                {/* ── Refactored Collapsible Sidebar ─────────────────────────────────── */}
+                <aside 
+                    className="hidden md:flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/10 relative transition-all duration-300 ease-in-out" 
+                    style={{ width: sidebarCollapsed ? 72 : 260, flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}
+                >
                     {/* Top Container */}
-                    <div className="p-4 flex flex-col h-full">
+                    <div className={`p-4 flex flex-col h-full ${sidebarCollapsed ? "items-center px-2" : ""}`}>
 
-                        {/* 1. Top Action */}
-                        <div className="pb-4 border-b border-slate-200 dark:border-white/10 mb-4">
+                        {/* 1. Top Action Bar with Panel Collapse Toggle */}
+                        <div className={`pb-4 border-b border-slate-200 dark:border-white/10 mb-4 w-full flex items-center ${sidebarCollapsed ? "justify-center flex-col gap-3" : "justify-between"}`}>
                             <Link
                                 href={`${dashBase}/queues/${queueId}`}
                                 className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                                title="Back to Sessions"
                             >
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
-                                Back to Sessions
+                                {!sidebarCollapsed && <span>Back to Sessions</span>}
                             </Link>
+
+                            <button
+                                onClick={toggleSidebar}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                                aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect width="18" height="18" x="3" y="3" rx="2" />
+                                    <path d="M9 3v18" />
+                                    {sidebarCollapsed ? <path d="m14 9 3 3-3 3" /> : <path d="m16 15-3-3 3-3" />}
+                                </svg>
+                            </button>
                         </div>
 
                         {/* 2. Context Card */}
-                        <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-100 dark:border-white/10 mb-6">
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Managing</div>
-                            <div className="text-sm font-bold text-slate-900 dark:text-white truncate" title={queueName}>{queueName}</div>
-                            <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-[pulse-dot_2s_infinite]" />
-                                {isPaused ? <span className="text-amber-600 dark:text-amber-400">Paused</span> : isActive ? "Active" : <span className="text-rose-600 dark:text-rose-400">Inactive</span>}
-                            </div>
+                        <div className={`bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-white/10 mb-6 w-full ${sidebarCollapsed ? "flex flex-col items-center justify-center p-2 text-center" : ""}`} title={queueName}>
+                            {!sidebarCollapsed ? (
+                                <>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Managing</div>
+                                    <div className="text-sm font-bold text-slate-900 dark:text-white truncate" title={queueName}>{queueName}</div>
+                                    <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-[pulse-dot_2s_infinite]" />
+                                        {isPaused ? <span className="text-amber-600 dark:text-amber-400">Paused</span> : isActive ? "Active" : <span className="text-rose-600 dark:text-rose-400">Inactive</span>}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex items-center justify-center relative py-1" title={`${queueName} (${isActive ? "Active" : "Inactive"})`}>
+                                    <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+                                </div>
+                            )}
                         </div>
 
                         {/* 3. Section Headers */}
-                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-2">
-                            Queue Management
-                        </div>
+                        {!sidebarCollapsed && (
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-2 w-full">
+                                Queue Management
+                            </div>
+                        )}
 
                         {/* 4. Navigation Links */}
-                        <nav className="px-3 flex flex-col gap-1 flex-1 overflow-y-auto">
+                        <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto w-full ${sidebarCollapsed ? "px-0 items-center" : "px-3"}`}>
                             {navItems.map((item) => {
                                 const isActiveItem = activeSection === item.id;
                                 return (
                                     <button
                                         key={item.id}
                                         onClick={() => setActiveSection(item.id)}
-                                        className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all text-left ${isActiveItem
+                                        title={sidebarCollapsed ? item.label : undefined}
+                                        className={`flex items-center gap-3 py-2 text-sm rounded-lg transition-all text-left ${sidebarCollapsed ? "justify-center w-10 h-10 px-0" : "px-3 w-full"} ${isActiveItem
                                             ? "font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60"
                                             : "font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                                             }`}
@@ -1052,7 +1093,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <span className={`flex-shrink-0 ${isActiveItem ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}>
                                             {item.icon}
                                         </span>
-                                        <span className="truncate flex-1">{item.label}</span>
+                                        {!sidebarCollapsed && <span className="truncate flex-1">{item.label}</span>}
                                         {item.id === "announcement" && (state?.announcement || initialQueue?.announcement) && (
                                             <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 flex-shrink-0" />
                                         )}
@@ -1063,8 +1104,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                     </div>
 
                     {/* 5. Bottom Shell */}
-                    <div className="mt-auto border-t border-slate-200 dark:border-white/10 p-4 flex items-center justify-between">
-                        <ConnectionBadge status={status} />
+                    <div className={`mt-auto border-t border-slate-200 dark:border-white/10 p-3 flex items-center ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
+                        {!sidebarCollapsed && <ConnectionBadge status={status} />}
                         <ThemeToggle />
                     </div>
                 </aside>
@@ -1088,12 +1129,6 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 flex-wrap">
                                                 <h1 className="qd-section-title text-gray-900 dark:text-white capitalize">{queueName}</h1>
-                                                {sessionInfo && (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/60 text-xs font-semibold">
-                                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                                        {sessionInfo.title || sessionInfo.session_date}
-                                                    </span>
-                                                )}
                                             </div>
                                             <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
                                                 Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
