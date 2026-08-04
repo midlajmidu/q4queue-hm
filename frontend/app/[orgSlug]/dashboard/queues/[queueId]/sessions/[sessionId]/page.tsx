@@ -1982,6 +1982,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                         {activeSection === "history" && (
                             <QueueHistory
                                 queueId={queueId}
+                                sessionId={sessionId}
+                                sessionDate={sessionInfo?.session_date}
                                 queueName={queueName}
                                 prefix={state?.prefix || initialQueue?.prefix || ""}
                                 queueHistory={queueHistory}
@@ -2935,7 +2937,7 @@ function calcSvcTime(served?: string | null, completed?: string | null): string 
 }
 
 function QueueHistory({
-    queueId, queueName, prefix,
+    queueId, sessionId, sessionDate, queueName, prefix,
     queueHistory, setQueueHistory,
     historyTotal, setHistoryTotal,
     historyPage, setHistoryPage,
@@ -2943,7 +2945,7 @@ function QueueHistory({
     historyPageSize, onViewToken, onRecallToken, performAction, toast,
     onOpenMobileMenu, hasServiceLines
 }: {
-    queueId: string; queueName: string; prefix: string;
+    queueId: string; sessionId?: string; sessionDate?: string; queueName: string; prefix: string;
     queueHistory: TokenHistoryItem[]; setQueueHistory: (d: TokenHistoryItem[]) => void;
     historyTotal: number; setHistoryTotal: (t: number) => void;
     historyPage: number; setHistoryPage: (p: number | ((prev: number) => number)) => void;
@@ -2959,7 +2961,15 @@ function QueueHistory({
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
+    const [dateFilterMode, setDateFilterMode] = useState<"session" | "date" | "all">("session");
+    const [selectedDate, setSelectedDate] = useState<string>(sessionDate || new Date().toISOString().split("T")[0]);
     const [exporting, setExporting] = useState(false);
+
+    useEffect(() => {
+        if (sessionDate) {
+            setSelectedDate(sessionDate);
+        }
+    }, [sessionDate]);
 
     const handleExport = async () => {
         setExporting(true);
@@ -2990,15 +3000,32 @@ function QueueHistory({
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    useEffect(() => { setHistoryPage(1); }, [debouncedSearch, statusFilter, setHistoryPage]);
+    useEffect(() => { setHistoryPage(1); }, [debouncedSearch, statusFilter, dateFilterMode, selectedDate, setHistoryPage]);
 
     useEffect(() => {
         setHistoryLoading(true);
-        api.getHistory({ queueId, search: debouncedSearch || undefined, status: statusFilter || undefined, limit: historyPageSize, offset: (historyPage - 1) * historyPageSize })
+        const params: any = {
+            queueId,
+            search: debouncedSearch || undefined,
+            status: statusFilter || undefined,
+            limit: historyPageSize,
+            offset: (historyPage - 1) * historyPageSize,
+        };
+
+        if (dateFilterMode === "session" && (sessionDate || selectedDate)) {
+            const targetDate = sessionDate || selectedDate;
+            params.startDate = targetDate;
+            params.endDate = targetDate;
+        } else if (dateFilterMode === "date" && selectedDate) {
+            params.startDate = selectedDate;
+            params.endDate = selectedDate;
+        }
+
+        api.getHistory(params)
             .then(res => { setQueueHistory(res.items); setHistoryTotal(res.total); })
             .catch(console.error)
             .finally(() => setHistoryLoading(false));
-    }, [queueId, historyPage, historyPageSize, statusFilter, debouncedSearch, setQueueHistory, setHistoryTotal, setHistoryLoading]);
+    }, [queueId, sessionId, dateFilterMode, selectedDate, historyPage, historyPageSize, statusFilter, debouncedSearch, setQueueHistory, setHistoryTotal, setHistoryLoading]);
 
     const calcWaitTime = (created: string | null, served: string | null) => {
         if (!served || !created) return "—";
@@ -3048,7 +3075,39 @@ function QueueHistory({
                             )}
                         </div>
                     </div>
-                    <div className="flex flex-row items-end gap-3 w-full md:w-auto">
+                    <div className="flex flex-wrap items-end gap-3 w-full md:w-auto">
+                        <div className="flex-1 md:w-auto flex flex-col gap-1.5">
+                            <label className="text-[10px] font-bold tracking-[0.09em] uppercase text-slate-500 dark:text-slate-400">Date Range</label>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={dateFilterMode}
+                                    onChange={e => setDateFilterMode(e.target.value as any)}
+                                    className="w-full md:w-[160px] px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer transition-colors"
+                                    style={{ height: 38 }}
+                                >
+                                    <option value="session" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                                        {sessionDate ? `Session (${sessionDate})` : "Current Session"}
+                                    </option>
+                                    <option value="date" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                                        Custom Date...
+                                    </option>
+                                    <option value="all" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                                        All Dates
+                                    </option>
+                                </select>
+
+                                {dateFilterMode === "date" && (
+                                    <input
+                                        type="date"
+                                        value={selectedDate}
+                                        onChange={e => setSelectedDate(e.target.value)}
+                                        className="px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
+                                        style={{ height: 38 }}
+                                    />
+                                )}
+                            </div>
+                        </div>
+
                         <div className="flex-1 md:w-auto flex flex-col gap-1.5">
                             <label className="text-[10px] font-bold tracking-[0.09em] uppercase text-slate-500 dark:text-slate-400">Status</label>
                             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full md:w-[130px] px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer transition-colors" style={{ height: 38 }}>

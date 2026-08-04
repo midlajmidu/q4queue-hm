@@ -30,6 +30,7 @@ async def get_overview_metrics(
     # Base conditions
     conditions = [Token.org_id == org_id]
     
+    join_queue = False
     from app.models.queue import Queue
     
     if queue_id:
@@ -210,7 +211,7 @@ async def get_overview_metrics(
         Queue.prefix.label('queue_prefix'),
         Session.title.label('session_title')
     ).join(Queue, Token.queue_id == Queue.id).outerjoin(
-        Session, and_(Token.queue_id == Session.queue_id, func.date(func.timezone(org_tz_str, Token.created_at)) == Session.session_date)
+        Session, Token.session_id == Session.id
     ).where(
         and_(*active_conditions)
     ).order_by(Token.created_at.desc()).limit(recent_limit).offset(recent_offset)

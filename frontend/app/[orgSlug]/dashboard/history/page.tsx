@@ -199,8 +199,8 @@ export default function HistoryPage() {
     const [selectedStatus, setSelectedStatus] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
-    const [startDate, setStartDate] = useState(last7);
-    const [endDate, setEndDate] = useState(today);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const [selectedToken, setSelectedToken] = useState<TokenDetailData | null>(null);
     const [history, setHistory] = useState<TokenHistoryItem[]>([]);
     const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
