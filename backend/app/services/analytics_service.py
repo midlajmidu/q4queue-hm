@@ -63,15 +63,8 @@ async def get_overview_metrics(
         except Exception:
             pass
     
-    join_queue = False
     if session_id:
-        from app.models.session import Session
-        sess = await db.scalar(select(Session).where(Session.id == session_id))
-        if sess:
-            conditions.append(Token.queue_id == sess.queue_id)
-            conditions.append(func.date(func.timezone(org_tz_str, Token.created_at)) == sess.session_date)
-        else:
-            conditions.append(Token.id == None)
+        conditions.append(Token.session_id == session_id)
 
     # Filter out deleted tokens from most metrics
     active_conditions = conditions.copy()
@@ -295,6 +288,8 @@ async def get_history_details(
     queue_id: Optional[uuid.UUID] = None,
     search: Optional[str] = None,
     status: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
 ) -> dict:
@@ -319,16 +314,42 @@ async def get_history_details(
             Token.customer_phone.like(search_term),
             cast(Token.token_number, String).like(search_term)
         ))
-    
-    join_queue = False
+
+    # ── Date range filter (timezone-aware) ──────────────────────────────────
+    if start_date:
+        try:
+            from zoneinfo import ZoneInfo
+            from dateutil.parser import parse as parse_date
+            tz_zone = ZoneInfo(org_tz_str)
+            dt = parse_date(start_date)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=tz_zone)
+            else:
+                dt = dt.astimezone(tz_zone)
+            conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")))
+        except Exception:
+            pass
+
+    if end_date:
+        try:
+            from zoneinfo import ZoneInfo
+            from dateutil.parser import parse as parse_date
+            tz_zone = ZoneInfo(org_tz_str)
+            ed = parse_date(end_date)
+            if ed.tzinfo is None:
+                ed = ed.replace(tzinfo=tz_zone)
+            else:
+                ed = ed.astimezone(tz_zone)
+            # If only a date (no time) is given, extend to end of day
+            if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
+                ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
+            conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")))
+        except Exception:
+            pass
+
     if session_id:
-        from app.models.session import Session
-        sess = await db.scalar(select(Session).where(Session.id == session_id))
-        if sess:
-            conditions.append(Token.queue_id == sess.queue_id)
-            conditions.append(func.date(func.timezone(org_tz_str, Token.created_at)) == sess.session_date)
-        else:
-            conditions.append(Token.id == None)
+        # Filter directly on the session_id column — strict isolation, no date bleed
+        conditions.append(Token.session_id == session_id)
 
     from sqlalchemy.orm import aliased
     from app.models.user import User
@@ -356,8 +377,6 @@ async def get_history_details(
 
     # Count total for pagination
     count_query = select(func.count(Token.id)).where(and_(*conditions))
-    if join_queue:
-        count_query = count_query.join(Queue, Token.queue_id == Queue.id)
     
     total_res = await db.execute(count_query)
     total = total_res.scalar_one()
@@ -450,15 +469,8 @@ async def get_analytics_csv_data(
             cast(Token.token_number, String).like(search_term)
         ))
 
-    join_queue = False
     if session_id:
-        from app.models.session import Session
-        sess = await db.scalar(select(Session).where(Session.id == session_id))
-        if sess:
-            conditions.append(Token.queue_id == sess.queue_id)
-            conditions.append(func.date(func.timezone(org_tz_str, Token.created_at)) == sess.session_date)
-        else:
-            conditions.append(Token.id == None)
+        conditions.append(Token.session_id == session_id)
 
     if start_date:
         try:

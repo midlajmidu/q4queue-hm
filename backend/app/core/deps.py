@@ -322,7 +322,8 @@ async def get_queue_for_org(
         result = await db.execute(
             select(QueueModel).join(Organization, Organization.id == QueueModel.org_id).where(
                 QueueModel.id == queue_id,
-                Organization.parent_organization_id == current_user.parent_organization_id
+                Organization.parent_organization_id == current_user.parent_organization_id,
+                QueueModel.is_deleted == False
             )
         )
     else:
@@ -330,6 +331,7 @@ async def get_queue_for_org(
             select(QueueModel).where(
                 QueueModel.id == queue_id,
                 QueueModel.org_id == current_user.org_id,  # TENANT ISOLATION
+                QueueModel.is_deleted == False
             )
         )
     queue = result.scalar_one_or_none()
@@ -355,6 +357,7 @@ async def get_admin_queue_for_org(
         select(QueueModel).where(
             QueueModel.id == queue_id,
             QueueModel.org_id == current_user.org_id,
+            QueueModel.is_deleted == False
         )
     )
     queue = result.scalar_one_or_none()

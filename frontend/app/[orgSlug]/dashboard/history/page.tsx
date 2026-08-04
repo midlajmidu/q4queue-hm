@@ -218,12 +218,32 @@ export default function HistoryPage() {
         return () => clearTimeout(handler);
     }, [searchQuery]);
 
+    // Reset to page 1 whenever date filters change
+    useEffect(() => { setOffset(0); }, [startDate, endDate]);
+    // Reset to page 1 whenever status or queue filter changes
+    useEffect(() => { setOffset(0); }, [selectedStatus, selectedQueueId]);
+
+    const handleClearFilters = useCallback(() => {
+        setSelectedQueueId("");
+        setSelectedStatus("");
+        setSearchQuery("");
+        setDebouncedSearch("");
+        setStartDate("");
+        setEndDate("");
+        setOffset(0);
+    }, []);
+
+    const isFiltered = Boolean(selectedQueueId || selectedStatus || searchQuery || debouncedSearch || startDate || endDate);
+
     const handleExport = async () => {
         setExporting(true);
         try {
             const blob = await api.exportAnalyticsCSV({
                 queueId: selectedQueueId || undefined,
                 search: debouncedSearch || undefined,
+                status: selectedStatus || undefined,
+                startDate: startDate || undefined,
+                endDate: endDate || undefined,
             });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -254,6 +274,8 @@ export default function HistoryPage() {
                     queueId: selectedQueueId || undefined,
                     search: debouncedSearch || undefined,
                     status: selectedStatus || undefined,
+                    startDate: startDate || undefined,
+                    endDate: endDate || undefined,
                     limit: PAGE_SIZE,
                     offset,
                 }),
@@ -386,6 +408,27 @@ export default function HistoryPage() {
                                     style={{ ...selectStyle, padding: "0 10px", colorScheme: "light dark" }} />
                             </div>
 
+                            {/* Reset Filters button */}
+                            {isFiltered && (
+                                <button
+                                    onClick={handleClearFilters}
+                                    style={{
+                                        height: 36, padding: "0 12px", borderRadius: 8,
+                                        background: "transparent", color: "#ef4444", fontSize: 13, fontWeight: 600,
+                                        border: "1px solid rgba(239,68,68,0.3)", cursor: "pointer",
+                                        display: "flex", alignItems: "center", gap: 5, transition: "all .15s",
+                                    }}
+                                    className="hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                                    title="Reset all filters"
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                    Reset Filters
+                                </button>
+                            )}
+
                             {/* Export */}
                             <button onClick={handleExport} disabled={exporting} style={{
                                 height: 36, padding: "0 14px", borderRadius: 8,
@@ -401,21 +444,7 @@ export default function HistoryPage() {
                             </button>
                         </div>
                     }
-                >
-                    {/* Live indicator */}
-                    <div style={{ marginLeft: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-900/40">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            LIVE
-                        </div>
-                        {updatedLabel && (
-                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                                <span style={{ fontSize: 11, color: "var(--q-text-muted)", fontWeight: 500 }}>Updated {updatedLabel}</span>
-                                {isRefreshing && <svg style={{ animation: "spin 1s linear infinite" }} width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="var(--q-text-muted)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>}
-                            </div>
-                        )}
-                    </div>
-                </StandardPageHeader>
+                />
 
                 {/* ── Stat Cards ── */}
                 {overview && (
@@ -488,7 +517,7 @@ export default function HistoryPage() {
                                                     <p style={{ fontSize: 14, fontWeight: 600, color: "var(--q-text)", marginBottom: 4 }}>No records found</p>
                                                     <p style={{ fontSize: 13, color: "var(--q-text-muted)" }}>Try adjusting your filters or date range.</p>
                                                 </div>
-                                                <button onClick={() => { setSelectedQueueId(""); setSelectedStatus(""); setSearchQuery(""); }}
+                                                <button onClick={handleClearFilters}
                                                     style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 13, fontWeight: 600, border: "1px solid var(--q-border-light)", borderRadius: 8, cursor: "pointer", background: "var(--q-card-bg)", color: "var(--q-text)", transition: "all .15s" }}>
                                                     Clear all filters
                                                 </button>

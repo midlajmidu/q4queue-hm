@@ -52,25 +52,25 @@ export default function OrgAdminBranchLayout({ children }: { children: ReactNode
                         />
                     )}
 
-                    <div
-                        className={`flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]`}
-                        style={{
-                            paddingLeft: !isManageQueuePage ? undefined : 0,
-                        }}
-                    >
+                    <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
                         <style>{`
                             @media (min-width: 1024px) {
-                                .sb-offset { padding-left: ${!isManageQueuePage ? (isSidebarCollapsed ? '72px' : '256px') : '0px'}; transition: padding-left 300ms cubic-bezier(0.4,0,0.2,1); }
+                                .logo-offset { padding-left: ${!isManageQueuePage ? (isSidebarCollapsed ? '72px' : '256px') : '0px'}; }
+                                .sb-offset   { padding-left: ${!isManageQueuePage ? (isSidebarCollapsed ? '72px' : '256px') : '0px'}; transition: padding-left 300ms cubic-bezier(0.4,0,0.2,1); }
                             }
                         `}</style>
-                        <div className={`flex-1 flex flex-col min-w-0 h-full overflow-hidden ${!isManageQueuePage ? 'sb-offset' : ''}`}>
-                            <SystemBanner />
-                            <ImpersonationBanner />
-                            <AdminViewBanner />
-                            {!isManageQueuePage && (
-                                <TopBar onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
-                            )}
+                        
+                        <SystemBanner />
+                        <ImpersonationBanner />
+                        <AdminViewBanner />
 
+                        {!isManageQueuePage && (
+                            <div className="logo-offset">
+                                <TopBar onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
+                            </div>
+                        )}
+
+                        <div className={`flex-1 min-h-0 flex flex-col overflow-hidden ${!isManageQueuePage ? 'sb-offset' : ''}`}>
                             <main className={!isManageQueuePage ? "flex-1 min-h-0 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto" : "flex-1 min-h-0 overflow-hidden"}>
                                 <div className={!isManageQueuePage ? "max-w-7xl mx-auto w-full" : "w-full h-full"}>
                                     <AlertBannerContainer />

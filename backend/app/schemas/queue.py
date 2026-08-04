@@ -46,6 +46,8 @@ class QueueResponse(BaseModel):
     total_served: int
     is_active: bool
     is_paused: bool = False
+    is_deleted: bool = False
+    deleted_at: Optional[datetime] = None
     service_lines: int = 0
     open_time: Optional[str] = None
     close_time: Optional[str] = None

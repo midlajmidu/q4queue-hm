@@ -139,10 +139,36 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                             />
                         )}
 
-                        {/* Enterprise Sidebar */}
-                        <aside className={`bg-white border-r border-slate-200/80 flex flex-col h-full shrink-0 transition-all duration-300 w-[260px] ${isSidebarCollapsed ? 'md:w-[72px]' : 'md:w-[260px]'
-                            } fixed md:sticky inset-y-0 left-0 z-50 md:z-20 md:flex ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-                            } relative`}>
+                        {/* ══════════════════════════════════════════════
+                            LOGO RAIL — Desktop Only (md:flex)
+                            Fixed at top-left (left-0 top-0), always 260px wide, h-16 (64px) tall.
+                            Never collapses. Never hides logo.
+                        ══════════════════════════════════════════════ */}
+                        <div className="hidden md:flex fixed top-0 left-0 z-[70] items-center justify-between h-16 w-[260px] bg-white border-b border-r border-slate-200/80 px-4">
+                            <Link href="/organization-admin" className="focus:outline-none transition-opacity hover:opacity-80 flex items-center justify-center">
+                                <Logo size="sm" />
+                            </Link>
+
+                            {/* Collapse Toggle Button (Positioned cleanly on logo rail border) */}
+                            <button
+                                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                                className="absolute -right-3.5 top-1/2 -translate-y-1/2 bg-white border border-slate-300 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 rounded-full p-1.5 shadow-md z-[80] transition-all hover:scale-105 flex items-center justify-center cursor-pointer"
+                                aria-label="Toggle Sidebar"
+                            >
+                                <ChevronRight size={14} className={`transition-transform duration-300 ${isSidebarCollapsed ? "" : "rotate-180"}`} />
+                            </button>
+                        </div>
+
+                        {/* ══════════════════════════════════════════════
+                            NAV PANEL
+                            • Desktop: top-16 (below logo rail), width md:w-[72px] ↔ md:w-[260px]
+                            • Mobile: full-height drawer (top-0 left-0 z-50), width 260px
+                        ══════════════════════════════════════════════ */}
+                        <aside className={`bg-white border-r border-slate-200/80 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                            fixed left-0 bottom-0 z-[50] top-0 md:top-16
+                            ${isSidebarCollapsed ? 'md:w-[72px]' : 'md:w-[260px]'} w-[260px]
+                            ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                        `}>
                             {/* Organic Wavy Vector Wallpaper Layers (Constrained to Sidebar Bounds) */}
                             <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
                                 <div className="absolute inset-0 bg-gradient-to-b from-indigo-50/50 via-slate-50/20 to-white" />
@@ -159,27 +185,14 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                 </svg>
                             </div>
 
-                            {/* Collapse Toggle Button (Positioned cleanly on sidebar border) */}
-                            <button
-                                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                                className="absolute -right-3.5 top-6 bg-white border border-slate-300 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 rounded-full p-1.5 shadow-md z-50 transition-all hover:scale-105 hidden md:flex items-center justify-center cursor-pointer"
-                                aria-label="Toggle Sidebar"
-                            >
-                                <ChevronRight size={14} className={`transition-transform duration-300 ${isSidebarCollapsed ? "" : "rotate-180"}`} />
-                            </button>
-
-                            {/* Logo */}
-                            <div className="h-16 flex items-center justify-between px-4 shrink-0 border-b border-slate-100/80 overflow-hidden relative z-10 bg-white/40 backdrop-blur-xs">
+                            {/* Mobile Header (Close button) — hidden on desktop */}
+                            <div className="md:hidden h-16 flex items-center justify-between px-4 shrink-0 border-b border-slate-100/80 relative z-10 bg-white/40 backdrop-blur-xs">
                                 <Link href="/organization-admin" className="focus:outline-none transition-opacity hover:opacity-80 flex items-center justify-center">
-                                    {isSidebarCollapsed ? (
-                                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">Q</div>
-                                    ) : (
-                                        <Logo size="sm" />
-                                    )}
+                                    <Logo size="sm" />
                                 </Link>
                                 <button
                                     onClick={() => setIsMobileMenuOpen(false)}
-                                    className="md:hidden p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors animate-in fade-in duration-200"
+                                    className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
                                 >
                                     <X size={18} />
                                 </button>
@@ -261,127 +274,137 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                         </aside>
                         {/* Main Content Area */}
                         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50">
+                            <style>{`
+                                @media (min-width: 768px) {
+                                    .org-logo-offset { padding-left: 260px; }
+                                    .org-sb-offset   { padding-left: ${isSidebarCollapsed ? '72px' : '260px'};
+                                                       transition: padding-left 300ms cubic-bezier(0.4,0,0.2,1); }
+                                }
+                            `}</style>
 
-                            {/* Enterprise Header */}
-                            <header className="h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-slate-50 border-b border-slate-200 shrink-0">
+                            {/* Enterprise Header — aligned with the permanent 260px logo rail */}
+                            <div className="org-logo-offset">
+                                <header className="h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-slate-50 border-b border-slate-200 shrink-0">
 
-                                {/* Breadcrumbs & Mobile Logo */}
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={() => setIsMobileMenuOpen(true)}
-                                        className="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none"
-                                        aria-label="Open menu"
-                                    >
-                                        <Menu size={20} />
-                                    </button>
-                                    <div className="flex items-center gap-2 md:hidden">
-                                        <Link href="/organization-admin" className="focus:outline-none">
-                                            <Logo size="sm" />
-                                        </Link>
-                                    </div>
-                                    <div className="hidden md:flex items-center gap-2 text-sm text-slate-500 font-medium">
-                                        <span className="text-slate-900 font-semibold">{user?.org_name || "Organization"}</span>
-                                        <ChevronRight size={14} className="text-slate-400" />
-                                        <span className="text-slate-600">{getPageTitle(pathname)}</span>
-                                    </div>
-                                </div>
-
-                                {/* Actions & Profile */}
-                                <div className="flex items-center gap-4 sm:gap-6">
-
-
-                                    <div className="flex items-center gap-3 pl-4 sm:pl-6">
-                                        {/* Notification Bell */}
-                                        <div className="relative" ref={notifRef}>
-                                            <button
-                                                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                                                className={`relative p-2 rounded-lg transition-colors focus:outline-none ${isNotificationOpen ? 'bg-slate-200 text-slate-700' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
-                                            >
-                                                <Bell size={20} />
-                                            </button>
-
-                                            {/* Notification Slide-out Panel */}
-                                            {isNotificationOpen && (
-                                                <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                                                    <div className="p-8 flex flex-col items-center justify-center text-center">
-                                                        <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 border border-slate-100">
-                                                            <Bell className="w-5 h-5 text-slate-400" />
-                                                        </div>
-                                                        <h3 className="text-sm font-bold text-slate-900 mb-1">Coming Soon</h3>
-                                                        <p className="text-xs text-slate-500 leading-relaxed">Notifications will be available in the next version release.</p>
-                                                    </div>
-                                                </div>
-                                            )}
+                                    {/* Breadcrumbs & Mobile Logo */}
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => setIsMobileMenuOpen(true)}
+                                            className="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none"
+                                            aria-label="Open menu"
+                                        >
+                                            <Menu size={20} />
+                                        </button>
+                                        <div className="flex items-center gap-2 md:hidden">
+                                            <Link href="/organization-admin" className="focus:outline-none">
+                                                <Logo size="sm" />
+                                            </Link>
                                         </div>
+                                        <div className="hidden md:flex items-center gap-2 text-sm text-slate-500 font-medium">
+                                            <span className="text-slate-900 font-semibold">{user?.org_name || "Organization"}</span>
+                                            <ChevronRight size={14} className="text-slate-400" />
+                                            <span className="text-slate-600">{getPageTitle(pathname)}</span>
+                                        </div>
+                                    </div>
 
-                                        {/* Header Profile Trigger */}
-                                        <div className="group relative" ref={profileRef}>
-                                            <button 
-                                                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                                className="flex items-center gap-3 focus:outline-none ml-2 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
-                                            >
-                                                <div className="text-right hidden sm:block">
-                                                    <p className="text-sm font-semibold text-slate-700 leading-tight">{user?.first_name} {user?.last_name}</p>
-                                                    <p className="text-xs font-medium text-slate-500">{user?.email}</p>
-                                                </div>
-                                                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-sm ring-2 ring-slate-50 group-hover:ring-indigo-100 transition-colors relative">
-                                                    {user?.first_name?.charAt(0)}
-                                                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
-                                                </div>
-                                                <ChevronDown size={14} className={`text-slate-400 hidden sm:block transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
-                                            </button>
+                                    {/* Actions & Profile */}
+                                    <div className="flex items-center gap-4 sm:gap-6">
 
-                                            <div className={`absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-2 transition-all z-50 ${isProfileMenuOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'}`}>
-                                                <div className="px-4 py-3 border-b border-slate-100 mb-1 sm:hidden">
-                                                    <p className="text-sm font-bold text-slate-900 truncate">{user?.first_name} {user?.last_name}</p>
-                                                    <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-                                                </div>
-                                                <div className="px-4 py-2 border-b border-slate-100 mb-1 hidden sm:block">
-                                                    <p className="text-[10px] font-bold tracking-widest text-slate-400/80 uppercase">Current Role</p>
-                                                    <p className="text-xs font-semibold text-slate-700 mt-0.5">Organization Admin</p>
-                                                </div>
-                                                <Link
-                                                    href="/organization-admin/settings"
-                                                    className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-                                                >
-                                                    <Settings size={16} />
-                                                    Account Settings
-                                                </Link>
+
+                                        <div className="flex items-center gap-3 pl-4 sm:pl-6">
+                                            {/* Notification Bell */}
+                                            <div className="relative" ref={notifRef}>
                                                 <button
-                                                    onClick={() => logout()}
-                                                    className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors text-left"
+                                                    onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                                                    className={`relative p-2 rounded-lg transition-colors focus:outline-none ${isNotificationOpen ? 'bg-slate-200 text-slate-700' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
                                                 >
-                                                    <LogOut size={16} className="text-red-500" />
-                                                    Sign Out
+                                                    <Bell size={20} />
                                                 </button>
+
+                                                {/* Notification Slide-out Panel */}
+                                                {isNotificationOpen && (
+                                                    <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                        <div className="p-8 flex flex-col items-center justify-center text-center">
+                                                            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 border border-slate-100">
+                                                                <Bell className="w-5 h-5 text-slate-400" />
+                                                            </div>
+                                                            <h3 className="text-sm font-bold text-slate-900 mb-1">Coming Soon</h3>
+                                                            <p className="text-xs text-slate-500 leading-relaxed">Notifications will be available in the next version release.</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Header Profile Trigger */}
+                                            <div className="group relative" ref={profileRef}>
+                                                <button 
+                                                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                                                    className="flex items-center gap-3 focus:outline-none ml-2 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+                                                >
+                                                    <div className="text-right hidden sm:block">
+                                                        <p className="text-sm font-semibold text-slate-700 leading-tight">{user?.first_name} {user?.last_name}</p>
+                                                        <p className="text-xs font-medium text-slate-500">{user?.email}</p>
+                                                    </div>
+                                                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-sm ring-2 ring-slate-50 group-hover:ring-indigo-100 transition-colors relative">
+                                                        {user?.first_name?.charAt(0)}
+                                                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
+                                                    </div>
+                                                    <ChevronDown size={14} className={`text-slate-400 hidden sm:block transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                                                </button>
+
+                                                <div className={`absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-2 transition-all z-50 ${isProfileMenuOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'}`}>
+                                                    <div className="px-4 py-3 border-b border-slate-100 mb-1 sm:hidden">
+                                                        <p className="text-sm font-bold text-slate-900 truncate">{user?.first_name} {user?.last_name}</p>
+                                                        <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                                                    </div>
+                                                    <div className="px-4 py-2 border-b border-slate-100 mb-1 hidden sm:block">
+                                                        <p className="text-[10px] font-bold tracking-widest text-slate-400/80 uppercase">Current Role</p>
+                                                        <p className="text-xs font-semibold text-slate-700 mt-0.5">Organization Admin</p>
+                                                    </div>
+                                                    <Link
+                                                        href="/organization-admin/settings"
+                                                        className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                                                    >
+                                                        <Settings size={16} />
+                                                        Account Settings
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => logout()}
+                                                        className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors text-left"
+                                                    >
+                                                        <LogOut size={16} className="text-red-500" />
+                                                        Sign Out
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </header>
+                                </header>
+                            </div>
 
-                            {/* Page Content */}
-                            <main className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 lg:p-8 flex flex-col">
-                                <div className="max-w-[1600px] mx-auto w-full flex-1">
-                                    {children}
-                                </div>
-
-                                <footer className="max-w-[1600px] mx-auto w-full mt-12 pt-5 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] font-medium text-slate-500 shrink-0">
-                                    <div className="flex items-center gap-2.5 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer group">
-                                        <span className="relative flex h-1.5 w-1.5">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 group-hover:opacity-100 transition-opacity"></span>
-                                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                                        </span>
-                                        All systems operational
+                            {/* Page Content — offset follows the collapsible nav panel */}
+                            <div className="flex-1 min-h-0 flex flex-col overflow-hidden org-sb-offset">
+                                <main className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 lg:p-8 flex flex-col">
+                                    <div className="max-w-[1600px] mx-auto w-full flex-1">
+                                        {children}
                                     </div>
-                                    <div className="flex items-center gap-2 text-slate-400">
-                                        <span>© {new Date().getFullYear()} Q4Queue</span>
-                                        <span>•</span>
-                                        <span>v1.0.0</span>
-                                    </div>
-                                </footer>
-                            </main>
 
+                                    <footer className="max-w-[1600px] mx-auto w-full mt-12 pt-5 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] font-medium text-slate-500 shrink-0">
+                                        <div className="flex items-center gap-2.5 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer group">
+                                            <span className="relative flex h-1.5 w-1.5">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 group-hover:opacity-100 transition-opacity"></span>
+                                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                            </span>
+                                            All systems operational
+                                        </div>
+                                        <div className="flex items-center gap-2 text-slate-400">
+                                            <span>© {new Date().getFullYear()} Q4Queue</span>
+                                            <span>•</span>
+                                            <span>v1.0.0</span>
+                                        </div>
+                                    </footer>
+                                </main>
+                            </div>
                         </div>
                     </div>
                 </NotificationProvider>

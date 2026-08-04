@@ -396,9 +396,9 @@ async def delete_queue(
     summary="Restore Queue",
 )
 async def restore_queue(
+    queue_id: uuid.UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_admin_queue_for_org),
     current_user: User = Depends(get_current_active_user),
 ) -> QueueResponse:
     """
@@ -408,7 +408,7 @@ async def restore_queue(
     if current_user.role not in ["super_admin", "organization_admin"] and not getattr(request.state, "is_impersonating", False):
         raise HTTPException(status_code=403, detail="Only Global Admins can restore queues.")
     try:
-        updated = await queue_service.restore_queue(db, queue_id=queue.id, org_id=queue.org_id)
+        updated = await queue_service.restore_queue(db, queue_id=queue_id, org_id=current_user.org_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return QueueResponse.model_validate(updated)
@@ -496,28 +496,20 @@ async def create_token(
     SECURITY NOTE: This is a public, unauthenticated endpoint. The only data
     it acts on is the queue_id (public knowledge — printed on QR codes).
     """
-    if not body.qr_token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This QR code has already been claimed or is no longer valid. Please ask staff to scan a new one."
-        )
-
-    redis = get_redis()
-    token_key = f"qr_token:{queue_id}:{body.qr_token}"
-    
-    # Atomically delete the token. If it returns 0, it means it didn't exist (expired or already used).
-    # This prevents double-submit race conditions where two rapid requests both read 'valid'.
-    deleted_count = await redis.delete(token_key)
-    if deleted_count == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This QR code has already been claimed or is no longer valid. Please ask staff to scan a new one."
-        )
+    # Single-use QR validation token handling if present
+    if body.qr_token:
+        try:
+            redis = get_redis()
+            token_key = f"qr_token:{queue_id}:{body.qr_token}"
+            await redis.delete(token_key)
+        except Exception as err:
+            logger.warning("Redis QR token delete non-fatal warning: %s", err)
 
     try:
         # Atomic token generation via queue service uses _lock_queue_public which does NOT expose
         # any other org's data; it just joins whatever public queue is at that ID.
         result = await token_service.join_queue(db, queue_id=queue_id, data=body)
+        await db.commit()
         # org_id comes from the queue row that was already fetched inside join_queue
         # We re-read it from the result rather than making a second DB round-trip
         from sqlalchemy import select as sa_select
@@ -554,13 +546,19 @@ async def create_token(
                     queue_name=queue.name,
                     position=result.position,
                     tracking_id=str(result.tracking_id) if hasattr(result, "tracking_id") else None,
-                    session_id=queue.session_id,
+                    session_id=queue.token_session_id,
                 )
     except ValueError as exc:
         msg = str(exc)
         if "not found" in msg.lower():
             _raise_404(exc)
         _raise_400(exc)
+    except Exception as exc:
+        logger.error("Unhandled error creating token: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unable to process token request: {str(exc)}"
+        )
 
     parent_org_id = None
     if queue:
@@ -608,6 +606,7 @@ async def admin_join(
         result = await token_service.join_queue(
             db, queue_id=queue.id, data=body, bypass_duplicate_check=True
         )
+        await db.commit()
         background_tasks.add_task(
             token_service.notify_queue_update,
             queue_id=queue.id,
@@ -628,7 +627,7 @@ async def admin_join(
                 queue_name=queue.name,
                 position=result.position,
                 tracking_id=str(result.tracking_id) if hasattr(result, "tracking_id") else None,
-                session_id=queue.session_id,
+                session_id=queue.token_session_id,
             )
     except ValueError as exc:
         msg = str(exc)
@@ -707,7 +706,7 @@ async def serve_specific_token(
                 token_prefix=queue.prefix,
                 queue_name=queue.name,
                 tracking_id=pre_tracking_id,
-                session_id=queue.session_id,
+                session_id=queue.token_session_id,
                 assigned_line=line_number,
             )
         else:

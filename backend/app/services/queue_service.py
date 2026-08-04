@@ -51,8 +51,11 @@ async def list_queues(
     *,
     org_id: uuid.UUID,
 ) -> list[Queue]:
-    """List all queues belonging to an org."""
-    query = select(Queue).where(Queue.org_id == org_id)
+    """List all non-deleted queues belonging to an org."""
+    query = select(Queue).where(
+        Queue.org_id == org_id,
+        Queue.is_deleted == False
+    )
     result = await db.execute(query.order_by(Queue.created_at.asc()))
     return list(result.scalars().all())
 

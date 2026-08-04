@@ -113,6 +113,7 @@ export default function QueuesPage({ params }: PageProps) {
         setError(null);
         try {
             let allQueues = await api.listQueues();
+            allQueues = allQueues.filter(q => !q.is_deleted);
             if (debouncedFilterName) {
                 allQueues = allQueues.filter(q => q.name.toLowerCase().includes(debouncedFilterName.toLowerCase()));
             }
@@ -148,9 +149,9 @@ export default function QueuesPage({ params }: PageProps) {
 
 
 
-    // Split queues into active vs inactive
-    const activeQueues = useMemo(() => queues.filter(q => q.is_active), [queues]);
-    const inactiveQueues = useMemo(() => queues.filter(q => !q.is_active), [queues]);
+    // Split non-deleted queues into active vs inactive
+    const activeQueues = useMemo(() => queues.filter(q => !q.is_deleted && q.is_active), [queues]);
+    const inactiveQueues = useMemo(() => queues.filter(q => !q.is_deleted && !q.is_active), [queues]);
     const [inactiveCollapsed, setInactiveCollapsed] = useState(false);
 
     // When modal opens, clear form. Templates are already loaded.

@@ -63,12 +63,8 @@ async def get_overview_metrics(
         except Exception:
             pass
     
-    # If session_id (date session) is provided, we must join with Queue or filter by a session_id on Token
-    # Current Token.session_id stores the rotating token_session_id, so we join to filter by date session.
-    join_queue = False
     if session_id:
-        join_queue = True
-        conditions.append(Queue.session_id == session_id)
+        conditions.append(Token.session_id == session_id)
 
     # Filter out deleted tokens from most metrics
     active_conditions = conditions.copy()
@@ -317,10 +313,8 @@ async def get_history_details(
             cast(Token.token_number, String).like(search_term)
         ))
     
-    join_queue = False
     if session_id:
-        join_queue = True
-        conditions.append(Queue.session_id == session_id)
+        conditions.append(Token.session_id == session_id)
 
     from sqlalchemy.orm import aliased
     from app.models.user import User
@@ -438,10 +432,8 @@ async def get_analytics_csv_data(
             cast(Token.token_number, String).like(search_term)
         ))
 
-    join_queue = False
     if session_id:
-        join_queue = True
-        conditions.append(Queue.session_id == session_id)
+        conditions.append(Token.session_id == session_id)
 
     if start_date:
         try:

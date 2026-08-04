@@ -23,7 +23,7 @@ import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
-import { fmtTime, fmtDateTime, nowInTz } from "@/lib/tzformat";
+import { fmtTime, fmtDateTime, nowInTz, localTodayStr } from "@/lib/tzformat";
 import QueueTokenSettings from "@/components/organization-admin/queue/QueueTokenSettings";
 
 const formatTime12 = (time24?: string | null) => {
@@ -418,11 +418,38 @@ export default function QueueDetailPage({ params }: PageProps) {
         });
     };
 
+    const [initialQueue, setInitialQueue] = useState<QueueResponse | null>(null);
+    const [sessionInfo, setSessionInfo] = useState<{ session_date: string; title: string } | null>(null);
+
+    useEffect(() => {
+        api.getQueue(queueId).then(setInitialQueue).catch(() => { });
+        api.getSession(sessionId).then(s => setSessionInfo({ session_date: s.session_date, title: s.title })).catch(() => { });
+    }, [queueId, sessionId]);
+
+    const isTodaySession = React.useMemo(() => {
+        if (!sessionInfo?.session_date) return true;
+        const todayStr = localTodayStr(tz);
+        return sessionInfo.session_date === todayStr;
+    }, [sessionInfo?.session_date, tz]);
+
     const { state, status, refresh } = useQueueSocket(queueId, {
         token: token || undefined,
-        enabled: autoLive,
-        onNewCustomer: handleNewCustomer
+        enabled: autoLive && isTodaySession,
+        onNewCustomer: isTodaySession ? handleNewCustomer : undefined
     });
+
+    const [staticSessionTokens, setStaticSessionTokens] = useState<TokenHistoryItem[]>([]);
+    const [staticSessionLoading, setStaticSessionLoading] = useState(false);
+
+    useEffect(() => {
+        if (!isTodaySession && sessionId) {
+            setStaticSessionLoading(true);
+            api.getHistory({ sessionId, limit: 100 })
+                .then(res => setStaticSessionTokens(res.items))
+                .catch(console.error)
+                .finally(() => setStaticSessionLoading(false));
+        }
+    }, [isTodaySession, sessionId]);
 
     const [isMounted, setIsMounted] = useState(false);
     const [isScrollingDown, setIsScrollingDown] = useState(false);
@@ -560,17 +587,99 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const [activeListTab, setActiveListTab] = useState<"recent" | "waiting" | "skipped" | "deleted">("waiting");
 
+    const effectiveWaitingTokens = React.useMemo(() => {
+        if (isTodaySession) return state?.waiting_tokens || [];
+        return staticSessionTokens
+            .filter(t => t.status === "waiting")
+            .map(t => ({
+                id: t.id,
+                token_number: t.token_number,
+                status: t.status as any,
+                customer_name: t.customer_name,
+                customer_phone: t.customer_phone,
+                customer_age: t.customer_age,
+                created_at: t.created_at,
+                served_at: t.served_at,
+                completed_at: t.completed_at,
+                assigned_line: t.assigned_line,
+                called_via_invite: t.called_via_invite,
+                pax_count: t.pax_count || 1,
+            }));
+    }, [isTodaySession, state?.waiting_tokens, staticSessionTokens]);
+
+    const effectiveSkippedTokens = React.useMemo(() => {
+        if (isTodaySession) return state?.skipped_tokens || [];
+        return staticSessionTokens
+            .filter(t => t.status === "skipped")
+            .map(t => ({
+                id: t.id,
+                token_number: t.token_number,
+                status: t.status as any,
+                customer_name: t.customer_name,
+                customer_phone: t.customer_phone,
+                customer_age: t.customer_age,
+                created_at: t.created_at,
+                served_at: t.served_at,
+                completed_at: t.completed_at,
+                skipped_at: t.skipped_at,
+                assigned_line: t.assigned_line,
+                called_via_invite: t.called_via_invite,
+                pax_count: t.pax_count || 1,
+            }));
+    }, [isTodaySession, state?.skipped_tokens, staticSessionTokens]);
+
+    const effectiveDeletedTokens = React.useMemo(() => {
+        if (isTodaySession) return state?.deleted_tokens || [];
+        return staticSessionTokens
+            .filter(t => t.status === "deleted")
+            .map(t => ({
+                id: t.id,
+                token_number: t.token_number,
+                status: t.status as any,
+                customer_name: t.customer_name,
+                customer_phone: t.customer_phone,
+                customer_age: t.customer_age,
+                created_at: t.created_at,
+                served_at: t.served_at,
+                completed_at: t.completed_at,
+                deleted_at: t.deleted_at,
+                assigned_line: t.assigned_line,
+                called_via_invite: t.called_via_invite,
+                pax_count: t.pax_count || 1,
+            }));
+    }, [isTodaySession, state?.deleted_tokens, staticSessionTokens]);
+
+    const effectiveRecentTokens = React.useMemo(() => {
+        if (isTodaySession) return state?.recent_tokens || [];
+        return staticSessionTokens
+            .filter(t => t.status === "serving" || t.status === "done" || t.status === "skipped" || t.status === "deleted")
+            .map(t => ({
+                id: t.id,
+                token_number: t.token_number,
+                status: t.status as any,
+                customer_name: t.customer_name,
+                customer_phone: t.customer_phone,
+                customer_age: t.customer_age,
+                created_at: t.created_at,
+                served_at: t.served_at,
+                completed_at: t.completed_at,
+                assigned_line: t.assigned_line,
+                called_via_invite: t.called_via_invite,
+                pax_count: t.pax_count || 1,
+            }));
+    }, [isTodaySession, state?.recent_tokens, staticSessionTokens]);
+
     const filteredWaiting = React.useMemo(() => {
-        if (!state?.waiting_tokens) return [];
+        if (!effectiveWaitingTokens) return [];
         const filtered = waitingSearch
-            ? state.waiting_tokens.filter(t =>
+            ? effectiveWaitingTokens.filter(t =>
                 String(t.token_number).includes(waitingSearch) ||
                 t.customer_name?.toLowerCase().includes(waitingSearch.toLowerCase()) ||
                 t.customer_phone?.includes(waitingSearch)
             )
-            : state.waiting_tokens;
+            : effectiveWaitingTokens;
         return [...filtered].sort((a, b) => (a.token_number ?? 0) - (b.token_number ?? 0));
-    }, [state?.waiting_tokens, waitingSearch]);
+    }, [effectiveWaitingTokens, waitingSearch]);
 
     const paginatedWaiting = React.useMemo(() => {
         const start = (waitingPage - 1) * PAGE_SIZE;
@@ -578,16 +687,16 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, [filteredWaiting, waitingPage]);
 
     const filteredSkipped = React.useMemo(() => {
-        if (!state?.skipped_tokens) return [];
+        if (!effectiveSkippedTokens) return [];
         const filtered = waitingSearch
-            ? state.skipped_tokens.filter(t =>
+            ? effectiveSkippedTokens.filter(t =>
                 String(t.token_number).includes(waitingSearch) ||
                 (t.customer_name || "").toLowerCase().includes(waitingSearch.toLowerCase()) ||
                 (t.customer_phone || "").includes(waitingSearch)
             )
-            : state.skipped_tokens;
+            : effectiveSkippedTokens;
         return [...filtered].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-    }, [state?.skipped_tokens, waitingSearch]);
+    }, [effectiveSkippedTokens, waitingSearch]);
 
     const paginatedSkipped = React.useMemo(() => {
         const start = (waitingPage - 1) * PAGE_SIZE;
@@ -595,16 +704,16 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, [filteredSkipped, waitingPage]);
 
     const filteredDeleted = React.useMemo(() => {
-        if (!state?.deleted_tokens) return [];
+        if (!effectiveDeletedTokens) return [];
         const filtered = waitingSearch
-            ? state.deleted_tokens.filter(t =>
+            ? effectiveDeletedTokens.filter(t =>
                 String(t.token_number).includes(waitingSearch) ||
                 (t.customer_name || "").toLowerCase().includes(waitingSearch.toLowerCase()) ||
                 (t.customer_phone || "").includes(waitingSearch)
             )
-            : state.deleted_tokens;
+            : effectiveDeletedTokens;
         return [...filtered].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-    }, [state?.deleted_tokens, waitingSearch]);
+    }, [effectiveDeletedTokens, waitingSearch]);
 
     const paginatedDeleted = React.useMemo(() => {
         const start = (waitingPage - 1) * PAGE_SIZE;
@@ -612,14 +721,14 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, [filteredDeleted, waitingPage]);
 
     const filteredRecent = React.useMemo(() => {
-        if (!state?.recent_tokens) return [];
+        if (!effectiveRecentTokens) return [];
         const filtered = recentSearch
-            ? state.recent_tokens.filter(t =>
+            ? effectiveRecentTokens.filter(t =>
                 String(t.token_number).includes(recentSearch) ||
                 t.customer_name?.toLowerCase().includes(recentSearch.toLowerCase()) ||
                 t.customer_phone?.includes(recentSearch)
             )
-            : [...state.recent_tokens];
+            : [...effectiveRecentTokens];
 
         // Sort by most recently served (or completed/created) to show latest activity at the top
         return filtered.sort((a, b) => {
@@ -627,7 +736,7 @@ export default function QueueDetailPage({ params }: PageProps) {
             const timeB = new Date(b.served_at || b.completed_at || b.created_at || 0).getTime();
             return timeB - timeA;
         });
-    }, [state?.recent_tokens, recentSearch]);
+    }, [effectiveRecentTokens, recentSearch]);
 
     const paginatedRecent = React.useMemo(() => {
         const start = (recentPage - 1) * RECENT_PAGE_SIZE;
@@ -637,15 +746,8 @@ export default function QueueDetailPage({ params }: PageProps) {
     React.useEffect(() => { setWaitingPage(1); }, [waitingSearch]);
     React.useEffect(() => { setRecentPage(1); }, [recentSearch]);
 
-    const [initialQueue, setInitialQueue] = useState<QueueResponse | null>(null);
-    const [sessionInfo, setSessionInfo] = useState<{ session_date: string; title: string } | null>(null);
     const lastActionRef = useRef(0);
     const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useEffect(() => {
-        api.getQueue(queueId).then(setInitialQueue).catch(() => { });
-        api.getSession(sessionId).then(s => setSessionInfo({ session_date: s.session_date, title: s.title })).catch(() => { });
-    }, [queueId, sessionId]);
 
     const isDisabled = actionLoading !== null;
     const queueName = state?.queue_name || initialQueue?.name || "Queue";
@@ -1010,7 +1112,13 @@ export default function QueueDetailPage({ params }: PageProps) {
                             </nav>
                             
                             <div className="mt-auto pt-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between">
-                                <ConnectionBadge status={status} />
+                                {isTodaySession ? (
+                                    <ConnectionBadge status={status} />
+                                ) : (
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[11px] font-semibold rounded-md border border-amber-200 dark:border-amber-800/60">
+                                        <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Past Session
+                                    </span>
+                                )}
                                 <ThemeToggle />
                             </div>
                         </div>
@@ -1105,7 +1213,15 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                     {/* 5. Bottom Shell */}
                     <div className={`mt-auto border-t border-slate-200 dark:border-white/10 p-3 flex items-center ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
-                        {!sidebarCollapsed && <ConnectionBadge status={status} />}
+                        {!sidebarCollapsed && (
+                            isTodaySession ? (
+                                <ConnectionBadge status={status} />
+                            ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[11px] font-semibold rounded-md border border-amber-200 dark:border-amber-800/60">
+                                    <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Past Session
+                                </span>
+                            )
+                        )}
                         <ThemeToggle />
                     </div>
                 </aside>
@@ -1501,12 +1617,12 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 {actionError}
                                             </div>
                                         )}
-                                        {status === "disconnected" && (
+                                        {isTodaySession && status === "disconnected" && (
                                             <div role="alert" style={{ color: "#78350f", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.amberBorder}`, fontSize: 13 }}>
                                                 <strong>Connection lost.</strong> Retrying connection to live updates. Manual actions are still available.
                                             </div>
                                         )}
-                                        {status === "reconnecting" && (
+                                        {isTodaySession && status === "reconnecting" && (
                                             <div role="status" style={{ background: T.blueBg, color: "#1d4ed8", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.blueBorder}`, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
                                                 <span style={{ width: 14, height: 14, border: "#e5e7eb", borderTopColor: "#2563eb", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />
                                                 Reconnecting to live updates…

@@ -228,6 +228,20 @@ export default function TrashPage() {
                                                 </span>
                                             </div>
                                         </td>
+                                        <td className="py-4 px-5">
+                                            {queue.deleted_at ? (
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-[13px] font-semibold text-slate-900 dark:text-white">
+                                                        {fmtDate(queue.deleted_at, tz)}
+                                                    </span>
+                                                    <span className="text-[11px] font-medium text-slate-500">
+                                                        {fmtTime(queue.deleted_at, tz)}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[12px] font-medium text-slate-400 dark:text-slate-500">—</span>
+                                            )}
+                                        </td>
                                         <td className="py-4 px-5 text-right">
                                             {canRestore ? (
                                                 <button

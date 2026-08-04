@@ -65,31 +65,36 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     />
                 )}
 
-                <div
-                    className={`flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-[padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]`}
-                    style={{
-                        paddingLeft: !isManageQueuePage
-                            ? undefined
-                            : 0,
-                    }}
-                >
-                    {/* Apply padding via a class that matches sidebar width */}
+                <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+                    {/*
+                        Two separate CSS offset classes:
+                        • logo-offset  → always 256px on desktop (aligns with the permanent logo rail)
+                        • sb-offset    → 72px (collapsed) or 256px (expanded) on desktop (follows nav panel)
+                        On mobile both are 0 (the sidebar is a drawer overlay).
+                    */}
                     <style>{`
                         @media (min-width: 1024px) {
-                            .sb-offset { padding-left: ${!isManageQueuePage ? (isSidebarCollapsed ? '72px' : '256px') : '0px'}; transition: padding-left 300ms cubic-bezier(0.4,0,0.2,1); }
+                            .logo-offset { padding-left: ${!isManageQueuePage ? '256px' : '0px'}; }
+                            .sb-offset   { padding-left: ${!isManageQueuePage ? (isSidebarCollapsed ? '72px' : '256px') : '0px'};
+                                           transition: padding-left 300ms cubic-bezier(0.4,0,0.2,1); }
                         }
                     `}</style>
-                    <div className={`flex-1 flex flex-col min-w-0 h-full overflow-hidden ${!isManageQueuePage ? 'sb-offset' : ''}`}>
+
+                    {/* Global Top Bar — aligned with permanent 256px logo rail */}
+                    {!isManageQueuePage && (
+                        <div className="logo-offset">
+                            <TopBar onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
+                        </div>
+                    )}
+
+                    {/* System Banners + Main content — offset follows the collapsible nav panel */}
+                    <div className={`flex-1 min-h-0 flex flex-col overflow-hidden ${!isManageQueuePage ? 'sb-offset' : ''}`}>
                         <SystemBanner />
                         <OrganizationAnnouncementsBanner />
                         <ImpersonationBanner />
                         <AdminViewBanner />
-                        {/* Global Top Bar */}
-                        {!isManageQueuePage && (
-                            <TopBar onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
-                        )}
 
-                        <main className={!isManageQueuePage ? "flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pt-8 pb-4 overflow-y-auto flex flex-col" : "flex-1 min-h-0 overflow-hidden"}>
+                        <main className={!isManageQueuePage ? "flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pt-6 pb-4 overflow-y-auto flex flex-col" : "flex-1 min-h-0 overflow-hidden"}>
                             <div className={!isManageQueuePage ? "max-w-7xl mx-auto w-full flex-1 flex flex-col" : "w-full h-full"}>
                                 <AlertBannerContainer />
                                 {children}

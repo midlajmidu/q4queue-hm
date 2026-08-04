@@ -279,6 +279,8 @@ export interface QueueResponse {
     total_served: number;
     is_active: boolean;
     is_paused: boolean;
+    is_deleted?: boolean;
+    deleted_at?: string | null;
     service_lines: number;          // 0 = single counter, >0 = multi-lane
     open_time?: string;
     close_time?: string;

@@ -36,7 +36,7 @@ export function getTokenTypeFromPath(): TokenType {
     if (path.startsWith("/super-admin") && path.includes("/dashboard")) return "staff";
     
     if (path.startsWith("/super-admin")) return "super_admin";
-    if (path.startsWith("/organization-admin") || path === "/organization-login") return "org_admin";
+    if (path.startsWith("/organization-admin") || path.startsWith("/org-admin") || path === "/organization-login") return "org_admin";
     return "staff";
 }
 

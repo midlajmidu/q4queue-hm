@@ -1,13 +1,13 @@
 "use client";
 
-import { use, useState, useEffect, useCallback } from "react";
+import { use, useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useDashBase } from "@/hooks/useDashBase";
 import { useAuth } from "@/hooks/useAuth";
 import type { QueueResponse, SessionResponse, PaginatedSessionResponse } from "@/types/api";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, Loader2, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown, Plus, Loader2, Trash2, LayoutGrid, List } from "lucide-react";
 import { toast } from "sonner";
 
 interface PageProps {
@@ -54,6 +54,56 @@ export default function QueueSessionListPage({ params }: PageProps) {
     const [openingToday, setOpeningToday] = useState(false);
 
     const [selectedDate, setSelectedDate] = useState<string>("");
+
+    // Scalability UI state (View Mode & Month Grouping)
+    const [viewMode, setViewMode] = useState<"cards" | "compact">("cards");
+    const [collapsedMonths, setCollapsedMonths] = useState<Record<string, boolean>>({});
+
+    const toggleMonthCollapse = (monthKey: string) => {
+        setCollapsedMonths(prev => ({
+            ...prev,
+            [monthKey]: !prev[monthKey]
+        }));
+    };
+
+    // Group sessions by Month & Year for clean scalable navigation
+    const groupedSessions = useMemo(() => {
+        const map = new Map<string, {
+            monthKey: string;
+            monthLabel: string;
+            isCurrentMonth: boolean;
+            totalIssued: number;
+            totalServed: number;
+            items: SessionResponse[];
+        }>();
+
+        const now = new Date();
+        const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+        sessions.forEach(session => {
+            const d = new Date(session.session_date + "T12:00:00");
+            const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+            const monthLabel = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+            const isCurrentMonth = monthKey === currentMonthKey;
+
+            if (!map.has(monthKey)) {
+                map.set(monthKey, {
+                    monthKey,
+                    monthLabel,
+                    isCurrentMonth,
+                    totalIssued: 0,
+                    totalServed: 0,
+                    items: []
+                });
+            }
+            const group = map.get(monthKey)!;
+            group.items.push(session);
+            group.totalIssued += session.total_issued || 0;
+            group.totalServed += session.total_served || 0;
+        });
+
+        return Array.from(map.values());
+    }, [sessions]);
 
     // Create session modal state
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -189,6 +239,32 @@ export default function QueueSessionListPage({ params }: PageProps) {
 
                         {/* Actions */}
                         <div className="flex items-center gap-2.5">
+                            {/* View Mode Switcher (Cards vs Compact Table) */}
+                            <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 shrink-0 shadow-sm">
+                                <button
+                                    onClick={() => setViewMode("cards")}
+                                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                                        viewMode === "cards"
+                                            ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                                            : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                    }`}
+                                    title="Card View"
+                                >
+                                    <LayoutGrid size={15} />
+                                </button>
+                                <button
+                                    onClick={() => setViewMode("compact")}
+                                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                                        viewMode === "compact"
+                                            ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                                            : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                    }`}
+                                    title="Compact List View"
+                                >
+                                    <List size={15} />
+                                </button>
+                            </div>
+
                             {/* Date filter chip */}
                             <div className="relative flex items-center">
                                 <div className={`flex items-center gap-2 h-9 px-3 rounded-lg border transition-all shadow-sm ${
@@ -247,7 +323,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                     </div>
                 )}
 
-                {/* ── Session List ── */}
+                {/* ── Session List (Grouped by Month & Year) ── */}
                 {sessions.length === 0 ? (
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/8 shadow-sm flex flex-col items-center justify-center py-20 px-6 text-center">
                         <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center mb-4">
@@ -277,91 +353,178 @@ export default function QueueSessionListPage({ params }: PageProps) {
                         )}
                     </div>
                 ) : (
-                    <div className="flex flex-col gap-2">
-                        {sessions.map((session) => {
-                            const today = isToday(session.session_date);
-                            const d = new Date(session.session_date + "T12:00:00");
-                            const dayNum = d.getDate();
-                            const monthAbbr = d.toLocaleDateString("en-US", { month: "short" });
-                            const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
-                            const fullDate = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+                    <div className="flex flex-col gap-6">
+                        {groupedSessions.map((group: any) => {
+                            const isCollapsed = collapsedMonths[group.monthKey] === true;
 
                             return (
-                                <div key={session.id} className="relative group">
-                                    <Link
-                                        href={`${dashBase}/queues/${queueId}/sessions/${session.id}`}
-                                        className={`flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl border shadow-sm hover:shadow-md transition-all duration-200 px-5 py-4 cursor-pointer overflow-hidden ${
-                                            today
-                                                ? "border-indigo-200 dark:border-indigo-700/50 hover:border-indigo-300 dark:hover:border-indigo-600"
-                                                : "border-slate-200 dark:border-white/8 hover:border-slate-300 dark:hover:border-white/15"
-                                        }`}
+                                <div key={group.monthKey} className="flex flex-col gap-2.5">
+                                    {/* Month Accordion Header */}
+                                    <button
+                                        onClick={() => toggleMonthCollapse(group.monthKey)}
+                                        className="flex items-center justify-between px-4 py-2.5 bg-slate-100/80 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-white/8 text-left transition-all hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer"
                                     >
-                                        {/* Left accent bar */}
-                                        <div className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full ${today ? "bg-indigo-500" : "bg-slate-200 dark:bg-white/10"}`} />
-
-                                        {/* Date badge */}
-                                        <div className={`flex flex-col items-center justify-center rounded-xl w-11 h-12 shrink-0 ${
-                                            today
-                                                ? "bg-indigo-600 text-white"
-                                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-                                        }`}>
-                                            <span className={`text-[9px] font-bold uppercase tracking-widest leading-none mb-0.5 ${today ? "text-indigo-200" : "text-slate-400 dark:text-slate-500"}`}>
-                                                {monthAbbr}
+                                        <div className="flex items-center gap-2.5">
+                                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isCollapsed ? "-rotate-90" : ""}`} />
+                                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">{group.monthLabel}</span>
+                                            <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold">
+                                                {group.items.length} {group.items.length === 1 ? "session" : "sessions"}
                                             </span>
-                                            <span className="text-[18px] font-bold leading-none">{dayNum}</span>
                                         </div>
 
-                                        {/* Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                                                    {session.title && session.title !== session.session_date ? session.title : weekday}
-                                                </span>
-                                                {today && (
-                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
-                                                        <span className="relative flex h-1.5 w-1.5">
-                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                                                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
-                                                        </span>
-                                                        Live
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{fullDate}</p>
+                                        <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400">
+                                            <span><strong className="text-slate-700 dark:text-slate-200">{group.totalIssued}</strong> Issued</span>
+                                            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                                            <span><strong className="text-emerald-600 dark:text-emerald-400">{group.totalServed}</strong> Served</span>
                                         </div>
+                                    </button>
 
-                                        {/* Stats */}
-                                        <div className="hidden sm:flex items-center gap-3 shrink-0">
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-5 h-5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
-                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-indigo-500"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
-                                                </div>
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{session.total_issued}</span>
-                                                <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Issued</span>
+                                    {/* Month Items (Rendered if not collapsed) */}
+                                    {!isCollapsed && (
+                                        viewMode === "cards" ? (
+                                            /* CARDS VIEW */
+                                            <div className="flex flex-col gap-2">
+                                                {group.items.map((session: SessionResponse) => {
+                                                    const today = isToday(session.session_date);
+                                                    const d = new Date(session.session_date + "T12:00:00");
+                                                    const dayNum = d.getDate();
+                                                    const monthAbbr = d.toLocaleDateString("en-US", { month: "short" });
+                                                    const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+                                                    const fullDate = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+                                                    return (
+                                                        <div key={session.id} className="relative group">
+                                                            <Link
+                                                                href={`${dashBase}/queues/${queueId}/sessions/${session.id}`}
+                                                                className={`flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl border shadow-sm hover:shadow-md transition-all duration-200 px-5 py-4 cursor-pointer overflow-hidden ${
+                                                                    today
+                                                                        ? "border-indigo-200 dark:border-indigo-700/50 hover:border-indigo-300 dark:hover:border-indigo-600"
+                                                                        : "border-slate-200 dark:border-white/8 hover:border-slate-300 dark:hover:border-white/15"
+                                                                }`}
+                                                            >
+                                                                <div className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full ${today ? "bg-indigo-500" : "bg-slate-200 dark:bg-white/10"}`} />
+
+                                                                <div className={`flex flex-col items-center justify-center rounded-xl w-11 h-12 shrink-0 ${
+                                                                    today
+                                                                        ? "bg-indigo-600 text-white"
+                                                                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                                                                }`}>
+                                                                    <span className={`text-[9px] font-bold uppercase tracking-widest leading-none mb-0.5 ${today ? "text-indigo-200" : "text-slate-400 dark:text-slate-500"}`}>
+                                                                        {monthAbbr}
+                                                                    </span>
+                                                                    <span className="text-[18px] font-bold leading-none">{dayNum}</span>
+                                                                </div>
+
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2 mb-0.5">
+                                                                        <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                                                                            {session.title && session.title !== session.session_date ? session.title : weekday}
+                                                                        </span>
+                                                                        {today && (
+                                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
+                                                                                <span className="relative flex h-1.5 w-1.5">
+                                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                                                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
+                                                                                </span>
+                                                                                Live
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{fullDate}</p>
+                                                                </div>
+
+                                                                <div className="hidden sm:flex items-center gap-3 shrink-0">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <div className="w-5 h-5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
+                                                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-indigo-500"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+                                                                        </div>
+                                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{session.total_issued}</span>
+                                                                        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Issued</span>
+                                                                    </div>
+                                                                    <div className="w-px h-4 bg-slate-100 dark:bg-white/10" />
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <div className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
+                                                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-500"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                                                        </div>
+                                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{session.total_served}</span>
+                                                                        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Served</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors shrink-0 ml-2" strokeWidth={2.5} />
+                                                            </Link>
+
+                                                            {!isGlobalOrOrgAdmin && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setSessionToDelete(session)}
+                                                                    className="absolute right-10 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 dark:hover:text-red-400 transition-all opacity-0 group-hover:opacity-100 cursor-pointer z-10"
+                                                                    title="Delete session"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                            <div className="w-px h-4 bg-slate-100 dark:bg-white/10" />
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
-                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-500"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                                                </div>
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{session.total_served}</span>
-                                                <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Served</span>
+                                        ) : (
+                                            /* COMPACT HIGH-DENSITY TABLE VIEW */
+                                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/8 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden shadow-sm">
+                                                {group.items.map((session: SessionResponse) => {
+                                                    const today = isToday(session.session_date);
+                                                    const d = new Date(session.session_date + "T12:00:00");
+                                                    const weekday = d.toLocaleDateString("en-US", { weekday: "short" });
+
+                                                    return (
+                                                        <div key={session.id} className="relative group flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+                                                            <Link
+                                                                href={`${dashBase}/queues/${queueId}/sessions/${session.id}`}
+                                                                className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                                                            >
+                                                                <span className={`w-2 h-2 rounded-full shrink-0 ${today ? "bg-indigo-500 animate-pulse" : "bg-slate-300 dark:bg-slate-700"}`} />
+                                                                <span className="font-semibold text-xs text-slate-900 dark:text-white shrink-0">
+                                                                    {session.session_date}
+                                                                </span>
+                                                                <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">({weekday})</span>
+
+                                                                {session.title && session.title !== session.session_date && (
+                                                                    <span className="text-xs text-slate-600 dark:text-slate-300 font-medium truncate ml-1">
+                                                                        {session.title}
+                                                                    </span>
+                                                                )}
+
+                                                                {today && (
+                                                                    <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded border border-indigo-200 dark:border-indigo-800/50 shrink-0 ml-1">
+                                                                        LIVE
+                                                                    </span>
+                                                                )}
+                                                            </Link>
+
+                                                            <div className="flex items-center gap-5 text-xs shrink-0">
+                                                                <span className="text-slate-500 dark:text-slate-400"><strong className="text-slate-900 dark:text-white font-bold">{session.total_issued}</strong> Issued</span>
+                                                                <span className="text-emerald-600 dark:text-emerald-400"><strong className="text-emerald-700 dark:text-emerald-300 font-bold">{session.total_served}</strong> Served</span>
+
+                                                                {!isGlobalOrOrgAdmin && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setSessionToDelete(session)}
+                                                                        className="w-6 h-6 rounded flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all opacity-0 group-hover:opacity-100 cursor-pointer ml-1"
+                                                                        title="Delete session"
+                                                                    >
+                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                )}
+
+                                                                <Link href={`${dashBase}/queues/${queueId}/sessions/${session.id}`} className="text-slate-300 dark:text-slate-600 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
+                                                                    <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
+                                                                </Link>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                        </div>
-
-                                        <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors shrink-0 ml-2" strokeWidth={2.5} />
-                                    </Link>
-
-                                    {/* Delete button — positioned outside the Link */}
-                                    {!isGlobalOrOrgAdmin && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setSessionToDelete(session)}
-                                            className="absolute right-10 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 dark:hover:text-red-400 transition-all opacity-0 group-hover:opacity-100 cursor-pointer z-10"
-                                            title="Delete session"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
+                                        )
                                     )}
                                 </div>
                             );

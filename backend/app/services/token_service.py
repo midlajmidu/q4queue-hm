@@ -119,15 +119,19 @@ async def _count_waiting_ahead(
     *,
     queue_id: uuid.UUID,
     token_number: int,
+    session_id: Optional[uuid.UUID] = None,
 ) -> int:
+    where_clause = [
+        Token.queue_id == queue_id,
+        Token.status == TokenStatus.waiting,
+        Token.token_number < token_number,
+    ]
+    if session_id:
+        where_clause.append(Token.session_id == session_id)
     result = await db.execute(
         select(func.count())
         .select_from(Token)
-        .where(
-            Token.queue_id == queue_id,
-            Token.status == TokenStatus.waiting,
-            Token.token_number < token_number,
-        )
+        .where(*where_clause)
     )
     return result.scalar_one()
 
@@ -136,13 +140,17 @@ async def _current_serving_number(
     db: AsyncSession,
     *,
     queue_id: uuid.UUID,
+    session_id: Optional[uuid.UUID] = None,
 ) -> int:
+    where_clause = [
+        Token.queue_id == queue_id,
+        Token.status == TokenStatus.serving,
+    ]
+    if session_id:
+        where_clause.append(Token.session_id == session_id)
     result = await db.execute(
         select(Token.token_number)
-        .where(
-            Token.queue_id == queue_id,
-            Token.status == TokenStatus.serving,
-        )
+        .where(*where_clause)
         .order_by(Token.token_number.desc())
         .limit(1)
     )
@@ -150,14 +158,22 @@ async def _current_serving_number(
     return val if val is not None else 0
 
 
-async def _count_waiting(db: AsyncSession, *, queue_id: uuid.UUID) -> int:
+async def _count_waiting(
+    db: AsyncSession,
+    *,
+    queue_id: uuid.UUID,
+    session_id: Optional[uuid.UUID] = None,
+) -> int:
+    where_clause = [
+        Token.queue_id == queue_id,
+        Token.status == TokenStatus.waiting,
+    ]
+    if session_id:
+        where_clause.append(Token.session_id == session_id)
     result = await db.execute(
         select(func.count())
         .select_from(Token)
-        .where(
-            Token.queue_id == queue_id,
-            Token.status == TokenStatus.waiting,
-        )
+        .where(*where_clause)
     )
     return result.scalar_one()
 
@@ -254,9 +270,9 @@ async def join_queue(
                 phone_cleaned, existing_token.token_number, queue_id,
             )
             position = await _count_waiting_ahead(
-                db, queue_id=queue_id, token_number=existing_token.token_number
+                db, queue_id=queue_id, token_number=existing_token.token_number, session_id=queue.token_session_id
             )
-            current_serving = await _current_serving_number(db, queue_id=queue_id)
+            current_serving = await _current_serving_number(db, queue_id=queue_id, session_id=queue.token_session_id)
             return JoinResponse(
                 id=existing_token.id,
                 token_number=existing_token.token_number,
@@ -270,8 +286,13 @@ async def join_queue(
             )
 
     # ── No active token found — create a new one ──
-    queue.current_token_number += 1
-    new_number = queue.current_token_number
+    max_token_res = await db.execute(
+        select(func.max(Token.token_number)).where(Token.queue_id == queue_id)
+    )
+    max_existing_number = max_token_res.scalar() or 0
+    next_number = max(queue.current_token_number + 1, max_existing_number + 1)
+    queue.current_token_number = next_number
+    new_number = next_number
 
     token = Token(
         org_id=queue.org_id,
@@ -291,8 +312,8 @@ async def join_queue(
     db.add(token)
     await db.flush()
 
-    position = await _count_waiting_ahead(db, queue_id=queue_id, token_number=new_number)
-    current_serving = await _current_serving_number(db, queue_id=queue_id)
+    position = await _count_waiting_ahead(db, queue_id=queue_id, token_number=new_number, session_id=queue.token_session_id)
+    current_serving = await _current_serving_number(db, queue_id=queue_id, session_id=queue.token_session_id)
 
     return JoinResponse(
         id=token.id,
@@ -379,6 +400,7 @@ async def call_next(
         serving_query = select(Token).where(
             Token.queue_id == queue_id,
             Token.org_id == org_id,
+            Token.session_id == queue.token_session_id,
             Token.status == TokenStatus.serving
         )
         serving_result = await db.execute(serving_query)
@@ -392,6 +414,7 @@ async def call_next(
         serving_query = select(Token).where(
             Token.queue_id == queue_id,
             Token.org_id == org_id,
+            Token.session_id == queue.token_session_id,
             Token.status == TokenStatus.serving
         )
         serving_result = await db.execute(serving_query)
@@ -463,7 +486,7 @@ async def call_next(
                             token_prefix=q_row.prefix,
                             queue_name=q_row.name,
                             tracking_id=str(getattr(currently_serving, "tracking_id", "")),
-                            session_id=q_row.session_id,
+                            session_id=q_row.token_session_id,
                         )
                     )
             except Exception as e:
@@ -474,6 +497,7 @@ async def call_next(
         check_query = select(Token).where(
             Token.queue_id == queue_id,
             Token.org_id == org_id,
+            Token.session_id == queue.token_session_id,
             Token.status == TokenStatus.serving
         )
         check_result = await db.execute(check_query)
@@ -490,6 +514,7 @@ async def call_next(
         .where(
             Token.queue_id == queue_id,
             Token.org_id == org_id,           # ← TENANT ISOLATION
+            Token.session_id == queue.token_session_id,
             Token.status == TokenStatus.waiting,
         )
         .order_by(Token.token_number.asc())
@@ -550,11 +575,13 @@ async def clear_line(
     Returns True if a token was cleared, False if the line was already empty.
     """
     now = datetime.now(timezone.utc)
+    queue = await _lock_queue_for_org(db, queue_id, org_id)
     result = await db.execute(
         select(Token)
         .where(
             Token.queue_id == queue_id,
             Token.org_id == org_id,
+            Token.session_id == queue.token_session_id,
             Token.status == TokenStatus.serving,
         )
     )
@@ -572,10 +599,7 @@ async def clear_line(
     if is_fully_done:
         token.status = TokenStatus.done
         token.completed_at = now
-        q_res = await db.execute(select(Queue).where(Queue.id == queue_id))
-        queue = q_res.scalar_one_or_none()
-        if queue:
-            queue.total_served += 1
+        queue.total_served += 1
     await db.flush()
     return True
 
@@ -595,11 +619,13 @@ async def share_token(
     """
     from sqlalchemy.orm.attributes import flag_modified
 
+    queue = await _lock_queue_for_org(db, queue_id, org_id)
     # Find the serving token by token_number
     result = await db.execute(
         select(Token).where(
             Token.queue_id == queue_id,
             Token.org_id == org_id,
+            Token.session_id == queue.token_session_id,
             Token.token_number == token_number,
             Token.status == TokenStatus.serving,
         )
@@ -652,10 +678,12 @@ async def remove_shared_token(
     """
     from sqlalchemy.orm.attributes import flag_modified
 
+    queue = await _lock_queue_for_org(db, queue_id, org_id)
     result = await db.execute(
         select(Token).where(
             Token.queue_id == queue_id,
             Token.org_id == org_id,
+            Token.session_id == queue.token_session_id,
             Token.status == TokenStatus.serving,
         )
     )
@@ -804,7 +832,7 @@ async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UU
                     token_prefix=queue.prefix,
                     queue_name=queue.name,
                     tracking_id=str(getattr(token, "tracking_id", "")),
-                    session_id=queue.session_id,
+                    session_id=queue.token_session_id,
                 )
             )
         except Exception as e:
@@ -872,12 +900,13 @@ async def serve_specific_token(
     if not queue.is_active:
         raise ValueError("Queue is not active")
 
-    # SECURITY FIX: Token fetched with org_id in WHERE clause.
+    # SECURITY FIX: Token fetched with org_id and session_id in WHERE clause.
     specific_result = await db.execute(
         select(Token)
         .where(
             Token.queue_id == queue_id,
             Token.org_id == org_id,            # ← TENANT ISOLATION
+            Token.session_id == queue.token_session_id,
             Token.token_number == token_number,
         )
         .with_for_update(skip_locked=False)
@@ -893,6 +922,7 @@ async def serve_specific_token(
     where_clause = [
         Token.queue_id == queue_id,
         Token.org_id == org_id,
+        Token.session_id == queue.token_session_id,
         Token.status == TokenStatus.serving,
     ]
     if line_number is not None:
@@ -998,7 +1028,7 @@ async def send_called_and_reminder_notifications(
                     token_prefix=queue.prefix,
                     queue_name=queue.name,
                     tracking_id=str(getattr(serving_token, "tracking_id", "")),
-                    session_id=queue.session_id,
+                    session_id=queue.token_session_id,
                     assigned_line=serving_token.assigned_line,
                 )
 
@@ -1030,7 +1060,7 @@ async def send_called_and_reminder_notifications(
                         queue_name=queue.name,
                         position=position,
                         tracking_id=str(getattr(wt, "tracking_id", "")),
-                        session_id=queue.session_id,
+                        session_id=queue.token_session_id,
                     )
                     # Mark reminder as sent so we don't re-send
                     wt.whatsapp_reminder_sent = True
@@ -1059,7 +1089,7 @@ async def send_called_and_reminder_notifications(
                             queue_name=queue.name,
                             position=position,
                             tracking_id=str(getattr(wt, "tracking_id", "")),
-                            session_id=queue.session_id,
+                            session_id=queue.token_session_id,
                         )
 
             if waiting_tokens:

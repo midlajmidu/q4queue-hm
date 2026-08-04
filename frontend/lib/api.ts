@@ -128,6 +128,7 @@ export class ApiError extends Error {
 // ── User-friendly error messages ─────────────────────────────────
 function friendlyMessage(status: number, rawDetail: string): string {
     switch (status) {
+        case 400: return rawDetail || "Invalid request. Please try again.";
         case 401:
             if (rawDetail === "Invalid credentials" || rawDetail.includes("deactivated")) {
                 return rawDetail;
@@ -138,7 +139,7 @@ function friendlyMessage(status: number, rawDetail: string): string {
         case 409: return rawDetail || "This action conflicts with the current state.";
         case 422: return rawDetail || "Invalid input. Please check your data.";
         case 429: return rawDetail; // Handled separately with retry-after
-        case 500: return "A temporary server issue occurred. Please try again.";
+        case 500: return rawDetail || "A temporary server issue occurred. Please try again.";
         case 502: return "The server is temporarily unreachable. Please try again shortly.";
         case 503: return "The service is temporarily unavailable. Please try again shortly.";
         default: return rawDetail || "An unexpected error occurred.";
@@ -166,15 +167,23 @@ async function request<T>(
 
     // Try to attach X-Org-Slug from URL pathname for organization_admin branch access
     if (typeof window !== "undefined") {
-        const pathParts = window.location.pathname.split('/');
-        // Path structure: /[orgSlug]/dashboard
-        if (pathParts.length >= 2) {
-            const potentialSlug = pathParts[1];
-            // Exclude known non-org prefixes
-            const excludedPrefixes = ['super-admin', 'organization-admin', 'login', 'get-started', 'auth'];
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        let slugToSet: string | null = null;
+
+        if (pathParts[0] === "org-admin" && pathParts.length >= 2) {
+            slugToSet = pathParts[1];
+        } else if (pathParts[0] === "super-admin" && pathParts.length >= 3) {
+            slugToSet = pathParts[2];
+        } else if (pathParts.length >= 1) {
+            const potentialSlug = pathParts[0];
+            const excludedPrefixes = ['super-admin', 'organization-admin', 'org-admin', 'login', 'get-started', 'auth'];
             if (!excludedPrefixes.includes(potentialSlug)) {
-                headers.set("X-Org-Slug", potentialSlug);
+                slugToSet = potentialSlug;
             }
+        }
+
+        if (slugToSet) {
+            headers.set("X-Org-Slug", slugToSet);
         }
     }
 
@@ -379,12 +388,14 @@ export const api = {
         return request<AnalyticsOverview>(url, init);
     },
 
-    getHistory(params: { sessionId?: string; queueId?: string; search?: string; status?: string; limit?: number; offset?: number } = {}): Promise<PaginatedHistoryResponse> {
+    getHistory(params: { sessionId?: string; queueId?: string; search?: string; status?: string; startDate?: string; endDate?: string; limit?: number; offset?: number } = {}): Promise<PaginatedHistoryResponse> {
         const qs = new URLSearchParams();
         if (params.sessionId) qs.set("session_id", params.sessionId);
         if (params.queueId) qs.set("queue_id", params.queueId);
         if (params.search) qs.set("search", params.search);
         if (params.status) qs.set("status", params.status);
+        if (params.startDate) qs.set("start_date", params.startDate);
+        if (params.endDate) qs.set("end_date", params.endDate);
         if (params.limit != null) qs.set("limit", String(params.limit));
         if (params.offset != null) qs.set("offset", String(params.offset));
 

@@ -47,6 +47,11 @@ async def get_or_create_active_session(
     session = await db.scalar(query)
     
     if session:
+        # Self-heal: ensure queue.token_session_id matches actual session.id
+        queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
+        if queue.token_session_id != session.id:
+            queue.token_session_id = session.id
+            await db.commit()
         return session
         
     # Verify queue exists
@@ -60,6 +65,7 @@ async def get_or_create_active_session(
         title=today.strftime("%Y-%m-%d"),
     )
     db.add(session)
+    await db.flush()
     
     # Soft-delete all tokens from the OLD session so tracking links still work,
     # but they don't clog up the active queue views.
@@ -69,8 +75,8 @@ async def get_or_create_active_session(
         .values(status=TokenStatus.deleted, completed_at=func.now(), removed_by="session_end")
     )
     
-    # Reset queue for the new day
-    queue.token_session_id = uuid.uuid4()
+    # Reset queue for the new day and link token_session_id directly to Session.id PK
+    queue.token_session_id = session.id
     queue.current_token_number = queue.starting_sequence - 1
     queue.total_served = 0
     
@@ -119,6 +125,7 @@ async def create_queue_session(
         title=session_title,
     )
     db.add(session)
+    await db.flush()
     
     today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
     if data.session_date == today:
@@ -127,7 +134,7 @@ async def create_queue_session(
             .where(Token.queue_id == queue_id, Token.status.in_([TokenStatus.waiting, TokenStatus.serving]))
             .values(status=TokenStatus.deleted, completed_at=func.now(), removed_by="session_end")
         )
-        queue.token_session_id = uuid.uuid4()
+        queue.token_session_id = session.id
         queue.current_token_number = queue.starting_sequence - 1
         queue.total_served = 0
         
