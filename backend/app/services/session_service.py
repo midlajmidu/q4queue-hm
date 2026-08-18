@@ -38,7 +38,10 @@ async def get_or_create_active_session(
     from zoneinfo import ZoneInfo
     from app.services.queue_service import get_queue_or_404
     
-    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    from app.models.organization import Organization
+    org = await db.scalar(select(Organization).where(Organization.id == org_id))
+    tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
+    today = datetime.now(ZoneInfo(tz_str)).date()
     
     query = select(Session).where(
         Session.queue_id == queue_id, 
