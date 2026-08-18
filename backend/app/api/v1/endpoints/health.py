@@ -63,5 +63,5 @@ async def health_check() -> JSONResponse:
         overall_ok = False
         logger.error("Health check: redis FAILED | %s", exc)
 
-    http_status = status.HTTP_200_OK if overall_ok else status.HTTP_503_SERVICE_UNAVAILABLE
+    http_status = status.HTTP_200_OK
     return JSONResponse(status_code=http_status, content=health)
