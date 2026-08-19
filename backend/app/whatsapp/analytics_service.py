@@ -102,9 +102,16 @@ async def get_daily_chart(db: AsyncSession, days: int = 30) -> list[dict]:
     ]
 
 
-async def get_stats_by_org(db: AsyncSession, limit: int = 20) -> list[dict]:
-    """Top orgs by WhatsApp message volume."""
-    result = await db.execute(
+async def get_stats_by_org(db: AsyncSession, limit: int = 50) -> list[dict]:
+    """
+    Returns WhatsApp usage statistics grouped by Organization (Parent Organization / main entity),
+    with an expandable breakdown of all child branches (Organization models).
+    """
+    from app.models.organization import Organization
+    from app.models.parent_organization import ParentOrganization
+
+    # 1. Fetch message counts grouped by organization_id (branch id)
+    msg_result = await db.execute(
         select(
             WhatsAppMessage.organization_id,
             func.count(WhatsAppMessage.id).label("total"),
@@ -120,35 +127,134 @@ async def get_stats_by_org(db: AsyncSession, limit: int = 20) -> list[dict]:
         )
         .where(WhatsAppMessage.status != WhatsAppDeliveryStatus.skipped)
         .group_by(WhatsAppMessage.organization_id)
-        .order_by(func.count(WhatsAppMessage.id).desc())
-        .limit(limit)
     )
-
-    rows = result.all()
-
-    # Fetch org names
-    from app.models.organization import Organization
-    org_ids = [row.organization_id for row in rows]
-    org_result = await db.execute(
-        select(Organization.id, Organization.name).where(Organization.id.in_(org_ids))
-    )
-    org_names = {row.id: row.name for row in org_result.all()}
-
-    return [
-        {
-            "organization_id": str(row.organization_id),
-            "org_name": org_names.get(row.organization_id, "Unknown"),
+    branch_stats_map = {
+        row.organization_id: {
             "total": row.total,
             "delivered": row.delivered,
             "read": row.read,
             "failed": row.failed,
-            "success_rate": (
-                round((row.delivered / row.total * 100), 1)
-                if row.total > 0 else 0.0
-            ),
         }
-        for row in rows
-    ]
+        for row in msg_result.all()
+    }
+
+    # 2. Fetch all parent organizations and all branches (organizations)
+    parent_orgs_res = await db.execute(
+        select(ParentOrganization).order_by(ParentOrganization.name.asc())
+    )
+    parent_orgs = parent_orgs_res.scalars().all()
+
+    branches_res = await db.execute(
+        select(Organization).order_by(Organization.name.asc())
+    )
+    all_branches = branches_res.scalars().all()
+
+    # Group branches by parent_organization_id
+    grouped_by_parent: dict[uuid.UUID | None, list[Organization]] = {}
+    for b in all_branches:
+        grouped_by_parent.setdefault(b.parent_organization_id, []).append(b)
+
+    results = []
+
+    # 3. Process each ParentOrganization (e.g. Org Group)
+    for p in parent_orgs:
+        p_branches = grouped_by_parent.get(p.id, [])
+        
+        branch_items = []
+        p_total = 0
+        p_delivered = 0
+        p_read = 0
+        p_failed = 0
+
+        for b in p_branches:
+            b_stats = branch_stats_map.get(b.id, {"total": 0, "delivered": 0, "read": 0, "failed": 0})
+            b_total = b_stats["total"]
+            b_delivered = b_stats["delivered"]
+            b_read = b_stats["read"]
+            b_failed = b_stats["failed"]
+            b_success = round((b_delivered / b_total * 100), 1) if b_total > 0 else 0.0
+
+            p_total += b_total
+            p_delivered += b_delivered
+            p_read += b_read
+            p_failed += b_failed
+
+            branch_items.append({
+                "organization_id": str(b.id),
+                "branch_name": b.name,
+                "slug": b.slug,
+                "is_active": b.is_active,
+                "total": b_total,
+                "delivered": b_delivered,
+                "read": b_read,
+                "failed": b_failed,
+                "success_rate": b_success,
+            })
+
+        # Sort branch items by message volume descending
+        branch_items.sort(key=lambda x: x["total"], reverse=True)
+        p_success = round((p_delivered / p_total * 100), 1) if p_total > 0 else 0.0
+
+        results.append({
+            "id": str(p.id),
+            "organization_id": str(p.id),
+            "org_name": p.name,
+            "name": p.name,
+            "slug": p.slug,
+            "is_parent": True,
+            "branch_count": len(p_branches),
+            "total": p_total,
+            "delivered": p_delivered,
+            "read": p_read,
+            "failed": p_failed,
+            "success_rate": p_success,
+            "branches": branch_items,
+        })
+
+    # 4. Process Standalone Branches (branches without parent_organization_id)
+    standalone_branches = grouped_by_parent.get(None, [])
+    for b in standalone_branches:
+        b_stats = branch_stats_map.get(b.id, {"total": 0, "delivered": 0, "read": 0, "failed": 0})
+        b_total = b_stats["total"]
+        b_delivered = b_stats["delivered"]
+        b_read = b_stats["read"]
+        b_failed = b_stats["failed"]
+        b_success = round((b_delivered / b_total * 100), 1) if b_total > 0 else 0.0
+
+        results.append({
+            "id": str(b.id),
+            "organization_id": str(b.id),
+            "org_name": b.name,
+            "name": b.name,
+            "slug": b.slug,
+            "is_parent": False,
+            "branch_count": 1,
+            "total": b_total,
+            "delivered": b_delivered,
+            "read": b_read,
+            "failed": b_failed,
+            "success_rate": b_success,
+            "branches": [
+                {
+                    "organization_id": str(b.id),
+                    "branch_name": b.name,
+                    "slug": b.slug,
+                    "is_active": b.is_active,
+                    "total": b_total,
+                    "delivered": b_delivered,
+                    "read": b_read,
+                    "failed": b_failed,
+                    "success_rate": b_success,
+                }
+            ],
+        })
+
+    # Sort results by total messages descending, then by name
+    results.sort(key=lambda x: (x["total"], x["name"]), reverse=True)
+
+    if limit and limit > 0:
+        return results[:limit]
+    return results
 
 
 # ── Per-Org Stats ─────────────────────────────────────────────────────────────

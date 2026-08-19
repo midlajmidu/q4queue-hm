@@ -32,7 +32,7 @@ def _normalize_phone(phone: str) -> str:
     """
     Normalize phone to E.164 format for WhatsApp.
     Strips spaces, dashes, parentheses.
-    Does NOT add country code — that's the caller's responsibility.
+    Defaults 10-digit Indian numbers to +91.
     """
     cleaned = (
         phone.strip()
@@ -41,7 +41,11 @@ def _normalize_phone(phone: str) -> str:
         .replace("(", "")
         .replace(")", "")
     )
-    # If it doesn't start with +, don't add one — we can't guess country code
+    if not cleaned.startswith("+"):
+        if len(cleaned) == 10 and cleaned.isdigit():
+            cleaned = "+91" + cleaned
+        elif len(cleaned) == 12 and cleaned.startswith("91") and cleaned.isdigit():
+            cleaned = "+" + cleaned
     return cleaned
 
 
@@ -142,6 +146,58 @@ async def _update_message_status(
         await db.commit()
 
 
+async def _upload_ticket_image_to_meta(
+    *,
+    access_token: str,
+    phone_number_id: str,
+    api_version: str,
+    token_number: str,
+    branch_name: str,
+    queue_name: str,
+    people_ahead: str,
+) -> Optional[str]:
+    """Dynamically generate a personalized ticket image on top of bakery template and upload to Meta."""
+    try:
+        from app.utils.ticket_generator import generate_ticket_image
+        import pytz
+        from datetime import datetime
+        
+        ist_dt = datetime.now(pytz.timezone("Asia/Kolkata"))
+        date_str = ist_dt.strftime("%d %b %Y")
+        time_str = ist_dt.strftime("%I:%M %p")
+        
+        img_buffer = generate_ticket_image(
+            token_number=token_number,
+            branch_name=branch_name,
+            queue_name=queue_name,
+            date_str=date_str,
+            time_str=time_str,
+            people_ahead=people_ahead,
+        )
+        img_bytes = img_buffer.getvalue()
+        
+        url = f"{META_API_BASE}/{api_version}/{phone_number_id}/media"
+        headers = {"Authorization": f"Bearer {access_token}"}
+        files = {
+            "file": (f"ticket_{token_number}.png", img_bytes, "image/png")
+        }
+        data = {
+            "messaging_product": "whatsapp",
+            "type": "image/png"
+        }
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(url, headers=headers, files=files, data=data)
+            if resp.status_code == 200:
+                media_id = resp.json().get("id")
+                logger.info("Dynamic ticket image uploaded to Meta | media_id=%s token=%s", media_id, token_number)
+                return media_id
+            else:
+                logger.warning("Failed to upload dynamic ticket image to Meta: %s", resp.text)
+    except Exception as exc:
+        logger.error("Error generating/uploading dynamic ticket image: %s", exc)
+    return None
+
+
 async def send_whatsapp_message(
     *,
     phone: str,
@@ -176,8 +232,19 @@ async def send_whatsapp_message(
         if is_raw_text and raw_body:
             rendered_body = raw_body
         elif event_type == "test":
-            rendered_body = variables[0] if variables else "Test notification"
-            template_name = "test_notification_v2"
+            template_name = "ticket_confirmed_v1"
+            template_language = "en"
+            custom_msg = variables[0] if variables else "Test notification"
+            variables = [
+                "Super Admin",
+                "TEST-01",
+                "0",
+                "https://q4queue.com",
+                "https://q4queue.com",
+                "QRQ Testing",
+                custom_msg or "General Queue"
+            ]
+            rendered_body = f"Test WhatsApp notification delivered to {phone_normalized}"
         else:
             # Get template
             template_obj, rendered_body, err = await get_rendered_template(event_type, variables)
@@ -203,8 +270,8 @@ async def send_whatsapp_message(
             session_id=session_id,
         )
 
-        # Get credentials
-        cfg = await get_global_config_dict()
+        # Get credentials (resolving per-org custom phone_number_id if configured, else global default)
+        cfg = await get_global_config_dict(org_id=org_id)
         access_token = cfg["access_token"]
         phone_number_id = cfg["phone_number_id"]
         api_version = cfg["api_version"]
@@ -231,17 +298,34 @@ async def send_whatsapp_message(
         else:
             components = []
             
-            # Inject Header for ticket_confirmed_v1 (Image)
-            if template_name == "ticket_confirmed_v1" and token_id:
-                base_url = getattr(settings, "PUBLIC_API_URL", "https://q4queue.com").rstrip("/")
-                ticket_image_url = f"{base_url}/api/v1/whatsapp/media/ticket/{token_id}.png"
+            # Inject Header for ticket_confirmed_v1 (Dynamic Personalized Ticket Image)
+            if template_name == "ticket_confirmed_v1":
+                token_num = variables[1] if len(variables) > 1 else "A-1"
+                people_ahead_val = variables[2] if len(variables) > 2 else "0"
+                branch_name_val = variables[5] if len(variables) > 5 else "Main Branch"
+                queue_name_val = variables[6] if len(variables) > 6 else "General Queue"
+                
+                # Upload dynamic personalized ticket image
+                media_id = await _upload_ticket_image_to_meta(
+                    access_token=access_token,
+                    phone_number_id=phone_number_id,
+                    api_version=api_version,
+                    token_number=token_num,
+                    branch_name=branch_name_val,
+                    queue_name=queue_name_val,
+                    people_ahead=people_ahead_val,
+                )
+                
+                # Fallback to permanent media ID if dynamic upload failed
+                media_id = media_id or "1574195920759459"
+                
                 components.append({
                     "type": "header",
                     "parameters": [
                         {
                             "type": "image",
                             "image": {
-                                "link": ticket_image_url
+                                "id": media_id
                             }
                         }
                     ]
@@ -250,7 +334,10 @@ async def send_whatsapp_message(
             if variables:
                 components.append({
                     "type": "body",
-                    "parameters": [{"type": "text", "text": str(v)} for v in variables]
+                    "parameters": [
+                        {"type": "text", "text": str(v).strip() if str(v).strip() else "—"}
+                        for v in variables
+                    ]
                 })
 
             payload["type"] = "template"

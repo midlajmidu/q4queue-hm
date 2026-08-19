@@ -838,7 +838,9 @@ async def get_system_monitoring(
     from app.redis.client import get_recent_system_errors
 
     app_settings = get_settings()
-    whatsapp_status = "connected" if app_settings.whatsapp_configured else "error"
+    from app.whatsapp.config_service import get_global_config_dict
+    wa_dict = await get_global_config_dict()
+    whatsapp_status = "connected" if (wa_dict.get("status") == "connected" or (wa_dict.get("access_token") and wa_dict.get("phone_number_id"))) else "disconnected"
     plivo_status = "connected" if app_settings.PLIVO_WEBRTC_USERNAME and app_settings.PLIVO_WEBRTC_PASSWORD else "error"
     
     real_errors = await get_recent_system_errors()

@@ -21,6 +21,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.whatsapp.models import (
+    WhatsAppConfig,
     WhatsAppMessage,
     WhatsAppWebhookLog,
     WhatsAppDeliveryStatus,
@@ -35,21 +36,34 @@ settings = get_settings()
 
 # ── Webhook Verification ──────────────────────────────────────────────────────
 
-def verify_webhook(mode: str, token: str, challenge: str) -> tuple[bool, str]:
+async def verify_webhook(mode: str, token: str, challenge: str) -> tuple[bool, str]:
     """
     Verify Meta's webhook subscription challenge.
+    Checks against global webhook verify token and any organization-specific custom verify tokens.
     Returns (success, challenge_or_error).
     """
     if mode != "subscribe":
         return False, "Invalid mode"
 
-    expected_token = settings.WHATSAPP_VERIFY_TOKEN
-    if token != expected_token:
-        logger.warning("Webhook verification failed: token mismatch")
-        return False, "Token mismatch"
+    from app.whatsapp.config_service import get_global_config_dict
+    cfg = await get_global_config_dict()
+    global_token = cfg.get("webhook_verify_token") or settings.WHATSAPP_VERIFY_TOKEN or "qrq-whatsapp-webhook-secret"
 
-    logger.info("WhatsApp webhook verified successfully")
-    return True, challenge
+    if token == global_token:
+        logger.info("WhatsApp webhook verified successfully against global token")
+        return True, challenge
+
+    # Check if token matches any org-specific custom verify token
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(
+            select(WhatsAppConfig).where(WhatsAppConfig.webhook_verify_token == token)
+        )
+        if res.scalar_one_or_none():
+            logger.info("WhatsApp webhook verified successfully against org custom token")
+            return True, challenge
+
+    logger.warning("Webhook verification failed: token mismatch (received %s)", token)
+    return False, "Token mismatch"
 
 
 # ── Status Mapping ────────────────────────────────────────────────────────────
@@ -127,7 +141,7 @@ async def _process_webhook_internal(payload: dict) -> None:
                     error_info=status_obj.get("errors", []),
                 )
 
-            # ── Incoming Messages ──────────────
+            # ── Incoming Messages & Button Replies ──────────────
             messages = value.get("messages", [])
             for msg_obj in messages:
                 meta_message_id = msg_obj.get("id")
@@ -139,44 +153,49 @@ async def _process_webhook_internal(payload: dict) -> None:
                     phone=phone,
                 )
                 
-                # Check for Quick Reply Button
-                msg_type = msg_obj.get("type")
-                if msg_type == "button":
-                    # If created via Meta UI, the payload might just be the exact button text
-                    button_text = msg_obj.get("button", {}).get("text", "")
-                    button_payload = msg_obj.get("button", {}).get("payload", "")
-                    
-                    if "ACTIVATE_LIVE_ALERTS" in button_payload or "Activate" in button_text or "Activate" in button_payload or "Get Live Updates" in button_text or "Get Live Updates" in button_payload or "Receive Live Updates" in button_text or "Receive Live Updates" in button_payload:
-                        logger.info("WhatsApp alerts activated for %s", phone)
-                        await _activate_whatsapp_alerts(phone, now)
-                else:
-                    logger.info("WhatsApp incoming message from %s (not processed)", phone)
+                # Check for Quick Reply Button or incoming text
+                msg_type = msg_obj.get("type", "")
+                button_text = msg_obj.get("button", {}).get("text", "")
+                button_payload = msg_obj.get("button", {}).get("payload", "")
+                text_body = msg_obj.get("text", {}).get("body", "")
+                
+                logger.info(
+                    "WhatsApp incoming message | from=%s type=%s text=%s btn_text=%s btn_payload=%s",
+                    phone, msg_type, text_body, button_text, button_payload
+                )
+                
+                # Activate live alerts for any button click or relevant text message
+                await _activate_whatsapp_alerts(phone, now)
 
 
 async def _activate_whatsapp_alerts(phone: str, current_time: datetime) -> None:
-    """Activates the WhatsApp alerts for a customer by finding their active token."""
+    """Activates WhatsApp alerts for a customer upon clicking Get Live Queue Updates or replying."""
     try:
         async with AsyncSessionLocal() as db:
-            # Normalize phone just in case, though webhook usually sends with country code and no +
-            # We match using standard string matching (might need exact match based on how we save)
-            # Find the active token for this phone
+            clean_phone = phone.lstrip("+")
+            # Match last 10 digits to handle country code differences
+            search_phone = clean_phone[-10:] if len(clean_phone) >= 10 else clean_phone
+            
+            # Find active waiting or serving token for this customer
             result = await db.execute(
                 select(Token).where(
-                    Token.customer_phone.like(f"%{phone[-10:]}%"), # Handle formatting differences
+                    Token.customer_phone.like(f"%{search_phone}%"),
                     Token.status.in_([TokenStatus.waiting, TokenStatus.serving])
                 ).order_by(Token.created_at.desc())
             )
             token = result.scalars().first()
             
-            if token:
-                token.whatsapp_alerts_active = True
-                token.whatsapp_window_expires_at = current_time + timedelta(hours=24)
-                await db.commit()
-                logger.info("Activated WhatsApp alerts for Token %s", token.id)
-            else:
-                logger.warning("Received ACTIVATE_LIVE_ALERTS but no active token found for phone %s", phone)
+            if not token:
+                logger.info("No active waiting/serving token found for phone %s to activate alerts", phone)
+                return
+
+            # Activate alerts & open 24h window
+            token.whatsapp_alerts_active = True
+            token.whatsapp_window_expires_at = current_time + timedelta(hours=24)
+            await db.commit()
+            logger.info("Activated WhatsApp alerts for Token %s (phone=%s, token_number=%s)", token.id, phone, token.token_number)
     except Exception as exc:
-        logger.error("Failed to activate whatsapp alerts for %s: %s", phone, exc)
+        logger.error("Failed to activate whatsapp alerts for %s: %s", phone, exc, exc_info=True)
 
 
 async def _store_webhook_log(
