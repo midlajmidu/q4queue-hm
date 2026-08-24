@@ -60,3 +60,8 @@ class OrgAdminCreate(BaseModel):
     last_name: str
     email: EmailStr
     password: str
+    custom_access_token: Optional[str] = None
+    custom_app_id: Optional[str] = None
+    custom_app_secret: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)

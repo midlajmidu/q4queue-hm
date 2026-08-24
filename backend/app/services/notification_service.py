@@ -118,13 +118,18 @@ async def notify_queue_event(
 
 
 
-        # 2. Validate phone
-        phone = customer_phone.strip()
+        # 2. Validate & normalize phone
+        phone = (customer_phone or "").strip().replace(" ", "").replace("-", "")
         if not phone.startswith("+"):
-            logger.warning(
-                "NotificationService: phone not E.164 for token=%s, skipping", token_id
-            )
-            return
+            if len(phone) == 10 and phone.isdigit():
+                phone = "+91" + phone
+            elif len(phone) == 12 and phone.startswith("91") and phone.isdigit():
+                phone = "+" + phone
+            else:
+                logger.warning(
+                    "NotificationService: phone not E.164 for token=%s (%s), skipping", token_id, customer_phone
+                )
+                return
 
         # 3. Fetch Token and Org details
         db_token = None
@@ -175,21 +180,22 @@ async def notify_queue_event(
         c_name = customer_name or "Customer"
 
         if event_type == "queue_joined_v4":
-            # joined template still bypasses and uses original variables
+            # joined template uses variables for ticket_confirmed_v1
             from app.core.config import get_settings
             settings = get_settings()
-            frontend_url = getattr(settings, "FRONTEND_URL", "https://amoebaq.com").rstrip("/")
-            track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
-            display_url = f"{frontend_url}/d/{queue_id}"
+            frontend_url = getattr(settings, "FRONTEND_URL", "https://q4queue.com").rstrip("/")
+            track_target = tracking_id or token_id or queue_id
+            track_url = f"{frontend_url}/track/{track_target}" if track_target else f"{frontend_url}/track"
+            display_url = f"{frontend_url}/display/{queue_id}" if queue_id else f"{frontend_url}/display"
             
             variables = [
-                c_name,
-                token_str,
-                str(position),
+                c_name or "Customer",
+                token_str or "A-1",
+                str(position or 0),
                 track_url,
                 display_url,
-                org_name_to_use,
-                queue_name or org_name_to_use
+                org_name_to_use or "Main Branch",
+                queue_name or org_name_to_use or "General Queue"
             ]
         else:
             if not token_id:
@@ -200,15 +206,17 @@ async def notify_queue_event(
                 logger.warning("Token %s not found in DB for event %s, skipping", token_id, event_type)
                 return
                 
-            now = datetime.now(timezone.utc)
-            if db_token.whatsapp_alerts_active and db_token.whatsapp_window_expires_at and db_token.whatsapp_window_expires_at >= now:
-                # User opted in -> cheaper service conversation
-                is_raw_text = True
-            else:
-                # User did NOT opt in -> approved Meta template (utility conversation)
-                is_raw_text = False
+            # Check if customer opted into WhatsApp live alerts
+            if not db_token.whatsapp_alerts_active:
+                logger.info(
+                    "Customer %s did not opt into WhatsApp live alerts for token %s, skipping event %s",
+                    customer_phone, token_id, event_type
+                )
+                return
 
-            # Base vars are no longer used uniformly. Let's do per-event vars.
+            # Always send official approved Meta template messages
+            is_raw_text = False
+            raw_body = None
 
             if event_type in ("queue_called_v3", "queue_recalled_v2"):
                 dest = f"Service Lane {assigned_line}" if assigned_line else "the counter"
@@ -229,7 +237,7 @@ async def notify_queue_event(
                 
                 from app.core.config import get_settings
                 settings = get_settings()
-                frontend_url = getattr(settings, "FRONTEND_URL", "https://amoebaq.com").rstrip("/")
+                frontend_url = getattr(settings, "FRONTEND_URL", "https://q4queue.com").rstrip("/")
                 track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
 
                 if event_type == "queue_nearby_5_v3":
@@ -311,6 +319,14 @@ async def notify_queue_event(
         except Exception as e:
             logger.warning("Redis rate limit check failed, proceeding anyway: %s", e)
 
+        # 3.8 Pacing & Timing:
+        # High-priority operational events (Joined, Called, Skipped, Recalled): Immediate (0 delay / ~1-2s delivery)
+        # Background status events (5 ahead, 3 ahead, Completed, Removed): 8-10s pacing delay
+        if event_type in ("queue_nearby_5_v3", "queue_nearby_3_v3", "queue_completed_v3", "queue_removed_v3"):
+            import asyncio
+            logger.info("Applying 8s pacing delay for background event %s (token=%s)", event_type, token_id)
+            await asyncio.sleep(8)
+
         # 4. Send
         await send_whatsapp_message(
             phone=phone,
@@ -323,25 +339,6 @@ async def notify_queue_event(
             session_id=session_id,
             is_raw_text=is_raw_text,
             raw_body=raw_body,
-        )
-
-        # 5. Audit Log
-        try:
-            await record_event(
-                event_type=f"notification.{event_type}",
-                org_id=org_id,
-                user_id=None,
-                resource_type="token",
-                resource_id=str(token_id) if token_id else None,
-                details={"phone": phone, "variables": variables, "is_raw_text": is_raw_text},
-            )
-        except Exception as audit_exc:
-            logger.error("Failed to record audit log for notification | %s", audit_exc)
-
-    except Exception as exc:
-        logger.error(
-            "NotificationService error | event=%s org=%s err=%s",
-            event_type, org_id, exc,
         )
 
         # 5. Audit Log

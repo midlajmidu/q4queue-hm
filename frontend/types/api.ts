@@ -930,6 +930,9 @@ export interface WhatsAppConfig {
     app_id?: string;
     app_secret?: string;
     business_id?: string;
+    webhook_url?: string;
+    webhook_verify_token?: string;
+    api_version?: string;
     connected_at?: string | null;
 }
 
@@ -1013,14 +1016,32 @@ export interface WhatsAppDailyChartItem {
     failed: number;
 }
 
-export interface WhatsAppOrgStats {
-    organization_id?: string;
-    org_name?: string;
+export interface WhatsAppBranchStats {
+    organization_id: string;
+    branch_name: string;
+    slug: string;
+    is_active?: boolean;
     total: number;
     delivered: number;
     read: number;
     failed: number;
     success_rate: number;
+}
+
+export interface WhatsAppOrgStats {
+    id?: string;
+    organization_id?: string;
+    org_name?: string;
+    name?: string;
+    slug?: string;
+    is_parent?: boolean;
+    branch_count?: number;
+    total: number;
+    delivered: number;
+    read: number;
+    failed: number;
+    success_rate: number;
+    branches?: WhatsAppBranchStats[];
 }
 
 export interface WhatsAppOrgConfig {
@@ -1034,6 +1055,27 @@ export interface WhatsAppOrgConfig {
     notify_skipped: boolean;
     notify_recalled: boolean;
     notify_removed: boolean;
+}
+
+export interface WhatsAppAdminOrgConfig {
+    org_id: string;
+    name: string;
+    slug: string;
+    parent_org_name?: string | null;
+    is_active: boolean;
+    is_enabled: boolean;
+    mode: "default" | "custom_phone" | "custom_full";
+    phone_number_id?: string;
+    waba_id?: string;
+    access_token?: string;
+    webhook_verify_token?: string;
+    app_id?: string;
+    app_secret?: string;
+    effective_phone_number_id: string;
+    effective_waba_id: string;
+    has_custom_token?: boolean;
+    global_phone_number_id: string;
+    global_waba_id: string;
 }
 
 export interface WhatsAppEventStat {

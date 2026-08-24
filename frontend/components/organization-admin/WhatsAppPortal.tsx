@@ -2,30 +2,30 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { api } from "@/lib/api";
-import type { 
-    WhatsAppOrgConfig, 
-    WhatsAppOrgStats, 
-    PaginatedWhatsAppMessages, 
+import type {
+    WhatsAppOrgConfig,
+    WhatsAppOrgStats,
+    PaginatedWhatsAppMessages,
     WhatsAppMessage,
     WhatsAppEventStat,
     QueueResponse,
     SessionResponse
 } from "@/types/api";
-import { 
-    MessageSquareText, 
-    Settings, 
-    LayoutDashboard, 
-    Calendar, 
-    ChevronDown, 
-    FilterX, 
-    Send, 
-    CheckCircle2, 
-    Eye, 
-    AlertTriangle, 
-    TrendingUp, 
-    BarChart3, 
-    Clock, 
-    Check, 
+import {
+    MessageSquareText,
+    Settings,
+    LayoutDashboard,
+    Calendar,
+    ChevronDown,
+    FilterX,
+    Send,
+    CheckCircle2,
+    Eye,
+    AlertTriangle,
+    TrendingUp,
+    BarChart3,
+    Clock,
+    Check,
     XCircle,
     BellRing,
     Search
@@ -58,7 +58,7 @@ const EVENT_LABEL: Record<string, string> = {
     "queue_skipped_v3": "Skipped",
     "queue_removed_v3": "Removed",
     "queue_recalled_v2": "Recalled",
-    
+
     // Legacy Events (Keep for historical logs but map to clean names to aggregate seamlessly)
     "queue_nearby_5_v2": "Position 5 Warning",
     "queue_nearby_3_v2": "Position 3 Warning (Turn is Near)",
@@ -92,8 +92,8 @@ function StatCard({ label, value, color, icon: Icon, trend }: { label: string; v
     return (
         <div className="bg-white dark:bg-slate-900/60 dark:backdrop-blur-xl rounded-[16px] border border-[#E9EDF5] dark:border-white/10 p-5 shadow-sm flex flex-col justify-between h-full">
             <div className="flex items-start justify-between mb-4">
-                <div 
-                    className="w-10 h-10 rounded-xl flex items-center justify-center bg-opacity-10" 
+                <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center bg-opacity-10"
                     style={{ backgroundColor: `${color}15`, color }}
                 >
                     <Icon size={20} strokeWidth={2.5} />
@@ -126,7 +126,7 @@ export function WhatsAppPortal() {
     const [selectedMessage, setSelectedMessage] = useState<WhatsAppMessage | null>(null);
     const [queues, setQueues] = useState<QueueResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    
+
     // Filters
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -175,7 +175,7 @@ export function WhatsAppPortal() {
                 endDate: endDate || undefined,
                 queueId: filterQueueId || undefined,
             };
-            
+
             const historyParams = {
                 ...params,
                 status: filterStatus || undefined,
@@ -199,13 +199,13 @@ export function WhatsAppPortal() {
         }
     }, [startDate, endDate, filterQueueId, filterStatus, filterEventType, debouncedSearchQuery, currentPage]);
 
-    useEffect(() => { 
+    useEffect(() => {
         loadFilteredData();
     }, [loadFilteredData]);
 
     const allEventsToDisplay = useMemo(() => {
         const aggregated: Record<string, WhatsAppEventStat> = {};
-        
+
         // Initialize with ACTIVE_EVENTS to keep order
         ACTIVE_EVENTS.forEach(eventKey => {
             const label = EVENT_LABEL[eventKey] || eventKey;
@@ -229,21 +229,21 @@ export function WhatsAppPortal() {
                 aggregated[label].delivered += stat.delivered;
                 aggregated[label].read += stat.read;
                 aggregated[label].failed += stat.failed;
-                
+
                 const tot = aggregated[label].total;
                 aggregated[label].success_rate = tot > 0 ? Math.round((aggregated[label].delivered / tot) * 100) : 0;
             }
         });
-        
+
         return Object.values(aggregated);
     }, [eventStats]);
 
     useEffect(() => {
-        loadInitialData(); 
+        loadInitialData();
     }, [loadInitialData]);
 
-    useEffect(() => { 
-        loadFilteredData(); 
+    useEffect(() => {
+        loadFilteredData();
     }, [loadFilteredData]);
 
     const handleSettingChange = async (key: keyof WhatsAppOrgConfig, value: boolean) => {
@@ -366,11 +366,10 @@ export function WhatsAppPortal() {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`pb-3 text-[14px] font-semibold transition-all duration-200 border-b-2 flex items-center gap-2 ${
-                                    isActive 
-                                    ? "border-[#2563EB] dark:border-indigo-400 text-[#2563EB] dark:text-indigo-400" 
-                                    : "border-transparent text-[#6B7280] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700"
-                                }`}
+                                className={`pb-3 text-[14px] font-semibold transition-all duration-200 border-b-2 flex items-center gap-2 ${isActive
+                                        ? "border-[#2563EB] dark:border-indigo-400 text-[#2563EB] dark:text-indigo-400"
+                                        : "border-transparent text-[#6B7280] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700"
+                                    }`}
                             >
                                 <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
                                 {tab.label}
@@ -388,9 +387,9 @@ export function WhatsAppPortal() {
                             <div className="flex-1 w-full relative">
                                 <label className="block text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider mb-1.5">Start Date</label>
                                 <div className="relative">
-                                    <input 
-                                        type="date" 
-                                        value={startDate} 
+                                    <input
+                                        type="date"
+                                        value={startDate}
                                         onChange={e => setStartDate(e.target.value)}
                                         className="w-full h-11 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-10 pr-4 text-[13px] font-medium text-[#111827] dark:text-slate-200 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all dark:scheme-dark"
                                     />
@@ -400,9 +399,9 @@ export function WhatsAppPortal() {
                             <div className="flex-1 w-full relative">
                                 <label className="block text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider mb-1.5">End Date</label>
                                 <div className="relative">
-                                    <input 
-                                        type="date" 
-                                        value={endDate} 
+                                    <input
+                                        type="date"
+                                        value={endDate}
                                         onChange={e => setEndDate(e.target.value)}
                                         className="w-full h-11 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-10 pr-4 text-[13px] font-medium text-[#111827] dark:text-slate-200 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all dark:scheme-dark"
                                     />
@@ -412,8 +411,8 @@ export function WhatsAppPortal() {
                             <div className="flex-1 w-full relative">
                                 <label className="block text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider mb-1.5">Queue</label>
                                 <div className="relative">
-                                    <select 
-                                        value={filterQueueId} 
+                                    <select
+                                        value={filterQueueId}
                                         onChange={e => setFilterQueueId(e.target.value)}
                                         className="w-full h-11 bg-[#F7F9FC] dark:bg-slate-800/60 border border-[#E9EDF5] dark:border-white/10 rounded-xl pl-4 pr-10 text-[13px] font-medium text-[#111827] dark:text-slate-200 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all appearance-none"
                                     >
@@ -424,7 +423,7 @@ export function WhatsAppPortal() {
                                 </div>
                             </div>
 
-                            <button 
+                            <button
                                 onClick={() => { setStartDate(""); setEndDate(""); setFilterQueueId(""); }}
                                 className="h-11 px-5 flex items-center justify-center gap-2 text-[13px] font-semibold text-[#6366F1] dark:text-indigo-400 bg-[#6366F1]/5 dark:bg-indigo-500/10 hover:bg-[#6366F1]/10 dark:hover:bg-indigo-500/20 rounded-xl transition-colors whitespace-nowrap border border-transparent"
                             >
@@ -489,7 +488,7 @@ export function WhatsAppPortal() {
                                 </table>
                             </div>
                         </div>
-                        
+
                     </div>
                 )}
 
@@ -551,7 +550,7 @@ export function WhatsAppPortal() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="font-bold flex items-center gap-1.5" style={{ color: STATUS_COLOR[m.status] || "#94a3b8" }}>
-                                                    {STATUS_ICON[m.status as keyof typeof STATUS_ICON]} 
+                                                    {STATUS_ICON[m.status as keyof typeof STATUS_ICON]}
                                                     <span className="capitalize">{m.status === "skipped" ? "Skipped (No Opt-in)" : m.status}</span>
                                                 </span>
                                                 {m.error_message && (
@@ -564,7 +563,7 @@ export function WhatsAppPortal() {
                                                 {fmtTime(m.sent_at)}
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <button 
+                                                <button
                                                     onClick={() => setSelectedMessage(m)}
                                                     className="inline-flex items-center justify-center p-2 rounded-xl text-[#6B7280] dark:text-slate-400 hover:text-[#2563EB] dark:hover:text-indigo-400 hover:bg-blue-50 dark:hover:bg-indigo-950/50 transition-colors duration-200"
                                                     title="View Details"
@@ -577,7 +576,7 @@ export function WhatsAppPortal() {
                                 </tbody>
                             </table>
                         </div>
-                        
+
                         {logs && logs.total > 50 && (
                             <div className="px-6 py-4 border-t border-[#E9EDF5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-slate-900/40">
                                 <div className="text-[13px] text-[#6B7280] dark:text-slate-400">
@@ -645,7 +644,7 @@ export function WhatsAppPortal() {
                                         </button>
                                     </div>
                                 </div>
-                                
+
                                 <div className="p-8 space-y-6 flex-1 bg-white dark:bg-slate-900/40">
                                     {/* Toggle Items */}
                                     <div className="divide-y divide-[#E9EDF5] dark:divide-white/10">
@@ -731,14 +730,14 @@ export function WhatsAppPortal() {
                                     </div>
                                     Message Log Details
                                 </h3>
-                                <button 
-                                    onClick={() => setSelectedMessage(null)} 
+                                <button
+                                    onClick={() => setSelectedMessage(null)}
                                     className="w-8 h-8 flex items-center justify-center text-[#6B7280] dark:text-slate-400 hover:text-[#111827] dark:hover:text-white hover:bg-[#F7F9FC] dark:hover:bg-slate-800 rounded-full transition-colors"
                                 >
                                     <XCircle size={20} />
                                 </button>
                             </div>
-                            
+
                             <div className="p-8 overflow-y-auto space-y-8 bg-white dark:bg-slate-900">
                                 <div className="grid grid-cols-2 gap-x-8 gap-y-6 bg-[#F7F9FC] dark:bg-slate-800/60 p-6 rounded-[16px] border border-[#E9EDF5] dark:border-white/10">
                                     <div>
@@ -760,7 +759,7 @@ export function WhatsAppPortal() {
                                     <div>
                                         <div className="text-[10px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider">Status</div>
                                         <div className="mt-2 flex items-center gap-1.5 font-bold" style={{ color: STATUS_COLOR[selectedMessage.status] }}>
-                                            {STATUS_ICON[selectedMessage.status as keyof typeof STATUS_ICON]} 
+                                            {STATUS_ICON[selectedMessage.status as keyof typeof STATUS_ICON]}
                                             <span className="capitalize">{selectedMessage.status === "skipped" ? "Skipped (No Opt-in)" : selectedMessage.status}</span>
                                         </div>
                                     </div>
@@ -775,7 +774,7 @@ export function WhatsAppPortal() {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 {(selectedMessage.error_message || selectedMessage.error_code) && (
                                     <div>
                                         <div className="text-[11px] font-bold text-red-500 dark:text-red-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -798,9 +797,9 @@ export function WhatsAppPortal() {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="px-8 py-5 border-t border-[#E9EDF5] dark:border-white/10 bg-white dark:bg-slate-900 flex justify-end">
-                                <button 
+                                <button
                                     onClick={() => setSelectedMessage(null)}
                                     className="h-10 px-6 bg-white dark:bg-slate-800 border border-[#E9EDF5] dark:border-white/10 hover:bg-[#F7F9FC] dark:hover:bg-slate-700 text-[#111827] dark:text-white rounded-xl text-[14px] font-bold transition-colors shadow-sm"
                                 >

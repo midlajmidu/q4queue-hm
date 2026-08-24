@@ -54,10 +54,29 @@ class WhatsAppConfigUpdate(BaseModel):
     app_id: Optional[str] = None
     app_secret: Optional[str] = None
     business_id: Optional[str] = None
+    webhook_url: Optional[str] = None
+    webhook_verify_token: Optional[str] = None
     is_enabled: Optional[bool] = None
     payment_active: Optional[bool] = None
     business_verified: Optional[bool] = None
     webhook_active: Optional[bool] = None
+
+
+class TestConnectionRequest(BaseModel):
+    access_token: Optional[str] = None
+    phone_number_id: Optional[str] = None
+    waba_id: Optional[str] = None
+
+
+class OrgWhatsAppConfigUpdate(BaseModel):
+    is_enabled: Optional[bool] = None
+    mode: Optional[str] = None
+    phone_number_id: Optional[str] = None
+    waba_id: Optional[str] = None
+    access_token: Optional[str] = None
+    webhook_verify_token: Optional[str] = None
+    app_id: Optional[str] = None
+    app_secret: Optional[str] = None
 
 
 class TemplateCreate(BaseModel):
@@ -119,6 +138,180 @@ async def save_whatsapp_config(
     )
 
     return {"status": config.status, "is_enabled": config.is_enabled, "message": "Config saved"}
+
+
+# ── Super Admin: Organization Routing ─────────────────────────────────────────
+
+@router.get("/admin/organizations", summary="List Organizations WhatsApp Config")
+async def list_admin_organizations_whatsapp(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_super_admin),
+) -> list[dict]:
+    """List all organizations/branches with their assigned WhatsApp Phone ID routing."""
+    return await config_service.list_admin_organizations_whatsapp(db)
+
+
+@router.put("/admin/organizations/{org_id}", summary="Update Organization WhatsApp Config")
+async def update_admin_organization_whatsapp(
+    org_id: uuid.UUID,
+    body: OrgWhatsAppConfigUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_super_admin),
+) -> dict:
+    """Update WhatsApp configuration and Phone Number ID for a specific organization/branch."""
+    data = body.model_dump(exclude_unset=True)
+    res = await config_service.update_admin_org_whatsapp(db, org_id, data)
+
+    await record_event(
+        event_type="whatsapp.org_config_updated",
+        user_id=current_user.id,
+        resource_type="organization",
+        resource_id=str(org_id),
+        details=data,
+    )
+    return res
+
+
+@router.post("/admin/organizations/{org_id}/test-connection", summary="Test Organization WhatsApp Connection")
+async def test_org_whatsapp_connection(
+    org_id: uuid.UUID,
+    body: Optional[TestConnectionRequest] = None,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_super_admin),
+) -> dict:
+    """Test Meta Graph API connectivity for an organization using its effective credentials."""
+    cfg = await config_service.get_global_config_dict(org_id=org_id)
+    token = (body.access_token if body and body.access_token else cfg["access_token"])
+    phone_id = (body.phone_number_id if body and body.phone_number_id else cfg["phone_number_id"])
+    api_ver = cfg.get("api_version") or "v21.0"
+
+    if not token or not phone_id:
+        return {
+            "success": False,
+            "error": "Missing Access Token or Phone Number ID for this organization.",
+        }
+
+    import httpx
+    url = f"https://graph.facebook.com/{api_ver}/{phone_id}"
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                return {
+                    "success": True,
+                    "message": "Connection successful! Meta Cloud API is connected for this organization.",
+                    "details": {
+                        "verified_name": data.get("verified_name"),
+                        "display_phone_number": data.get("display_phone_number"),
+                        "quality_rating": data.get("quality_rating"),
+                        "code_verification_status": data.get("code_verification_status"),
+                        "id": data.get("id"),
+                    }
+                }
+            else:
+                err_data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+                err_msg = err_data.get("error", {}).get("message") or f"HTTP {resp.status_code}"
+                return {
+                    "success": False,
+                    "error": f"Meta API Error ({resp.status_code}): {err_msg}",
+                    "details": err_data,
+                }
+    except Exception as exc:
+        return {
+            "success": False,
+            "error": f"Failed to connect to Meta API: {str(exc)}",
+        }
+
+
+@router.post("/test-connection", summary="Test WhatsApp Meta API Connection")
+async def test_whatsapp_connection(
+    body: Optional[TestConnectionRequest] = None,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_super_admin),
+) -> dict:
+    """
+    Test connectivity to Meta Graph API using stored or provided credentials.
+    Fetches phone number information and verify status.
+    """
+    cfg = await config_service.get_global_config_dict()
+    token = (body.access_token if body and body.access_token else cfg["access_token"])
+    phone_id = (body.phone_number_id if body and body.phone_number_id else cfg["phone_number_id"])
+    api_ver = cfg.get("api_version") or "v21.0"
+
+    if not token or not phone_id:
+        return {
+            "success": False,
+            "error": "Missing Access Token or Phone Number ID. Please configure both fields first.",
+        }
+
+    import httpx
+    url = f"https://graph.facebook.com/{api_ver}/{phone_id}"
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                return {
+                    "success": True,
+                    "message": "Connection successful! Meta WhatsApp Cloud API is connected.",
+                    "details": {
+                        "verified_name": data.get("verified_name"),
+                        "display_phone_number": data.get("display_phone_number"),
+                        "quality_rating": data.get("quality_rating"),
+                        "code_verification_status": data.get("code_verification_status"),
+                        "id": data.get("id"),
+                    }
+                }
+            else:
+                err_data = resp.json().get("error", {})
+                err_msg = err_data.get("message", f"HTTP {resp.status_code}")
+                return {
+                    "success": False,
+                    "error": f"Meta API Error ({resp.status_code}): {err_msg}",
+                    "details": err_data,
+                }
+    except Exception as exc:
+        return {
+            "success": False,
+            "error": f"Connection failed: {str(exc)}"
+        }
+
+
+@router.post("/super-test-send", summary="Super Admin Send Test Message")
+async def super_admin_test_send(
+    body: TestMessageRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_super_admin),
+) -> dict:
+    """Send a test WhatsApp message from Super Admin portal to any phone number."""
+    cfg = await config_service.get_global_config_dict()
+    if not cfg["access_token"] or not cfg["phone_number_id"]:
+        raise HTTPException(
+            status_code=400,
+            detail="WhatsApp credentials are not configured. Please save Access Token and Phone Number ID first."
+        )
+
+    test_message = body.message or "✅ Test notification from Q4Queue Super Admin. WhatsApp integration is active and working!"
+
+    background_tasks.add_task(
+        send_whatsapp_message,
+        phone=body.phone,
+        event_type="test",
+        variables=[test_message],
+        org_id=uuid.UUID("00000000-0000-0000-0000-000000000000"),
+    )
+
+    await record_event(
+        event_type="whatsapp.super_admin_test_sent",
+        user_id=current_user.id,
+        details={"phone": body.phone},
+    )
+
+    return {"status": "queued", "message": f"Test message dispatched to {body.phone}"}
 
 
 # ── Super Admin: Analytics ────────────────────────────────────────────────────
@@ -231,6 +424,35 @@ async def delete_template(
     )
 
 
+@router.post("/templates/sync-meta", summary="Purge Deprecated Templates from Meta WABA and Synchronize")
+async def sync_meta_templates(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_super_admin),
+) -> dict:
+    result = await template_service.purge_deprecated_templates_from_meta(db)
+    await record_event(
+        event_type="whatsapp.templates_meta_synced",
+        user_id=current_user.id,
+        details=result,
+    )
+    return result
+
+
+@router.delete("/templates/meta/{template_name}", summary="Delete Template from Meta WABA")
+async def delete_meta_template_by_name(
+    template_name: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_super_admin),
+) -> dict:
+    result = await template_service.delete_template_from_meta(db, template_name)
+    await record_event(
+        event_type="whatsapp.template_meta_deleted",
+        user_id=current_user.id,
+        details={"template_name": template_name, "result": result},
+    )
+    return result
+
+
 # ── Super Admin: Message Log ──────────────────────────────────────────────────
 
 @router.get("/messages", summary="Global WhatsApp Message Log")
@@ -339,7 +561,7 @@ async def verify_whatsapp_webhook(
     token = params.get("hub.verify_token", "")
     challenge = params.get("hub.challenge", "")
 
-    success, result = webhook_service.verify_webhook(mode, token, challenge)
+    success, result = await webhook_service.verify_webhook(mode, token, challenge)
     if not success:
         raise HTTPException(status_code=403, detail=result)
 

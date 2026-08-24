@@ -86,6 +86,7 @@ import type {
     WhatsAppMessage,
     PaginatedWhatsAppMessages,
     WhatsAppOrgConfig,
+    WhatsAppAdminOrgConfig,
     TrackingResponse,
     WhatsAppEventStat,
     WhatsAppQueueStat,
@@ -1362,13 +1363,37 @@ export const api = {
     saveWhatsAppConfig(data: Partial<WhatsAppConfig>): Promise<{ status: string; is_enabled: boolean; message: string }> {
         return request("/whatsapp/config", { method: "POST", body: JSON.stringify(data) });
     },
+    getAdminWhatsAppOrgs(): Promise<WhatsAppAdminOrgConfig[]> {
+        return request<WhatsAppAdminOrgConfig[]>("/whatsapp/admin/organizations");
+    },
+    updateAdminWhatsAppOrg(orgId: string, data: {
+        is_enabled?: boolean;
+        mode?: "default" | "custom_phone" | "custom_full";
+        phone_number_id?: string | null;
+        waba_id?: string | null;
+        access_token?: string | null;
+        webhook_verify_token?: string | null;
+        app_id?: string | null;
+        app_secret?: string | null;
+    }): Promise<any> {
+        return request(`/whatsapp/admin/organizations/${orgId}`, { method: "PUT", body: JSON.stringify(data) });
+    },
+    testOrgWhatsAppConnection(orgId: string, data?: { access_token?: string; phone_number_id?: string; waba_id?: string }): Promise<{ success: boolean; message?: string; error?: string; details?: any }> {
+        return request(`/whatsapp/admin/organizations/${orgId}/test-connection`, { method: "POST", body: JSON.stringify(data || {}) });
+    },
+    testWhatsAppConnection(data?: { access_token?: string; phone_number_id?: string; waba_id?: string }): Promise<{ success: boolean; message?: string; error?: string; details?: any }> {
+        return request("/whatsapp/test-connection", { method: "POST", body: JSON.stringify(data || {}) });
+    },
+    testWhatsAppSend(phone: string, message?: string): Promise<{ status: string; message: string }> {
+        return request("/whatsapp/super-test-send", { method: "POST", body: JSON.stringify({ phone, message }) });
+    },
     getWhatsAppGlobalStats(): Promise<WhatsAppGlobalStats> {
         return request<WhatsAppGlobalStats>("/whatsapp/stats");
     },
     getWhatsAppDailyChart(days = 30): Promise<WhatsAppDailyChartItem[]> {
         return request<WhatsAppDailyChartItem[]>(`/whatsapp/stats/daily?days=${days}`);
     },
-    getWhatsAppStatsByOrg(limit = 20): Promise<WhatsAppOrgStats[]> {
+    getWhatsAppStatsByOrg(limit = 100): Promise<WhatsAppOrgStats[]> {
         return request<WhatsAppOrgStats[]>(`/whatsapp/stats/by-org?limit=${limit}`);
     },
     listWhatsAppTemplates(): Promise<WhatsAppTemplate[]> {
@@ -1382,6 +1407,12 @@ export const api = {
     },
     deleteWhatsAppTemplate(id: string): Promise<void> {
         return request(`/whatsapp/templates/${id}`, { method: "DELETE" });
+    },
+    syncMetaTemplates(): Promise<{ success: boolean; message: string; meta_connected: boolean; purged_from_meta: string[]; active_approved: string[] }> {
+        return request("/whatsapp/templates/sync-meta", { method: "POST" });
+    },
+    deleteMetaTemplateByName(templateName: string): Promise<{ success: boolean; message: string }> {
+        return request(`/whatsapp/templates/meta/${encodeURIComponent(templateName)}`, { method: "DELETE" });
     },
     getWhatsAppMessages(limit = 50): Promise<PaginatedWhatsAppMessages> {
         return request<PaginatedWhatsAppMessages>(`/whatsapp/messages?limit=${limit}`);

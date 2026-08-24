@@ -4,6 +4,7 @@ Application-wide settings loaded from environment / .env file.
 Phase 5: Added rate-limiting, CORS, and metrics configuration.
 """
 from functools import lru_cache
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,7 +13,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "q4queue"
     VERSION: str = "0.5.0"
     ENVIRONMENT: str = "development"
-    FRONTEND_URL: str = "https://amoebaq.com"
+    FRONTEND_URL: str = "https://q4queue.com"
     PUBLIC_API_URL: str = "https://your-ngrok-url.ngrok-free.app"
 
     # ── Security ──────────────────────────────────────────────────
@@ -28,7 +29,8 @@ class Settings(BaseSettings):
     DB_POOL_RECYCLE: int = 1800
 
     # ── Redis ─────────────────────────────────────────────────────
-    REDIS_URL: str
+    REDIS_URL: str = "redis://localhost:6379/0"
+    CACHE_DEFAULT_TTL: int = 300 # 5 minutes
     REDIS_POOL_SIZE: int = 20
 
     # ── Rate Limiting (requests per minute) ───────────────────────
@@ -38,13 +40,13 @@ class Settings(BaseSettings):
     RATE_LIMIT_WS: int = 20
 
     # ── CORS ──────────────────────────────────────────────────────
-    CORS_ORIGINS: str = "*"
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,https://q4queue.com"
 
     # ── Metrics ───────────────────────────────────────────────────
     METRICS_ENABLED: bool = True
 
     # ── Logging ───────────────────────────────────────────────────
-    LOG_LEVEL: str = "info"
+    LOG_LEVEL: str = "INFO"
 
     # ── Email / SMTP ──────────────────────────────────────────────
     SMTP_HOST: str = ""
@@ -54,10 +56,13 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = ""
     SMTP_FROM_NAME: str = "Q4Queue System"
 
-    # ── Meta WhatsApp Cloud API ───────────────────────────────────
-    WHATSAPP_ACCESS_TOKEN: str = ""
-    WHATSAPP_PHONE_NUMBER_ID: str = ""
-    WHATSAPP_WABA_ID: str = ""
+    # ── WhatsApp Cloud API ────────────────────────────────────────
+    WHATSAPP_ACCESS_TOKEN: Optional[str] = None
+    WHATSAPP_PHONE_NUMBER_ID: Optional[str] = None
+    WHATSAPP_WABA_ID: Optional[str] = None
+    WHATSAPP_APP_ID: Optional[str] = None
+    WHATSAPP_APP_SECRET: Optional[str] = None
+    WHATSAPP_BUSINESS_ID: Optional[str] = None
     WHATSAPP_VERIFY_TOKEN: str = "qrq-whatsapp-webhook-secret"
     WHATSAPP_API_VERSION: str = "v21.0"
 
@@ -109,7 +114,7 @@ class Settings(BaseSettings):
         if not self.CORS_ORIGINS or self.CORS_ORIGINS == "*":
             # Wildcard origins cannot be combined with allow_credentials=True
             # Safe default fallback for local dev
-            return ["https://amoebaq.com"]
+            return ["http://localhost:3000", "https://q4queue.com"]
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
 
