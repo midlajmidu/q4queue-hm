@@ -394,7 +394,20 @@ export const api = {
 
         const qsStr = qs.toString();
         const url = qsStr ? `/stats/overview?${qsStr}` : "/stats/overview";
-        return request<AnalyticsOverview>(url, init);
+        return request<AnalyticsOverview>(url, init).catch((err) => {
+            if (err?.name === "AbortError") throw err;
+            logger.error("getOverview request failed:", err);
+            return {
+                status_counts: { total: 0, served: 0, cancelled: 0, waiting: 0, invited: 0 },
+                timings: { avg_waiting_time: "00:00:00", max_waiting_time: "00:00:00", avg_served_time: "00:00:00", max_served_time: "00:00:00" },
+                charts: { hourly: [], monthly: [] },
+                daily_timings: [],
+                staff_performance: [],
+                recent_activity: [],
+                longest_waiting_queue: null,
+                longest_waiting_session: null,
+            } as AnalyticsOverview;
+        });
     },
 
     getHistory(params: { sessionId?: string; queueId?: string; search?: string; status?: string; startDate?: string; endDate?: string; limit?: number; offset?: number } = {}): Promise<PaginatedHistoryResponse> {
@@ -409,7 +422,15 @@ export const api = {
         if (params.offset != null) qs.set("offset", String(params.offset));
 
         const q = qs.toString();
-        return request<PaginatedHistoryResponse>(`/stats/history${q ? `?${q}` : ""}`, { cache: "no-store" });
+        return request<PaginatedHistoryResponse>(`/stats/history${q ? `?${q}` : ""}`, { cache: "no-store" }).catch((err) => {
+            logger.error("getHistory request failed:", err);
+            return {
+                items: [],
+                total: 0,
+                limit: params.limit || 50,
+                offset: params.offset || 0,
+            } as PaginatedHistoryResponse;
+        });
     },
 
     async exportAnalyticsCSV(params: { queueId?: string; sessionId?: string; search?: string; status?: string; startDate?: string; endDate?: string }): Promise<Blob> {
