@@ -123,8 +123,14 @@ async def list_queues(
     current_user: User = Depends(get_current_active_user),
 ) -> list[QueueResponse]:
     """List all queues for the authenticated organization."""
-    queues = await queue_service.list_queues(db, org_id=current_user.org_id)
-    return [QueueResponse.model_validate(q) for q in queues]
+    try:
+        if not current_user.org_id:
+            return []
+        queues = await queue_service.list_queues(db, org_id=current_user.org_id)
+        return [QueueResponse.model_validate(q) for q in queues]
+    except Exception as exc:
+        logger.error("Failed to list queues: %s", exc, exc_info=True)
+        return []
 
 
 @router.get(
@@ -137,8 +143,14 @@ async def list_trash_queues(
     current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> list[QueueResponse]:
     """List all soft-deleted queues for the authenticated organization."""
-    queues = await queue_service.list_trash_queues(db, org_id=current_user.org_id)
-    return [QueueResponse.model_validate(q) for q in queues]
+    try:
+        if not current_user.org_id:
+            return []
+        queues = await queue_service.list_trash_queues(db, org_id=current_user.org_id)
+        return [QueueResponse.model_validate(q) for q in queues]
+    except Exception as exc:
+        logger.error("Failed to list trash queues: %s", exc, exc_info=True)
+        return []
 
 from app.schemas.session import SessionResponse, PaginatedSessionResponse, SessionCreate
 

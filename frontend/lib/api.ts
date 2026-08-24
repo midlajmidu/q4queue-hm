@@ -506,7 +506,8 @@ export const api = {
 
     // ── Queues ───────────────────────────────────────────────────
     listQueues(): Promise<QueueResponse[]> {
-        return request<QueueResponse[]>("/queues");
+        return request<QueueResponse[]>("/queues")
+            .catch(() => [] as QueueResponse[]);
     },
 
     getQueue(queueId: string): Promise<QueueResponse> {
