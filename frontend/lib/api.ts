@@ -375,10 +375,12 @@ export const api = {
     },
 
     // ── Analytics ────────────────────────────────────────────────
-    getOverview(params: { sessionId?: string; queueId?: string; startDate?: string; endDate?: string; recentLimit?: number; recentOffset?: number } = {}, init?: RequestInit): Promise<AnalyticsOverview> {
+    getOverview(params: { sessionId?: string; queueId?: string; search?: string; status?: string; startDate?: string; endDate?: string; recentLimit?: number; recentOffset?: number } = {}, init?: RequestInit): Promise<AnalyticsOverview> {
         const qs = new URLSearchParams();
         if (params.sessionId) qs.set("session_id", params.sessionId);
         if (params.queueId) qs.set("queue_id", params.queueId);
+        if (params.search) qs.set("search", params.search);
+        if (params.status) qs.set("status", params.status);
         if (params.startDate) qs.set("start_date", params.startDate);
         if (params.endDate) qs.set("end_date", params.endDate);
         if (params.recentLimit != null) qs.set("recent_limit", String(params.recentLimit));

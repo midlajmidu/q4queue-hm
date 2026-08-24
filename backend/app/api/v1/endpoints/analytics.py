@@ -19,6 +19,8 @@ router = APIRouter()
 async def get_overview(
     session_id: Optional[uuid.UUID] = Query(None, description="Filter by Session ID"),
     queue_id: Optional[uuid.UUID] = Query(None, description="Filter by Queue ID"),
+    search: Optional[str] = Query(None, description="Search by name, phone, or token number"),
+    status: Optional[str] = Query(None, description="Filter by token status"),
     start_date: Optional[str] = Query(None, description="Start date (ISO 8601)"),
     end_date: Optional[str] = Query(None, description="End date (ISO 8601)"),
     recent_limit: int = Query(5, description="Number of recent activities to show"),
@@ -26,12 +28,14 @@ async def get_overview(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> dict:
-    """Fetch dashboard metrics (total visits, times, charts) filtered by org and optionally session/queue."""
+    """Fetch dashboard metrics (total visits, times, charts) filtered by org and optionally session/queue/search/status/date."""
     return await get_overview_metrics(
         db,
         org_id=current_user.org_id,
         session_id=session_id,
         queue_id=queue_id,
+        search=search,
+        status=status,
         start_date=start_date,
         end_date=end_date,
         recent_limit=recent_limit,

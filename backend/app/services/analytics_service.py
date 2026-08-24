@@ -16,6 +16,8 @@ async def get_overview_metrics(
     org_id: uuid.UUID,
     session_id: Optional[uuid.UUID] = None,
     queue_id: Optional[uuid.UUID] = None,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     recent_limit: int = 5,
@@ -35,6 +37,18 @@ async def get_overview_metrics(
     
     if queue_id:
         conditions.append(Token.queue_id == queue_id)
+
+    if search:
+        from sqlalchemy import or_, cast, String
+        search_term = f"%{search.lower()}%"
+        conditions.append(or_(
+            func.lower(Token.customer_name).like(search_term),
+            Token.customer_phone.like(search_term),
+            cast(Token.token_number, String).like(search_term)
+        ))
+
+    if status:
+        conditions.append(Token.status == status)
         
     if start_date:
         try:
@@ -67,10 +81,11 @@ async def get_overview_metrics(
     if session_id:
         conditions.append(Token.session_id == session_id)
 
-    # Filter out deleted tokens from most metrics
+    # Filter out deleted tokens from most metrics unless status is explicitly requested
     active_conditions = conditions.copy()
     from app.models.token import TokenStatus
-    active_conditions.append(Token.status != TokenStatus.deleted)
+    if not status:
+        active_conditions.append(Token.status != TokenStatus.deleted)
 
     # 1. Status Counts
     count_query = select(Token.status, func.count(Token.id)).where(and_(*conditions)).group_by(Token.status)

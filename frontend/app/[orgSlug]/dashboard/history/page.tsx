@@ -281,6 +281,8 @@ export default function HistoryPage() {
                 }),
                 api.getOverview({
                     queueId: selectedQueueId || undefined,
+                    search: debouncedSearch || undefined,
+                    status: selectedStatus || undefined,
                     startDate: startDate || undefined,
                     endDate: endDate || undefined,
                 })
