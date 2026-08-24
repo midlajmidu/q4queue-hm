@@ -60,7 +60,7 @@ async def create_message(
     
     # Broadcast new_message event via Redis to trigger WebSocket update
     try:
-        redis_client = await get_redis()
+        redis_client = get_redis()
         channel = f"org_{str(target_org_id)}_notifications"
         payload = {
             "type": "new_message",
@@ -120,7 +120,7 @@ async def mark_message_read(
     
     # Broadcast read status via Redis
     try:
-        redis_client = await get_redis()
+        redis_client = get_redis()
         channel = f"org_{str(message.org_id)}_notifications"
         payload = {
             "type": "message_read",
@@ -158,7 +158,7 @@ async def mark_all_messages_read(
     if updated_count > 0:
         # Broadcast read_all status via Redis
         try:
-            redis_client = await get_redis()
+            redis_client = get_redis()
             for oid in org_ids:
                 channel = f"org_{str(oid)}_notifications"
                 payload = {
@@ -188,7 +188,7 @@ async def delete_all_messages(
     
     # Broadcast clear status via Redis
     try:
-        redis_client = await get_redis()
+        redis_client = get_redis()
         for oid in org_ids:
             channel = f"org_{str(oid)}_notifications"
             payload = {

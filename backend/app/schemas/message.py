@@ -29,7 +29,7 @@ class MessageResponse(MessageBase):
     id: uuid.UUID
     org_id: uuid.UUID
     sender_id: Optional[uuid.UUID] = None
-    receiver_id: Optional[uuid.UUID]
+    receiver_id: Optional[uuid.UUID] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

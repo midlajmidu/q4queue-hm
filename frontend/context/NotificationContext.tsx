@@ -97,7 +97,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }, [user]);
 
     useEffect(() => {
-        loadMessages();
+        loadMessages().catch(err => console.error("Failed to load notification messages:", err));
     }, [loadMessages]);
 
     // WebSocket connection
