@@ -92,52 +92,77 @@ async def get_overview_metrics(
         active_conditions.append(Token.status != TokenStatus.deleted)
 
     # 1. Status Counts
-    count_query = select(Token.status, func.count(Token.id))
-    if join_queue:
-        count_query = count_query.join(Queue, Token.queue_id == Queue.id)
-    count_query = count_query.where(and_(*conditions)).group_by(Token.status)
-    
-    count_result = await db.execute(count_query)
-    
     counts = {s.value: 0 for s in TokenStatus}
-    for row in count_result.all():
-        counts[row[0].value] = row[1]
+    try:
+        count_query = select(Token.status, func.count(Token.id))
+        if join_queue:
+            count_query = count_query.join(Queue, Token.queue_id == Queue.id)
+        count_query = count_query.where(and_(*conditions)).group_by(Token.status)
+        
+        count_result = await db.execute(count_query)
+        for r in count_result.all():
+            st_key = r[0].value if hasattr(r[0], 'value') else str(r[0]) if r[0] else ""
+            if st_key in counts:
+                counts[st_key] = r[1]
+    except Exception as exc:
+        logger.error("Failed to build status counts: %s", exc)
         
     # Total visits includes all tokens (even deleted ones) for accurate dashboard math
-    total_visits = counts[TokenStatus.waiting.value] + counts[TokenStatus.serving.value] + \
-                   counts[TokenStatus.done.value] + counts[TokenStatus.skipped.value] + \
-                   counts[TokenStatus.deleted.value]
+    total_visits = counts.get(TokenStatus.waiting.value, 0) + counts.get(TokenStatus.serving.value, 0) + \
+                   counts.get(TokenStatus.done.value, 0) + counts.get(TokenStatus.skipped.value, 0) + \
+                   counts.get(TokenStatus.deleted.value, 0)
     
-    served_visits = counts[TokenStatus.done.value]
-    cancelled_visits = counts[TokenStatus.skipped.value] + counts[TokenStatus.deleted.value]
-    waiting_visits = counts[TokenStatus.waiting.value]
+    served_visits = counts.get(TokenStatus.done.value, 0)
+    cancelled_visits = counts.get(TokenStatus.skipped.value, 0) + counts.get(TokenStatus.deleted.value, 0)
+    waiting_visits = counts.get(TokenStatus.waiting.value, 0)
 
     # Calculate invited tokens
-    invited_query = select(func.count(Token.id))
-    if join_queue:
-        invited_query = invited_query.join(Queue, Token.queue_id == Queue.id)
-    invited_query = invited_query.where(and_(*active_conditions, Token.called_via_invite == True))
-    invited_res = await db.execute(invited_query)
-    invited_visits = invited_res.scalar_one()
+    invited_visits = 0
+    try:
+        invited_query = select(func.count(Token.id))
+        if join_queue:
+            invited_query = invited_query.join(Queue, Token.queue_id == Queue.id)
+        invited_query = invited_query.where(and_(*active_conditions, Token.called_via_invite == True))
+        invited_res = await db.execute(invited_query)
+        invited_visits = invited_res.scalar_one_or_none() or 0
+    except Exception as exc:
+        logger.error("Failed to count invited tokens: %s", exc)
 
     # 2. Timing Aggregations - Exclude deleted
-    timing_query = select(
-        func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
-        func.max(func.extract('epoch', Token.served_at - Token.created_at)).label('max_wait_sec'),
-        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
-        func.max(func.extract('epoch', Token.completed_at - Token.served_at)).label('max_serve_sec'),
-    )
-    if join_queue:
-        timing_query = timing_query.join(Queue, Token.queue_id == Queue.id)
-    timing_query = timing_query.where(and_(*active_conditions))
+    avg_wait_sec = None
+    max_wait_sec = None
+    avg_serve_sec = None
+    max_serve_sec = None
+    try:
+        timing_query = select(
+            func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
+            func.max(func.extract('epoch', Token.served_at - Token.created_at)).label('max_wait_sec'),
+            func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
+            func.max(func.extract('epoch', Token.completed_at - Token.served_at)).label('max_serve_sec'),
+        )
+        if join_queue:
+            timing_query = timing_query.join(Queue, Token.queue_id == Queue.id)
+        timing_query = timing_query.where(and_(*active_conditions))
 
-    timing_res = await db.execute(timing_query)
-    row = timing_res.first()
+        timing_res = await db.execute(timing_query)
+        timing_row = timing_res.first()
+        if timing_row:
+            avg_wait_sec = timing_row.avg_wait_sec
+            max_wait_sec = timing_row.max_wait_sec
+            avg_serve_sec = timing_row.avg_serve_sec
+            max_serve_sec = timing_row.max_serve_sec
+    except Exception as exc:
+        logger.error("Failed to build timing aggregations: %s", exc)
     
     def format_time(seconds: float | None) -> str:
         if not seconds:
             return "00:00:00"
-        m, s = divmod(int(seconds), 60)
+        try:
+            m, s = divmod(int(seconds), 60)
+            h, m = divmod(m, 60)
+            return f"{h:02d}:{m:02d}:{s:02d}"
+        except Exception:
+            return "00:00:00"
         h, m = divmod(m, 60)
         return f"{h:02d}:{m:02d}:{s:02d}"
 
@@ -303,10 +328,10 @@ async def get_overview_metrics(
             "invited": invited_visits,
         },
         "timings": {
-            "avg_waiting_time": format_time(row.avg_wait_sec),
-            "max_waiting_time": format_time(row.max_wait_sec),
-            "avg_served_time": format_time(row.avg_serve_sec),
-            "max_served_time": format_time(row.max_serve_sec),
+            "avg_waiting_time": format_time(avg_wait_sec),
+            "max_waiting_time": format_time(max_wait_sec),
+            "avg_served_time": format_time(avg_serve_sec),
+            "max_served_time": format_time(max_serve_sec),
         },
         "charts": {
             "hourly": hourly_data,
