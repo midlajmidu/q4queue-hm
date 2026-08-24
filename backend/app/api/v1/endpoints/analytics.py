@@ -31,6 +31,17 @@ async def get_overview(
     """Fetch dashboard metrics (total visits, times, charts) filtered by org and optionally session/queue/search/status/date."""
     import logging
     logger = logging.getLogger(__name__)
+    if not current_user.org_id:
+        return {
+            "status_counts": {"total": 0, "served": 0, "cancelled": 0, "waiting": 0, "invited": 0},
+            "timings": {"avg_waiting_time": "00:00:00", "max_waiting_time": "00:00:00", "avg_served_time": "00:00:00", "max_served_time": "00:00:00"},
+            "charts": {"hourly": [], "monthly": []},
+            "daily_timings": [],
+            "staff_performance": [],
+            "recent_activity": [],
+            "longest_waiting_queue": None,
+            "longest_waiting_session": None,
+        }
     try:
         return await get_overview_metrics(
             db,
@@ -73,6 +84,8 @@ async def get_history(
     """Fetch detailed token history with pagination and filters."""
     import logging
     logger = logging.getLogger(__name__)
+    if not current_user.org_id:
+        return {"items": [], "total": 0, "limit": limit, "offset": offset}
     from app.services.analytics_service import get_history_details
     try:
         return await get_history_details(
