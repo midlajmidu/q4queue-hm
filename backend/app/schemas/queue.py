@@ -52,6 +52,7 @@ class QueueResponse(BaseModel):
     open_time: Optional[str] = None
     close_time: Optional[str] = None
     custom_fields: Optional[list] = None
+    token_session_id: Optional[uuid.UUID] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

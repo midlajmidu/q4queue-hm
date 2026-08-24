@@ -286,6 +286,7 @@ export interface QueueResponse {
     close_time?: string;
     created_at: string;
     custom_fields?: CustomField[] | null;
+    token_session_id?: string | null;
 }
 
 export interface PaginatedQueueResponse {

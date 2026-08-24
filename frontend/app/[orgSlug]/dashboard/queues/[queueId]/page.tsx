@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import type { QueueResponse, SessionResponse, PaginatedSessionResponse } from "@/types/api";
 import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown, Plus, Loader2, Trash2, LayoutGrid, List } from "lucide-react";
 import { toast } from "sonner";
+import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { localTodayStr } from "@/lib/tzformat";
 
 interface PageProps {
     params: Promise<{ queueId: string }>;
@@ -32,9 +34,8 @@ function formatShortDate(dateStr: string): string {
     }
 }
 
-function isToday(dateStr: string): boolean {
-    const today = new Date().toISOString().split("T")[0];
-    return dateStr === today;
+function isToday(dateStr: string, tz: string = "Asia/Kolkata"): boolean {
+    return dateStr === localTodayStr(tz);
 }
 
 export default function QueueSessionListPage({ params }: PageProps) {
@@ -42,6 +43,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
     const dashBase = useDashBase();
     const { user } = useAuth();
     const router = useRouter();
+    const tz = useBranchTimezone();
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
 
     const [queue, setQueue] = useState<QueueResponse | null>(null);
@@ -107,10 +109,16 @@ export default function QueueSessionListPage({ params }: PageProps) {
 
     // Create session modal state
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [newSessionDate, setNewSessionDate] = useState(() => new Date().toISOString().split("T")[0]);
+    const [newSessionDate, setNewSessionDate] = useState(() => localTodayStr(tz));
     const [newSessionTitle, setNewSessionTitle] = useState("");
     const [creatingSession, setCreatingSession] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isCreateModalOpen) {
+            setNewSessionDate(localTodayStr(tz));
+        }
+    }, [isCreateModalOpen, tz]);
 
     // Delete session modal state
     const [sessionToDelete, setSessionToDelete] = useState<SessionResponse | null>(null);
@@ -297,7 +305,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                 <button
                                     onClick={() => {
                                         setCreateError(null);
-                                        setNewSessionDate(new Date().toISOString().split("T")[0]);
+                                        setNewSessionDate(localTodayStr(tz));
                                         setNewSessionTitle("");
                                         setIsCreateModalOpen(true);
                                     }}
@@ -341,7 +349,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                             <button
                                 onClick={() => {
                                     setCreateError(null);
-                                    setNewSessionDate(new Date().toISOString().split("T")[0]);
+                                    setNewSessionDate(localTodayStr(tz));
                                     setNewSessionTitle("");
                                     setIsCreateModalOpen(true);
                                 }}
