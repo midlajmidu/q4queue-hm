@@ -163,8 +163,6 @@ async def get_overview_metrics(
             return f"{h:02d}:{m:02d}:{s:02d}"
         except Exception:
             return "00:00:00"
-        h, m = divmod(m, 60)
-        return f"{h:02d}:{m:02d}:{s:02d}"
 
     # 3. Hourly Chart (Visits by hour) - Exclude deleted
     hourly_data = []
