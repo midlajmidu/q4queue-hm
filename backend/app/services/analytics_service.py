@@ -232,63 +232,67 @@ async def get_overview_metrics(
     from app.models.session import Session
     
     # 7. Recent Activity (for show last details request)
-    recent_query = select(
-        Token.token_number,
-        Token.status,
-        Token.created_at,
-        Token.served_at,
-        Token.completed_at,
-        Token.skipped_at,
-        Token.recalled_at,
-        Token.customer_name,
-        Queue.name.label('queue_name'),
-        Queue.prefix.label('queue_prefix'),
-        Session.title.label('session_title')
-    ).join(Queue, Token.queue_id == Queue.id).outerjoin(
-        Session, Token.session_id == Session.id
-    ).where(
-        and_(*active_conditions)
-    ).order_by(Token.created_at.desc()).limit(recent_limit).offset(recent_offset)
-    
-    # No special join needed for recent_activity as it already joins Queue
+    recent_activity = []
+    try:
+        recent_query = select(
+            Token.token_number,
+            Token.status,
+            Token.created_at,
+            Token.served_at,
+            Token.completed_at,
+            Token.skipped_at,
+            Token.recalled_at,
+            Token.customer_name,
+            Queue.name.label('queue_name'),
+            Queue.prefix.label('queue_prefix'),
+            Session.title.label('session_title')
+        ).join(Queue, Token.queue_id == Queue.id).outerjoin(
+            Session, Token.session_id == Session.id
+        ).where(
+            and_(*active_conditions)
+        ).order_by(Token.created_at.desc()).limit(recent_limit).offset(recent_offset)
 
-    recent_res = await db.execute(recent_query)
-    recent_activity = [
-        {
-            "prefix": r.queue_prefix,
-            "number": r.token_number,
-            "status": r.status.value,
-            "queue": r.queue_name,
-            "session_name": r.session_title,
-            "customer_name": r.customer_name or "Walk-in",
-            "time": r.created_at.isoformat(),
-            "served_at": r.served_at.isoformat() if r.served_at else None,
-            "completed_at": r.completed_at.isoformat() if r.completed_at else None,
-            "skipped_at": r.skipped_at.isoformat() if r.skipped_at else None,
-            "recalled_at": r.recalled_at.isoformat() if r.recalled_at else None,
-        }
-        for r in recent_res.all()
-    ]
+        recent_res = await db.execute(recent_query)
+        recent_activity = [
+            {
+                "prefix": r.queue_prefix,
+                "number": r.token_number,
+                "status": r.status.value,
+                "queue": r.queue_name,
+                "session_name": r.session_title,
+                "customer_name": r.customer_name or "Walk-in",
+                "time": r.created_at.isoformat(),
+                "served_at": r.served_at.isoformat() if r.served_at else None,
+                "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+                "skipped_at": r.skipped_at.isoformat() if r.skipped_at else None,
+                "recalled_at": r.recalled_at.isoformat() if r.recalled_at else None,
+            }
+            for r in recent_res.all()
+        ]
+    except Exception as exc:
+        logger.error("Failed to build recent activity: %s", exc)
 
     # 8. Longest waiting token for dynamic alerts
-    longest_waiting_query = select(
-        Queue.name.label('queue_name'),
-        Session.title.label('session_title'),
-        Session.session_date.label('session_date')
-    ).select_from(Token).join(Queue, Token.queue_id == Queue.id).outerjoin(
-        Session, and_(Token.queue_id == Session.queue_id, func.date(func.timezone(org_tz_str, Token.created_at)) == Session.session_date)
-    ).where(
-        and_(*active_conditions, Token.status == TokenStatus.waiting)
-    ).order_by(Token.created_at.asc()).limit(1)
-
-    longest_res = await db.execute(longest_waiting_query)
-    longest_row = longest_res.first()
-    
     longest_waiting_queue = None
     longest_waiting_session = None
-    if longest_row:
-        longest_waiting_queue = longest_row.queue_name
-        longest_waiting_session = longest_row.session_title or str(longest_row.session_date)
+    try:
+        longest_waiting_query = select(
+            Queue.name.label('queue_name'),
+            Session.title.label('session_title'),
+            Session.session_date.label('session_date')
+        ).select_from(Token).join(Queue, Token.queue_id == Queue.id).outerjoin(
+            Session, Token.session_id == Session.id
+        ).where(
+            and_(*active_conditions, Token.status == TokenStatus.waiting)
+        ).order_by(Token.created_at.asc()).limit(1)
+
+        longest_res = await db.execute(longest_waiting_query)
+        longest_row = longest_res.first()
+        if longest_row:
+            longest_waiting_queue = longest_row.queue_name
+            longest_waiting_session = longest_row.session_title or str(longest_row.session_date)
+    except Exception as exc:
+        logger.error("Failed to get longest waiting token: %s", exc)
 
     return {
         "status_counts": {
