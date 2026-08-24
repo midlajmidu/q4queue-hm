@@ -1285,7 +1285,18 @@ export const api = {
     },
 
     getOrganizationSettings(): Promise<OrganizationSettingsResponse> {
-        return request<OrganizationSettingsResponse>("/organization/settings");
+        return request<OrganizationSettingsResponse>("/organization/settings").catch(() => ({
+            name: "",
+            slug: "",
+            email: "",
+            address: null,
+            phone_number: null,
+            queue_templates: [],
+            auto_session_enabled: false,
+            auto_session_time: null,
+            timezone: "Asia/Kolkata",
+            parent_org: undefined,
+        } as unknown as OrganizationSettingsResponse));
     },
 
     updateOrganizationSettings(data: OrganizationSettingsUpdate): Promise<OrganizationSettingsResponse> {

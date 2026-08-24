@@ -38,9 +38,9 @@ class ParentOrgSummary(BaseModel):
     logo_url: Optional[str] = None
 
 class OrganizationSettingsResponse(BaseModel):
-    name: str
-    slug: str
-    email: str
+    name: str = ""
+    slug: str = ""
+    email: Optional[str] = None
     address: Optional[str] = None
     phone_number: Optional[str] = None
     queue_templates: list[dict] = []
@@ -112,40 +112,49 @@ async def get_organization_settings(
     if not current_user.org_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User does not belong to an organization")
     
-    result = await db.execute(select(Organization).where(Organization.id == current_user.org_id))
-    org = result.scalar_one_or_none()
-    
-    if not org:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
+    try:
+        result = await db.execute(select(Organization).where(Organization.id == current_user.org_id))
+        org = result.scalar_one_or_none()
+        
+        if not org:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
 
-    # Fetch parent org details if linked
-    parent_org_summary = None
-    if org.parent_organization_id:
-        from app.models.parent_organization import ParentOrganization
-        po = await db.scalar(select(ParentOrganization).where(ParentOrganization.id == org.parent_organization_id))
-        if po:
-            parent_org_summary = ParentOrgSummary(
-                id=str(po.id),
-                name=po.name,
-                slug=po.slug,
-                contact_email=po.contact_email,
-                contact_phone=po.contact_phone,
-                address=po.address,
-                logo_url=po.logo_url,
-            )
+        # Fetch parent org details if linked
+        parent_org_summary = None
+        if org.parent_organization_id:
+            try:
+                from app.models.parent_organization import ParentOrganization
+                po = await db.scalar(select(ParentOrganization).where(ParentOrganization.id == org.parent_organization_id))
+                if po:
+                    parent_org_summary = ParentOrgSummary(
+                        id=str(po.id),
+                        name=po.name,
+                        slug=po.slug,
+                        contact_email=po.contact_email,
+                        contact_phone=po.contact_phone,
+                        address=po.address,
+                        logo_url=po.logo_url,
+                    )
+            except Exception as exc:
+                logger.error("Failed to fetch parent org for settings: %s", exc)
 
-    return OrganizationSettingsResponse(
-        name=org.name,
-        slug=org.slug,
-        email=current_user.email,
-        address=org.address,
-        phone_number=org.phone_number,
-        queue_templates=org.queue_templates if org.queue_templates is not None else [],
-        auto_session_enabled=org.auto_session_enabled,
-        auto_session_time=org.auto_session_time,
-        timezone=org.timezone or "Asia/Kolkata",
-        parent_org=parent_org_summary,
-    )
+        return OrganizationSettingsResponse(
+            name=org.name or "",
+            slug=org.slug or "",
+            email=current_user.email,
+            address=org.address,
+            phone_number=org.phone_number,
+            queue_templates=org.queue_templates if org.queue_templates is not None else [],
+            auto_session_enabled=bool(org.auto_session_enabled),
+            auto_session_time=org.auto_session_time,
+            timezone=org.timezone or "Asia/Kolkata",
+            parent_org=parent_org_summary,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Failed to fetch organization settings: %s", exc, exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to load organization settings")
 
 @router.put("/settings", response_model=OrganizationSettingsResponse)
 async def update_organization_settings(
