@@ -23,22 +23,26 @@ class SystemAnnouncementDetail(BaseModel):
 async def get_active_announcements(
     db: AsyncSession = Depends(get_db),
 ) -> List[SystemAnnouncementDetail]:
-    result = await db.execute(
-        select(SystemAnnouncement)
-        .where(SystemAnnouncement.is_active == True)
-        .order_by(desc(SystemAnnouncement.created_at))
-    )
-    rows = result.scalars().all()
-    
-    return [
-        SystemAnnouncementDetail(
-            id=str(row.id),
-            message=row.message,
-            type=row.type,
-            created_at=row.created_at.isoformat()
+    try:
+        result = await db.execute(
+            select(SystemAnnouncement)
+            .where(SystemAnnouncement.is_active == True)
+            .order_by(desc(SystemAnnouncement.created_at))
         )
-        for row in rows
-    ]
+        rows = result.scalars().all()
+        
+        return [
+            SystemAnnouncementDetail(
+                id=str(row.id),
+                message=row.message,
+                type=row.type,
+                created_at=row.created_at.isoformat()
+            )
+            for row in rows
+        ]
+    except Exception:
+        # Table may not exist yet or other DB issue — return empty list
+        return []
 
 @router.get(
     "/time",

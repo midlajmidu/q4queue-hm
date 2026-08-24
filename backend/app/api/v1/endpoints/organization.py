@@ -324,35 +324,39 @@ async def get_active_organization_announcements(
     current_user: User = Depends(get_current_active_user),
 ):
     """Get active announcements from the parent organization for this branch."""
-    if not current_user.org_id:
+    try:
+        if not current_user.org_id:
+            return []
+            
+        org_result = await db.execute(select(Organization).where(Organization.id == current_user.org_id))
+        org = org_result.scalar_one_or_none()
+        
+        if not org or not org.parent_organization_id:
+            return []
+            
+        from datetime import datetime
+        now = datetime.utcnow()
+        
+        query = select(OrganizationAnnouncement).where(
+            OrganizationAnnouncement.parent_organization_id == org.parent_organization_id,
+            OrganizationAnnouncement.is_active == True
+        )
+        
+        result = await db.execute(query)
+        announcements = result.scalars().all()
+        
+        # Filter by start_time, end_time, and target_branches
+        valid_announcements = []
+        for ann in announcements:
+            if ann.start_time and ann.start_time.replace(tzinfo=None) > now:
+                continue
+            if ann.end_time and ann.end_time.replace(tzinfo=None) < now:
+                continue
+            if ann.target_branches and org.id not in ann.target_branches:
+                continue
+            valid_announcements.append(ann)
+            
+        return valid_announcements
+    except Exception:
+        # Table may not exist yet or other DB issue — return empty list
         return []
-        
-    org_result = await db.execute(select(Organization).where(Organization.id == current_user.org_id))
-    org = org_result.scalar_one_or_none()
-    
-    if not org or not org.parent_organization_id:
-        return []
-        
-    from datetime import datetime
-    now = datetime.utcnow()
-    
-    query = select(OrganizationAnnouncement).where(
-        OrganizationAnnouncement.parent_organization_id == org.parent_organization_id,
-        OrganizationAnnouncement.is_active == True
-    )
-    
-    result = await db.execute(query)
-    announcements = result.scalars().all()
-    
-    # Filter by start_time, end_time, and target_branches
-    valid_announcements = []
-    for ann in announcements:
-        if ann.start_time and ann.start_time.replace(tzinfo=None) > now:
-            continue
-        if ann.end_time and ann.end_time.replace(tzinfo=None) < now:
-            continue
-        if ann.target_branches and org.id not in ann.target_branches:
-            continue
-        valid_announcements.append(ann)
-        
-    return valid_announcements
