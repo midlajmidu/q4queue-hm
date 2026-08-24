@@ -142,40 +142,37 @@ async def get_overview_metrics(
         return f"{h:02d}:{m:02d}:{s:02d}"
 
     # 3. Hourly Chart (Visits by hour) - Exclude deleted
-    hourly_query = select(
-        func.extract('hour', func.timezone(org_tz_str, Token.created_at)).label('hr'),
-        func.count(Token.id)
-    )
+    hr_expr = func.extract('hour', func.timezone(org_tz_str, Token.created_at)).label('hr')
+    hourly_query = select(hr_expr, func.count(Token.id))
     if join_queue:
         hourly_query = hourly_query.join(Queue, Token.queue_id == Queue.id)
-    hourly_query = hourly_query.where(and_(*active_conditions)).group_by('hr').order_by('hr')
+    hourly_query = hourly_query.where(and_(*active_conditions)).group_by(hr_expr).order_by(hr_expr)
 
     hourly_res = await db.execute(hourly_query)
     hourly_data = [{"hour": f"{int(row[0]):02d}:00", "visits": row[1]} for row in hourly_res.all()]
 
     # 4. Monthly Chart - Exclude deleted
-    monthly_query = select(
-        func.extract('month', func.timezone(org_tz_str, Token.created_at)).label('mon'),
-        func.extract('year', func.timezone(org_tz_str, Token.created_at)).label('yr'),
-        func.count(Token.id)
-    )
+    mon_expr = func.extract('month', func.timezone(org_tz_str, Token.created_at)).label('mon')
+    yr_expr = func.extract('year', func.timezone(org_tz_str, Token.created_at)).label('yr')
+    monthly_query = select(mon_expr, yr_expr, func.count(Token.id))
     if join_queue:
         monthly_query = monthly_query.join(Queue, Token.queue_id == Queue.id)
-    monthly_query = monthly_query.where(and_(*active_conditions)).group_by('yr', 'mon').order_by('yr', 'mon')
+    monthly_query = monthly_query.where(and_(*active_conditions)).group_by(yr_expr, mon_expr).order_by(yr_expr, mon_expr)
 
     monthly_res = await db.execute(monthly_query)
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     monthly_data = [{"month": f"{months[int(row[0])-1]} {int(row[1])}", "visits": row[2]} for row in monthly_res.all()]
 
     # 5. Daily Timings Chart - Exclude deleted
+    dt_expr = func.date(func.timezone(org_tz_str, Token.created_at)).label('dt')
     daily_timings_query = select(
-        func.date(func.timezone(org_tz_str, Token.created_at)).label('dt'),
+        dt_expr,
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait'),
         func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve'),
     )
     if join_queue:
         daily_timings_query = daily_timings_query.join(Queue, Token.queue_id == Queue.id)
-    daily_timings_query = daily_timings_query.where(and_(*active_conditions)).group_by('dt').order_by('dt')
+    daily_timings_query = daily_timings_query.where(and_(*active_conditions)).group_by(dt_expr).order_by(dt_expr)
 
     daily_timings_res = await db.execute(daily_timings_query)
     daily_timings_data = [
@@ -203,10 +200,7 @@ async def get_overview_metrics(
         staff_perf_query = staff_perf_query.join(Queue, Token.queue_id == Queue.id)
     staff_perf_query = staff_perf_query.where(
         and_(*active_conditions, Token.status == TokenStatus.done)
-    ).group_by(User.id).order_by(func.count(Token.id).desc())
-    
-    if join_queue:
-        staff_perf_query = staff_perf_query.join(Queue, Token.queue_id == Queue.id)
+    ).group_by(User.id, User.first_name, User.last_name, User.email).order_by(func.count(Token.id).desc())
 
     staff_perf_res = await db.execute(staff_perf_query)
     staff_performance_data = [
