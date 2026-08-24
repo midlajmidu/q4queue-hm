@@ -262,7 +262,7 @@ export default function HistoryPage() {
     };
 
     useEffect(() => {
-        api.listQueues().then(setQueues).finally(() => setIsLoading(false));
+        api.listQueues().then(setQueues).catch(err => console.error("Failed to list queues:", err)).finally(() => setIsLoading(false));
     }, []);
 
     const loadHistory = useCallback(async (isSilent = false) => {
@@ -293,7 +293,7 @@ export default function HistoryPage() {
             setLastUpdated(new Date());
             setSecondsAgo(0);
         } catch (err) {
-            console.error(err);
+            console.error("Failed to load history data:", err);
         } finally {
             if (!isSilent) setIsLoading(false);
             setIsRefreshing(false);
@@ -301,8 +301,10 @@ export default function HistoryPage() {
     }, [selectedQueueId, offset, debouncedSearch, selectedStatus, startDate, endDate]);
 
     useEffect(() => {
-        loadHistory();
-        const timer = setInterval(() => loadHistory(true), 15000);
+        loadHistory().catch(err => console.error("Unhandled loadHistory error:", err));
+        const timer = setInterval(() => {
+            loadHistory(true).catch(err => console.error("Unhandled silent loadHistory error:", err));
+        }, 15000);
         return () => clearInterval(timer);
     }, [loadHistory]);
 
