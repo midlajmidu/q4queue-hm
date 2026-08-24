@@ -436,7 +436,8 @@ export const api = {
 
     // ── Messages ─────────────────────────────────────────────────
     getMessages(): Promise<MessageResponse[]> {
-        return request<MessageResponse[]>("/messages");
+        return request<MessageResponse[]>("/messages")
+            .catch(() => [] as MessageResponse[]);
     },
 
     createMessage(content: string, message_type: string): Promise<MessageResponse> {
@@ -1341,7 +1342,8 @@ export const api = {
 
     // System
     getActiveSystemAnnouncements(): Promise<SystemAnnouncementDetail[]> {
-        return request<SystemAnnouncementDetail[]>("/system/system-announcements/active");
+        return request<SystemAnnouncementDetail[]>("/system/system-announcements/active")
+            .catch(() => [] as SystemAnnouncementDetail[]);
     },
 
     // Global User Management
@@ -1513,7 +1515,8 @@ export const api = {
     },
 
     getActiveOrgAnnouncements: () => {
-        return request<OrganizationAnnouncement[]>("/organization/announcements/active");
+        return request<OrganizationAnnouncement[]>("/organization/announcements/active")
+            .catch(() => [] as OrganizationAnnouncement[]);
     },
 } as const;
 
