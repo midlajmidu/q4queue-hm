@@ -87,10 +87,12 @@ export function fmtDateShort(
  *   nowInTz(tz).toLocaleDateString() === new Date(iso).toLocaleDateString("en-US", {timeZone: tz})
  */
 export function nowInTz(tz: string): Date {
-  // We parse the locale string back into a Date — this gives a Date object
-  // whose .getHours(), .getDate() etc. reflect the branch-local wall time.
-  const localStr = new Date().toLocaleString("en-US", { timeZone: tz });
-  return new Date(localStr);
+  try {
+    const localStr = new Date().toLocaleString("en-US", { timeZone: tz || "Asia/Kolkata" });
+    const parsed = new Date(localStr);
+    if (!isNaN(parsed.getTime())) return parsed;
+  } catch {}
+  return new Date();
 }
 
 /**
@@ -98,11 +100,20 @@ export function nowInTz(tz: string): Date {
  * Use this when building API date-range filter params.
  */
 export function localTodayStr(tz: string): string {
-  const n = nowInTz(tz);
-  const y = n.getFullYear();
-  const m = String(n.getMonth() + 1).padStart(2, "0");
-  const d = String(n.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz || "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  } catch {
+    const n = nowInTz(tz);
+    const y = n.getFullYear();
+    const m = String(n.getMonth() + 1).padStart(2, "0");
+    const d = String(n.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
 }
 
 /**

@@ -428,9 +428,13 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const isTodaySession = React.useMemo(() => {
         if (!sessionInfo?.session_date) return true;
+        const sessionDateStr = String(sessionInfo.session_date).slice(0, 10);
         const todayStr = localTodayStr(tz);
-        return sessionInfo.session_date === todayStr;
-    }, [sessionInfo?.session_date, tz]);
+        if (sessionDateStr === todayStr) return true;
+        // If this session is the active session linked to the queue, consider it live
+        if (initialQueue && (initialQueue as any).token_session_id === sessionId) return true;
+        return false;
+    }, [sessionInfo?.session_date, tz, initialQueue, sessionId]);
 
     const { state, status, refresh } = useQueueSocket(queueId, {
         token: token || undefined,
