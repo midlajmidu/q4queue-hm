@@ -83,7 +83,8 @@ export function initGlobalErrorHandlers() {
     });
 
     window.addEventListener("unhandledrejection", (event) => {
-        logger.error("Unhandled promise rejection", {
+        // Use info level to avoid triggering Next.js error overlay for caught API errors
+        logger.info("Unhandled promise rejection", {
             reason: String(event.reason),
         });
     });

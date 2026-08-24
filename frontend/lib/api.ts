@@ -291,7 +291,12 @@ async function request<T>(
 
         const detail = friendlyMessage(resp.status, rawDetail);
         const method = options.method || "GET";
-        logger.warn("API error response", { method, path, status: resp.status, detail });
+        // Use logger.info for 5xx to avoid triggering Next.js error overlay
+        if (resp.status >= 500) {
+            logger.info("API server error", { method, path, status: resp.status, detail });
+        } else {
+            logger.warn("API error response", { method, path, status: resp.status, detail });
+        }
 
         throw new ApiError({ status: resp.status, detail, path, method, retryAfter });
     }
@@ -396,7 +401,6 @@ export const api = {
         const url = qsStr ? `/stats/overview?${qsStr}` : "/stats/overview";
         return request<AnalyticsOverview>(url, init).catch((err) => {
             if (err?.name === "AbortError") throw err;
-            logger.error("getOverview request failed:", err);
             return {
                 status_counts: { total: 0, served: 0, cancelled: 0, waiting: 0, invited: 0 },
                 timings: { avg_waiting_time: "00:00:00", max_waiting_time: "00:00:00", avg_served_time: "00:00:00", max_served_time: "00:00:00" },
@@ -422,8 +426,7 @@ export const api = {
         if (params.offset != null) qs.set("offset", String(params.offset));
 
         const q = qs.toString();
-        return request<PaginatedHistoryResponse>(`/stats/history${q ? `?${q}` : ""}`, { cache: "no-store" }).catch((err) => {
-            logger.error("getHistory request failed:", err);
+        return request<PaginatedHistoryResponse>(`/stats/history${q ? `?${q}` : ""}`, { cache: "no-store" }).catch(() => {
             return {
                 items: [],
                 total: 0,
