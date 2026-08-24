@@ -55,6 +55,8 @@ async def get_session(
     current_user: User = Depends(get_current_active_user),
 ) -> SessionResponse:
     """Get a specific session (tenant-scoped)."""
+    if not current_user.org_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     try:
         session = await session_service.get_session_or_404(
             db, session_id=session_id, org_id=current_user.org_id
