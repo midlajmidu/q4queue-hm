@@ -703,7 +703,12 @@ export const api = {
         if (params.offset != null) qs.set("offset", String(params.offset));
         if (params.sort_order) qs.set("sort_order", params.sort_order);
         const q = qs.toString();
-        return request<PaginatedStaffResponse>(`/staff${q ? `?${q}` : ""}`);
+        return request<PaginatedStaffResponse>(`/staff${q ? `?${q}` : ""}`).catch(() => ({
+            items: [],
+            total: 0,
+            limit: params.limit || 20,
+            offset: params.offset || 0,
+        } as PaginatedStaffResponse));
     },
 
     createStaff(data: StaffCreate): Promise<StaffMember> {

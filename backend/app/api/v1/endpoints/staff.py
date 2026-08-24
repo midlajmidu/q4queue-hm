@@ -88,37 +88,43 @@ async def list_staff(
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedStaffResponse:
     """List all staff in the current user's org. Excludes super_admin entries."""
-    from sqlalchemy import asc, desc
+    if not current_user.org_id:
+        return PaginatedStaffResponse(items=[], total=0, limit=limit, offset=offset)
+    try:
+        from sqlalchemy import asc, desc
 
-    filters = [
-        User.org_id == current_user.org_id,
-        User.role == "staff",  # only show staff — admins excluded from this view
-    ]
-    if search.strip():
-        filters.append(User.email.ilike(f"%{search.strip()}%"))
-    if is_active is not None:
-        filters.append(User.is_active == is_active)
+        filters = [
+            User.org_id == current_user.org_id,
+            User.role == "staff",  # only show staff — admins excluded from this view
+        ]
+        if search.strip():
+            filters.append(User.email.ilike(f"%{search.strip()}%"))
+        if is_active is not None:
+            filters.append(User.is_active == is_active)
 
-    where_clause = and_(*filters)
+        where_clause = and_(*filters)
 
-    total = await db.scalar(select(func.count(User.id)).where(where_clause)) or 0
+        total = await db.scalar(select(func.count(User.id)).where(where_clause)) or 0
 
-    order_fn = asc if sort_order == "asc" else desc
-    result = await db.execute(
-        select(User)
-        .where(where_clause)
-        .order_by(order_fn(User.created_at))
-        .limit(limit)
-        .offset(offset)
-    )
-    members = result.scalars().all()
+        order_fn = asc if sort_order == "asc" else desc
+        result = await db.execute(
+            select(User)
+            .where(where_clause)
+            .order_by(order_fn(User.created_at))
+            .limit(limit)
+            .offset(offset)
+        )
+        members = result.scalars().all()
 
-    return PaginatedStaffResponse(
-        items=[StaffResponse.model_validate(m) for m in members],
-        total=total,
-        limit=limit,
-        offset=offset,
-    )
+        return PaginatedStaffResponse(
+            items=[StaffResponse.model_validate(m) for m in members],
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
+    except Exception as exc:
+        logger.error("Failed to list staff: %s", exc, exc_info=True)
+        return PaginatedStaffResponse(items=[], total=0, limit=limit, offset=offset)
 
 
 @router.post(
