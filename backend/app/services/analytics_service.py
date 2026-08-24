@@ -39,12 +39,16 @@ async def get_overview_metrics(
         conditions.append(Token.queue_id == queue_id)
 
     if search:
+        join_queue = True
         from sqlalchemy import or_, cast, String
         search_term = f"%{search.lower()}%"
         conditions.append(or_(
             func.lower(Token.customer_name).like(search_term),
             Token.customer_phone.like(search_term),
-            cast(Token.token_number, String).like(search_term)
+            cast(Token.token_number, String).like(search_term),
+            func.lower(Queue.prefix).like(search_term),
+            func.lower(Queue.name).like(search_term),
+            func.lower(func.concat(func.coalesce(Queue.prefix, ''), cast(Token.token_number, String))).like(search_term)
         ))
 
     if status:
@@ -88,9 +92,10 @@ async def get_overview_metrics(
         active_conditions.append(Token.status != TokenStatus.deleted)
 
     # 1. Status Counts
-    count_query = select(Token.status, func.count(Token.id)).where(and_(*conditions)).group_by(Token.status)
+    count_query = select(Token.status, func.count(Token.id))
     if join_queue:
         count_query = count_query.join(Queue, Token.queue_id == Queue.id)
+    count_query = count_query.where(and_(*conditions)).group_by(Token.status)
     
     count_result = await db.execute(count_query)
     
@@ -108,9 +113,10 @@ async def get_overview_metrics(
     waiting_visits = counts[TokenStatus.waiting.value]
 
     # Calculate invited tokens
-    invited_query = select(func.count(Token.id)).where(and_(*active_conditions, Token.called_via_invite == True))
+    invited_query = select(func.count(Token.id))
     if join_queue:
         invited_query = invited_query.join(Queue, Token.queue_id == Queue.id)
+    invited_query = invited_query.where(and_(*active_conditions, Token.called_via_invite == True))
     invited_res = await db.execute(invited_query)
     invited_visits = invited_res.scalar_one()
 
@@ -120,10 +126,10 @@ async def get_overview_metrics(
         func.max(func.extract('epoch', Token.served_at - Token.created_at)).label('max_wait_sec'),
         func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
         func.max(func.extract('epoch', Token.completed_at - Token.served_at)).label('max_serve_sec'),
-    ).where(and_(*active_conditions))
-    
+    )
     if join_queue:
         timing_query = timing_query.join(Queue, Token.queue_id == Queue.id)
+    timing_query = timing_query.where(and_(*active_conditions))
 
     timing_res = await db.execute(timing_query)
     row = timing_res.first()
@@ -139,10 +145,10 @@ async def get_overview_metrics(
     hourly_query = select(
         func.extract('hour', func.timezone(org_tz_str, Token.created_at)).label('hr'),
         func.count(Token.id)
-    ).where(and_(*active_conditions)).group_by('hr').order_by('hr')
-    
+    )
     if join_queue:
         hourly_query = hourly_query.join(Queue, Token.queue_id == Queue.id)
+    hourly_query = hourly_query.where(and_(*active_conditions)).group_by('hr').order_by('hr')
 
     hourly_res = await db.execute(hourly_query)
     hourly_data = [{"hour": f"{int(row[0]):02d}:00", "visits": row[1]} for row in hourly_res.all()]
@@ -152,10 +158,10 @@ async def get_overview_metrics(
         func.extract('month', func.timezone(org_tz_str, Token.created_at)).label('mon'),
         func.extract('year', func.timezone(org_tz_str, Token.created_at)).label('yr'),
         func.count(Token.id)
-    ).where(and_(*active_conditions)).group_by('yr', 'mon').order_by('yr', 'mon')
-    
+    )
     if join_queue:
         monthly_query = monthly_query.join(Queue, Token.queue_id == Queue.id)
+    monthly_query = monthly_query.where(and_(*active_conditions)).group_by('yr', 'mon').order_by('yr', 'mon')
 
     monthly_res = await db.execute(monthly_query)
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -166,10 +172,10 @@ async def get_overview_metrics(
         func.date(func.timezone(org_tz_str, Token.created_at)).label('dt'),
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait'),
         func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve'),
-    ).where(and_(*active_conditions)).group_by('dt').order_by('dt')
-    
+    )
     if join_queue:
         daily_timings_query = daily_timings_query.join(Queue, Token.queue_id == Queue.id)
+    daily_timings_query = daily_timings_query.where(and_(*active_conditions)).group_by('dt').order_by('dt')
 
     daily_timings_res = await db.execute(daily_timings_query)
     daily_timings_data = [
@@ -192,7 +198,10 @@ async def get_overview_metrics(
         func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve'),
     ).join(
         User, Token.served_by_id == User.id
-    ).where(
+    )
+    if join_queue:
+        staff_perf_query = staff_perf_query.join(Queue, Token.queue_id == Queue.id)
+    staff_perf_query = staff_perf_query.where(
         and_(*active_conditions, Token.status == TokenStatus.done)
     ).group_by(User.id).order_by(func.count(Token.id).desc())
     
@@ -328,7 +337,10 @@ async def get_history_details(
         conditions.append(or_(
             func.lower(Token.customer_name).like(search_term),
             Token.customer_phone.like(search_term),
-            cast(Token.token_number, String).like(search_term)
+            cast(Token.token_number, String).like(search_term),
+            func.lower(Queue.prefix).like(search_term),
+            func.lower(Queue.name).like(search_term),
+            func.lower(func.concat(func.coalesce(Queue.prefix, ''), cast(Token.token_number, String))).like(search_term)
         ))
 
     # ── Date range filter (timezone-aware) ──────────────────────────────────
