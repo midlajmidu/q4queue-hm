@@ -414,7 +414,7 @@ async def get_history_details(
     ).order_by(Token.created_at.desc())
 
     # Count total for pagination
-    count_query = select(func.count(Token.id)).where(and_(*conditions))
+    count_query = select(func.count(Token.id)).join(Queue, Token.queue_id == Queue.id).where(and_(*conditions))
     
     total_res = await db.execute(count_query)
     total = total_res.scalar_one()
@@ -504,7 +504,10 @@ async def get_analytics_csv_data(
         conditions.append(or_(
             func.lower(Token.customer_name).like(search_term),
             Token.customer_phone.like(search_term),
-            cast(Token.token_number, String).like(search_term)
+            cast(Token.token_number, String).like(search_term),
+            func.lower(Queue.prefix).like(search_term),
+            func.lower(Queue.name).like(search_term),
+            func.lower(func.concat(func.coalesce(Queue.prefix, ''), cast(Token.token_number, String))).like(search_term)
         ))
 
     if session_id:
