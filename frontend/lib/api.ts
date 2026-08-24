@@ -115,13 +115,18 @@ import type {
 export class ApiError extends Error {
     status: number;
     detail: string;
+    path?: string;
+    method?: string;
     retryAfter?: number;
 
-    constructor(resp: ApiErrorResponse) {
-        super(resp.detail);
+    constructor(resp: ApiErrorResponse & { path?: string; method?: string }) {
+        const msg = resp.path ? `[${resp.status} ${resp.method || "GET"} ${resp.path}] ${resp.detail}` : resp.detail;
+        super(msg);
         this.name = "ApiError";
         this.status = resp.status;
         this.detail = resp.detail;
+        this.path = resp.path;
+        this.method = resp.method;
         this.retryAfter = resp.retryAfter;
     }
 }
@@ -285,9 +290,10 @@ async function request<T>(
         }
 
         const detail = friendlyMessage(resp.status, rawDetail);
-        logger.warn("API error response", { path, status: resp.status, detail });
+        const method = options.method || "GET";
+        logger.warn("API error response", { method, path, status: resp.status, detail });
 
-        throw new ApiError({ status: resp.status, detail, retryAfter });
+        throw new ApiError({ status: resp.status, detail, path, method, retryAfter });
     }
 
     // 204 No Content
