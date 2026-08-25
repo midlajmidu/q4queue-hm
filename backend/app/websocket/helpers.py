@@ -139,6 +139,18 @@ async def build_queue_snapshot(
     )
     skipped_count = skipped_result.scalar_one()
 
+    # ── Total Issued count for current session ──
+    if queue.token_session_id:
+        issued_result = await db.execute(
+            select(func.count(Token.id)).where(
+                Token.queue_id == queue_id,
+                Token.session_id == queue.token_session_id,
+            )
+        )
+        issued_count = issued_result.scalar_one()
+    else:
+        issued_count = 0
+
     # ── Recent tokens (last 5 served/serving/skipped/deleted for display) ───
     recent_result = await db.execute(
         select(Token)
@@ -303,7 +315,7 @@ async def build_queue_snapshot(
         "done_count": done_count,
         "skipped_count": skipped_count,
         "last_called": current_serving,
-        "total_issued": queue.current_token_number - queue.starting_sequence + 1 if queue.current_token_number >= queue.starting_sequence else 0,
+        "total_issued": issued_count,
         "recent_tokens": recent_tokens,
         "waiting_tokens": waiting_tokens,
         "skipped_tokens": skipped_tokens,
