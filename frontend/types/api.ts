@@ -447,6 +447,8 @@ export interface QueueSnapshot {
     announcement: string | null;
     is_active: boolean;
     is_paused: boolean;
+    session_date?: string | null;
+    is_past_session?: boolean;
     service_lines: number;           // 0 = single counter, >0 = multi-lane
     open_time?: string;
     close_time?: string;

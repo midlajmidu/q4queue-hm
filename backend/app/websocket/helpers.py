@@ -139,8 +139,19 @@ async def build_queue_snapshot(
     )
     skipped_count = skipped_result.scalar_one()
 
-    # ── Total Issued count for current session ──
+    # ── Total Issued count & Session info for current session ──
+    session_date_str = None
+    is_past_session = False
     if queue.token_session_id:
+        from app.models.session import Session
+        session = await db.get(Session, queue.token_session_id)
+        if session:
+            session_date_str = session.session_date.isoformat()
+            tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
+            today = datetime.now(ZoneInfo(tz_str)).date()
+            if session.session_date < today:
+                is_past_session = True
+
         issued_result = await db.execute(
             select(func.count(Token.id)).where(
                 Token.queue_id == queue_id,
@@ -305,6 +316,8 @@ async def build_queue_snapshot(
         "announcement": queue.announcement,
         "is_active": queue.is_active,
         "is_paused": queue.is_paused,
+        "session_date": session_date_str,
+        "is_past_session": is_past_session,
         "service_lines": queue.service_lines,
         "open_time": queue.open_time,
         "close_time": queue.close_time,

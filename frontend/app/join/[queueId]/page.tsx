@@ -317,7 +317,8 @@ export default function JoinQueuePage({ params }: PageProps) {
         return () => { mounted = false; };
     }, [queueId]);
 
-    const queueClosed = live?.is_active === false;
+    const isPastSession = live?.is_past_session === true;
+    const queueClosed = live?.is_active === false || isPastSession;
     const queuePaused = live?.is_paused === true;
     const queueName = live?.queue_name || "Queue";
     const prefix = live?.prefix || joinData?.queue_prefix || "";
@@ -506,15 +507,30 @@ export default function JoinQueuePage({ params }: PageProps) {
                             </div>
                         )}
 
-                        {/* ── Customer Form + Join Button ── */}
-                        <div className="space-y-4">
-                            {/* Info text */}
-                            <div className="text-center px-2">
-                                <h2 className="text-lg font-black text-slate-900 tracking-tight mb-1">Welcome</h2>
-                                <p className="text-slate-500 text-xs leading-relaxed">
-                                    Please enter your details below to secure your position.
+                        {/* ── Past Session Closed State Card or Customer Form ── */}
+                        {isPastSession ? (
+                            <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-3xl p-6 sm:p-7 text-center my-2 shadow-sm">
+                                <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200/80">
+                                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-2">Queue Session Closed</h3>
+                                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-sm mx-auto mb-4">
+                                    This QR code belongs to a past queue session {live?.session_date ? `(${live.session_date})` : ""} and is no longer accepting new customer entries.
                                 </p>
+                                <div className="bg-white/80 dark:bg-slate-900/60 rounded-2xl p-4 border border-amber-200/60 text-xs text-slate-600 dark:text-slate-400 font-medium text-left leading-relaxed">
+                                    <strong className="text-slate-900 dark:text-white block mb-1">💡 What to do next:</strong>
+                                    Please scan today's active QR code on the branch/clinic display screen or ask staff for assistance to join today's active queue.
+                                </div>
                             </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {/* Info text */}
+                                <div className="text-center px-2">
+                                    <h2 className="text-lg font-black text-slate-900 tracking-tight mb-1">Welcome</h2>
+                                    <p className="text-slate-500 text-xs leading-relaxed">
+                                        Please enter your details below to secure your position.
+                                    </p>
+                                </div>
 
                             {/* Customer info form */}
                             <div className="space-y-3.5">
@@ -768,6 +784,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 </p>
                             )}
                         </div>
+                        )}
 
                     </div>
                 </div>
