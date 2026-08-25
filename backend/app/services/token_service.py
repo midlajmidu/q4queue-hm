@@ -248,6 +248,17 @@ async def join_queue(
     if getattr(queue, "is_paused", False):
         raise ValueError("Queue is temporarily not accepting walk-ins")
 
+    if queue.token_session_id:
+        session = await db.get(Session, queue.token_session_id)
+        if session:
+            from app.models.organization import Organization
+            from zoneinfo import ZoneInfo
+            org = await db.scalar(select(Organization).where(Organization.id == queue.org_id))
+            tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
+            today = datetime.now(ZoneInfo(tz_str)).date()
+            if session.session_date < today:
+                raise ValueError("This queue session is closed. No new tokens can be issued for a past session.")
+
     # ── Duplicate prevention: check for existing active token by phone ──
     phone_cleaned = data.phone.strip()
     if not bypass_duplicate_check:
@@ -383,6 +394,17 @@ async def call_next(
 
     if not queue.is_active:
         raise ValueError("Queue is not active")
+
+    if queue.token_session_id:
+        session = await db.get(Session, queue.token_session_id)
+        if session:
+            from app.models.organization import Organization
+            from zoneinfo import ZoneInfo
+            org = await db.scalar(select(Organization).where(Organization.id == org_id))
+            tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
+            today = datetime.now(ZoneInfo(tz_str)).date()
+            if session.session_date < today:
+                raise ValueError("Cannot perform queue actions on a closed past session.")
 
     if action not in ("done", "skipped", "deleted"):
         raise ValueError("Invalid action")
