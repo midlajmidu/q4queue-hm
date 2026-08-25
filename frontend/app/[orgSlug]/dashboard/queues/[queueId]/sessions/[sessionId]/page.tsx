@@ -430,18 +430,8 @@ export default function QueueDetailPage({ params }: PageProps) {
         if (!sessionInfo?.session_date) return true;
         const sessionDateStr = String(sessionInfo.session_date).slice(0, 10);
         const todayStr = localTodayStr(tz);
-        if (sessionDateStr === todayStr) return true;
-        // If this session is the active session linked to the queue, consider it live
-        if (initialQueue && initialQueue.token_session_id === sessionId) return true;
-        // Handle timezone edge cases (e.g., sessions created late at night across UTC boundaries)
-        try {
-            const sTime = new Date(sessionDateStr + "T12:00:00Z").getTime();
-            const tTime = new Date(todayStr + "T12:00:00Z").getTime();
-            const diffDays = Math.abs(tTime - sTime) / (1000 * 3600 * 24);
-            if (diffDays <= 1) return true;
-        } catch {}
-        return false;
-    }, [sessionInfo?.session_date, tz, initialQueue, sessionId]);
+        return sessionDateStr === todayStr;
+    }, [sessionInfo?.session_date, tz]);
 
     const { state, status, refresh } = useQueueSocket(queueId, {
         token: token || undefined,
