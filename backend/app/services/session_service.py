@@ -110,6 +110,14 @@ async def create_queue_session(
     
     queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
     
+    from app.models.organization import Organization
+    org = await db.scalar(select(Organization).where(Organization.id == org_id))
+    tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
+    today = datetime.now(ZoneInfo(tz_str)).date()
+
+    if data.session_date > today:
+        raise ValueError("Cannot create a session for a future date.")
+
     existing = await db.scalar(
         select(Session).where(
             Session.queue_id == queue_id,

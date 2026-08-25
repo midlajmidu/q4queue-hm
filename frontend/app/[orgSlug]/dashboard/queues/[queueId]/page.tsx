@@ -154,6 +154,12 @@ export default function QueueSessionListPage({ params }: PageProps) {
         e.preventDefault();
         setCreateError(null);
 
+        const todayStr = localTodayStr(tz);
+        if (newSessionDate > todayStr) {
+            setCreateError("Cannot create a session for a future date.");
+            return;
+        }
+
         // Check if session for this date already exists in current list
         const exists = sessions.some(s => s.session_date === newSessionDate);
         if (exists) {
@@ -581,6 +587,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                 <input
                                     type="date"
                                     required
+                                    max={localTodayStr(tz)}
                                     value={newSessionDate}
                                     onChange={(e) => { setNewSessionDate(e.target.value); setCreateError(null); }}
                                     className="w-full h-10 px-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-all"
