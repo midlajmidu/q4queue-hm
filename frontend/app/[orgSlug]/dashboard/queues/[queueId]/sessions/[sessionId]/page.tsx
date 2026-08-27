@@ -866,6 +866,10 @@ export default function QueueDetailPage({ params }: PageProps) {
     const adminCustomFieldsList = state?.custom_fields || [];
 
     const handlePreAddCustomer = useCallback(async () => {
+        if (!isTodaySession) {
+            setAddFormError("Cannot add customer: This session is closed (historical).");
+            return;
+        }
         if (hasAdminCustomFieldsConfigured) {
             if (adminCustomFieldsList.length === 0) {
                 setAddFormError("Cannot add customer: No token fields are configured in Token Settings.");
@@ -887,10 +891,14 @@ export default function QueueDetailPage({ params }: PageProps) {
             setAddFormError(null);
             setShowWhatsappConfirm(true);
         }
-    }, [addPhone, isAddNameValid, hasAdminCustomFieldsConfigured, adminCustomFieldsList, addCustomData]);
+    }, [isTodaySession, addPhone, isAddNameValid, hasAdminCustomFieldsConfigured, adminCustomFieldsList, addCustomData]);
 
     const handleConfirmAddCustomer = useCallback(async (sendWhatsapp: boolean) => {
         setShowWhatsappConfirm(false);
+        if (!isTodaySession) {
+            toast("Cannot add customers to a past session.", "error");
+            return;
+        }
         const phoneDigits = addPhone.replace(/\D/g, "");
         setActionLoading("add");
         setActionError(null);
@@ -915,7 +923,7 @@ export default function QueueDetailPage({ params }: PageProps) {
             if (err instanceof ApiError) toast(err.detail, "error");
             else toast("Failed to add customer", "error");
         } finally { setActionLoading(null); }
-    }, [queueId, addName, addPhone, addPaxCount, addCountryCode, state?.prefix, hasAdminCustomFieldsConfigured, addCustomData, toast]);
+    }, [isTodaySession, queueId, addName, addPhone, addPaxCount, addCountryCode, state?.prefix, hasAdminCustomFieldsConfigured, addCustomData, toast]);
 
 
     const executeInviteWithNumber = useCallback(async (num: number, lineNum?: number) => {
@@ -1575,8 +1583,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 {/* Manual Entry */}
                                                 <button
                                                     onClick={() => setShowAddForm(true)}
-                                                    disabled={isDisabled || isPaused}
-                                                    title={isPaused ? "Queue is currently on a break" : undefined}
+                                                    disabled={isDisabled || isPaused || !isTodaySession}
+                                                    title={!isTodaySession ? "Cannot add customers to a past session" : isPaused ? "Queue is currently on a break" : undefined}
                                                     className="w-auto h-10 px-5 text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] shadow-[0_4px_12px_rgba(79,70,229,0.25)] hover:shadow-[0_6px_16px_rgba(79,70,229,0.35)] transition-all flex justify-center items-center gap-2 flex-shrink-0 disabled:opacity-50 disabled:shadow-none"
                                                 >
                                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
@@ -1590,8 +1598,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <div className="absolute left-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
                                                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                                                     </div>
-                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[70px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
-                                                    <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-400 dark:hover:border-indigo-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused || !isTodaySession} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[70px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none disabled:opacity-50" />
+                                                    <button type="submit" disabled={!inviteNumber || isDisabled || isPaused || !isTodaySession} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-400 dark:hover:border-indigo-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                                                         Call
                                                     </button>
                                                 </form>
@@ -1603,8 +1611,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <div className="absolute left-3.5 text-slate-400 group-focus-within:text-rose-500 transition-colors">
                                                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                     </div>
-                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[80px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 dark:focus:border-rose-500/50 transition-all outline-none" />
-                                                    <button type="submit" disabled={!removeNumber || isDisabled || isPaused} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-500/20 dark:hover:text-rose-400 dark:hover:border-rose-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused || !isTodaySession} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[80px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 dark:focus:border-rose-500/50 transition-all outline-none disabled:opacity-50" />
+                                                    <button type="submit" disabled={!removeNumber || isDisabled || isPaused || !isTodaySession} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-500/20 dark:hover:text-rose-400 dark:hover:border-rose-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                                                         Remove
                                                     </button>
                                                 </form>
@@ -1613,6 +1621,19 @@ export default function QueueDetailPage({ params }: PageProps) {
 
 
                                         {/* Status banners */}
+                                        {!isTodaySession && (
+                                            <div role="alert" className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 sm:p-5 flex items-start gap-3 my-2 text-amber-900 dark:text-amber-200">
+                                                <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                                                    <Clock size={18} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-sm font-bold">Viewing Historical Session {sessionInfo?.session_date ? `(${sessionInfo.session_date})` : ""}</h4>
+                                                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 leading-relaxed">
+                                                        This session is closed. Token creation, customer entry, and live queue calling are strictly disabled for past records.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
                                         {actionError && (
                                             <div role="alert" style={{ color: "#991b1b", padding: "11px 16px", borderRadius: 10, border: `1px solid ${T.redBorder}`, fontSize: 13, fontWeight: 500 }}>
                                                 {actionError}
@@ -1817,89 +1838,90 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </div>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch mt-4">
-                                    {/* Left side: Static QR Code */}
-                                    <div className="md:col-span-5 flex flex-col h-full">
-                                        <QueueQRCode queueId={queueId} queueName={queueName} isCollapsible={false} className="h-full flex-1 rounded-3xl" />
+                                {!isTodaySession ? (
+                                    <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-3xl p-8 sm:p-10 text-center my-4">
+                                        <div className="w-14 h-14 bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-200/80">
+                                            <QrCode size={28} />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-rose-900 dark:text-rose-200 mb-2">QR Code Inactive for Historical Sessions</h3>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                                            This queue session ({sessionInfo?.session_date}) is closed. QR codes and customer join links are strictly deactivated for historical dates.
+                                        </p>
                                     </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch mt-4">
+                                        {/* Left side: Static QR Code */}
+                                        <div className="md:col-span-5 flex flex-col h-full">
+                                            <QueueQRCode queueId={queueId} queueName={queueName} isCollapsible={false} className="h-full flex-1 rounded-3xl" />
+                                        </div>
 
-                                    {/* Right side: Pair Showcase Device */}
-                                    <div className="md:col-span-7 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-white/10 p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
-                                        <div className="space-y-8">
-                                            {/* Header */}
-                                            <div className="flex items-start gap-5 pb-6 border-b border-slate-100 dark:border-white/5">
-                                                <div className="w-12 h-12 rounded-xl bg-indigo-50/50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                                                    <QrCode size={24} strokeWidth={1.5} />
-                                                </div>
-                                                <div>
-                                                    <h2 className="text-xl font-medium tracking-tight text-slate-900 dark:text-white">Pair Showcase Device</h2>
-                                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                                                        Open <span className="font-mono text-indigo-700 dark:text-indigo-300 font-medium bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">/qr</span> on your tablet or phone, then enter the 6-digit code below to cast your queue.
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* Form & Segmented PIN Input */}
-                                            <form onSubmit={handleConnectQrShowcase} className="space-y-8">
-                                                <div className="space-y-4">
-                                                    <div className="flex items-center justify-between">
-                                                        <label className="text-xs font-medium tracking-widest text-slate-400 dark:text-slate-500 uppercase">
-                                                            Pairing Code
-                                                        </label>
+                                        {/* Right side: Pair Showcase Device */}
+                                        <div className="md:col-span-7 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-white/10 p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
+                                            <div className="space-y-8">
+                                                {/* Header */}
+                                                <div className="flex items-start gap-5 pb-6 border-b border-slate-100 dark:border-white/5">
+                                                    <div className="w-12 h-12 rounded-xl bg-indigo-50/50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                        <QrCode size={24} strokeWidth={1.5} />
                                                     </div>
-                                                    
-                                                    {/* Segmented PIN Input Box */}
-                                                    <div className="relative cursor-pointer">
-                                                        <input
-                                                            type="text"
-                                                            value={qrPairingCodeInput}
-                                                            onChange={(e) => setQrPairingCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                                                            maxLength={6}
-                                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                                            required
-                                                        />
-                                                        
-                                                        <div className="grid grid-cols-6 gap-2 sm:gap-3">
-                                                            {Array.from({ length: 6 }).map((_, i) => {
-                                                                const char = qrPairingCodeInput[i] || "";
-                                                                const isActive = qrPairingCodeInput.length === i;
-                                                                return (
-                                                                    <div
-                                                                        key={i}
-                                                                        className={`h-16 sm:h-20 rounded-xl border flex items-center justify-center font-mono text-2xl sm:text-3xl font-light transition-all duration-300 ${
-                                                                            char
-                                                                                ? "border-indigo-600 dark:border-indigo-400 bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm"
-                                                                                : isActive
-                                                                                ? "border-indigo-400 dark:border-indigo-500 bg-white dark:bg-slate-900 ring-1 ring-indigo-400 dark:ring-indigo-500"
-                                                                                : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-slate-300"
-                                                                        }`}
-                                                                    >
-                                                                        {char || (isActive ? <span className="w-px h-6 bg-indigo-500 animate-pulse"></span> : "")}
-                                                                    </div>
-                                                                );
-                                                            })}
+                                                    <div>
+                                                        <h2 className="text-xl font-medium tracking-tight text-slate-900 dark:text-white">Pair Showcase Device</h2>
+                                                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                                                            Open <span className="font-mono text-indigo-700 dark:text-indigo-300 font-medium bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">/qr</span> on your tablet or phone, then enter the 6-digit code below to cast your queue.
+                                                        </p>
+                                                        <div className="flex items-center gap-2 sm:gap-3 mt-6">
+                                                            {[0, 1, 2, 3, 4, 5].map((index) => (
+                                                                <input
+                                                                    key={index}
+                                                                    id={`pin-${index}`}
+                                                                    type="text"
+                                                                    inputMode="numeric"
+                                                                    pattern="[0-9]*"
+                                                                    maxLength={1}
+                                                                    value={qrPairingCodeInput[index] || ""}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value.replace(/[^0-9]/g, '');
+                                                                        if (!val) {
+                                                                            const newPin = qrPairingCodeInput.split('');
+                                                                            newPin[index] = '';
+                                                                            setQrPairingCodeInput(newPin.join(''));
+                                                                            return;
+                                                                        }
+                                                                        const newPin = qrPairingCodeInput.split('');
+                                                                        newPin[index] = val;
+                                                                        const updated = newPin.join('').slice(0, 6);
+                                                                        setQrPairingCodeInput(updated);
+                                                                        if (index < 5 && val) {
+                                                                            const next = document.getElementById(`pin-${index + 1}`);
+                                                                            next?.focus();
+                                                                        }
+                                                                    }}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Backspace' && !qrPairingCodeInput[index] && index > 0) {
+                                                                            const prev = document.getElementById(`pin-${index - 1}`);
+                                                                            prev?.focus();
+                                                                        }
+                                                                    }}
+                                                                    className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl font-bold bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                                                />
+                                                            ))}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <button
-                                                    type="submit"
-                                                    disabled={isQrPairing || qrPairingCodeInput.length < 6}
-                                                    className="w-full h-14 flex items-center justify-center gap-2 rounded-xl font-medium tracking-wide text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/10"
-                                                >
-                                                    {isQrPairing ? (
-                                                        <RefreshCw size={18} className="animate-spin" />
-                                                    ) : (
-                                                        <>
-                                                            Link Device
-                                                            <ArrowRight size={16} className={`transition-transform duration-300 ${qrPairingCodeInput.length === 6 ? 'translate-x-1' : ''}`} />
-                                                        </>
-                                                    )}
-                                                </button>
-                                            </form>
+                                                <form onSubmit={handleConnectQrShowcase} className="space-y-8">
+                                                    <button
+                                                        type="submit"
+                                                        disabled={qrPairingCodeInput.length !== 6 || isQrPairing}
+                                                        className="w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                    >
+                                                        {isQrPairing ? "Connecting..." : "Connect Device"}
+                                                        {!isQrPairing && <ArrowRight size={16} className={`transition-transform duration-300 ${qrPairingCodeInput.length === 6 ? 'translate-x-1' : ''}`} />}
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         )}
 
@@ -2506,7 +2528,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </button>
                                     <button
                                         onClick={handlePreAddCustomer}
-                                        disabled={!isAddNameValid || !addPhone.trim() || actionLoading === "add" || isPaused}
+                                        disabled={!isAddNameValid || !addPhone.trim() || actionLoading === "add" || isPaused || !isTodaySession}
                                         className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                     >
                                         {actionLoading === "add" ? (
@@ -2569,8 +2591,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 <div className="absolute left-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                                 </div>
-                                <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused} className="w-full h-11 bg-transparent pl-11 pr-[70px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl" />
-                                <button type="submit" disabled={!inviteNumber || isDisabled || isPaused} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all hover:bg-indigo-100 disabled:opacity-40">
+                                <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused || !isTodaySession} className="w-full h-11 bg-transparent pl-11 pr-[70px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl disabled:opacity-50" />
+                                <button type="submit" disabled={!inviteNumber || isDisabled || isPaused || !isTodaySession} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all hover:bg-indigo-100 disabled:opacity-40">
                                     Call
                                 </button>
                             </form>
@@ -2579,8 +2601,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 <div className="absolute left-4 text-slate-400 group-focus-within:text-rose-500 transition-colors">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                 </div>
-                                <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused} className="w-full h-11 bg-transparent pl-11 pr-[85px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl" />
-                                <button type="submit" disabled={!removeNumber || isDisabled || isPaused} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl transition-all hover:bg-rose-100 disabled:opacity-40">
+                                <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused || !isTodaySession} className="w-full h-11 bg-transparent pl-11 pr-[85px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl disabled:opacity-50" />
+                                <button type="submit" disabled={!removeNumber || isDisabled || isPaused || !isTodaySession} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl transition-all hover:bg-rose-100 disabled:opacity-40">
                                     Remove
                                 </button>
                             </form>
@@ -2592,7 +2614,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                         {/* Add Customer — primary CTA */}
                         <button
                             onClick={() => setShowAddForm(true)}
-                            disabled={isDisabled || isPaused}
+                            disabled={isDisabled || isPaused || !isTodaySession}
+                            title={!isTodaySession ? "Cannot add customer to past session" : undefined}
                             className="flex-1 w-full h-11 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:shadow-none"
                         >
                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>

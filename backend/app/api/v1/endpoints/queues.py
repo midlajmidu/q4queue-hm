@@ -443,6 +443,7 @@ async def restore_queue(
 )
 async def get_queue_public_status(
     queue_id: uuid.UUID,
+    session_id: Optional[uuid.UUID] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     from sqlalchemy import select as sa_select
@@ -459,8 +460,9 @@ async def get_queue_public_status(
     is_past_session = False
     session_date_str = None
 
-    if queue.token_session_id:
-        session = await db.get(SessionModel, queue.token_session_id)
+    target_session_id = session_id or queue.token_session_id
+    if target_session_id:
+        session = await db.get(SessionModel, target_session_id)
         if session:
             session_date_str = session.session_date.isoformat()
             org_res = await db.execute(sa_select(OrgModel).where(OrgModel.id == queue.org_id))
@@ -477,7 +479,7 @@ async def get_queue_public_status(
         "is_paused": getattr(queue, "is_paused", False),
         "session_date": session_date_str,
         "is_past_session": is_past_session,
-        "has_session": queue.token_session_id is not None,
+        "has_session": queue.token_session_id is not None or session_id is not None,
     }
 
 

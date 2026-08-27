@@ -660,8 +660,9 @@ export const api = {
         return request<TokenRestoreResponse>(`/tokens/${tokenId}`);
     },
 
-    getQueuePublicStatus(queueId: string): Promise<QueuePublicStatus> {
-        return request<QueuePublicStatus>(`/queues/${queueId}/public-status`);
+    getQueuePublicStatus(queueId: string, sessionId?: string): Promise<QueuePublicStatus> {
+        const query = sessionId ? `?session_id=${sessionId}` : "";
+        return request<QueuePublicStatus>(`/queues/${queueId}/public-status${query}`);
     },
 
     skipToken(tokenId: string): Promise<TokenDetail> {

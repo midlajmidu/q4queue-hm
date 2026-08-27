@@ -195,11 +195,13 @@ export default function JoinQueuePage({ params }: PageProps) {
     const [sessionStatus, setSessionStatus] = useState<QueuePublicStatus | null>(null);
     const [statusLoading, setStatusLoading] = useState(true);
 
+    const querySessionId = searchParams.get("sessionId") || searchParams.get("session_id") || undefined;
+
     useEffect(() => {
         let mounted = true;
         const fetchStatus = async () => {
             try {
-                const status = await api.getQueuePublicStatus(queueId);
+                const status = await api.getQueuePublicStatus(queueId, querySessionId);
                 if (mounted) setSessionStatus(status);
             } catch {
                 // Non-fatal: fall back to WebSocket data
@@ -209,7 +211,7 @@ export default function JoinQueuePage({ params }: PageProps) {
         };
         fetchStatus();
         return () => { mounted = false; };
-    }, [queueId]);
+    }, [queueId, querySessionId]);
 
     const [joinData, setJoinData] = useState<JoinResponse | null>(null);
     const [isJoining, setIsJoining] = useState(false);
