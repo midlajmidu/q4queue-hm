@@ -242,6 +242,10 @@ export default function JoinQueuePage({ params }: PageProps) {
 
     // Called after WhatsApp consent answer
     const doJoin = useCallback(async (sendWhatsApp: boolean) => {
+        if (sessionStatus?.is_past_session === true || live?.is_past_session === true) {
+            setError("This QR code is expired. The session is closed. Please scan today's active QR code.");
+            return;
+        }
         setShowWhatsAppModal(false);
         setIsJoining(true);
         setError(null);
@@ -278,7 +282,7 @@ export default function JoinQueuePage({ params }: PageProps) {
             setError(err instanceof ApiError ? err.detail : "Failed to join queue. Please try again.");
             setIsJoining(false);
         }
-    }, [isLegacyFormValid, isJoining, customerName, customerPhone, paxCount, queueId, router, customData, hasCustomFieldsConfigured]);
+    }, [isLegacyFormValid, isJoining, sessionStatus, live, customerName, customerPhone, paxCount, queueId, router, customData, hasCustomFieldsConfigured]);
 
     // Clicking the button → show modal first
     const handleJoin = useCallback(() => {
@@ -552,7 +556,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 </div>
                                 <h3 className="text-base sm:text-lg font-bold text-rose-900 dark:text-rose-200 mb-2">QR Code Invalid / Expired</h3>
                                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-sm mx-auto mb-4">
-                                    This QR code is no longer valid because it belongs to a past queue session {live?.session_date ? `(${live.session_date})` : ""}. Registration for this session has been strictly disabled.
+                                    This QR code is no longer valid because it belongs to a past queue session {(sessionStatus?.session_date || live?.session_date) ? `(${sessionStatus?.session_date || live?.session_date})` : ""}. Registration for this session has been strictly disabled.
                                 </p>
                                 <div className="bg-white/80 dark:bg-slate-900/60 rounded-2xl p-4 border border-rose-200/60 text-xs text-slate-600 dark:text-slate-400 font-medium text-left leading-relaxed">
                                     <strong className="text-rose-900 dark:text-rose-300 block mb-1">⚠️ Action Required:</strong>
