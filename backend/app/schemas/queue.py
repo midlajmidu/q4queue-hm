@@ -69,6 +69,7 @@ class JoinRequest(BaseModel):
     send_whatsapp: bool = Field(default=True)
     entry_type: Optional[str] = Field(default="qr")
     qr_token: Optional[str] = Field(default=None, description="Single-use QR validation token")
+    session_id: Optional[uuid.UUID] = Field(default=None, description="Optional target session ID to join")
     custom_data: Optional[dict] = None
 
     @field_validator("name", mode="before")

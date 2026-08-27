@@ -118,6 +118,8 @@ export default function TrackingPage({ params }: PageProps) {
 
 
     const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
+    const [isPastSession, setIsPastSession] = useState(false);
+    const [sessionDate, setSessionDate] = useState<string | null>(null);
 
     // ── Fetch Tracking Info on Mount ────────────────────────
     useEffect(() => {
@@ -127,13 +129,15 @@ export default function TrackingPage({ params }: PageProps) {
                 const info = await api.getTrackingInfo(trackingId);
                 if (mounted) {
                     setQueueId(info.queue_id);
+                    setIsPastSession(info.is_past_session === true);
+                    setSessionDate(info.session_date || null);
                     setJoinData({
                         id: info.token_id,
                         token_number: info.token_number,
                         position: info.position,
                         current_serving: 0, // will be updated by websocket
                         queue_prefix: info.token_prefix,
-                        session_id: "", // tracking page doesn't strictly need session validation like join did, but we'll adapt
+                        session_id: info.session_id || "",
                         tracking_id: info.tracking_id,
                         removed_by: info.removed_by
                     });
@@ -526,6 +530,18 @@ export default function TrackingPage({ params }: PageProps) {
                             <div>
                                 <p className="mb-0.5 uppercase tracking-wide text-xs text-amber-600">Paused</p>
                                 <p>The queue is currently on a break. Service will resume shortly.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {isPastSession && (
+                        <div role="alert" className="bg-amber-50 text-amber-900 text-sm font-medium p-4 rounded-xl border border-amber-200 shadow-sm flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+                                <Clock className="w-4 h-4" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-amber-800">Past Queue Session {sessionDate ? `(${sessionDate})` : ""}</p>
+                                <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">This queue session has ended. This token is from a historical date and is no longer actively called.</p>
                             </div>
                         </div>
                     )}

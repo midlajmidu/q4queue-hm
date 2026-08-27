@@ -43,6 +43,8 @@ class TrackingResponse(BaseModel):
     session_id: str
     queue_is_active: bool
     queue_is_paused: bool
+    is_past_session: bool = False
+    session_date: Optional[str] = None
     open_time: Optional[str] = None
     close_time: Optional[str] = None
     created_at: datetime
@@ -67,6 +69,8 @@ async def track_token(
     No authentication required — access is gated by unguessable tracking_id UUID.
     """
     from app.models.organization import Organization
+    from app.models.session import Session as SessionModel
+    from zoneinfo import ZoneInfo
 
     result = await db.execute(
         select(
@@ -77,7 +81,8 @@ async def track_token(
             Queue.is_paused, 
             Queue.open_time,
             Queue.close_time,
-            Organization.name
+            Organization.name,
+            Organization.timezone
         )
         .join(Queue, Token.queue_id == Queue.id)
         .join(Organization, Token.org_id == Organization.id)
@@ -91,7 +96,18 @@ async def track_token(
             detail="Token not found",
         )
 
-    token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name = row
+    token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name, org_timezone = row
+
+    is_past_session = False
+    session_date_str = None
+    if token.session_id:
+        sess = await db.get(SessionModel, token.session_id)
+        if sess:
+            session_date_str = sess.session_date.isoformat()
+            tz_str = org_timezone if org_timezone else "Asia/Kolkata"
+            today = datetime.now(ZoneInfo(tz_str)).date()
+            if sess.session_date < today:
+                is_past_session = True
 
     # Calculate current position
     if token.status == TokenStatus.waiting:
@@ -123,6 +139,8 @@ async def track_token(
         session_id=str(token.session_id),
         queue_is_active=queue_is_active,
         queue_is_paused=queue_is_paused,
+        is_past_session=is_past_session,
+        session_date=session_date_str,
         open_time=open_time,
         close_time=close_time,
         created_at=token.created_at,

@@ -249,8 +249,9 @@ async def join_queue(
     if getattr(queue, "is_paused", False):
         raise ValueError("Queue is temporarily not accepting walk-ins")
 
-    if queue.token_session_id:
-        session = await db.get(Session, queue.token_session_id)
+    target_session_id = data.session_id or queue.token_session_id
+    if target_session_id:
+        session = await db.get(Session, target_session_id)
         if session:
             from app.models.organization import Organization
             from zoneinfo import ZoneInfo

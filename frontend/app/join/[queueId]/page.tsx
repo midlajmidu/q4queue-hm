@@ -163,10 +163,15 @@ export default function JoinQueuePage({ params }: PageProps) {
     const searchParams = useSearchParams();
     const [qrToken, setQrToken] = useState<string | null>(null);
 
+    const errorParam = searchParams.get("error");
+    const isQrExpired = errorParam === "expired_qr";
+    const isInactiveError = errorParam === "inactive";
+    const querySessionId = searchParams.get("sessionId") || searchParams.get("session_id") || undefined;
+    const querySessionDate = searchParams.get("sessionDate") || searchParams.get("session_date") || searchParams.get("date") || undefined;
+
     useEffect(() => {
-        const errorParam = searchParams.get("error");
         if (errorParam === "expired_qr") {
-            setError("This QR code has expired or is no longer valid. Please scan the current active QR code on the display screen.");
+            setError("This QR code has expired or is no longer valid. Please scan today's active QR code on the display screen.");
         } else if (errorParam === "inactive") {
             setError("This queue is currently inactive or closed. Please ask staff for assistance.");
         }
@@ -184,7 +189,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                 setQrToken(savedToken);
             }
         }
-    }, [searchParams, queueId]);
+    }, [searchParams, queueId, errorParam]);
 
 
     const { state: live, status: wsStatus } = useQueueSocket(queueId);
@@ -194,8 +199,6 @@ export default function JoinQueuePage({ params }: PageProps) {
     // banner appears instantly — the customer never sees the form.
     const [sessionStatus, setSessionStatus] = useState<QueuePublicStatus | null>(null);
     const [statusLoading, setStatusLoading] = useState(true);
-
-    const querySessionId = searchParams.get("sessionId") || searchParams.get("session_id") || undefined;
 
     useEffect(() => {
         let mounted = true;
@@ -232,6 +235,20 @@ export default function JoinQueuePage({ params }: PageProps) {
     const paxCount = parseInt(companionInput) || 0;
     const [customData, setCustomData] = useState<Record<string, any>>({});
 
+    // Use REST sessionStatus as primary source (immediate), WebSocket as fallback, plus query params & error flags
+    const isPastSession = isQrExpired || isInactiveError || sessionStatus?.is_past_session === true || live?.is_past_session === true;
+    const sessionDate = sessionStatus?.session_date || live?.session_date || querySessionDate;
+    const queueClosed = live?.is_active === false || isPastSession;
+    const queuePaused = live?.is_paused === true;
+    const queueName = live?.queue_name || "Queue";
+    const prefix = live?.prefix || joinData?.queue_prefix || "";
+    const serving = live?.current_serving ?? 0;
+    const activeServingTokens = live?.all_serving_tokens ?? [];
+
+    const brandColor = live?.org_brand_color || '#2563eb';
+    const logoUrl = live?.org_logo_url;
+    const fullLogoUrl = logoUrl ? (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `https://amoebaq.com/api/v1${logoUrl}`) : null;
+
     // Derived values
     const isNameValid = /^[A-Za-z\s'-]{2,50}$/.test(customerName.trim());
     const isPhoneValid = /^\d{10}$/.test(customerPhone);
@@ -245,7 +262,7 @@ export default function JoinQueuePage({ params }: PageProps) {
     // Called after WhatsApp consent answer
     const doJoin = useCallback(async (sendWhatsApp: boolean) => {
         setShowWhatsAppModal(false);
-        if (sessionStatus?.is_past_session === true || live?.is_past_session === true) {
+        if (isPastSession) {
             setError("This QR code is expired. The session is closed. Please scan today's active QR code.");
             return;
         }
@@ -264,6 +281,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                 pax_count: resolvedPax,
                 send_whatsapp: sendWhatsApp,
                 qr_token: qrToken || undefined,
+                session_id: querySessionId || undefined,
                 custom_data: hasCustomFieldsConfigured ? customData : undefined
             };
 
@@ -284,13 +302,13 @@ export default function JoinQueuePage({ params }: PageProps) {
             setError(err instanceof ApiError ? err.detail : "Failed to join queue. Please try again.");
             setIsJoining(false);
         }
-    }, [isLegacyFormValid, isJoining, sessionStatus, live, customerName, customerPhone, countryCode, paxCount, queueId, router, customData, hasCustomFieldsConfigured, qrToken]);
+    }, [isLegacyFormValid, isJoining, isPastSession, customerName, customerPhone, countryCode, paxCount, queueId, router, customData, hasCustomFieldsConfigured, qrToken, querySessionId]);
 
     // Clicking the button → show modal first
     const handleJoin = useCallback(() => {
         if (isJoining) return;
         // Double-lock: check both REST status and WebSocket data
-        if (sessionStatus?.is_past_session === true || live?.is_past_session === true) {
+        if (isPastSession) {
             setError("This QR code is expired. The session is closed. Please scan today's active QR code.");
             return;
         }
@@ -310,7 +328,7 @@ export default function JoinQueuePage({ params }: PageProps) {
         }
         setError(null);
         setShowWhatsAppModal(true);
-    }, [isLegacyFormValid, isJoining, sessionStatus, live, hasCustomFieldsConfigured, customFieldsList, customData]);
+    }, [isLegacyFormValid, isJoining, isPastSession, hasCustomFieldsConfigured, customFieldsList, customData]);
 
 
     // ── Restore from localStorage on mount ────────────────────────
@@ -349,21 +367,6 @@ export default function JoinQueuePage({ params }: PageProps) {
         attemptRestore();
         return () => { mounted = false; };
     }, [queueId]);
-
-    // Use REST sessionStatus as primary source (immediate), WebSocket as fallback
-    const isPastSession = sessionStatus?.is_past_session === true || live?.is_past_session === true;
-    const sessionDate = sessionStatus?.session_date || live?.session_date;
-    const queueClosed = live?.is_active === false || isPastSession;
-    const queuePaused = live?.is_paused === true;
-    const queueName = live?.queue_name || "Queue";
-    const prefix = live?.prefix || joinData?.queue_prefix || "";
-    const serving = live?.current_serving ?? 0;
-    const activeServingTokens = live?.all_serving_tokens ?? [];
-
-
-    const brandColor = live?.org_brand_color || '#2563eb';
-    const logoUrl = live?.org_logo_url;
-    const fullLogoUrl = logoUrl ? (logoUrl.startsWith('http') ? logoUrl : process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}${logoUrl}` : `https://amoebaq.com/api/v1${logoUrl}`) : null;
 
     // ── Marquee auto-scroll logic ────────────────────────────────────────────────
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -553,17 +556,34 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 <div className="h-14 bg-slate-100 rounded-2xl w-full mt-2" />
                             </div>
                         ) : isPastSession ? (
-                            <div className="bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-3xl p-6 sm:p-7 text-center my-2 shadow-sm">
-                                <div className="w-14 h-14 bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-200/80">
-                                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            <div className="space-y-4">
+                                <div className="bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-3xl p-6 sm:p-7 text-center my-2 shadow-sm">
+                                    <div className="w-14 h-14 bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-200/80">
+                                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                    </div>
+                                    <h3 className="text-base sm:text-lg font-bold text-rose-900 dark:text-rose-200 mb-2">
+                                        {isQrExpired ? "QR Code Expired" : isInactiveError ? "Queue Session Closed" : "QR Code Expired — Session Closed"}
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-sm mx-auto mb-4">
+                                        {isQrExpired
+                                            ? "This QR code has expired or was generated for a previous session. New token requests cannot be submitted with this code."
+                                            : `This QR code belongs to a closed or past queue session ${sessionDate ? `(${sessionDate})` : ""}. Token registration for this session is strictly locked.`}
+                                    </p>
+                                    <div className="bg-white/80 dark:bg-slate-900/60 rounded-2xl p-4 border border-rose-200/60 text-xs text-slate-600 dark:text-slate-400 font-medium text-left leading-relaxed">
+                                        <strong className="text-rose-900 dark:text-rose-300 block mb-1">⚠️ Action Required:</strong>
+                                        Please scan today&apos;s active QR code on the display screen or ask staff for assistance to join today&apos;s active queue.
+                                    </div>
                                 </div>
-                                <h3 className="text-base sm:text-lg font-bold text-rose-900 dark:text-rose-200 mb-2">QR Code Expired — Session Closed</h3>
-                                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-sm mx-auto mb-4">
-                                    This QR code is no longer valid because it belongs to a past queue session {sessionDate ? `(${sessionDate})` : ""}. Registration for this session has been strictly disabled.
-                                </p>
-                                <div className="bg-white/80 dark:bg-slate-900/60 rounded-2xl p-4 border border-rose-200/60 text-xs text-slate-600 dark:text-slate-400 font-medium text-left leading-relaxed">
-                                    <strong className="text-rose-900 dark:text-rose-300 block mb-1">⚠️ Action Required:</strong>
-                                    Please scan today's active QR code on the branch/clinic display screen or ask staff for assistance to join today's active queue.
+
+                                <div className="pt-1">
+                                    <button
+                                        disabled={true}
+                                        aria-label="QR Code Expired / Session Closed"
+                                        className="w-full py-4 text-white font-bold uppercase tracking-widest text-[13px] sm:text-sm rounded-2xl bg-slate-400 dark:bg-slate-700 opacity-60 cursor-not-allowed shadow-none border border-slate-300 dark:border-slate-600 flex items-center justify-center gap-2"
+                                    >
+                                        <svg className="w-4 h-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                        QR Code Expired / Registration Locked
+                                    </button>
                                 </div>
                             </div>
                         ) : (

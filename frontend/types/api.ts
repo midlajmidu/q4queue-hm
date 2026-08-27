@@ -339,6 +339,7 @@ export interface JoinRequest {
     send_whatsapp?: boolean;
     entry_type?: string;
     qr_token?: string;
+    session_id?: string;
     custom_data?: Record<string, any> | null;
 }
 
@@ -1134,6 +1135,8 @@ export interface TrackingResponse {
     session_id: string;
     queue_is_active: boolean;
     queue_is_paused: boolean;
+    is_past_session?: boolean;
+    session_date?: string | null;
     open_time?: string | null;
     close_time?: string | null;
     created_at: string;

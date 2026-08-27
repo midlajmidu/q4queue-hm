@@ -517,10 +517,24 @@ async def scan_queue_qr(
     
     # Verify queue exists and is active
     from sqlalchemy import select
+    from app.models.session import Session as SessionModel
+    from app.models.organization import Organization as OrgModel
+    from zoneinfo import ZoneInfo
     result = await db.execute(select(Queue).where(Queue.id == queue_id))
     queue = result.scalar_one_or_none()
     if not queue or not queue.is_active:
         return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?error=inactive")
+
+    # Verify session is today
+    if queue.token_session_id:
+        session = await db.get(SessionModel, queue.token_session_id)
+        if session:
+            org_res = await db.execute(select(OrgModel).where(OrgModel.id == queue.org_id))
+            org = org_res.scalar_one_or_none()
+            tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
+            today = datetime.now(ZoneInfo(tz_str)).date()
+            if session.session_date < today:
+                return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?error=expired_qr&session_date={session.session_date.isoformat()}")
 
     # Validate TOTP if secret seed & totp validation is enforced
     seed = get_qr_secret_seed(queue_id, settings.SECRET_KEY)
