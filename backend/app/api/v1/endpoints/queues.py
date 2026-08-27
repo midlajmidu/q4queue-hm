@@ -23,7 +23,8 @@ SECURITY:
 """
 import logging
 import uuid
-import datetime
+from datetime import datetime, timezone, date
+from zoneinfo import ZoneInfo
 from typing import Union, Optional
 import hmac
 import hashlib
@@ -203,7 +204,7 @@ async def list_queue_sessions(
     queue_id: uuid.UUID,
     limit: int = 20,
     offset: int = 0,
-    date: Optional[datetime.date] = None,
+    date: Optional[date] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> PaginatedSessionResponse:
