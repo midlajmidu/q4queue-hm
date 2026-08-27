@@ -319,6 +319,17 @@ export interface TokenDetail {
     entry_type?: "manual" | "qr" | "auto" | null;
 }
 
+// ── Public Queue Status (used by join page on mount, no auth) ────
+export interface QueuePublicStatus {
+    queue_id: string;
+    queue_name: string;
+    is_active: boolean;
+    is_paused: boolean;
+    session_date: string | null;
+    is_past_session: boolean;
+    has_session: boolean;
+}
+
 // ── Join ─────────────────────────────────────────────────────────
 export interface JoinRequest {
     name: string;

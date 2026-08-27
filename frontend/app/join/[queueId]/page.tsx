@@ -6,7 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { useQueueSocket } from "@/hooks/useQueueSocket";
 import { Clock } from "lucide-react";
 import ConnectionBadge from "@/components/ConnectionBadge";
-import type { JoinResponse, TokenStatus } from "@/types/api";
+import type { JoinResponse, TokenStatus, QueuePublicStatus } from "@/types/api";
 
 interface PageProps {
     params: Promise<{ queueId: string }>;
@@ -189,6 +189,28 @@ export default function JoinQueuePage({ params }: PageProps) {
 
     const { state: live, status: wsStatus } = useQueueSocket(queueId);
 
+    // ── Immediate REST check for past session (independent of WebSocket) ──
+    // This fires on mount and returns before WS connects, so the past-session
+    // banner appears instantly — the customer never sees the form.
+    const [sessionStatus, setSessionStatus] = useState<QueuePublicStatus | null>(null);
+    const [statusLoading, setStatusLoading] = useState(true);
+
+    useEffect(() => {
+        let mounted = true;
+        const fetchStatus = async () => {
+            try {
+                const status = await api.getQueuePublicStatus(queueId);
+                if (mounted) setSessionStatus(status);
+            } catch {
+                // Non-fatal: fall back to WebSocket data
+            } finally {
+                if (mounted) setStatusLoading(false);
+            }
+        };
+        fetchStatus();
+        return () => { mounted = false; };
+    }, [queueId]);
+
     const [joinData, setJoinData] = useState<JoinResponse | null>(null);
     const [isJoining, setIsJoining] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -261,7 +283,8 @@ export default function JoinQueuePage({ params }: PageProps) {
     // Clicking the button → show modal first
     const handleJoin = useCallback(() => {
         if (isJoining) return;
-        if (live?.is_past_session === true) {
+        // Double-lock: check both REST status and WebSocket data
+        if (sessionStatus?.is_past_session === true || live?.is_past_session === true) {
             setError("This QR code is expired. The session is closed. Please scan today's active QR code.");
             return;
         }
@@ -281,7 +304,7 @@ export default function JoinQueuePage({ params }: PageProps) {
         }
         setError(null);
         setShowWhatsAppModal(true);
-    }, [isLegacyFormValid, isJoining, live, hasCustomFieldsConfigured, customFieldsList, customData]);
+    }, [isLegacyFormValid, isJoining, sessionStatus, live, hasCustomFieldsConfigured, customFieldsList, customData]);
 
 
     // ── Restore from localStorage on mount ────────────────────────
@@ -321,7 +344,8 @@ export default function JoinQueuePage({ params }: PageProps) {
         return () => { mounted = false; };
     }, [queueId]);
 
-    const isPastSession = live?.is_past_session === true;
+    // Use REST sessionStatus as primary source (immediate), WebSocket as fallback
+    const isPastSession = sessionStatus?.is_past_session === true || live?.is_past_session === true;
     const queueClosed = live?.is_active === false || isPastSession;
     const queuePaused = live?.is_paused === true;
     const queueName = live?.queue_name || "Queue";
@@ -512,7 +536,16 @@ export default function JoinQueuePage({ params }: PageProps) {
                         )}
 
                         {/* ── Past Session Closed State Card or Customer Form ── */}
-                        {isPastSession ? (
+                        {statusLoading ? (
+                            /* Loading skeleton — shown while REST status check is in flight */
+                            <div className="space-y-3 animate-pulse py-2">
+                                <div className="h-4 bg-slate-100 rounded-full w-3/4 mx-auto" />
+                                <div className="h-4 bg-slate-100 rounded-full w-1/2 mx-auto" />
+                                <div className="h-11 bg-slate-100 rounded-2xl w-full mt-4" />
+                                <div className="h-11 bg-slate-100 rounded-2xl w-full" />
+                                <div className="h-14 bg-slate-100 rounded-2xl w-full mt-2" />
+                            </div>
+                        ) : isPastSession ? (
                             <div className="bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-3xl p-6 sm:p-7 text-center my-2 shadow-sm">
                                 <div className="w-14 h-14 bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-200/80">
                                     <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>

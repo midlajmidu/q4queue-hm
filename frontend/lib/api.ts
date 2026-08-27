@@ -51,6 +51,7 @@ import type {
     TokenResponse,
     PublicTokenResponse,
     TokenRestoreResponse,
+    QueuePublicStatus,
     OrganizationSettingsResponse,
     OrganizationSettingsUpdate,
     PaginatedAuditLogs,
@@ -657,6 +658,10 @@ export const api = {
 
     restoreToken(tokenId: string): Promise<TokenRestoreResponse> {
         return request<TokenRestoreResponse>(`/tokens/${tokenId}`);
+    },
+
+    getQueuePublicStatus(queueId: string): Promise<QueuePublicStatus> {
+        return request<QueuePublicStatus>(`/queues/${queueId}/public-status`);
     },
 
     skipToken(tokenId: string): Promise<TokenDetail> {

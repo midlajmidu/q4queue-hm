@@ -428,6 +428,59 @@ async def restore_queue(
 
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Public — Queue Status (no auth, used by join page on mount)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{queue_id}/public-status",
+    summary="Public Queue Status",
+    description=(
+        "Public, unauthenticated endpoint. Returns minimal queue/session status "
+        "so the join page can detect a past/closed session immediately on mount, "
+        "before the WebSocket connects."
+    ),
+)
+async def get_queue_public_status(
+    queue_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import select as sa_select
+    from app.models.session import Session as SessionModel
+    from app.models.organization import Organization as OrgModel
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+
+    result = await db.execute(sa_select(Queue).where(Queue.id == queue_id))
+    queue = result.scalar_one_or_none()
+    if not queue:
+        raise HTTPException(status_code=404, detail="Queue not found")
+
+    is_past_session = False
+    session_date_str = None
+
+    if queue.token_session_id:
+        session = await db.get(SessionModel, queue.token_session_id)
+        if session:
+            session_date_str = session.session_date.isoformat()
+            org_res = await db.execute(sa_select(OrgModel).where(OrgModel.id == queue.org_id))
+            org = org_res.scalar_one_or_none()
+            tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
+            today = datetime.now(ZoneInfo(tz_str)).date()
+            if session.session_date < today:
+                is_past_session = True
+
+    return {
+        "queue_id": str(queue_id),
+        "queue_name": queue.name,
+        "is_active": queue.is_active,
+        "is_paused": getattr(queue, "is_paused", False),
+        "session_date": session_date_str,
+        "is_past_session": is_past_session,
+        "has_session": queue.token_session_id is not None,
+    }
+
+
 @router.get(
     "/{queue_id}/qr-config",
     summary="Get Queue QR Secret Seed",
