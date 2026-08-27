@@ -109,10 +109,14 @@ export class QueueWebSocket {
             this.options.onError?.(event);
         };
 
-        this.ws.onclose = () => {
+        this.ws.onclose = (event: CloseEvent) => {
             this.stopPing();
             this.setStatus("disconnected");
             if (!this.intentionalClose) {
+                if (event && (event.code === 4401 || event.code === 4403 || event.code === 4404)) {
+                    logger.warn("WebSocket closed permanently by server", { code: event.code, reason: event.reason });
+                    return;
+                }
                 this.scheduleReconnect();
             }
         };

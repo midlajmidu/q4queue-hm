@@ -99,18 +99,36 @@ async def websocket_queue(
             try:
                 payload = decode_access_token(token)
                 jwt_org_id = payload.get("org_id")
-                if jwt_org_id != org_id_str:
-                    await websocket.close(code=4403, reason="Queue does not belong to your organization")
-                    return
-                is_admin = True
-                logger.info(
-                    "WS admin connected | user=%s channel=%s",
-                    payload.get("sub"),
-                    channel,
-                )
-            except JWTError:
-                await websocket.close(code=4401, reason="Invalid or expired token")
-                return
+                jwt_role = payload.get("role")
+
+                if jwt_role == "super_admin":
+                    is_admin = True
+                elif jwt_role == "organization_admin":
+                    jwt_parent_id = payload.get("parent_organization_id") or jwt_org_id
+                    async with AsyncSessionLocal() as db:
+                        from app.models.organization import Organization
+                        org_res = await db.execute(select(Organization).where(Organization.id == queue.org_id))
+                        queue_org = org_res.scalar_one_or_none()
+                        if queue_org and str(queue_org.parent_organization_id) == str(jwt_parent_id):
+                            is_admin = True
+                        else:
+                            logger.warning("WS org admin mismatch | jwt_parent=%s", jwt_parent_id)
+                            is_admin = False
+                elif jwt_org_id and str(jwt_org_id) == org_id_str:
+                    is_admin = True
+                else:
+                    logger.warning("WS org_id mismatch | jwt_org=%s queue_org=%s", jwt_org_id, org_id_str)
+                    is_admin = False
+
+                if is_admin:
+                    logger.info(
+                        "WS admin connected | user=%s channel=%s",
+                        payload.get("sub"),
+                        channel,
+                    )
+            except Exception as exc:
+                logger.warning("WS token validation non-fatal error | queue=%s err=%s", queue_id, exc)
+                is_admin = False
         else:
             logger.info("WS public client connected | channel=%s", channel)
 
