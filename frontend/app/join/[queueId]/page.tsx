@@ -242,11 +242,11 @@ export default function JoinQueuePage({ params }: PageProps) {
 
     // Called after WhatsApp consent answer
     const doJoin = useCallback(async (sendWhatsApp: boolean) => {
+        setShowWhatsAppModal(false);
         if (sessionStatus?.is_past_session === true || live?.is_past_session === true) {
             setError("This QR code is expired. The session is closed. Please scan today's active QR code.");
             return;
         }
-        setShowWhatsAppModal(false);
         setIsJoining(true);
         setError(null);
 
@@ -282,7 +282,7 @@ export default function JoinQueuePage({ params }: PageProps) {
             setError(err instanceof ApiError ? err.detail : "Failed to join queue. Please try again.");
             setIsJoining(false);
         }
-    }, [isLegacyFormValid, isJoining, sessionStatus, live, customerName, customerPhone, paxCount, queueId, router, customData, hasCustomFieldsConfigured]);
+    }, [isLegacyFormValid, isJoining, sessionStatus, live, customerName, customerPhone, countryCode, paxCount, queueId, router, customData, hasCustomFieldsConfigured, qrToken]);
 
     // Clicking the button → show modal first
     const handleJoin = useCallback(() => {
@@ -350,6 +350,7 @@ export default function JoinQueuePage({ params }: PageProps) {
 
     // Use REST sessionStatus as primary source (immediate), WebSocket as fallback
     const isPastSession = sessionStatus?.is_past_session === true || live?.is_past_session === true;
+    const sessionDate = sessionStatus?.session_date || live?.session_date;
     const queueClosed = live?.is_active === false || isPastSession;
     const queuePaused = live?.is_paused === true;
     const queueName = live?.queue_name || "Queue";
@@ -554,9 +555,9 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 <div className="w-14 h-14 bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-200/80">
                                     <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                                 </div>
-                                <h3 className="text-base sm:text-lg font-bold text-rose-900 dark:text-rose-200 mb-2">QR Code Invalid / Expired</h3>
+                                <h3 className="text-base sm:text-lg font-bold text-rose-900 dark:text-rose-200 mb-2">QR Code Expired — Session Closed</h3>
                                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-sm mx-auto mb-4">
-                                    This QR code is no longer valid because it belongs to a past queue session {(sessionStatus?.session_date || live?.session_date) ? `(${sessionStatus?.session_date || live?.session_date})` : ""}. Registration for this session has been strictly disabled.
+                                    This QR code is no longer valid because it belongs to a past queue session {sessionDate ? `(${sessionDate})` : ""}. Registration for this session has been strictly disabled.
                                 </p>
                                 <div className="bg-white/80 dark:bg-slate-900/60 rounded-2xl p-4 border border-rose-200/60 text-xs text-slate-600 dark:text-slate-400 font-medium text-left leading-relaxed">
                                     <strong className="text-rose-900 dark:text-rose-300 block mb-1">⚠️ Action Required:</strong>
