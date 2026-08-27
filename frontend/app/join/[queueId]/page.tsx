@@ -261,6 +261,10 @@ export default function JoinQueuePage({ params }: PageProps) {
     // Clicking the button → show modal first
     const handleJoin = useCallback(() => {
         if (isJoining) return;
+        if (live?.is_past_session === true) {
+            setError("This QR code is expired. The session is closed. Please scan today's active QR code.");
+            return;
+        }
         if (hasCustomFieldsConfigured) {
             if (customFieldsList.length === 0) {
                 setError("Queue registration is currently unavailable because no input fields are configured.");
@@ -277,7 +281,7 @@ export default function JoinQueuePage({ params }: PageProps) {
         }
         setError(null);
         setShowWhatsAppModal(true);
-    }, [isLegacyFormValid, isJoining, hasCustomFieldsConfigured, customFieldsList, customData]);
+    }, [isLegacyFormValid, isJoining, live, hasCustomFieldsConfigured, customFieldsList, customData]);
 
 
     // ── Restore from localStorage on mount ────────────────────────
