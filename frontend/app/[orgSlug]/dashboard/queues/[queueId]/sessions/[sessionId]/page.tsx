@@ -1144,13 +1144,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                             </nav>
                             
                             <div className="mt-auto pt-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between">
-                                {isTodaySession ? (
-                                    <ConnectionBadge status={status} />
-                                ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold rounded-md border border-slate-200 dark:border-white/10">
-                                        <Clock className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" /> Closed Session
-                                    </span>
-                                )}
+                                {isTodaySession ? <ConnectionBadge status={status} /> : <div />}
                                 <ThemeToggle />
                             </div>
                         </div>
@@ -1253,13 +1247,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                     {/* 5. Bottom Shell */}
                     <div className={`mt-auto border-t border-slate-200 dark:border-white/10 p-3 flex items-center ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
                         {!sidebarCollapsed && (
-                            isTodaySession ? (
-                                <ConnectionBadge status={status} />
-                            ) : (
-                                <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold rounded-md border border-slate-200 dark:border-white/10">
-                                    <Clock className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" /> Closed Session
-                                </span>
-                            )
+                            isTodaySession ? <ConnectionBadge status={status} /> : <div />
                         )}
                         <ThemeToggle />
                     </div>
@@ -1392,7 +1380,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             </div>
                                             <div className="flex items-center gap-2 flex-wrap min-w-0 text-xs">
                                                 <span className="font-semibold text-slate-800 dark:text-slate-100">
-                                                    Closed Session
+                                                    Historical Session
                                                 </span>
                                                 {sessionInfo?.session_date && (
                                                     <span className="font-mono font-medium text-[11px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200/70 dark:border-white/5">
@@ -1401,7 +1389,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 )}
                                                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 hidden md:inline" />
                                                 <span className="text-slate-500 dark:text-slate-400 text-xs truncate hidden md:inline font-normal">
-                                                    This session is closed. Token creation and live calling are strictly disabled.
+                                                    This session is closed. Token creation and live calling are strictly disabled for past records.
                                                 </span>
                                             </div>
                                         </div>
@@ -1907,9 +1895,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div className="w-14 h-14 bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-200/80">
                                             <QrCode size={28} />
                                         </div>
-                                        <h3 className="text-lg font-bold text-rose-900 dark:text-rose-200 mb-2">QR Code Inactive for Closed Sessions</h3>
+                                        <h3 className="text-lg font-bold text-rose-900 dark:text-rose-200 mb-2">QR Code Inactive for Historical Sessions</h3>
                                         <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-                                            This queue session ({sessionInfo?.session_date}) is closed. QR codes and customer join links are strictly deactivated for closed sessions.
+                                            This queue session ({sessionInfo?.session_date}) is closed. QR codes and customer join links are strictly deactivated for historical dates.
                                         </p>
                                     </div>
                                 ) : (
