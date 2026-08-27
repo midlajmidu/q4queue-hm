@@ -1270,12 +1270,6 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 flex-wrap">
                                                 <h1 className="qd-section-title text-gray-900 dark:text-white capitalize">{queueName}</h1>
-                                                {!isTodaySession && (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                                        Past Session ({sessionInfo?.session_date || "Closed"}) • Read Only
-                                                    </span>
-                                                )}
                                             </div>
                                             <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
                                                 Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
