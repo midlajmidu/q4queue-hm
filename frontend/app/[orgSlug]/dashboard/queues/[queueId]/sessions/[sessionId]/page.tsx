@@ -1254,6 +1254,12 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 flex-wrap">
                                                 <h1 className="qd-section-title text-gray-900 dark:text-white capitalize">{queueName}</h1>
+                                                {!isTodaySession && (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                                        Past Session ({sessionInfo?.session_date || "Closed"}) • Read Only
+                                                    </span>
+                                                )}
                                             </div>
                                             <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
                                                 Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
@@ -1354,44 +1360,28 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 {!isTodaySession && (
                                     <div
                                         role="alert"
-                                        className="relative overflow-hidden rounded-2xl border border-amber-300/80 dark:border-amber-700/50 bg-gradient-to-r from-amber-50/90 via-orange-50/50 to-amber-50/90 dark:from-amber-950/40 dark:via-orange-950/20 dark:to-amber-950/40 p-4 sm:p-4.5 shadow-sm transition-all"
+                                        className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 text-xs text-slate-700 dark:text-slate-200 shadow-2xs transition-all"
                                     >
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-                                            <div className="flex items-start sm:items-center gap-3.5">
-                                                <div className="w-10 h-10 rounded-xl bg-amber-500/15 dark:bg-amber-400/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 shadow-xs">
-                                                    <Clock className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <h4 className="text-[14px] font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                                                            Viewing Historical Session
-                                                        </h4>
-                                                        {sessionInfo?.session_date && (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-200/70 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300/60 dark:border-amber-700/50">
-                                                                {sessionInfo.session_date}
-                                                            </span>
-                                                        )}
-                                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300/70 dark:border-white/10">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                                            Archived Session
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-[12px] text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
-                                                        This session is closed. Token creation, customer entry, and live queue calling are strictly disabled for past records.
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {initialQueue?.token_session_id && initialQueue.token_session_id !== sessionId && (
-                                                <Link
-                                                    href={`${dashBase}/queues/${queueId}/sessions/${initialQueue.token_session_id}`}
-                                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white shadow-sm transition-all shrink-0 hover:shadow"
-                                                >
-                                                    <span>Switch to Today&apos;s Session</span>
-                                                    <ArrowRight className="w-3.5 h-3.5" />
-                                                </Link>
-                                            )}
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                            <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                                            <span className="font-semibold text-slate-900 dark:text-slate-100 shrink-0">
+                                                Historical Session {sessionInfo?.session_date ? `(${sessionInfo.session_date})` : ""}
+                                            </span>
+                                            <span className="text-slate-400 dark:text-slate-500 hidden sm:inline">•</span>
+                                            <span className="text-slate-500 dark:text-slate-400 truncate hidden sm:inline">
+                                                This session is closed. Token creation and live calling are strictly disabled for past records.
+                                            </span>
                                         </div>
+
+                                        {initialQueue?.token_session_id && initialQueue.token_session_id !== sessionId && (
+                                            <Link
+                                                href={`${dashBase}/queues/${queueId}/sessions/${initialQueue.token_session_id}`}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:text-amber-200 hover:text-amber-900 bg-amber-100/80 hover:bg-amber-200/80 dark:bg-amber-900/40 dark:hover:bg-amber-900/70 border border-amber-300/60 dark:border-amber-700/50 rounded-lg transition-colors shrink-0"
+                                            >
+                                                <span>Switch to Today&apos;s Session</span>
+                                                <ArrowRight className="w-3.5 h-3.5" />
+                                            </Link>
+                                        )}
                                     </div>
                                 )}
 
