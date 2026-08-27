@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.queue import Queue
 from app.models.token import Token, TokenStatus
+from app.models.session import Session
 from app.schemas.queue import JoinResponse, NextResponse, JoinRequest
 from app.websocket.connection_manager import manager as ws_manager
 from app.websocket.pubsub import publish_queue_update
@@ -257,7 +258,7 @@ async def join_queue(
             tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
             today = datetime.now(ZoneInfo(tz_str)).date()
             if session.session_date < today:
-                raise ValueError("This queue session is closed. No new tokens can be issued for a past session.")
+                raise ValueError("This queue session is closed and is no longer accepting new tokens. Please scan today's active QR code.")
 
     # ── Duplicate prevention: check for existing active token by phone ──
     phone_cleaned = data.phone.strip()
