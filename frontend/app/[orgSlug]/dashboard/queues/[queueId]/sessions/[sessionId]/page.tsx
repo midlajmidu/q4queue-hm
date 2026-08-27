@@ -1118,10 +1118,17 @@ export default function QueueDetailPage({ params }: PageProps) {
                             <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-100 dark:border-white/10 mb-6">
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Managing</div>
                                 <div className="text-sm font-bold text-slate-900 dark:text-white truncate" title={queueName}>{queueName}</div>
-                                <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-[pulse-dot_2s_infinite]" />
-                                    {isPaused ? <span className="text-amber-600 dark:text-amber-400">Paused</span> : isActive ? "Active" : <span className="text-rose-600 dark:text-rose-400">Inactive</span>}
-                                </div>
+                                {!isTodaySession ? (
+                                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500" />
+                                        <span>Closed Session</span>
+                                    </div>
+                                ) : (
+                                    <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-[pulse-dot_2s_infinite]" />
+                                        {isPaused ? <span className="text-amber-600 dark:text-amber-400">Paused</span> : isActive ? "Active" : <span className="text-rose-600 dark:text-rose-400">Inactive</span>}
+                                    </div>
+                                )}
                             </div>
                             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-2">Queue Management</div>
                             <nav className="px-3 flex flex-col gap-1 flex-1 overflow-y-auto">
@@ -1190,14 +1197,21 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 <>
                                     <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Managing</div>
                                     <div className="text-sm font-bold text-slate-900 dark:text-white truncate" title={queueName}>{queueName}</div>
-                                    <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-[pulse-dot_2s_infinite]" />
-                                        {isPaused ? <span className="text-amber-600 dark:text-amber-400">Paused</span> : isActive ? "Active" : <span className="text-rose-600 dark:text-rose-400">Inactive</span>}
-                                    </div>
+                                    {!isTodaySession ? (
+                                        <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500" />
+                                            <span>Closed Session</span>
+                                        </div>
+                                    ) : (
+                                        <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-[pulse-dot_2s_infinite]" />
+                                            {isPaused ? <span className="text-amber-600 dark:text-amber-400">Paused</span> : isActive ? "Active" : <span className="text-rose-600 dark:text-rose-400">Inactive</span>}
+                                        </div>
+                                    )}
                                 </>
                             ) : (
-                                <div className="flex items-center justify-center relative py-1" title={`${queueName} (${isActive ? "Active" : "Inactive"})`}>
-                                    <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+                                <div className="flex items-center justify-center relative py-1" title={`${queueName} (${!isTodaySession ? "Closed Session" : isActive ? "Active" : "Inactive"})`}>
+                                    <span className={`w-3 h-3 rounded-full ${!isTodaySession ? "bg-slate-400 dark:bg-slate-500" : "bg-emerald-500 animate-pulse"}`} />
                                 </div>
                             )}
                         </div>
