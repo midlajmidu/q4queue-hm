@@ -10,7 +10,7 @@ import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { fmtTime, nowInTz } from "@/lib/tzformat";
 import ConfirmModal from "@/components/ConfirmModal";
 import EditQueueModal from "@/components/EditQueueModal";
-import { Hash, UserCheck, Activity, Trash2, Square, Clock, CalendarDays, Ticket, TicketSlash, Pause, Play, Pencil } from "lucide-react";
+import { UserCheck, Trash2, Clock, CalendarDays, Ticket, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -25,11 +25,8 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
 
     const [isActive, setIsActive] = React.useState(queue.is_active);
-    const [toggling, setToggling] = React.useState(false);
-    const [pausing, setPausing] = React.useState(false);
     const [deleting, setDeleting] = React.useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
-    const [showToggleConfirm, setShowToggleConfirm] = React.useState(false);
     const [showEdit, setShowEdit] = React.useState(false);
     const [err, setErr] = React.useState<string | null>(null);
 
@@ -37,45 +34,6 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
     React.useEffect(() => {
         setIsActive(queue.is_active);
     }, [queue.is_active]);
-
-    const handleToggle = async () => {
-        if (isActive && !showToggleConfirm) {
-            setShowToggleConfirm(true);
-            return;
-        }
-
-        const nextState = !isActive;
-        setIsActive(nextState); // Optimistic Update
-        setToggling(true);
-        setErr(null);
-        try {
-            await api.toggleQueue(queue.id, nextState);
-            onToggled();
-            setShowToggleConfirm(false);
-        } catch (e: unknown) {
-            setIsActive(!nextState); // Rollback
-            if (e instanceof ApiError) setErr(e.detail);
-            else setErr("Failed to toggle queue");
-        } finally {
-            setToggling(false);
-        }
-    };
-
-    const handlePauseToggle = async () => {
-        const nextState = !queue.is_paused;
-        setPausing(true);
-        setErr(null);
-        try {
-            await api.toggleQueuePaused(queue.id, nextState);
-            onToggled(); // Refresh data to get new is_paused state
-            toast.warning(nextState ? `Queue "${queue.name}" is now paused` : `Queue "${queue.name}" is resumed`);
-        } catch (e: unknown) {
-            if (e instanceof ApiError) setErr(e.detail);
-            else setErr("Failed to pause queue");
-        } finally {
-            setPausing(false);
-        }
-    };
 
     const handleDelete = async () => {
         setDeleting(true);
@@ -209,81 +167,24 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                 {err && <p className="mt-2 text-xs text-red-600 dark:text-rose-400">{err}</p>}
             </div>
 
-            <div className="relative z-10 mt-3 border-t border-slate-100 dark:border-white/10 pt-3 flex flex-col gap-0 w-full">
+            <div className="relative z-10 mt-3 border-t border-slate-100 dark:border-white/10 pt-3 flex items-center gap-2 w-full">
                 <Link
                     href={`${dashBase}/queues/${queue.id}`}
-                    className={`w-full h-9 font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 ${isActive ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10'}`}
+                    className={`flex-1 h-9 font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 ${isActive ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10'}`}
                 >
                     {isGlobalOrOrgAdmin ? "View Queue" : "Manage Queue"}
                 </Link>
-                {!isGlobalOrOrgAdmin && (
-                    isActive ? (
-                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-white/10 flex items-center gap-2 w-full">
-                            <button
-                                onClick={handleToggle}
-                                disabled={toggling || deleting || pausing}
-                                className="h-9 flex-1 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 rounded-lg text-[11px] sm:text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                            >
-                                <Square className="w-3 h-3 fill-slate-400 text-slate-400 shrink-0" />
-                                {toggling ? "..." : "End Queue"}
-                            </button>
-                            <button
-                                onClick={handlePauseToggle}
-                                disabled={toggling || deleting || pausing}
-                                className={`h-9 flex-1 ${queue.is_paused ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/40' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10'} border rounded-lg text-[11px] sm:text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap`}
-                            >
-                                {queue.is_paused ? (
-                                    <><Play className="w-3.5 h-3.5 shrink-0" /> Resume</>
-                                ) : (
-                                    <><Pause className="w-3.5 h-3.5 shrink-0" /> Take a Break</>
-                                )}
-                            </button>
-                            {!isStaff && (
-                                <button
-                                    onClick={() => setShowDeleteConfirm(true)}
-                                    disabled={toggling || deleting}
-                                    className="h-9 w-9 shrink-0 flex items-center justify-center bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-rose-950/60 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-rose-400 border border-slate-200 dark:border-white/10 rounded-lg transition-all duration-150 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                    aria-label="Delete Queue"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-white/10 flex items-center gap-2 w-full">
-                            <button
-                                onClick={handleToggle}
-                                disabled={toggling || deleting || pausing}
-                                className="h-9 flex-1 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Play className="w-3.5 h-3.5 shrink-0" />
-                                {toggling ? "Starting..." : "Start Queue"}
-                            </button>
-                            {!isStaff && (
-                                <button
-                                    onClick={() => setShowDeleteConfirm(true)}
-                                    disabled={toggling || deleting}
-                                    className="h-9 w-9 shrink-0 flex items-center justify-center bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-lg transition-all duration-150 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                    aria-label="Delete Queue"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            )}
-                        </div>
-                    )
+                {!isGlobalOrOrgAdmin && !isStaff && (
+                    <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        disabled={deleting}
+                        className="h-9 w-9 shrink-0 flex items-center justify-center bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-rose-950/60 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-rose-400 border border-slate-200 dark:border-white/10 rounded-lg transition-all duration-150 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Delete Queue"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
                 )}
             </div>
-
-            <ConfirmModal
-                isOpen={showToggleConfirm}
-                title="End Queue Session?"
-                message={`Are you sure you want to end the session for "${queue.name}"? New customers won't be able to join until you start it again.`}
-                confirmLabel="End Queue"
-                confirmVariant="warning"
-                onConfirm={handleToggle}
-                onCancel={() => setShowToggleConfirm(false)}
-                isLoading={toggling}
-            />
 
             <ConfirmModal
                 isOpen={showDeleteConfirm}

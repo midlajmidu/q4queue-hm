@@ -258,8 +258,10 @@ async def join_queue(
             org = await db.scalar(select(Organization).where(Organization.id == queue.org_id))
             tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
             today = datetime.now(ZoneInfo(tz_str)).date()
-            if session.session_date < today:
+            if session.session_date < today or not getattr(session, "is_active", True):
                 raise ValueError("This queue session is closed and is no longer accepting new tokens. Please scan today's active QR code.")
+            if getattr(session, "is_paused", False):
+                raise ValueError("This queue session is temporarily on a break and not accepting walk-ins.")
 
     # ── Duplicate prevention: check for existing active token by phone ──
     phone_cleaned = data.phone.strip()

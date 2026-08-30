@@ -16,6 +16,8 @@ class SessionCreate(BaseModel):
 
 class SessionUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=200)
+    is_active: Optional[bool] = None
+    is_paused: Optional[bool] = None
 
 
 class SessionResponse(BaseModel):
@@ -24,6 +26,8 @@ class SessionResponse(BaseModel):
     queue_id: uuid.UUID
     session_date: date
     title: Optional[str] = None
+    is_active: bool = True
+    is_paused: bool = False
     created_at: datetime
     total_served: int = 0
     total_issued: int = 0

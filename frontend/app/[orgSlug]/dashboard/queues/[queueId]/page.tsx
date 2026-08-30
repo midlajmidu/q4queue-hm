@@ -7,10 +7,11 @@ import { api } from "@/lib/api";
 import { useDashBase } from "@/hooks/useDashBase";
 import { useAuth } from "@/hooks/useAuth";
 import type { QueueResponse, SessionResponse, PaginatedSessionResponse } from "@/types/api";
-import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown, Plus, Loader2, Trash2, LayoutGrid, List } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown, Plus, Loader2, Trash2, LayoutGrid, List, Pause, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { localTodayStr } from "@/lib/tzformat";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface PageProps {
     params: Promise<{ queueId: string }>;
@@ -124,6 +125,54 @@ export default function QueueSessionListPage({ params }: PageProps) {
     const [sessionToDelete, setSessionToDelete] = useState<SessionResponse | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
+    // End session modal state & Action loading states
+    const [sessionToEnd, setSessionToEnd] = useState<SessionResponse | null>(null);
+    const [sessionActionLoading, setSessionActionLoading] = useState<Record<string, string>>({});
+
+    const handleToggleSessionActive = async (session: SessionResponse) => {
+        const currentlyActive = session.is_active !== false;
+        if (currentlyActive && !sessionToEnd) {
+            setSessionToEnd(session);
+            return;
+        }
+
+        const nextActive = !currentlyActive;
+        setSessionActionLoading(prev => ({ ...prev, [session.id]: 'active' }));
+        try {
+            await api.toggleSessionActive(session.id, nextActive);
+            setSessions(prev => prev.map(s => s.id === session.id ? { ...s, is_active: nextActive } : s));
+            toast.success(nextActive ? `Session activated` : `Session ended`);
+            setSessionToEnd(null);
+        } catch (err: any) {
+            toast.error(err?.message || "Failed to toggle session active state");
+        } finally {
+            setSessionActionLoading(prev => {
+                const copy = { ...prev };
+                delete copy[session.id];
+                return copy;
+            });
+        }
+    };
+
+    const handleToggleSessionPaused = async (session: SessionResponse) => {
+        const currentlyPaused = session.is_paused === true;
+        const nextPaused = !currentlyPaused;
+        setSessionActionLoading(prev => ({ ...prev, [session.id]: 'paused' }));
+        try {
+            await api.toggleSessionPaused(session.id, nextPaused);
+            setSessions(prev => prev.map(s => s.id === session.id ? { ...s, is_paused: nextPaused } : s));
+            toast.warning(nextPaused ? `Session is now on a break` : `Session resumed`);
+        } catch (err: any) {
+            toast.error(err?.message || "Failed to pause/resume session");
+        } finally {
+            setSessionActionLoading(prev => {
+                const copy = { ...prev };
+                delete copy[session.id];
+                return copy;
+            });
+        }
+    };
+
     const loadSessions = useCallback(async (pageNum: number, append = false, dateToUse?: string) => {
         if (append) setLoadingMore(true);
         try {
@@ -154,6 +203,11 @@ export default function QueueSessionListPage({ params }: PageProps) {
         e.preventDefault();
         setCreateError(null);
 
+        if (!newSessionDate) {
+            setCreateError("Please select a date for the session.");
+            return;
+        }
+
         const todayStr = localTodayStr(tz);
         if (newSessionDate > todayStr) {
             setCreateError("Cannot create a session for a future date.");
@@ -163,7 +217,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
         // Check if session for this date already exists in current list
         const exists = sessions.some(s => s.session_date === newSessionDate);
         if (exists) {
-            setCreateError("A session already exists for this date. Only one session is allowed per day.");
+            setCreateError("A session already exists for this date.");
             return;
         }
 
@@ -181,7 +235,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
             // Navigate to newly created session
             router.push(`${dashBase}/queues/${queueId}/sessions/${newSession.id}`);
         } catch (err: any) {
-            const msg = err?.message || "Failed to create session";
+            const msg = err?.detail || err?.message || "Failed to create session";
             setCreateError(msg);
         } finally {
             setCreatingSession(false);
@@ -405,79 +459,133 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                     const monthAbbr = d.toLocaleDateString("en-US", { month: "short" });
                                                     const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
                                                     const fullDate = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+                                                    const isPaused = session.is_paused === true;
+                                                    const isInactive = session.is_active === false;
 
                                                     return (
                                                         <div key={session.id} className="relative group">
                                                             <Link
                                                                 href={`${dashBase}/queues/${queueId}/sessions/${session.id}`}
-                                                                className={`flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl border shadow-sm hover:shadow-md transition-all duration-200 px-5 py-4 cursor-pointer overflow-hidden ${
+                                                                className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 bg-white dark:bg-slate-900 rounded-xl border shadow-sm hover:shadow-md transition-all duration-200 px-5 py-4 cursor-pointer overflow-hidden ${
                                                                     today
                                                                         ? "border-indigo-200 dark:border-indigo-700/50 hover:border-indigo-300 dark:hover:border-indigo-600"
                                                                         : "border-slate-200 dark:border-white/8 hover:border-slate-300 dark:hover:border-white/15"
                                                                 }`}
                                                             >
-                                                                <div className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full ${today ? "bg-indigo-500" : "bg-slate-200 dark:bg-white/10"}`} />
+                                                                <div className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full ${
+                                                                    isPaused ? "bg-amber-500" : isInactive ? "bg-slate-400" : today ? "bg-indigo-500" : "bg-slate-200 dark:bg-white/10"
+                                                                }`} />
 
-                                                                <div className={`flex flex-col items-center justify-center rounded-xl w-11 h-12 shrink-0 ${
-                                                                    today
-                                                                        ? "bg-indigo-600 text-white"
-                                                                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-                                                                }`}>
-                                                                    <span className={`text-[9px] font-bold uppercase tracking-widest leading-none mb-0.5 ${today ? "text-indigo-200" : "text-slate-400 dark:text-slate-500"}`}>
-                                                                        {monthAbbr}
-                                                                    </span>
-                                                                    <span className="text-[18px] font-bold leading-none">{dayNum}</span>
-                                                                </div>
-
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2 mb-0.5">
-                                                                        <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                                                                            {session.title && session.title !== session.session_date ? session.title : weekday}
+                                                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                                    <div className={`flex flex-col items-center justify-center rounded-xl w-11 h-12 shrink-0 ${
+                                                                        isPaused
+                                                                            ? "bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200"
+                                                                            : isInactive
+                                                                            ? "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                                                            : today
+                                                                            ? "bg-indigo-600 text-white"
+                                                                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                                                                    }`}>
+                                                                        <span className={`text-[9px] font-bold uppercase tracking-widest leading-none mb-0.5 ${today && !isPaused && !isInactive ? "text-indigo-200" : "text-slate-400 dark:text-slate-500"}`}>
+                                                                            {monthAbbr}
                                                                         </span>
-                                                                        {today && (
-                                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
-                                                                                <span className="relative flex h-1.5 w-1.5">
-                                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                                                                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
-                                                                                </span>
-                                                                                Live
+                                                                        <span className="text-[18px] font-bold leading-none">{dayNum}</span>
+                                                                    </div>
+
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                                                                            <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                                                                                {session.title && session.title !== session.session_date ? session.title : weekday}
                                                                             </span>
-                                                                        )}
+                                                                            {isPaused ? (
+                                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] font-bold uppercase tracking-widest shrink-0">
+                                                                                    ⏸ PAUSED
+                                                                                </span>
+                                                                            ) : isInactive ? (
+                                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
+                                                                                    CLOSED
+                                                                                </span>
+                                                                            ) : today ? (
+                                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
+                                                                                    <span className="relative flex h-1.5 w-1.5">
+                                                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                                                                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
+                                                                                    </span>
+                                                                                    Live
+                                                                                </span>
+                                                                            ) : null}
+                                                                        </div>
+                                                                        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{fullDate}</p>
                                                                     </div>
-                                                                    <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{fullDate}</p>
                                                                 </div>
 
-                                                                <div className="hidden sm:flex items-center gap-3 shrink-0">
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <div className="w-5 h-5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
-                                                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-indigo-500"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+                                                                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-white/5">
+                                                                    <div className="flex items-center gap-3 shrink-0">
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <div className="w-5 h-5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
+                                                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-indigo-500"><path d="M12 5v14M5 12h14" strokeLinecap="round"/></svg>
+                                                                            </div>
+                                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{session.total_issued}</span>
+                                                                            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Issued</span>
                                                                         </div>
-                                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{session.total_issued}</span>
-                                                                        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Issued</span>
-                                                                    </div>
-                                                                    <div className="w-px h-4 bg-slate-100 dark:bg-white/10" />
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <div className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
-                                                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-500"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                                                        <div className="w-px h-4 bg-slate-100 dark:bg-white/10" />
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <div className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
+                                                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-500"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                                                            </div>
+                                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{session.total_served}</span>
+                                                                            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Served</span>
                                                                         </div>
-                                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{session.total_served}</span>
-                                                                        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Served</span>
                                                                     </div>
-                                                                </div>
 
-                                                                <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors shrink-0 ml-2" strokeWidth={2.5} />
+                                                                    {!isGlobalOrOrgAdmin && today && (
+                                                                        <div className="flex items-center gap-1.5" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleToggleSessionPaused(session)}
+                                                                                disabled={sessionActionLoading[session.id] !== undefined || isInactive}
+                                                                                className={`h-7 px-2.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all border shadow-sm ${
+                                                                                    isPaused
+                                                                                        ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/40 hover:bg-amber-100"
+                                                                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                                                                } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                                                                title={isPaused ? "Resume Session" : "Take a Break"}
+                                                                            >
+                                                                                {isPaused ? <Play className="w-3 h-3 text-amber-600" /> : <Pause className="w-3 h-3 text-slate-500" />}
+                                                                                <span>{isPaused ? "Resume" : "Take a Break"}</span>
+                                                                            </button>
+
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleToggleSessionActive(session)}
+                                                                                disabled={sessionActionLoading[session.id] !== undefined}
+                                                                                className={`h-7 px-2.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all border shadow-sm ${
+                                                                                    isInactive
+                                                                                        ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/40 hover:bg-emerald-100"
+                                                                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                                                                } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                                                                title={isInactive ? "Start Session" : "End Session"}
+                                                                            >
+                                                                                {isInactive ? <Play className="w-3 h-3 text-emerald-600" /> : <Square className="w-2.5 h-2.5 fill-slate-400 text-slate-400" />}
+                                                                                <span>{isInactive ? "Start Session" : "End Session"}</span>
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {!isGlobalOrOrgAdmin && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSessionToDelete(session); }}
+                                                                            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 dark:hover:text-red-400 transition-all cursor-pointer z-10"
+                                                                            title="Delete session"
+                                                                        >
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    )}
+
+                                                                    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors shrink-0 ml-1" strokeWidth={2.5} />
+                                                                </div>
                                                             </Link>
-
-                                                            {!isGlobalOrOrgAdmin && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setSessionToDelete(session)}
-                                                                    className="absolute right-10 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 dark:hover:text-red-400 transition-all opacity-0 group-hover:opacity-100 cursor-pointer z-10"
-                                                                    title="Delete session"
-                                                                >
-                                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                                </button>
-                                                            )}
                                                         </div>
                                                     );
                                                 })}
@@ -489,6 +597,8 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                     const today = isToday(session.session_date);
                                                     const d = new Date(session.session_date + "T12:00:00");
                                                     const weekday = d.toLocaleDateString("en-US", { weekday: "short" });
+                                                    const isPaused = session.is_paused === true;
+                                                    const isInactive = session.is_active === false;
 
                                                     return (
                                                         <div key={session.id} className="relative group flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
@@ -496,7 +606,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                 href={`${dashBase}/queues/${queueId}/sessions/${session.id}`}
                                                                 className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
                                                             >
-                                                                <span className={`w-2 h-2 rounded-full shrink-0 ${today ? "bg-indigo-500 animate-pulse" : "bg-slate-300 dark:bg-slate-700"}`} />
+                                                                <span className={`w-2 h-2 rounded-full shrink-0 ${isPaused ? "bg-amber-500" : isInactive ? "bg-slate-400" : today ? "bg-indigo-500 animate-pulse" : "bg-slate-300 dark:bg-slate-700"}`} />
                                                                 <span className="font-semibold text-xs text-slate-900 dark:text-white shrink-0">
                                                                     {session.session_date}
                                                                 </span>
@@ -508,21 +618,63 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                     </span>
                                                                 )}
 
-                                                                {today && (
+                                                                {isPaused ? (
+                                                                    <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 rounded border border-amber-200 dark:border-amber-900/40 shrink-0 ml-1">
+                                                                        PAUSED
+                                                                    </span>
+                                                                ) : isInactive ? (
+                                                                    <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded border border-slate-200 dark:border-white/10 shrink-0 ml-1">
+                                                                        CLOSED
+                                                                    </span>
+                                                                ) : today ? (
                                                                     <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded border border-indigo-200 dark:border-indigo-800/50 shrink-0 ml-1">
                                                                         LIVE
                                                                     </span>
-                                                                )}
+                                                                ) : null}
                                                             </Link>
 
-                                                            <div className="flex items-center gap-5 text-xs shrink-0">
+                                                            <div className="flex items-center gap-3 text-xs shrink-0">
                                                                 <span className="text-slate-500 dark:text-slate-400"><strong className="text-slate-900 dark:text-white font-bold">{session.total_issued}</strong> Issued</span>
                                                                 <span className="text-emerald-600 dark:text-emerald-400"><strong className="text-emerald-700 dark:text-emerald-300 font-bold">{session.total_served}</strong> Served</span>
+
+                                                                {!isGlobalOrOrgAdmin && today && (
+                                                                    <div className="flex items-center gap-1.5" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleToggleSessionPaused(session)}
+                                                                            disabled={sessionActionLoading[session.id] !== undefined || isInactive}
+                                                                            className={`h-6 px-2 rounded-md text-[10px] font-semibold flex items-center gap-1 transition-all border shadow-sm ${
+                                                                                isPaused
+                                                                                    ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/40 hover:bg-amber-100"
+                                                                                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                                                            } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                                                            title={isPaused ? "Resume Session" : "Take a Break"}
+                                                                        >
+                                                                            {isPaused ? <Play className="w-2.5 h-2.5 text-amber-600" /> : <Pause className="w-2.5 h-2.5 text-slate-500" />}
+                                                                            <span className="hidden md:inline">{isPaused ? "Resume" : "Break"}</span>
+                                                                        </button>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleToggleSessionActive(session)}
+                                                                            disabled={sessionActionLoading[session.id] !== undefined}
+                                                                            className={`h-6 px-2 rounded-md text-[10px] font-semibold flex items-center gap-1 transition-all border shadow-sm ${
+                                                                                isInactive
+                                                                                    ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/40 hover:bg-emerald-100"
+                                                                                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                                                            } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                                                            title={isInactive ? "Start Session" : "End Session"}
+                                                                        >
+                                                                            {isInactive ? <Play className="w-2.5 h-2.5 text-emerald-600" /> : <Square className="w-2 h-2 fill-slate-400 text-slate-400" />}
+                                                                            <span className="hidden md:inline">{isInactive ? "Start" : "End"}</span>
+                                                                        </button>
+                                                                    </div>
+                                                                )}
 
                                                                 {!isGlobalOrOrgAdmin && (
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => setSessionToDelete(session)}
+                                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSessionToDelete(session); }}
                                                                         className="w-6 h-6 rounded flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all opacity-0 group-hover:opacity-100 cursor-pointer ml-1"
                                                                         title="Delete session"
                                                                     >
@@ -579,18 +731,28 @@ export default function QueueSessionListPage({ params }: PageProps) {
                             </button>
                         </div>
 
-                        <form onSubmit={handleCreateSession} className="flex flex-col gap-4">
+                        <form onSubmit={handleCreateSession} noValidate className="flex flex-col gap-4">
                             <div>
                                 <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">
                                     Date <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="date"
-                                    required
-                                    max={localTodayStr(tz)}
                                     value={newSessionDate}
-                                    onChange={(e) => { setNewSessionDate(e.target.value); setCreateError(null); }}
-                                    className="w-full h-10 px-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-all"
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setNewSessionDate(val);
+                                        if (val && val > localTodayStr(tz)) {
+                                            setCreateError("Cannot create a session for a future date.");
+                                        } else {
+                                            setCreateError(null);
+                                        }
+                                    }}
+                                    className={`w-full h-10 px-3.5 bg-slate-50 dark:bg-slate-800 border ${
+                                        createError && (!newSessionDate || newSessionDate > localTodayStr(tz))
+                                            ? "border-red-500 dark:border-red-500/80 focus:ring-red-500/25 focus:border-red-500"
+                                            : "border-slate-200 dark:border-white/10 focus:ring-indigo-500/25 focus:border-indigo-500"
+                                    } rounded-lg text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 transition-all`}
                                 />
                             </div>
 
@@ -670,6 +832,18 @@ export default function QueueSessionListPage({ params }: PageProps) {
                     </div>
                 </div>
             )}
+
+            {/* ── End Session Confirmation Modal ── */}
+            <ConfirmModal
+                isOpen={!!sessionToEnd}
+                title="End Queue Session?"
+                message={`Are you sure you want to end the session "${sessionToEnd?.title || sessionToEnd?.session_date}"? New customers won't be able to join until you start it again.`}
+                confirmLabel="End Session"
+                confirmVariant="warning"
+                onConfirm={() => sessionToEnd && handleToggleSessionActive(sessionToEnd)}
+                onCancel={() => setSessionToEnd(null)}
+                isLoading={sessionToEnd ? sessionActionLoading[sessionToEnd.id] === 'active' : false}
+            />
         </div>
     );
 }

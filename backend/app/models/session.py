@@ -11,6 +11,7 @@ import uuid
 from datetime import date, datetime
 
 from sqlalchemy import (
+    Boolean,
     Date,
     DateTime,
     ForeignKey,
@@ -49,6 +50,8 @@ class Session(Base):
     )
     session_date: Mapped[date] = mapped_column(Date, nullable=False)
     title: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default="true")
+    is_paused: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

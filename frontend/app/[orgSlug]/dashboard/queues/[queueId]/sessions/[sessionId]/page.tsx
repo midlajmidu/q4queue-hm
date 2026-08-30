@@ -16,7 +16,7 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken } from "@/types/api";
-import { Pause, Play, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck, Settings2 } from "lucide-react";
+import { Pause, Play, Square, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck, Settings2 } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
@@ -419,12 +419,12 @@ export default function QueueDetailPage({ params }: PageProps) {
     };
 
     const [initialQueue, setInitialQueue] = useState<QueueResponse | null>(null);
-    const [sessionInfo, setSessionInfo] = useState<{ session_date: string; title: string } | null>(null);
+    const [sessionInfo, setSessionInfo] = useState<{ session_date: string; title: string; is_active?: boolean; is_paused?: boolean } | null>(null);
     const [todaySessionId, setTodaySessionId] = useState<string | null>(null);
 
     useEffect(() => {
         api.getQueue(queueId).then(setInitialQueue).catch(() => { });
-        api.getSession(sessionId).then(s => setSessionInfo({ session_date: s.session_date, title: s.title })).catch(() => { });
+        api.getSession(sessionId).then(s => setSessionInfo({ session_date: s.session_date, title: s.title, is_active: s.is_active, is_paused: s.is_paused })).catch(() => { });
     }, [queueId, sessionId]);
 
     const isTodaySession = React.useMemo(() => {
@@ -768,8 +768,8 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const isDisabled = actionLoading !== null;
     const queueName = state?.queue_name || initialQueue?.name || "Queue";
-    const isActive = state?.is_active ?? initialQueue?.is_active;
-    const isPaused = (state?.is_paused ?? initialQueue?.is_paused) === true;
+    const isActive = (sessionInfo?.is_active ?? state?.is_active ?? initialQueue?.is_active) !== false;
+    const isPaused = (sessionInfo?.is_paused ?? state?.is_paused ?? initialQueue?.is_paused) === true;
 
     const setErrorWithTimer = useCallback((msg: string) => {
         setActionError(msg);
@@ -840,19 +840,43 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const [pausing, setPausing] = useState(false);
     const handlePauseToggle = useCallback(async () => {
-        const currentPaused = state?.is_paused ?? initialQueue?.is_paused ?? false;
+        const currentPaused = sessionInfo?.is_paused ?? state?.is_paused ?? initialQueue?.is_paused ?? false;
         const nextState = !currentPaused;
         setPausing(true);
         setActionError(null);
         try {
-            await api.toggleQueuePaused(queueId, nextState);
-            sonnerToast.warning(nextState ? `Queue "${queueName}" is now paused` : `Queue "${queueName}" is resumed`);
+            await api.toggleSessionPaused(sessionId, nextState);
+            setSessionInfo(prev => prev ? { ...prev, is_paused: nextState } : prev);
+            sonnerToast.warning(nextState ? `Session is now on a break` : `Session resumed`);
         } catch (err: unknown) {
             if (err instanceof ApiError) setActionError(err.detail);
-            else setActionError("Failed to pause/resume queue");
+            else setActionError("Failed to pause/resume session");
             sonnerToast.error("Action failed");
         } finally { setPausing(false); }
-    }, [queueId, state?.is_paused, initialQueue?.is_paused, queueName]);
+    }, [sessionId, sessionInfo?.is_paused, state?.is_paused, initialQueue?.is_paused]);
+
+    const [togglingSessionActive, setTogglingSessionActive] = useState(false);
+    const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
+    const handleEndSessionToggle = useCallback(async () => {
+        const currentActive = sessionInfo?.is_active ?? state?.is_active ?? initialQueue?.is_active ?? true;
+        if (currentActive && !showEndSessionConfirm) {
+            setShowEndSessionConfirm(true);
+            return;
+        }
+        const nextState = !currentActive;
+        setTogglingSessionActive(true);
+        setActionError(null);
+        try {
+            await api.toggleSessionActive(sessionId, nextState);
+            setSessionInfo(prev => prev ? { ...prev, is_active: nextState } : prev);
+            sonnerToast.success(nextState ? `Session activated` : `Session ended`);
+            setShowEndSessionConfirm(false);
+        } catch (err: unknown) {
+            if (err instanceof ApiError) setActionError(err.detail);
+            else setActionError("Failed to toggle session active state");
+            sonnerToast.error("Action failed");
+        } finally { setTogglingSessionActive(false); }
+    }, [sessionId, sessionInfo?.is_active, state?.is_active, initialQueue?.is_active, showEndSessionConfirm]);
 
     const [showAddForm, setShowAddForm] = useState(false);
     const [mobileQuickExpanded, setMobileQuickExpanded] = useState(false);
@@ -881,9 +905,29 @@ export default function QueueDetailPage({ params }: PageProps) {
     const hasAdminCustomFieldsConfigured = Array.isArray(state?.custom_fields);
     const adminCustomFieldsList = state?.custom_fields || [];
 
+    const handleOpenAddModal = useCallback(() => {
+        if (!isTodaySession || !isActive) {
+            sonnerToast.error("This queue session is closed and is no longer accepting new tokens. Please scan today's active QR code.");
+            return;
+        }
+        if (isPaused) {
+            sonnerToast.warning("This queue session is temporarily on a break and not accepting walk-ins.");
+            return;
+        }
+        setShowAddForm(true);
+    }, [isTodaySession, isActive, isPaused]);
+
     const handlePreAddCustomer = useCallback(async () => {
-        if (!isTodaySession) {
-            setAddFormError("Cannot add customer: This session is closed (historical).");
+        if (!isTodaySession || !isActive) {
+            const msg = "This queue session is closed and is no longer accepting new tokens. Please scan today's active QR code.";
+            setAddFormError(msg);
+            sonnerToast.error(msg);
+            return;
+        }
+        if (isPaused) {
+            const msg = "This queue session is temporarily on a break and not accepting walk-ins.";
+            setAddFormError(msg);
+            sonnerToast.warning(msg);
             return;
         }
         if (hasAdminCustomFieldsConfigured) {
@@ -907,12 +951,16 @@ export default function QueueDetailPage({ params }: PageProps) {
             setAddFormError(null);
             setShowWhatsappConfirm(true);
         }
-    }, [isTodaySession, addPhone, isAddNameValid, hasAdminCustomFieldsConfigured, adminCustomFieldsList, addCustomData]);
+    }, [isTodaySession, isActive, isPaused, addPhone, isAddNameValid, hasAdminCustomFieldsConfigured, adminCustomFieldsList, addCustomData]);
 
     const handleConfirmAddCustomer = useCallback(async (sendWhatsapp: boolean) => {
         setShowWhatsappConfirm(false);
-        if (!isTodaySession) {
-            toast("Cannot add customers to a past session.", "error");
+        if (!isTodaySession || !isActive) {
+            toast("This queue session is closed and is no longer accepting new tokens. Please scan today's active QR code.", "error");
+            return;
+        }
+        if (isPaused) {
+            toast("This queue session is temporarily on a break and not accepting walk-ins.", "error");
             return;
         }
         const phoneDigits = addPhone.replace(/\D/g, "");
@@ -930,6 +978,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                 pax_count: resolvedPax,
                 send_whatsapp: sendWhatsapp,
                 entry_type: "manual",
+                session_id: sessionId,
                 custom_data: hasAdminCustomFieldsConfigured ? addCustomData : undefined
             });
             toast(`Token ${state?.prefix || ""}${res.token_number} created`, "success");
@@ -939,7 +988,7 @@ export default function QueueDetailPage({ params }: PageProps) {
             if (err instanceof ApiError) toast(err.detail, "error");
             else toast("Failed to add customer", "error");
         } finally { setActionLoading(null); }
-    }, [isTodaySession, queueId, addName, addPhone, addPaxCount, addCountryCode, state?.prefix, hasAdminCustomFieldsConfigured, addCustomData, toast]);
+    }, [isTodaySession, isActive, isPaused, queueId, sessionId, addName, addPhone, addPaxCount, addCountryCode, state?.prefix, hasAdminCustomFieldsConfigured, addCustomData, toast]);
 
 
     const executeInviteWithNumber = useCallback(async (num: number, lineNum?: number) => {
@@ -1291,11 +1340,17 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <>
                                                     <div className="fixed inset-0 z-[40]" onClick={() => setMobileActionsOpen(false)} />
                                                     <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-[50] flex flex-col gap-1 text-left">
-                                                        {isActive && canManageQueue && isTodaySession && (
-                                                            <button onClick={() => { handlePauseToggle(); setMobileActionsOpen(false); }} disabled={isDisabled || pausing} className="text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
-                                                                {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-                                                                {isPaused ? "Resume" : "Take a Break"}
-                                                            </button>
+                                                        {canManageQueue && isTodaySession && (
+                                                            <>
+                                                                <button onClick={() => { handlePauseToggle(); setMobileActionsOpen(false); }} disabled={isDisabled || pausing || !isActive} className="text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2 disabled:opacity-40">
+                                                                    {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                                                                    {isPaused ? "Resume" : "Take a Break"}
+                                                                </button>
+                                                                <button onClick={() => { handleEndSessionToggle(); setMobileActionsOpen(false); }} disabled={isDisabled || togglingSessionActive} className="text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2 disabled:opacity-40">
+                                                                    {isActive ? <Square className="w-3.5 h-3.5 fill-slate-400 text-slate-400" /> : <Play className="w-4 h-4 text-emerald-600" />}
+                                                                    {isActive ? "End Session" : "Start Session"}
+                                                                </button>
+                                                            </>
                                                         )}
                                                         {!isStaff && canManageQueue && isTodaySession && (
                                                             <button onClick={() => { setShowResetConfirm(true); setMobileActionsOpen(false); }} disabled={isDisabled || resetting} className="text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
@@ -1325,15 +1380,25 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div className="hidden md:block border-r border-slate-200 dark:border-white/10 h-6 mx-1" />
 
                                         <div className="hidden md:flex items-center gap-2">
-                                            {isActive && canManageQueue && isTodaySession && (
-                                                <button
-                                                    onClick={handlePauseToggle}
-                                                    disabled={isDisabled || pausing}
-                                                    className={`bg-white dark:bg-slate-800 border ${isPaused ? "border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/80" : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700"} shadow-sm text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2`}
-                                                >
-                                                    {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                                                    {isPaused ? "Resume" : "Take a Break"}
-                                                </button>
+                                            {canManageQueue && isTodaySession && (
+                                                <>
+                                                    <button
+                                                        onClick={handlePauseToggle}
+                                                        disabled={isDisabled || pausing || !isActive}
+                                                        className={`bg-white dark:bg-slate-800 border ${isPaused ? "border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/80" : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700"} shadow-sm text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed`}
+                                                    >
+                                                        {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                                                        {isPaused ? "Resume" : "Take a Break"}
+                                                    </button>
+                                                    <button
+                                                        onClick={handleEndSessionToggle}
+                                                        disabled={isDisabled || togglingSessionActive}
+                                                        className={`bg-white dark:bg-slate-800 border ${!isActive ? "border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/80" : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700"} shadow-sm text-xs font-medium px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed`}
+                                                    >
+                                                        {isActive ? <Square className="w-3 h-3 fill-slate-400 text-slate-400" /> : <Play className="w-3.5 h-3.5 text-emerald-600" />}
+                                                        {isActive ? "End Session" : "Start Session"}
+                                                    </button>
+                                                </>
                                             )}
                                             {!isStaff && canManageQueue && isTodaySession && (
                                                 <button
@@ -1647,10 +1712,10 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             <div className="sticky bottom-0 z-30 mt-auto hidden sm:flex items-center gap-2 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_-4px_20px_rgb(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgb(0,0,0,0.4)] transition-all">
                                                 {/* Manual Entry */}
                                                 <button
-                                                    onClick={() => setShowAddForm(true)}
-                                                    disabled={isDisabled || isPaused || !isTodaySession}
-                                                    title={!isTodaySession ? "Cannot add customers to a past session" : isPaused ? "Queue is currently on a break" : undefined}
-                                                    className="w-auto h-10 px-5 text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] shadow-[0_4px_12px_rgba(79,70,229,0.25)] hover:shadow-[0_6px_16px_rgba(79,70,229,0.35)] transition-all flex justify-center items-center gap-2 flex-shrink-0 disabled:opacity-50 disabled:shadow-none"
+                                                    onClick={handleOpenAddModal}
+                                                    disabled={isDisabled}
+                                                    title={!isTodaySession || !isActive ? "This queue session is closed and is no longer accepting new tokens. Please scan today's active QR code." : isPaused ? "This queue session is temporarily on a break and not accepting walk-ins." : undefined}
+                                                    className="w-auto h-10 px-5 text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] shadow-[0_4px_12px_rgba(79,70,229,0.25)] hover:shadow-[0_6px_16px_rgba(79,70,229,0.35)] transition-all flex justify-center items-center gap-2 flex-shrink-0 disabled:opacity-50 disabled:shadow-none cursor-pointer"
                                                 >
                                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                                                     Add Customer
@@ -2429,6 +2494,7 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                 {/* ── Modals ─────────────────────────────────────────── */}
 
+                <ConfirmModal isOpen={showEndSessionConfirm} title="End Queue Session?" message={`Are you sure you want to end the session for "${sessionInfo?.title || queueName}"? New customers won't be able to join until you start it again.`} confirmLabel="End Session" confirmVariant="warning" onConfirm={handleEndSessionToggle} onCancel={() => setShowEndSessionConfirm(false)} isLoading={togglingSessionActive} />
                 <ConfirmModal isOpen={showDeleteConfirm} title="Delete Queue" message={`Are you sure you want to permanently delete the queue "${state?.queue_name || "this queue"}"? All associated tokens and data will be lost forever.`} confirmLabel="Delete Queue" confirmVariant="danger" onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} isLoading={deleting} requireInput={true} requiredText={state?.queue_name || ""} />
                 <ConfirmModal isOpen={showResetConfirm} title="Reset Queue" message={`Are you sure you want to reset the queue "${state?.queue_name || "this queue"}"? This will delete all tokens and reset the current serving number to 0. This cannot be undone.`} confirmLabel="Reset Queue" confirmVariant="danger" onConfirm={handleReset} onCancel={() => setShowResetConfirm(false)} isLoading={resetting} requireInput={true} requiredText={state?.queue_name || ""} />
                 <ConfirmModal isOpen={!!tokenToRemove} title="Remove Customer" message={`Are you sure you want to remove token ${state?.prefix || ""}${tokenToRemove?.number} from the waiting list? They will be permanently marked as deleted.`} confirmLabel="Remove Token" confirmVariant="danger" onConfirm={handleConfirmRemove} onCancel={() => setTokenToRemove(null)} isLoading={actionLoading === "remove"} />
@@ -2665,10 +2731,10 @@ export default function QueueDetailPage({ params }: PageProps) {
                     <div className="flex items-center gap-2 px-4 py-3 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgb(0,0,0,0.04)]" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
                         {/* Add Customer — primary CTA */}
                         <button
-                            onClick={() => setShowAddForm(true)}
-                            disabled={isDisabled || isPaused || !isTodaySession}
-                            title={!isTodaySession ? "Cannot add customer to past session" : undefined}
-                            className="flex-1 w-full h-11 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:shadow-none"
+                            onClick={handleOpenAddModal}
+                            disabled={isDisabled}
+                            title={!isTodaySession || !isActive ? "This queue session is closed and is no longer accepting new tokens. Please scan today's active QR code." : undefined}
+                            className="flex-1 w-full h-11 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:shadow-none cursor-pointer"
                         >
                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                             Add Customer

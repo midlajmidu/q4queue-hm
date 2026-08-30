@@ -17,6 +17,7 @@ from app.models.session import Session
 from app.models.queue import Queue
 from app.models.token import Token, TokenStatus
 from app.models.organization import Organization
+from app.models.user import User
 from app.schemas.session import SessionCreate, SessionResponse, SessionUpdate
 from app.schemas.queue import QueueCreate
 
@@ -125,7 +126,7 @@ async def create_queue_session(
         )
     )
     if existing:
-        raise ValueError("A session already exists for this date. Only one session is allowed per day.")
+        raise ValueError("A session already exists for this date.")
         
     session_title = data.title.strip() if data.title and data.title.strip() else data.session_date.strftime("%Y-%m-%d")
     
@@ -223,6 +224,8 @@ async def list_sessions(
             queue_id=row.Session.queue_id,
             session_date=row.Session.session_date,
             title=row.Session.title,
+            is_active=getattr(row.Session, "is_active", True),
+            is_paused=getattr(row.Session, "is_paused", False),
             created_at=row.Session.created_at,
             total_served=row.total_served,
             total_issued=row.total_issued,
@@ -241,15 +244,34 @@ async def get_session_or_404(
     db: AsyncSession,
     *,
     session_id: uuid.UUID,
-    org_id: uuid.UUID,
+    org_id: Optional[uuid.UUID] = None,
+    user: Optional[User] = None,
 ) -> Session:
-    """Fetch a session scoped to org. Raises ValueError → 404."""
-    result = await db.execute(
-        select(Session).where(
+    """Fetch a session scoped to org or user. Raises ValueError → 404."""
+    from app.models.organization import Organization
+    
+    if user is not None:
+        if user.role == "super_admin":
+            query = select(Session).where(Session.id == session_id)
+        elif user.role == "organization_admin":
+            query = select(Session).join(Organization, Organization.id == Session.org_id).where(
+                Session.id == session_id,
+                Organization.parent_organization_id == user.parent_organization_id,
+            )
+        else:
+            query = select(Session).where(
+                Session.id == session_id,
+                Session.org_id == user.org_id,
+            )
+    elif org_id is not None:
+        query = select(Session).where(
             Session.id == session_id,
-            Session.org_id == org_id,  # TENANT ISOLATION
+            Session.org_id == org_id,
         )
-    )
+    else:
+        query = select(Session).where(Session.id == session_id)
+
+    result = await db.execute(query)
     session = result.scalar_one_or_none()
     if session is None:
         raise ValueError(f"Session {session_id} not found")
@@ -259,14 +281,19 @@ async def update_session(
     db: AsyncSession,
     *,
     session_id: uuid.UUID,
-    org_id: uuid.UUID,
+    org_id: Optional[uuid.UUID] = None,
+    user: Optional[User] = None,
     data: SessionUpdate,
 ) -> SessionResponse:
-    """Update a session's title."""
-    session = await get_session_or_404(db, session_id=session_id, org_id=org_id)
+    """Update a session's properties."""
+    session = await get_session_or_404(db, session_id=session_id, org_id=org_id, user=user)
     
     if data.title is not None:
         session.title = data.title
+    if data.is_active is not None:
+        session.is_active = data.is_active
+    if data.is_paused is not None:
+        session.is_paused = data.is_paused
         
     await db.commit()
     await db.refresh(session)
@@ -276,22 +303,53 @@ async def update_session(
         org_id=session.org_id,
         session_date=session.session_date,
         title=session.title,
+        is_active=session.is_active,
+        is_paused=session.is_paused,
         created_at=session.created_at,
         queue_id=session.queue_id,
     )
+
+async def set_session_active(
+    db: AsyncSession,
+    *,
+    session_id: uuid.UUID,
+    org_id: Optional[uuid.UUID] = None,
+    user: Optional[User] = None,
+    is_active: bool,
+) -> Session:
+    session = await get_session_or_404(db, session_id=session_id, org_id=org_id, user=user)
+    session.is_active = is_active
+    await db.commit()
+    await db.refresh(session)
+    return session
+
+async def set_session_paused(
+    db: AsyncSession,
+    *,
+    session_id: uuid.UUID,
+    org_id: Optional[uuid.UUID] = None,
+    user: Optional[User] = None,
+    is_paused: bool,
+) -> Session:
+    session = await get_session_or_404(db, session_id=session_id, org_id=org_id, user=user)
+    session.is_paused = is_paused
+    await db.commit()
+    await db.refresh(session)
+    return session
 
 
 async def delete_session(
     db: AsyncSession,
     *,
     session_id: uuid.UUID,
-    org_id: uuid.UUID,
+    org_id: Optional[uuid.UUID] = None,
+    user: Optional[User] = None,
 ) -> None:
     """Delete a session (cascades to queues and tokens)."""
-    session = await get_session_or_404(db, session_id=session_id, org_id=org_id)
+    session = await get_session_or_404(db, session_id=session_id, org_id=org_id, user=user)
     await db.delete(session)
     await db.commit()
-    logger.info("Session deleted | id=%s org=%s", session_id, org_id)
+    logger.info("Session deleted | id=%s", session_id)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

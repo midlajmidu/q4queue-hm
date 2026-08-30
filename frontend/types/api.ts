@@ -230,6 +230,8 @@ export interface SessionResponse {
     queue_id: string;
     session_date: string;
     title: string;
+    is_active?: boolean;
+    is_paused?: boolean;
     created_at: string;
     total_served: number;
     total_issued: number;

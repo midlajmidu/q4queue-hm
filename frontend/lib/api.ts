@@ -141,8 +141,8 @@ function friendlyMessage(status: number, rawDetail: string): string {
                 return rawDetail;
             }
             return "Session expired. Please sign in again.";
-        case 403: return "Access denied. You don't have permission for this action.";
-        case 404: return "The requested resource was not found.";
+        case 403: return rawDetail || "Access denied. You don't have permission for this action.";
+        case 404: return rawDetail || "The requested resource was not found.";
         case 409: return rawDetail || "This action conflicts with the current state.";
         case 422: return rawDetail || "Invalid input. Please check your data.";
         case 429: return rawDetail; // Handled separately with retry-after
@@ -514,10 +514,22 @@ export const api = {
         return request<SessionResponse>(`/sessions/${sessionId}`);
     },
 
-    updateSession(sessionId: string, data: { title: string }): Promise<void> {
-        return request<void>(`/sessions/${sessionId}`, {
+    updateSession(sessionId: string, data: { title?: string; is_active?: boolean; is_paused?: boolean }): Promise<SessionResponse> {
+        return request<SessionResponse>(`/sessions/${sessionId}`, {
             method: "PATCH",
             body: JSON.stringify(data),
+        });
+    },
+
+    toggleSessionActive(sessionId: string, isActive: boolean): Promise<SessionResponse> {
+        return request<SessionResponse>(`/sessions/${sessionId}/active?is_active=${isActive}`, {
+            method: "PATCH",
+        });
+    },
+
+    toggleSessionPaused(sessionId: string, isPaused: boolean): Promise<SessionResponse> {
+        return request<SessionResponse>(`/sessions/${sessionId}/paused?is_paused=${isPaused}`, {
+            method: "PATCH",
         });
     },
 
