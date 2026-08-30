@@ -144,7 +144,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                             Fixed at top-left (left-0 top-0), always 260px wide, h-16 (64px) tall.
                             Never collapses. Never hides logo.
                         ══════════════════════════════════════════════ */}
-                        <div className="hidden md:flex fixed top-0 left-0 z-[70] items-center justify-between h-16 w-[260px] bg-white border-b border-r border-slate-200/80 px-4">
+                        <div className="hidden md:flex fixed top-0 left-0 z-30 items-center justify-between h-16 w-[260px] bg-white border-b border-r border-slate-200/80 px-4">
                             <Link href="/organization-admin" className="focus:outline-none transition-opacity hover:opacity-80 flex items-center justify-center">
                                 <Logo size="sm" />
                             </Link>
@@ -152,7 +152,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                             {/* Collapse Toggle Button (Positioned cleanly on logo rail border) */}
                             <button
                                 onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                                className="absolute -right-3.5 top-1/2 -translate-y-1/2 bg-white border border-slate-300 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 rounded-full p-1.5 shadow-md z-[80] transition-all hover:scale-105 flex items-center justify-center cursor-pointer"
+                                className="absolute -right-3.5 top-1/2 -translate-y-1/2 bg-white border border-slate-300 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 rounded-full p-1.5 shadow-md z-30 transition-all hover:scale-105 flex items-center justify-center cursor-pointer"
                                 aria-label="Toggle Sidebar"
                             >
                                 <ChevronRight size={14} className={`transition-transform duration-300 ${isSidebarCollapsed ? "" : "rotate-180"}`} />
@@ -165,9 +165,9 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                             • Mobile: full-height drawer (top-0 left-0 z-50), width 260px
                         ══════════════════════════════════════════════ */}
                         <aside className={`bg-white border-r border-slate-200/80 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                            fixed left-0 bottom-0 z-[50] top-0 md:top-16
+                            fixed left-0 bottom-0 z-30 top-0 md:top-16
                             ${isSidebarCollapsed ? 'md:w-[72px]' : 'md:w-[260px]'} w-[260px]
-                            ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                            ${isMobileMenuOpen ? 'translate-x-0 !z-40' : '-translate-x-full md:translate-x-0'}
                         `}>
                             {/* Organic Wavy Vector Wallpaper Layers (Constrained to Sidebar Bounds) */}
                             <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">

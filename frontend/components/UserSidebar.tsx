@@ -188,7 +188,7 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                 Never collapses. Never hides.
             ══════════════════════════════════════════════ */}
             <div
-                className="hidden lg:flex fixed top-0 left-0 z-[70] items-center justify-between flex-shrink-0 bg-white dark:bg-[#0b1121] border-b border-r border-gray-200 dark:border-white/5"
+                className="hidden lg:flex fixed top-0 left-0 z-30 items-center justify-between flex-shrink-0 bg-white dark:bg-[#0b1121] border-b border-r border-gray-200 dark:border-white/5"
                 style={{ width: 256, height: 64 }}
             >
                 <Link
@@ -201,7 +201,7 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                 {/* Desktop Collapse Toggle — sits on the right edge of the logo rail */}
                 <button
                     onClick={onToggleCollapse}
-                    className="absolute -right-3 top-1/2 -translate-y-1/2 z-[80] flex items-center justify-center w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-full shadow-sm transition-all duration-200 focus:outline-none text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+                    className="absolute -right-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-full shadow-sm transition-all duration-200 focus:outline-none text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 dark:hover:text-slate-300"
                     aria-label={c ? "Expand sidebar" : "Collapse sidebar"}
                 >
                     <svg
@@ -226,12 +226,12 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                 • Mobile: full-height drawer, shows logo inside.
             ══════════════════════════════════════════════ */}
             <aside
-                className={`fixed left-0 bottom-0 z-[50] flex flex-col
+                className={`fixed left-0 bottom-0 z-30 flex flex-col
                     transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
                     bg-white dark:bg-transparent
                     border-r border-slate-200/80 dark:border-white/5
                     top-0 lg:top-16
-                    ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+                    ${isOpen ? "translate-x-0 !z-40" : "-translate-x-full lg:translate-x-0"}
                 `}
                 style={{ width: c ? 72 : 256 }}
                 role="complementary"

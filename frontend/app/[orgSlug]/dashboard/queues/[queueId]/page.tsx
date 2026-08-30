@@ -715,7 +715,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
 
             {/* ── Create Session Modal ── */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setIsCreateModalOpen(false)} />
                     <div className="relative bg-white dark:bg-slate-900 w-full sm:rounded-2xl sm:max-w-md rounded-t-2xl border-t sm:border border-slate-200 dark:border-white/10 shadow-2xl p-6 sm:p-7 animate-in slide-in-from-bottom sm:zoom-in-95 duration-200">
                         <div className="flex items-start justify-between mb-5">
@@ -796,7 +796,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
 
             {/* ── Delete Confirmation Modal ── */}
             {sessionToDelete && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => !deletingId && setSessionToDelete(null)} />
                     <div className="relative bg-white dark:bg-slate-900 w-full sm:rounded-2xl sm:max-w-sm rounded-t-2xl border-t sm:border border-slate-200 dark:border-white/10 shadow-2xl p-6 sm:p-7 animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 text-center">
                         <div className="w-11 h-11 bg-red-50 dark:bg-red-950/40 rounded-xl flex items-center justify-center mx-auto mb-4 border border-red-100 dark:border-red-900/30">
