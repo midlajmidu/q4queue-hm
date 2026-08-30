@@ -1466,7 +1466,7 @@ export default function OverviewPage() {
                               <span style={{
                                 background: act.status === 'done' ? 'var(--q-green-bg)' : act.status === 'waiting' ? 'var(--q-amber-bg)' : act.status === 'serving' ? 'var(--q-blue-bg)' : 'var(--q-slate-bg)',
                                 color: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
-                              }} className="inline-flex items-center justify-center px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full border border-black/5 dark:border-white/5">
+                              }} className="inline-flex items-center justify-center px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wider rounded-full border border-black/5 dark:border-white/5">
                                 {act.status}
                               </span>
                             </td>
