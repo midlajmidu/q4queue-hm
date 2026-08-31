@@ -88,7 +88,7 @@ export default function TrackingPage({ params }: PageProps) {
             const enabled = getSoundsEnabled();
             setSoundEnabled(enabled);
 
-            const audio = new Audio("/sounds/ringtone-you-would-be-glad-to-know.mp3");
+            const audio = new Audio("/sounds/warm-marimba.wav");
             audio.preload = "auto";
             audio.volume = 1.0;
             audioRef.current = audio;
@@ -571,21 +571,58 @@ export default function TrackingPage({ params }: PageProps) {
 
 
                             {isMyTurn && (
-                                <div role="alert" className="relative overflow-hidden rounded-xl p-4 sm:p-5 shadow-lg shadow-emerald-500/20 flex items-center gap-4 text-left bg-gradient-to-br from-emerald-500 to-emerald-600">
-                                    <div className="flex-shrink-0 relative z-10">
-                                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full flex items-center justify-center relative shadow-md text-emerald-600">
-                                            <div className="absolute -inset-1.5 border-2 border-white/60 rounded-full animate-ping opacity-50"></div>
+                                <div role="alert" className="relative overflow-hidden rounded-2xl p-4 sm:p-5 shadow-xl shadow-emerald-600/20 flex items-center gap-4 text-left bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600">
+                                    <style>{`
+                                        @keyframes smooth-beacon-ripple {
+                                            0% {
+                                                transform: scale(0.9);
+                                                opacity: 0.6;
+                                            }
+                                            50% {
+                                                opacity: 0.25;
+                                            }
+                                            100% {
+                                                transform: scale(1.6);
+                                                opacity: 0;
+                                            }
+                                        }
+                                        @keyframes smooth-beacon-ripple-outer {
+                                            0% {
+                                                transform: scale(0.9);
+                                                opacity: 0.4;
+                                            }
+                                            50% {
+                                                opacity: 0.15;
+                                            }
+                                            100% {
+                                                transform: scale(2.0);
+                                                opacity: 0;
+                                            }
+                                        }
+                                        .animate-beacon-1 {
+                                            animation: smooth-beacon-ripple 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+                                        }
+                                        .animate-beacon-2 {
+                                            animation: smooth-beacon-ripple-outer 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite 0.6s;
+                                        }
+                                    `}</style>
+                                    <div className="flex-shrink-0 relative z-10 flex items-center justify-center">
+                                        {/* Smooth soft expanding ripples */}
+                                        <span className="absolute w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/40 animate-beacon-1 pointer-events-none" />
+                                        <span className="absolute w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/30 animate-beacon-2 pointer-events-none" />
+
+                                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full flex items-center justify-center relative shadow-[0_4px_16px_rgba(0,0,0,0.12)] text-emerald-600 z-10">
                                             <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
                                         </div>
                                     </div>
 
                                     <div className="flex-1 relative z-10">
-                                        <h3 className="text-base sm:text-lg font-black text-white tracking-widest uppercase drop-shadow-sm leading-tight">It&apos;s Your Turn!</h3>
+                                        <h3 className="text-base sm:text-lg font-black text-white tracking-wider uppercase leading-tight">It&apos;s Your Turn!</h3>
                                         
                                         {myAssignedLine != null ? (
-                                            <div className="mt-1 text-emerald-50 text-[11px] sm:text-xs font-semibold uppercase tracking-wider flex items-center gap-2 flex-wrap">
+                                            <div className="mt-1.5 text-emerald-50 text-[11px] sm:text-xs font-semibold uppercase tracking-wider flex items-center gap-2 flex-wrap">
                                                 Proceed to
-                                                <span className="text-[11px] sm:text-xs font-black bg-white text-emerald-700 px-2.5 py-0.5 rounded shadow-sm">
+                                                <span className="text-[11px] sm:text-xs font-black bg-white text-emerald-700 px-2.5 py-0.5 rounded-md shadow-sm">
                                                     Lane {myAssignedLine}
                                                 </span>
                                             </div>
@@ -686,7 +723,7 @@ export default function TrackingPage({ params }: PageProps) {
                                         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Ticket</span>
                                     </div>
                                     
-                                    <div className={`text-[5rem] sm:text-[5.5rem] leading-none font-black tabular-nums tracking-tighter mb-2 drop-shadow-sm ${isMyTurn ? "text-emerald-500" : alreadyServed ? "text-slate-300" : ""}`} style={(!isMyTurn && !alreadyServed) ? { color: brandColor } : {}}>
+                                    <div className={`text-[5rem] sm:text-[5.5rem] leading-none font-black tabular-nums tracking-tighter mb-2 ${isMyTurn ? "text-emerald-500" : alreadyServed ? "text-slate-300" : ""}`} style={(!isMyTurn && !alreadyServed) ? { color: brandColor } : {}}>
                                         {prefix}{myNumber}
                                     </div>
 

@@ -365,11 +365,11 @@ export default function QueueDetailPage({ params }: PageProps) {
         sonnerToast.custom((t) => (
             <div
                 onClick={() => sonnerToast.dismiss(t)}
-                className="w-[calc(100vw-32px)] sm:w-[320px] max-w-[320px] mx-auto bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors duration-200 animate-in slide-in-from-top-4 fade-in ease-out overflow-hidden"
+                className="w-[calc(100vw-32px)] sm:w-[320px] max-w-[320px] mx-auto bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-slate-200 dark:border-white/10 cursor-pointer hover:border-slate-300 dark:hover:border-white/20 transition-colors duration-200 animate-in slide-in-from-top-4 fade-in ease-out overflow-hidden"
             >
                 <div className="flex items-start px-4 py-4 gap-3.5">
                     {/* Professional Flat Icon */}
-                    <div className="w-10 h-10 flex-shrink-0 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                    <div className="w-10 h-10 flex-shrink-0 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-100 dark:border-indigo-800/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                         <UserPlus className="h-5 w-5 stroke-[2px]" />
                     </div>
 
@@ -377,8 +377,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                     <div className="flex flex-col flex-1 min-w-0 justify-center pt-0.5">
                         {/* Header Row */}
                         <div className="flex justify-between items-center mb-1">
-                            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">New Customer</span>
-                            <span className="text-[11px] font-medium text-slate-400 whitespace-nowrap ml-2">
+                            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">New Customer</span>
+                            <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap ml-2">
                                 {data.time ? fmtTime(data.time, tz) : ""}
                             </span>
                         </div>
@@ -418,12 +418,27 @@ export default function QueueDetailPage({ params }: PageProps) {
         });
     };
 
-    const [initialQueue, setInitialQueue] = useState<QueueResponse | null>(null);
+    const [initialQueue, setInitialQueue] = useState<QueueResponse | null>(() => {
+        if (typeof window !== "undefined" && queueId) {
+            try {
+                const cached = sessionStorage.getItem(`queue_cache_${queueId}`);
+                if (cached) return JSON.parse(cached) as QueueResponse;
+            } catch { }
+        }
+        return null;
+    });
     const [sessionInfo, setSessionInfo] = useState<{ session_date: string; title: string; is_active?: boolean; is_paused?: boolean } | null>(null);
     const [todaySessionId, setTodaySessionId] = useState<string | null>(null);
 
     useEffect(() => {
-        api.getQueue(queueId).then(setInitialQueue).catch(() => { });
+        api.getQueue(queueId).then(q => {
+            setInitialQueue(q);
+            if (typeof window !== "undefined") {
+                try {
+                    sessionStorage.setItem(`queue_cache_${queueId}`, JSON.stringify(q));
+                } catch { }
+            }
+        }).catch(() => { });
         api.getSession(sessionId).then(s => setSessionInfo({ session_date: s.session_date, title: s.title, is_active: s.is_active, is_paused: s.is_paused })).catch(() => { });
     }, [queueId, sessionId]);
 
@@ -847,7 +862,64 @@ export default function QueueDetailPage({ params }: PageProps) {
         try {
             await api.toggleSessionPaused(sessionId, nextState);
             setSessionInfo(prev => prev ? { ...prev, is_paused: nextState } : prev);
-            sonnerToast.warning(nextState ? `Session is now on a break` : `Session resumed`);
+
+            if (nextState) {
+                sonnerToast.custom((t) => (
+                    <div
+                        onClick={() => sonnerToast.dismiss(t)}
+                        className="w-[calc(100vw-32px)] sm:w-[350px] max-w-[350px] mx-auto bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-slate-200 dark:border-white/10 cursor-pointer hover:border-slate-300 dark:hover:border-white/20 transition-colors duration-200 animate-in slide-in-from-top-4 fade-in ease-out overflow-hidden"
+                    >
+                        <div className="flex items-start px-4 py-3.5 gap-3.5">
+                            <div className="w-9 h-9 flex-shrink-0 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                                <Pause className="h-4 w-4 fill-current" />
+                            </div>
+                            <div className="flex flex-col flex-1 min-w-0 justify-center">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-slate-900 dark:text-white">Taking a Break</span>
+                                    <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300">
+                                        Paused
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                                    Session is on break. Token registrations are temporarily paused.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ), {
+                    duration: 4000,
+                    id: `session-pause-${sessionId}`,
+                    unstyled: true
+                });
+            } else {
+                sonnerToast.custom((t) => (
+                    <div
+                        onClick={() => sonnerToast.dismiss(t)}
+                        className="w-[calc(100vw-32px)] sm:w-[350px] max-w-[350px] mx-auto bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-slate-200 dark:border-white/10 cursor-pointer hover:border-slate-300 dark:hover:border-white/20 transition-colors duration-200 animate-in slide-in-from-top-4 fade-in ease-out overflow-hidden"
+                    >
+                        <div className="flex items-start px-4 py-3.5 gap-3.5">
+                            <div className="w-9 h-9 flex-shrink-0 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-100 dark:border-sky-800/40 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                                <Play className="h-4 w-4 fill-current ml-0.5" />
+                            </div>
+                            <div className="flex flex-col flex-1 min-w-0 justify-center">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-slate-900 dark:text-white">Session Resumed</span>
+                                    <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300">
+                                        Live
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                                    Break finished. Queue service and customer entry have resumed.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ), {
+                    duration: 4000,
+                    id: `session-pause-${sessionId}`,
+                    unstyled: true
+                });
+            }
         } catch (err: unknown) {
             if (err instanceof ApiError) setActionError(err.detail);
             else setActionError("Failed to pause/resume session");
@@ -869,7 +941,64 @@ export default function QueueDetailPage({ params }: PageProps) {
         try {
             await api.toggleSessionActive(sessionId, nextState);
             setSessionInfo(prev => prev ? { ...prev, is_active: nextState } : prev);
-            sonnerToast.success(nextState ? `Session activated` : `Session ended`);
+            
+            if (nextState) {
+                sonnerToast.custom((t) => (
+                    <div
+                        onClick={() => sonnerToast.dismiss(t)}
+                        className="w-[calc(100vw-32px)] sm:w-[350px] max-w-[350px] mx-auto bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-slate-200 dark:border-white/10 cursor-pointer hover:border-slate-300 dark:hover:border-white/20 transition-colors duration-200 animate-in slide-in-from-top-4 fade-in ease-out overflow-hidden"
+                    >
+                        <div className="flex items-start px-4 py-3.5 gap-3.5">
+                            <div className="w-9 h-9 flex-shrink-0 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                                <Play className="h-4 w-4 fill-current ml-0.5" />
+                            </div>
+                            <div className="flex flex-col flex-1 min-w-0 justify-center">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-slate-900 dark:text-white">Session Started</span>
+                                    <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300">
+                                        Active
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                                    Queue is now live and accepting customer tokens.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ), {
+                    duration: 4000,
+                    id: `session-state-${sessionId}`,
+                    unstyled: true
+                });
+            } else {
+                sonnerToast.custom((t) => (
+                    <div
+                        onClick={() => sonnerToast.dismiss(t)}
+                        className="w-[calc(100vw-32px)] sm:w-[350px] max-w-[350px] mx-auto bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-slate-200 dark:border-white/10 cursor-pointer hover:border-slate-300 dark:hover:border-white/20 transition-colors duration-200 animate-in slide-in-from-top-4 fade-in ease-out overflow-hidden"
+                    >
+                        <div className="flex items-start px-4 py-3.5 gap-3.5">
+                            <div className="w-9 h-9 flex-shrink-0 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-100 dark:border-rose-800/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                                <Square className="h-4 w-4 fill-current" />
+                            </div>
+                            <div className="flex flex-col flex-1 min-w-0 justify-center">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-slate-900 dark:text-white">Session Stopped</span>
+                                    <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300">
+                                        Closed
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                                    Queue session is stopped. New token registrations are closed.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ), {
+                    duration: 4000,
+                    id: `session-state-${sessionId}`,
+                    unstyled: true
+                });
+            }
             setShowEndSessionConfirm(false);
         } catch (err: unknown) {
             if (err instanceof ApiError) setActionError(err.detail);
@@ -1483,7 +1612,23 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                                         {/* Hero – Now Serving or Service Lanes Grid */}
                                         {(() => {
+                                            const hasQueueData = !!(state !== null || initialQueue !== null);
                                             const numLines = state?.service_lines ?? initialQueue?.service_lines ?? 0;
+
+                                            // If queue metadata hasn't loaded yet, show a sleek skeleton to prevent flashing the wrong counter mode
+                                            if (!hasQueueData) {
+                                                return (
+                                                    <div className="pt-4 pb-1 px-4 sm:px-6 lg:px-8 w-full flex justify-center">
+                                                        <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[1.5rem] p-8 border border-slate-200/80 dark:border-white/10 shadow-xs flex flex-col items-center justify-center animate-pulse min-h-[300px]">
+                                                            <div className="w-28 h-6 bg-slate-100 dark:bg-slate-800 rounded-full mb-6" />
+                                                            <div className="w-36 h-20 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4" />
+                                                            <div className="w-48 h-4 bg-slate-100 dark:bg-slate-800 rounded-md mb-2" />
+                                                            <div className="w-36 h-3 bg-slate-100 dark:bg-slate-800 rounded-md" />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+
                                             if (numLines > 0) {
                                                 return (
                                                     <ServiceLinesGrid
@@ -1503,8 +1648,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             return null;
                                         })()}
 
-                                        {/* Original single-counter serving hero (only when service_lines === 0) */}
-                                        {(state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && (
+                                        {/* Original single-counter serving hero (only when queue metadata is loaded and service_lines === 0) */}
+                                        {!!(state !== null || initialQueue !== null) && (state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && (
                                             <>
                                                 <div className="pt-4 pb-1 px-4 sm:px-6 lg:px-8 w-full flex justify-center">
                                                     <div className="relative w-full max-w-2xl flex flex-col filter drop-shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
@@ -2553,7 +2698,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         value={addCustomData[field.key] || ""}
                                                         onChange={e => setAddCustomData({ ...addCustomData, [field.key]: e.target.value })}
                                                         className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none resize-none h-24"
-                                                        placeholder={`Enter ${field.label}`}
+                                                        placeholder={field.required ? `Enter ${field.label}` : `Enter ${field.label} (optional)`}
                                                     />
                                                 ) : field.type === 'select' ? (
                                                     <select
@@ -2561,7 +2706,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         onChange={e => setAddCustomData({ ...addCustomData, [field.key]: e.target.value })}
                                                         className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                                                     >
-                                                        <option value="" disabled>Select {field.label}</option>
+                                                        <option value="" disabled>Select {field.label}{field.required ? "" : " (optional)"}</option>
                                                         {field.options?.map(opt => (
                                                             <option key={opt} value={opt}>{opt}</option>
                                                         ))}
@@ -2571,7 +2716,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         type={field.type === 'phone' ? 'tel' : field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : 'text'}
                                                         value={addCustomData[field.key] || ""}
                                                         onChange={e => setAddCustomData({ ...addCustomData, [field.key]: e.target.value })}
-                                                        placeholder={`Enter ${field.label}`}
+                                                        placeholder={field.required ? `Enter ${field.label}` : `Enter ${field.label} (optional)`}
                                                         className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                                                     />
                                                 )}
@@ -2809,7 +2954,8 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                 skipped_at: (t as WaitingToken).skipped_at,
                 deleted_at: (t as WaitingToken).deleted_at,
                 recalled_at: (t as WaitingToken).recalled_at,
-                removed_by: (t as WaitingToken).removed_by
+                removed_by: (t as WaitingToken).removed_by,
+                custom_data: (t as any).custom_data || null,
             })}
         >
             <div className="flex items-center gap-3.5 min-w-0 flex-1">
@@ -2901,6 +3047,7 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
         deleted_at: (t as WaitingToken).deleted_at,
         recalled_at: (t as WaitingToken).recalled_at,
         removed_by: (t as WaitingToken).removed_by,
+        custom_data: (t as any).custom_data || null,
     };
 
     return (
@@ -3321,7 +3468,7 @@ function QueueHistory({
                                                 </div>
                                             </div>
                                         </td>
-                                        <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
+                                        <td style={{ padding: "10px 18px", whiteSpace: "nowrap" }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                                                 {(() => {
                                                     const cls = item.status === "done" ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
@@ -3330,22 +3477,22 @@ function QueueHistory({
                                                                 : item.status === "deleted" ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20"
                                                                     : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
                                                     return (
-                                                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium border ${cls}`}>
-                                                            {item.status === "done" && <CheckCircle2 size={13} />}
-                                                            {item.status === "deleted" && <MinusCircle size={13} />}
-                                                            {item.status === "skipped" && <Hourglass size={13} />}
-                                                            {item.status === "serving" && <Play size={13} />}
-                                                            {item.status === "waiting" && <Clock size={13} />}
-                                                            {item.status === "done" ? "Done" : item.status === "deleted" ? "Removed" : item.status === "skipped" ? "Skipped" : ss.label}
+                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${cls}`}>
+                                                            {item.status === "done" && <CheckCircle2 size={11.5} className="stroke-[2.2]" />}
+                                                            {item.status === "deleted" && <MinusCircle size={11.5} className="stroke-[2.2]" />}
+                                                            {item.status === "skipped" && <Hourglass size={11.5} className="stroke-[2.2]" />}
+                                                            {item.status === "serving" && <Play size={10} className="fill-current" />}
+                                                            {item.status === "waiting" && <Clock size={11.5} className="stroke-[2.2]" />}
+                                                            <span>{item.status === "done" ? "Done" : item.status === "deleted" ? "Removed" : item.status === "skipped" ? "Skipped" : ss.label}</span>
                                                         </span>
                                                     );
                                                 })()}
                                             </div>
                                         </td>
-                                        <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
+                                        <td style={{ padding: "10px 18px", whiteSpace: "nowrap" }}>
                                             {isManual
-                                                ? <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><User size={13} />Manual</span>
-                                                : <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={13} />QR</span>
+                                                ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400"><User size={11} />Manual</span>
+                                                : <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={11} />QR</span>
                                             }
                                         </td>
                                         <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
@@ -3377,12 +3524,14 @@ function QueueHistory({
                                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                 <button
                                                     onClick={() => onViewToken({
+                                                        id: item.id,
                                                         token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name,
                                                         customer_phone: item.customer_phone, pax_count: item.pax_count,
                                                         status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at,
                                                         entry_type: isManual ? "manual" : "qr", queue_name: queueName,
                                                         assigned_line: item.assigned_line, served_by_staff_name: item.served_by_staff_name, completed_by_staff_name: item.completed_by_staff_name,
-                                                        skipped_at: item.skipped_at, deleted_at: item.deleted_at, recalled_at: item.recalled_at, removed_by: item.removed_by
+                                                        skipped_at: item.skipped_at, deleted_at: item.deleted_at, recalled_at: item.recalled_at, removed_by: item.removed_by,
+                                                        custom_data: (item as any).custom_data || null,
                                                     })}
                                                     className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-lg transition-colors"
                                                     title="View Details"

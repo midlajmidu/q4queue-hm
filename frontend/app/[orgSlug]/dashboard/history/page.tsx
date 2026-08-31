@@ -607,6 +607,7 @@ export default function HistoryPage() {
                                                 <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
                                                     <button
                                                         onClick={() => setSelectedToken({
+                                                            id: h.id,
                                                             token_number: h.token_number,
                                                             prefix: h.queue_prefix || "",
                                                             customer_name: h.customer_name,
@@ -625,6 +626,7 @@ export default function HistoryPage() {
                                                             removed_by: h.removed_by,
                                                             served_by_staff_name: h.served_by_staff_name,
                                                             completed_by_staff_name: h.completed_by_staff_name,
+                                                            custom_data: h.custom_data || null,
                                                         })}
                                                         title="View full details"
                                                         className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-colors"

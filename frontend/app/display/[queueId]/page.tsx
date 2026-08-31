@@ -54,7 +54,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
         // Default to true on first load (TV display should have sound on by default)
         setSoundEnabled(enabled === null ? true : enabled === "true");
         if (enabled === null) localStorage.setItem("display_sound_enabled", "true");
-        const audio = new Audio("/sounds/ringtone-you-would-be-glad-to-know.mp3");
+        const audio = new Audio("/sounds/airport-ding-dong.wav");
         audio.preload = "auto";
         audio.volume = 1.0;
         audioRef.current = audio;

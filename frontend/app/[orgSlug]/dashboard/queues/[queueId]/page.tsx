@@ -141,7 +141,11 @@ export default function QueueSessionListPage({ params }: PageProps) {
         try {
             await api.toggleSessionActive(session.id, nextActive);
             setSessions(prev => prev.map(s => s.id === session.id ? { ...s, is_active: nextActive } : s));
-            toast.success(nextActive ? `Session activated` : `Session ended`);
+            if (nextActive) {
+                toast.success("Session activated. Ready for customer tokens.");
+            } else {
+                toast.warning("Session stopped. Token registrations are now closed.");
+            }
             setSessionToEnd(null);
         } catch (err: any) {
             toast.error(err?.message || "Failed to toggle session active state");
@@ -160,8 +164,11 @@ export default function QueueSessionListPage({ params }: PageProps) {
         setSessionActionLoading(prev => ({ ...prev, [session.id]: 'paused' }));
         try {
             await api.toggleSessionPaused(session.id, nextPaused);
-            setSessions(prev => prev.map(s => s.id === session.id ? { ...s, is_paused: nextPaused } : s));
-            toast.warning(nextPaused ? `Session is now on a break` : `Session resumed`);
+            if (nextPaused) {
+                toast.warning("Session is on break. Token registrations are paused.");
+            } else {
+                toast.success("Session resumed. Ready for customer tokens.");
+            }
         } catch (err: any) {
             toast.error(err?.message || "Failed to pause/resume session");
         } finally {
@@ -190,7 +197,14 @@ export default function QueueSessionListPage({ params }: PageProps) {
     }, [queueId]);
 
     useEffect(() => {
-        api.getQueue(queueId).then(setQueue).catch(() => {});
+        api.getQueue(queueId).then((q) => {
+            setQueue(q);
+            if (typeof window !== "undefined") {
+                try {
+                    sessionStorage.setItem(`queue_cache_${queueId}`, JSON.stringify(q));
+                } catch { }
+            }
+        }).catch(() => {});
     }, [queueId]);
 
     useEffect(() => {

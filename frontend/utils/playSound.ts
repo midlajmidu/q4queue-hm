@@ -3,7 +3,7 @@
  * Uses the project ringtone. Silently swallows autoplay-block errors.
  */
 
-const SOUND_FILE = "/sounds/ringtone-you-would-be-glad-to-know.mp3";
+const SOUND_FILE = "/sounds/warm-marimba.wav";
 
 export function playQueueSound(): void {
     if (typeof window === "undefined") return;

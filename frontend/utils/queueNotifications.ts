@@ -6,7 +6,7 @@
  */
 
 const STORAGE_KEY = "queue_sounds_enabled";
-const SOUND_FILE = "/sounds/ringtone-you-would-be-glad-to-know.mp3";
+const SOUND_FILE = "/sounds/warm-marimba.wav";
 
 // ── User preference storage ─────────────────────────────────────────────────
 

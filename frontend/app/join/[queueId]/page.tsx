@@ -622,7 +622,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                         onChange={e => setCustomData({ ...customData, [field.key]: e.target.value })}
                                                         disabled={isJoining || queueClosed}
                                                         className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none resize-none h-24 disabled:opacity-50"
-                                                        placeholder={`Enter ${field.label}`}
+                                                        placeholder={field.required ? `Enter ${field.label}` : `Enter ${field.label} (optional)`}
                                                     />
                                                 ) : field.type === 'select' ? (
                                                     <div className="relative">
@@ -632,7 +632,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                             disabled={isJoining || queueClosed}
                                                             className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none appearance-none disabled:opacity-50"
                                                         >
-                                                            <option value="" disabled>Select {field.label}</option>
+                                                            <option value="" disabled>Select {field.label}{field.required ? "" : " (optional)"}</option>
                                                             {field.options?.map(opt => (
                                                                 <option key={opt} value={opt}>{opt}</option>
                                                             ))}
@@ -665,7 +665,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                             value={customData[field.key] || ""}
                                                             onChange={e => setCustomData({ ...customData, [field.key]: e.target.value.replace(/\D/g, "").slice(0, 10) })}
                                                             disabled={isJoining || queueClosed}
-                                                            placeholder="e.g. 1234567890"
+                                                            placeholder={field.required ? "e.g. 1234567890" : "e.g. 1234567890 (optional)"}
                                                             maxLength={10}
                                                             className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium focus:outline-none disabled:opacity-50"
                                                         />
@@ -684,7 +684,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                             setCustomData({ ...customData, [field.key]: val });
                                                         }}
                                                         disabled={isJoining || queueClosed}
-                                                        placeholder={`Enter ${field.label}`}
+                                                        placeholder={field.required ? `Enter ${field.label}` : `Enter ${field.label} (optional)`}
                                                         className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none disabled:opacity-50"
                                                     />
                                                 )}

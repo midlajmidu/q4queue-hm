@@ -487,6 +487,7 @@ async def get_history_details(
             "deleted_at": token.deleted_at.isoformat() if token.deleted_at else None,
             "skipped_at": token.skipped_at.isoformat() if token.skipped_at else None,
             "recalled_at": token.recalled_at.isoformat() if token.recalled_at else None,
+            "custom_data": token.custom_data,
         })
 
     return {

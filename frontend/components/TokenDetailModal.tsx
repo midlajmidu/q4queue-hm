@@ -199,12 +199,18 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         {fullToken.custom_data && Object.keys(fullToken.custom_data).length > 0 && (
                             <>
                                 {Object.entries(fullToken.custom_data).map(([key, value]) => {
-                                    // Skip mapping duplicated known keys
+                                    // Skip mapping duplicated known keys handled in the header
                                     if (key === 'name' || key === 'full_name' || key === 'phone' || key === 'phone_number' || key === 'pax' || key === 'group_size') return null;
                                     
-                                    // Format key to label roughly
+                                    // Format key to a clean human-readable title
                                     const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                                    return <DetailItem key={key} label={label} value={String(value)} />;
+                                    const displayVal = (value === null || value === undefined || value === "")
+                                        ? "—"
+                                        : typeof value === "boolean"
+                                            ? (value ? "Yes" : "No")
+                                            : String(value);
+
+                                    return <DetailItem key={key} label={label} value={displayVal} />;
                                 })}
                             </>
                         )}

@@ -892,6 +892,7 @@ export interface TokenHistoryItem {
     deleted_at?: string | null;
     recalled_at?: string | null;
     removed_by?: string | null;
+    custom_data?: Record<string, any> | null;
 }
 
 export interface PaginatedHistoryResponse {

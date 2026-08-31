@@ -81,6 +81,7 @@ async def build_queue_snapshot(
             serving_details["customer_age"] = serving_token.customer_age
             serving_details["customer_phone"] = serving_token.customer_phone
             serving_details["companion_names"] = serving_token.companion_names
+            serving_details["custom_data"] = getattr(serving_token, "custom_data", None)
 
     # ── All serving tokens (multi-lane: all N lanes) ───────────────
     all_serving_result = await db.execute(
@@ -108,6 +109,7 @@ async def build_queue_snapshot(
         if is_admin:
             sd["customer_phone"] = t.customer_phone
             sd["customer_age"] = t.customer_age
+            sd["custom_data"] = getattr(t, "custom_data", None)
         all_serving_tokens.append(sd)
 
     # ── Waiting count ──────────────────────────────────────────────
@@ -272,6 +274,7 @@ async def build_queue_snapshot(
             token_data["customer_phone"] = t.customer_phone
             token_data["companion_names"] = t.companion_names
             token_data["removed_by"] = getattr(t, "removed_by", None)
+            token_data["custom_data"] = getattr(t, "custom_data", None)
         skipped_tokens.append(token_data)
 
     # ── Deleted tokens (all of them, or limit 50) ──
@@ -301,12 +304,14 @@ async def build_queue_snapshot(
             "skipped_at": getattr(t, "skipped_at", None).isoformat() if getattr(t, "skipped_at", None) else None,
             "deleted_at": getattr(t, "deleted_at", None).isoformat() if getattr(t, "deleted_at", None) else None,
             "recalled_at": getattr(t, "recalled_at", None).isoformat() if getattr(t, "recalled_at", None) else None,
+            "pax_count": getattr(t, "pax_count", 1),
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
             token_data["customer_phone"] = t.customer_phone
             token_data["companion_names"] = t.companion_names
             token_data["removed_by"] = getattr(t, "removed_by", None)
+            token_data["custom_data"] = getattr(t, "custom_data", None)
         deleted_tokens.append(token_data)
 
     return {
