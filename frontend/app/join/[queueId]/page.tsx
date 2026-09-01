@@ -461,44 +461,46 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 {queueClosed ? "Currently Closed" : "Now Serving"}
                             </p>
 
-                            <div className="relative mx-auto w-full">
+                            <div className="relative mx-auto w-full mt-3">
                                 {activeServingTokens.length === 0 ? (
-                                    <div className="relative mx-auto w-full max-w-[200px]">
-                                        <div className="absolute -inset-1 bg-white/10 blur-xl rounded-2xl opacity-50"></div>
-                                        <div className="relative text-5xl sm:text-6xl font-black tabular-nums tracking-tighter py-3 sm:py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex items-center justify-center min-h-[80px] sm:min-h-[100px]">
-                                            —
-                                        </div>
+                                    <div className="text-5xl sm:text-6xl font-black tabular-nums tracking-tighter py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg flex items-center justify-center min-h-[80px] text-white/60">
+                                        —
                                     </div>
                                 ) : activeServingTokens.length === 1 ? (
-                                    <div className="relative mx-auto w-full max-w-[200px]">
-                                        <div className="absolute -inset-1 bg-white/10 blur-xl rounded-2xl opacity-50"></div>
-                                        <div className="relative text-4xl sm:text-5xl font-black tabular-nums tracking-tighter py-3 sm:py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl flex items-center justify-center min-h-[80px] sm:min-h-[100px] px-4 text-center break-words break-all" aria-live="polite" aria-atomic="true" aria-label={`Currently serving token ${prefix}${activeServingTokens[0].token_number}`}>
+                                    <div className="max-w-[200px] mx-auto py-3.5 bg-white/15 backdrop-blur-md rounded-2xl border border-white/25 shadow-lg flex flex-col items-center justify-center" aria-live="polite" aria-atomic="true">
+                                        <span className="text-4xl sm:text-5xl font-black tabular-nums tracking-tight text-white leading-none">
                                             {prefix}{activeServingTokens[0].token_number}
-                                        </div>
+                                        </span>
+                                        {activeServingTokens[0].assigned_line !== null && (
+                                            <span className="text-[10px] font-bold text-white/90 mt-2 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full">
+                                                Lane {activeServingTokens[0].assigned_line}
+                                            </span>
+                                        )}
                                     </div>
                                 ) : activeServingTokens.length <= 3 ? (
-                                    <div className="mt-2 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl px-4 relative">
-                                        <div className="absolute -inset-1 bg-white/10 blur-xl rounded-2xl opacity-50"></div>
-                                        <div className="relative flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+                                    <div className="py-2" aria-live="polite" aria-atomic="true">
+                                        <div className="flex flex-wrap items-center justify-center gap-3">
                                             {activeServingTokens.map((t: any) => (
-                                                <div key={t.id || t.token_number} className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 sm:px-4 flex flex-col items-center min-w-[80px] shrink-0 border border-white/5 max-w-full">
-                                                    <span className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight leading-none text-white break-words break-all text-center">{prefix}{t.token_number}</span>
+                                                <div key={t.id || t.token_number} className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 sm:py-3 flex flex-col items-center min-w-[88px] shrink-0 border border-white/20 shadow-sm transition-all">
+                                                    <span className="text-2xl sm:text-[26px] font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
                                                     {t.assigned_line !== null && (
-                                                        <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Lane {t.assigned_line}</span>
+                                                        <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">Lane {t.assigned_line}</span>
                                                     )}
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="mt-2 overflow-hidden w-full relative py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl" aria-live="polite" aria-atomic="true" aria-label={`Currently serving tokens: ${activeServingTokens.map((t: any) => `${prefix}${t.token_number}`).join(', ')}`}>
+                                    <div className="overflow-hidden w-full relative py-1" aria-live="polite" aria-atomic="true">
                                         <style>{`
                                             .hide-scroll::-webkit-scrollbar { display: none; }
                                         `}</style>
-                                        <div className="absolute -inset-1 bg-white/10 blur-xl rounded-2xl opacity-50"></div>
+                                        {/* Soft edge fade masks */}
+                                        <div className="pointer-events-none absolute left-0 inset-y-0 w-6 bg-gradient-to-r from-blue-600/80 to-transparent z-10"></div>
+                                        <div className="pointer-events-none absolute right-0 inset-y-0 w-6 bg-gradient-to-l from-blue-600/80 to-transparent z-10"></div>
                                         <div
                                             ref={scrollContainerRef}
-                                            className="relative flex flex-nowrap items-center gap-4 px-4 overflow-x-auto whitespace-nowrap hide-scroll cursor-grab active:cursor-grabbing select-none"
+                                            className="flex flex-nowrap items-center gap-3 px-3 overflow-x-auto whitespace-nowrap hide-scroll cursor-grab active:cursor-grabbing select-none"
                                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                                             onMouseDown={handleMouseDown}
                                             onMouseUp={handleMouseUpOrLeave}
@@ -507,23 +509,16 @@ export default function JoinQueuePage({ params }: PageProps) {
                                             onTouchStart={handleInteraction}
                                         >
                                             {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t: any, i: number) => (
-                                                <div key={`${t.id || t.token_number}-${i}`} className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 sm:px-4 flex flex-col items-center min-w-[80px] shrink-0 mx-2 border border-white/5">
-                                                    <span className="text-xl sm:text-2xl font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                                <div key={`${t.id || t.token_number}-${i}`} className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 sm:py-3 flex flex-col items-center min-w-[88px] shrink-0 border border-white/20 shadow-sm transition-all">
+                                                    <span className="text-2xl sm:text-[26px] font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
                                                     {t.assigned_line !== null && (
-                                                        <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-black/30 px-2 py-0.5 rounded-full whitespace-nowrap">Lane {t.assigned_line}</span>
+                                                        <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">Lane {t.assigned_line}</span>
                                                     )}
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 )}
-                            </div>
-
-                            <div className="mt-4 flex justify-center">
-                                <div className="px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-xs font-medium text-white shadow-sm flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse"></span>
-                                    Waiting: <strong className="text-white ml-0.5">{live?.waiting_count ?? "—"}</strong>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -557,32 +552,33 @@ export default function JoinQueuePage({ params }: PageProps) {
                             </div>
                         ) : isPastSession ? (
                             <div className="space-y-4">
-                                <div className="bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-3xl p-6 sm:p-7 text-center my-2 shadow-sm">
-                                    <div className="w-14 h-14 bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-200/80">
-                                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-7 text-center my-2 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                                    <div className="relative w-12 h-12 rounded-full bg-slate-100/80 border border-slate-200/90 flex items-center justify-center mx-auto mb-4 text-slate-700 shadow-xs">
+                                        <Clock className="w-5 h-5 stroke-[1.8] text-slate-700" />
+                                        <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-white shadow-xs" />
                                     </div>
-                                    <h3 className="text-base sm:text-lg font-bold text-rose-900 dark:text-rose-200 mb-2">
-                                        {isQrExpired ? "QR Code Expired" : isInactiveError ? "Queue Session Closed" : "QR Code Expired — Session Closed"}
+                                    <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight mb-2">
+                                        Registration is Closed
                                     </h3>
-                                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-sm mx-auto mb-4">
+                                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-sm mx-auto mb-4">
                                         {isQrExpired
-                                            ? "This QR code has expired or was generated for a previous session. New token requests cannot be submitted with this code."
-                                            : `This QR code belongs to a closed or past queue session ${sessionDate ? `(${sessionDate})` : ""}. Token registration for this session is strictly locked.`}
+                                            ? "This QR code has expired. New token requests cannot be submitted with this code."
+                                            : `This queue session has ended and is no longer accepting new registrations.`}
                                     </p>
-                                    <div className="bg-white/80 dark:bg-slate-900/60 rounded-2xl p-4 border border-rose-200/60 text-xs text-slate-600 dark:text-slate-400 font-medium text-left leading-relaxed">
-                                        <strong className="text-rose-900 dark:text-rose-300 block mb-1">⚠️ Action Required:</strong>
-                                        Please scan today&apos;s active QR code on the display screen or ask staff for assistance to join today&apos;s active queue.
+                                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-xs text-slate-600 font-medium text-center leading-relaxed">
+                                        Please scan the active QR code on the lobby display or see the receptionist for assistance.
                                     </div>
                                 </div>
 
-                                <div className="pt-1">
+                                <div className="pt-2 flex justify-center">
                                     <button
-                                        disabled={true}
-                                        aria-label="QR Code Expired / Session Closed"
-                                        className="w-full py-4 text-white font-bold uppercase tracking-widest text-[13px] sm:text-sm rounded-2xl bg-slate-400 dark:bg-slate-700 opacity-60 cursor-not-allowed shadow-none border border-slate-300 dark:border-slate-600 flex items-center justify-center gap-2"
+                                        onClick={() => window.location.reload()}
+                                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-600 hover:text-slate-900 font-semibold text-xs rounded-full border border-slate-200/90 shadow-sm transition-all"
                                     >
-                                        <svg className="w-4 h-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                                        QR Code Expired / Registration Locked
+                                        <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>Refresh Page</span>
                                     </button>
                                 </div>
                             </div>
@@ -596,260 +592,260 @@ export default function JoinQueuePage({ params }: PageProps) {
                                     </p>
                                 </div>
 
-                            {/* Customer info form */}
-                            <div className="space-y-3.5">
-                                {hasCustomFieldsConfigured ? (
-                                    customFieldsList.length === 0 ? (
-                                        <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 rounded-2xl p-5 text-center my-2">
-                                            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                {/* Customer info form */}
+                                <div className="space-y-3.5">
+                                    {hasCustomFieldsConfigured ? (
+                                        customFieldsList.length === 0 ? (
+                                            <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 rounded-2xl p-5 text-center my-2">
+                                                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                                </div>
+                                                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Registration Unavailable</h4>
+                                                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                    No registration fields have been configured for this queue by the branch administrator. Please contact staff for assistance.
+                                                </p>
                                             </div>
-                                            <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Registration Unavailable</h4>
-                                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                                                No registration fields have been configured for this queue by the branch administrator. Please contact staff for assistance.
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        customFieldsList.slice().sort((a, b) => a.order - b.order).map((field) => (
-                                            <div key={field.id}>
-                                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                                                    {field.label} {field.required && <span className="text-emerald-500 ml-0.5">*</span>}
-                                                </label>
+                                        ) : (
+                                            customFieldsList.slice().sort((a, b) => a.order - b.order).map((field) => (
+                                                <div key={field.id}>
+                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                                        {field.label} {field.required && <span className="text-emerald-500 ml-0.5">*</span>}
+                                                    </label>
 
-                                                {field.type === 'textarea' ? (
-                                                    <textarea
-                                                        value={customData[field.key] || ""}
-                                                        onChange={e => setCustomData({ ...customData, [field.key]: e.target.value })}
-                                                        disabled={isJoining || queueClosed}
-                                                        className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none resize-none h-24 disabled:opacity-50"
-                                                        placeholder={field.required ? `Enter ${field.label}` : `Enter ${field.label} (optional)`}
-                                                    />
-                                                ) : field.type === 'select' ? (
-                                                    <div className="relative">
-                                                        <select
+                                                    {field.type === 'textarea' ? (
+                                                        <textarea
                                                             value={customData[field.key] || ""}
                                                             onChange={e => setCustomData({ ...customData, [field.key]: e.target.value })}
                                                             disabled={isJoining || queueClosed}
-                                                            className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none appearance-none disabled:opacity-50"
-                                                        >
-                                                            <option value="" disabled>Select {field.label}{field.required ? "" : " (optional)"}</option>
-                                                            {field.options?.map(opt => (
-                                                                <option key={opt} value={opt}>{opt}</option>
-                                                            ))}
-                                                        </select>
-                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                    </div>
-                                                ) : field.type === 'phone' ? (
-                                                    <div className="flex bg-white rounded-xl sm:rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-200/80 focus-within:border-slate-800 focus-within:ring-slate-100 focus-within:ring-4 transition-all duration-300 overflow-hidden">
-                                                        <div className="relative flex items-center border-r border-slate-100 bg-transparent">
+                                                            className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none resize-none h-24 disabled:opacity-50"
+                                                            placeholder={field.required ? `Enter ${field.label}` : `Enter ${field.label} (optional)`}
+                                                        />
+                                                    ) : field.type === 'select' ? (
+                                                        <div className="relative">
                                                             <select
-                                                                value={countryCode}
-                                                                onChange={(e) => setCountryCode(e.target.value)}
+                                                                value={customData[field.key] || ""}
+                                                                onChange={e => setCustomData({ ...customData, [field.key]: e.target.value })}
                                                                 disabled={isJoining || queueClosed}
-                                                                className="appearance-none bg-transparent pl-4 sm:pl-5 pr-8 py-3 sm:py-3.5 text-sm sm:text-[15px] font-medium text-slate-600 focus:outline-none cursor-pointer disabled:opacity-50"
+                                                                className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none appearance-none disabled:opacity-50"
                                                             >
-                                                                {COUNTRY_CODES.map((c) => (
-                                                                    <option key={c.code} value={c.code}>
-                                                                        {c.flag} {c.code}
-                                                                    </option>
+                                                                <option value="" disabled>Select {field.label}{field.required ? "" : " (optional)"}</option>
+                                                                {field.options?.map(opt => (
+                                                                    <option key={opt} value={opt}>{opt}</option>
                                                                 ))}
                                                             </select>
-                                                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                                                             </div>
                                                         </div>
+                                                    ) : field.type === 'phone' ? (
+                                                        <div className="flex bg-white rounded-xl sm:rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-200/80 focus-within:border-slate-800 focus-within:ring-slate-100 focus-within:ring-4 transition-all duration-300 overflow-hidden">
+                                                            <div className="relative flex items-center border-r border-slate-100 bg-transparent">
+                                                                <select
+                                                                    value={countryCode}
+                                                                    onChange={(e) => setCountryCode(e.target.value)}
+                                                                    disabled={isJoining || queueClosed}
+                                                                    className="appearance-none bg-transparent pl-4 sm:pl-5 pr-8 py-3 sm:py-3.5 text-sm sm:text-[15px] font-medium text-slate-600 focus:outline-none cursor-pointer disabled:opacity-50"
+                                                                >
+                                                                    {COUNTRY_CODES.map((c) => (
+                                                                        <option key={c.code} value={c.code}>
+                                                                            {c.flag} {c.code}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                                </div>
+                                                            </div>
+                                                            <input
+                                                                type="tel"
+                                                                value={customData[field.key] || ""}
+                                                                onChange={e => setCustomData({ ...customData, [field.key]: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                                                                disabled={isJoining || queueClosed}
+                                                                placeholder={field.required ? "e.g. 1234567890" : "e.g. 1234567890 (optional)"}
+                                                                maxLength={10}
+                                                                className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium focus:outline-none disabled:opacity-50"
+                                                            />
+                                                        </div>
+                                                    ) : (
                                                         <input
-                                                            type="tel"
+                                                            type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : 'text'}
+                                                            min={field.type === 'number' ? 1 : undefined}
+                                                            max={field.type === 'number' ? 999 : undefined}
                                                             value={customData[field.key] || ""}
-                                                            onChange={e => setCustomData({ ...customData, [field.key]: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                                                            onChange={e => {
+                                                                let val = e.target.value;
+                                                                if (field.type === 'number' && val.length > 3) {
+                                                                    val = val.slice(0, 3);
+                                                                }
+                                                                setCustomData({ ...customData, [field.key]: val });
+                                                            }}
                                                             disabled={isJoining || queueClosed}
-                                                            placeholder={field.required ? "e.g. 1234567890" : "e.g. 1234567890 (optional)"}
-                                                            maxLength={10}
-                                                            className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium focus:outline-none disabled:opacity-50"
+                                                            placeholder={field.required ? `Enter ${field.label}` : `Enter ${field.label} (optional)`}
+                                                            className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none disabled:opacity-50"
                                                         />
-                                                    </div>
-                                                ) : (
-                                                    <input
-                                                        type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : 'text'}
-                                                        min={field.type === 'number' ? 1 : undefined}
-                                                        max={field.type === 'number' ? 999 : undefined}
-                                                        value={customData[field.key] || ""}
-                                                        onChange={e => {
-                                                            let val = e.target.value;
-                                                            if (field.type === 'number' && val.length > 3) {
-                                                                val = val.slice(0, 3);
-                                                            }
-                                                            setCustomData({ ...customData, [field.key]: val });
-                                                        }}
-                                                        disabled={isJoining || queueClosed}
-                                                        placeholder={field.required ? `Enter ${field.label}` : `Enter ${field.label} (optional)`}
-                                                        className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none disabled:opacity-50"
-                                                    />
+                                                    )}
+                                                </div>
+                                            ))
+                                        )
+                                    ) : (
+                                        <>
+                                            {/* Default Fields: Name, Phone, Pax */}
+                                            <div>
+                                                <label htmlFor="customer-name" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                                    Full Name <span className="text-emerald-500 ml-0.5">*</span>
+                                                </label>
+                                                <input
+                                                    id="customer-name"
+                                                    type="text"
+                                                    value={customerName}
+                                                    onChange={(e) => setCustomerName(e.target.value)}
+                                                    placeholder="Enter your name"
+                                                    required
+                                                    maxLength={50}
+                                                    autoComplete="name"
+                                                    disabled={isJoining || queueClosed}
+                                                    className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50"
+                                                />
+                                                {debouncedCustomerName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedCustomerName.trim()) && (
+                                                    <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1.5 font-medium ml-1" role="alert">
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01" /></svg>
+                                                        Please enter a valid name.
+                                                    </p>
                                                 )}
                                             </div>
-                                        ))
-                                    )
-                                ) : (
-                                    <>
-                                        {/* Default Fields: Name, Phone, Pax */}
-                                        <div>
-                                            <label htmlFor="customer-name" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                                                Full Name <span className="text-emerald-500 ml-0.5">*</span>
-                                            </label>
-                                            <input
-                                                id="customer-name"
-                                                type="text"
-                                                value={customerName}
-                                                onChange={(e) => setCustomerName(e.target.value)}
-                                                placeholder="Enter your name"
-                                                required
-                                                maxLength={50}
-                                                autoComplete="name"
-                                                disabled={isJoining || queueClosed}
-                                                className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 rounded-xl sm:rounded-2xl text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium shadow-[0_2px_10px_rgb(0,0,0,0.02)] focus:outline-none focus:ring-4 transition-all duration-300 disabled:opacity-50"
-                                            />
-                                            {debouncedCustomerName.length > 0 && !/^[A-Za-z\s'-]{2,50}$/.test(debouncedCustomerName.trim()) && (
-                                                <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1.5 font-medium ml-1" role="alert">
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01" /></svg>
-                                                    Please enter a valid name.
-                                                </p>
-                                            )}
-                                        </div>
 
-                                        <div>
-                                            <label htmlFor="customer-phone" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                                                Phone Number <span className="text-emerald-500 ml-0.5">*</span>
-                                            </label>
-                                            <div className="flex bg-white rounded-xl sm:rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-200/80 focus-within:border-slate-800 focus-within:ring-slate-100 focus-within:ring-4 transition-all duration-300 overflow-hidden">
-                                                <div className="relative flex items-center border-r border-slate-100 bg-transparent">
-                                                    <select
-                                                        value={countryCode}
-                                                        onChange={(e) => setCountryCode(e.target.value)}
-                                                        disabled={isJoining || queueClosed}
-                                                        className="appearance-none bg-transparent pl-4 sm:pl-5 pr-8 py-3 sm:py-3.5 text-sm sm:text-[15px] font-medium text-slate-600 focus:outline-none cursor-pointer disabled:opacity-50"
-                                                    >
-                                                        {COUNTRY_CODES.map((c) => (
-                                                            <option key={c.code} value={c.code}>
-                                                                {c.flag} {c.code}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                            <div>
+                                                <label htmlFor="customer-phone" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                                    Phone Number <span className="text-emerald-500 ml-0.5">*</span>
+                                                </label>
+                                                <div className="flex bg-white rounded-xl sm:rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-200/80 focus-within:border-slate-800 focus-within:ring-slate-100 focus-within:ring-4 transition-all duration-300 overflow-hidden">
+                                                    <div className="relative flex items-center border-r border-slate-100 bg-transparent">
+                                                        <select
+                                                            value={countryCode}
+                                                            onChange={(e) => setCountryCode(e.target.value)}
+                                                            disabled={isJoining || queueClosed}
+                                                            className="appearance-none bg-transparent pl-4 sm:pl-5 pr-8 py-3 sm:py-3.5 text-sm sm:text-[15px] font-medium text-slate-600 focus:outline-none cursor-pointer disabled:opacity-50"
+                                                        >
+                                                            {COUNTRY_CODES.map((c) => (
+                                                                <option key={c.code} value={c.code}>
+                                                                    {c.flag} {c.code}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
                                                     </div>
+                                                    <input
+                                                        id="customer-phone"
+                                                        type="tel"
+                                                        value={customerPhone}
+                                                        onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                                                        placeholder="e.g. 1234567890"
+                                                        required
+                                                        maxLength={10}
+                                                        disabled={isJoining || queueClosed}
+                                                        className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium focus:outline-none disabled:opacity-50"
+                                                    />
                                                 </div>
-                                                <input
-                                                    id="customer-phone"
-                                                    type="tel"
-                                                    value={customerPhone}
-                                                    onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                                                    placeholder="e.g. 1234567890"
-                                                    required
-                                                    maxLength={10}
-                                                    disabled={isJoining || queueClosed}
-                                                    className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium focus:outline-none disabled:opacity-50"
-                                                />
+                                                {customerPhone.length > 0 && !isPhoneValid && (
+                                                    <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1.5 font-medium ml-1" role="alert">
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01" /></svg>
+                                                        Please enter a valid 10-digit number.
+                                                    </p>
+                                                )}
                                             </div>
-                                            {customerPhone.length > 0 && !isPhoneValid && (
-                                                <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1.5 font-medium ml-1" role="alert">
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01" /></svg>
-                                                    Please enter a valid 10-digit number.
-                                                </p>
-                                            )}
-                                        </div>
 
-                                        <div>
-                                            <label htmlFor="customer-pax" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                                                No of Pax <span className="text-emerald-500 ml-0.5">*</span>
-                                            </label>
-                                            <div className="relative">
-                                                <input
-                                                    id="customer-pax"
-                                                    type="number"
-                                                    min="1"
-                                                    max="999"
-                                                    value={companionInput}
-                                                    onChange={(e) => {
-                                                        let val = e.target.value;
-                                                        if (val.length > 3) {
-                                                            val = val.slice(0, 3);
-                                                        }
-                                                        setCompanionInput(val);
-                                                    }}
-                                                    placeholder="0"
-                                                    required
-                                                    disabled={isJoining || queueClosed}
-                                                    className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none disabled:opacity-50"
-                                                />
+                                            <div>
+                                                <label htmlFor="customer-pax" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                                                    No of Pax <span className="text-emerald-500 ml-0.5">*</span>
+                                                </label>
+                                                <div className="relative">
+                                                    <input
+                                                        id="customer-pax"
+                                                        type="number"
+                                                        min="1"
+                                                        max="999"
+                                                        value={companionInput}
+                                                        onChange={(e) => {
+                                                            let val = e.target.value;
+                                                            if (val.length > 3) {
+                                                                val = val.slice(0, 3);
+                                                            }
+                                                            setCompanionInput(val);
+                                                        }}
+                                                        placeholder="0"
+                                                        required
+                                                        disabled={isJoining || queueClosed}
+                                                        className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none disabled:opacity-50"
+                                                    />
+                                                </div>
                                             </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Take Token button */}
+                                <div className="pt-3">
+                                    <button
+                                        onClick={handleJoin}
+                                        disabled={isJoining || queueClosed || queuePaused || !isFormValid}
+                                        aria-label={queueClosed ? "Queue is closed" : queuePaused ? "Operator on break" : "Take a token"}
+                                        className="group relative w-full py-4 text-white font-black uppercase tracking-widest text-[13px] sm:text-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-500/30 transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:-translate-y-0 disabled:hover:shadow-xl"
+                                        style={{
+                                            backgroundColor: brandColor,
+                                            backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%)'
+                                        }}
+                                    >
+                                        {/* Animated Shimmer */}
+                                        <div className="absolute inset-0 -translate-x-[150%] bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out pointer-events-none skew-x-12" />
+
+                                        <span className="relative flex items-center justify-center gap-2.5">
+                                            {isJoining ? (
+                                                <>
+                                                    <span className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
+                                                    Getting Ticket...
+                                                </>
+                                            ) : isPastSession ? (
+                                                "QR Code Expired / Invalid"
+                                            ) : queueClosed ? (
+                                                "Queue is Closed"
+                                            ) : queuePaused ? (
+                                                "Operator on Break"
+                                            ) : (
+                                                <>
+                                                    Take a Token
+                                                    <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                                    </svg>
+                                                </>
+                                            )}
+                                        </span>
+                                    </button>
+                                </div>
+
+                                {queueClosed && (
+                                    <p className="text-sm text-amber-600 font-medium text-center">
+                                        This queue is currently not accepting new customers.
+                                    </p>
+                                )}
+
+                                {queuePaused && !queueClosed && (
+                                    <div className="text-amber-600 text-center flex flex-col items-center justify-center py-2 space-y-2">
+                                        <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shadow-sm">
+                                            <span className="text-2xl" role="img" aria-label="Coffee">☕</span>
                                         </div>
-                                    </>
+                                        <p className="text-sm font-bold uppercase tracking-wider">Taking a short break</p>
+                                        <p className="text-xs">We will resume accepting new walk-ins shortly.</p>
+                                    </div>
+                                )}
+
+                                {!isFormValid && !queueClosed && !queuePaused && (
+                                    <p className="text-xs text-gray-400 text-center">
+                                        Please fill in your name and phone number to continue.
+                                    </p>
                                 )}
                             </div>
-
-                            {/* Take Token button */}
-                            <div className="pt-3">
-                                <button
-                                    onClick={handleJoin}
-                                    disabled={isJoining || queueClosed || queuePaused || !isFormValid}
-                                    aria-label={queueClosed ? "Queue is closed" : queuePaused ? "Operator on break" : "Take a token"}
-                                    className="group relative w-full py-4 text-white font-black uppercase tracking-widest text-[13px] sm:text-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-500/30 transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:-translate-y-0 disabled:hover:shadow-xl"
-                                    style={{
-                                        backgroundColor: brandColor,
-                                        backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%)'
-                                    }}
-                                >
-                                    {/* Animated Shimmer */}
-                                    <div className="absolute inset-0 -translate-x-[150%] bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out pointer-events-none skew-x-12" />
-
-                                    <span className="relative flex items-center justify-center gap-2.5">
-                                        {isJoining ? (
-                                            <>
-                                                <span className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
-                                                Getting Ticket...
-                                            </>
-                                        ) : isPastSession ? (
-                                            "QR Code Expired / Invalid"
-                                        ) : queueClosed ? (
-                                            "Queue is Closed"
-                                        ) : queuePaused ? (
-                                            "Operator on Break"
-                                        ) : (
-                                            <>
-                                                Take a Token
-                                                <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                                </svg>
-                                            </>
-                                        )}
-                                    </span>
-                                </button>
-                            </div>
-
-                            {queueClosed && (
-                                <p className="text-sm text-amber-600 font-medium text-center">
-                                    This queue is currently not accepting new customers.
-                                </p>
-                            )}
-
-                            {queuePaused && !queueClosed && (
-                                <div className="text-amber-600 text-center flex flex-col items-center justify-center py-2 space-y-2">
-                                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shadow-sm">
-                                        <span className="text-2xl" role="img" aria-label="Coffee">☕</span>
-                                    </div>
-                                    <p className="text-sm font-bold uppercase tracking-wider">Taking a short break</p>
-                                    <p className="text-xs">We will resume accepting new walk-ins shortly.</p>
-                                </div>
-                            )}
-
-                            {!isFormValid && !queueClosed && !queuePaused && (
-                                <p className="text-xs text-gray-400 text-center">
-                                    Please fill in your name and phone number to continue.
-                                </p>
-                            )}
-                        </div>
                         )}
 
                     </div>

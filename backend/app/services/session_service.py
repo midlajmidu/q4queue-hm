@@ -71,12 +71,11 @@ async def get_or_create_active_session(
     db.add(session)
     await db.flush()
     
-    # Soft-delete all tokens from the OLD session so tracking links still work,
-    # but they don't clog up the active queue views.
+    # Move all unserved tokens from the OLD session to skipped so tracking links show Turn Skipped
     await db.execute(
         update(Token)
         .where(Token.queue_id == queue_id, Token.status.in_([TokenStatus.waiting, TokenStatus.serving]))
-        .values(status=TokenStatus.deleted, completed_at=func.now(), removed_by="session_end")
+        .values(status=TokenStatus.skipped, completed_at=func.now(), removed_by="session_end")
     )
     
     # Reset queue for the new day and link token_session_id directly to Session.id PK
@@ -144,7 +143,7 @@ async def create_queue_session(
         await db.execute(
             update(Token)
             .where(Token.queue_id == queue_id, Token.status.in_([TokenStatus.waiting, TokenStatus.serving]))
-            .values(status=TokenStatus.deleted, completed_at=func.now(), removed_by="session_end")
+            .values(status=TokenStatus.skipped, completed_at=func.now(), removed_by="session_end")
         )
         queue.token_session_id = session.id
         queue.current_token_number = queue.starting_sequence - 1
@@ -319,6 +318,20 @@ async def set_session_active(
 ) -> Session:
     session = await get_session_or_404(db, session_id=session_id, org_id=org_id, user=user)
     session.is_active = is_active
+    if not is_active:
+        # Move remaining unserved tokens to skipped status when session is stopped
+        await db.execute(
+            update(Token)
+            .where(
+                Token.session_id == session_id,
+                Token.status.in_([TokenStatus.waiting, TokenStatus.serving])
+            )
+            .values(
+                status=TokenStatus.skipped,
+                completed_at=func.now(),
+                removed_by="session_end"
+            )
+        )
     await db.commit()
     await db.refresh(session)
     return session

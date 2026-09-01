@@ -109,6 +109,14 @@ async def track_token(
             if sess.session_date < today:
                 is_past_session = True
 
+            if is_past_session or not sess.is_active:
+                if token.status in (TokenStatus.waiting, TokenStatus.serving):
+                    token.status = TokenStatus.skipped
+                    token.removed_by = "session_end"
+                    token.completed_at = datetime.utcnow()
+                    await db.commit()
+                    await db.refresh(token)
+
     # Calculate current position
     if token.status == TokenStatus.waiting:
         pos_result = await db.execute(
