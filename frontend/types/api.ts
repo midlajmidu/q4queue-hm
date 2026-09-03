@@ -333,7 +333,8 @@ export interface JoinResponse {
     is_existing?: boolean; // True if this was an already-active token (duplicate phone)
     tracking_id?: string;
     removed_by?: string | null;
-
+    mask_token_number?: boolean;
+    display_token?: string;
 }
 
 export interface TokenRestoreResponse {
@@ -1029,6 +1030,7 @@ export interface WhatsAppOrgConfig {
     notify_skipped: boolean;
     notify_recalled: boolean;
     notify_removed: boolean;
+    mask_token_number: boolean;
 }
 
 export interface WhatsAppEventStat {
@@ -1079,6 +1081,8 @@ export interface TrackingResponse {
     served_at?: string | null;
     completed_at?: string | null;
     removed_by?: string | null;
+    mask_token_number?: boolean;
+    display_token?: string;
 }
 
 // ── Super Admin Branch User Management ──────────────────────────────────────────────────────────

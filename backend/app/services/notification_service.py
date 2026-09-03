@@ -26,6 +26,24 @@ from app.redis.client import get_redis
 logger = logging.getLogger(__name__)
 
 
+def get_masked_token_string(customer_name: Optional[str], customer_phone: Optional[str]) -> str:
+    name_part = "cus"
+    if customer_name:
+        cleaned_name = "".join(c for c in customer_name if c.isalpha()).lower()
+        if len(cleaned_name) >= 3:
+            name_part = cleaned_name[:3]
+        elif len(cleaned_name) > 0:
+            name_part = cleaned_name
+    phone_part = ""
+    if customer_phone:
+        digits = "".join(c for c in customer_phone if c.isdigit())
+        if len(digits) >= 5:
+            phone_part = digits[-5:]
+        elif len(digits) > 0:
+            phone_part = digits
+    return f"{name_part}-{phone_part}" if phone_part else name_part
+
+
 # ── Event → Template Variable Builders ────────────────────────────────────────
 # Each function returns the list of template variables for the event.
 # Variable order MUST match the template placeholders.
@@ -151,7 +169,18 @@ async def notify_queue_event(
 
 
         # 4. Handle Hybrid Logic
-        token_str = f"{token_prefix}-{token_number}"
+        mask_token_number = cfg.get("mask_token_number", False)
+        if mask_token_number:
+            token_str = get_masked_token_string(customer_name, customer_phone)
+            
+            # Map event types to their masked counterparts
+            if event_type == "queue_joined_v4":
+                event_type = "queue_joined_v4_masked"
+            elif event_type == "queue_nearby_5_v3":
+                event_type = "queue_nearby_5_v3_masked"
+        else:
+            token_str = f"{token_prefix}-{token_number}"
+
         is_raw_text = False
         raw_body = None
         variables = []
@@ -163,23 +192,32 @@ async def notify_queue_event(
         org_name_to_use = organization_name if organization_name else queue_name
         c_name = customer_name or "Customer"
 
-        if event_type == "queue_joined_v4":
-            # joined template still bypasses and uses original variables
-            from app.core.config import get_settings
-            settings = get_settings()
-            frontend_url = getattr(settings, "FRONTEND_URL", "https://amoebaq.com").rstrip("/")
-            track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
-            display_url = f"{frontend_url}/d/{queue_id}"
-            
-            variables = [
-                c_name,
-                token_str,
-                str(position),
-                track_url,
-                display_url,
-                org_name_to_use,
-                queue_name or org_name_to_use
-            ]
+        if event_type in ("queue_joined_v4", "queue_joined_v4_masked"):
+            if event_type == "queue_joined_v4_masked":
+                variables = [
+                    c_name,
+                    token_str,
+                    str(position),
+                    org_name_to_use,
+                    queue_name or org_name_to_use
+                ]
+            else:
+                # joined template still bypasses and uses original variables
+                from app.core.config import get_settings
+                settings = get_settings()
+                frontend_url = getattr(settings, "FRONTEND_URL", "https://amoebaq.com").rstrip("/")
+                track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
+                display_url = f"{frontend_url}/d/{queue_id}"
+                
+                variables = [
+                    c_name,
+                    token_str,
+                    str(position),
+                    track_url,
+                    display_url,
+                    org_name_to_use,
+                    queue_name or org_name_to_use
+                ]
         else:
             if not token_id:
                 logger.warning("No token_id provided for non-join event %s, skipping", event_type)
@@ -213,7 +251,7 @@ async def notify_queue_event(
                         f"📋 Queue: {queue_name or org_name_to_use}\n\n"
                         f"Our staff is {action}."
                     )
-            elif event_type in ("queue_nearby_5_v3", "queue_nearby_3_v3"):
+            elif event_type in ("queue_nearby_5_v3", "queue_nearby_5_v3_masked", "queue_nearby_3_v3"):
                 pos_str = str(position) if position else "0"
                 
                 from app.core.config import get_settings
@@ -221,7 +259,17 @@ async def notify_queue_event(
                 frontend_url = getattr(settings, "FRONTEND_URL", "https://amoebaq.com").rstrip("/")
                 track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
 
-                if event_type == "queue_nearby_5_v3":
+                if event_type == "queue_nearby_5_v3_masked":
+                    variables = [token_str]
+                    if is_raw_text:
+                        raw_body = (
+                            "⏳ *Queue Update*\n\n"
+                            "Your turn is getting closer.\n\n"
+                            f"🎫 Ticket Number: {token_str}\n"
+                            f"👥 Only 5 people are ahead of you.\n\n"
+                            "Please be ready."
+                        )
+                elif event_type == "queue_nearby_5_v3":
                     variables = [token_str, track_url]
                     if is_raw_text:
                         raw_body = (

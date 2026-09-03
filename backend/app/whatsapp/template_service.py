@@ -175,6 +175,47 @@ DEFAULT_TEMPLATES = [
             "3": "Destination",
         },
         "status": WhatsAppTemplateStatus.approved,
+    },
+    {
+        "template_name": "ticket_confirmed_masked_v1",
+        "event_type": "queue_joined_v4_masked",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Sent when a customer joins a queue with token masking enabled",
+        "body_text": (
+            "Greetings, {{1}}!\n\n"
+            "🎟️ Your queue ticket has been confirmed.\n\n"
+            "🎫 Ticket Number: {{2}}\n"
+            "👥 People Ahead: {{3}}\n\n"
+            "🏢 Branch: {{4}}\n"
+            "📋 Queue: {{5}}\n\n"
+            "We'll keep you updated as your turn gets closer."
+        ),
+        "variables": {
+            "1": "Customer Name",
+            "2": "Ticket Number",
+            "3": "People Ahead",
+            "4": "Branch Name",
+            "5": "Queue Name",
+        },
+        "status": WhatsAppTemplateStatus.approved,
+    },
+    {
+        "template_name": "queue_update_5_masked_v1",
+        "event_type": "queue_nearby_5_v3_masked",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Reminder sent when position reaches 5 with token masking enabled",
+        "body_text": (
+            "Your turn is getting closer.\n\n"
+            "🎫 Ticket Number: {{1}}\n"
+            "👥 Only 5 people are ahead of you.\n\n"
+            "Please be ready."
+        ),
+        "variables": {
+            "1": "Ticket Number",
+        },
+        "status": WhatsAppTemplateStatus.approved,
     }
 ]
 

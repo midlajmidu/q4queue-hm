@@ -257,6 +257,15 @@ async def join_queue(
                 db, queue_id=queue_id, token_number=existing_token.token_number
             )
             current_serving = await _current_serving_number(db, queue_id=queue_id)
+            from app.whatsapp.config_service import get_org_notification_config
+            from app.services.notification_service import get_masked_token_string
+            cfg = await get_org_notification_config(queue.org_id)
+            mask_token_number = cfg.get("mask_token_number", False)
+            display_token = (
+                get_masked_token_string(existing_token.customer_name, existing_token.customer_phone)
+                if mask_token_number
+                else f"{queue.prefix or ''}{existing_token.token_number}"
+            )
             return JoinResponse(
                 id=existing_token.id,
                 token_number=existing_token.token_number,
@@ -267,6 +276,8 @@ async def join_queue(
                 tracking_id=existing_token.tracking_id,
                 pax_count=existing_token.pax_count if hasattr(existing_token, 'pax_count') else 1,
                 is_existing=True,
+                mask_token_number=mask_token_number,
+                display_token=display_token,
             )
 
     # ── No active token found — create a new one ──
@@ -293,6 +304,16 @@ async def join_queue(
     position = await _count_waiting_ahead(db, queue_id=queue_id, token_number=new_number)
     current_serving = await _current_serving_number(db, queue_id=queue_id)
 
+    from app.whatsapp.config_service import get_org_notification_config
+    from app.services.notification_service import get_masked_token_string
+    cfg = await get_org_notification_config(queue.org_id)
+    mask_token_number = cfg.get("mask_token_number", False)
+    display_token = (
+        get_masked_token_string(token.customer_name, token.customer_phone)
+        if mask_token_number
+        else f"{queue.prefix or ''}{token.token_number}"
+    )
+
     return JoinResponse(
         id=token.id,
         token_number=new_number,
@@ -302,6 +323,8 @@ async def join_queue(
         session_id=queue.token_session_id,
         tracking_id=token.tracking_id,
         pax_count=token.pax_count if hasattr(token, 'pax_count') else 1,
+        mask_token_number=mask_token_number,
+        display_token=display_token,
     )
 
 

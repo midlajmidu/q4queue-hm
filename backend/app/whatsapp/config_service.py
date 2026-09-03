@@ -145,6 +145,7 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
             "notify_skipped": False,
             "notify_recalled": False,
             "notify_removed": False,
+            "mask_token_number": False,
         }
 
     async with AsyncSessionLocal() as db:
@@ -170,11 +171,12 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
                 "notify_skipped": False,
                 "notify_recalled": False,
                 "notify_removed": False,
+                "mask_token_number": False,
             }
 
         org_cfg = await get_org_config(db, org_id)
         if not org_cfg:
-            # Opt-out model: default all to True
+            # Opt-out model: default all to True, but mask_token_number to False
             return {
                 "global_enabled": global_enabled,
                 "plan_enabled": True,
@@ -187,6 +189,7 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
                 "notify_skipped": True,
                 "notify_recalled": True,
                 "notify_removed": True,
+                "mask_token_number": False,
             }
         
         return {
@@ -202,4 +205,5 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
             "notify_skipped": org_cfg.notify_skipped,
             "notify_recalled": org_cfg.notify_recalled,
             "notify_removed": org_cfg.notify_removed,
+            "mask_token_number": org_cfg.mask_token_number,
         }

@@ -15,7 +15,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_develop:/var/lib/postgresql/data
       # In Ubuntu 24.04 production, swap this to: /var/q4queue_backups:/app/backups
       - ./local_backups:/app/backups
     healthcheck:
@@ -176,7 +176,7 @@ services:
         max-file: "3"
 
 volumes:
-  postgres_data:
+  postgres_data_develop:
     driver: local
   redis_data:
     driver: local

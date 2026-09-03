@@ -105,6 +105,8 @@ class JoinResponse(BaseModel):
     tracking_id: Optional[uuid.UUID] = None  # public tracking URL ID
     pax_count: int
     is_existing: bool = False  # True if this token already existed (duplicate phone)
+    mask_token_number: bool = False
+    display_token: Optional[str] = None
 
 
 class PublicTokenResponse(BaseModel):

@@ -49,6 +49,8 @@ class TrackingResponse(BaseModel):
     served_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     removed_by: Optional[str] = None
+    mask_token_number: bool = False
+    display_token: Optional[str] = None
 
 
 @router.get(
@@ -67,6 +69,8 @@ async def track_token(
     No authentication required — access is gated by unguessable tracking_id UUID.
     """
     from app.models.organization import Organization
+    from app.whatsapp.config_service import get_org_notification_config
+    from app.services.notification_service import get_masked_token_string
 
     result = await db.execute(
         select(
@@ -110,6 +114,14 @@ async def track_token(
     else:
         position = 0
 
+    cfg = await get_org_notification_config(token.org_id)
+    mask_token_number = cfg.get("mask_token_number", False)
+    display_token = (
+        get_masked_token_string(token.customer_name, token.customer_phone)
+        if mask_token_number
+        else f"{queue_prefix or ''}{token.token_number}"
+    )
+
     return TrackingResponse(
         token_id=str(token.id),
         tracking_id=str(token.tracking_id),
@@ -129,6 +141,8 @@ async def track_token(
         served_at=token.served_at,
         completed_at=token.completed_at,
         removed_by=token.removed_by,
+        mask_token_number=mask_token_number,
+        display_token=display_token,
     )
 
 

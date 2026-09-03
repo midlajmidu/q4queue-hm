@@ -735,6 +735,12 @@ export function WhatsAppPortal() {
                                                 title: "Token Removed",
                                                 desc: "Alerts customer when removed from queue by staff or self-cancellation.",
                                                 icon: FilterX
+                                            },
+                                            {
+                                                key: "mask_token_number",
+                                                title: "Mask Token Number",
+                                                desc: "Format customer token numbers shared via WhatsApp using their name & phone digits (e.g. 'mid-79027') and strip tracking links.",
+                                                icon: Settings
                                             }
                                         ].map((setting) => (
                                             <div key={setting.key} className="py-6 flex items-start justify-between gap-4 group">

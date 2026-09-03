@@ -31,6 +31,7 @@ class NotificationSettingsUpdate(BaseModel):
     notify_skipped: Optional[bool] = None
     notify_recalled: Optional[bool] = None
     notify_removed: Optional[bool] = None
+    mask_token_number: Optional[bool] = None
 
 @router.patch("/settings", summary="Update Org WhatsApp Settings")
 async def update_org_settings(
@@ -65,6 +66,8 @@ async def update_org_settings(
         cfg.notify_recalled = body.notify_recalled
     if body.notify_removed is not None:
         cfg.notify_removed = body.notify_removed
+    if body.mask_token_number is not None:
+        cfg.mask_token_number = body.mask_token_number
         
     await db.commit()
     await db.refresh(cfg)

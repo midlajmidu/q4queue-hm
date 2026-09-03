@@ -96,6 +96,7 @@ class WhatsAppConfig(Base):
     notify_skipped: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     notify_recalled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     notify_removed: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    mask_token_number: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
 
     payment_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     business_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
