@@ -244,10 +244,8 @@ export default function QueuesPage({ params }: PageProps) {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-transparent pb-16 w-full">
-            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 flex flex-col gap-4 md:gap-6">
-
-                {/* ── Background loading bar ── */}
+        <div className="w-full space-y-6 animate-in fade-in duration-300">
+            {/* ── Background loading bar ── */}
                 {isBackgroundLoading && (
                     <div className="fixed top-0 left-0 right-0 h-0.5 z-[60]">
                         <div className="h-full bg-blue-500 animate-[progress_1s_infinite_linear] origin-left" />
@@ -360,10 +358,10 @@ export default function QueuesPage({ params }: PageProps) {
                                         <h2 className="text-sm font-semibold text-slate-900 dark:text-white tracking-wide uppercase">ACTIVE QUEUES</h2>
                                         <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900/40 px-2.5 py-0.5 rounded-full">{activeQueues.length}</span>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 mt-6 max-w-7xl">
-                                            {activeQueues.map((q) => (
-                                                <QueueCard key={q.id} queue={q} onToggled={() => { loadQueues(false); }} />
-                                            ))}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-2">
+                                        {activeQueues.map((q) => (
+                                            <QueueCard key={q.id} queue={q} onToggled={() => { loadQueues(false); }} />
+                                        ))}
                                     </div>
                                 </section>
                             )}
@@ -388,7 +386,7 @@ export default function QueuesPage({ params }: PageProps) {
                                         </svg>
                                     </button>
                                     {!inactiveCollapsed && (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 mt-6 max-w-7xl">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-2">
                                             {inactiveQueues.map((q) => (
                                                 <QueueCard key={q.id} queue={q} onToggled={() => { loadQueues(false); }} />
                                             ))}
@@ -592,6 +590,5 @@ export default function QueuesPage({ params }: PageProps) {
                     </div>
                 )}
             </div>
-        </div>
     );
 }

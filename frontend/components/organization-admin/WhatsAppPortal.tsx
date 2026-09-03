@@ -31,7 +31,6 @@ import {
     X,
     Phone,
     User,
-    Sparkles,
     ShieldCheck,
     ChevronRight,
     Copy,
@@ -1008,12 +1007,9 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                             {/* Quick Live Test Notification Sender */}
                             <div className="bg-white dark:bg-slate-900/70 dark:backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-white/10 p-4.5 shadow-xs space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Sparkles size={15} className="text-emerald-600 dark:text-emerald-400" />
-                                        <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
-                                            Send Live WhatsApp Test
-                                        </h4>
-                                    </div>
+                                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                                        Send Live WhatsApp Test
+                                    </h4>
                                     <span className="text-[10px] text-slate-400 font-medium">Meta API Verified</span>
                                 </div>
                                 <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-normal">
