@@ -159,6 +159,26 @@ export interface OrgAdminDashboardResponse {
     max_branches?: number | null;
 }
 
+export interface QueueMonitorItem {
+    id: string;
+    branch: string;
+    branch_id: string;
+    branch_slug: string;
+    queue_name: string;
+    prefix?: string | null;
+    session_name?: string | null;
+    active_session_id?: string | null;
+    current_token: string;
+    waiting: number;
+    serving: number;
+    served_today: number;
+    avg_wait_time: string;
+    status: string;
+    load_status?: "Normal" | "Heavy" | "Critical" | string;
+    load_percentage: number;
+    is_active: boolean;
+}
+
 export interface BranchCreateRequest {
     name: string;
     slug: string;

@@ -743,11 +743,38 @@ async def monitor_queues(
         ).group_by(Token.queue_id)
     )
     wait_times = {row.queue_id: row.avg_wait_sec for row in wait_res.all()}
+
+    # Look up currently serving tokens for each queue
+    serving_res = await db.execute(
+        select(Token.queue_id, Token.token_number)
+        .where(
+            Token.queue_id.in_(queue_ids),
+            tz_date_clause(Token.created_at, b_tz) == today,
+            Token.status == TokenStatus.serving
+        )
+        .order_by(Token.served_at.desc().nullslast(), Token.created_at.desc())
+    )
+    serving_map = {}
+    for q_id, t_num in serving_res.all():
+        if q_id not in serving_map:
+            serving_map[q_id] = t_num
+
+    # Look up today's active session for each queue
+    sess_res = await db.execute(
+        select(Session.id, Session.queue_id, Session.title)
+        .where(
+            Session.queue_id.in_(queue_ids),
+            Session.session_date == today,
+            Session.is_active == True
+        )
+    )
+    active_sess_map = {row.queue_id: (row.id, row.title) for row in sess_res.all()}
     
     items = []
     for q, org in queues_data:
         counts = token_counts.get(q.id, {"waiting": 0, "serving": 0, "done": 0})
         waiting = counts["waiting"]
+        serving = counts["serving"]
         served = counts["done"]
         avg_wait_sec = wait_times.get(q.id)
         avg_wait_str = _fmt_minutes(avg_wait_sec)
@@ -755,12 +782,32 @@ async def monitor_queues(
         max_cap = getattr(org, 'max_waiting_capacity', 50) or 50
         pct = int((waiting / max_cap) * 100) if max_cap > 0 else 0
         load_percentage = min(100, pct)
+        load_status = "Critical" if load_percentage >= 90 else "Heavy" if load_percentage >= 75 else "Normal"
+
+        curr_t_num = serving_map.get(q.id)
+        if curr_t_num:
+            current_token_str = f"{q.prefix}-{curr_t_num}" if q.prefix else str(curr_t_num)
+        else:
+            current_token_str = "—"
+
+        sess_info = active_sess_map.get(q.id)
+        active_session_id = sess_info[0] if sess_info else None
+        session_name = sess_info[1] if sess_info else None
         
         items.append(QueueMonitorItem(
             id=q.id, branch=org.name, branch_id=org.id, branch_slug=org.slug, queue_name=q.name,
-            session_name=None,
-            current_token="-", waiting=waiting, served_today=served, avg_wait_time=avg_wait_str, 
-            status="Active" if q.is_active else "Inactive", load_percentage=load_percentage, is_active=q.is_active
+            prefix=q.prefix,
+            session_name=session_name,
+            active_session_id=active_session_id,
+            current_token=current_token_str,
+            waiting=waiting,
+            serving=serving,
+            served_today=served,
+            avg_wait_time=avg_wait_str,
+            status="Active" if q.is_active else "Inactive",
+            load_status=load_status,
+            load_percentage=load_percentage,
+            is_active=q.is_active
         ))
     return items
 

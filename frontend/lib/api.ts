@@ -52,6 +52,7 @@ import type {
     PublicTokenResponse,
     TokenRestoreResponse,
     QueuePublicStatus,
+    QueueMonitorItem,
     OrganizationSettingsResponse,
     OrganizationSettingsUpdate,
     PaginatedAuditLogs,
@@ -1082,7 +1083,7 @@ export const api = {
     },
     getOrgAdminQueues: (branchId?: string) => {
         const query = branchId ? `?branch_id=${branchId}` : '';
-        return request<any[]>(`/organization-admin/monitoring/queues${query}`);
+        return request<QueueMonitorItem[]>(`/organization-admin/monitoring/queues${query}`);
     },
     getOrgAdminStaff: (branchId?: string) => {
         const query = branchId ? `?branch_id=${branchId}` : '';

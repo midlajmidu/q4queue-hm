@@ -203,13 +203,18 @@ class QueueMonitorItem(BaseModel):
     branch_id: uuid.UUID
     branch_slug: str
     queue_name: str
+    prefix: Optional[str] = None
     session_name: Optional[str] = None
+    active_session_id: Optional[uuid.UUID] = None
     current_token: str
     waiting: int
+    serving: int = 0
     served_today: int
     avg_wait_time: str
     status: str
+    load_status: Optional[str] = "Normal"
     load_percentage: int
+    is_active: bool = True
 
 class StaffMonitorItem(BaseModel):
     id: uuid.UUID

@@ -101,8 +101,8 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
         if (path === "/organization-admin") return "Command Center";
         if (path.startsWith("/organization-admin/branches")) return "Branches";
         if (path.startsWith("/organization-admin/analytics")) return "Analytics";
-        if (path.startsWith("/organization-admin/monitoring/sessions")) return "Live Sessions";
-        if (path.startsWith("/organization-admin/monitoring/queues")) return "Active Queues";
+        if (path.startsWith("/organization-admin/monitoring/sessions")) return "Live Queues";
+        if (path.startsWith("/organization-admin/monitoring/queues")) return "Live Queues";
         if (path.startsWith("/organization-admin/monitoring/staff")) return "Staff Presence";
         if (path.startsWith("/organization-admin/monitoring/audit")) return "Audit Logs";
         if (path.startsWith("/organization-admin/announcements")) return "Announcements";
@@ -215,8 +215,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                 <div>
                                     <h3 className={`px-3 text-[11px] font-bold tracking-widest text-slate-400 uppercase mb-1 transition-all duration-200 ${isSidebarCollapsed ? 'opacity-0 h-0 overflow-hidden m-0' : ''}`}>Live Operations</h3>
                                     <div className="space-y-0.5">
-                                        <NavLink href="/organization-admin/monitoring/sessions" icon={Users} label="Live Sessions" />
-                                        <NavLink href="/organization-admin/monitoring/queues" icon={Activity} label="Active Queues" />
+                                        <NavLink href="/organization-admin/monitoring/queues" icon={Activity} label="Live Queues" />
                                         <NavLink href="/organization-admin/monitoring/staff" icon={UserCog} label="Staff Presence" />
                                     </div>
                                 </div>
