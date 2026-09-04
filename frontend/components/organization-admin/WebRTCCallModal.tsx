@@ -79,17 +79,37 @@ export default function WebRTCCallModal({
         if (plivoClientRef.current) {
             const client = plivoClientRef.current;
             try {
-                // Only hangup if there's an active call session
-                if (client.callSession) {
-                    client.hangup();
-                }
-                // Prevent memory leak / stale closure execution
+                // Prevent memory leak / stale closure execution & stop duplicate callbacks
                 client.removeAllListeners('onLogin');
                 client.removeAllListeners('onLoginFailed');
                 client.removeAllListeners('onCallRemoteRinging');
                 client.removeAllListeners('onCallAnswered');
                 client.removeAllListeners('onCallFailed');
                 client.removeAllListeners('onCallTerminated');
+
+                // Only hangup if there's an active call session
+                if (client.callSession) {
+                    // Temporarily silence Plivo SDK's internal console.error("Outgoing call failed: Canceled")
+                    // which triggers the Next.js dev error modal during intentional user hangups
+                    const originalConsoleError = console.error;
+                    console.error = (...args: any[]) => {
+                        const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(" ");
+                        if (msg.includes("Outgoing call failed: Canceled") || msg.includes("Canceled")) {
+                            return;
+                        }
+                        originalConsoleError.apply(console, args);
+                    };
+
+                    try {
+                        client.hangup();
+                    } catch (hangupErr) {
+                        // ignore benign hangup error
+                    } finally {
+                        setTimeout(() => {
+                            console.error = originalConsoleError;
+                        }, 500);
+                    }
+                }
             } catch (e) {
                 console.error("Cleanup error:", e);
             }
