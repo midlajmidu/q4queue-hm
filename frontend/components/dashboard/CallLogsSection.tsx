@@ -16,16 +16,13 @@ import {
     Search,
     ChevronLeft,
     ChevronRight,
-    User,
     RefreshCw,
-    Info,
     BarChart3,
     ListFilter,
     MessageSquareText,
-    ShieldCheck,
     PhoneCall,
-    PhoneIncoming,
-    PhoneOff
+    PhoneOff,
+    X
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,6 +31,30 @@ interface CallLogsSectionProps {
     isDark?: boolean;
     channel?: "whatsapp" | "calls";
     onChannelChange?: (channel: "whatsapp" | "calls") => void;
+}
+
+const avatarColors = [
+    "bg-indigo-500",
+    "bg-emerald-500",
+    "bg-amber-500",
+    "bg-rose-500",
+    "bg-sky-500",
+    "bg-violet-500",
+    "bg-pink-500",
+    "bg-teal-500"
+];
+
+function getStaffDisplayName(name?: string | null): string {
+    if (!name) return "Staff Member";
+    if (name.includes("@")) {
+        return name.split("@")[0];
+    }
+    return name;
+}
+
+function getStaffInitial(name?: string | null): string {
+    const displayName = getStaffDisplayName(name);
+    return (displayName.charAt(0) || "S").toUpperCase();
 }
 
 /* ─── Skeleton Shimmer Block ──────────────────────────── */
@@ -114,81 +135,74 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
 
     return (
         <div className="space-y-6 w-full pb-16 min-h-screen animate-in fade-in duration-300">
-            {/* ══════════════════════════════════════════════
-                1. EXECUTIVE UNIFIED HEADER & CHANNEL SWITCHER
-            ══════════════════════════════════════════════ */}
-            <div className="bg-white dark:bg-slate-900/70 dark:backdrop-blur-xl rounded-2xl p-5 sm:p-6 border border-slate-200/80 dark:border-white/10 shadow-xs space-y-4">
-                {/* Header Top Row: Title + Status + Channel Switcher */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div className="flex items-start sm:items-center gap-3.5">
-                        <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-500/20 shadow-2xs">
-                            <Phone size={26} strokeWidth={2.2} />
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2.5 flex-wrap">
-                                <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                                    Voice Calls & Telephony
-                                </h1>
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/40">
-                                    <span className="inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                                    <span>Twilio / WebRTC • Operational</span>
-                                </div>
-                            </div>
-                            <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
-                                Automated queue announcements, staff outgoing calls, and billable telephony minutes
-                            </p>
-                        </div>
+            {/* ── 1. Header & Channel Switcher (Matches Staff Monitoring) ── */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 pb-6 border-b border-slate-200/60 dark:border-white/10">
+                <div>
+                    <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-200 dark:to-slate-400">
+                        Voice Calls & Telephony
+                    </h1>
+                    <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 dark:text-slate-400 mt-2">
+                        <span className="leading-none font-medium">
+                            Automated queue announcements, staff outgoing calls, and billable telephony minutes
+                        </span>
                     </div>
-
-                    {/* Channel Switcher (WhatsApp vs Calls) */}
-                    {onChannelChange && (
-                        <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-white/5 self-start lg:self-auto shrink-0">
-                            <button
-                                onClick={() => onChannelChange("whatsapp")}
-                                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-bold transition-all cursor-pointer ${
-                                    channel === "whatsapp"
-                                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
-                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                                }`}
-                            >
-                                <MessageSquareText size={15} />
-                                <span>WhatsApp Studio</span>
-                            </button>
-                            <button
-                                onClick={() => onChannelChange("calls")}
-                                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-bold transition-all cursor-pointer ${
-                                    channel === "calls"
-                                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
-                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                                }`}
-                            >
-                                <Phone size={15} className="text-indigo-600 dark:text-indigo-400" />
-                                <span>Voice Telephony</span>
-                            </button>
-                        </div>
-                    )}
                 </div>
 
-                {/* Sub-Navigation Tabs */}
-                <div className="flex items-center gap-1.5 border-t border-slate-100 dark:border-white/5 pt-4 overflow-x-auto">
+                {/* Channel Switcher (WhatsApp vs Calls) */}
+                {onChannelChange && (
+                    <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-white/5 shrink-0 self-start lg:self-auto">
+                        <button
+                            type="button"
+                            onClick={() => onChannelChange("whatsapp")}
+                            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-bold transition-all cursor-pointer ${
+                                channel === "whatsapp"
+                                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                            }`}
+                        >
+                            <MessageSquareText size={15} />
+                            <span>WhatsApp Studio</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onChannelChange("calls")}
+                            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-bold transition-all cursor-pointer ${
+                                channel === "calls"
+                                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                            }`}
+                        >
+                            <Phone size={15} className="text-indigo-600 dark:text-indigo-400" />
+                            <span>Voice Telephony</span>
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* ── 2. Standard Underline Sub-Navigation Tabs ── */}
+            <div className="border-b border-slate-200/80 dark:border-white/10">
+                <div className="flex items-center gap-6 overflow-x-auto">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
                         const isActive = subTab === tab.id;
                         return (
                             <button
                                 key={tab.id}
+                                type="button"
                                 onClick={() => setSubTab(tab.id)}
-                                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition-all cursor-pointer whitespace-nowrap ${isActive
-                                    ? "bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-500 shadow-xs"
-                                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white"
+                                className={`flex items-center gap-2 pb-3 text-sm font-semibold transition-all cursor-pointer whitespace-nowrap border-b-2 -mb-px ${
+                                    isActive
+                                        ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+                                        : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                                 }`}
                             >
-                                <Icon size={15} strokeWidth={isActive ? 2.5 : 2} />
+                                <Icon size={16} />
                                 <span>{tab.label}</span>
                                 {typeof tab.count === "number" && tab.count > 0 && (
-                                    <span className={`px-2 py-0.5 rounded-full text-[11px] tabular-nums font-extrabold ${isActive
-                                        ? "bg-white/25 text-white"
-                                        : "bg-slate-200/80 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300"
+                                    <span className={`px-2 py-0.5 rounded-full text-[11px] tabular-nums font-bold ${
+                                        isActive
+                                            ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                                     }`}>
                                         {tab.count}
                                     </span>
@@ -199,163 +213,220 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                 </div>
             </div>
 
-            {/* ══════════════════════════════════════════════
-                2. TAB: TELEPHONY OVERVIEW (UNIFIED METRIC RIBBON & STAFF STATS)
-            ══════════════════════════════════════════════ */}
+            {/* ── 3. Overview Tab: 4 Metric Cards & Staff Breakdown Table ── */}
             {subTab === "overview" && (
                 <div className="space-y-6">
-                    {/* Unified Telephony Metric Ribbon */}
+                    {/* 4-Column Stat Cards Grid (2x2 on Mobile) */}
                     {overviewLoading ? (
-                        <div className="bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-white/10 p-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             {Array.from({ length: 4 }).map((_, i) => (
-                                <div key={i} className="space-y-2">
-                                    <Skeleton className="h-3 w-20" />
-                                    <Skeleton className="h-8 w-16" />
-                                    <Skeleton className="h-2.5 w-24" />
+                                <div key={i} className="bg-white dark:bg-slate-900/70 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xs p-4.5 flex items-center justify-between">
+                                    <div className="space-y-2 min-w-0">
+                                        <Skeleton className="h-3 w-20" />
+                                        <Skeleton className="h-7 w-16" />
+                                        <Skeleton className="h-2.5 w-24" />
+                                    </div>
+                                    <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-white dark:bg-slate-900/70 dark:backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xs overflow-hidden">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-white/5">
-                                {/* 1. Total Calls */}
-                                <div className="p-5 flex flex-col justify-between hover:bg-slate-50/50 dark:hover:bg-white/[0.01] transition-colors">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Calls</span>
-                                        <Phone size={15} className="text-indigo-500" />
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
-                                            {overview?.total_calls ?? 0}
-                                        </div>
-                                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 block">WebRTC call attempts</span>
-                                    </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            {/* 1. Total Calls */}
+                            <div className="bg-white dark:bg-slate-900/70 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xs p-4.5 flex items-center justify-between">
+                                <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        Total Calls
+                                    </p>
+                                    <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">
+                                        {overview?.total_calls ?? 0}
+                                    </p>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">WebRTC attempts</p>
                                 </div>
-
-                                {/* 2. Billable Minutes */}
-                                <div className="p-5 flex flex-col justify-between hover:bg-slate-50/50 dark:hover:bg-white/[0.01] transition-colors">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Billable Usage</span>
-                                        <CreditCard size={15} className="text-emerald-500" />
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight flex items-baseline gap-1.5">
-                                            {overview?.total_billable_minutes ?? 0}
-                                            <span className="text-xs font-bold uppercase text-emerald-500">Mins</span>
-                                        </div>
-                                        <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
-                                            <Info size={11} /> 60s increment rounded
-                                        </div>
-                                    </div>
+                                <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100/80 dark:border-indigo-500/20 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+                                    <Phone size={18} />
                                 </div>
+                            </div>
 
-                                {/* 3. Actual Talk Time */}
-                                <div className="p-5 flex flex-col justify-between hover:bg-slate-50/50 dark:hover:bg-white/[0.01] transition-colors">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Talk Time</span>
-                                        <Clock size={15} className="text-blue-500" />
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tabular-nums tracking-tight">
-                                            {formatDuration(overview?.total_duration_seconds ?? 0)}
-                                        </div>
-                                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 block">Cumulative duration</span>
-                                    </div>
+                            {/* 2. Billable Minutes */}
+                            <div className="bg-white dark:bg-slate-900/70 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xs p-4.5 flex items-center justify-between">
+                                <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        Billable Minutes
+                                    </p>
+                                    <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">
+                                        {overview?.total_billable_minutes ?? 0} <span className="text-sm font-semibold text-slate-500">mins</span>
+                                    </p>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">60s rounded</p>
                                 </div>
+                                <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100/80 dark:border-indigo-500/20 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+                                    <CreditCard size={18} />
+                                </div>
+                            </div>
 
-                                {/* 4. Avg Call Duration */}
-                                <div className="p-5 flex flex-col justify-between hover:bg-slate-50/50 dark:hover:bg-white/[0.01] transition-colors">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Avg Duration</span>
-                                        <TrendingUp size={15} className="text-amber-500" />
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tabular-nums tracking-tight">
-                                            {formatDuration(Math.round(overview?.avg_duration_seconds ?? 0))}
-                                        </div>
-                                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 block">Average per call</span>
-                                    </div>
+                            {/* 3. Talk Time */}
+                            <div className="bg-white dark:bg-slate-900/70 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xs p-4.5 flex items-center justify-between">
+                                <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        Talk Time
+                                    </p>
+                                    <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">
+                                        {formatDuration(overview?.total_duration_seconds ?? 0)}
+                                    </p>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">Cumulative</p>
+                                </div>
+                                <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100/80 dark:border-indigo-500/20 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+                                    <Clock size={18} />
+                                </div>
+                            </div>
+
+                            {/* 4. Avg Duration */}
+                            <div className="bg-white dark:bg-slate-900/70 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xs p-4.5 flex items-center justify-between">
+                                <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        Avg Duration
+                                    </p>
+                                    <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">
+                                        {formatDuration(Math.round(overview?.avg_duration_seconds ?? 0))}
+                                    </p>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">Per call avg</p>
+                                </div>
+                                <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100/80 dark:border-indigo-500/20 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+                                    <TrendingUp size={18} />
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Staff Call Breakdown Table */}
-                    <div className="bg-white dark:bg-slate-900/70 dark:backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-white/10 overflow-hidden shadow-xs">
-                        <div className="px-5 sm:px-6 py-4 border-b border-slate-200/80 dark:border-white/10 flex items-center justify-between bg-slate-50/40 dark:bg-slate-800/20">
-                            <div>
-                                <h3 className="font-extrabold text-slate-900 dark:text-white text-sm">
-                                    Staff Call Activity & Billable Minutes
-                                </h3>
-                                <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                    Aggregated calling metrics per staff agent
-                                </p>
+                    {/* Staff Call Breakdown Card */}
+                    <div className="bg-white dark:bg-slate-900/70 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-sm overflow-hidden">
+                        {/* Header Bar */}
+                        <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 flex items-center justify-center shrink-0">
+                                    <PhoneCall size={16} className="text-indigo-600 dark:text-indigo-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Staff Call Breakdown</h2>
+                                    <p className="text-xs text-slate-400 mt-0.5">Aggregated calling metrics per staff agent</p>
+                                </div>
                             </div>
                             <button
+                                type="button"
                                 onClick={fetchOverview}
-                                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border border-slate-200/60 dark:border-white/5"
-                                title="Refresh data"
+                                disabled={overviewLoading}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 cursor-pointer"
                             >
-                                <RefreshCw size={14} className={overviewLoading ? "animate-spin" : ""} />
+                                <RefreshCw size={13} className={overviewLoading ? "animate-spin" : ""} />
+                                <span>{overviewLoading ? "Refreshing..." : "Refresh"}</span>
                             </button>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-xs whitespace-nowrap">
-                                <thead className="bg-slate-50/75 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200/60 dark:border-white/5">
-                                    <tr>
-                                        <th className="px-5 sm:px-6 py-3.5">Staff Member</th>
-                                        <th className="px-5 py-3.5">Total Calls</th>
-                                        <th className="px-5 py-3.5">Actual Duration</th>
-                                        <th className="px-5 sm:px-6 py-3.5 text-right">Billable Mins</th>
+                        {/* Mobile View */}
+                        <div className="block md:hidden divide-y divide-slate-100 dark:divide-white/5 bg-white dark:bg-slate-900">
+                            {overviewLoading ? (
+                                <div className="p-12 text-center text-slate-400 text-xs font-medium">
+                                    <RefreshCw size={18} className="animate-spin text-indigo-500 mx-auto mb-2" />
+                                    Loading staff metrics...
+                                </div>
+                            ) : !overview?.staff_stats || overview.staff_stats.length === 0 ? (
+                                <div className="p-12 text-center">
+                                    <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center mx-auto mb-3">
+                                        <PhoneCall size={22} className="text-slate-300 dark:text-slate-600" />
+                                    </div>
+                                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No staff calls recorded</p>
+                                    <p className="text-xs text-slate-400 mt-1">Staff calls made via WebRTC will appear here.</p>
+                                </div>
+                            ) : (
+                                overview.staff_stats.map((s, idx) => {
+                                    const displayName = getStaffDisplayName(s.staff_name);
+                                    const avatarBg = avatarColors[displayName.charCodeAt(0) % avatarColors.length];
+                                    return (
+                                        <div key={idx} className="p-4 space-y-3 hover:bg-slate-50/60 dark:hover:bg-white/[0.02] transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full ${avatarBg} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
+                                                    {getStaffInitial(s.staff_name)}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h4 className="font-semibold text-slate-900 dark:text-white text-sm leading-snug truncate">
+                                                        {displayName}
+                                                    </h4>
+                                                    <p className="text-[11px] text-slate-400">{s.call_count} call{s.call_count !== 1 ? "s" : ""}</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-2 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl p-3 border border-slate-100 dark:border-white/5 text-xs">
+                                                <div className="flex justify-between items-center py-0.5">
+                                                    <span className="text-slate-500 font-medium">Actual Duration</span>
+                                                    <span className="font-semibold text-slate-900 dark:text-white">{formatDuration(s.total_duration_seconds)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center py-0.5 border-t border-slate-100/60 dark:border-white/5 pt-1.5">
+                                                    <span className="text-slate-500 font-medium">Billable</span>
+                                                    <span className="font-semibold text-slate-700 dark:text-slate-200">{s.total_billable_minutes} mins</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Desktop Table */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[700px]">
+                                <thead>
+                                    <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-white/5 text-[11px] uppercase tracking-widest text-slate-400 font-semibold">
+                                        <th className="px-6 py-3.5">Staff Member</th>
+                                        <th className="px-6 py-3.5">Total Calls</th>
+                                        <th className="px-6 py-3.5">Actual Duration</th>
+                                        <th className="px-6 py-3.5 text-right">Billable</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-700 dark:text-slate-200 font-medium">
+                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                     {overviewLoading ? (
                                         <tr>
-                                            <td colSpan={4} className="py-12 text-center">
-                                                <div className="flex flex-col items-center justify-center gap-2">
-                                                    <RefreshCw size={20} className="animate-spin text-indigo-500" />
-                                                    <p className="text-[13px] font-semibold text-slate-600 dark:text-slate-300">Loading staff metrics...</p>
-                                                </div>
+                                            <td colSpan={4} className="py-16 text-center text-slate-400 text-xs">
+                                                <RefreshCw size={18} className="animate-spin text-indigo-500 mx-auto mb-2" />
+                                                Loading staff metrics...
                                             </td>
                                         </tr>
                                     ) : !overview?.staff_stats || overview.staff_stats.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="px-5 py-16 text-center">
-                                                <div className="flex flex-col items-center justify-center gap-3">
-                                                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                        <PhoneCall size={22} className="text-slate-300 dark:text-slate-600" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[13px] font-bold text-slate-700 dark:text-slate-300">No calls recorded yet</p>
-                                                        <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-0.5">Staff calls made via WebRTC will appear here automatically.</p>
-                                                    </div>
+                                            <td colSpan={4} className="py-20 text-center">
+                                                <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center mx-auto mb-3">
+                                                    <PhoneCall size={22} className="text-slate-300 dark:text-slate-600" />
                                                 </div>
+                                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No staff calls recorded</p>
+                                                <p className="text-xs text-slate-400 mt-1">Staff calls made via WebRTC will appear here.</p>
                                             </td>
                                         </tr>
                                     ) : (
-                                        overview.staff_stats.map((s, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50/75 dark:hover:bg-white/[0.02] transition-colors">
-                                                <td className="px-5 sm:px-6 py-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-3 text-[13px]">
-                                                    <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-[11px] border border-indigo-200/70 dark:border-indigo-800/40">
-                                                        {(s.staff_name || "S").substring(0, 2).toUpperCase()}
-                                                    </div>
-                                                    <span>{s.staff_name}</span>
-                                                </td>
-                                                <td className="px-5 py-3.5 font-semibold text-slate-700 dark:text-slate-300 text-[13px]">
-                                                    {s.call_count} calls
-                                                </td>
-                                                <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400 text-[13px]">
-                                                    {formatDuration(s.total_duration_seconds)}
-                                                </td>
-                                                <td className="px-5 sm:px-6 py-3.5 text-right">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/50 text-[12px]">
+                                        overview.staff_stats.map((s, idx) => {
+                                            const displayName = getStaffDisplayName(s.staff_name);
+                                            const avatarBg = avatarColors[displayName.charCodeAt(0) % avatarColors.length];
+                                            return (
+                                                <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-white/[0.02] transition-colors">
+                                                    <td className="px-6 py-3.5">
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className={`w-8 h-8 rounded-full ${avatarBg} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
+                                                                {getStaffInitial(s.staff_name)}
+                                                            </div>
+                                                            <span className="font-semibold text-slate-900 dark:text-white text-sm">
+                                                                {displayName}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-3.5 text-sm text-slate-600 dark:text-slate-300 font-medium">
+                                                        {s.call_count} call{s.call_count !== 1 ? "s" : ""}
+                                                    </td>
+                                                    <td className="px-6 py-3.5 text-sm text-slate-500 dark:text-slate-400">
+                                                        {formatDuration(s.total_duration_seconds)}
+                                                    </td>
+                                                    <td className="px-6 py-3.5 text-sm font-semibold text-slate-700 dark:text-slate-200 text-right">
                                                         {s.total_billable_minutes} mins
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
@@ -364,117 +435,190 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                 </div>
             )}
 
-            {/* ══════════════════════════════════════════════
-                3. TAB: CALL HISTORY LOGS
-            ══════════════════════════════════════════════ */}
+            {/* ── 4. Call History Tab: Table Card with Search & Pagination ── */}
             {subTab === "history" && (
-                <div className="bg-white dark:bg-slate-900/70 dark:backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-white/10 overflow-hidden shadow-xs space-y-0">
-                    {/* Search & Status Toolbar */}
-                    <div className="p-4 border-b border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/40 dark:bg-slate-800/20">
-                        <div className="relative w-full sm:w-80">
-                            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search by phone or customer name..."
-                                value={search}
-                                onChange={(e) => {
-                                    setSearch(e.target.value);
-                                    setPage(1);
-                                }}
-                                className="w-full h-10 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 rounded-xl pl-9 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-2xs"
-                            />
+                <div className="bg-white dark:bg-slate-900/70 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-sm overflow-hidden">
+                    {/* Header Bar with Search */}
+                    <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 flex items-center justify-center shrink-0">
+                                <ListFilter size={16} className="text-indigo-600 dark:text-indigo-400" />
+                            </div>
+                            <div>
+                                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Call History Logs</h2>
+                                <p className="text-xs text-slate-400 mt-0.5">{history?.total ?? 0} total calls recorded</p>
+                            </div>
                         </div>
 
-                        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end text-[12px] text-slate-500 dark:text-slate-400 font-medium">
-                            <span>
-                                Page <strong className="text-slate-900 dark:text-white">{history?.page ?? 1}</strong> of <strong className="text-slate-900 dark:text-white">{history?.pages ?? 1}</strong> (<strong className="text-slate-900 dark:text-white">{history?.total ?? 0}</strong> total)
-                            </span>
+                        {/* Search & Actions */}
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <div className="relative w-full sm:w-64">
+                                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search calls..."
+                                    value={search}
+                                    onChange={(e) => {
+                                        setSearch(e.target.value);
+                                        setPage(1);
+                                    }}
+                                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl pl-9 pr-8 text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-400 transition-all"
+                                />
+                                {search && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setSearch(""); setPage(1); }}
+                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                                    >
+                                        <X size={13} />
+                                    </button>
+                                )}
+                            </div>
                             <button
+                                type="button"
                                 onClick={fetchHistory}
-                                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border border-slate-200/60 dark:border-white/5"
-                                title="Refresh"
+                                disabled={historyLoading}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 cursor-pointer shrink-0"
                             >
-                                <RefreshCw size={14} className={historyLoading ? "animate-spin" : ""} />
+                                <RefreshCw size={13} className={historyLoading ? "animate-spin" : ""} />
+                                <span className="hidden sm:inline">{historyLoading ? "Refreshing..." : "Refresh"}</span>
                             </button>
                         </div>
                     </div>
 
-                    {/* Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs whitespace-nowrap">
-                            <thead className="bg-slate-50/75 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200/60 dark:border-white/5">
-                                <tr>
-                                    <th className="px-5 sm:px-6 py-3.5">Date & Time</th>
-                                    <th className="px-5 py-3.5">Staff Caller</th>
-                                    <th className="px-5 py-3.5">Customer</th>
-                                    <th className="px-5 py-3.5">Queue</th>
-                                    <th className="px-5 py-3.5">Actual Time</th>
-                                    <th className="px-5 sm:px-6 py-3.5 text-right">Billable</th>
+                    {/* Mobile View */}
+                    <div className="block md:hidden divide-y divide-slate-100 dark:divide-white/5 bg-white dark:bg-slate-900">
+                        {historyLoading ? (
+                            <div className="p-12 text-center text-slate-400 text-xs font-medium">
+                                <RefreshCw size={18} className="animate-spin text-indigo-500 mx-auto mb-2" />
+                                Loading call history...
+                            </div>
+                        ) : !history?.items || history.items.length === 0 ? (
+                            <div className="p-12 text-center">
+                                <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center mx-auto mb-3">
+                                    <PhoneOff size={22} className="text-slate-300 dark:text-slate-600" />
+                                </div>
+                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No call logs found</p>
+                                <p className="text-xs text-slate-400 mt-1">Try searching for a different number or customer name.</p>
+                            </div>
+                        ) : (
+                            history.items.map((item) => {
+                                const staffDisplay = getStaffDisplayName(item.called_by_name);
+                                const avatarBg = avatarColors[staffDisplay.charCodeAt(0) % avatarColors.length];
+                                return (
+                                    <div key={item.id} className="p-4 space-y-3 hover:bg-slate-50/60 dark:hover:bg-white/[0.02] transition-colors">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <div className={`w-8 h-8 rounded-full ${avatarBg} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
+                                                    {getStaffInitial(item.called_by_name)}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h4 className="font-semibold text-slate-900 dark:text-white text-sm leading-snug truncate">
+                                                        {staffDisplay}
+                                                    </h4>
+                                                    <p className="text-[11px] text-slate-400">{fmtDateTime(item.created_at, tz)}</p>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0">
+                                                {item.billable_minutes} min{item.billable_minutes !== 1 ? "s" : ""}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-2 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl p-3 border border-slate-100 dark:border-white/5 text-xs">
+                                            <div className="flex justify-between items-center py-0.5">
+                                                <span className="text-slate-500 font-medium">Customer</span>
+                                                <div className="text-right">
+                                                    <span className="font-semibold text-slate-900 dark:text-white">{item.customer_phone}</span>
+                                                    {item.customer_name && (
+                                                        <p className="text-[11px] text-slate-400">{item.customer_name}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center py-0.5 border-t border-slate-100/60 dark:border-white/5 pt-1.5">
+                                                <span className="text-slate-500 font-medium">Queue</span>
+                                                <span className="font-semibold text-slate-700 dark:text-slate-300">{item.queue_name || "—"}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center py-0.5 border-t border-slate-100/60 dark:border-white/5 pt-1.5">
+                                                <span className="text-slate-500 font-medium">Duration</span>
+                                                <span className="font-semibold text-slate-900 dark:text-white">{formatDuration(item.duration_seconds)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+
+                    {/* Desktop Table */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[800px]">
+                            <thead>
+                                <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-white/5 text-[11px] uppercase tracking-widest text-slate-400 font-semibold">
+                                    <th className="px-6 py-3.5">Date & Time</th>
+                                    <th className="px-6 py-3.5">Staff</th>
+                                    <th className="px-6 py-3.5">Customer</th>
+                                    <th className="px-6 py-3.5">Queue</th>
+                                    <th className="px-6 py-3.5">Duration</th>
+                                    <th className="px-6 py-3.5 text-right">Billable</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-700 dark:text-slate-200 font-medium">
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {historyLoading ? (
                                     <tr>
-                                        <td colSpan={6} className="py-12 text-center">
-                                            <div className="flex flex-col items-center justify-center gap-2">
-                                                <RefreshCw size={20} className="animate-spin text-indigo-500" />
-                                                <p className="text-[13px] font-semibold text-slate-600 dark:text-slate-300">Loading call history...</p>
-                                            </div>
+                                        <td colSpan={6} className="py-16 text-center text-slate-400 text-xs">
+                                            <RefreshCw size={18} className="animate-spin text-indigo-500 mx-auto mb-2" />
+                                            Loading call history...
                                         </td>
                                     </tr>
                                 ) : !history?.items || history.items.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-5 py-16 text-center">
-                                            <div className="flex flex-col items-center justify-center gap-3">
-                                                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                    <PhoneOff size={22} className="text-slate-300 dark:text-slate-600" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[13px] font-bold text-slate-700 dark:text-slate-300">No call logs found</p>
-                                                    <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-0.5">Try searching for a different number or clear your search query.</p>
-                                                </div>
+                                        <td colSpan={6} className="py-20 text-center">
+                                            <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center mx-auto mb-3">
+                                                <PhoneOff size={22} className="text-slate-300 dark:text-slate-600" />
                                             </div>
+                                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No call logs found</p>
+                                            <p className="text-xs text-slate-400 mt-1">Try searching for a different number or customer name.</p>
                                         </td>
                                     </tr>
                                 ) : (
-                                    history.items.map((item) => (
-                                        <tr key={item.id} className="hover:bg-slate-50/75 dark:hover:bg-white/[0.02] transition-colors">
-                                            <td className="px-5 sm:px-6 py-3.5 text-slate-500 dark:text-slate-400 text-[12px]">
-                                                {fmtDateTime(item.created_at, tz)}
-                                            </td>
-                                            <td className="px-5 py-3.5">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold text-[10px] flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/40">
-                                                        {(item.called_by_name || "S").substring(0, 1).toUpperCase()}
+                                    history.items.map((item) => {
+                                        const staffDisplay = getStaffDisplayName(item.called_by_name);
+                                        const avatarBg = avatarColors[staffDisplay.charCodeAt(0) % avatarColors.length];
+                                        return (
+                                            <tr key={item.id} className="hover:bg-slate-50/60 dark:hover:bg-white/[0.02] transition-colors">
+                                                <td className="px-6 py-3.5 text-sm text-slate-500 dark:text-slate-400">
+                                                    {fmtDateTime(item.created_at, tz)}
+                                                </td>
+                                                <td className="px-6 py-3.5">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className={`w-8 h-8 rounded-full ${avatarBg} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
+                                                            {getStaffInitial(item.called_by_name)}
+                                                        </div>
+                                                        <span className="font-semibold text-slate-900 dark:text-white text-sm">
+                                                            {staffDisplay}
+                                                        </span>
                                                     </div>
-                                                    <span className="font-bold text-slate-900 dark:text-white text-[13px]">
-                                                        {item.called_by_name || "Staff Member"}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-5 py-3.5">
-                                                <div className="font-bold font-mono text-slate-900 dark:text-white text-[13px]">
-                                                    {item.customer_phone}
-                                                </div>
-                                                {item.customer_name && (
-                                                    <div className="text-[11px] text-slate-400">
-                                                        {item.customer_name}
+                                                </td>
+                                                <td className="px-6 py-3.5">
+                                                    <div>
+                                                        <p className="font-semibold text-slate-900 dark:text-white text-sm">{item.customer_phone}</p>
+                                                        {item.customer_name && (
+                                                            <p className="text-xs text-slate-400 mt-0.5">{item.customer_name}</p>
+                                                        )}
                                                     </div>
-                                                )}
-                                            </td>
-                                            <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400 text-[13px]">
-                                                {item.queue_name || "—"}
-                                            </td>
-                                            <td className="px-5 py-3.5 font-semibold text-slate-700 dark:text-slate-300 text-[13px]">
-                                                {formatDuration(item.duration_seconds)}
-                                            </td>
-                                            <td className="px-5 sm:px-6 py-3.5 text-right">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/50 text-[12px]">
+                                                </td>
+                                                <td className="px-6 py-3.5 text-sm font-medium text-slate-600 dark:text-slate-300">
+                                                    {item.queue_name || "—"}
+                                                </td>
+                                                <td className="px-6 py-3.5 text-sm text-slate-500 dark:text-slate-400">
+                                                    {formatDuration(item.duration_seconds)}
+                                                </td>
+                                                <td className="px-6 py-3.5 text-sm font-semibold text-slate-700 dark:text-slate-200 text-right">
                                                     {item.billable_minutes} min{item.billable_minutes !== 1 ? "s" : ""}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
@@ -482,26 +626,31 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
 
                     {/* Pagination Footer */}
                     {history && history.pages > 1 && (
-                        <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-t border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-slate-850">
-                            <button
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-[12px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                            >
-                                <ChevronLeft size={14} /> Previous
-                            </button>
-
-                            <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300">
-                                Page {page} of {history.pages}
-                            </span>
-
-                            <button
-                                onClick={() => setPage((p) => Math.min(history.pages, p + 1))}
-                                disabled={page >= history.pages}
-                                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-[12px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                            >
-                                Next <ChevronRight size={14} />
-                            </button>
+                        <div className="flex items-center justify-between px-6 py-3.5 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900">
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                                Showing <span className="font-semibold text-slate-900 dark:text-white">{((page - 1) * limit) + 1}</span> to <span className="font-semibold text-slate-900 dark:text-white">{Math.min(page * limit, history.total)}</span> of <span className="font-semibold text-slate-900 dark:text-white">{history.total}</span> call logs
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                >
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <div className="px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                                    Page {page} of {history.pages}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setPage((p) => Math.min(history.pages, p + 1))}
+                                    disabled={page >= history.pages}
+                                    className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                >
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

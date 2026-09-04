@@ -1,7 +1,12 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
-import { Phone, PhoneOff } from "lucide-react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import {
+    Phone,
+    Mic,
+    MicOff,
+    Delete,
+} from "lucide-react";
 import { api } from "@/lib/api";
 
 interface WebRTCCallModalProps {
@@ -27,15 +32,19 @@ export default function WebRTCCallModal({
     tokenId,
     organizationId,
 }: WebRTCCallModalProps) {
-    const [status, setStatus] = useState<string>("Initializing...");
+    const [status, setStatus] = useState<string>("Connecting");
     const [callDuration, setCallDuration] = useState<number>(0);
     const durationRef = useRef<number>(0);
     const [isConnected, setIsConnected] = useState<boolean>(false);
+    const [isMuted, setIsMuted] = useState<boolean>(false);
+    const [showKeypad, setShowKeypad] = useState<boolean>(false);
+    const [dtmfDigits, setDtmfDigits] = useState<string>("");
     const plivoClientRef = useRef<any>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const isCallingRef = useRef<boolean>(false);
+    const isCleaningUpRef = useRef<boolean>(false);
 
-    // Format seconds to MM:SS
+    // Format seconds to clean MM:SS
     const formatDuration = (seconds: number) => {
         const m = Math.floor(seconds / 60).toString().padStart(2, "0");
         const s = (seconds % 60).toString().padStart(2, "0");
@@ -45,7 +54,7 @@ export default function WebRTCCallModal({
     const hasLoggedRef = useRef<boolean>(false);
     const callStartTimeRef = useRef<number>(0);
 
-    const saveCallRecord = async () => {
+    const saveCallRecord = useCallback(async () => {
         if (hasLoggedRef.current) return;
         hasLoggedRef.current = true;
 
@@ -68,9 +77,13 @@ export default function WebRTCCallModal({
         } catch (err) {
             console.error("Failed to log call record:", err);
         }
-    };
+    }, [organizationId, queueId, sessionId, tokenId, customerName, customerPhone]);
 
-    const cleanupCall = async () => {
+    const cleanupCall = useCallback(async () => {
+        // Guard against double-cleanup race condition
+        if (isCleaningUpRef.current) return;
+        isCleaningUpRef.current = true;
+
         isCallingRef.current = false;
         if (timerRef.current) clearInterval(timerRef.current);
 
@@ -79,7 +92,7 @@ export default function WebRTCCallModal({
         if (plivoClientRef.current) {
             const client = plivoClientRef.current;
             try {
-                // Prevent memory leak / stale closure execution & stop duplicate callbacks
+                // Remove listeners first to prevent race condition callbacks
                 client.removeAllListeners('onLogin');
                 client.removeAllListeners('onLoginFailed');
                 client.removeAllListeners('onCallRemoteRinging');
@@ -87,10 +100,7 @@ export default function WebRTCCallModal({
                 client.removeAllListeners('onCallFailed');
                 client.removeAllListeners('onCallTerminated');
 
-                // Only hangup if there's an active call session
                 if (client.callSession) {
-                    // Temporarily silence Plivo SDK's internal console.error("Outgoing call failed: Canceled")
-                    // which triggers the Next.js dev error modal during intentional user hangups
                     const originalConsoleError = console.error;
                     console.error = (...args: any[]) => {
                         const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(" ");
@@ -115,31 +125,62 @@ export default function WebRTCCallModal({
             }
         }
         setIsConnected(false);
+        setIsMuted(false);
+        setShowKeypad(false);
+        setDtmfDigits("");
         setCallDuration(0);
         durationRef.current = 0;
         callStartTimeRef.current = 0;
         setStatus("Disconnected");
 
-        // Close modal immediately
         onClose();
-        setStatus("Initializing...");
+        // Reset for next open
+        setStatus("Connecting");
+        isCleaningUpRef.current = false;
+    }, [onClose, saveCallRecord]);
+
+    const toggleMute = () => {
+        if (!plivoClientRef.current) return;
+        try {
+            if (isMuted) {
+                plivoClientRef.current.unmute?.();
+                setIsMuted(false);
+            } else {
+                plivoClientRef.current.mute?.();
+                setIsMuted(true);
+            }
+        } catch (e) {
+            console.warn("Mute error:", e);
+        }
+    };
+
+    const sendDTMF = (digit: string) => {
+        if (!plivoClientRef.current) return;
+        try {
+            plivoClientRef.current.sendDigits?.(digit);
+            setDtmfDigits((prev) => prev + digit);
+        } catch (e) {
+            console.warn("DTMF error:", e);
+        }
     };
 
     useEffect(() => {
         if (!isOpen) return;
 
-        // Reset state
-        setStatus("Initializing...");
+        setStatus("Connecting");
         setCallDuration(0);
         durationRef.current = 0;
         callStartTimeRef.current = Date.now();
+        setIsMuted(false);
+        setShowKeypad(false);
+        setDtmfDigits("");
+        isCleaningUpRef.current = false;
 
         const handleHungUp = (e: CustomEvent) => {
             const payload = e.detail;
-            // If the webhook reports the same phone number disconnected, force close
             if (payload && payload.customer_phone === customerPhone) {
-                setStatus("Call Rejected / Ended");
-                setTimeout(() => cleanupCall(), 1500);
+                setStatus("Call Ended");
+                setTimeout(() => cleanupCall(), 1200);
             }
         };
         window.addEventListener("plivo_call_hung_up", handleHungUp as any);
@@ -151,17 +192,15 @@ export default function WebRTCCallModal({
 
         const initPlivo = async () => {
             if (!(window as any).Plivo) {
-                setStatus("Error: Plivo SDK not loaded");
+                setStatus("Unavailable");
                 return;
             }
 
             try {
-                setStatus("Fetching credentials...");
-                // Fetch credentials from our secure Python backend
+                setStatus("Connecting");
                 const res = await api.getPlivoWebRTCToken();
                 const { username, password } = res;
 
-                // Initialize Plivo as a singleton
                 let plivo = (window as any).plivoBrowserSdk;
                 if (!plivo) {
                     plivo = new (window as any).Plivo({
@@ -177,9 +216,8 @@ export default function WebRTCCallModal({
                     if (isCallingRef.current) return;
                     isCallingRef.current = true;
 
-                    setStatus("Calling customer...");
+                    setStatus("Dialing");
                     callStartTimeRef.current = Date.now();
-                    // Initiate call to customer with metadata for the backend webhook
                     client.call(customerPhone, {
                         extraHeaders: {
                             'X-PH-OrgId': organizationId || queueId || "00000000-0000-0000-0000-000000000000",
@@ -191,19 +229,18 @@ export default function WebRTCCallModal({
                 });
 
                 client.on('onLoginFailed', () => {
-                    setStatus("Failed to connect to Plivo endpoint");
+                    setStatus("Failed");
                 });
 
                 client.on('onCallRemoteRinging', () => {
-                    setStatus("Ringing...");
+                    setStatus("Ringing");
                 });
 
                 client.on('onCallAnswered', () => {
-                    setStatus("Connected (Active)");
+                    setStatus("Connected");
                     setIsConnected(true);
                     callStartTimeRef.current = Date.now();
 
-                    // Start timer
                     if (timerRef.current) clearInterval(timerRef.current);
                     timerRef.current = setInterval(() => {
                         durationRef.current += 1;
@@ -212,21 +249,19 @@ export default function WebRTCCallModal({
                 });
 
                 client.on('onCallFailed', (cause: any) => {
-                    setStatus(`Call Failed: ${cause}`);
-                    setTimeout(() => cleanupCall(), 2000);
+                    setStatus(`Failed: ${cause}`);
+                    setTimeout(() => cleanupCall(), 1800);
                 });
 
                 client.on('onCallTerminated', () => {
                     cleanupCall();
                 });
 
-                // If already logged in, skip login and just call
                 if (client.isLoggedIn) {
                     if (isCallingRef.current) return;
                     isCallingRef.current = true;
-                    setStatus("Calling customer...");
+                    setStatus("Dialing");
                     callStartTimeRef.current = Date.now();
-                    // Initiate call to customer with metadata for the backend webhook
                     client.call(customerPhone, {
                         extraHeaders: {
                             'X-PH-OrgId': organizationId || queueId || "00000000-0000-0000-0000-000000000000",
@@ -236,13 +271,12 @@ export default function WebRTCCallModal({
                         }
                     });
                 } else {
-                    // Login to the SIP Endpoint
                     client.login(username, password);
                 }
 
             } catch (error) {
                 console.error("WebRTC Error:", error);
-                setStatus("Error initializing call");
+                setStatus("Error");
             }
         };
 
@@ -276,63 +310,189 @@ export default function WebRTCCallModal({
 
     if (!isOpen) return null;
 
+    // Display helpers
+    const displayName = customerName?.trim() || `Customer (${tokenNumber})`;
+    const initials = displayName
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase() || tokenNumber.substring(0, 2).toUpperCase();
+
+    const isRinging = status.toLowerCase().includes("ringing");
+    const isDialing = status.toLowerCase().includes("dialing") || status.toLowerCase().includes("connecting");
+    const isFailed = status.toLowerCase().includes("failed") || status.toLowerCase().includes("error");
+
+    const statusLabel = isConnected
+        ? "Connected"
+        : isRinging
+        ? "Ringing"
+        : isDialing
+        ? "Dialing"
+        : status;
+
+    const statusSubtext = isConnected
+        ? "In Call"
+        : isRinging
+        ? "Ringing"
+        : isDialing
+        ? "Dialing"
+        : status;
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-            <div className="relative w-full max-w-sm bg-slate-900 rounded-3xl p-8 shadow-2xl flex flex-col items-center border border-slate-700/50">
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div
+                className="relative w-full max-w-[380px] rounded-2xl bg-zinc-900 border border-zinc-800 shadow-xl text-white overflow-hidden"
+                style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+            >
                 {/* Header */}
-                <h3 className="text-white text-lg font-semibold tracking-wide mb-1">
-                    Calling {tokenNumber}
-                </h3>
-                <p className="text-slate-400 text-sm mb-8 font-mono tracking-wider">
-                    {customerPhone}
-                </p>
+                <div className="px-6 pt-6 pb-0">
+                    {/* Status indicator */}
+                    <div className="flex items-center justify-center gap-2 mb-8">
+                        <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                                isConnected
+                                    ? "bg-emerald-500"
+                                    : isRinging
+                                    ? "bg-amber-500 animate-pulse"
+                                    : isFailed
+                                    ? "bg-red-500"
+                                    : "bg-zinc-400 animate-pulse"
+                            }`}
+                        />
+                        <span className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
+                            {statusLabel}
+                        </span>
+                    </div>
 
-                {/* Radar Pulse Animation */}
-                <div className="relative flex items-center justify-center w-32 h-32 mb-8">
-                    {isConnected ? (
-                        // Active Call Animation
-                        <>
-                            <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping" style={{ animationDuration: '2s' }}></div>
-                            <div className="absolute inset-2 bg-green-500/30 rounded-full animate-pulse"></div>
-                            <div className="relative z-10 w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(34,197,94,0.5)]">
-                                <Phone className="w-8 h-8 text-white animate-bounce" />
+                    {/* Avatar */}
+                    <div className="flex flex-col items-center">
+                        <div className="w-24 h-24 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-semibold select-none">
+                            {initials}
+                        </div>
+
+                        {/* Name */}
+                        <h2 className="text-xl font-semibold text-white mt-4 text-center">
+                            {displayName}
+                        </h2>
+
+                        {/* Phone */}
+                        <p className="text-sm text-zinc-400 mt-1 text-center">
+                            {customerPhone}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Timer / Keypad area */}
+                <div className="px-6 py-6">
+                    {showKeypad ? (
+                        <div className="space-y-3">
+                            {/* DTMF Digit Display */}
+                            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700/50 min-h-[44px]">
+                                <span className="text-xl font-mono tabular-nums text-white tracking-widest flex-1 text-center truncate">
+                                    {dtmfDigits || <span className="text-zinc-600 text-sm font-sans tracking-normal">Press keys to dial</span>}
+                                </span>
+                                {dtmfDigits && (
+                                    <button
+                                        onClick={() => setDtmfDigits((prev) => prev.slice(0, -1))}
+                                        className="ml-2 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer"
+                                        title="Delete last digit"
+                                    >
+                                        <Delete size={18} />
+                                    </button>
+                                )}
                             </div>
-                        </>
+
+                            {/* Keypad Grid */}
+                            <div className="grid grid-cols-3 gap-1.5">
+                                {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map((digit) => (
+                                    <button
+                                        key={digit}
+                                        onClick={() => sendDTMF(digit)}
+                                        className="h-14 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 active:scale-95 text-white text-lg font-medium flex items-center justify-center transition-all cursor-pointer select-none"
+                                    >
+                                        {digit}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     ) : (
-                        // Ringing/Connecting Animation
-                        <>
-                            <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping" style={{ animationDuration: '1.5s' }}></div>
-                            <div className="absolute inset-4 bg-blue-500/30 rounded-full animate-ping" style={{ animationDuration: '1.5s', animationDelay: '0.2s' }}></div>
-                            <div className="relative z-10 w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.5)]">
-                                <Phone className="w-8 h-8 text-white" />
+                        <div className="flex flex-col items-center py-4">
+                            {/* Timer */}
+                            <div className="text-3xl font-mono tabular-nums text-white font-medium">
+                                {formatDuration(callDuration)}
                             </div>
-                        </>
+
+                            {/* Status subtext */}
+                            <div className="text-xs uppercase tracking-wider text-zinc-500 mt-1.5">
+                                {statusSubtext}
+                            </div>
+                        </div>
                     )}
                 </div>
 
-                {/* Hidden Audio Elements for Plivo WebRTC */}
-                <audio id="ui-speaker" autoPlay style={{ display: 'none' }}></audio>
-                <audio id="ui-ringtone" autoPlay style={{ display: 'none' }}></audio>
+                {/* Controls */}
+                <div className="flex items-center justify-center gap-10 px-6 pb-8">
+                    {/* Mute */}
+                    <div className="flex flex-col items-center gap-1.5">
+                        <button
+                            onClick={toggleMute}
+                            disabled={!isConnected}
+                            title={isMuted ? "Unmute" : "Mute"}
+                            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                                isMuted
+                                    ? "bg-white text-zinc-900"
+                                    : "bg-zinc-800 hover:bg-zinc-700 text-white"
+                            }`}
+                        >
+                            {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+                        </button>
+                        <span className="text-[11px] text-zinc-500">
+                            {isMuted ? "Unmute" : "Mute"}
+                        </span>
+                    </div>
 
-                {/* Call Stats & Timer */}
-                <div className="text-center mb-8">
-                    <p className={`text-sm font-medium transition-colors ${isConnected ? 'text-green-400' : 'text-blue-400'}`}>
-                        {status}
-                    </p>
-                    <p className="text-white text-3xl font-light tabular-nums mt-2 tracking-widest">
-                        {formatDuration(callDuration)}
-                    </p>
+                    {/* End Call */}
+                    <div className="flex flex-col items-center gap-1.5">
+                        <button
+                            onClick={cleanupCall}
+                            title="End Call"
+                            className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-400 active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white"
+                        >
+                            <Phone size={22} className="text-white fill-white rotate-[135deg]" />
+                        </button>
+                        <span className="text-[11px] text-zinc-500">
+                            End
+                        </span>
+                    </div>
+
+                    {/* Keypad */}
+                    <div className="flex flex-col items-center gap-1.5">
+                        <button
+                            onClick={() => setShowKeypad(!showKeypad)}
+                            disabled={!isConnected}
+                            title="Keypad"
+                            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                                showKeypad
+                                    ? "bg-white text-zinc-900"
+                                    : "bg-zinc-800 hover:bg-zinc-700 text-white"
+                            }`}
+                        >
+                            <div className="grid grid-cols-3 gap-[3px] w-4 h-4 items-center justify-items-center">
+                                {Array.from({ length: 9 }).map((_, i) => (
+                                    <span key={i} className={`w-1 h-1 rounded-full ${showKeypad ? "bg-zinc-900" : "bg-zinc-300"}`} />
+                                ))}
+                            </div>
+                        </button>
+                        <span className="text-[11px] text-zinc-500">
+                            Keypad
+                        </span>
+                    </div>
                 </div>
 
-                {/* End Call Action */}
-                <button
-                    onClick={cleanupCall}
-                    className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:shadow-[0_0_25px_rgba(239,68,68,0.6)]"
-                >
-                    <PhoneOff className="w-8 h-8 text-white" />
-                </button>
-                <p className="text-slate-500 text-xs mt-3 font-medium uppercase tracking-widest">End Call</p>
+                {/* Hidden Audio Elements for Plivo WebRTC */}
+                <audio id="ui-speaker" autoPlay style={{ display: "none" }}></audio>
+                <audio id="ui-ringtone" autoPlay style={{ display: "none" }}></audio>
             </div>
         </div>
     );
