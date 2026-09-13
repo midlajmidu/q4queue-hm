@@ -71,6 +71,7 @@ class TestConnectionRequest(BaseModel):
 class OrgWhatsAppConfigUpdate(BaseModel):
     is_enabled: Optional[bool] = None
     mode: Optional[str] = None
+    delivery_mode: Optional[str] = None
     phone_number_id: Optional[str] = None
     waba_id: Optional[str] = None
     access_token: Optional[str] = None
@@ -503,6 +504,9 @@ async def get_messages(
 # ── Org Admin: WhatsApp Settings (Moved to whatsapp_analytics.py) ─────────────
 
 
+from app.services.entitlement_service import assert_whatsapp_allowed, EntitlementError
+
+
 @router.post("/org/test", summary="Send Test WhatsApp Notification")
 async def send_test_notification(
     body: TestMessageRequest,
@@ -513,6 +517,11 @@ async def send_test_notification(
     """Send a test WhatsApp message to verify connectivity."""
     if current_user.org_id is None:
         raise HTTPException(status_code=403, detail="No organization context")
+
+    try:
+        await assert_whatsapp_allowed(db, current_user.org_id)
+    except EntitlementError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
 
     test_message = body.message or "✅ This is a test notification from Q4Queue. WhatsApp is working correctly!"
 

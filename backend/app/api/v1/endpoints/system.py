@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from pydantic import BaseModel
@@ -8,6 +10,7 @@ from app.db.deps import get_db
 from app.models.system_announcement import SystemAnnouncement
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 class SystemAnnouncementDetail(BaseModel):
     id: str
@@ -40,9 +43,12 @@ async def get_active_announcements(
             )
             for row in rows
         ]
-    except Exception:
-        # Table may not exist yet or other DB issue — return empty list
-        return []
+    except Exception as exc:
+        logger.exception("Failed to load system announcements")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="System announcements are temporarily unavailable.",
+        ) from exc
 
 @router.get(
     "/time",

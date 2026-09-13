@@ -210,6 +210,7 @@ async def send_whatsapp_message(
     session_id: Optional[uuid.UUID] = None,
     is_raw_text: bool = False,
     raw_body: Optional[str] = None,
+    button_variables: Optional[list[str]] = None,
 ) -> None:
     """
     Main entry point for sending a WhatsApp message.
@@ -235,12 +236,13 @@ async def send_whatsapp_message(
             template_name = "ticket_confirmed_v1"
             template_language = "en"
             custom_msg = variables[0] if variables else "Test notification"
+            frontend_url = getattr(settings, "FRONTEND_URL", "http://app.localhost:3000").rstrip("/")
             variables = [
                 "Super Admin",
                 "TEST-01",
                 "0",
-                "https://q4queue.com",
-                "https://q4queue.com",
+                f"{frontend_url}/track/test",
+                f"{frontend_url}/display/test",
                 "QRQ Testing",
                 custom_msg or "General Queue"
             ]
@@ -337,6 +339,18 @@ async def send_whatsapp_message(
                     "parameters": [
                         {"type": "text", "text": str(v).strip() if str(v).strip() else "—"}
                         for v in variables
+                    ]
+                })
+
+            # Support optional URL CTA button parameters if passed
+            button_params = button_variables or []
+            for idx, btn_val in enumerate(button_params):
+                components.append({
+                    "type": "button",
+                    "sub_type": "url",
+                    "index": str(idx),
+                    "parameters": [
+                        {"type": "text", "text": str(btn_val).strip()}
                     ]
                 })
 

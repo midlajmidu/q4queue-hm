@@ -10,6 +10,7 @@ from app.api.v1.endpoints import (
     queues,
     tokens,
     super_admin,
+    super_admin_calling,
     staff,
     organization,
     parent_organizations,
@@ -31,6 +32,7 @@ from app.api.v1.endpoints import (
     plivo,
     calls,
     whatsapp_media,
+    subscriptions,
 )
 
 api_router = APIRouter()
@@ -43,6 +45,7 @@ api_router.include_router(system.router, prefix="/system", tags=["System"])
 
 # ── Authentication ─────────────────────────────────────────────────
 api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
+api_router.include_router(subscriptions.router, prefix="/subscriptions", tags=["Subscriptions"])
 
 # ── Users ──────────────────────────────────────────────────────────
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
@@ -81,6 +84,7 @@ api_router.include_router(organization_admin_operations.router, prefix="/organiz
 
 # ── Super Admin ────────────────────────────────────────────────────
 api_router.include_router(super_admin.router, prefix="/super-admin", tags=["Super Admin"])
+api_router.include_router(super_admin_calling.router, prefix="/super-admin", tags=["Super Admin Calling"])
 
 # ── WhatsApp ─────────────────────────────────────────────────
 api_router.include_router(whatsapp.router, prefix="/whatsapp", tags=["WhatsApp"])

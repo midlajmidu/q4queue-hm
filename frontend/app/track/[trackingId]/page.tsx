@@ -290,16 +290,18 @@ export default function TrackingPage({ params }: PageProps) {
     const alreadyServed = isDone || isSkipped || isDeleted || (myNumber !== null && myNumber < serving && actualStatus !== "waiting");
     let peopleAhead = 0;
     if (myNumber !== null && actualStatus === "waiting") {
+        let rawAhead = 0;
         if (live?.waiting_tokens) {
             const idx = live.waiting_tokens.findIndex((t) => t.token_number === myNumber);
             if (idx !== -1) {
-                peopleAhead = idx;
+                rawAhead = idx;
             } else {
-                peopleAhead = myNumber > serving ? myNumber - serving - 1 : 0;
+                rawAhead = myNumber > serving ? myNumber - serving - 1 : 0;
             }
         } else {
-            peopleAhead = joinData?.position ?? (myNumber > serving ? myNumber - serving - 1 : 0);
+            rawAhead = joinData?.position ?? (myNumber > serving ? myNumber - serving - 1 : 0);
         }
+        peopleAhead = Math.max(0, rawAhead);
     }
 
     const isNext = peopleAhead === 0 && actualStatus === "waiting" && myNumber !== null;
@@ -595,7 +597,19 @@ export default function TrackingPage({ params }: PageProps) {
                                     </p>
                                 </div>
                             )}
-                            {isSkipped && !isDone && !isMyTurn && !isDeleted && (
+                            {isPastSession && !isDone && !isDeleted && (
+                                <div className="mx-auto w-full max-w-sm mt-4 mb-6 text-center">
+                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-3 shadow-sm border border-slate-200">
+                                        <Clock className="w-6 h-6 text-slate-500" />
+                                    </div>
+                                    <h4 className="text-[15px] font-bold text-slate-800 tracking-tight mb-1">Queue Session Closed</h4>
+                                    <p className="text-[13px] font-medium text-slate-500 leading-relaxed px-4">
+                                        This queue session has closed for the day. Please register for a new session when the queue reopens.
+                                    </p>
+                                </div>
+                            )}
+
+                            {isSkipped && !isPastSession && !isDone && !isMyTurn && !isDeleted && (
                                 <div className="mx-auto w-full max-w-sm mt-4 mb-6 text-center">
                                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-50 mb-3 shadow-sm border border-amber-100/50">
                                         <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -604,7 +618,7 @@ export default function TrackingPage({ params }: PageProps) {
                                     </div>
                                     <h4 className="text-[15px] font-bold text-slate-800 tracking-tight mb-1">Turn Skipped</h4>
                                     <p className="text-[13px] font-medium text-slate-500 leading-relaxed px-4">
-                                        Your token was skipped because the queue session has ended. Please see the receptionist or register for a new session.
+                                        Your turn was skipped at the counter. Please see our staff if you are present to be recalled.
                                     </p>
                                 </div>
                             )}

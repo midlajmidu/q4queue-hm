@@ -6,9 +6,10 @@ import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Eye, EyeOff, Building2, Mail, Lock, KeyRound, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Building2, Mail, Lock, KeyRound, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { ContactSalesModal } from "@/components/ContactSalesModal";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -17,6 +18,7 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [showSales, setShowSales] = useState(false);
 
     // Forgot Password Flow States
     const [viewMode, setViewMode] = useState<"login" | "request_otp" | "verify_otp">("login");
@@ -28,6 +30,7 @@ export default function LoginPage() {
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [isSubmittingForgot, setIsSubmittingForgot] = useState(false);
     const [forgotError, setForgotError] = useState<string | null>(null);
+    const trialExpired = Boolean(error?.startsWith("Your free trial has ended"));
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -44,27 +47,34 @@ export default function LoginPage() {
     // Redirect to dashboard if already logged in
     useEffect(() => {
         if (isHydrated && isAuthenticated && user) {
+            const isAppSubdomain = typeof window !== "undefined" && window.location.hostname.startsWith("app.");
+            const currentHost = typeof window !== "undefined" ? window.location.host : "";
+            const appHost = isAppSubdomain ? currentHost : `app.${currentHost}`;
+            const protocol = typeof window !== "undefined" ? window.location.protocol : "http:";
+
+            let targetPath = "/dashboard";
             if (user.is_first_login) {
                 if (user.role === "super_admin") {
-                    router.replace("/super-admin/change-password");
+                    targetPath = "/super-admin/change-password";
                 } else if (user.role === "organization_admin") {
-                    router.replace("/organization-admin/change-password");
+                    targetPath = "/organization-admin/change-password";
                 } else {
-                    router.replace(`/${user.org_slug}/change-password`);
+                    targetPath = `/${user.org_slug}/change-password`;
                 }
-                return;
-            }
-            if (user.role === "super_admin") {
-                router.replace("/super-admin");
+            } else if (user.role === "super_admin") {
+                targetPath = "/super-admin";
             } else if (user.role === "organization_admin") {
-                if (typeof window !== "undefined") {
-                    localStorage.removeItem("fc_access_token");
-                    window.location.reload();
-                }
+                targetPath = "/organization-admin";
             } else if (user.role === "admin" || user.role === "branch_admin" || user.role === "staff") {
-                router.replace(`/${user.org_slug}/dashboard`);
+                targetPath = `/${user.org_slug}/dashboard`;
+            }
+
+            if (typeof window !== "undefined" && !isAppSubdomain) {
+                const token = localStorage.getItem("fc_access_token") || "";
+                const hashStr = token ? `#token=${token}` : "";
+                window.location.href = `${protocol}//${appHost}${targetPath}${hashStr}`;
             } else {
-                router.replace("/dashboard");
+                router.replace(targetPath);
             }
         }
     }, [isHydrated, isAuthenticated, user, router]);
@@ -91,8 +101,8 @@ export default function LoginPage() {
             });
             toast.success(res.message || "OTP sent to your email!");
             setViewMode("verify_otp");
-        } catch (err: any) {
-            setForgotError(err?.message || "Failed to send OTP. Please try again.");
+        } catch (err: unknown) {
+            setForgotError(err instanceof ApiError ? err.detail : "Failed to send OTP. Please try again.");
         } finally {
             setIsSubmittingForgot(false);
         }
@@ -124,8 +134,8 @@ export default function LoginPage() {
             setEmail(forgotEmail);
             if (forgotOrgSlug) setOrgSlug(forgotOrgSlug);
             setViewMode("login");
-        } catch (err: any) {
-            setForgotError(err?.message || "Failed to reset password. Please check your OTP.");
+        } catch (err: unknown) {
+            setForgotError(err instanceof ApiError ? err.detail : "Failed to reset password. Please check your OTP.");
         } finally {
             setIsSubmittingForgot(false);
         }
@@ -161,7 +171,7 @@ export default function LoginPage() {
                     transition={{ duration: 0.8, ease: "easeOut" }}
                 >
                     <h1 className="text-[52px] xl:text-[64px] font-medium leading-[1.1] tracking-tight mb-4">
-                        It's good to see<br />you again
+                        It&apos;s good to see<br />you again
                     </h1>
                     <p className="text-lg xl:text-xl text-white/70 font-light">
                         The intelligent queue management platform
@@ -311,6 +321,15 @@ export default function LoginPage() {
                                     </button>
                                 </form>
 
+                                    {trialExpired && (
+                                        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-center">
+                                            <p className="text-xs leading-5 text-amber-800">Your workspace and customer data have been preserved.</p>
+                                            <button type="button" onClick={() => setShowSales(true)} className="mt-2 inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white hover:bg-indigo-700">
+                                                Contact sales to continue
+                                            </button>
+                                        </div>
+                                    )}
+
                                     <div className="flex items-center justify-center mt-6 text-[13px]">
                                         <button
                                             type="button"
@@ -324,6 +343,12 @@ export default function LoginPage() {
                                         >
                                             Forgot your password?
                                         </button>
+                                    </div>
+                                    <div className="mt-4 border-t border-slate-100 pt-4 text-center text-[13px] text-slate-500">
+                                        New to Q4Queue?{" "}
+                                        <Link href="/signup" className="font-semibold text-indigo-600 hover:text-indigo-700">
+                                            Start a free trial
+                                        </Link>
                                     </div>
                                 </>
                             )}
@@ -506,6 +531,7 @@ export default function LoginPage() {
                                 </span>
                             </Link>
                         </div>
+                        {showSales && <ContactSalesModal mode="expired" email={email.trim().toLowerCase()} organizationSlug={orgSlug.trim()} password={password} onClose={() => setShowSales(false)} />}
                     </div>
                 </motion.div>
             </div>

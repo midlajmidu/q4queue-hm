@@ -35,6 +35,7 @@ async def _make_org_user_token(db: AsyncSession, tag: str) -> tuple[Organization
         email=email,
         password_hash=hash_password("pass"),
         role="admin",
+        is_first_login=False,
     )
     db.add(user)
     await db.commit()
@@ -150,3 +151,67 @@ class TestMessagesAPI:
             
             get_resp_empty = await local_client.get("/api/v1/messages", headers=headers)
             assert len(get_resp_empty.json()) == 0
+
+    async def test_read_and_clear_state_is_isolated_per_user(self, db: AsyncSession):
+        org, admin, admin_token = await _make_org_user_token(db, "isolation")
+        colleague = User(
+            org_id=org.id,
+            email=f"colleague-{uuid.uuid4().hex[:8]}@msg.test",
+            password_hash=hash_password("pass"),
+            role="staff",
+            is_first_login=False,
+        )
+        db.add(colleague)
+        await db.commit()
+        await db.refresh(colleague)
+        colleague_token = create_access_token(
+            user_id=str(colleague.id), org_id=str(org.id), role="staff", email=colleague.email
+        )
+        admin_headers = {"Authorization": f"Bearer {admin_token}"}
+        colleague_headers = {"Authorization": f"Bearer {colleague_token}"}
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as local_client:
+            created = await local_client.post(
+                "/api/v1/messages",
+                json={"content": "Private receipt test", "message_type": "info"},
+                headers=admin_headers,
+            )
+            assert created.status_code == 201
+            message_id = created.json()["id"]
+
+            assert (await local_client.patch(
+                f"/api/v1/messages/{message_id}/read", headers=admin_headers
+            )).status_code == 200
+            colleague_messages = (await local_client.get(
+                "/api/v1/messages", headers=colleague_headers
+            )).json()
+            assert next(item for item in colleague_messages if item["id"] == message_id)["is_read"] is False
+
+            assert (await local_client.delete("/api/v1/messages", headers=admin_headers)).status_code == 204
+            colleague_messages = (await local_client.get(
+                "/api/v1/messages", headers=colleague_headers
+            )).json()
+            assert any(item["id"] == message_id for item in colleague_messages)
+
+    async def test_staff_cannot_publish_branch_notifications(self, db: AsyncSession):
+        org, _, _ = await _make_org_user_token(db, "staff-publish")
+        staff = User(
+            org_id=org.id,
+            email=f"staff-{uuid.uuid4().hex[:8]}@msg.test",
+            password_hash=hash_password("pass"),
+            role="staff",
+            is_first_login=False,
+        )
+        db.add(staff)
+        await db.commit()
+        await db.refresh(staff)
+        token = create_access_token(user_id=str(staff.id), org_id=str(org.id), role="staff", email=staff.email)
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as local_client:
+            response = await local_client.post(
+                "/api/v1/messages",
+                json={"content": "Unauthorized", "message_type": "info"},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            assert response.status_code == 403

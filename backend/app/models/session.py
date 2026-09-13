@@ -58,7 +58,7 @@ class Session(Base):
 
     # ── Relationships ──────────────────────────────────────────────
     queue: Mapped["Queue"] = relationship(  # noqa: F821
-        "Queue", back_populates="sessions", lazy="noload"
+        "Queue", back_populates="sessions", lazy="noload", foreign_keys=[queue_id]
     )
 
     def __repr__(self) -> str:

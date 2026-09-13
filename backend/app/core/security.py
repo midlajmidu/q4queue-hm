@@ -62,7 +62,8 @@ def create_access_token(
         role    → role      (string)
         exp     → UTC expiration
     """
-    expire = datetime.now(timezone.utc) + (
+    issued_at = datetime.now(timezone.utc)
+    expire = issued_at + (
         expires_delta
         if expires_delta
         else timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -82,6 +83,7 @@ def create_access_token(
         "is_first_login": is_first_login,
         "is_impersonating": is_impersonating,
         "is_read_only": is_read_only,
+        "iat": int(issued_at.timestamp()),
         "exp": expire,
     }
 

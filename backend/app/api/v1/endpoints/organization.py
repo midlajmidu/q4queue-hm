@@ -1,7 +1,8 @@
+import logging
 from typing import Optional
 import os
 import base64
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +22,7 @@ import secrets
 import uuid
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # ── Schemas ────────────────────────────────────────────────────────
 
@@ -159,17 +161,30 @@ async def get_organization_settings(
 @router.put("/settings", response_model=OrganizationSettingsResponse)
 async def update_organization_settings(
     data: OrganizationSettingsUpdate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
     """Update the clinic settings. Accessible by admin."""
-    if current_user.role != "admin":
+    if current_user.role not in {"admin", "organization_admin", "super_admin"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only organization admins can update settings")
         
-    if not current_user.org_id:
+    target_org_id = current_user.org_id
+    if current_user.role == "organization_admin":
+        x_org_slug = request.headers.get("x-org-slug")
+        if x_org_slug:
+            res = await db.execute(
+                select(Organization.id).where(
+                    Organization.slug == x_org_slug,
+                    Organization.parent_organization_id == current_user.parent_organization_id
+                )
+            )
+            target_org_id = res.scalar_one_or_none()
+
+    if not target_org_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User does not belong to an organization")
         
-    result = await db.execute(select(Organization).where(Organization.id == current_user.org_id).with_for_update())
+    result = await db.execute(select(Organization).where(Organization.id == target_org_id).with_for_update())
     org = result.scalar_one_or_none()
     
     if not org:
@@ -269,6 +284,35 @@ async def update_organization_settings(
     )
 
 
+@router.post("/trigger-auto-session")
+async def trigger_auto_session(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Manually trigger automated daily session creation/rollover for active branch queues."""
+    target_org_id = current_user.org_id
+    if current_user.role == "organization_admin":
+        x_org_slug = request.headers.get("x-org-slug")
+        if x_org_slug:
+            res = await db.execute(
+                select(Organization.id).where(
+                    Organization.slug == x_org_slug,
+                    Organization.parent_organization_id == current_user.parent_organization_id
+                )
+            )
+            target_org_id = res.scalar_one_or_none() or current_user.org_id
+
+    if not target_org_id:
+        raise HTTPException(status_code=400, detail="Branch organization context required")
+
+    from app.utils.auto_session import check_and_rollover_sessions
+    await check_and_rollover_sessions(target_org_id=target_org_id, force=True)
+
+    return {"message": "Automated daily session rollover completed for branch queues"}
+
+
+
 
 @router.post("/request-password-change-otp", response_model=SuccessResponse)
 async def request_password_change_otp(
@@ -366,6 +410,9 @@ async def get_active_organization_announcements(
             valid_announcements.append(ann)
             
         return valid_announcements
-    except Exception:
-        # Table may not exist yet or other DB issue — return empty list
-        return []
+    except Exception as exc:
+        logger.exception("Failed to load organization announcements")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Organization announcements are temporarily unavailable.",
+        ) from exc

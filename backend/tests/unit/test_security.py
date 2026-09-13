@@ -65,6 +65,7 @@ class TestJWTTokens:
             user_id=user_id or str(uuid.uuid4()),
             org_id=org_id or str(uuid.uuid4()),
             role=role,
+            email="security-test@example.com",
             expires_delta=expires_delta,
         )
 
@@ -81,6 +82,7 @@ class TestJWTTokens:
         token = self._make_token()
         payload = decode_access_token(token)
         assert "exp" in payload
+        assert "iat" in payload
 
     def test_tampered_payload_raises_jwterror(self):
         """Test 5 — Signature verification catches tampering."""

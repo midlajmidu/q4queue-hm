@@ -18,6 +18,7 @@ import SystemBanner from "@/components/SystemBanner";
 import { OrganizationAnnouncementsBanner } from "@/components/OrganizationAnnouncementsBanner";
 import { useHeartbeat } from "@/hooks/useHeartbeat";
 import { BranchTimezoneContext } from "@/context/BranchTimezoneContext";
+import { TrialStatusBanner } from "@/components/TrialStatusBanner";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
     useHeartbeat();
@@ -93,6 +94,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <OrganizationAnnouncementsBanner />
                         <ImpersonationBanner />
                         <AdminViewBanner />
+                        <TrialStatusBanner />
 
                         <main className={!isManageQueuePage ? "flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pt-6 pb-4 overflow-y-auto flex flex-col" : "flex-1 min-h-0 overflow-hidden"}>
                             <div className={!isManageQueuePage ? "max-w-7xl mx-auto w-full flex-1 flex flex-col" : "w-full h-full"}>

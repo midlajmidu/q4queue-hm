@@ -12,6 +12,218 @@ export interface LoginRequest {
     login_type?: "staff" | "org_admin";
 }
 
+export interface TrialSignupRequest {
+    business_name: string;
+    branch_name: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+    timezone: string;
+    accepted_terms: boolean;
+}
+
+export interface TrialSignupVerifyRequest extends TrialSignupRequest {
+    otp: string;
+}
+
+export interface EntitlementItem {
+    key: string;
+    limit: number | null;
+    used: number | null;
+    remaining: number | null;
+    scope: string;
+}
+
+export interface SubscriptionSummary {
+    mode: "legacy" | "subscription";
+    status: "legacy" | "trialing" | "active" | "expired" | "suspended" | string;
+    plan_code?: string | null;
+    plan_name?: string | null;
+    trial_started_at?: string | null;
+    trial_ends_at?: string | null;
+    days_remaining?: number | null;
+    is_operational: boolean;
+    calling_allowed?: boolean;
+    whatsapp_allowed?: boolean;
+    entitlements: Record<string, EntitlementItem>;
+}
+
+export interface TrialSignupResponse extends TokenResponse {
+    organization_slug: string;
+    subscription: SubscriptionSummary;
+}
+
+export interface AdminSubscriptionItem {
+    id: string;
+    parent_organization_id: string;
+    organization_name: string;
+    organization_slug: string;
+    plan_code: string;
+    plan_name: string;
+    status: string;
+    source: string;
+    branch_count: number;
+    trial_started_at?: string | null;
+    trial_ends_at?: string | null;
+    days_remaining?: number | null;
+}
+
+export interface ManagedCustomerLimits {
+    branches: number;
+    queues_per_branch: number;
+    staff_per_branch: number;
+    sessions: number;
+    tokens_per_session: number;
+}
+
+export interface AdminCustomerCreate {
+    business_name: string;
+    branch_name: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    timezone: string;
+    account_type: "trial" | "active";
+    trial_days: number;
+    limits: ManagedCustomerLimits;
+}
+
+export interface ManagedCustomerListItem {
+    parent_organization_id: string;
+    name: string;
+    slug: string;
+    contact_email?: string;
+    is_active: boolean;
+    commercial_status: string;
+    plan_code?: string;
+    plan_name?: string;
+    source: string;
+    branch_count: number;
+    user_count: number;
+    owner_email?: string;
+    trial_ends_at?: string;
+    days_remaining?: number;
+    created_at: string;
+}
+
+export interface SalesRequestItem {
+    id: string;
+    contact_name: string;
+    contact_email: string;
+    contact_phone?: string;
+    message?: string;
+    source: string;
+    status: "pending" | "contacted" | "approved" | "rejected" | string;
+    review_note?: string;
+    created_at: string;
+    reviewed_at?: string;
+    notification_status: "pending" | "sent" | "partial" | "failed" | "not_configured" | string;
+    notification_attempted_at?: string;
+    notification_error?: string;
+}
+
+export interface AdminSalesRequestItem extends SalesRequestItem {
+    parent_organization_id: string;
+    organization_name: string;
+    organization_slug: string;
+    commercial_status: string;
+}
+
+export interface AdminSalesRequestPage {
+    items: AdminSalesRequestItem[];
+    total: number;
+    status_counts: Record<string, number>;
+}
+
+export interface SalesRecipientItem {
+    id: string;
+    email: string;
+    name?: string;
+    is_active: boolean;
+    created_at: string;
+}
+
+export interface ManagedCustomerPage {
+    items: ManagedCustomerListItem[];
+    total: number;
+    status_counts: Record<string, number>;
+}
+
+export interface ManagedCustomerDetail {
+    parent_organization_id: string;
+    name: string;
+    slug: string;
+    contact_email?: string;
+    contact_phone?: string;
+    timezone: string;
+    is_active: boolean;
+    created_at: string;
+    subscription: SubscriptionSummary;
+    source: string;
+    branches: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        is_active: boolean;
+        queues: number;
+        staff: number;
+    }>;
+    users: Array<{
+        id: string;
+        email: string;
+        first_name?: string;
+        last_name?: string;
+        role: string;
+        branch_name?: string;
+        is_active: boolean;
+    }>;
+    audit_events: Array<{
+        id: string;
+        event_type: string;
+        created_at: string;
+        details?: Record<string, unknown>;
+    }>;
+}
+
+export interface AvailableBranchItem {
+    id: string;
+    name: string;
+    slug: string;
+    is_active: boolean;
+    admin_email?: string;
+}
+
+export interface SubscriptionAdminUpdate {
+    action: "extend_trial" | "activate" | "suspend" | "reactivate" | "cancel" | "archive" | "restore";
+    extension_days?: number;
+    reason: string;
+}
+
+export interface ManagedCustomerUpdate {
+    name: string;
+    contact_email?: string;
+    contact_phone?: string;
+    timezone: string;
+    reason: string;
+}
+
+export interface ManagedParentAdminCreate {
+    first_name: string;
+    last_name: string;
+    email: string;
+    temporary_password: string;
+    reason: string;
+}
+
+export interface PermanentCustomerDelete {
+    confirmation_name: string;
+    confirmation_phrase: string;
+    reason: string;
+}
+
 // ── Analytics ────────────────────────────────────────────────────
 export interface AnalyticsOverview {
     status_counts: {
@@ -19,6 +231,13 @@ export interface AnalyticsOverview {
         served: number;
         cancelled: number;
         waiting: number;
+        serving?: number;
+        skipped?: number;
+        deleted?: number;
+        withdrawn?: number;
+        staff_removed?: number;
+        session_closed?: number;
+        other_skipped?: number;
         invited: number;
     };
     timings: {
@@ -54,6 +273,16 @@ export interface AnalyticsOverview {
         completed_at?: string | null;
         skipped_at?: string | null;
         recalled_at?: string | null;
+    }[];
+    queue_summary?: {
+        queue_id: string;
+        queue: string;
+        total: number;
+        waiting: number;
+        serving: number;
+        served: number;
+        skipped: number;
+        removed: number;
     }[];
     longest_waiting_queue?: string | null;
     longest_waiting_session?: string | null;
@@ -327,7 +556,7 @@ export interface TokenDetail {
     id: string;
     org_id: string;
     queue_id: string;
-    session_id: string;
+    session_id: string | null;
     token_number: number;
     status: TokenStatus;
     created_at: string;
@@ -350,6 +579,8 @@ export interface QueuePublicStatus {
     session_date: string | null;
     is_past_session: boolean;
     has_session: boolean;
+    within_operating_hours?: boolean;
+    is_current_session?: boolean;
 }
 
 // ── Join ─────────────────────────────────────────────────────────
@@ -379,15 +610,14 @@ export interface JoinResponse {
 }
 
 export interface TokenRestoreResponse {
-    id: string;
     token_number: number;
     status: TokenStatus;
     queue_id: string;
     session_id: string;
     queue_prefix: string;
-    customer_name: string;
-    customer_age: number | null;
-    customer_phone: string;
+    customer_name?: string;
+    customer_age?: number | null;
+    customer_phone?: string;
     pax_count: number;
     tracking_id: string;
     created_at: string;
@@ -476,6 +706,7 @@ export interface QueueSnapshot {
     enable_shared_tokens?: boolean;
     queue_id: string;
     session_id: string;
+    token_session_id?: string;
     queue_name: string;
     prefix: string;
     announcement: string | null;
@@ -483,6 +714,8 @@ export interface QueueSnapshot {
     is_paused: boolean;
     session_date?: string | null;
     is_past_session?: boolean;
+    is_current_session?: boolean;
+    within_operating_hours?: boolean;
     service_lines: number;           // 0 = single counter, >0 = multi-lane
     open_time?: string;
     close_time?: string;
@@ -506,6 +739,9 @@ export interface QueueSnapshot {
     waiting_tokens?: WaitingToken[];
     skipped_tokens?: WaitingToken[];
     deleted_tokens?: WaitingToken[];
+    waiting_tokens_truncated?: boolean;
+    skipped_tokens_truncated?: boolean;
+    deleted_tokens_truncated?: boolean;
     org_logo_url?: string | null;
     org_brand_color?: string | null;
     custom_fields?: CustomField[] | null;
@@ -579,6 +815,7 @@ export interface StaffMember {
     org_id: string;
     role: "admin" | "staff";
     is_active: boolean;
+    last_active_at?: string | null;
     created_at: string;
 }
 
@@ -913,6 +1150,7 @@ export interface TokenHistoryItem {
     recalled_at?: string | null;
     removed_by?: string | null;
     custom_data?: Record<string, any> | null;
+    field_schema?: Array<{ key: string; label: string; type?: string; options?: string[] }> | null;
 }
 
 export interface PaginatedHistoryResponse {
@@ -1103,6 +1341,7 @@ export interface WhatsAppAdminOrgConfig {
     is_active: boolean;
     is_enabled: boolean;
     mode: "default" | "custom_phone" | "custom_full";
+    delivery_mode?: "button_reply_only" | "always_send";
     phone_number_id?: string;
     waba_id?: string;
     access_token?: string;
@@ -1206,8 +1445,9 @@ export interface CallLogItem {
     customer_phone: string;
     duration_seconds: number;
     billable_minutes: number;
-    call_status: string;
-    ring_duration_seconds: number;
+    call_status?: string;
+    ring_duration_seconds?: number;
+    cost_amount?: number;
     called_by_id?: string | null;
     called_by_name?: string | null;
     queue_name?: string | null;
@@ -1220,6 +1460,7 @@ export interface StaffCallStat {
     call_count: number;
     total_duration_seconds: number;
     total_billable_minutes: number;
+    total_cost_amount?: number;
 }
 
 export interface CallLogsOverviewResponse {
@@ -1227,7 +1468,10 @@ export interface CallLogsOverviewResponse {
     total_duration_seconds: number;
     total_billable_minutes: number;
     avg_duration_seconds: number;
-    connection_rate: number;
+    connection_rate?: number;
+    total_amount?: number;
+    rate_per_minute?: number;
+    currency?: string;
     staff_stats: StaffCallStat[];
 }
 
@@ -1237,4 +1481,33 @@ export interface PaginatedCallLogsResponse {
     page: number;
     limit: number;
     pages: number;
+}
+
+export interface BranchCallingConfig {
+    id: string;
+    name: string;
+    slug: string;
+    call_rate_per_minute?: number | null;
+    effective_rate: number;
+    calling_currency: string;
+    total_calls: number;
+    total_duration_seconds: number;
+    total_billable_minutes: number;
+    total_amount: number;
+}
+
+export interface CallingConfigRead {
+    global_rate_per_minute: number;
+    currency: string;
+    total_calls: number;
+    total_duration_seconds: number;
+    total_billable_minutes: number;
+    total_amount: number;
+    branches: BranchCallingConfig[];
+}
+
+export interface CallingConfigUpdate {
+    global_rate_per_minute: number;
+    currency?: string;
+    branch_overrides?: Record<string, number | null>;
 }

@@ -36,6 +36,8 @@ import type {
     PaginatedOrgUsersResponse,
     PaginatedCallLogsResponse,
     CallLogsOverviewResponse,
+    CallingConfigRead,
+    CallingConfigUpdate,
     PaginatedStaffResponse,
     QueueCreate,
     QueueResponse,
@@ -110,6 +112,22 @@ import type {
     BranchAdminResponse,
     TenantAnalyticsRow,
     TenantAnalyticsResponse,
+    TrialSignupRequest,
+    TrialSignupResponse,
+    SubscriptionSummary,
+    AdminSubscriptionItem,
+    AdminCustomerCreate,
+    ManagedCustomerDetail,
+    ManagedCustomerLimits,
+    ManagedCustomerPage,
+    ManagedCustomerUpdate,
+    ManagedParentAdminCreate,
+    PermanentCustomerDelete,
+    SubscriptionAdminUpdate,
+    AvailableBranchItem,
+    SalesRequestItem,
+    AdminSalesRequestPage,
+    SalesRecipientItem,
 } from "@/types/api";
 
 
@@ -328,24 +346,26 @@ export const api = {
         });
     },
 
-    getCallLogs(params?: { queue_id?: string; staff_id?: string; search?: string; page?: number; limit?: number; start_date?: string; end_date?: string }): Promise<PaginatedCallLogsResponse> {
+    getCallLogs(params?: { queue_id?: string; staff_id?: string; search?: string; page?: number; limit?: number; startDate?: string; endDate?: string; start_date?: string; end_date?: string }): Promise<PaginatedCallLogsResponse> {
         const queryParams = new URLSearchParams();
         if (params?.queue_id) queryParams.append("queue_id", params.queue_id);
         if (params?.staff_id) queryParams.append("staff_id", params.staff_id);
         if (params?.search) queryParams.append("search", params.search);
+        const sDate = params?.startDate || params?.start_date;
+        const eDate = params?.endDate || params?.end_date;
+        if (sDate) queryParams.append("start_date", sDate);
+        if (eDate) queryParams.append("end_date", eDate);
         if (params?.page) queryParams.append("page", params.page.toString());
         if (params?.limit) queryParams.append("limit", params.limit.toString());
-        if (params?.start_date) queryParams.append("start_date", params.start_date);
-        if (params?.end_date) queryParams.append("end_date", params.end_date);
         const q = queryParams.toString();
         return request<PaginatedCallLogsResponse>(`/calls/logs${q ? `?${q}` : ""}`);
     },
 
-    getCallLogsOverview(queue_id?: string, start_date?: string, end_date?: string): Promise<CallLogsOverviewResponse> {
+    getCallLogsOverview(queue_id?: string, startDate?: string, endDate?: string): Promise<CallLogsOverviewResponse> {
         const queryParams = new URLSearchParams();
         if (queue_id) queryParams.append("queue_id", queue_id);
-        if (start_date) queryParams.append("start_date", start_date);
-        if (end_date) queryParams.append("end_date", end_date);
+        if (startDate) queryParams.append("start_date", startDate);
+        if (endDate) queryParams.append("end_date", endDate);
         const q = queryParams.toString();
         return request<CallLogsOverviewResponse>(`/calls/overview${q ? `?${q}` : ""}`);
     },
@@ -370,10 +390,164 @@ export const api = {
         return await resp.blob();
     },
 
+    getCallingConfig(startDate?: string, endDate?: string): Promise<CallingConfigRead> {
+        const queryParams = new URLSearchParams();
+        if (startDate) queryParams.append("start_date", startDate);
+        if (endDate) queryParams.append("end_date", endDate);
+        const q = queryParams.toString();
+        return request<CallingConfigRead>(`/super-admin/calling-config${q ? `?${q}` : ""}`);
+    },
+
+    updateCallingConfig(data: CallingConfigUpdate): Promise<CallingConfigRead> {
+        return request<CallingConfigRead>("/super-admin/calling-config", {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+
     login(data: LoginRequest): Promise<TokenResponse> {
         return request<TokenResponse>("/auth/login", {
             method: "POST",
             body: JSON.stringify(data),
+        });
+    },
+
+    requestTrialSignupOtp(data: { email: string }): Promise<{ message: string; expires_in: number }> {
+        return request<{ message: string; expires_in: number }>("/auth/trial-signup/request-otp", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    startTrial(data: TrialSignupRequest & { otp: string }): Promise<TrialSignupResponse> {
+        return request<TrialSignupResponse>("/auth/trial-signup", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    getCurrentSubscription(): Promise<SubscriptionSummary> {
+        return request<SubscriptionSummary>("/subscriptions/current", { cache: "no-store" });
+    },
+
+    submitContactSales(data: { contact_phone?: string; message?: string }): Promise<SalesRequestItem> {
+        return request<SalesRequestItem>("/subscriptions/contact-sales", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    submitExpiredTrialContactSales(data: { email: string; organization_slug: string; password: string; contact_phone?: string; message?: string }): Promise<{ message: string }> {
+        return request<{ message: string }>("/subscriptions/contact-sales/expired", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    listSalesRequests(params?: { status?: string; search?: string; skip?: number; limit?: number }): Promise<AdminSalesRequestPage> {
+        const query = new URLSearchParams();
+        if (params?.status && params.status !== "all") query.set("status", params.status);
+        if (params?.search) query.set("search", params.search);
+        if (params?.skip !== undefined) query.set("skip", String(params.skip));
+        if (params?.limit !== undefined) query.set("limit", String(params.limit));
+        return request<AdminSalesRequestPage>(`/subscriptions/admin/sales-requests${query.size ? `?${query}` : ""}`, { cache: "no-store" });
+    },
+
+    listSalesRecipients(): Promise<SalesRecipientItem[]> {
+        return request<SalesRecipientItem[]>("/subscriptions/admin/sales-recipients", { cache: "no-store" });
+    },
+
+    addSalesRecipient(data: { email: string; name?: string }): Promise<SalesRecipientItem> {
+        return request<SalesRecipientItem>("/subscriptions/admin/sales-recipients", {
+            method: "POST", body: JSON.stringify(data),
+        });
+    },
+
+    deleteSalesRecipient(recipientId: string): Promise<void> {
+        return request<void>(`/subscriptions/admin/sales-recipients/${recipientId}`, { method: "DELETE" });
+    },
+
+    retrySalesNotification(requestId: string): Promise<SalesRequestItem> {
+        return request<SalesRequestItem>(`/subscriptions/admin/sales-requests/${requestId}/retry-notification`, {
+            method: "POST",
+        });
+    },
+
+    listSubscriptions(): Promise<AdminSubscriptionItem[]> {
+        return request<AdminSubscriptionItem[]>("/subscriptions/admin", { cache: "no-store" });
+    },
+
+    listManagedCustomers(params?: { search?: string; commercial_status?: string; skip?: number; limit?: number }): Promise<ManagedCustomerPage> {
+        const query = new URLSearchParams();
+        if (params?.search) query.set("search", params.search);
+        if (params?.commercial_status && params.commercial_status !== "all") query.set("commercial_status", params.commercial_status);
+        if (params?.skip !== undefined) query.set("skip", String(params.skip));
+        if (params?.limit !== undefined) query.set("limit", String(params.limit));
+        const suffix = query.toString() ? `?${query.toString()}` : "";
+        return request<ManagedCustomerPage>(`/subscriptions/admin/customers${suffix}`, { cache: "no-store" });
+    },
+
+    createManagedCustomer(data: AdminCustomerCreate): Promise<ManagedCustomerDetail> {
+        return request<ManagedCustomerDetail>("/subscriptions/admin/customers", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    getManagedCustomer(parentId: string): Promise<ManagedCustomerDetail> {
+        return request<ManagedCustomerDetail>(`/subscriptions/admin/customers/${parentId}`, { cache: "no-store" });
+    },
+
+    updateManagedCustomer(parentId: string, data: ManagedCustomerUpdate): Promise<ManagedCustomerDetail> {
+        return request<ManagedCustomerDetail>(`/subscriptions/admin/customers/${parentId}`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        });
+    },
+
+    listAvailableBranches(parentId: string): Promise<AvailableBranchItem[]> {
+        return request<AvailableBranchItem[]>(`/subscriptions/admin/customers/${parentId}/available-branches`, { cache: "no-store" });
+    },
+
+    assignManagedBranches(parentId: string, branchIds: string[]): Promise<ManagedCustomerDetail> {
+        return request<ManagedCustomerDetail>(`/subscriptions/admin/customers/${parentId}/assign-branches`, {
+            method: "POST",
+            body: JSON.stringify({ branch_ids: branchIds }),
+        });
+    },
+
+    createManagedParentAdmin(parentId: string, data: ManagedParentAdminCreate): Promise<ManagedCustomerDetail> {
+        return request<ManagedCustomerDetail>(`/subscriptions/admin/customers/${parentId}/parent-admins`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    permanentlyDeleteManagedCustomer(parentId: string, data: PermanentCustomerDelete): Promise<{ message: string; parent_organization_id: string; files_removed: number; file_cleanup_failures: number }> {
+        return request(`/subscriptions/admin/customers/${parentId}/permanent`, {
+            method: "DELETE",
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateManagedSubscription(parentId: string, data: SubscriptionAdminUpdate): Promise<ManagedCustomerDetail> {
+        return request<ManagedCustomerDetail>(`/subscriptions/admin/customers/${parentId}/subscription`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        });
+    },
+
+    reviewSalesRequest(parentId: string, requestId: string, data: { action: "approve" | "contacted" | "reject"; note: string }): Promise<ManagedCustomerDetail> {
+        return request<ManagedCustomerDetail>(`/subscriptions/admin/customers/${parentId}/sales-requests/${requestId}`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateManagedLimits(parentId: string, limits: ManagedCustomerLimits, reason: string): Promise<ManagedCustomerDetail> {
+        return request<ManagedCustomerDetail>(`/subscriptions/admin/customers/${parentId}/limits`, {
+            method: "PUT",
+            body: JSON.stringify({ limits, reason }),
         });
     },
 
@@ -427,19 +601,7 @@ export const api = {
 
         const qsStr = qs.toString();
         const url = qsStr ? `/stats/overview?${qsStr}` : "/stats/overview";
-        return request<AnalyticsOverview>(url, init).catch((err) => {
-            if (err?.name === "AbortError") throw err;
-            return {
-                status_counts: { total: 0, served: 0, cancelled: 0, waiting: 0, invited: 0 },
-                timings: { avg_waiting_time: "00:00:00", max_waiting_time: "00:00:00", avg_served_time: "00:00:00", max_served_time: "00:00:00" },
-                charts: { hourly: [], monthly: [] },
-                daily_timings: [],
-                staff_performance: [],
-                recent_activity: [],
-                longest_waiting_queue: null,
-                longest_waiting_session: null,
-            } as AnalyticsOverview;
-        });
+        return request<AnalyticsOverview>(url, init);
     },
 
     getHistory(params: { sessionId?: string; queueId?: string; search?: string; status?: string; startDate?: string; endDate?: string; limit?: number; offset?: number } = {}): Promise<PaginatedHistoryResponse> {
@@ -454,14 +616,7 @@ export const api = {
         if (params.offset != null) qs.set("offset", String(params.offset));
 
         const q = qs.toString();
-        return request<PaginatedHistoryResponse>(`/stats/history${q ? `?${q}` : ""}`, { cache: "no-store" }).catch(() => {
-            return {
-                items: [],
-                total: 0,
-                limit: params.limit || 50,
-                offset: params.offset || 0,
-            } as PaginatedHistoryResponse;
-        });
+        return request<PaginatedHistoryResponse>(`/stats/history${q ? `?${q}` : ""}`, { cache: "no-store" });
     },
 
     async exportAnalyticsCSV(params: { queueId?: string; sessionId?: string; search?: string; status?: string; startDate?: string; endDate?: string }): Promise<Blob> {
@@ -488,8 +643,7 @@ export const api = {
 
     // ── Messages ─────────────────────────────────────────────────
     getMessages(): Promise<MessageResponse[]> {
-        return request<MessageResponse[]>("/messages")
-            .catch(() => [] as MessageResponse[]);
+        return request<MessageResponse[]>("/messages");
     },
 
     createMessage(content: string, message_type: string): Promise<MessageResponse> {
@@ -537,11 +691,17 @@ export const api = {
         return request<SessionResponse>(`/queues/${queueId}/active-session`);
     },
 
+    ensureActiveSession(queueId: string): Promise<SessionResponse> {
+        return request<SessionResponse>(`/queues/${queueId}/active-session`, {
+            method: "POST",
+        });
+    },
+
     getSession(sessionId: string): Promise<SessionResponse> {
         return request<SessionResponse>(`/sessions/${sessionId}`);
     },
 
-    updateSession(sessionId: string, data: { title?: string; is_active?: boolean; is_paused?: boolean }): Promise<SessionResponse> {
+    updateSession(sessionId: string, data: { title?: string }): Promise<SessionResponse> {
         return request<SessionResponse>(`/sessions/${sessionId}`, {
             method: "PATCH",
             body: JSON.stringify(data),
@@ -1351,6 +1511,12 @@ export const api = {
         });
     },
 
+    triggerAutoSession(): Promise<{ message: string }> {
+        return request<{ message: string }>("/organization/trigger-auto-session", {
+            method: "POST",
+        });
+    },
+
     uploadOrganizationLogo(file: File): Promise<OrganizationSettingsResponse> {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -1428,8 +1594,7 @@ export const api = {
 
     // System
     getActiveSystemAnnouncements(): Promise<SystemAnnouncementDetail[]> {
-        return request<SystemAnnouncementDetail[]>("/system/system-announcements/active")
-            .catch(() => [] as SystemAnnouncementDetail[]);
+        return request<SystemAnnouncementDetail[]>("/system/system-announcements/active");
     },
 
     // Global User Management
@@ -1510,8 +1675,15 @@ export const api = {
     deleteMetaTemplateByName(templateName: string): Promise<{ success: boolean; message: string }> {
         return request(`/whatsapp/templates/meta/${encodeURIComponent(templateName)}`, { method: "DELETE" });
     },
-    getWhatsAppMessages(limit = 50): Promise<PaginatedWhatsAppMessages> {
-        return request<PaginatedWhatsAppMessages>(`/whatsapp/messages?limit=${limit}`);
+    getWhatsAppMessages(params: { limit?: number; offset?: number; organizationId?: string; status?: string; customerPhone?: string } = {}): Promise<PaginatedWhatsAppMessages> {
+        const qs = new URLSearchParams();
+        if (params.limit != null) qs.set("limit", String(params.limit));
+        if (params.offset != null) qs.set("offset", String(params.offset));
+        if (params.organizationId) qs.set("organization_id", params.organizationId);
+        if (params.status) qs.set("status", params.status);
+        if (params.customerPhone) qs.set("customer_phone", params.customerPhone);
+        const qStr = qs.toString() ? `?${qs.toString()}` : "";
+        return request<PaginatedWhatsAppMessages>(`/whatsapp/messages${qStr}`);
     },
     getWhatsAppTokenStatus(tokenId: string): Promise<WhatsAppMessage[]> {
         return request<WhatsAppMessage[]>(`/whatsapp/token/${tokenId}/status`);
@@ -1579,6 +1751,30 @@ export const api = {
         });
     },
 
+    // ── Public Custom Plan & Sales Requests ──────────────────────
+    submitPublicCustomPlanRequest(data: {
+        contact_name: string;
+        contact_email: string;
+        contact_phone: string;
+        company_name: string;
+        business_category: string;
+        branch_count: string;
+        queue_count: string;
+        staff_count: string;
+        visitor_volume: string;
+        selected_services: string[];
+        special_notes?: string;
+    }): Promise<{ message: string; id: string }> {
+        return request("/subscriptions/public/custom-plan-request", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    getSubscriptionSummary(): Promise<SubscriptionSummary> {
+        return request<SubscriptionSummary>("/subscriptions/current");
+    },
+
     // ── Public Tracking ───────────────────────────────────────────
     getTrackingInfo(trackingId: string): Promise<TrackingResponse> {
         return request<TrackingResponse>(`/track/${trackingId}`);
@@ -1601,8 +1797,7 @@ export const api = {
     },
 
     getActiveOrgAnnouncements: () => {
-        return request<OrganizationAnnouncement[]>("/organization/announcements/active")
-            .catch(() => [] as OrganizationAnnouncement[]);
+        return request<OrganizationAnnouncement[]>("/organization/announcements/active");
     },
 } as const;
 
@@ -1690,9 +1885,6 @@ export const getSystemTime = async (): Promise<{ server_time: number }> => {
     return response.json();
 };
 
-export const getQueueQrConfig = async (queueId: string): Promise<{ qr_secret_seed: string; interval: number }> => {
-    const response = await fetch(`${config.apiBaseUrl}/queues/${queueId}/qr-config`);
-    if (!response.ok) throw new Error('Failed to fetch QR config');
-    return response.json();
+export const getQueueQrConfig = async (queueId: string): Promise<{ totp: string; interval: number; valid_for: number }> => {
+    return request<{ totp: string; interval: number; valid_for: number }>(`/queues/${queueId}/qr-config`);
 };
-

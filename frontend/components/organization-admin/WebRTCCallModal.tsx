@@ -356,9 +356,14 @@ export default function WebRTCCallModal({
                     client.login(username, password);
                 }
 
-            } catch (error) {
+            } catch (error: any) {
                 console.error("WebRTC Error:", error);
-                setStatus("Error");
+                const msg = error?.response?.data?.detail || error?.detail || error?.message || "";
+                if (msg.includes("Free Trial") || error?.response?.status === 403) {
+                    setStatus("Disabled in Free Trial");
+                } else {
+                    setStatus("Error");
+                }
             }
         };
 
@@ -468,9 +473,16 @@ export default function WebRTCCallModal({
                     </div>
                 </div>
 
-                {/* Timer / Keypad area */}
+                {/* Timer / Keypad / Trial restriction area */}
                 <div className="px-6 py-6">
-                    {showKeypad ? (
+                    {status === "Disabled in Free Trial" ? (
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-center space-y-2">
+                            <p className="text-amber-400 font-semibold text-sm">Voice Calling Restricted</p>
+                            <p className="text-zinc-400 text-xs leading-relaxed">
+                                Voice calling and WhatsApp services are disabled during the Free Trial. Upgrade to a commercial plan to start making call notifications.
+                            </p>
+                        </div>
+                    ) : showKeypad ? (
                         <div className="space-y-3">
                             {/* DTMF Digit Display */}
                             <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700/50 min-h-[44px]">

@@ -2,10 +2,35 @@
 
 import WhatsAppManagementPanel from "@/components/super-admin/WhatsAppManagementPanel";
 import Link from "next/link";
+import { MessageSquare, Sliders, Receipt } from "lucide-react";
 
 export default function WhatsAppPage() {
     return (
         <div className="space-y-6">
+            {/* Top Sub-Navigation Tabs */}
+            <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+                <div
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                >
+                    <MessageSquare size={16} />
+                    WhatsApp & Meta
+                </div>
+                <Link
+                    href="/super-admin/calling-config"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/60 transition-all cursor-pointer"
+                >
+                    <Sliders size={16} />
+                    Rate Configuration
+                </Link>
+                <Link
+                    href="/super-admin/calling-config/pricing"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/60 transition-all cursor-pointer"
+                >
+                    <Receipt size={16} />
+                    Branch Pricing & Telephony Usage
+                </Link>
+            </div>
+
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-white flex items-center gap-2">

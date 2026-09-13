@@ -157,13 +157,15 @@ async def get_current_user(
             )
         
     # ── JWT Revocation Check ───────────────────────────────────────
-    if user.password_changed_at and iat_raw is not None:
-        iat_dt = datetime.fromtimestamp(iat_raw, tz=timezone.utc)
+    if user.password_changed_at:
+        if iat_raw is None:
+            logger.warning("Token missing iat after password change | user_id=%s", user_id)
+            raise _CREDENTIALS_EXCEPTION
         pwd_dt = user.password_changed_at
         if pwd_dt.tzinfo is None:
             pwd_dt = pwd_dt.replace(tzinfo=timezone.utc)
-            
-        if iat_dt < pwd_dt:
+
+        if int(iat_raw) < int(pwd_dt.timestamp()):
             logger.warning("Token issued before last password change | user_id=%s", user_id)
             raise _CREDENTIALS_EXCEPTION
 
@@ -193,7 +195,6 @@ async def get_current_active_user(
         x_org_slug = request.headers.get("x-org-slug")
         if x_org_slug:
             from app.models.organization import Organization
-            from sqlalchemy import select
             res = await db.execute(
                 select(Organization).where(
                     Organization.slug == x_org_slug,
@@ -205,7 +206,26 @@ async def get_current_active_user(
                 # We dynamically set org_id on this request's user instance
                 # This works because we don't commit this user instance back to the DB
                 current_user.org_id = branch.id
-                
+
+    # Managed customers are re-evaluated on every request so a JWT issued
+    # before trial expiry cannot continue operating until the token expires.
+    if current_user.parent_organization_id and current_user.role != "super_admin":
+        from app.models.subscription import Subscription
+        from app.services.entitlement_service import effective_status
+
+        subscription = await db.scalar(select(Subscription).where(
+            Subscription.parent_organization_id == current_user.parent_organization_id
+        ))
+        if subscription is not None:
+            commercial_status = effective_status(subscription)
+            if commercial_status not in {"trialing", "active"}:
+                message = (
+                    "Your free trial has ended. Contact our sales team to continue using Q4Queue. Your data is safe."
+                    if commercial_status == "expired"
+                    else "This subscription is not active. Contact support to continue using Q4Queue. Your data is safe."
+                )
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=message)
+
     return current_user
 
 
@@ -353,13 +373,30 @@ async def get_admin_queue_for_org(
     Use this for destructive / mutating admin operations.
     """
     from app.models.queue import Queue as QueueModel
-    result = await db.execute(
-        select(QueueModel).where(
-            QueueModel.id == queue_id,
-            QueueModel.org_id == current_user.org_id,
-            QueueModel.is_deleted == False
+    from app.models.organization import Organization
+    if current_user.role == "organization_admin":
+        result = await db.execute(
+            select(QueueModel).join(Organization, Organization.id == QueueModel.org_id).where(
+                QueueModel.id == queue_id,
+                Organization.parent_organization_id == current_user.parent_organization_id,
+                QueueModel.is_deleted == False
+            )
         )
-    )
+    elif current_user.role == "super_admin":
+        result = await db.execute(
+            select(QueueModel).where(
+                QueueModel.id == queue_id,
+                QueueModel.is_deleted == False
+            )
+        )
+    else:
+        result = await db.execute(
+            select(QueueModel).where(
+                QueueModel.id == queue_id,
+                QueueModel.org_id == current_user.org_id,
+                QueueModel.is_deleted == False
+            )
+        )
     queue = result.scalar_one_or_none()
     if queue is None:
         raise HTTPException(

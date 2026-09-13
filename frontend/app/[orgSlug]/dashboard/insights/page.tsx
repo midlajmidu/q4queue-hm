@@ -1,9 +1,8 @@
 
 "use client";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { api } from "@/lib/api";
 import type { AnalyticsOverview } from "@/types/api";
-import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { PageWrapper } from "@/components/PageWrapper";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
@@ -108,6 +107,8 @@ export default function InsightsPage() {
 
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const requestSequence = useRef(0);
 
   // Date Filters
   const getLocalDateStr = (d: Date) => {
@@ -120,17 +121,31 @@ export default function InsightsPage() {
   const tz = useBranchTimezone();
   const now = nowInTz(tz);
   const today = localTodayStr(tz);
-  const lastWeek = getLocalDateStr(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000));
-  const thirtyDays = getLocalDateStr(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000));
+  const lastWeek = getLocalDateStr(new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000));
+  const thirtyDays = getLocalDateStr(new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000));
 
   const [startDate, setStartDate] = useState(lastWeek);
   const [endDate, setEndDate] = useState(today);
 
   const load = useCallback(async () => {
+    if (startDate && endDate && startDate > endDate) {
+      setError("Start date must be on or before end date.");
+      setLoading(false);
+      return;
+    }
+    const sequence = ++requestSequence.current;
     setLoading(true);
-    try { setOverview(await api.getOverview({ startDate: startDate || undefined, endDate: endDate || undefined })); }
-    catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    setError(null);
+    try {
+      const result = await api.getOverview({ startDate: startDate || undefined, endDate: endDate || undefined });
+      if (sequence === requestSequence.current) setOverview(result);
+    } catch (e) {
+      if (sequence === requestSequence.current) {
+        setError(e instanceof Error ? e.message : "Insights are temporarily unavailable.");
+      }
+    } finally {
+      if (sequence === requestSequence.current) setLoading(false);
+    }
   }, [startDate, endDate]);
 
   useEffect(() => { load(); }, [load]);
@@ -152,13 +167,13 @@ export default function InsightsPage() {
     const sc = overview.status_counts;
 
     // Pad the daily timings to ensure the chart always renders properly
-    const start = startDate ? new Date(startDate) : new Date(Date.now() - 7 * 86400000);
-    const end = endDate ? new Date(endDate) : new Date();
+    const start = startDate ? new Date(`${startDate}T12:00:00`) : new Date(Date.now() - 6 * 86400000);
+    const end = endDate ? new Date(`${endDate}T12:00:00`) : new Date();
     const dateMap = new Map();
 
     // Generate all dates in the range
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const iso = d.toISOString().split('T')[0];
+      const iso = getLocalDateStr(d);
       dateMap.set(iso, { date: iso, avg_wait: 0, avg_serve: 0 });
     }
 
@@ -188,7 +203,7 @@ export default function InsightsPage() {
       dailyTimings,
       staffPerformance: overview.staff_performance || []
     };
-  }, [overview]);
+  }, [overview, startDate, endDate, tz]);
 
   return (
     <>
@@ -224,7 +239,7 @@ export default function InsightsPage() {
               <input type="date" max={today} value={startDate} onChange={e => setStartDate(e.target.value)} className="date-input bg-white dark:bg-slate-900 text-gray-900 dark:text-white" style={{ colorScheme: "light dark" }} />
               <span style={{ color: C.textMuted, fontSize: 13, fontWeight: 500 }}>to</span>
               <input type="date" max={today} value={endDate} onChange={e => setEndDate(e.target.value)} className="date-input bg-white dark:bg-slate-900 text-gray-900 dark:text-white" style={{ colorScheme: "light dark" }} />
-              <button onClick={load} disabled={loading} style={{
+              <button onClick={load} disabled={loading || Boolean(startDate && endDate && startDate > endDate)} style={{
                 display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
                 fontSize: 13, fontWeight: 600, color: C.textSub,
                 background: C.card, border: `1px solid ${C.border}`, borderRadius: 8,
@@ -266,7 +281,11 @@ export default function InsightsPage() {
           }
         >
           {/* ═══ LOADING ═══ */}
-          {loading ? (
+          {error ? (
+            <div role="alert" className="ins-card" style={{ padding: "24px", color: "#b91c1c", borderColor: "#fecaca", background: "#fef2f2" }}>
+              <strong>Insights could not be loaded.</strong> {error}
+            </div>
+          ) : loading ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
                 {Array.from({ length: 5 }).map((_, i) => <div key={i} className="ins-shim" style={{ height: 88 }} />)}
@@ -296,7 +315,7 @@ export default function InsightsPage() {
                   { label: "Max Wait", val: formatDuration(d.maxW) },
                   { label: "Avg Wait", val: formatDuration(d.wA) },
                   { label: "Avg Service", val: formatDuration(d.sA) },
-                  { label: "Drop-off Rate", val: d.total > 0 ? `${Math.round((d.cancelled / d.total) * 100)}%` : "0%" },
+                  { label: "Non-completion Rate", val: d.total > 0 ? `${Math.round((d.cancelled / d.total) * 100)}%` : "0%" },
                 ]).map((s, i) => (
                   <div key={s.label} className="ins-card ins-fade" style={{ padding: "20px 24px", animationDelay: `${i * 50}ms` }}>
                     <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", color: C.textMuted, marginBottom: 12 }}>{s.label}</p>
@@ -344,7 +363,7 @@ export default function InsightsPage() {
                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: C.textMuted }} />
                         <Tooltip
                           contentStyle={{ borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: "0 4px 1px rgba(0,0,0,.08)", fontSize: 13 }}
-                          formatter={(value: any) => [Math.round(Number(value) * 10) / 10 + " min"]}
+                          formatter={(value) => [`${Math.round(Number(value ?? 0) * 10) / 10} min`]}
                         />
                         <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
                         <Line type="monotone" name="Avg Service" dataKey="avg_serve_min" stroke={C.green} strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} />

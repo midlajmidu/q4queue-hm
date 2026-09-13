@@ -18,16 +18,16 @@ export const config = {
   wsBaseUrl: (function () {
     const rawWs = process.env.NEXT_PUBLIC_WS_BASE_URL;
     if (rawWs) {
-      return rawWs.replace(':3000', ':8000');
+      return rawWs.replace(/:300\d/, ':8000');
     }
     if (normalizedApiUrl.startsWith('http')) {
-      return normalizedApiUrl.replace(/^http/, 'ws').replace(':3000', ':8000') + '/ws';
+      return normalizedApiUrl.replace(/^http/, 'ws').replace(/:300\d/, ':8000') + '/ws';
     }
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       let host = window.location.host;
-      if (host.includes(':3000')) {
-        host = host.replace(':3000', ':8000');
+      if (/:300\d/.test(host)) {
+        host = host.replace(/:300\d/, ':8000');
       }
       return `${protocol}//${host}${normalizedApiUrl}/ws`;
     }
@@ -35,7 +35,7 @@ export const config = {
   })(),
 
   appName: process.env.NEXT_PUBLIC_APP_NAME || "Q4Queue",
-  appUrl: process.env.NEXT_PUBLIC_APP_URL || "https://amoebaq.com",
+  appUrl: (typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || "http://app.localhost:3000")),
   isProduction: process.env.NODE_ENV === "production",
-  landingUrl: process.env.NEXT_PUBLIC_LANDING_URL || "https://amoebaq.com",
+  landingUrl: (typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost:3000")),
 } as const;

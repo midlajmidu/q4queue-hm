@@ -2,7 +2,22 @@
 tests/integration/test_health.py
 PART 1 — Health endpoint behavior tests (Part 2A only; 2B/2C require container control).
 """
+from typing import AsyncGenerator
+
+import pytest_asyncio
 from httpx import AsyncClient
+
+from app.redis.client import connect_redis, disconnect_redis
+
+
+@pytest_asyncio.fixture(scope="module", autouse=True)
+async def connected_redis() -> AsyncGenerator[None, None]:
+    """Health baseline includes the real isolated Redis dependency."""
+    await connect_redis()
+    try:
+        yield
+    finally:
+        await disconnect_redis()
 
 
 class TestHealthEndpoint:

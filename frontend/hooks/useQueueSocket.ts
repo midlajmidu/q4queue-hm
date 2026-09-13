@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { QueueWebSocket, type ConnectionStatus } from "@/lib/websocket";
+import { QueueWebSocket, type ConnectionStatus, type NewCustomerEvent } from "@/lib/websocket";
 import type { QueueSnapshot } from "@/types/api";
 
 interface UseQueueSocketOptions {
     token?: string;
     enabled?: boolean;
-    onNewCustomer?: (data: any) => void;
+    onNewCustomer?: (data: NewCustomerEvent) => void;
 }
 
 interface UseQueueSocketReturn {

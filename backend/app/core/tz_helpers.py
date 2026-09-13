@@ -7,7 +7,7 @@ datetime.now(timezone.utc) or hardcoded "Asia/Kolkata" strings.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, date, time as dt_time
+from datetime import datetime, date, time as dt_time, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -67,6 +67,36 @@ def to_org_local_time(dt: datetime | None, tz_name: str) -> str:
 def local_today(tz_name: str) -> date:
     """Return today's date in the org's local timezone."""
     return datetime.now(safe_zoneinfo(tz_name)).date()
+
+
+def is_within_operational_hours(current_hm: str, open_time: str | None, close_time: str | None) -> bool:
+    """Return True if current_hm (HH:MM) is within the operating window."""
+    open_t = open_time.strip() if open_time and open_time.strip() else None
+    close_t = close_time.strip() if close_time and close_time.strip() else None
+
+    if not open_t and not close_t:
+        return True
+
+    start = open_t if open_t else "00:00"
+    end = close_t if close_t else "23:59"
+
+    if start <= end:
+        return start <= current_hm <= end
+    # Overnight schedule e.g., 21:00 to 03:00 next day
+    return current_hm >= start or current_hm <= end
+
+
+def queue_business_date(
+    local_now: datetime,
+    open_time: str | None,
+    close_time: str | None,
+) -> date:
+    """Return the session date for normal and overnight operating windows."""
+    if open_time and close_time and open_time > close_time:
+        current_hm = local_now.strftime("%H:%M")
+        if current_hm <= close_time:
+            return local_now.date() - timedelta(days=1)
+    return local_now.date()
 
 
 def tz_date_clause(col, tz_name: str):

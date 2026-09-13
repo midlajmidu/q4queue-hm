@@ -11,6 +11,7 @@ from sqlalchemy import (
     ForeignKey,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -57,3 +58,23 @@ class Message(Base):
 
     def __repr__(self) -> str:
         return f"<Message id={self.id} org_id={self.org_id} type={self.message_type}>"
+
+
+class MessageReceipt(Base):
+    """Per-user notification state; messages remain immutable and shared."""
+
+    __tablename__ = "message_receipts"
+    __table_args__ = (UniqueConstraint("message_id", "user_id", name="uq_message_receipt_user"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("messages.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

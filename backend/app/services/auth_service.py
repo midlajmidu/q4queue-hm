@@ -20,6 +20,19 @@ logger = logging.getLogger(__name__)
 
 # Generic message — prevent enumeration attacks
 _INVALID_CREDENTIALS = "Invalid credentials"
+TRIAL_EXPIRED_MESSAGE = "Your free trial has ended. Contact our sales team to continue using Q4Queue. Your data is safe."
+
+
+async def _reject_expired_trial(db: AsyncSession, parent_organization_id) -> None:
+    if not parent_organization_id:
+        return
+    from app.models.subscription import Subscription
+    from app.services.entitlement_service import effective_status
+    subscription = await db.scalar(select(Subscription).where(
+        Subscription.parent_organization_id == parent_organization_id
+    ))
+    if subscription and effective_status(subscription) == "expired":
+        raise ValueError(TRIAL_EXPIRED_MESSAGE)
 
 
 async def authenticate_user(
@@ -52,9 +65,9 @@ async def authenticate_user(
             select(User).where(
                 User.email == email,
                 User.role == "organization_admin"
-            )
+            ).order_by(User.created_at.asc())
         )
-        user: User | None = user_result.scalar_one_or_none()
+        user: User | None = user_result.scalars().first()
 
         if user and verify_password(plain_password, user.password_hash):
             if not user.is_active:
@@ -67,6 +80,7 @@ async def authenticate_user(
             parent_org: ParentOrganization | None = parent_org_result.scalar_one_or_none()
             
             if parent_org and parent_org.is_active:
+                await _reject_expired_trial(db, parent_org.id)
                 token = create_access_token(
                     user_id=str(user.id),
                     org_id=None,
@@ -132,6 +146,9 @@ async def authenticate_user(
         logger.warning("Login failed: user inactive | email=%s org=%s", email, org_slug)
         raise ValueError("Your account has been deactivated. Please contact your administrator.")
 
+    # Credentials are valid, but an expired trial must not receive an operational JWT.
+    await _reject_expired_trial(db, user.parent_organization_id)
+
     # ── 6. Issue JWT ───────────────────────────────────────────────
     token = create_access_token(
         user_id=str(user.id),
@@ -170,9 +187,9 @@ async def authenticate_super_admin(
             User.email == email,
             User.role == "super_admin",
             User.org_id.is_(None),
-        )
+        ).order_by(User.created_at.asc())
     )
-    user: User | None = user_result.scalar_one_or_none()
+    user: User | None = user_result.scalars().first()
 
     if user is None:
         logger.warning("Super-admin login: user not found | email=%s", email)

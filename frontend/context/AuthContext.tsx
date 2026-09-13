@@ -195,22 +195,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     currentUser = JSON.parse(atob(parts[1])) as JwtPayload;
                 }
                 
+                const isAppSubdomain = typeof window !== "undefined" && window.location.hostname.startsWith("app.");
+                const currentHost = typeof window !== "undefined" ? window.location.host : "";
+                const appHost = isAppSubdomain ? currentHost : `app.${currentHost}`;
+                const protocol = typeof window !== "undefined" ? window.location.protocol : "http:";
+
+                let targetPath = "/dashboard";
                 if (response.force_password_change) {
                     if (currentUser && currentUser.role === "organization_admin") {
-                        router.push(`/organization-admin/change-password`);
+                        targetPath = "/organization-admin/change-password";
                     } else if (currentUser && (currentUser.role === "admin" || currentUser.role === "branch_admin" || currentUser.role === "staff")) {
-                        router.push(`/${currentUser.org_slug}/change-password`);
+                        targetPath = `/${currentUser.org_slug}/change-password`;
                     } else if (currentUser && currentUser.role === "super_admin") {
-                        router.push('/super-admin/change-password');
+                        targetPath = "/super-admin/change-password";
                     } else {
-                        router.push(`/${currentUser?.org_slug}/change-password`);
+                        targetPath = `/${currentUser?.org_slug}/change-password`;
                     }
                 } else if (currentUser && currentUser.role === "organization_admin") {
-                    router.push(`/organization-admin`);
+                    targetPath = "/organization-admin";
                 } else if (currentUser && (currentUser.role === "admin" || currentUser.role === "branch_admin" || currentUser.role === "staff")) {
-                    router.push(`/${currentUser.org_slug}/dashboard`);
+                    targetPath = `/${currentUser.org_slug}/dashboard`;
+                } else if (currentUser && currentUser.role === "super_admin") {
+                    targetPath = "/super-admin";
+                }
+
+                if (typeof window !== "undefined" && !isAppSubdomain) {
+                    window.location.href = `${protocol}//${appHost}${targetPath}#token=${response.access_token}`;
                 } else {
-                    router.push("/dashboard");
+                    router.push(targetPath);
                 }
             } catch (err) {
                 if (err instanceof ApiError) {

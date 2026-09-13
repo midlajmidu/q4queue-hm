@@ -28,13 +28,14 @@ async def _make_tenant(db: AsyncSession, tag: str) -> tuple[Organization, User, 
         email=f"admin-{tag}@test.com",
         password_hash=hash_password("pass"),
         role="admin",
+        is_first_login=False,
     )
     db.add(user)
     await db.commit()
     await db.refresh(org)
     await db.refresh(user)
     token = create_access_token(
-        user_id=str(user.id), org_id=str(org.id), role="admin"
+        user_id=str(user.id), org_id=str(org.id), role="admin", email=user.email
     )
     return org, user, token
 
@@ -69,6 +70,7 @@ class TestTenantIsolation:
             user_id=str(user_b.id),
             org_id=str(org_a.id),   # ← wrong org
             role="admin",
+            email=user_b.email,
         )
         resp = await client.get(
             "/api/v1/users/me",
@@ -112,7 +114,10 @@ class TestTenantIsolation:
         await db.commit()
 
         result = await db.execute(
-            select(User).where(User.email == SHARED_EMAIL)
+            select(User).where(
+                User.email == SHARED_EMAIL,
+                User.org_id.in_([org1.id, org2.id]),
+            )
         )
         users = result.scalars().all()
 

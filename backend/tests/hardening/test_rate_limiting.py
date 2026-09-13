@@ -46,7 +46,7 @@ async def _provision(tag: str) -> tuple[str, str, str]:
         await db.refresh(user)
         await db.refresh(queue)
         jwt = create_access_token(
-            user_id=str(user.id), org_id=str(org.id), role="admin"
+            user_id=str(user.id), org_id=str(org.id), role="admin", email=user.email
         )
         return str(queue.id), slug, jwt
 

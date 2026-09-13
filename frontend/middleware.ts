@@ -15,12 +15,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // If the user visits the root path, redirect them to login
-  if (url.pathname === "/") {
-    url.pathname = '/login';
-    return NextResponse.redirect(url);
-  }
-
   return NextResponse.next();
 }
 

@@ -2,20 +2,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
-import type { SessionResponse, QueueResponse, TokenHistoryItem, AnalyticsOverview } from "@/types/api";
+import type { QueueResponse, TokenHistoryItem, AnalyticsOverview } from "@/types/api";
 import { Users } from "lucide-react";
 import { useParams } from "next/navigation";
 import { StandardPageHeader } from "@/components/StandardPageHeader";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
-import { fmtTime, fmtDateTime, fmtDate, localTodayStr, nowInTz } from "@/lib/tzformat";
+import { fmtTime, fmtDateTime, localTodayStr } from "@/lib/tzformat";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-function formatDate(dateStr: string, tz: string): string {
-    return fmtDate(dateStr + "T12:00:00", tz);
-}
 
 function formatTime(isoStr: string | null | undefined, tz: string): string {
     return fmtTime(isoStr, tz);
@@ -23,10 +19,6 @@ function formatTime(isoStr: string | null | undefined, tz: string): string {
 
 function formatFullTime(isoStr: string | null | undefined, tz: string): string {
     return fmtDateTime(isoStr, tz);
-}
-
-function getLocalDateStr(d: Date): string {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function durationBetween(from: string | null | undefined, to: string | null | undefined): string {
@@ -47,33 +39,6 @@ function durationSeconds(from: string | null | undefined, to: string | null | un
 }
 
 // ─── Components ─────────────────────────────────────────────────────────────
-
-const AVATAR_PALETTES = [
-    "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400",
-    "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
-    "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-    "bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
-    "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
-    "bg-pink-50 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400",
-    "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
-    "bg-yellow-50 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400",
-];
-
-function getPalette(str: string) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    return AVATAR_PALETTES[Math.abs(hash) % AVATAR_PALETTES.length];
-}
-
-function Avatar({ name }: { name: string }) {
-    const className = getPalette(name);
-    const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
-    return (
-        <div className={"shrink-0 flex items-center justify-center w-[34px] h-[34px] rounded-full text-xs font-bold tracking-tight " + className}>
-            {initials || "U"}
-        </div>
-    );
-}
 
 function StatCard({ label, value, sub, color, icon }: {
     label: string; value: string | number; sub?: string; color?: string; icon?: React.ReactNode;
@@ -192,8 +157,6 @@ export default function HistoryPage() {
 
     const tz = useBranchTimezone();
     const today = localTodayStr(tz);
-    const last7 = getLocalDateStr(new Date(nowInTz(tz).getTime() - 6 * 86400000));
-
     const [queues, setQueues] = useState<QueueResponse[]>([]);
     const [selectedQueueId, setSelectedQueueId] = useState("");
     const [selectedStatus, setSelectedStatus] = useState("");
@@ -206,10 +169,8 @@ export default function HistoryPage() {
     const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
     const [total, setTotal] = useState(0);
     const [offset, setOffset] = useState(0);
-    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-    const [secondsAgo, setSecondsAgo] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
-    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [exporting, setExporting] = useState(false);
     const PAGE_SIZE = 25;
 
@@ -267,36 +228,42 @@ export default function HistoryPage() {
 
     const loadHistory = useCallback(async (isSilent = false) => {
         if (!isSilent) setIsLoading(true);
-        setIsRefreshing(true);
+        setLoadError(null);
         try {
-            const [historyData, overviewData] = await Promise.all([
-                api.getHistory({
-                    queueId: selectedQueueId || undefined,
-                    search: debouncedSearch || undefined,
-                    status: selectedStatus || undefined,
-                    startDate: startDate || undefined,
-                    endDate: endDate || undefined,
-                    limit: PAGE_SIZE,
-                    offset,
-                }),
-                api.getOverview({
-                    queueId: selectedQueueId || undefined,
-                    search: debouncedSearch || undefined,
-                    status: selectedStatus || undefined,
-                    startDate: startDate || undefined,
-                    endDate: endDate || undefined,
-                })
-            ]);
-            setHistory(historyData.items);
-            setTotal(historyData.total);
-            setOverview(overviewData);
-            setLastUpdated(new Date());
-            setSecondsAgo(0);
+            const historyPromise = api.getHistory({
+                queueId: selectedQueueId || undefined,
+                search: debouncedSearch || undefined,
+                status: selectedStatus || undefined,
+                startDate: startDate || undefined,
+                endDate: endDate || undefined,
+                limit: PAGE_SIZE,
+                offset,
+            });
+
+            if (isSilent) {
+                const historyData = await historyPromise;
+                setHistory(historyData.items);
+                setTotal(historyData.total);
+            } else {
+                const [historyData, overviewData] = await Promise.all([
+                    historyPromise,
+                    api.getOverview({
+                        queueId: selectedQueueId || undefined,
+                        search: debouncedSearch || undefined,
+                        status: selectedStatus || undefined,
+                        startDate: startDate || undefined,
+                        endDate: endDate || undefined,
+                    })
+                ]);
+                setHistory(historyData.items);
+                setTotal(historyData.total);
+                setOverview(overviewData);
+            }
         } catch (err) {
             console.error("Failed to load history data:", err);
+            setLoadError(err instanceof Error ? err.message : "Customer history is temporarily unavailable.");
         } finally {
             if (!isSilent) setIsLoading(false);
-            setIsRefreshing(false);
         }
     }, [selectedQueueId, offset, debouncedSearch, selectedStatus, startDate, endDate]);
 
@@ -304,20 +271,9 @@ export default function HistoryPage() {
         loadHistory().catch(err => console.error("Unhandled loadHistory error:", err));
         const timer = setInterval(() => {
             loadHistory(true).catch(err => console.error("Unhandled silent loadHistory error:", err));
-        }, 15000);
+        }, 60000);
         return () => clearInterval(timer);
     }, [loadHistory]);
-
-    useEffect(() => {
-        const ticker = setInterval(() => {
-            if (lastUpdated) setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
-        }, 1000);
-        return () => clearInterval(ticker);
-    }, [lastUpdated]);
-
-    const updatedLabel = lastUpdated
-        ? secondsAgo < 10 ? "Just now" : secondsAgo < 60 ? "moments ago" : `${Math.floor(secondsAgo / 60)}m ago`
-        : null;
 
     const thStyle: React.CSSProperties = {
         padding: "10px 16px", fontSize: 11, fontWeight: 700, color: "var(--q-text-muted)",
@@ -451,6 +407,11 @@ export default function HistoryPage() {
                 />
 
                 {/* ── Stat Cards ── */}
+                {loadError && (
+                    <div role="alert" style={{ padding: "12px 16px", borderRadius: 10, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", fontSize: 13 }}>
+                        <strong>Customer data could not be refreshed.</strong> {loadError} Existing results are being preserved.
+                    </div>
+                )}
                 {overview && (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 16 }}>
                         <StatCard label="Total Tokens" value={sc?.total ?? 0}
@@ -504,6 +465,7 @@ export default function HistoryPage() {
                                     <th style={thStyle}>Wait Time</th>
                                     <th style={thStyle}>Service Time</th>
                                     <th style={thStyle}>Served By</th>
+                                    <th style={thStyle}>Custom Details</th>
                                     <th style={thStyle}></th>
                                 </tr>
                             </thead>
@@ -512,7 +474,7 @@ export default function HistoryPage() {
                                     Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
                                 ) : history.length === 0 ? (
                                     <tr>
-                                        <td colSpan={11} style={{ padding: "60px 24px", textAlign: "center" }}>
+                                        <td colSpan={12} style={{ padding: "60px 24px", textAlign: "center" }}>
                                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
                                                 <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--q-slate-bg)", border: "0.5px solid var(--q-border-light)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                     <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--q-text-muted)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
@@ -531,7 +493,6 @@ export default function HistoryPage() {
                                 ) : (
                                     history.map((h) => {
                                         const waitSec = durationSeconds(h.created_at, h.served_at);
-                                        const serveSec = durationSeconds(h.served_at, h.completed_at);
                                         return (
                                             <tr key={h.id} className="cl-row" style={{ transition: "background .1s" }}>
                                                 {/* Token */}
@@ -603,6 +564,26 @@ export default function HistoryPage() {
                                                 <td style={{ ...tdStyle, color: "var(--q-text-sub)", fontSize: 12, whiteSpace: "nowrap" }}>
                                                     {h.served_by_staff_name || <span style={{ color: "var(--q-text-muted)" }}>—</span>}
                                                 </td>
+                                                {/* Custom Details */}
+                                                <td style={{ ...tdStyle, fontSize: 12 }}>
+                                                    {h.custom_data && Object.keys(h.custom_data).some(k => !['name', 'full_name', 'phone', 'phone_number', 'pax', 'group_size'].includes(k)) ? (
+                                                        <div className="flex flex-wrap gap-1 max-w-xs">
+                                                            {Object.entries(h.custom_data).map(([k, v]) => {
+                                                                if (['name', 'full_name', 'phone', 'phone_number', 'pax', 'group_size'].includes(k) || v === null || v === "") return null;
+                                                                const schemaMatch = Array.isArray(h.field_schema) ? h.field_schema.find((f: any) => f?.key === k) : null;
+                                                                const label = schemaMatch?.label || k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                                                const displayVal = typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v);
+                                                                return (
+                                                                    <span key={k} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-medium" title={`${label}: ${displayVal}`}>
+                                                                        <span className="font-semibold text-slate-500 dark:text-slate-400">{label}:</span> {displayVal}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <span style={{ color: "var(--q-text-muted)" }}>—</span>
+                                                    )}
+                                                </td>
                                                 {/* View button */}
                                                 <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
                                                     <button
@@ -627,6 +608,7 @@ export default function HistoryPage() {
                                                             served_by_staff_name: h.served_by_staff_name,
                                                             completed_by_staff_name: h.completed_by_staff_name,
                                                             custom_data: h.custom_data || null,
+                                                            field_schema: h.field_schema || null,
                                                         })}
                                                         title="View full details"
                                                         className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-colors"

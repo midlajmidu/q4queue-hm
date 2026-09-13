@@ -169,6 +169,7 @@ async def list_admin_organizations_whatsapp(db: AsyncSession) -> list[dict]:
             "is_active": o.is_active,
             "is_enabled": c.is_enabled if c else True,
             "mode": mode,
+            "delivery_mode": getattr(c, "delivery_mode", "button_reply_only") if c else "button_reply_only",
             "phone_number_id": (c.phone_number_id if c else "") or "",
             "waba_id": (c.waba_id if c else "") or "",
             "access_token": (c.access_token if c else "") or "",
@@ -193,6 +194,9 @@ async def update_admin_org_whatsapp(db: AsyncSession, org_id: uuid.UUID, data: d
 
     if "is_enabled" in data and data["is_enabled"] is not None:
         config.is_enabled = bool(data["is_enabled"])
+
+    if "delivery_mode" in data and data["delivery_mode"]:
+        config.delivery_mode = str(data["delivery_mode"])
 
     mode = data.get("mode")
 
@@ -257,6 +261,7 @@ async def update_admin_org_whatsapp(db: AsyncSession, org_id: uuid.UUID, data: d
         "org_id": str(org_id),
         "is_enabled": config.is_enabled,
         "mode": resolved_mode,
+        "delivery_mode": config.delivery_mode,
         "phone_number_id": config.phone_number_id or "",
         "waba_id": config.waba_id or "",
         "effective_phone_number_id": config.phone_number_id or global_phone,
@@ -308,6 +313,7 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
             return {
                 "global_enabled": False,
                 "is_enabled": False,
+                "delivery_mode": "button_reply_only",
                 "notify_queue_joined": False,
                 "notify_position_5": False,
                 "notify_position_3": False,
@@ -323,6 +329,7 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
             return {
                 "global_enabled": global_enabled,
                 "is_enabled": True,
+                "delivery_mode": "button_reply_only",
                 "notify_queue_joined": True,
                 "notify_position_5": True,
                 "notify_position_3": True,
@@ -336,6 +343,7 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
         return {
             "global_enabled": global_enabled,
             "is_enabled": org_cfg.is_enabled,
+            "delivery_mode": org_cfg.delivery_mode or "button_reply_only",
             "notify_queue_joined": org_cfg.notify_queue_joined,
             "notify_position_5": org_cfg.notify_position_5,
             "notify_position_3": org_cfg.notify_position_3,

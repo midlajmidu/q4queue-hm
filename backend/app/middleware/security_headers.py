@@ -30,8 +30,8 @@ SECURITY_HEADERS = {
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline'; "
         "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data:; "
-        "connect-src 'self' ws: wss:; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self' http: https: ws: wss:; "
         "frame-ancestors 'none'"
     ),
 }

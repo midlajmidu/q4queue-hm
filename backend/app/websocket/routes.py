@@ -20,8 +20,10 @@ Security:
   - Invalid queue → close(4404) after accept
   - Invalid admin token → close(4401) after accept
 """
+import asyncio
 import logging
 import uuid
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
@@ -31,6 +33,7 @@ from sqlalchemy import select
 from app.core.security import decode_access_token
 from app.db.session import AsyncSessionLocal
 from app.models.queue import Queue
+from app.models.user import User
 from app.websocket.connection_manager import manager
 from app.websocket.helpers import build_queue_snapshot
 
@@ -38,11 +41,85 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+async def _get_live_websocket_user(payload: dict, db) -> User | None:
+    """Validate revocable account state for long-lived WebSocket access."""
+    try:
+        user_id = uuid.UUID(str(payload.get("sub")))
+    except (TypeError, ValueError):
+        return None
+
+    user = await db.scalar(select(User).where(User.id == user_id))
+    if user is None or not user.is_active or user.role != payload.get("role"):
+        return None
+    if user.is_first_login and not payload.get("is_impersonating", False):
+        return None
+
+    iat_raw = payload.get("iat")
+    if user.password_changed_at:
+        if iat_raw is None:
+            return None
+        password_changed_at = user.password_changed_at
+        if password_changed_at.tzinfo is None:
+            password_changed_at = password_changed_at.replace(tzinfo=timezone.utc)
+        if int(iat_raw) < int(password_changed_at.timestamp()):
+            return None
+
+    if user.parent_organization_id and user.role != "super_admin":
+        from app.models.subscription import Subscription
+        from app.services.entitlement_service import effective_status
+
+        subscription = await db.scalar(
+            select(Subscription).where(
+                Subscription.parent_organization_id == user.parent_organization_id
+            )
+        )
+        if subscription is not None and effective_status(subscription) not in {"trialing", "active"}:
+            return None
+    return user
+
+
+async def _can_operate_queue(payload: dict, queue: Queue, db) -> bool:
+    user = await _get_live_websocket_user(payload, db)
+    if user is None:
+        return False
+    if user.role == "super_admin":
+        return True
+    if user.role == "organization_admin":
+        from app.models.organization import Organization
+
+        queue_parent_id = await db.scalar(
+            select(Organization.parent_organization_id).where(Organization.id == queue.org_id)
+        )
+        return bool(queue_parent_id and queue_parent_id == user.parent_organization_id)
+    return user.role in {"admin", "branch_admin", "staff"} and user.org_id == queue.org_id
+
+
+async def _allow_websocket_handshake(websocket: WebSocket, *, prefix: str, limit: int = 20) -> bool:
+    """Small Redis-backed fixed-window guard for WebSocket handshakes."""
+    forwarded = websocket.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
+    client_ip = forwarded or (websocket.client.host if websocket.client else "unknown")
+    try:
+        from app.redis.client import get_redis
+
+        redis = get_redis()
+        bucket = int(datetime.now(timezone.utc).timestamp() // 60)
+        key = f"rate:ws:{prefix}:{client_ip}:{bucket}"
+        pipe = redis.pipeline()
+        pipe.incr(key)
+        pipe.expire(key, 65)
+        count, _ = await pipe.execute()
+        return int(count) <= limit
+    except Exception as exc:
+        logger.error("WebSocket rate limiter unavailable | prefix=%s err=%s", prefix, exc)
+        return True
+
+
 @router.websocket("/queues/{queue_id}")
 async def websocket_queue(
     websocket: WebSocket,
     queue_id: uuid.UUID,
     token: Optional[str] = Query(default=None, alias="token"),
+    auth: Optional[str] = Query(default=None, alias="auth"),
 ):
     """
     Real-time WebSocket endpoint for a specific queue.
@@ -65,6 +142,10 @@ async def websocket_queue(
     # Validation errors are sent as close frames after acceptance.
     await websocket.accept()
 
+    if not await _allow_websocket_handshake(websocket, prefix="queue"):
+        await websocket.close(code=4429, reason="Too many connection attempts")
+        return
+
     # Track metric
     try:
         from app.monitoring.metrics import WS_CONNECTIONS_TOTAL
@@ -77,7 +158,7 @@ async def websocket_queue(
         try:
             async with AsyncSessionLocal() as db:
                 result = await db.execute(
-                    select(Queue).where(Queue.id == queue_id)
+                    select(Queue).where(Queue.id == queue_id, Queue.is_deleted == False)
                 )
                 queue = result.scalar_one_or_none()
         except Exception as exc:
@@ -94,41 +175,39 @@ async def websocket_queue(
         channel = manager.get_channel(org_id_str, str(queue_id))
 
         # ── 2. Admin auth (optional) ─────────────────────────────
+        # Browser WebSockets cannot attach an Authorization header. New clients
+        # send the JWT in the first frame so credentials never enter URLs/logs.
+        if auth == "frame" and not token:
+            try:
+                auth_message = await asyncio.wait_for(websocket.receive_json(), timeout=5)
+                if auth_message.get("type") != "auth" or not isinstance(auth_message.get("token"), str):
+                    await websocket.close(code=4401, reason="Authentication required")
+                    return
+                token = auth_message["token"]
+            except (asyncio.TimeoutError, ValueError, TypeError):
+                await websocket.close(code=4401, reason="Authentication required")
+                return
+
         is_admin = False
+        admin_payload: dict | None = None
         if token:
             try:
                 payload = decode_access_token(token)
-                jwt_org_id = payload.get("org_id")
-                jwt_role = payload.get("role")
-
-                if jwt_role == "super_admin":
-                    is_admin = True
-                elif jwt_role == "organization_admin":
-                    jwt_parent_id = payload.get("parent_organization_id") or jwt_org_id
-                    async with AsyncSessionLocal() as db:
-                        from app.models.organization import Organization
-                        org_res = await db.execute(select(Organization).where(Organization.id == queue.org_id))
-                        queue_org = org_res.scalar_one_or_none()
-                        if queue_org and str(queue_org.parent_organization_id) == str(jwt_parent_id):
-                            is_admin = True
-                        else:
-                            logger.warning("WS org admin mismatch | jwt_parent=%s", jwt_parent_id)
-                            is_admin = False
-                elif jwt_org_id and str(jwt_org_id) == org_id_str:
-                    is_admin = True
-                else:
-                    logger.warning("WS org_id mismatch | jwt_org=%s queue_org=%s", jwt_org_id, org_id_str)
-                    is_admin = False
-
-                if is_admin:
-                    logger.info(
-                        "WS admin connected | user=%s channel=%s",
-                        payload.get("sub"),
-                        channel,
-                    )
+                async with AsyncSessionLocal() as db:
+                    is_admin = await _can_operate_queue(payload, queue, db)
+                if not is_admin:
+                    await websocket.close(code=4403, reason="Queue access denied")
+                    return
+                admin_payload = payload
+                logger.info(
+                    "WS admin connected | user=%s channel=%s",
+                    payload.get("sub"),
+                    channel,
+                )
             except Exception as exc:
-                logger.warning("WS token validation non-fatal error | queue=%s err=%s", queue_id, exc)
-                is_admin = False
+                logger.warning("WS token validation failed | queue=%s err=%s", queue_id, exc)
+                await websocket.close(code=4401, reason="Invalid or expired credentials")
+                return
         else:
             logger.info("WS public client connected | channel=%s", channel)
 
@@ -151,9 +230,18 @@ async def websocket_queue(
         # ── 5. Keep alive loop ────────────────────────────────────
         while True:
             try:
-                data = await websocket.receive_text()
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=60)
                 if data == "ping":
                     await websocket.send_json({"type": "pong"})
+            except asyncio.TimeoutError:
+                # JWT validation at handshake is not enough for a long-lived
+                # connection: an account may be disabled, its password may be
+                # changed, or a trial may expire while the socket is open.
+                if admin_payload is not None:
+                    async with AsyncSessionLocal() as db:
+                        if not await _can_operate_queue(admin_payload, queue, db):
+                            await websocket.close(code=4403, reason="Queue access expired")
+                            break
             except WebSocketDisconnect:
                 break
 
@@ -175,7 +263,7 @@ async def websocket_queue(
 @router.websocket("/notifications")
 async def websocket_notifications(
     websocket: WebSocket,
-    token: str = Query(..., alias="token"),
+    token: Optional[str] = Query(default=None, alias="token"),
 ):
     """
     Real-time WebSocket endpoint for organization-wide notifications.
@@ -195,20 +283,32 @@ async def websocket_notifications(
         pass
 
     try:
-        # Validate JWT + org match
+        # Authenticate in the first frame to keep JWTs out of request URLs and
+        # reverse-proxy/access logs. The query token remains temporarily
+        # accepted for backwards compatibility with an already-open old client.
         try:
+            if not token:
+                auth_message = await asyncio.wait_for(websocket.receive_json(), timeout=5)
+                if auth_message.get("type") != "auth" or not isinstance(auth_message.get("token"), str):
+                    await websocket.close(code=4401, reason="Authentication required")
+                    return
+                token = auth_message["token"]
+
             payload = decode_access_token(token)
-            org_id_str = payload.get("org_id")
-            parent_org_id_str = payload.get("parent_org_id")
-            
-            target_org_id = org_id_str or parent_org_id_str
+            async with AsyncSessionLocal() as db:
+                user = await _get_live_websocket_user(payload, db)
+            if user is None or user.role not in {"admin", "branch_admin", "staff", "organization_admin", "super_admin"}:
+                await websocket.close(code=4403, reason="Notification access denied")
+                return
+
+            target_org_id = str(user.org_id or user.parent_organization_id) if (user.org_id or user.parent_organization_id) else None
 
             if not target_org_id:
                 await websocket.close(code=4403, reason="User must belong to an organization")
                 return
             
             logger.info("WS notifications connected | user=%s org=%s", payload.get("sub"), target_org_id)
-        except JWTError:
+        except (JWTError, asyncio.TimeoutError, ValueError, TypeError):
             await websocket.close(code=4401, reason="Invalid or expired token")
             return
 
@@ -223,9 +323,15 @@ async def websocket_notifications(
 
         while True:
             try:
-                data = await websocket.receive_text()
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=60)
                 if data == "ping":
                     await websocket.send_json({"type": "pong"})
+            except asyncio.TimeoutError:
+                async with AsyncSessionLocal() as db:
+                    live_user = await _get_live_websocket_user(payload, db)
+                if live_user is None:
+                    await websocket.close(code=4403, reason="Notification access expired")
+                    break
             except WebSocketDisconnect:
                 break
 
@@ -251,6 +357,15 @@ async def websocket_pairing(websocket: WebSocket, code: str):
     The TV connects to this endpoint using the generated 6-character code and waits for a redirect.
     """
     await websocket.accept()
+
+    if not await _allow_websocket_handshake(websocket, prefix="pairing"):
+        await websocket.close(code=4429, reason="Too many connection attempts")
+        return
+
+    code = code.strip().upper()
+    if len(code) != 6 or not code.isalpha() or not code.isascii():
+        await websocket.close(code=4400, reason="Invalid pairing code")
+        return
     
     try:
         from app.redis.client import get_redis
@@ -306,7 +421,7 @@ async def websocket_pairing(websocket: WebSocket, code: str):
     except WebSocketDisconnect:
         pass
     except Exception as exc:
-        logger.error("WebSocket pairing error | code=%s err=%s", code, exc)
+        logger.error("WebSocket pairing error | err=%s", exc)
     finally:
         try:
             from app.monitoring.metrics import WS_DISCONNECTIONS_TOTAL

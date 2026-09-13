@@ -2,13 +2,32 @@
 app/services/analytics_service.py
 Service for fetching overview statistics and graphs.
 """
+import logging
 import uuid
 from typing import Optional
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.token import Token, TokenStatus
+
+logger = logging.getLogger(__name__)
+
+
+def _validate_date_range(start_date: Optional[str], end_date: Optional[str]) -> None:
+    """Reject malformed or reversed filters instead of silently returning misleading data."""
+    from dateutil.parser import parse as parse_date
+
+    try:
+        start = parse_date(start_date) if start_date else None
+        end = parse_date(end_date) if end_date else None
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("Invalid date filter.") from exc
+    if start and end:
+        start_cmp = start.replace(tzinfo=None)
+        end_cmp = end.replace(tzinfo=None)
+        if start_cmp > end_cmp:
+            raise ValueError("Start date must be on or before end date.")
 
 async def get_overview_metrics(
     db: AsyncSession,
@@ -24,6 +43,7 @@ async def get_overview_metrics(
     recent_offset: int = 0,
 ) -> dict:
     """Fetch aggregated metrics for the dashboard."""
+    _validate_date_range(start_date, end_date)
     from dateutil.parser import parse as parse_date
     from app.models.organization import Organization
     org = await db.scalar(select(Organization).where(Organization.id == org_id))
@@ -64,8 +84,8 @@ async def get_overview_metrics(
             else:
                 dt = dt.astimezone(tz)
             conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")))
-        except Exception:
-            pass
+        except Exception as exc:
+            raise ValueError("Invalid start date.") from exc
             
     if end_date:
         try:
@@ -79,31 +99,31 @@ async def get_overview_metrics(
             if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
                 ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
             conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")))
-        except Exception:
-            pass
+        except Exception as exc:
+            raise ValueError("Invalid end date.") from exc
     
     if session_id:
         conditions.append(Token.session_id == session_id)
 
-    # Filter out deleted tokens from most metrics unless status is explicitly requested
-    active_conditions = conditions.copy()
-    from app.models.token import TokenStatus
-    if not status:
-        active_conditions.append(Token.status != TokenStatus.deleted)
+    # All interaction metrics use the same population so cards, charts and activity reconcile.
+    # A deleted token is a customer withdrawal/removal, not a physically deleted database row.
+    metric_conditions = conditions.copy()
 
     # 1. Status Counts
     counts = {s.value: 0 for s in TokenStatus}
     try:
-        count_query = select(Token.status, func.count(Token.id))
+        removal_counts: dict[tuple[str, str], int] = {}
+        count_query = select(Token.status, Token.removed_by, func.count(Token.id))
         if join_queue:
             count_query = count_query.join(Queue, Token.queue_id == Queue.id)
-        count_query = count_query.where(and_(*conditions)).group_by(Token.status)
+        count_query = count_query.where(and_(*conditions)).group_by(Token.status, Token.removed_by)
         
         count_result = await db.execute(count_query)
         for r in count_result.all():
             st_key = r[0].value if hasattr(r[0], 'value') else str(r[0]) if r[0] else ""
             if st_key in counts:
-                counts[st_key] = r[1]
+                counts[st_key] += r[2]
+                removal_counts[(st_key, r[1] or "")] = r[2]
     except Exception as exc:
         logger.error("Failed to build status counts: %s", exc)
         
@@ -115,6 +135,11 @@ async def get_overview_metrics(
     served_visits = counts.get(TokenStatus.done.value, 0)
     cancelled_visits = counts.get(TokenStatus.skipped.value, 0) + counts.get(TokenStatus.deleted.value, 0)
     waiting_visits = counts.get(TokenStatus.waiting.value, 0)
+    serving_visits = counts.get(TokenStatus.serving.value, 0)
+    withdrawn_visits = removal_counts.get((TokenStatus.deleted.value, "customer"), 0)
+    session_closed_visits = removal_counts.get((TokenStatus.skipped.value, "session_end"), 0)
+    staff_removed_visits = max(counts.get(TokenStatus.deleted.value, 0) - withdrawn_visits, 0)
+    other_skipped_visits = max(counts.get(TokenStatus.skipped.value, 0) - session_closed_visits, 0)
 
     # Calculate invited tokens
     invited_visits = 0
@@ -122,7 +147,7 @@ async def get_overview_metrics(
         invited_query = select(func.count(Token.id))
         if join_queue:
             invited_query = invited_query.join(Queue, Token.queue_id == Queue.id)
-        invited_query = invited_query.where(and_(*active_conditions, Token.called_via_invite == True))
+        invited_query = invited_query.where(and_(*metric_conditions, Token.called_via_invite == True))
         invited_res = await db.execute(invited_query)
         invited_visits = invited_res.scalar_one_or_none() or 0
     except Exception as exc:
@@ -142,7 +167,7 @@ async def get_overview_metrics(
         )
         if join_queue:
             timing_query = timing_query.join(Queue, Token.queue_id == Queue.id)
-        timing_query = timing_query.where(and_(*active_conditions))
+        timing_query = timing_query.where(and_(*metric_conditions, Token.served_at.is_not(None)))
 
         timing_res = await db.execute(timing_query)
         timing_row = timing_res.first()
@@ -171,7 +196,7 @@ async def get_overview_metrics(
         hourly_query = select(hr_expr, func.count(Token.id))
         if join_queue:
             hourly_query = hourly_query.join(Queue, Token.queue_id == Queue.id)
-        hourly_query = hourly_query.where(and_(*active_conditions)).group_by(hr_expr).order_by(hr_expr)
+        hourly_query = hourly_query.where(and_(*metric_conditions)).group_by(hr_expr).order_by(hr_expr)
 
         hourly_res = await db.execute(hourly_query)
         hourly_data = [{"hour": f"{int(row[0]):02d}:00", "visits": row[1]} for row in hourly_res.all()]
@@ -186,7 +211,7 @@ async def get_overview_metrics(
         monthly_query = select(mon_expr, yr_expr, func.count(Token.id))
         if join_queue:
             monthly_query = monthly_query.join(Queue, Token.queue_id == Queue.id)
-        monthly_query = monthly_query.where(and_(*active_conditions)).group_by(yr_expr, mon_expr).order_by(yr_expr, mon_expr)
+        monthly_query = monthly_query.where(and_(*metric_conditions)).group_by(yr_expr, mon_expr).order_by(yr_expr, mon_expr)
 
         monthly_res = await db.execute(monthly_query)
         months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -205,7 +230,7 @@ async def get_overview_metrics(
         )
         if join_queue:
             daily_timings_query = daily_timings_query.join(Queue, Token.queue_id == Queue.id)
-        daily_timings_query = daily_timings_query.where(and_(*active_conditions)).group_by(dt_expr).order_by(dt_expr)
+        daily_timings_query = daily_timings_query.where(and_(*metric_conditions, Token.served_at.is_not(None))).group_by(dt_expr).order_by(dt_expr)
 
         daily_timings_res = await db.execute(daily_timings_query)
         daily_timings_data = [
@@ -231,12 +256,12 @@ async def get_overview_metrics(
             func.count(Token.id).label('total_served'),
             func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve'),
         ).join(
-            User, Token.served_by_id == User.id
+            User, func.coalesce(Token.completed_by_id, Token.served_by_id) == User.id
         )
         if join_queue:
             staff_perf_query = staff_perf_query.join(Queue, Token.queue_id == Queue.id)
         staff_perf_query = staff_perf_query.where(
-            and_(*active_conditions, Token.status == TokenStatus.done)
+            and_(*metric_conditions, Token.status == TokenStatus.done)
         ).group_by(User.id, User.first_name, User.last_name, User.email).order_by(func.count(Token.id).desc())
 
         staff_perf_res = await db.execute(staff_perf_query)
@@ -272,7 +297,7 @@ async def get_overview_metrics(
         ).join(Queue, Token.queue_id == Queue.id).outerjoin(
             Session, Token.session_id == Session.id
         ).where(
-            and_(*active_conditions)
+            and_(*metric_conditions)
         ).order_by(Token.created_at.desc()).limit(recent_limit).offset(recent_offset)
 
         recent_res = await db.execute(recent_query)
@@ -306,7 +331,7 @@ async def get_overview_metrics(
         ).select_from(Token).join(Queue, Token.queue_id == Queue.id).outerjoin(
             Session, Token.session_id == Session.id
         ).where(
-            and_(*active_conditions, Token.status == TokenStatus.waiting)
+            and_(*metric_conditions, Token.status == TokenStatus.waiting)
         ).order_by(Token.created_at.asc()).limit(1)
 
         longest_res = await db.execute(longest_waiting_query)
@@ -317,12 +342,54 @@ async def get_overview_metrics(
     except Exception as exc:
         logger.error("Failed to get longest waiting token: %s", exc)
 
+    queue_summary = []
+    try:
+        queue_summary_query = (
+            select(
+                Queue.id,
+                Queue.name,
+                func.count(Token.id).label("total"),
+                func.sum(case((Token.status == TokenStatus.waiting, 1), else_=0)).label("waiting"),
+                func.sum(case((Token.status == TokenStatus.serving, 1), else_=0)).label("serving"),
+                func.sum(case((Token.status == TokenStatus.done, 1), else_=0)).label("served"),
+                func.sum(case((Token.status == TokenStatus.skipped, 1), else_=0)).label("skipped"),
+                func.sum(case((Token.status == TokenStatus.deleted, 1), else_=0)).label("removed"),
+            )
+            .join(Queue, Token.queue_id == Queue.id)
+            .where(and_(*metric_conditions))
+            .group_by(Queue.id, Queue.name)
+            .order_by(Queue.name)
+        )
+        queue_summary = [
+            {
+                "queue_id": str(row.id),
+                "queue": row.name,
+                "total": int(row.total or 0),
+                "waiting": int(row.waiting or 0),
+                "serving": int(row.serving or 0),
+                "served": int(row.served or 0),
+                "skipped": int(row.skipped or 0),
+                "removed": int(row.removed or 0),
+            }
+            for row in (await db.execute(queue_summary_query)).all()
+        ]
+    except Exception:
+        logger.exception("Failed to build queue summary")
+        raise
+
     return {
         "status_counts": {
             "total": total_visits,
             "served": served_visits,
             "cancelled": cancelled_visits,
             "waiting": waiting_visits,
+            "serving": serving_visits,
+            "skipped": counts.get(TokenStatus.skipped.value, 0),
+            "deleted": counts.get(TokenStatus.deleted.value, 0),
+            "withdrawn": withdrawn_visits,
+            "staff_removed": staff_removed_visits,
+            "session_closed": session_closed_visits,
+            "other_skipped": other_skipped_visits,
             "invited": invited_visits,
         },
         "timings": {
@@ -338,6 +405,7 @@ async def get_overview_metrics(
         "daily_timings": daily_timings_data,
         "staff_performance": staff_performance_data,
         "recent_activity": recent_activity,
+        "queue_summary": queue_summary,
         "longest_waiting_queue": longest_waiting_queue,
         "longest_waiting_session": longest_waiting_session
     }
@@ -356,6 +424,7 @@ async def get_history_details(
     offset: int = 0,
 ) -> dict:
     """Fetch detailed token history with pagination and filters."""
+    _validate_date_range(start_date, end_date)
     from app.models.queue import Queue
     from app.models.organization import Organization
     from sqlalchemy import or_, cast, String
@@ -377,7 +446,8 @@ async def get_history_details(
             cast(Token.token_number, String).like(search_term),
             func.lower(Queue.prefix).like(search_term),
             func.lower(Queue.name).like(search_term),
-            func.lower(func.concat(func.coalesce(Queue.prefix, ''), cast(Token.token_number, String))).like(search_term)
+            func.lower(func.concat(func.coalesce(Queue.prefix, ''), cast(Token.token_number, String))).like(search_term),
+            func.lower(cast(Token.custom_data, String)).like(search_term),
         ))
 
     # ── Date range filter (timezone-aware) ──────────────────────────────────
@@ -392,8 +462,8 @@ async def get_history_details(
             else:
                 dt = dt.astimezone(tz_zone)
             conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")))
-        except Exception:
-            pass
+        except Exception as exc:
+            raise ValueError("Invalid start date.") from exc
 
     if end_date:
         try:
@@ -409,8 +479,8 @@ async def get_history_details(
             if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
                 ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
             conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")))
-        except Exception:
-            pass
+        except Exception as exc:
+            raise ValueError("Invalid end date.") from exc
 
     if session_id:
         # Filter directly on the session_id column — strict isolation, no date bleed
@@ -488,6 +558,7 @@ async def get_history_details(
             "skipped_at": token.skipped_at.isoformat() if token.skipped_at else None,
             "recalled_at": token.recalled_at.isoformat() if token.recalled_at else None,
             "custom_data": token.custom_data,
+            "field_schema": token.field_schema,
         })
 
     return {
@@ -509,8 +580,10 @@ async def get_analytics_csv_data(
     end_date: Optional[str] = None,
 ) -> str:
     """Generate a CSV report of all queue interactions within the date range."""
+    _validate_date_range(start_date, end_date)
     import csv
     import io
+    import json
     from dateutil.parser import parse as parse_date
     from sqlalchemy import and_
     from app.models.queue import Queue
@@ -535,7 +608,8 @@ async def get_analytics_csv_data(
             cast(Token.token_number, String).like(search_term),
             func.lower(Queue.prefix).like(search_term),
             func.lower(Queue.name).like(search_term),
-            func.lower(func.concat(func.coalesce(Queue.prefix, ''), cast(Token.token_number, String))).like(search_term)
+            func.lower(func.concat(func.coalesce(Queue.prefix, ''), cast(Token.token_number, String))).like(search_term),
+            func.lower(cast(Token.custom_data, String)).like(search_term),
         ))
 
     if session_id:
@@ -551,8 +625,8 @@ async def get_analytics_csv_data(
             else:
                 dt = dt.astimezone(tz)
             conditions.append(Token.created_at >= dt.astimezone(ZoneInfo("UTC")))
-        except Exception:
-            pass
+        except Exception as exc:
+            raise ValueError("Invalid start date.") from exc
             
     if end_date:
         try:
@@ -566,8 +640,8 @@ async def get_analytics_csv_data(
             if ed.hour == 0 and ed.minute == 0 and ed.second == 0:
                 ed = ed.replace(hour=23, minute=59, second=59, microsecond=999999)
             conditions.append(Token.created_at <= ed.astimezone(ZoneInfo("UTC")))
-        except Exception:
-            pass
+        except Exception as exc:
+            raise ValueError("Invalid end date.") from exc
 
     from sqlalchemy.orm import aliased
     ServedUser = aliased(User)
@@ -589,14 +663,31 @@ async def get_analytics_csv_data(
      .where(and_(*conditions))\
      .order_by(Token.created_at.desc())
 
+    export_count = await db.scalar(
+        select(func.count(Token.id)).select_from(Token).outerjoin(Queue, Token.queue_id == Queue.id).where(and_(*conditions))
+    ) or 0
+    MAX_EXPORT_ROWS = 10_000
+    if export_count > MAX_EXPORT_ROWS:
+        query = query.limit(MAX_EXPORT_ROWS)
+
     result = await db.execute(query)
     
     output = io.StringIO()
     writer = csv.writer(output)
+
+    def csv_safe(value):
+        """Prevent spreadsheet formula execution for customer-controlled exports."""
+        if value is None:
+            return ""
+        text = str(value)
+        if text.startswith(("=", "+", "-", "@")):
+            return "'" + text
+        return text
+
     writer.writerow([
         "Date", "Token Number", "Queue", "Service Line", "Customer Name", "Customer Phone", "Age", "Pax",
         "Status", "Created At", "Served At", "Completed At", "Skipped At", "Recalled At", "Removed At",
-        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Removed By", "Call Method", "Entry Type", "Timezone"
+        "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Removed By", "Call Method", "Entry Type", "Custom Details", "Custom Data (JSON)", "Timezone"
     ])
 
     for row in result.all():
@@ -636,8 +727,25 @@ async def get_analytics_csv_data(
         elif token.removed_by:
             removed_by_label = "Staff"
 
+        formatted_custom_parts = []
+        if isinstance(token.custom_data, dict):
+            schema_map = {}
+            if isinstance(token.field_schema, list):
+                for f in token.field_schema:
+                    if isinstance(f, dict) and "key" in f:
+                        schema_map[f["key"]] = f.get("label", f["key"])
+            for ck, cv in token.custom_data.items():
+                if ck in ("name", "full_name", "phone", "phone_number", "pax", "group_size"):
+                    continue
+                if cv is None or cv == "":
+                    continue
+                clabel = schema_map.get(ck) or ck.replace("_", " ").title()
+                cval_str = "Yes" if cv is True else ("No" if cv is False else str(cv))
+                formatted_custom_parts.append(f"{clabel}: {cval_str}")
+        formatted_custom_str = "; ".join(formatted_custom_parts)
+
         token_display = f"{q_prefix or ''}{token.token_number}"
-        writer.writerow([
+        writer.writerow([csv_safe(value) for value in [
             to_org_local_date(token.created_at, org_tz_str),
             token_display,
             q_name or "Unknown",
@@ -660,8 +768,10 @@ async def get_analytics_csv_data(
             removed_by_label,
             "Invite by Number" if token.called_via_invite else "Call Next",
             entry_method,
+            formatted_custom_str,
+            json.dumps(token.custom_data or {}, ensure_ascii=False, separators=(",", ":")),
             org_tz_str
-        ])
+        ]])
 
     return output.getvalue()
 
@@ -1219,3 +1329,31 @@ async def get_cross_branch_excel_data(
     output = io.BytesIO()
     wb.save(output)
     return output.getvalue()
+
+
+async def anonymize_expired_tokens(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    retention_days: int = 90,
+) -> int:
+    """
+    Anonymize customer PII (name, phone, custom_data) for tokens older than retention_days.
+    Preserves analytics records (created_at, wait_time, status, queue_id, token_number).
+    """
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    stmt = (
+        update(Token)
+        .where(
+            Token.org_id == org_id,
+            Token.created_at < cutoff_date,
+            Token.customer_name != "Anonymized",
+        )
+        .values(
+            customer_name="Anonymized",
+            customer_phone="",
+            custom_data=None,
+        )
+    )
+    res = await db.execute(stmt)
+    await db.commit()
+    return res.rowcount or 0

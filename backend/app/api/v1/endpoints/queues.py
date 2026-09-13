@@ -102,7 +102,7 @@ def _raise_403(exc: Exception) -> None:
 async def create_queue(
     body: QueueCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin_or_staff()),
+    current_user: User = Depends(require_branch_admin()),
 ) -> QueueResponse:
     """Create a new queue for the authenticated organization."""
     try:
@@ -123,7 +123,7 @@ async def list_queues(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> list[QueueResponse]:
-    """List all queues for the authenticated organization."""
+    """List all queues for the authenticated organization with operating hours evaluation."""
     try:
         if not current_user.org_id:
             return []
@@ -141,7 +141,7 @@ async def list_queues(
 )
 async def list_trash_queues(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin_or_staff()),
+    current_user: User = Depends(require_branch_admin()),
 ) -> list[QueueResponse]:
     """List all soft-deleted queues for the authenticated organization."""
     try:
@@ -165,7 +165,7 @@ async def create_queue_session(
     queue_id: uuid.UUID,
     body: SessionCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin_or_staff()),
+    current_user: User = Depends(require_branch_admin()),
 ) -> SessionResponse:
     """Create a new session for a queue on a specified date. Limit 1 session per day per queue."""
     from app.services.session_service import create_queue_session as create_session_service
@@ -180,17 +180,42 @@ async def create_queue_session(
 @router.get(
     "/{queue_id}/active-session",
     response_model=SessionResponse,
-    summary="Get or Create Active Session",
+    summary="Get Current Session",
 )
 async def get_active_session(
     queue_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin_or_staff()),
+    current_user: User = Depends(require_branch_admin()),
 ) -> SessionResponse:
-    """Gets today's active session for the queue, creating it if it doesn't exist."""
+    """Return the queue's current session without mutating operational state."""
+    queue = await queue_service.get_queue_or_404(
+        db, queue_id=queue_id, org_id=current_user.org_id
+    )
+    if not queue.token_session_id:
+        raise HTTPException(status_code=404, detail="This queue has no current session.")
+    from app.models.session import Session
+    session = await db.get(Session, queue.token_session_id)
+    if session is None or session.org_id != current_user.org_id:
+        raise HTTPException(status_code=404, detail="Current session not found.")
+    return SessionResponse.model_validate(session)
+
+
+@router.post(
+    "/{queue_id}/active-session",
+    response_model=SessionResponse,
+    summary="Create Today's Session If Missing",
+)
+async def ensure_active_session(
+    queue_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_branch_admin()),
+) -> SessionResponse:
+    """Explicit command for creating today's session; never reopens an ended one."""
     from app.services.session_service import get_or_create_active_session
     try:
-        session = await get_or_create_active_session(db, queue_id=queue_id, org_id=current_user.org_id)
+        session = await get_or_create_active_session(
+            db, queue_id=queue_id, org_id=current_user.org_id
+        )
         return SessionResponse.model_validate(session)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -230,10 +255,11 @@ async def list_queue_sessions(
     summary="Get Queue",
 )
 async def get_queue(
+    db: AsyncSession = Depends(get_db),
     queue: Queue = Depends(get_queue_for_org),
 ) -> QueueResponse:
     """
-    Get a specific queue (tenant-scoped).
+    Get a specific queue (tenant-scoped) with operating hours evaluation.
     SECURITY: queue ownership is verified by get_queue_for_org dependency.
     """
     return QueueResponse.model_validate(queue)
@@ -267,8 +293,9 @@ async def list_tokens(
 async def update_queue_details(
     queue_id: uuid.UUID,
     data: QueueUpdate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_admin_or_staff_queue_for_org),
+    queue: Queue = Depends(get_admin_queue_for_org),
 ) -> QueueResponse:
     """
     Update queue details like name, prefix, and timings.
@@ -285,20 +312,17 @@ async def update_queue_details(
             org_id=queue.org_id,
             **update_data
         )
-        try:
-            from app.websocket.helpers import build_queue_snapshot
-            from app.websocket.routes import manager
-            snapshot_public = await build_queue_snapshot(db, queue_id=queue.id, is_admin=False)
-            snapshot_admin = await build_queue_snapshot(db, queue_id=queue.id, is_admin=True)
-            await manager.broadcast(queue.id, snapshot_public, is_admin=False)
-            await manager.broadcast(queue.id, snapshot_admin, is_admin=True)
-        except Exception as ws_err:
-            logger.warning("Failed to broadcast queue update snapshot: %s", ws_err)
-
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=queue.id,
+            org_id=queue.org_id,
+        )
         return QueueResponse.model_validate(updated)
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("Failed to update queue: %s", e)
-        raise HTTPException(status_code=400, detail="Failed to update queue")
+        logger.error("Failed to update queue: %s", e, exc_info=True)
+        raise HTTPException(status_code=400, detail=str(e) if str(e) else "Failed to update queue")
 
 
 @router.patch(
@@ -308,8 +332,9 @@ async def update_queue_details(
 )
 async def toggle_queue_active(
     is_active: bool,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_admin_or_staff_queue_for_org),
+    queue: Queue = Depends(get_admin_queue_for_org),
 ) -> QueueResponse:
     """
     Activate or deactivate a queue.
@@ -318,6 +343,11 @@ async def toggle_queue_active(
     try:
         updated = await queue_service.set_queue_active(
             db, queue_id=queue.id, org_id=queue.org_id, is_active=is_active
+        )
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=queue.id,
+            org_id=queue.org_id,
         )
     except ValueError as exc:
         _raise_404(exc)
@@ -333,7 +363,7 @@ async def toggle_queue_paused(
     is_paused: bool,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_admin_or_staff_queue_for_org),
+    queue: Queue = Depends(get_admin_queue_for_org),
 ) -> QueueResponse:
     """
     Pause or resume a queue.
@@ -455,53 +485,92 @@ async def get_queue_public_status(
 
     result = await db.execute(sa_select(Queue).where(Queue.id == queue_id))
     queue = result.scalar_one_or_none()
-    if not queue:
+    if not queue or queue.is_deleted:
         raise HTTPException(status_code=404, detail="Queue not found")
 
     is_past_session = False
     session_date_str = None
+    session_active = False
+    session_paused = False
+    session_is_current = False
+    within_hours = True
 
-    target_session_id = session_id or queue.token_session_id
+    # Never let a public caller inspect an arbitrary historical/cross-queue session.
+    target_session_id = queue.token_session_id
+    if session_id and session_id != target_session_id:
+        raise HTTPException(status_code=400, detail="This is not the queue's current session")
     if target_session_id:
         session = await db.get(SessionModel, target_session_id)
         if session:
+            session_active = bool(session.is_active)
+            session_paused = bool(session.is_paused)
             session_date_str = session.session_date.isoformat()
             org_res = await db.execute(sa_select(OrgModel).where(OrgModel.id == queue.org_id))
             org = org_res.scalar_one_or_none()
             tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-            today = datetime.now(ZoneInfo(tz_str)).date()
+            local_now = datetime.now(ZoneInfo(tz_str))
+            from app.core.tz_helpers import queue_business_date
+            today = queue_business_date(local_now, queue.open_time, queue.close_time)
             if session.session_date < today:
                 is_past_session = True
+            session_is_current = session.session_date == today
+            if queue.open_time and queue.close_time:
+                current_hm = local_now.strftime("%H:%M")
+                within_hours = (
+                    queue.open_time <= current_hm <= queue.close_time
+                    if queue.open_time <= queue.close_time
+                    else current_hm >= queue.open_time or current_hm <= queue.close_time
+                )
 
     return {
         "queue_id": str(queue_id),
         "queue_name": queue.name,
-        "is_active": queue.is_active,
-        "is_paused": getattr(queue, "is_paused", False),
+        "is_active": bool(queue.is_active and session_active),
+        "is_paused": bool(getattr(queue, "is_paused", False) or session_paused),
         "session_date": session_date_str,
         "is_past_session": is_past_session,
-        "has_session": queue.token_session_id is not None or session_id is not None,
+        "is_current_session": session_is_current,
+        "has_session": queue.token_session_id is not None,
+        "within_operating_hours": True,
     }
 
 
 @router.get(
     "/{queue_id}/qr-config",
-    summary="Get Queue QR Secret Seed",
-    description="Returns the deterministic secret seed for TOTP dynamic QR code generation.",
+    summary="Get Current Queue QR Code",
+    description="Returns only the short-lived current TOTP value. The signing seed never leaves the server.",
+    dependencies=[Depends(api_rate_limit)],
 )
 async def get_queue_qr_config(
     queue_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    queue: Queue = Depends(get_queue_for_org),
 ):
-    from sqlalchemy import select
-    result = await db.execute(select(Queue).where(Queue.id == queue_id))
-    queue = result.scalar_one_or_none()
-    if not queue:
-        raise HTTPException(status_code=404, detail="Queue not found")
-    
+    if not queue.is_active or queue.is_paused or not queue.token_session_id:
+        raise HTTPException(status_code=409, detail="Start the queue session before showing its QR code.")
+    from app.models.session import Session as SessionModel
+    from app.models.organization import Organization as OrgModel
+    session = await db.get(SessionModel, queue.token_session_id)
+    org = await db.get(OrgModel, queue.org_id)
+    tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
+    local_now = datetime.now(ZoneInfo(tz_str))
+    from app.core.tz_helpers import queue_business_date
+    business_date = queue_business_date(local_now, queue.open_time, queue.close_time)
+    if (
+        session is None
+        or not session.is_active
+        or session.is_paused
+    ):
+        raise HTTPException(status_code=409, detail="The current queue session is not accepting customers.")
     settings = get_settings()
-    seed = get_qr_secret_seed(queue_id, settings.SECRET_KEY)
-    return {"qr_secret_seed": seed, "interval": 15}
+    seed = get_qr_secret_seed(queue.id, settings.SECRET_KEY)
+    interval = 15
+    now_seconds = int(datetime.now(timezone.utc).timestamp())
+    return {
+        "totp": pyotp.TOTP(seed, interval=interval).at(now_seconds),
+        "interval": interval,
+        "valid_for": interval - (now_seconds % interval),
+    }
 
 
 @router.get(
@@ -511,45 +580,55 @@ async def get_queue_qr_config(
 )
 async def scan_queue_qr(
     queue_id: uuid.UUID,
+    request: Request,
     totp: Union[str, None] = Query(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _rate_limit: None = Depends(join_rate_limit),
 ):
     settings = get_settings()
+
+    # Determine base URL dynamically from request header (e.g. localhost:3002, app.localhost:3002, or prod)
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    frontend_base = f"{proto}://{host}" if host else settings.FRONTEND_URL.rstrip("/")
     
-    # Verify queue exists and is active
+    # Verify queue and its current session are open for admission.
     from sqlalchemy import select
     from app.models.session import Session as SessionModel
     from app.models.organization import Organization as OrgModel
     from zoneinfo import ZoneInfo
     result = await db.execute(select(Queue).where(Queue.id == queue_id))
     queue = result.scalar_one_or_none()
-    if not queue or not queue.is_active:
-        return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?error=inactive")
+    if not queue or queue.is_deleted or not queue.is_active or queue.is_paused:
+        return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=inactive")
 
     # Verify session is today
-    if queue.token_session_id:
-        session = await db.get(SessionModel, queue.token_session_id)
-        if session:
-            org_res = await db.execute(select(OrgModel).where(OrgModel.id == queue.org_id))
-            org = org_res.scalar_one_or_none()
-            tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-            today = datetime.now(ZoneInfo(tz_str)).date()
-            if session.session_date < today:
-                return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?error=expired_qr&session_date={session.session_date.isoformat()}")
+    if not queue.token_session_id:
+        return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=inactive")
+    session = await db.get(SessionModel, queue.token_session_id)
+    if (
+        not session
+        or session.queue_id != queue.id
+        or session.org_id != queue.org_id
+        or not session.is_active
+        or session.is_paused
+    ):
+        session_date = session.session_date.isoformat() if session else "unknown"
+        return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=expired_qr&session_date={session_date}")
 
     # Validate TOTP if secret seed & totp validation is enforced
     seed = get_qr_secret_seed(queue_id, settings.SECRET_KEY)
     totp_verifier = pyotp.TOTP(seed, interval=15)
     
     if not totp or not totp_verifier.verify(totp, valid_window=1):
-        return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?error=expired_qr")
+        return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=expired_qr")
 
     # Generate single-use token and store in Redis for 600 seconds (10 minutes)
     redis = get_redis()
     qr_token = uuid.uuid4().hex
     await redis.setex(f"qr_token:{queue_id}:{qr_token}", 600, "VALID")
 
-    return RedirectResponse(url=f"{settings.FRONTEND_URL}/join/{queue_id}?qrToken={qr_token}")
+    return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?qrToken={qr_token}")
 
 
 
@@ -578,14 +657,22 @@ async def create_token(
     SECURITY NOTE: This is a public, unauthenticated endpoint. The only data
     it acts on is the queue_id (public knowledge — printed on QR codes).
     """
-    # Single-use QR validation token handling if present
-    if body.qr_token:
-        try:
-            redis = get_redis()
-            token_key = f"qr_token:{queue_id}:{body.qr_token}"
-            await redis.delete(token_key)
-        except Exception as err:
-            logger.warning("Redis QR token delete non-fatal warning: %s", err)
+    # QR admission is mandatory for public QR joins. Consume the credential
+    # atomically so missing, fabricated, expired, and replayed values fail.
+    if not body.qr_token:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Scan the active QR code to join this queue.")
+    try:
+        redis = get_redis()
+        token_key = f"qr_token:{queue_id}:{body.qr_token}"
+        consumed = await redis.getdel(token_key)
+    except Exception:
+        logger.exception("QR admission validation unavailable")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="QR validation is temporarily unavailable. Please try again.")
+    if consumed != "VALID":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This QR code has expired or was already used. Please scan again.")
+
+    # Public callers cannot select an entry channel or historical session.
+    body = body.model_copy(update={"entry_type": "qr", "session_id": None})
 
     try:
         # Atomic token generation via queue service uses _lock_queue_public which does NOT expose
@@ -678,15 +765,16 @@ async def admin_join(
     body: JoinRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_queue_for_org),
+    queue: Queue = Depends(get_admin_or_staff_queue_for_org),
 ) -> JoinResponse:
     """
     Admin manually creates a token.
     SECURITY: get_queue_for_org dependency verifies org ownership before join.
     """
     try:
+        body = body.model_copy(update={"entry_type": "manual", "session_id": None})
         result = await token_service.join_queue(
-            db, queue_id=queue.id, data=body, bypass_duplicate_check=True
+            db, queue_id=queue.id, data=body, bypass_duplicate_check=True, bypass_operating_hours=True
         )
         await db.commit()
         background_tasks.add_task(
@@ -750,6 +838,7 @@ async def serve_specific_token(
                       TokenModel.tracking_id, TokenModel.id)
             .where(
                 TokenModel.queue_id == queue.id,
+                TokenModel.session_id == queue.token_session_id,
                 TokenModel.token_number == token_number,
                 TokenModel.org_id == queue.org_id,
             )
@@ -909,6 +998,7 @@ async def clear_line(
             queue_id=queue.id,
             org_id=current_user.org_id,
             line_number=line_number,
+            user_id=current_user.id,
         )
         await db.commit()
         background_tasks.add_task(

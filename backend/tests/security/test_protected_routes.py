@@ -35,13 +35,14 @@ async def _quick_user(db: AsyncSession) -> tuple[Organization, User, str]:
         email="sec@test.com",
         password_hash=hash_password("secpass"),
         role="admin",
+        is_first_login=False,
     )
     db.add(user)
     await db.commit()
     await db.refresh(org)
     await db.refresh(user)
     token = create_access_token(
-        user_id=str(user.id), org_id=str(org.id), role=user.role
+        user_id=str(user.id), org_id=str(org.id), role=user.role, email=user.email
     )
     return org, user, token
 
@@ -121,6 +122,7 @@ class TestProtectedRoute:
             user_id=str(user.id),
             org_id=str(user.org_id),
             role=user.role,
+            email=user.email,
             expires_delta=timedelta(seconds=-10),
         )
         resp = await client.get(
@@ -157,6 +159,7 @@ class TestProtectedRoute:
             user_id=str(user.id),
             org_id=forged_org_id,  # ← wrong org
             role=user.role,
+            email=user.email,
         )
         resp = await client.get(
             "/api/v1/users/me",

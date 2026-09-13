@@ -21,7 +21,9 @@ python-dotenv==1.0.1
 # Authentication
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-bcrypt==4.2.1
+# passlib 1.7.4 reads bcrypt's legacy version metadata, removed in bcrypt 4.1+.
+# 4.0.1 is the latest compatible release and avoids noisy auth-time tracebacks.
+bcrypt==4.0.1
 
 # Monitoring / Metrics
 prometheus-client==0.21.0

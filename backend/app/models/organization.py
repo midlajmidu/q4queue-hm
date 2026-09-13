@@ -9,7 +9,7 @@ Design:
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, func, JSON, ForeignKey
+from sqlalchemy import Boolean, DateTime, String, func, JSON, ForeignKey, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -52,6 +52,10 @@ class Organization(Base):
 
     # ── Templates ──────────────────────────────────────────────────
     queue_templates: Mapped[list[dict]] = mapped_column(JSON, server_default='[]', nullable=False)
+
+    # ── Telephony & Calling Configuration ──────────────────────────
+    call_rate_per_minute: Mapped[float | None] = mapped_column(Float, nullable=True, default=None)
+    calling_currency: Mapped[str] = mapped_column(String(10), default="₹", server_default="₹", nullable=False)
 
     # ── Automation ──────────────────────────────────────────────────
     auto_session_enabled: Mapped[bool] = mapped_column(Boolean, server_default='false', nullable=False)

@@ -83,6 +83,7 @@ class StaffResponse(BaseModel):
     role: str
     is_active: bool
     is_first_login: bool
+    last_active_at: datetime | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

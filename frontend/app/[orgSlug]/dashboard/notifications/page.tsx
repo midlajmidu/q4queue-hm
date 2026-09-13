@@ -1,6 +1,5 @@
 "use client";
-import React, { useState, useMemo, useEffect } from "react";
-import Link from "next/link";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useNotifications, DashboardNotification } from "@/context/NotificationContext";
 import { PageWrapper } from "@/components/PageWrapper";
@@ -12,8 +11,25 @@ const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Sa
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type NotifType = "warning" | "success" | "info" | "error";
-type TabFilter = "all" | "unread" | "warning" | "info" | "success" | "error";
+type NotifType = "warning" | "success" | "info" | "error" | "critical";
+type TabFilter = "all" | "unread" | "warning" | "info" | "success" | "error" | "critical";
+
+interface AnnouncementItem {
+  id: string;
+  title?: string;
+  message: string;
+  type: NotifType;
+  created_at: string;
+  source: "Global System" | "Organization";
+}
+
+type NotificationRow = DashboardNotification & { isAnnouncement?: boolean; source?: string };
+
+function normalizeType(value: string): NotifType {
+  return (["warning", "success", "info", "error", "critical"] as const).includes(value as NotifType)
+    ? value as NotifType
+    : "info";
+}
 
 // ─── Icon component ───────────────────────────────────────────────────────────
 
@@ -35,6 +51,10 @@ function NotifIcon({ type }: { type: NotifType }) {
       className: "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400",
       path: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" /></svg>,
     },
+    critical: {
+      className: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
+      path: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 2.9 1.8 17a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 2.9a2 2 0 0 0-3.4 0Z"/></svg>,
+    },
   };
   const { className, path } = map[type] || map["info"];
   return (
@@ -51,27 +71,31 @@ export default function NotificationsPage() {
   const orgSlug = params?.orgSlug as string;
   const dashBase = `/${orgSlug}/dashboard`;
 
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll, error: notificationError, reload } = useNotifications();
 
   // Track IDs of rows currently animating out their "New" badge
   const [fadingIds, setFadingIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<TabFilter | "announcements">("all");
   
-  const [apiAnnouncements, setApiAnnouncements] = useState<any[]>([]);
+  const [apiAnnouncements, setApiAnnouncements] = useState<AnnouncementItem[]>([]);
+  const [announcementError, setAnnouncementError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchAnnouncements = async () => {
+  const fetchAnnouncements = useCallback(async () => {
       try {
         const sysData = await api.getActiveSystemAnnouncements();
-        let orgData: any[] = [];
+        let orgData: Awaited<ReturnType<typeof api.getActiveOrgAnnouncements>> = [];
         try {
             orgData = await api.getActiveOrgAnnouncements();
         } catch (orgErr) {
             console.error("Failed to load org announcements", orgErr);
         }
         
-        const sysMapped = sysData.map(a => ({ ...a, source: 'Global System' }));
-        const orgMapped = orgData.map(a => ({ ...a, source: 'Organization' }));
+        const sysMapped: AnnouncementItem[] = sysData.map(a => ({
+          id: a.id, message: a.message, type: normalizeType(a.type), created_at: a.created_at, source: "Global System"
+        }));
+        const orgMapped: AnnouncementItem[] = orgData.map(a => ({
+          ...a, type: normalizeType(a.type), source: "Organization"
+        }));
         
         const combined = [...orgMapped, ...sysMapped].sort((a, b) => {
             if (a.source === 'Organization' && b.source !== 'Organization') return -1;
@@ -80,15 +104,23 @@ export default function NotificationsPage() {
         });
         
         setApiAnnouncements(combined);
+        setAnnouncementError(null);
       } catch (error) {
         console.error("Failed to load announcements", error);
+        setAnnouncementError(error instanceof Error ? error.message : "Announcements are temporarily unavailable.");
       }
-    };
-    fetchAnnouncements();
   }, []);
 
+  useEffect(() => {
+    // Initial remote synchronization is intentionally owned by this effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchAnnouncements();
+    window.addEventListener("q4queue:announcements-changed", fetchAnnouncements);
+    return () => window.removeEventListener("q4queue:announcements-changed", fetchAnnouncements);
+  }, [fetchAnnouncements]);
+
   const combinedItems = useMemo(() => {
-      const mappedAnnouncements = apiAnnouncements.map(ann => ({
+      const mappedAnnouncements: NotificationRow[] = apiAnnouncements.map(ann => ({
           id: ann.id,
           title: ann.title || ann.message,
           message: ann.title ? ann.message : `${ann.source} Announcement`,
@@ -97,23 +129,28 @@ export default function NotificationsPage() {
           isRead: true, // Announcements don't have read state in this context
           isAnnouncement: true,
           source: ann.source,
+          raw_created_at: ann.created_at,
       }));
       
       // Combine local notifications and API announcements, then sort by date if possible, but local notifications usually have just "HH:MM" for time.
       // We'll put announcements at the top for visibility.
-      return [...mappedAnnouncements, ...notifications];
+      return [...mappedAnnouncements, ...(notifications as NotificationRow[])].sort(
+        (a, b) => new Date(b.raw_created_at).getTime() - new Date(a.raw_created_at).getTime()
+      );
   }, [notifications, apiAnnouncements]);
 
   const filtered = useMemo(() => {
     if (activeTab === "all") return combinedItems;
-    if (activeTab === "unread") return combinedItems.filter((n: any) => !n.isRead && !n.isAnnouncement);
-    if (activeTab === "announcements") return combinedItems.filter((n: any) => n.isAnnouncement);
+    if (activeTab === "unread") return combinedItems.filter(n => !n.isRead && !n.isAnnouncement);
+    if (activeTab === "announcements") return combinedItems.filter(n => n.isAnnouncement);
     return combinedItems.filter(n => n.type === activeTab);
   }, [combinedItems, activeTab]);
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
-  const handleMarkAsRead = (id: string) => {
+  const handleMarkAsRead = (item: NotificationRow) => {
+    if (item.isAnnouncement || item.isRead) return;
+    const id = item.id;
     markAsRead(id);
     setFadingIds(prev => new Set(prev).add(id));
     setTimeout(() => {
@@ -132,8 +169,10 @@ export default function NotificationsPage() {
     { key: "announcements", label: "Announcements", count: apiAnnouncements.length },
     { key: "unread", label: "Unread", count: unreadCount },
     { key: "info", label: "Info" },
+    { key: "warning", label: "Warnings" },
     { key: "success", label: "Success" },
     { key: "error", label: "Errors" },
+    { key: "critical", label: "Critical" },
   ];
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -193,6 +232,12 @@ export default function NotificationsPage() {
           }
         >
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+        {(notificationError || announcementError) && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 flex items-center justify-between gap-4">
+            <span><strong>Activity could not be fully loaded.</strong> {notificationError || announcementError}</span>
+            <button onClick={() => { reload(); fetchAnnouncements(); }} className="font-semibold underline">Retry</button>
+          </div>
+        )}
         {/* ── Tab filters ── */}
         <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 4 }}>
           {tabs.map(tab => {
@@ -228,13 +273,13 @@ export default function NotificationsPage() {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {filtered.map((n, i) => {
+              {filtered.map((n) => {
                 const isFading = fadingIds.has(n.id);
                 return (
                   <div
                     key={n.id}
                     className={`notif-row flex justify-between items-start p-5 sm:px-6 cursor-pointer transition-colors border-b border-slate-100 dark:border-white/5 last:border-none group ${n.isRead ? "hover:bg-slate-50 dark:hover:bg-slate-800/50" : "bg-indigo-50/30 dark:bg-indigo-500/10 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/20"}`}
-                    onClick={() => handleMarkAsRead(n.id)}
+                    onClick={() => handleMarkAsRead(n)}
                   >
                     <div className="flex items-start gap-4 flex-1 min-w-0">
                       <NotifIcon type={n.type} />
@@ -243,18 +288,18 @@ export default function NotificationsPage() {
                           <h3 className={`text-[14.5px] tracking-tight truncate ${n.isRead ? "font-semibold text-slate-700 dark:text-slate-300" : "font-bold text-slate-900 dark:text-white"}`}>
                             {n.title?.replace(/^(⚠️|✅|ℹ️|🚨)\s*/, '')}
                           </h3>
-                          {!n.isRead && !(n as any).isAnnouncement && (
+                          {!n.isRead && !n.isAnnouncement && (
                             <span
                               className={`${isFading ? "new-badge-fading" : ""} bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full`}
                             >
                               New
                             </span>
                           )}
-                          {(n as any).isAnnouncement && (
+                          {n.isAnnouncement && (
                             <span
-                                className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${(n as any).source === 'Organization' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}
+                                className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${n.source === 'Organization' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}
                             >
-                                {(n as any).source}
+                                {n.source}
                             </span>
                           )}
                         </div>

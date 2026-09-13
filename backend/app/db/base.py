@@ -13,9 +13,12 @@ from app.models.session import Session            # noqa: E402, F401
 from app.models.queue import Queue                # noqa: E402, F401
 from app.models.token import Token                # noqa: E402, F401
 from app.models.parent_organization import ParentOrganization # noqa: E402, F401
+from app.models.plan import Plan, PlanEntitlement             # noqa: E402, F401
+from app.models.subscription import Subscription, EntitlementUsage, SubscriptionEntitlementOverride, SalesRequest, SalesNotificationRecipient # noqa: E402, F401
 from app.models.organization_announcement import OrganizationAnnouncement # noqa: E402, F401
 from app.models.system_announcement import SystemAnnouncement # noqa: E402, F401
-from app.models.message import Message            # noqa: E402, F401
+from app.models.system_setting import SystemSetting           # noqa: E402, F401
+from app.models.message import Message, MessageReceipt  # noqa: E402, F401
 from app.models.export_job import ExportJob       # noqa: E402, F401
 from app.models.org_backup import OrgBackup       # noqa: E402, F401
 from app.models.branch_backup import BranchBackup # noqa: E402, F401

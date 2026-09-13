@@ -38,7 +38,10 @@ class TestDatabaseResilience:
     async def test_api_handles_db_errors_gracefully(self):
         """Invalid UUID should return 422, not 500."""
         async with _client() as client:
-            resp = await client.post("/api/v1/queues/not-a-uuid/join")
+            resp = await client.post(
+                "/api/v1/queues/not-a-uuid/tokens",
+                json={},
+            )
             assert resp.status_code == 422  # Pydantic validation
 
 
@@ -121,7 +124,10 @@ class TestInputValidation:
     async def test_malformed_uuid_rejected(self):
         """Malformed UUID should return 422, not 500."""
         async with _client() as client:
-            resp = await client.post("/api/v1/queues/xyz-not-uuid/join")
+            resp = await client.post(
+                "/api/v1/queues/xyz-not-uuid/tokens",
+                json={},
+            )
             assert resp.status_code == 422
 
     async def test_oversized_queue_name_rejected(self):
@@ -141,12 +147,13 @@ class TestInputValidation:
                 email=f"val@{slug}.test",
                 password_hash=hash_password("pass"),
                 role="admin",
+                is_first_login=False,
             )
             db.add(user)
             await db.commit()
             await db.refresh(user)
             jwt = create_access_token(
-                user_id=str(user.id), org_id=str(org.id), role="admin"
+                user_id=str(user.id), org_id=str(org.id), role="admin", email=user.email
             )
 
         async with _client() as client:

@@ -20,24 +20,34 @@ export default function LoginPage() {
     // Redirect to dashboard if already logged in
     useEffect(() => {
         if (isHydrated && isAuthenticated && user) {
+            const isAppSubdomain = typeof window !== "undefined" && window.location.hostname.startsWith("app.");
+            const currentHost = typeof window !== "undefined" ? window.location.host : "";
+            const appHost = isAppSubdomain ? currentHost : `app.${currentHost}`;
+            const protocol = typeof window !== "undefined" ? window.location.protocol : "http:";
+
+            let targetPath = "/dashboard";
             if (user.is_first_login) {
                 if (user.role === "super_admin") {
-                    router.replace("/super-admin/change-password");
+                    targetPath = "/super-admin/change-password";
                 } else if (user.role === "organization_admin") {
-                    router.replace("/organization-admin/change-password");
+                    targetPath = "/organization-admin/change-password";
                 } else {
-                    router.replace(`/${user.org_slug}/change-password`);
+                    targetPath = `/${user.org_slug}/change-password`;
                 }
-                return;
-            }
-            if (user.role === "super_admin") {
-                router.replace("/super-admin");
+            } else if (user.role === "super_admin") {
+                targetPath = "/super-admin";
             } else if (user.role === "organization_admin") {
-                router.replace("/organization-admin");
+                targetPath = "/organization-admin";
             } else if (user.role === "admin" || user.role === "branch_admin" || user.role === "staff") {
-                router.replace(`/${user.org_slug}/dashboard`);
+                targetPath = `/${user.org_slug}/dashboard`;
+            }
+
+            if (typeof window !== "undefined" && !isAppSubdomain) {
+                const token = localStorage.getItem("fc_access_token") || "";
+                const hashStr = token ? `#token=${token}` : "";
+                window.location.href = `${protocol}//${appHost}${targetPath}${hashStr}`;
             } else {
-                router.replace("/dashboard");
+                router.replace(targetPath);
             }
         }
     }, [isHydrated, isAuthenticated, user, router]);

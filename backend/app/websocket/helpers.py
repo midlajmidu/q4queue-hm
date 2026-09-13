@@ -54,18 +54,19 @@ async def build_queue_snapshot(
         parent_org = parent_org_result.scalar_one_or_none()
     
     # ── Currently serving ──────────────────────────────────────────
-    serving_result = await db.execute(
+    # ── All serving tokens (multi-lane: all N lanes) ───────────────
+    all_serving_result = await db.execute(
         select(Token)
         .where(
             Token.queue_id == queue_id,
+            Token.session_id == queue.token_session_id,
             Token.status == TokenStatus.serving,
         )
-        .order_by(Token.token_number.desc())
-        .limit(1)
+        .order_by(Token.assigned_line.asc().nullsfirst(), Token.token_number.asc())
     )
-    serving_token = serving_result.scalar_one_or_none()
+    serving_rows = list(all_serving_result.scalars().all())
+    serving_token = max(serving_rows, key=lambda token: token.token_number, default=None)
     current_serving = serving_token.token_number if serving_token else (queue.starting_sequence - 1)
-    
     serving_details = None
     if serving_token:
         serving_details = {
@@ -77,23 +78,14 @@ async def build_queue_snapshot(
             "pax_count": getattr(serving_token, "pax_count", 1),
         }
         if is_admin:
-            # Mask sensitive data for public screens
             serving_details["customer_age"] = serving_token.customer_age
             serving_details["customer_phone"] = serving_token.customer_phone
             serving_details["companion_names"] = serving_token.companion_names
             serving_details["custom_data"] = getattr(serving_token, "custom_data", None)
+            serving_details["field_schema"] = getattr(serving_token, "field_schema", None)
 
-    # ── All serving tokens (multi-lane: all N lanes) ───────────────
-    all_serving_result = await db.execute(
-        select(Token)
-        .where(
-            Token.queue_id == queue_id,
-            Token.status == TokenStatus.serving,
-        )
-        .order_by(Token.assigned_line.asc().nullsfirst(), Token.token_number.asc())
-    )
     all_serving_tokens = []
-    for t in all_serving_result.scalars().all():
+    for t in serving_rows:
         sd = {
             "id": str(t.id),
             "token_number": t.token_number,
@@ -110,59 +102,40 @@ async def build_queue_snapshot(
             sd["customer_phone"] = t.customer_phone
             sd["customer_age"] = t.customer_age
             sd["custom_data"] = getattr(t, "custom_data", None)
+            sd["field_schema"] = getattr(t, "field_schema", None)
         all_serving_tokens.append(sd)
 
     # ── Waiting count ──────────────────────────────────────────────
-    waiting_result = await db.execute(
-        select(func.count())
-        .select_from(Token)
-        .where(
+    counts_result = await db.execute(
+        select(
+            func.count(Token.id).filter(Token.status == TokenStatus.waiting),
+            func.count(Token.id).filter(Token.status == TokenStatus.done),
+            func.count(Token.id).filter(Token.status == TokenStatus.skipped),
+            func.count(Token.id).filter(Token.status == TokenStatus.deleted),
+            func.count(Token.id),
+        ).where(
             Token.queue_id == queue_id,
             Token.session_id == queue.token_session_id,
-            Token.status == TokenStatus.waiting,
         )
     )
-    waiting_count = waiting_result.scalar_one()
-
-    # ── Done and Skipped counts ──
-    done_result = await db.execute(
-        select(func.count(Token.id)).where(
-            Token.queue_id == queue_id,
-            Token.session_id == queue.token_session_id,
-            Token.status == TokenStatus.done,
-        )
-    )
-    done_count = done_result.scalar_one()
-
-    skipped_result = await db.execute(
-        select(func.count(Token.id)).where(
-            Token.queue_id == queue_id,
-            Token.session_id == queue.token_session_id,
-            Token.status == TokenStatus.skipped,
-        )
-    )
-    skipped_count = skipped_result.scalar_one()
+    waiting_count, done_count, skipped_count, deleted_count, issued_count = counts_result.one()
 
     # ── Total Issued count & Session info for current session ──
     session_date_str = None
     is_past_session = False
+    session = None
     if queue.token_session_id:
         from app.models.session import Session
         session = await db.get(Session, queue.token_session_id)
         if session:
             session_date_str = session.session_date.isoformat()
             tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-            today = datetime.now(ZoneInfo(tz_str)).date()
+            local_now = datetime.now(ZoneInfo(tz_str))
+            from app.core.tz_helpers import queue_business_date
+            today = queue_business_date(local_now, queue.open_time, queue.close_time)
             if session.session_date < today:
                 is_past_session = True
 
-        issued_result = await db.execute(
-            select(func.count(Token.id)).where(
-                Token.queue_id == queue_id,
-                Token.session_id == queue.token_session_id,
-            )
-        )
-        issued_count = issued_result.scalar_one()
     else:
         issued_count = 0
 
@@ -196,27 +169,33 @@ async def build_queue_snapshot(
             "pax_count": getattr(t, "pax_count", 1),
         }
         if is_admin:
+            token_data["id"] = str(t.id)
             token_data["customer_age"] = t.customer_age
             token_data["customer_phone"] = t.customer_phone
             token_data["companion_names"] = t.companion_names
             token_data["removed_by"] = getattr(t, "removed_by", None)
             token_data["custom_data"] = getattr(t, "custom_data", None)
+            token_data["field_schema"] = getattr(t, "field_schema", None)
         recent_tokens.append(token_data)
 
     # ── Waiting tokens (all of them, or limit 50 for large queues) ──
-    waiting_tokens_result = await db.execute(
-        select(Token)
-        .where(
-            Token.queue_id == queue_id,
-            Token.session_id == queue.token_session_id,
-            Token.status == TokenStatus.waiting,
-        )
-        .order_by(Token.token_number.asc())
-        .limit(50)
-    )
-    
     waiting_tokens = []
-    for t in waiting_tokens_result.scalars().all():
+    if is_admin:
+        waiting_tokens_result = await db.execute(
+            select(Token)
+            .where(
+                Token.queue_id == queue_id,
+                Token.session_id == queue.token_session_id,
+                Token.status == TokenStatus.waiting,
+            )
+            .order_by(Token.token_number.asc())
+            .limit(200)
+        )
+        waiting_rows = waiting_tokens_result.scalars().all()
+    else:
+        waiting_rows = []
+
+    for t in waiting_rows:
         token_data = {
             "id": str(t.id),
             "token_number": t.token_number,
@@ -239,22 +218,27 @@ async def build_queue_snapshot(
             token_data["companion_names"] = t.companion_names
             token_data["removed_by"] = getattr(t, "removed_by", None)
             token_data["custom_data"] = getattr(t, "custom_data", None)
+            token_data["field_schema"] = getattr(t, "field_schema", None)
         waiting_tokens.append(token_data)
 
     # ── Skipped tokens (all of them, or limit 50) ──
-    skipped_tokens_result = await db.execute(
-        select(Token)
-        .where(
-            Token.queue_id == queue_id,
-            Token.session_id == queue.token_session_id,
-            Token.status == TokenStatus.skipped,
-        )
-        .order_by(Token.token_number.desc())
-        .limit(50)
-    )
-    
     skipped_tokens = []
-    for t in skipped_tokens_result.scalars().all():
+    if is_admin:
+        skipped_tokens_result = await db.execute(
+            select(Token)
+            .where(
+                Token.queue_id == queue_id,
+                Token.session_id == queue.token_session_id,
+                Token.status == TokenStatus.skipped,
+            )
+            .order_by(Token.token_number.desc())
+            .limit(200)
+        )
+        skipped_rows = skipped_tokens_result.scalars().all()
+    else:
+        skipped_rows = []
+
+    for t in skipped_rows:
         token_data = {
             "id": str(t.id),
             "token_number": t.token_number,
@@ -278,19 +262,23 @@ async def build_queue_snapshot(
         skipped_tokens.append(token_data)
 
     # ── Deleted tokens (all of them, or limit 50) ──
-    deleted_tokens_result = await db.execute(
-        select(Token)
-        .where(
-            Token.queue_id == queue_id,
-            Token.session_id == queue.token_session_id,
-            Token.status == TokenStatus.deleted,
-        )
-        .order_by(Token.token_number.desc())
-        .limit(50)
-    )
-    
     deleted_tokens = []
-    for t in deleted_tokens_result.scalars().all():
+    if is_admin:
+        deleted_tokens_result = await db.execute(
+            select(Token)
+            .where(
+                Token.queue_id == queue_id,
+                Token.session_id == queue.token_session_id,
+                Token.status == TokenStatus.deleted,
+            )
+            .order_by(Token.token_number.desc())
+            .limit(200)
+        )
+        deleted_rows = deleted_tokens_result.scalars().all()
+    else:
+        deleted_rows = []
+
+    for t in deleted_rows:
         token_data = {
             "id": str(t.id),
             "token_number": t.token_number,
@@ -314,19 +302,57 @@ async def build_queue_snapshot(
             token_data["custom_data"] = getattr(t, "custom_data", None)
         deleted_tokens.append(token_data)
 
+    # Public display sockets must never become a customer-directory API. They
+    # receive operational ticket numbers only; authenticated admin sockets keep
+    # the detailed records needed to operate the line.
+    if not is_admin:
+        if serving_details:
+            serving_details = {
+                key: serving_details.get(key)
+                for key in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count")
+            }
+        all_serving_tokens = [
+            {
+                key: item.get(key)
+                for key in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count", "shared_lines", "completed_lines")
+            }
+            for item in all_serving_tokens
+        ]
+        recent_tokens = [
+            {
+                key: item.get(key)
+                for key in ("token_number", "status", "assigned_line", "called_via_invite")
+            }
+            for item in recent_tokens
+        ]
+        waiting_tokens = []
+        skipped_tokens = []
+        deleted_tokens = []
+
+    session_active = bool(session and session.is_active)
+    session_paused = bool(session and session.is_paused)
+    effective_active = bool(
+        queue.is_active and not queue.is_deleted and session_active
+    )
+    effective_paused = bool(queue.is_paused or session_paused)
+
     return {
         "type": "queue_snapshot",
         "queue_id": str(queue_id),
-        "session_id": str(queue.token_session_id),
+        "session_id": str(queue.token_session_id) if queue.token_session_id else None,
         "queue_name": queue.name,
         "prefix": queue.prefix,
         "announcement": queue.announcement,
-        "is_active": session.is_active if session else queue.is_active,
-        "is_paused": session.is_paused if session else queue.is_paused,
-        "session_is_active": session.is_active if session else queue.is_active,
-        "session_is_paused": session.is_paused if session else queue.is_paused,
+        "is_active": effective_active,
+        "is_paused": effective_paused,
+        "queue_is_active": queue.is_active,
+        "queue_is_paused": queue.is_paused,
+        "session_is_active": session_active,
+        "session_is_paused": session_paused,
         "session_date": session_date_str,
         "is_past_session": is_past_session,
+        "is_current_session": session_is_current,
+        "within_operating_hours": within_hours,
         "service_lines": queue.service_lines,
         "open_time": queue.open_time,
         "close_time": queue.close_time,
@@ -342,8 +368,73 @@ async def build_queue_snapshot(
         "waiting_tokens": waiting_tokens,
         "skipped_tokens": skipped_tokens,
         "deleted_tokens": deleted_tokens,
+        "waiting_tokens_truncated": bool(is_admin and waiting_count > len(waiting_tokens)),
+        "skipped_tokens_truncated": bool(is_admin and skipped_count > len(skipped_tokens)),
+        "deleted_tokens_truncated": bool(is_admin and deleted_count > len(deleted_tokens)),
         "org_logo_url": None,
         "org_brand_color": None,
         "custom_fields": getattr(queue, "custom_fields", None),
         "enable_shared_tokens": getattr(org, "enable_shared_tokens", False) or getattr(parent_org, "enable_shared_tokens", False),
+    }
+
+
+async def build_queue_snapshots_dual(
+    db: AsyncSession,
+    *,
+    queue_id: uuid.UUID,
+) -> dict:
+    """
+    Build BOTH public and admin queue state snapshots in a SINGLE database pass.
+    Executes database queries ONCE (14 queries instead of 28), then redacts
+    sensitive PII in Python memory for the public snapshot.
+
+    Returns:
+      {
+        "public": <public_snapshot_dict>,
+        "admin": <admin_snapshot_dict>
+      }
+    """
+    admin_snapshot = await build_queue_snapshot(db, queue_id=queue_id, is_admin=True)
+    if admin_snapshot.get("type") == "error":
+        return {"public": admin_snapshot, "admin": admin_snapshot}
+
+    import copy
+    public_snapshot = copy.deepcopy(admin_snapshot)
+
+    # Redact PII for public broadcast view
+    if public_snapshot.get("serving_details"):
+        public_snapshot["serving_details"] = {
+            k: public_snapshot["serving_details"].get(k)
+            for k in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count")
+            if k in public_snapshot["serving_details"]
+        }
+
+    public_snapshot["all_serving_tokens"] = [
+        {
+            k: item.get(k)
+            for k in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count", "shared_lines", "completed_lines")
+            if k in item
+        }
+        for item in public_snapshot.get("all_serving_tokens", [])
+    ]
+
+    public_snapshot["recent_tokens"] = [
+        {
+            k: item.get(k)
+            for k in ("token_number", "status", "assigned_line", "called_via_invite")
+            if k in item
+        }
+        for item in public_snapshot.get("recent_tokens", [])
+    ]
+
+    public_snapshot["waiting_tokens"] = []
+    public_snapshot["skipped_tokens"] = []
+    public_snapshot["deleted_tokens"] = []
+    public_snapshot["waiting_tokens_truncated"] = False
+    public_snapshot["skipped_tokens_truncated"] = False
+    public_snapshot["deleted_tokens_truncated"] = False
+
+    return {
+        "public": public_snapshot,
+        "admin": admin_snapshot,
     }

@@ -1,0 +1,12 @@
+# robots.txt for Q4Queue — https://www.q4queue.com
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /login/
+Disallow: /super-admin/
+Disallow: /register/
+
+Sitemap: https://www.q4queue.com/sitemap.xml

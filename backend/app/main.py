@@ -95,10 +95,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from app.utils.backup import backup_task
     import asyncio
     app.state.backup_task = asyncio.create_task(backup_task())
-    # Start auto session scheduler
-    from app.utils.auto_session import auto_session_task
-    import asyncio
-    app.state.auto_session_task = asyncio.create_task(auto_session_task())
 
     # Init metrics
     from app.monitoring.metrics import init_app_info
@@ -109,6 +105,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     logger.info("━━━ Shutting down %s ━━━", settings.APP_NAME)
+    background_tasks = [
+        task for task in (
+            getattr(app.state, "backup_task", None),
+        ) if task is not None
+    ]
+    for task in background_tasks:
+        task.cancel()
+    if background_tasks:
+        await asyncio.gather(*background_tasks, return_exceptions=True)
     await stop_pool_monitor()
     await stop_subscriber()
     await disconnect_db()
@@ -153,14 +158,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=[
-        "Authorization", 
-        "Content-Type", 
-        "Accept", 
-        "Origin",
-        "X-Requested-With"
-    ],
+    allow_methods=["*"],
+    allow_headers=["*"],
     expose_headers=[
         "Retry-After",
         "X-RateLimit-Limit",

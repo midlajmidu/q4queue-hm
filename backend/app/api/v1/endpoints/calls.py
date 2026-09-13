@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.deps import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_active_user
 from app.models.user import User
 from app.models.call_log import CallLog
 from app.schemas.call_log import (
@@ -19,6 +19,8 @@ from app.schemas.call_log import (
 )
 from app.services import call_log_service
 
+from app.services.entitlement_service import assert_calling_allowed, EntitlementError
+
 router = APIRouter()
 
 from sqlalchemy import select, desc, and_
@@ -28,7 +30,7 @@ from datetime import datetime, timezone, timedelta
 async def log_call(
     call_in: CallLogCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """
     Log a WebRTC call from the frontend client.
@@ -37,6 +39,11 @@ async def log_call(
     org_id = call_in.organization_id or current_user.org_id
     if not org_id:
         raise HTTPException(status_code=400, detail="User does not belong to any organization")
+
+    try:
+        await assert_calling_allowed(db, org_id)
+    except EntitlementError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
 
     # Check if a recent CallLog was already created by Plivo webhook
     recent_cutoff = datetime.now(timezone.utc) - timedelta(minutes=3)
@@ -102,6 +109,8 @@ async def log_call(
         created_at=call_log.created_at,
     )
 
+from datetime import date
+
 @router.get("/logs", response_model=PaginatedCallLogsResponse)
 async def get_call_logs(
     queue_id: Optional[uuid.UUID] = None,
@@ -112,10 +121,10 @@ async def get_call_logs(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """
-    Get paginated call logs history for an organization.
+    Get paginated call logs history for an organization with optional date range filter.
     """
     org_id = current_user.org_id
     if not org_id:
@@ -139,10 +148,10 @@ async def get_call_logs_overview(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """
-    Get call metrics & billable minutes overview for an organization.
+    Get call metrics, total cost amount & billable minutes overview for an organization.
     """
     org_id = current_user.org_id
     if not org_id:

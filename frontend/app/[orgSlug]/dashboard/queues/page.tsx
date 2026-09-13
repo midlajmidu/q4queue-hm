@@ -488,6 +488,9 @@ export default function QueuesPage({ params }: PageProps) {
                                             onChange={(e) => setNewCloseTime(e.target.value)}
                                             className="w-full rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all"
                                         />
+                                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-normal leading-tight">
+                                            If closing time is not specified, default 12:00 AM (midnight) session closing will be used.
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">

@@ -87,6 +87,14 @@ class WhatsAppConfig(Base):
     )
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
+    # ── Delivery Mode Toggles (per-org) ─────────────────────────────
+    delivery_mode: Mapped[str] = mapped_column(
+        String(30),
+        default="button_reply_only",
+        server_default="button_reply_only",
+        nullable=False,
+    )
+
     # ── Notification Toggles (per-org) ─────────────────────────────
     notify_queue_joined: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     notify_position_5: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

@@ -6,12 +6,14 @@ from datetime import datetime, timezone, timedelta
 import uuid
 
 from app.core.config import get_settings
-from app.core.deps import get_current_user
+from app.core.deps import get_current_active_user
 from app.db.deps import get_db
 from app.models.user import User
 from app.models.call_log import CallLog
 from app.models.queue import Queue
 from app.models.organization import Organization
+
+from app.services.entitlement_service import assert_calling_allowed, EntitlementError
 
 router = APIRouter()
 
@@ -31,11 +33,20 @@ def _get_public_base_url(request: Request) -> str:
 
 
 @router.get("/webrtc/token")
-async def get_webrtc_token(current_user: User = Depends(get_current_user)):
+async def get_webrtc_token(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """
     Returns the Plivo SIP Endpoint credentials for the WebRTC browser SDK.
     Only authenticated users (dashboard admins/staff) can request this.
     """
+    if current_user.org_id:
+        try:
+            await assert_calling_allowed(db, current_user.org_id)
+        except EntitlementError as exc:
+            raise HTTPException(status_code=403, detail=str(exc))
+
     settings = get_settings()
     
     if not settings.PLIVO_WEBRTC_USERNAME or not settings.PLIVO_WEBRTC_PASSWORD:

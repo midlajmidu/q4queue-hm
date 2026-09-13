@@ -12,6 +12,8 @@ from alembic import context
 
 # Import Base and all models (so autogenerate can detect them)
 from app.db.base import Base
+from app.db.base_class import AuditBase
+from app.audit.models import AuditLog  # noqa: F401 - register audit metadata
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -30,7 +32,7 @@ if config.config_file_name is not None:
 # Use the asyncpg URL from settings
 config.set_main_option("sqlalchemy.url", settings.database_url_async)
 
-target_metadata = Base.metadata
+target_metadata = [Base.metadata, AuditBase.metadata]
 
 
 def run_migrations_offline() -> None:

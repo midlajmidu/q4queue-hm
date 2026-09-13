@@ -15,15 +15,19 @@ Tests:
   10. Ping/pong keepalive
 """
 import uuid
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from starlette.websockets import WebSocketDisconnect
 
-from app.core.security import create_access_token, hash_password
+from app.core.security import create_access_token, decode_access_token, hash_password
 from app.db.session import AsyncSessionLocal
 from app.main import app
 from app.models.organization import Organization
 from app.models.queue import Queue
+from app.models.session import Session
 from app.models.user import User
 
 
@@ -44,19 +48,31 @@ async def _provision(tag: str) -> tuple[str, str, str, str]:
             email=f"ws-admin@{slug}.test",
             password_hash=hash_password("pass"),
             role="admin",
+            is_first_login=False,
         )
         db.add(user)
         await db.flush()
 
         queue = Queue(org_id=org.id, name=f"WS-Q-{tag}", prefix="W")
         db.add(queue)
+        await db.flush()
+        session = Session(
+            org_id=org.id,
+            queue_id=queue.id,
+            session_date=datetime.now(ZoneInfo("Asia/Kolkata")).date(),
+            title="WebSocket test session",
+            is_active=True,
+        )
+        db.add(session)
+        await db.flush()
+        queue.token_session_id = session.id
         await db.commit()
         await db.refresh(org)
         await db.refresh(user)
         await db.refresh(queue)
 
         jwt = create_access_token(
-            user_id=str(user.id), org_id=str(org.id), role="admin"
+            user_id=str(user.id), org_id=str(org.id), role="admin", email=user.email
         )
         return str(queue.id), str(org.id), jwt, slug
 
@@ -104,23 +120,51 @@ class TestWebSocketConnect:
             data = ws.receive_json()
             assert data["type"] == "queue_snapshot"
 
+    async def test_admin_can_authenticate_in_first_frame(self):
+        queue_id, _, jwt, _ = await _provision("admin-frame-auth")
+        # Starlette's synchronous WebSocket client runs the ASGI app on a
+        # separate event loop, so discard asyncpg connections from provisioning.
+        from app.db.session import engine
+        await engine.dispose()
+        from starlette.testclient import TestClient
+        tc = TestClient(app)
+        with tc.websocket_connect(
+            f"/api/v1/ws/queues/{queue_id}?auth=frame"
+        ) as ws:
+            ws.send_json({"type": "auth", "token": jwt})
+            data = ws.receive_json()
+            assert data["type"] == "queue_snapshot"
+
+    async def test_notifications_authenticate_in_first_frame(self):
+        _, _, jwt, _ = await _provision("notifications-frame-auth")
+        from app.db.session import engine
+        await engine.dispose()
+        from starlette.testclient import TestClient
+        tc = TestClient(app)
+        with tc.websocket_connect("/api/v1/ws/notifications") as ws:
+            ws.send_json({"type": "auth", "token": jwt})
+            ws.send_text("ping")
+            assert ws.receive_json()["type"] == "pong"
+
     async def test_invalid_queue_closes_4404(self):
         from starlette.testclient import TestClient
         tc = TestClient(app)
         fake_id = str(uuid.uuid4())
-        with pytest.raises(Exception):
-            with tc.websocket_connect(f"/api/v1/ws/queues/{fake_id}"):
-                pass
+        with tc.websocket_connect(f"/api/v1/ws/queues/{fake_id}") as ws:
+            with pytest.raises(WebSocketDisconnect) as closed:
+                ws.receive_json()
+            assert closed.value.code == 4404
 
     async def test_invalid_token_closes_4401(self):
         queue_id, _, _, _ = await _provision("bad-token")
         from starlette.testclient import TestClient
         tc = TestClient(app)
-        with pytest.raises(Exception):
-            with tc.websocket_connect(
-                f"/api/v1/ws/queues/{queue_id}?token=invalid.jwt.here"
-            ):
-                pass
+        with tc.websocket_connect(
+            f"/api/v1/ws/queues/{queue_id}?token=invalid.jwt.here"
+        ) as ws:
+            with pytest.raises(WebSocketDisconnect) as closed:
+                ws.receive_json()
+            assert closed.value.code == 4401
 
     async def test_wrong_org_token_closes_4403(self):
         queue_id_a, _, _, _ = await _provision("org-a-ws")
@@ -131,14 +175,36 @@ class TestWebSocketConnect:
             user_id=str(uuid.uuid4()),
             org_id=org_b_id,
             role="admin",
+            email="wrong-org@example.com",
         )
         from starlette.testclient import TestClient
         tc = TestClient(app)
-        with pytest.raises(Exception):
-            with tc.websocket_connect(
-                f"/api/v1/ws/queues/{queue_id_a}?token={wrong_jwt}"
-            ):
-                pass
+        with tc.websocket_connect(
+            f"/api/v1/ws/queues/{queue_id_a}?token={wrong_jwt}"
+        ) as ws:
+            with pytest.raises(WebSocketDisconnect) as closed:
+                ws.receive_json()
+            assert closed.value.code == 4403
+
+    async def test_deactivated_user_token_closes_4403(self):
+        queue_id, _, jwt, _ = await _provision("inactive-admin")
+        user_id = uuid.UUID(decode_access_token(jwt)["sub"])
+        async with AsyncSessionLocal() as db:
+            user = await db.get(User, user_id)
+            assert user is not None
+            user.is_active = False
+            await db.commit()
+
+        from app.db.session import engine
+        await engine.dispose()
+        from starlette.testclient import TestClient
+        tc = TestClient(app)
+        with tc.websocket_connect(
+            f"/api/v1/ws/queues/{queue_id}?token={jwt}"
+        ) as ws:
+            with pytest.raises(WebSocketDisconnect) as closed:
+                ws.receive_json()
+            assert closed.value.code == 4403
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -147,8 +213,8 @@ class TestWebSocketConnect:
 
 class TestRealtimeUpdates:
 
-    async def test_join_triggers_update_to_connected_client(self):
-        """After connect, trigger a join — client should receive update."""
+    async def test_admin_join_succeeds_while_public_client_connected(self):
+        """A connected public display must not block a concurrent operator join."""
         queue_id, _, jwt, _ = await _provision("rt-join")
         from starlette.testclient import TestClient
         tc = TestClient(app)
@@ -161,22 +227,15 @@ class TestRealtimeUpdates:
 
             # Trigger a join via HTTP
             async with _http_client() as http:
-                resp = await http.post(f"/api/v1/queues/{queue_id}/join")
+                resp = await http.post(
+                    f"/api/v1/queues/{queue_id}/admin-join",
+                    json={"name": "Realtime Test", "phone": "9876543210"},
+                    headers={"Authorization": f"Bearer {jwt}"},
+                )
                 assert resp.status_code == 201
 
-            # Wait for real-time update via WebSocket
-            # Give the pubsub loop time to deliver
-            import time
-            time.sleep(0.5)
-
-            try:
-                update = ws.receive_json(mode="text")
-                assert update["type"] == "queue_update"
-                assert update["waiting_count"] >= 1
-            except Exception:
-                # In test environment, pubsub may not deliver within sync TestClient
-                # This is expected — full test needs async WS client
-                pass
+            # Redis fan-out is covered independently in test_pubsub.py. This
+            # test deliberately avoids an unbounded blocking receive.
 
     async def test_ping_pong(self):
         queue_id, _, _, _ = await _provision("pingpong")

@@ -154,6 +154,15 @@ async def backup_task():
     
     while True:
         try:
+            from app.redis.client import get_redis
+            lock_minute = datetime.utcnow().strftime("%Y%m%d%H%M")
+            acquired = await get_redis().set(
+                f"scheduler:tenant_backups:{lock_minute}", "1", ex=90, nx=True
+            )
+            if not acquired:
+                now = datetime.now()
+                await asyncio.sleep(60 - now.second)
+                continue
             now_time = datetime.now().strftime("%H:%M")
             async with AsyncSessionLocal() as db:
                 # 1. Trigger backup for every Parent Org matching current time
@@ -179,7 +188,7 @@ async def backup_task():
         except asyncio.CancelledError:
             break
         except Exception as e:
-            logger.error(f"Error in backup_task: {e}")
+            logger.error("Error in backup_task: %s", e, exc_info=True)
             
         # Sleep until the start of the next minute
         now = datetime.now()

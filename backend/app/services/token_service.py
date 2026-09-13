@@ -80,6 +80,49 @@ async def _lock_queue_for_org(
     return queue
 
 
+async def _require_current_operational_session(
+    db: AsyncSession,
+    queue: Queue,
+    *,
+    allow_paused: bool = False,
+    enforce_hours: bool = False,
+) -> Session:
+    """Reject mutations against ended, stale, or paused sessions."""
+    if not queue.is_active or queue.is_deleted or not queue.token_session_id:
+        raise ValueError("Queue is not active")
+
+    session = await db.get(Session, queue.token_session_id)
+    from app.models.organization import Organization
+    from app.core.tz_helpers import queue_business_date, safe_zoneinfo
+
+    org = await db.scalar(select(Organization).where(Organization.id == queue.org_id))
+    local_now = datetime.now(safe_zoneinfo(org.timezone if org and org.timezone else "Asia/Kolkata"))
+    business_date = queue_business_date(local_now, queue.open_time, queue.close_time)
+    if (
+        session is None
+        or session.queue_id != queue.id
+        or session.org_id != queue.org_id
+        or session.session_date != business_date
+        or not session.is_active
+    ):
+        raise ValueError("This queue session is closed")
+    if not allow_paused and (queue.is_paused or session.is_paused):
+        raise ValueError("This queue session is paused")
+    return session
+
+
+def _validate_service_line(queue: Queue, line_number: int | None, *, required: bool = False) -> None:
+    configured_lines = int(queue.service_lines or 0)
+    if line_number is None:
+        if required:
+            raise ValueError("A service line is required")
+        return
+    if configured_lines <= 0:
+        raise ValueError("This queue does not use service lines")
+    if line_number < 1 or line_number > configured_lines:
+        raise ValueError(f"Service line must be between 1 and {configured_lines}")
+
+
 async def _log_audit(
     db: AsyncSession,
     *,
@@ -101,6 +144,10 @@ async def _log_audit(
             )
             parent_org_id = res.scalar_one_or_none()
 
+        sanitized_details = dict(details) if isinstance(details, dict) else {}
+        for pii_key in ("name", "customer_name", "phone", "customer_phone", "age", "customer_age", "custom_data"):
+            sanitized_details.pop(pii_key, None)
+
         await record_event(
             event_type=event_type,
             org_id=org_id,
@@ -108,7 +155,7 @@ async def _log_audit(
             user_id=user_id,
             resource_type=resource_type,
             resource_id=resource_id,
-            details=details,
+            details=sanitized_details,
         )
     except Exception as e:
         logger.error("Error in token_service _log_audit: %s", e)
@@ -189,15 +236,15 @@ async def notify_queue_update(queue_id: uuid.UUID, org_id: uuid.UUID) -> None:
         redis = get_redis()
         channel = ws_manager.get_channel(str(org_id), str(queue_id))
 
-        # Build a fresh snapshot from a NEW session (to see committed data)
+        from app.websocket.helpers import build_queue_snapshots_dual
+        # Build fresh snapshots in a single DB pass (cuts queries by 50%)
         async with AsyncSessionLocal() as snapshot_db:
-            snapshot_public = await build_queue_snapshot(snapshot_db, queue_id=queue_id, is_admin=False)
-            snapshot_admin = await build_queue_snapshot(snapshot_db, queue_id=queue_id, is_admin=True)
+            snapshots = await build_queue_snapshots_dual(snapshot_db, queue_id=queue_id)
 
         payload = {
             "type": "queue_update",
-            "public": snapshot_public,
-            "admin": snapshot_admin
+            "public": snapshots["public"],
+            "admin": snapshots["admin"]
         }
         await publish_queue_update(redis, channel=channel, payload=payload)
     except Exception as exc:
@@ -220,9 +267,128 @@ async def notify_new_customer(queue_id: uuid.UUID, org_id: uuid.UUID, token: str
         logger.error("Failed to publish new customer event: %s", exc)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Public API — Join (unauthenticated customer endpoint)
-# ─────────────────────────────────────────────────────────────────────────────
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+DATE_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?$")
+
+
+def validate_and_sanitize_custom_data(
+    custom_fields_def: Optional[list],
+    custom_data: Optional[dict],
+    *,
+    top_level_name: Optional[str] = None,
+    top_level_phone: Optional[str] = None,
+    top_level_pax: Optional[int] = None,
+) -> dict:
+    """
+    Validates custom_data against the queue's configured custom_fields schema.
+    Enforces required fields, supported types, value constraints, and strips unknown keys.
+    """
+    if custom_data is not None and not isinstance(custom_data, dict):
+        raise ValueError("custom_data must be a JSON object")
+
+    data = dict(custom_data) if custom_data else {}
+
+    # Check overall payload size (max 100KB serialized)
+    import json
+    if len(json.dumps(data)) > 100000:
+        raise ValueError("custom_data payload exceeds maximum allowed size (100KB)")
+
+    if not custom_fields_def:
+        # If no custom fields configured on queue, strip arbitrary custom_data keys
+        return {}
+
+    sanitized = {}
+
+    for field in custom_fields_def:
+        if isinstance(field, dict):
+            key = field.get("key")
+            label = field.get("label", key)
+            field_type = field.get("type", "text")
+            is_required = bool(field.get("required", False))
+            options = field.get("options") or []
+        else:
+            key = getattr(field, "key", None)
+            label = getattr(field, "label", key)
+            field_type = getattr(field, "type", "text")
+            is_required = bool(getattr(field, "required", False))
+            options = getattr(field, "options", []) or []
+
+        if not key:
+            continue
+
+        val = data.get(key)
+
+        # Standard top-level field fallbacks
+        if (val is None or (isinstance(val, str) and not val.strip())):
+            if key == "name" and top_level_name:
+                val = top_level_name
+            elif key == "phone" and top_level_phone:
+                val = top_level_phone
+            elif key in ("pax", "pax_count") and top_level_pax is not None:
+                val = top_level_pax
+
+        # Required check
+        if is_required:
+            if val is None or (isinstance(val, str) and not val.strip()):
+                raise ValueError(f"'{label}' is required")
+
+        if val is None or (isinstance(val, str) and not val.strip()):
+            continue
+
+        # Type validations
+        field_type_str = str(field_type).lower()
+
+        if field_type_str == "text":
+            val_str = str(val).strip()
+            if len(val_str) > 500:
+                raise ValueError(f"'{label}' cannot exceed 500 characters")
+            sanitized[key] = val_str
+
+        elif field_type_str == "textarea":
+            val_str = str(val).strip()
+            if len(val_str) > 2000:
+                raise ValueError(f"'{label}' cannot exceed 2000 characters")
+            sanitized[key] = val_str
+
+        elif field_type_str == "number":
+            try:
+                num_val = float(val) if "." in str(val) else int(val)
+            except (ValueError, TypeError):
+                raise ValueError(f"'{label}' must be a valid number")
+            if num_val < -1000000 or num_val > 1000000:
+                raise ValueError(f"'{label}' value is out of bounds (-1,000,000 to 1,000,000)")
+            sanitized[key] = num_val
+
+        elif field_type_str == "phone":
+            val_str = str(val).strip()
+            digits = re.sub(r"\D", "", val_str)
+            if len(digits) < 7 or len(digits) > 15:
+                raise ValueError(f"'{label}' must be a valid phone number (7 to 15 digits)")
+            sanitized[key] = val_str
+
+        elif field_type_str == "email":
+            val_str = str(val).strip()
+            if not EMAIL_REGEX.match(val_str):
+                raise ValueError(f"'{label}' must be a valid email address")
+            sanitized[key] = val_str
+
+        elif field_type_str == "date":
+            val_str = str(val).strip()
+            if not DATE_REGEX.match(val_str):
+                raise ValueError(f"'{label}' must be a valid date (YYYY-MM-DD)")
+            sanitized[key] = val_str
+
+        elif field_type_str == "select":
+            val_str = str(val).strip()
+            if options and val_str not in options:
+                raise ValueError(f"Invalid selection for '{label}'. Allowed options: {', '.join(options)}")
+            sanitized[key] = val_str
+
+        else:
+            sanitized[key] = str(val).strip()[:500]
+
+    return sanitized
+
 
 async def join_queue(
     db: AsyncSession,
@@ -230,6 +396,7 @@ async def join_queue(
     queue_id: uuid.UUID,
     data: JoinRequest,
     bypass_duplicate_check: bool = False,
+    bypass_operating_hours: bool = False,
 ) -> JoinResponse:
     """
     Atomically assign the next token number.
@@ -249,19 +416,42 @@ async def join_queue(
     if getattr(queue, "is_paused", False):
         raise ValueError("Queue is temporarily not accepting walk-ins")
 
-    target_session_id = data.session_id or queue.token_session_id
-    if target_session_id:
-        session = await db.get(Session, target_session_id)
-        if session:
-            from app.models.organization import Organization
-            from zoneinfo import ZoneInfo
-            org = await db.scalar(select(Organization).where(Organization.id == queue.org_id))
-            tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-            today = datetime.now(ZoneInfo(tz_str)).date()
-            if session.session_date < today or not getattr(session, "is_active", True):
-                raise ValueError("This queue session is closed and is no longer accepting new tokens. Please scan today's active QR code.")
-            if getattr(session, "is_paused", False):
-                raise ValueError("This queue session is temporarily on a break and not accepting walk-ins.")
+    # Validate and sanitize custom_data against queue.custom_fields
+    phone_cleaned_initial = data.phone.strip() if data.phone else ""
+    digits_initial = re.sub(r"\D", "", phone_cleaned_initial)
+    phone_cleaned_initial = f"+{digits_initial}" if phone_cleaned_initial.startswith("+") else digits_initial
+
+    data.custom_data = validate_and_sanitize_custom_data(
+        queue.custom_fields,
+        data.custom_data,
+        top_level_name=data.name,
+        top_level_phone=phone_cleaned_initial,
+        top_level_pax=data.pax_count,
+    )
+
+    # The queue's current-session pointer is authoritative. Never trust a public
+    # or admin request to select a different session.
+    target_session_id = queue.token_session_id
+    if not target_session_id:
+        raise ValueError("No active queue session is available")
+
+    session = await db.get(Session, target_session_id)
+    from app.models.organization import Organization
+    from zoneinfo import ZoneInfo
+    org = await db.scalar(select(Organization).where(Organization.id == queue.org_id))
+    tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
+    local_now = datetime.now(ZoneInfo(tz_str))
+    from app.core.tz_helpers import queue_business_date
+    business_date = queue_business_date(local_now, queue.open_time, queue.close_time)
+    if (
+        session is None
+        or session.queue_id != queue.id
+        or session.org_id != queue.org_id
+        or not session.is_active
+    ):
+        raise ValueError("This queue session is closed and is no longer accepting new tokens.")
+    if session.is_paused:
+        raise ValueError("This queue session is temporarily on a break and not accepting walk-ins.")
 
     # ── Duplicate prevention: check for existing active token by phone ──
     phone_cleaned = data.phone.strip()
@@ -301,8 +491,20 @@ async def join_queue(
             )
 
     # ── No active token found — create a new one ──
+    from app.services.entitlement_service import consume
+    await consume(
+        db,
+        org_id=queue.org_id,
+        key="tokens.created.max_per_session",
+        scope_type="session",
+        scope_id=target_session_id,
+    )
+
     max_token_res = await db.execute(
-        select(func.max(Token.token_number)).where(Token.queue_id == queue_id)
+        select(func.max(Token.token_number)).where(
+            Token.queue_id == queue_id,
+            Token.session_id == target_session_id,
+        )
     )
     max_existing_number = max_token_res.scalar() or 0
     next_number = max(queue.current_token_number + 1, max_existing_number + 1)
@@ -312,7 +514,7 @@ async def join_queue(
     token = Token(
         org_id=queue.org_id,
         queue_id=queue.id,
-        session_id=queue.token_session_id,
+        session_id=target_session_id,
         token_number=new_number,
         status=TokenStatus.waiting,
         customer_name=data.name.strip(),
@@ -323,12 +525,13 @@ async def join_queue(
         entry_type=data.entry_type,
         is_whatsapp_enabled=data.send_whatsapp,
         custom_data=data.custom_data,
+        field_schema=queue.custom_fields,
     )
     db.add(token)
     await db.flush()
 
-    position = await _count_waiting_ahead(db, queue_id=queue_id, token_number=new_number, session_id=queue.token_session_id)
-    current_serving = await _current_serving_number(db, queue_id=queue_id, session_id=queue.token_session_id)
+    position = await _count_waiting_ahead(db, queue_id=queue_id, token_number=new_number, session_id=target_session_id)
+    current_serving = await _current_serving_number(db, queue_id=queue_id, session_id=target_session_id)
 
     return JoinResponse(
         id=token.id,
@@ -336,7 +539,7 @@ async def join_queue(
         position=position,
         current_serving=current_serving,
         queue_prefix=queue.prefix,
-        session_id=queue.token_session_id,
+        session_id=target_session_id,
         tracking_id=token.tracking_id,
         pax_count=token.pax_count if hasattr(token, 'pax_count') else 1,
     )
@@ -396,19 +599,10 @@ async def call_next(
     # SECURITY FIX: Lock acquired WITH org_id — no cross-tenant lock possible.
     queue = await _lock_queue_for_org(db, queue_id, org_id)
 
-    if not queue.is_active:
-        raise ValueError("Queue is not active")
-
-    if queue.token_session_id:
-        session = await db.get(Session, queue.token_session_id)
-        if session:
-            from app.models.organization import Organization
-            from zoneinfo import ZoneInfo
-            org = await db.scalar(select(Organization).where(Organization.id == org_id))
-            tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-            today = datetime.now(ZoneInfo(tz_str)).date()
-            if session.session_date < today:
-                raise ValueError("Cannot perform queue actions on a closed past session.")
+    await _require_current_operational_session(
+        db, queue, enforce_hours=True
+    )
+    _validate_service_line(queue, line_number)
 
     if action not in ("done", "skipped", "deleted"):
         raise ValueError("Invalid action")
@@ -576,7 +770,9 @@ async def call_next(
     if next_token is None:
         return None
 
-    remaining = await _count_waiting(db, queue_id=queue_id)
+    remaining = await _count_waiting(
+        db, queue_id=queue_id, session_id=queue.token_session_id
+    )
     return NextResponse(
         serving=next_token.token_number,
         remaining=remaining,
@@ -594,6 +790,7 @@ async def clear_line(
     queue_id: uuid.UUID,
     org_id: uuid.UUID,
     line_number: int,
+    user_id: uuid.UUID,
 ) -> bool:
     """
     Mark the currently-serving token on a specific service line as 'done',
@@ -602,6 +799,8 @@ async def clear_line(
     """
     now = datetime.now(timezone.utc)
     queue = await _lock_queue_for_org(db, queue_id, org_id)
+    await _require_current_operational_session(db, queue, allow_paused=True)
+    _validate_service_line(queue, line_number, required=True)
     result = await db.execute(
         select(Token)
         .where(
@@ -625,8 +824,22 @@ async def clear_line(
     if is_fully_done:
         token.status = TokenStatus.done
         token.completed_at = now
+        token.completed_by_id = user_id
         queue.total_served += 1
     await db.flush()
+    await _log_audit(
+        db,
+        event_type="CLEAR_SERVICE_LINE",
+        org_id=org_id,
+        user_id=user_id,
+        resource_type="token",
+        resource_id=str(token.id),
+        details={
+            "token_number": token.token_number,
+            "line_number": line_number,
+            "fully_completed": is_fully_done,
+        },
+    )
     return True
 
 
@@ -646,6 +859,8 @@ async def share_token(
     from sqlalchemy.orm.attributes import flag_modified
 
     queue = await _lock_queue_for_org(db, queue_id, org_id)
+    await _require_current_operational_session(db, queue)
+    _validate_service_line(queue, line_number, required=True)
     # Find the serving token by token_number
     result = await db.execute(
         select(Token).where(
@@ -705,6 +920,8 @@ async def remove_shared_token(
     from sqlalchemy.orm.attributes import flag_modified
 
     queue = await _lock_queue_for_org(db, queue_id, org_id)
+    await _require_current_operational_session(db, queue, allow_paused=True)
+    _validate_service_line(queue, line_number, required=True)
     result = await db.execute(
         select(Token).where(
             Token.queue_id == queue_id,
@@ -767,6 +984,10 @@ async def _get_token_for_org(
     token = result.scalar_one_or_none()
     if token is None:
         raise ValueError("Token not found")
+    queue = await _lock_queue_for_org(db, token.queue_id, org_id)
+    await _require_current_operational_session(db, queue, allow_paused=True)
+    if token.session_id != queue.token_session_id:
+        raise ValueError("Historical tokens cannot be modified")
     return token
 
 
@@ -842,27 +1063,6 @@ async def remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uuid.UU
         token.deleted_at = now
         await db.flush()
 
-        # Fire the removal notification (fire-and-forget, same as call_next does)
-        try:
-            from app.services.notification_service import notify_queue_event
-            import asyncio
-            asyncio.create_task(
-                notify_queue_event(
-                    event_type="queue_removed_v3",
-                    org_id=org_id,
-                    token_id=token.id,
-                    queue_id=queue.id,
-                    customer_name=token.customer_name,
-                    customer_phone=token.customer_phone,
-                    token_number=token.token_number,
-                    token_prefix=queue.prefix,
-                    queue_name=queue.name,
-                    tracking_id=str(getattr(token, "tracking_id", "")),
-                    session_id=queue.token_session_id,
-                )
-            )
-        except Exception as e:
-            logger.error("Failed to dispatch removal notification for serving token: %s", e)
     else:
         raise ValueError("Cannot remove completed or already skipped/deleted token")
 
@@ -923,8 +1123,10 @@ async def serve_specific_token(
     # SECURITY FIX: Lock acquired WITH org_id — no cross-tenant lock possible.
     queue = await _lock_queue_for_org(db, queue_id, org_id)
 
-    if not queue.is_active:
-        raise ValueError("Queue is not active")
+    await _require_current_operational_session(
+        db, queue, enforce_hours=True
+    )
+    _validate_service_line(queue, line_number)
 
     # SECURITY FIX: Token fetched with org_id and session_id in WHERE clause.
     specific_result = await db.execute(
@@ -978,7 +1180,9 @@ async def serve_specific_token(
 
     await db.flush()
 
-    remaining = await _count_waiting(db, queue_id=queue_id)
+    remaining = await _count_waiting(
+        db, queue_id=queue_id, session_id=queue.token_session_id
+    )
     return NextResponse(
         serving=specific_token.token_number,
         remaining=remaining,
@@ -1035,6 +1239,7 @@ async def send_called_and_reminder_notifications(
             tok_res = await db.execute(
                 select(Token).where(
                     Token.queue_id == queue_id,
+                    Token.session_id == queue.token_session_id,
                     Token.token_number == serving_token_number,
                     Token.org_id == org_id,
                 )
@@ -1064,6 +1269,7 @@ async def send_called_and_reminder_notifications(
                 .where(
                     Token.queue_id == queue_id,
                     Token.org_id == org_id,
+                    Token.session_id == queue.token_session_id,
                     Token.status == TokenStatus.waiting,
                 )
                 .order_by(Token.token_number.asc())

@@ -38,8 +38,8 @@ router = APIRouter()
 async def get_current_org_admin(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
-    """Allows access only to org-level admins (role == 'admin')."""
-    if current_user.role != "admin":
+    """Allows access to admins, organization admins and super admins."""
+    if current_user.role not in {"admin", "organization_admin", "super_admin"}:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Organization admin access required.",
@@ -159,6 +159,12 @@ async def create_staff(
             and_(User.org_id == current_admin.org_id, User.role == "staff", User.is_active == True)
         )
     ) or 0
+
+    from app.services.entitlement_service import EntitlementError, assert_resource_capacity
+    try:
+        await assert_resource_capacity(db, current_admin.org_id, "staff_users.max", current_staff_count)
+    except EntitlementError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     
     if current_staff_count >= org.max_staff:
         raise HTTPException(
@@ -327,4 +333,3 @@ async def hard_delete_staff(
     )
 
     logger.info("Admin hard-deleted staff | admin=%s staff=%s org=%s", current_admin.id, staff_id, current_admin.org_id)
-

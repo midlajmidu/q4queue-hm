@@ -28,6 +28,7 @@ export interface TokenDetailData {
     skipped_at?: string | null;
     recalled_at?: string | null;
     custom_data?: Record<string, any> | null;
+    field_schema?: Array<{ key: string; label: string; type?: string; options?: string[] }> | null;
 }
 
 interface TokenDetailModalProps {
@@ -79,13 +80,6 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
 
     useEffect(() => {
         setFullToken(token);
-        // If the token came from WebSockets (live queue), it won't have customer_phone for privacy.
-        // We fetch the full details (which includes phone and age) securely from the REST API.
-        if (token && token.id && !token.customer_phone) {
-            api.restoreToken(token.id).then(data => {
-                setFullToken(prev => prev ? { ...prev, ...data } : null);
-            }).catch(() => {});
-        }
     }, [token]);
 
     if (!fullToken) return null;
@@ -202,8 +196,11 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                                     // Skip mapping duplicated known keys handled in the header
                                     if (key === 'name' || key === 'full_name' || key === 'phone' || key === 'phone_number' || key === 'pax' || key === 'group_size') return null;
                                     
-                                    // Format key to a clean human-readable title
-                                    const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                    // Check if field_schema snapshot contains the exact historical label
+                                    const schemaMatch = Array.isArray(fullToken.field_schema)
+                                        ? fullToken.field_schema.find((f: any) => f?.key === key)
+                                        : null;
+                                    const label = schemaMatch?.label || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                                     const displayVal = (value === null || value === undefined || value === "")
                                         ? "—"
                                         : typeof value === "boolean"

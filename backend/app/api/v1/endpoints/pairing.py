@@ -1,6 +1,6 @@
 import json
 import logging
-import random
+import secrets
 import string
 import uuid
 from typing import Dict, Any
@@ -15,6 +15,7 @@ from app.core.deps import get_current_active_user
 from app.db.deps import get_db
 from app.models.user import User
 from app.models.queue import Queue
+from app.middleware.rate_limiter import api_rate_limit, join_rate_limit
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -24,7 +25,11 @@ class ConnectPairingRequest(BaseModel):
     queue_id: uuid.UUID
 
 
-@router.post("/generate", response_model=Dict[str, Any])
+@router.post(
+    "/generate",
+    response_model=Dict[str, Any],
+    dependencies=[Depends(join_rate_limit)],
+)
 async def generate_pairing_code() -> Dict[str, Any]:
     """
     Generate a new 6-character pairing code for the TV display.
@@ -34,22 +39,21 @@ async def generate_pairing_code() -> Dict[str, Any]:
     
     # Generate a unique 6-character uppercase alphanumeric code
     for _ in range(10): # try up to 10 times to avoid collisions
-        code = "".join(random.choices(string.ascii_uppercase, k=6))
+        code = "".join(secrets.choice(string.ascii_uppercase) for _ in range(6))
         redis_key = f"pairing:{code}"
-        
-        # Check if code already exists
-        exists = await redis.exists(redis_key)
-        if not exists:
-            # Store with 300s TTL
-            payload = json.dumps({"status": "waiting"})
-            await redis.setex(redis_key, 300, payload)
-            logger.info("Generated pairing code | code=%s", code)
+        payload = json.dumps({"status": "waiting"})
+        if await redis.set(redis_key, payload, ex=300, nx=True):
+            logger.info("Generated one-time display pairing code")
             return {"code": code}
             
     raise HTTPException(status_code=500, detail="Could not generate unique pairing code")
 
 
-@router.post("/connect", response_model=Dict[str, Any])
+@router.post(
+    "/connect",
+    response_model=Dict[str, Any],
+    dependencies=[Depends(api_rate_limit)],
+)
 async def connect_pairing_code(
     req: ConnectPairingRequest,
     current_user: User = Depends(get_current_active_user),
@@ -59,19 +63,25 @@ async def connect_pairing_code(
     Called by the Staff Dashboard to connect a pairing code to a queue.
     """
     # 1. Validate the queue ownership
-    queue = await db.scalar(select(Queue).where(Queue.id == req.queue_id))
+    queue = await db.scalar(
+        select(Queue).where(
+            Queue.id == req.queue_id,
+            Queue.org_id == current_user.org_id,
+            Queue.is_deleted == False,
+        )
+    )
     if not queue:
         raise HTTPException(status_code=404, detail="Queue not found")
-    if queue.org_id != current_user.org_id:
-        raise HTTPException(status_code=403, detail="Not authorized to pair displays for this organization")
 
     redis = get_redis()
     code = req.pair_code.strip().upper()
+    if len(code) != 6 or any(ch not in string.ascii_uppercase for ch in code):
+        raise HTTPException(status_code=400, detail="Invalid pairing code")
     redis_key = f"pairing:{code}"
     
     # 2. Try to atomically delete the key. If it returns 0, it means it was invalid, expired, or claimed by someone else.
-    deleted = await redis.delete(redis_key)
-    if not deleted:
+    claimed = await redis.getdel(redis_key)
+    if not claimed:
         raise HTTPException(status_code=400, detail="Invalid, expired, or already used pairing code")
         
     # 3. Publish the redirect action to the TV's waiting channel
@@ -82,7 +92,6 @@ async def connect_pairing_code(
     }
     
     await redis.publish(pubsub_channel, json.dumps(redirect_payload))
-    logger.info("Pairing code connected successfully | code=%s queue_id=%s user_id=%s", code, req.queue_id, current_user.id)
+    logger.info("Pairing code connected successfully | queue_id=%s user_id=%s", req.queue_id, current_user.id)
     
     return {"status": "success", "message": "Display connected successfully"}
-

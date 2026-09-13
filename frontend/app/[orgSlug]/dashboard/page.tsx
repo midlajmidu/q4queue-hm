@@ -1,24 +1,15 @@
 
 "use client";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import type { AnalyticsOverview, SessionResponse, QueueResponse } from "@/types/api";
+import type { AnalyticsOverview, QueueResponse } from "@/types/api";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { useAlert } from "@/context/AlertContext";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
-import { fmtTime, fmtDateTime } from "@/lib/tzformat";
-import { useNotifications } from "@/context/NotificationContext";
+import { fmtTime } from "@/lib/tzformat";
 
 // ─── Helpers ─────────────────────────────────────────────────────
-function timeToSeconds(t: string): number {
-  const p = t.split(":").map(Number);
-  if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
-  if (p.length === 2) return p[0] * 60 + p[1];
-  return p[0] || 0;
-}
 function formatDuration(s: number): string {
   if (!s || s < 0) return "—";
 
@@ -699,10 +690,9 @@ const STYLES = `
 export default function OverviewPage() {
   const tz = useBranchTimezone();
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
-  const [prevOverview, setPrevOverview] = useState<AnalyticsOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user, isReadOnly } = useAuth();
+  const { user } = useAuth();
   const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
 
 
@@ -722,7 +712,7 @@ export default function OverviewPage() {
   const [recentPage, setRecentPage] = useState(1);
   const LIMIT = 10;
   const [feedFilter, setFeedFilter] = useState<"all" | "waiting" | "serving" | "done">("all");
-  const [drawerAct, setDrawerAct] = useState<any | null>(null);
+  const [drawerAct, setDrawerAct] = useState<AnalyticsOverview["recent_activity"][number] | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
 
@@ -730,45 +720,7 @@ export default function OverviewPage() {
   const handleDownloadReport = async () => {
     try {
       setIsDownloading(true);
-
-      let allItems: any[] = [];
-      let offset = 0;
-      const limit = 100;
-      let total = 1; // Start with > 0 to enter the loop
-
-      while (offset < total) {
-        const res = await api.getHistory({ queueId: selectedQueue || undefined, limit, offset });
-        if (!res.items || res.items.length === 0) break;
-
-        allItems = allItems.concat(res.items);
-        total = res.total || 0;
-        offset += limit;
-      }
-
-      if (allItems.length === 0) {
-        toast.info("No history found to download.");
-        return;
-      }
-
-      const headers = ["Token Number", "Queue Name", "Prefix", "Status", "Customer Name", "Customer Phone", "Created At", "Served At", "Completed At"];
-      const rows = allItems.map(item => [
-        item.token_number,
-        item.queue_name,
-        item.queue_prefix,
-        item.status,
-        item.customer_name || "-",
-        item.customer_phone || "-",
-        item.created_at ? fmtDateTime(item.created_at, tz) : "-",
-        item.served_at ? fmtDateTime(item.served_at, tz) : "-",
-        item.completed_at ? fmtDateTime(item.completed_at, tz) : "-"
-      ]);
-
-      const csvContent = [
-        headers.join(","),
-        ...rows.map(e => e.map(String).map(s => `"${s.replace(/"/g, '""')}"`).join(","))
-      ].join("\n");
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const blob = await api.exportAnalyticsCSV({ queueId: selectedQueue || undefined });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -776,8 +728,9 @@ export default function OverviewPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       toast.success("Report downloaded successfully.");
-    } catch (err) {
+    } catch {
       toast.error("Failed to download report.");
     } finally {
       setIsDownloading(false);
@@ -805,7 +758,7 @@ export default function OverviewPage() {
       const data = await api.getOverview({
         queueId: selectedQueue || undefined,
         recentLimit: LIMIT, recentOffset: (recentPage - 1) * LIMIT
-      });
+      }, { signal: controller.signal });
       // Ignore if this request was aborted (a newer one is in flight)
       if (controller.signal.aborted) return;
       setOverview(data);
@@ -825,15 +778,12 @@ export default function OverviewPage() {
   useEffect(() => {
     api.listQueues().then(r => {
       setQueues(r || []);
-      if (r && r.length > 0 && !selectedQueue) {
-        setSelectedQueue(r[0].id);
-      }
     }).catch(console.error);
   }, []);
 
 
 
-  useEffect(() => { loadData(); }, [loadData, recentPage]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   // ── Auto-refresh interval ─────────────────────────────────────
   useEffect(() => {
@@ -862,33 +812,13 @@ export default function OverviewPage() {
         : `${Math.floor(secondsAgo / 60)}m ago`
     : null;
 
-  const mkTrend = (cur: number, prev?: number) => {
-    if (!prev) return null;
-    const d = cur - prev; if (!d) return null;
-    return { up: d > 0, pct: Math.abs(Math.round((d / prev) * 100)) };
-  };
-
-
   const queueStats = useMemo(() => {
-    if (!overview?.recent_activity) return [];
-    const map = new Map<string, { queue: string; waiting: number; served: number; total: number }>();
-    for (const act of overview.recent_activity) {
-      if (!map.has(act.queue)) map.set(act.queue, { queue: act.queue, waiting: 0, served: 0, total: 0 });
-      const entry = map.get(act.queue)!;
-      entry.total++;
-      if (act.status === "waiting") entry.waiting++;
-      if (act.status === "done" || act.status === "serving") entry.served++;
-    }
-    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+    return overview?.queue_summary ?? [];
   }, [overview]);
 
-  const totalV = overview?.status_counts?.total ?? 0;
   const servedV = overview?.status_counts?.served ?? 0;
-  const completionRate = totalV > 0 ? Math.round((servedV / totalV) * 100) : 0;
-  const crColor = completionRate >= 90 ? C.green : (completionRate >= 75 ? C.amber : C.red);
-  const crBg = completionRate >= 90 ? C.greenBg : (completionRate >= 75 ? C.amberBg : C.redBg);
-  const crBorder = completionRate >= 90 ? "#a7f3d0" : (completionRate >= 75 ? "#fde68a" : "#fecaca");
-  const activeQueues = queues.filter(q => q.is_active);
+  const completedOutcomes = servedV + (overview?.status_counts?.cancelled ?? 0);
+  const completionRate = completedOutcomes > 0 ? Math.round((servedV / completedOutcomes) * 100) : 0;
 
   // ── Global drawer escape ──────────────────────────────
   useEffect(() => {
@@ -943,7 +873,7 @@ export default function OverviewPage() {
                   color: C.textSub,
                   lineHeight: 1.6, marginBottom: 0, fontWeight: 400,
                 }}>
-                  Real time performance metrics across all queues and sessions.
+                  Live operational state and all-time outcomes for the selected queue scope.
                 </p>
               </div>
 
@@ -1081,10 +1011,9 @@ export default function OverviewPage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 16 }}>
               <MetricCard
                 label="Total Visitors" value={overview?.status_counts?.total ?? 0}
-                Icon={Icons.Users} trend={mkTrend(overview?.status_counts?.total ?? 0, prevOverview?.status_counts?.total)}
+                Icon={Icons.Users} trend={null}
                 color="#4f46e5" bg="#eef2ff" border="#e0e7ff"
                 valueColor="#4f46e5" isLoading={isLoading}
-                sparklineData={[12, 19, 15, 25, 22, 30]}
               />
               {(() => {
                 const waitingCount = overview?.status_counts?.waiting ?? 0;
@@ -1092,28 +1021,25 @@ export default function OverviewPage() {
                 return (
                   <MetricCard
                     label="Waiting Now" value={waitingCount}
-                    Icon={Icons.Clock} trend={mkTrend(waitingCount, prevOverview?.status_counts?.waiting)}
+                    Icon={Icons.Clock} trend={null}
                     color={isWarning ? "#dc2626" : "#2563eb"} bg={isWarning ? "#fef2f2" : "#eff6ff"} border={isWarning ? "#fecaca" : "#bfdbfe"}
                     valueColor={isWarning ? "#dc2626" : "#2563eb"} pulse isLoading={isLoading}
-                    subtext="in all queues" comparisonLabel={!prevOverview ? "vs yesterday" : undefined}
-                    sparklineData={[4, 7, 5, 8, 12, waitingCount]}
+                    subtext={selectedQueue ? "in selected queue" : "in all queues"}
                   />
                 );
               })()}
               <MetricCard
                 label="Total Served" value={overview?.status_counts?.served ?? 0}
-                Icon={Icons.CheckCircle2} trend={mkTrend(overview?.status_counts?.served ?? 0, prevOverview?.status_counts?.served)}
+                Icon={Icons.CheckCircle2} trend={null}
                 color="#059669" bg="#ecfdf5" border="#a7f3d0"
                 valueColor="#059669" isLoading={isLoading}
-                sparklineData={[5, 10, 8, 15, 12, 18]}
               />
               <MetricCard
-                label="Cancelled / No-show" value={overview?.status_counts?.cancelled ?? 0}
-                Icon={Icons.XCircle} trend={mkTrend(overview?.status_counts?.cancelled ?? 0, prevOverview?.status_counts?.cancelled)}
+                label="Non-completed" value={overview?.status_counts?.cancelled ?? 0}
+                Icon={Icons.XCircle} trend={null}
                 color={"#475569"} bg="#f8fafc" border="#e2e8f0"
                 valueColor={"#475569"} muted isLoading={isLoading}
                 subtext={overview?.status_counts?.total ? `(${Math.round((overview.status_counts.cancelled / overview.status_counts.total) * 100)}% of visitors)` : undefined}
-                sparklineData={[1, 0, 2, 1, 3, 2]}
               />
               {(() => {
                 const crWarning = completionRate < 75;
@@ -1124,8 +1050,7 @@ export default function OverviewPage() {
                     color={crWarning ? "#dc2626" : "#059669"} bg={crWarning ? "#fef2f2" : "#ecfdf5"} border={crWarning ? "#fecaca" : "#a7f3d0"}
                     valueColor={crWarning ? "#dc2626" : "#059669"} isLoading={isLoading}
                     subtext={crWarning ? "vs 75% target" : undefined}
-                    comparisonLabel={!prevOverview ? "vs target" : undefined}
-                    sparklineData={[60, 65, 70, 68, 75, completionRate]}
+                    comparisonLabel="of completed outcomes"
                   />
                 );
               })()}
@@ -1144,7 +1069,7 @@ export default function OverviewPage() {
                     <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
                       <Icons.Users size={16} color="currentColor" />
                     </div>
-                    <span className="text-[14px] font-semibold text-blue-900 dark:text-blue-200">Track your team's live performance.</span>
+                    <span className="text-[14px] font-semibold text-blue-900 dark:text-blue-200">Track your team&apos;s live performance.</span>
                   </div>
                   <Link href={`${dashBase}/staff`} className="qa-btn text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 shadow-sm">
                     <Icons.UserPlus size={13} color="currentColor" /> Add Staff Member
@@ -1152,6 +1077,7 @@ export default function OverviewPage() {
                 </div>
               ) : staff.map(s => {
                 const name = s.first_name ? `${s.first_name} ${s.last_name || ""}`.trim() : s.email.split('@')[0];
+                const isOnline = Boolean(s.last_active_at && Date.now() - new Date(s.last_active_at).getTime() < 120000);
                 return (
                   <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 99, padding: "6px 16px 6px 6px", boxShadow: "0 1px 2px rgba(0,0,0,.02)" }}>
                     <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.brandLight, color: C.brand, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>
@@ -1162,12 +1088,12 @@ export default function OverviewPage() {
                       marginLeft: 4,
                       display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px",
                       borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
-                      background: s.is_active ? "var(--q-green-bg)" : "var(--q-slate-bg)",
-                      color: s.is_active ? "var(--q-green)" : "var(--q-text-muted)",
-                      border: `1px solid ${s.is_active ? "var(--q-green-border)" : "var(--q-border-light)"}`
+                      background: isOnline ? "var(--q-green-bg)" : "var(--q-slate-bg)",
+                      color: isOnline ? "var(--q-green)" : "var(--q-text-muted)",
+                      border: `1px solid ${isOnline ? "var(--q-green-border)" : "var(--q-border-light)"}`
                     }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.is_active ? "var(--q-green)" : "var(--q-text-muted)", flexShrink: 0 }} />
-                      {s.is_active ? "Online" : "Offline"}
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: isOnline ? "var(--q-green)" : "var(--q-text-muted)", flexShrink: 0 }} />
+                      {isOnline ? "Online" : "Offline"}
                     </span>
                   </div>
                 );
@@ -1379,7 +1305,7 @@ export default function OverviewPage() {
                     ].map(t => {
                       const isActive = feedFilter === t.id;
                       
-                      let baseColors = "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 border-transparent";
+                      const baseColors = "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 border-transparent";
                       let activeColors = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white shadow-sm";
                       let badgeColors = "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700";
                       let badgeActiveColors = "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300";
@@ -1404,7 +1330,7 @@ export default function OverviewPage() {
                       return (
                         <button
                           key={t.id}
-                          onClick={() => setFeedFilter(t.id as any)}
+                          onClick={() => setFeedFilter(t.id as typeof feedFilter)}
                           className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold border transition-all ${isActive ? activeColors : baseColors}`}
                         >
                           {t.lbl}
@@ -1546,7 +1472,7 @@ export default function OverviewPage() {
               {/* Top Banner */}
               <div style={{ display: "flex", alignItems: "center", gap: 18, padding: 22, background: C.slateBg, borderRadius: 14, border: `1px solid ${C.border}`, marginBottom: 28 }}>
                 <div className="tabular-nums" style={{ width: 52, height: 52, borderRadius: 14, background: C.brandLight, border: `1px solid ${C.brandBorder}`, color: C.brand, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700 }}>
-                  {drawerAct.token_number}
+                  {drawerAct.prefix}{drawerAct.number}
                 </div>
                 <div>
                   <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 6, fontWeight: 500 }}>Current Status</div>
@@ -1617,14 +1543,14 @@ export default function OverviewPage() {
 
 function MetricCard({
   label, value, Icon, trend, color, bg, border, valueColor,
-  pulse, muted, isLoading, suffix = "", subtext, comparisonLabel, sparklineData
+  pulse, muted, isLoading, suffix = "", subtext, comparisonLabel
 }: {
   label: string; value: number;
   Icon: (p: IconProps) => React.ReactNode;
   trend: { up: boolean; pct: number } | null;
   color: string; bg: string; border: string; valueColor: string;
   pulse?: boolean; muted?: boolean; isLoading?: boolean; suffix?: string;
-  subtext?: string; comparisonLabel?: string; sparklineData?: number[];
+  subtext?: string; comparisonLabel?: string;
 }) {
   const gradientId = `wave-grad-${label.replace(/[^a-zA-Z0-9]/g, '')}`;
 
@@ -1716,7 +1642,8 @@ function MetricCard({
       {/* Value */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8, position: "relative", zIndex: 10 }}>
         <span 
-          className="mono tnum tracking-tight text-[36px] font-extrabold leading-none text-slate-900 dark:text-white" 
+          className="mono tnum tracking-tight text-[36px] font-extrabold leading-none dark:text-white"
+          style={{ color: valueColor }}
         >
           {value.toLocaleString()}
         </span>
@@ -1778,9 +1705,9 @@ function ActivityLegend({ waiting, serving, done }: { waiting: number; serving: 
 }
 
 
-function TimingPanel({ title, avg, max, barPct, warning, iconBg, iconColor, barColor, Icon }: {
+function TimingPanel({ title, avg, max, barPct, warning, iconColor, barColor, Icon }: {
   title: string; avg: number; max: number; barPct: number; warning: boolean;
-  iconBg: string; iconColor: string; barColor: string;
+  iconColor: string; barColor: string;
   Icon: (p: IconProps) => React.ReactNode;
 }) {
   return (
@@ -1828,11 +1755,11 @@ function TimingPanel({ title, avg, max, barPct, warning, iconBg, iconColor, barC
 
 
 function SmartInsightCard({
-  title, data, dataSub, analysis, recommendation, Icon, iconBg, iconColor
+  title, data, dataSub, analysis, recommendation, Icon, iconColor
 }: {
   title: string; data: string; dataSub: string; analysis: string; recommendation: string;
   Icon: (p: IconProps) => React.ReactNode;
-  iconBg: string; iconColor: string;
+  iconColor: string;
 }) {
   return (
     <div style={{
@@ -1945,3 +1872,10 @@ function HourlyChart({ hourly, maxVisits, peakHour }: {
     </div>
   );
 }
+
+// Retain these presentation primitives for the next dashboard composition pass.
+// Referencing them keeps the module lint-clean without exporting page-only internals.
+void ActivityLegend;
+void TimingPanel;
+void SmartInsightCard;
+void HourlyChart;

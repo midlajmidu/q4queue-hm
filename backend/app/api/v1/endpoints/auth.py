@@ -9,7 +9,10 @@ POST /auth/login
   - Rate limited: 10 req/min per IP
   - Audit logged on success and failure
 """
+import hashlib
+import hmac
 import logging
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +25,8 @@ from app.schemas.auth import (
     ForgotPasswordOtpRequest,
     ResetPasswordWithOtpRequest,
 )
-from app.services.auth_service import authenticate_user
+from app.schemas.subscription import TrialSignupOtpRequest, TrialSignupResponse, TrialSignupVerifyRequest
+from app.services.auth_service import TRIAL_EXPIRED_MESSAGE, authenticate_user
 from app.middleware.rate_limiter import login_rate_limit, api_rate_limit
 from app.audit.service import record_event
 from app.core.deps import get_current_user
@@ -33,29 +37,130 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-@router.get("/fix-tokens")
-async def fix_tokens(db: AsyncSession = Depends(get_db)):
-    from app.models.token import Token, TokenStatus
-    from app.models.user import User
-    from sqlalchemy import select, update
-    
-    # Get any active user ID to use as a placeholder staff member
-    user_res = await db.execute(select(User.id).limit(1))
-    user_id = user_res.scalar()
-    
-    if user_id:
-        # Patch all done/serving tokens
-        await db.execute(
-            update(Token)
-            .where(Token.status.in_([TokenStatus.done, TokenStatus.serving]))
-            .where(Token.served_by_id.is_(None))
-            .values(served_by_id=user_id, completed_by_id=user_id)
-        )
-        await db.commit()
-        return {"msg": "Fixed!"}
-    return {"msg": "No users found"}
+
+def _trial_otp_digest(email: str, otp: str) -> str:
+    """Bind the short-lived OTP to the destination email without storing it in plaintext."""
+    from app.core.config import get_settings
+    secret = get_settings().SECRET_KEY.encode("utf-8")
+    return hmac.new(secret, f"{email}:{otp}".encode("utf-8"), hashlib.sha256).hexdigest()
 
 
+async def _ensure_trial_email_available(db: AsyncSession, email: str) -> None:
+    from sqlalchemy import func, select
+    from app.models.parent_organization import ParentOrganization
+
+    if await db.scalar(select(User.id).where(func.lower(User.email) == email).limit(1)):
+        raise HTTPException(status_code=409, detail="An account with this email address already exists.")
+    if await db.scalar(select(ParentOrganization.id).where(func.lower(ParentOrganization.contact_email) == email).limit(1)):
+        raise HTTPException(status_code=409, detail="An account with this email address already exists.")
+
+
+@router.post(
+    "/trial-signup/request-otp",
+    summary="Send a trial signup email verification code",
+    dependencies=[Depends(login_rate_limit)],
+)
+async def request_trial_signup_otp(
+    body: TrialSignupOtpRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.redis.client import get_redis
+    from app.services.email_service import send_trial_signup_otp_email
+
+    clean_email = body.email.strip().lower()
+    await _ensure_trial_email_available(db, clean_email)
+
+    redis = get_redis()
+    cooldown_key = f"otp:trial_signup:cooldown:{clean_email}"
+    if not await redis.set(cooldown_key, "1", ex=60, nx=True):
+        raise HTTPException(status_code=429, detail="Please wait one minute before requesting another code.")
+
+    otp = "".join(str(secrets.randbelow(10)) for _ in range(6))
+    otp_key = f"otp:trial_signup:{clean_email}"
+    attempts_key = f"otp:trial_signup:attempts:{clean_email}"
+    await redis.setex(otp_key, 300, _trial_otp_digest(clean_email, otp))
+    await redis.delete(attempts_key)
+
+    if not await send_trial_signup_otp_email(clean_email, otp):
+        await redis.delete(otp_key, cooldown_key)
+        logger.error("Trial verification email delivery failed | email=%s", clean_email)
+        raise HTTPException(status_code=503, detail="We could not send the verification email. Please try again shortly.")
+
+    return {"message": "A 6-digit verification code has been sent to your email.", "expires_in": 300}
+
+
+@router.post(
+    "/trial-signup",
+    response_model=TrialSignupResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Start a self-service free trial",
+    dependencies=[Depends(login_rate_limit)],
+)
+async def trial_signup(
+    body: TrialSignupVerifyRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> TrialSignupResponse:
+    """Verify email, then provision parent, first branch, branch admin and trial atomically."""
+    from sqlalchemy.exc import IntegrityError
+    from app.redis.client import get_redis
+    from app.services.entitlement_service import subscription_summary
+    from app.services.trial_onboarding_service import create_trial_account
+
+    clean_email = body.email.strip().lower()
+    redis = get_redis()
+    otp_key = f"otp:trial_signup:{clean_email}"
+    attempts_key = f"otp:trial_signup:attempts:{clean_email}"
+    submitted_digest = _trial_otp_digest(clean_email, body.otp.strip())
+    stored_digest = await redis.get(otp_key)
+    if not stored_digest or not hmac.compare_digest(stored_digest, submitted_digest):
+        attempts = await redis.incr(attempts_key)
+        if attempts == 1:
+            await redis.expire(attempts_key, 300)
+        if attempts >= 5:
+            await redis.delete(otp_key, attempts_key)
+            raise HTTPException(status_code=400, detail="Too many incorrect attempts. Request a new verification code.")
+        raise HTTPException(status_code=400, detail="Invalid or expired verification code.")
+
+    # Consume before tenant creation. Concurrent submissions cannot reuse the code.
+    consumed = await redis.eval(
+        "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) else return 0 end",
+        1,
+        otp_key,
+        submitted_digest,
+    )
+    if consumed != 1:
+        raise HTTPException(status_code=400, detail="This verification code has already been used. Request a new code.")
+    await redis.delete(attempts_key)
+
+    try:
+        token, branch, _subscription, user = await create_trial_account(db, body)
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Email or organization name is already registered.") from exc
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        await db.rollback()
+        logger.error("Trial signup configuration failure: %s", exc)
+        raise HTTPException(status_code=503, detail="Free trial signup is temporarily unavailable.") from exc
+
+    await record_event(
+        event_type="trial.signup",
+        user_id=user.id,
+        org_id=branch.id,
+        parent_org_id=user.parent_organization_id,
+        ip_address=request.client.host if request.client else None,
+        resource_type="subscription",
+        details={"email": user.email, "branch_slug": branch.slug, "source": "self_service_trial"},
+    )
+    summary = await subscription_summary(db, branch.id)
+    return TrialSignupResponse(
+        access_token=token,
+        organization_slug=branch.slug,
+        subscription=summary,
+    )
 
 @router.post(
     "/login",
@@ -93,10 +198,11 @@ async def login(
             ip_address=client_ip,
             details={"email": body.email, "org_slug": body.organization_slug, "user_agent": user_agent},
         )
+        is_expired_trial = str(exc) == TRIAL_EXPIRED_MESSAGE
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN if is_expired_trial else status.HTTP_401_UNAUTHORIZED,
             detail=str(exc),
-            headers={"WWW-Authenticate": "Bearer"},
+            headers=None if is_expired_trial else {"WWW-Authenticate": "Bearer"},
         ) from exc
 
     await record_event(
@@ -268,4 +374,3 @@ async def reset_password_with_otp(
     await redis.delete(otp_key)
 
     return {"message": "Password reset successfully. You can now log in with your new password."}
-

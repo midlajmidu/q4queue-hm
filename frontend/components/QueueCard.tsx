@@ -130,19 +130,32 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                 </div>
 
                 {/* Temporal Telemetry */}
-                <div className="flex items-center gap-1.5 mt-1 mb-4 text-[10px] font-semibold text-slate-600 dark:text-slate-400 tracking-wide">
-                    {isActive ? (
-                        <>
-                            <Clock className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
-                            <span>Started {formatTime(queue.created_at)}</span>
-                            <span className="text-slate-400 dark:text-slate-600">•</span>
-                            <span>{getElapsed(queue.created_at)}</span>
-                        </>
-                    ) : (
-                        <>
-                            <CalendarDays className="w-3 h-3 text-slate-500 dark:text-slate-400" />
-                            <span>Closed at {formatTime(queue.created_at)}</span>
-                        </>
+                <div className="flex flex-col gap-1 mt-1 mb-3 text-[10px] font-semibold text-slate-600 dark:text-slate-400 tracking-wide">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        {isActive ? (
+                            <>
+                                <Clock className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
+                                <span>Started {formatTime(queue.created_at)}</span>
+                                <span className="text-slate-400 dark:text-slate-600">•</span>
+                                <span>{getElapsed(queue.created_at)}</span>
+                            </>
+                        ) : (
+                            <>
+                                <CalendarDays className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                                <span>Closed at {formatTime(queue.created_at)}</span>
+                            </>
+                        )}
+                    </div>
+                    {(queue.open_time || queue.close_time) && (
+                        <div className="flex items-center gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                            <span>
+                                Hours: {queue.open_time && queue.close_time 
+                                    ? `${queue.open_time} – ${queue.close_time}`
+                                    : queue.close_time 
+                                        ? `Closes at ${queue.close_time}` 
+                                        : `Opens at ${queue.open_time}`}
+                            </span>
+                        </div>
                     )}
                 </div>
 

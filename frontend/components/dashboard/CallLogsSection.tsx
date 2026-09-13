@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
-import { fmtDateTime, fmtDate, fmtTime } from "@/lib/tzformat";
+import { fmtDateTime, fmtDate, fmtTime, nowInTz } from "@/lib/tzformat";
 import {
     CallLogsOverviewResponse,
     PaginatedCallLogsResponse,
@@ -203,14 +203,12 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
         setPage(1);
     }, [startDate, endDate, search, limit]);
 
+
+
     const fetchOverview = useCallback(async () => {
         setOverviewLoading(true);
         try {
-            const res = await api.getCallLogsOverview(
-                queueId,
-                startDate || undefined,
-                endDate || undefined
-            );
+            const res = await api.getCallLogsOverview(queueId, startDate || undefined, endDate || undefined);
             setOverview(res);
         } catch {
             toast.error("Failed to load call logs overview");
@@ -225,6 +223,8 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
             const res = await api.getCallLogs({
                 queue_id: queueId,
                 search: search ? search.trim() : undefined,
+                startDate: startDate || undefined,
+                endDate: endDate || undefined,
                 page,
                 limit,
                 start_date: startDate || undefined,
@@ -236,7 +236,11 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
         } finally {
             setHistoryLoading(false);
         }
-    }, [queueId, search, page, limit, startDate, endDate]);
+    }, [queueId, search, startDate, endDate, page, limit]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [startDate, endDate, search]);
 
     useEffect(() => {
         if (subTab === "overview") {
@@ -419,7 +423,7 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                     ) : (
                         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                             {/* 1. Total Calls */}
-                            <div className="bg-white dark:bg-slate-900/70 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xs p-4.5 flex items-center justify-between">
+                            <div className="bg-white dark:bg-slate-900/70 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xs p-4 flex items-center justify-between">
                                 <div className="min-w-0">
                                     <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Calls</p>
                                     <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">
@@ -555,6 +559,12 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                                                     <span className="text-slate-500 font-medium">Billable</span>
                                                     <span className="font-semibold text-slate-700 dark:text-slate-200">{s.total_billable_minutes} mins</span>
                                                 </div>
+                                                <div className="flex justify-between items-center py-0.5 border-t border-slate-100/60 dark:border-white/5 pt-1.5">
+                                                    <span className="text-slate-500 font-medium">Total Cost</span>
+                                                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                                        {overview?.currency || "₹"}{(s.total_cost_amount ?? (s.total_billable_minutes * (overview?.rate_per_minute || 1.5))).toFixed(2)}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -570,20 +580,21 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                                         <th className="px-6 py-3.5">Staff Member</th>
                                         <th className="px-6 py-3.5">Total Calls</th>
                                         <th className="px-6 py-3.5">Actual Duration</th>
-                                        <th className="px-6 py-3.5 text-right">Billable</th>
+                                        <th className="px-6 py-3.5">Billable</th>
+                                        <th className="px-6 py-3.5 text-right">Total Cost</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                     {overviewLoading ? (
                                         <tr>
-                                            <td colSpan={4} className="py-16 text-center text-slate-400 text-xs">
+                                            <td colSpan={5} className="py-16 text-center text-slate-400 text-xs">
                                                 <RefreshCw size={18} className="animate-spin text-indigo-500 mx-auto mb-2" />
                                                 Loading staff metrics...
                                             </td>
                                         </tr>
                                     ) : !overview?.staff_stats || overview.staff_stats.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="py-20 text-center">
+                                            <td colSpan={5} className="py-20 text-center">
                                                 <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center mx-auto mb-3">
                                                     <PhoneCall size={22} className="text-slate-300 dark:text-slate-600" />
                                                 </div>
@@ -613,8 +624,11 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                                                     <td className="px-6 py-3.5 text-sm text-slate-500 dark:text-slate-400">
                                                         {formatDuration(s.total_duration_seconds)}
                                                     </td>
-                                                    <td className="px-6 py-3.5 text-sm font-semibold text-slate-700 dark:text-slate-200 text-right">
+                                                    <td className="px-6 py-3.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
                                                         {s.total_billable_minutes} mins
+                                                    </td>
+                                                    <td className="px-6 py-3.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 text-right">
+                                                        {overview?.currency || "₹"}{(s.total_cost_amount ?? (s.total_billable_minutes * (overview?.rate_per_minute || 1.5))).toFixed(2)}
                                                     </td>
                                                 </tr>
                                             );
@@ -788,7 +802,17 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                                                     <p className="text-[11px] text-slate-400">{fmtDateTime(item.created_at, tz)}</p>
                                                 </div>
                                             </div>
-                                            <CallStatusBadge status={item.call_status} />
+                                            <div className="flex flex-col items-end gap-1 shrink-0">
+                                                <CallStatusBadge status={item.call_status || "completed"} />
+                                                <div className="text-right">
+                                                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block">
+                                                        {item.billable_minutes} min{item.billable_minutes !== 1 ? "s" : ""}
+                                                    </span>
+                                                    <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 block">
+                                                        {overview?.currency || "₹"}{(item.cost_amount ?? (item.billable_minutes * (overview?.rate_per_minute || 1.5))).toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-2 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl p-3 border border-slate-100 dark:border-white/5 text-xs">
@@ -809,8 +833,8 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                                                 <span className="text-slate-500 font-medium">Duration</span>
                                                 <div className="text-right">
                                                     <span className="font-semibold text-slate-900 dark:text-white">{formatDuration(item.duration_seconds)}</span>
-                                                    {item.ring_duration_seconds > 0 && (
-                                                        <span className="block text-[11px] text-slate-400 dark:text-slate-500">Ring: {formatDuration(item.ring_duration_seconds)}</span>
+                                                    {Boolean(item.ring_duration_seconds && item.ring_duration_seconds > 0) && (
+                                                        <span className="block text-[11px] text-slate-400 dark:text-slate-500">Ring: {formatDuration(item.ring_duration_seconds || 0)}</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -836,20 +860,21 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                                     <th className="px-6 py-3.5 whitespace-nowrap w-[150px]">Queue</th>
                                     <th className="px-6 py-3.5 whitespace-nowrap w-[140px]">Status</th>
                                     <th className="px-6 py-3.5 whitespace-nowrap w-[120px]">Duration</th>
-                                    <th className="px-6 py-3.5 whitespace-nowrap w-[100px] text-right">Billable</th>
+                                    <th className="px-6 py-3.5 whitespace-nowrap w-[100px]">Billable</th>
+                                    <th className="px-6 py-3.5 whitespace-nowrap w-[100px] text-right">Cost</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {historyLoading ? (
                                     <tr>
-                                        <td colSpan={7} className="py-16 text-center text-slate-400 text-xs">
+                                        <td colSpan={8} className="py-16 text-center text-slate-400 text-xs">
                                             <RefreshCw size={18} className="animate-spin text-indigo-500 mx-auto mb-2" />
                                             Loading call history...
                                         </td>
                                     </tr>
                                 ) : !history?.items || history.items.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="py-20 text-center">
+                                        <td colSpan={8} className="py-20 text-center">
                                             <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center mx-auto mb-3">
                                                 <PhoneOff size={22} className="text-slate-300 dark:text-slate-600" />
                                             </div>
@@ -893,18 +918,21 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <CallStatusBadge status={item.call_status} />
+                                                    <CallStatusBadge status={item.call_status || "completed"} />
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="font-semibold text-slate-900 dark:text-white text-sm tabular-nums">{formatDuration(item.duration_seconds)}</div>
-                                                    {item.ring_duration_seconds > 0 && (
+                                                    {Boolean(item.ring_duration_seconds && item.ring_duration_seconds > 0) && (
                                                         <div className="text-[11px] text-slate-400 dark:text-slate-500 font-normal tabular-nums mt-0.5">
-                                                            Ring: {formatDuration(item.ring_duration_seconds)}
+                                                            Ring: {formatDuration(item.ring_duration_seconds || 0)}
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200 text-right whitespace-nowrap tabular-nums">
+                                                <td className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap tabular-nums">
                                                     {item.billable_minutes} min{item.billable_minutes !== 1 ? "s" : ""}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm font-semibold text-emerald-600 dark:text-emerald-400 text-right whitespace-nowrap tabular-nums">
+                                                    {overview?.currency || "₹"}{(item.cost_amount ?? (item.billable_minutes * (overview?.rate_per_minute || 1.5))).toFixed(2)}
                                                 </td>
                                             </tr>
                                         );

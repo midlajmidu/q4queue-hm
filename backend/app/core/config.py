@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440 # 24 hours
     JWT_ALGORITHM: str = "HS256"
+    SUPER_ADMIN_EMAIL: Optional[str] = None
+    SUPER_ADMIN_PASSWORD: Optional[str] = None
 
     # ── PostgreSQL ────────────────────────────────────────────────
     DATABASE_URL: str
@@ -40,7 +42,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_WS: int = 20
 
     # ── CORS ──────────────────────────────────────────────────────
-    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,https://q4queue.com"
+    CORS_ORIGINS: str = "http://localhost:3000,http://app.localhost:3000,http://localhost:3002,http://app.localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3002,https://q4queue.com,https://app.q4queue.com"
 
     # ── Metrics ───────────────────────────────────────────────────
     METRICS_ENABLED: bool = True

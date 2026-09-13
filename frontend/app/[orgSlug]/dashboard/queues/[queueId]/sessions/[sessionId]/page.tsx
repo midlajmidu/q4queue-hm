@@ -358,10 +358,11 @@ export default function QueueDetailPage({ params }: PageProps) {
     const isStaff = user?.role === "staff";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
     const canManageQueue = !isGlobalOrOrgAdmin && !isReadOnly;
+    const canConfigureQueue = canManageQueue && !isStaff;
     const { toast } = useToast();
     const tz = useBranchTimezone();
 
-    const handleNewCustomer = useCallback((data: any) => {
+    const handleNewCustomer = useCallback((data: import("@/lib/websocket").NewCustomerEvent) => {
         sonnerToast.custom((t) => (
             <div
                 onClick={() => sonnerToast.dismiss(t)}
@@ -1034,8 +1035,18 @@ export default function QueueDetailPage({ params }: PageProps) {
     const hasAdminCustomFieldsConfigured = Array.isArray(state?.custom_fields);
     const adminCustomFieldsList = state?.custom_fields || [];
 
+    const isAddFormValid = React.useMemo(() => {
+        if (hasAdminCustomFieldsConfigured) {
+            if (adminCustomFieldsList.length === 0) return false;
+            return adminCustomFieldsList.every(f => !f.required || (addCustomData[f.key] && String(addCustomData[f.key]).trim().length > 0));
+        } else {
+            const phoneDigits = addPhone.replace(/\D/g, "");
+            return addName.trim().length >= 1 && phoneDigits.length >= 7;
+        }
+    }, [hasAdminCustomFieldsConfigured, adminCustomFieldsList, addCustomData, addName, addPhone]);
+
     const handleOpenAddModal = useCallback(() => {
-        if (!isTodaySession || !isActive) {
+        if (!isTodaySession && !isActive) {
             sonnerToast.error("This queue session is closed and is no longer accepting new tokens. Please scan today's active QR code.");
             return;
         }
@@ -1047,7 +1058,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, [isTodaySession, isActive, isPaused]);
 
     const handlePreAddCustomer = useCallback(async () => {
-        if (!isTodaySession || !isActive) {
+        if (!isTodaySession && !isActive) {
             const msg = "This queue session is closed and is no longer accepting new tokens. Please scan today's active QR code.";
             setAddFormError(msg);
             sonnerToast.error(msg);
@@ -1066,7 +1077,7 @@ export default function QueueDetailPage({ params }: PageProps) {
             }
             // Validate required custom fields
             for (const field of adminCustomFieldsList) {
-                if (field.required && !addCustomData[field.key]) {
+                if (field.required && (!addCustomData[field.key] || !String(addCustomData[field.key]).trim())) {
                     setAddFormError(`Please fill out the required field: ${field.label}`);
                     return;
                 }
@@ -1074,13 +1085,16 @@ export default function QueueDetailPage({ params }: PageProps) {
             setAddFormError(null);
             setShowWhatsappConfirm(true);
         } else {
-            // Legacy validation
+            // Standard validation
             const phoneDigits = addPhone.replace(/\D/g, "");
-            if (!isAddNameValid || phoneDigits.length < 7) { setAddFormError("Please enter a valid name and phone number"); return; }
+            if (addName.trim().length < 1 || phoneDigits.length < 7) {
+                setAddFormError("Please enter a valid name and phone number (min 7 digits)");
+                return;
+            }
             setAddFormError(null);
             setShowWhatsappConfirm(true);
         }
-    }, [isTodaySession, isActive, isPaused, addPhone, isAddNameValid, hasAdminCustomFieldsConfigured, adminCustomFieldsList, addCustomData]);
+    }, [isTodaySession, isActive, isPaused, addPhone, addName, hasAdminCustomFieldsConfigured, adminCustomFieldsList, addCustomData]);
 
     const handleConfirmAddCustomer = useCallback(async (sendWhatsapp: boolean) => {
         setShowWhatsappConfirm(false);
@@ -1469,7 +1483,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <>
                                                     <div className="fixed inset-0 z-[40]" onClick={() => setMobileActionsOpen(false)} />
                                                     <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-[50] flex flex-col gap-1 text-left">
-                                                        {canManageQueue && isTodaySession && (
+                                                        {canConfigureQueue && isTodaySession && (
                                                             <>
                                                                 <button onClick={() => { handlePauseToggle(); setMobileActionsOpen(false); }} disabled={isDisabled || pausing || !isActive} className="text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2 disabled:opacity-40">
                                                                     {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
@@ -1509,7 +1523,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div className="hidden md:block border-r border-slate-200 dark:border-white/10 h-6 mx-1" />
 
                                         <div className="hidden md:flex items-center gap-2">
-                                            {canManageQueue && isTodaySession && (
+                                            {canConfigureQueue && isTodaySession && (
                                                 <>
                                                     <button
                                                         onClick={handlePauseToggle}
@@ -1869,8 +1883,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <div className="absolute left-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
                                                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                                                     </div>
-                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused || !isTodaySession} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[70px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none disabled:opacity-50" />
-                                                    <button type="submit" disabled={!inviteNumber || isDisabled || isPaused || !isTodaySession} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-400 dark:hover:border-indigo-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused || (!isTodaySession && !isActive)} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[70px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none disabled:opacity-50" />
+                                                    <button type="submit" disabled={!inviteNumber || isDisabled || isPaused || (!isTodaySession && !isActive)} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-400 dark:hover:border-indigo-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                                                         Call
                                                     </button>
                                                 </form>
@@ -1882,8 +1896,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     <div className="absolute left-3.5 text-slate-400 group-focus-within:text-rose-500 transition-colors">
                                                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                     </div>
-                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused || !isTodaySession} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[80px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 dark:focus:border-rose-500/50 transition-all outline-none disabled:opacity-50" />
-                                                    <button type="submit" disabled={!removeNumber || isDisabled || isPaused || !isTodaySession} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-500/20 dark:hover:text-rose-400 dark:hover:border-rose-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused || (!isTodaySession && !isActive)} className="w-full h-10 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-[10px] pl-10 pr-[80px] text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 dark:focus:border-rose-500/50 transition-all outline-none disabled:opacity-50" />
+                                                    <button type="submit" disabled={!removeNumber || isDisabled || isPaused || (!isTodaySession && !isActive)} className="absolute right-1.5 h-7 px-3 text-[12px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-[8px] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-500/20 dark:hover:text-rose-400 dark:hover:border-rose-500/30 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                                                         Remove
                                                     </button>
                                                 </form>
@@ -2624,6 +2638,12 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 <QueueTokenSettings 
                                     queueId={queueId} 
                                     initialFields={state?.custom_fields ?? initialQueue?.custom_fields ?? null}
+                                    readOnly={!isActive || state?.is_past_session === true || (!!state?.session_id && state.session_id !== sessionId)}
+                                    readOnlyReason={
+                                        !isActive || state?.is_past_session === true
+                                            ? "This queue session is closed. Registration field settings are read-only for historical records." 
+                                            : "You are viewing an old historical session. Registration form settings can only be edited on today's active live queue."
+                                    }
                                     onUpdate={(fields) => {
                                         refresh();
                                     }}
@@ -2635,7 +2655,7 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                 {/* ── Modals ─────────────────────────────────────────── */}
 
-                <ConfirmModal isOpen={showEndSessionConfirm} title="End Queue Session?" message={`Are you sure you want to end the session for "${sessionInfo?.title || queueName}"? New customers won't be able to join until you start it again.`} confirmLabel="End Session" confirmVariant="warning" onConfirm={handleEndSessionToggle} onCancel={() => setShowEndSessionConfirm(false)} isLoading={togglingSessionActive} />
+                <ConfirmModal isOpen={showEndSessionConfirm} title="End Queue Session?" message={`End "${sessionInfo?.title || queueName}"? New customers cannot join and every waiting or serving ticket will be marked skipped. Restarting later starts with an empty active line; it does not restore those tickets.`} confirmLabel="End Session" confirmVariant="warning" onConfirm={handleEndSessionToggle} onCancel={() => setShowEndSessionConfirm(false)} isLoading={togglingSessionActive} />
                 <ConfirmModal isOpen={showDeleteConfirm} title="Delete Queue" message={`Are you sure you want to permanently delete the queue "${state?.queue_name || "this queue"}"? All associated tokens and data will be lost forever.`} confirmLabel="Delete Queue" confirmVariant="danger" onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} isLoading={deleting} requireInput={true} requiredText={state?.queue_name || ""} />
                 <ConfirmModal isOpen={showResetConfirm} title="Reset Queue" message={`Are you sure you want to reset the queue "${state?.queue_name || "this queue"}"? This will delete all tokens and reset the current serving number to 0. This cannot be undone.`} confirmLabel="Reset Queue" confirmVariant="danger" onConfirm={handleReset} onCancel={() => setShowResetConfirm(false)} isLoading={resetting} requireInput={true} requiredText={state?.queue_name || ""} />
                 <ConfirmModal isOpen={!!tokenToRemove} title="Remove Customer" message={`Are you sure you want to remove token ${state?.prefix || ""}${tokenToRemove?.number} from the waiting list? They will be permanently marked as deleted.`} confirmLabel="Remove Token" confirmVariant="danger" onConfirm={handleConfirmRemove} onCancel={() => setTokenToRemove(null)} isLoading={actionLoading === "remove"} />
@@ -2787,7 +2807,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </button>
                                     <button
                                         onClick={handlePreAddCustomer}
-                                        disabled={!isAddNameValid || !addPhone.trim() || actionLoading === "add" || isPaused || !isTodaySession}
+                                        disabled={!isAddFormValid || actionLoading === "add" || isPaused || (!isTodaySession && !isActive)}
                                         className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                     >
                                         {actionLoading === "add" ? (
@@ -2850,8 +2870,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 <div className="absolute left-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                                 </div>
-                                <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused || !isTodaySession} className="w-full h-11 bg-transparent pl-11 pr-[70px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl disabled:opacity-50" />
-                                <button type="submit" disabled={!inviteNumber || isDisabled || isPaused || !isTodaySession} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all hover:bg-indigo-100 disabled:opacity-40">
+                                <input type="number" min="1" value={inviteNumber} onChange={e => setInviteNumber(e.target.value)} placeholder="Invite Token #" disabled={isDisabled || isPaused || (!isTodaySession && !isActive)} className="w-full h-11 bg-transparent pl-11 pr-[70px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl disabled:opacity-50" />
+                                <button type="submit" disabled={!inviteNumber || isDisabled || isPaused || (!isTodaySession && !isActive)} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all hover:bg-indigo-100 disabled:opacity-40">
                                     Call
                                 </button>
                             </form>
@@ -2860,8 +2880,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 <div className="absolute left-4 text-slate-400 group-focus-within:text-rose-500 transition-colors">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                 </div>
-                                <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused || !isTodaySession} className="w-full h-11 bg-transparent pl-11 pr-[85px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl disabled:opacity-50" />
-                                <button type="submit" disabled={!removeNumber || isDisabled || isPaused || !isTodaySession} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl transition-all hover:bg-rose-100 disabled:opacity-40">
+                                <input type="number" min="1" value={removeNumber} onChange={e => setRemoveNumber(e.target.value)} placeholder="Remove Token #" disabled={isDisabled || isPaused || (!isTodaySession && !isActive)} className="w-full h-11 bg-transparent pl-11 pr-[85px] text-[14px] font-medium text-slate-900 dark:text-white placeholder-slate-400 outline-none rounded-xl disabled:opacity-50" />
+                                <button type="submit" disabled={!removeNumber || isDisabled || isPaused || (!isTodaySession && !isActive)} className="absolute right-2 h-8 px-4 text-[12px] font-bold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl transition-all hover:bg-rose-100 disabled:opacity-40">
                                     Remove
                                 </button>
                             </form>

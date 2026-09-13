@@ -10,7 +10,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useRef } from "react";
 import { setToken } from "@/lib/auth";
-import { OperationsTab } from "@/components/settings/OperationsTab";
 import { TIMEZONES } from "@/lib/timezones";
 
 const C = {
@@ -487,14 +486,6 @@ export default function SettingsPage() {
                             >
                                 <Shield size={18} /> Security
                             </button>
-                            {isAdmin && (
-                                <button
-                                    onClick={() => handleTabChange('operations')}
-                                    className={`tab-btn ${activeTab === 'operations' ? 'active' : ''}`}
-                                >
-                                    <Zap size={18} /> Workflows
-                                </button>
-                            )}
                         </div>
 
                         {/* Content Area */}
@@ -890,10 +881,6 @@ export default function SettingsPage() {
                                         </div>
                                     </form>
                                 </div>
-                            )}
-
-                            {activeTab === 'operations' && (
-                                <OperationsTab />
                             )}
 
                         </div>

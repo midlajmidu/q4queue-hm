@@ -156,7 +156,7 @@ export default function EditBranchModal({ isOpen, onClose, onUpdated, branch }: 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">URL Slug</label>
                                 <div className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 flex items-center font-mono">
-                                    <span className="text-slate-400 mr-1">q4queue.com/</span>
+                                    <span className="text-slate-400 mr-1">{typeof window !== "undefined" ? window.location.host : "app.localhost:3000"}/</span>
                                     <span className="font-semibold text-slate-800">{formData.slug}</span>
                                 </div>
                                 <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">

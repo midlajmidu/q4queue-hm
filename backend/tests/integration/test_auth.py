@@ -40,6 +40,7 @@ async def _create_org_and_user(
         password_hash=hash_password(password),
         role=role,
         is_active=user_active,
+        is_first_login=False,
     )
     db.add(user)
     await db.commit()
@@ -56,12 +57,12 @@ class TestMultiTenantLoginIsolation:
     async def test_login_org_a_succeeds(self, client: AsyncClient, db: AsyncSession):
         slug = f"isolation-a-{uuid.uuid4().hex[:6]}"
         org, user = await _create_org_and_user(
-            db, slug=slug, email="shared@test.com", password="passA"
+            db, slug=slug, email="shared@test.com", password="passA1"
         )
 
         resp = await client.post("/api/v1/auth/login", json={
             "email": "shared@test.com",
-            "password": "passA",
+            "password": "passA1",
             "organization_slug": slug,
         })
         assert resp.status_code == 200, resp.text
@@ -96,15 +97,15 @@ class TestMultiTenantLoginIsolation:
         slug_a = f"cross-aa-{uuid.uuid4().hex[:6]}"
         slug_b = f"cross-bb-{uuid.uuid4().hex[:6]}"
         await _create_org_and_user(
-            db, slug=slug_a, email="cross@test.com", password="passA"
+            db, slug=slug_a, email="cross@test.com", password="passA1"
         )
         await _create_org_and_user(
-            db, slug=slug_b, email="cross@test.com", password="passB"
+            db, slug=slug_b, email="cross@test.com", password="passB1"
         )
 
         resp = await client.post("/api/v1/auth/login", json={
             "email": "cross@test.com",
-            "password": "passB",          # ← Org B password
+            "password": "passB1",         # ← Org B password
             "organization_slug": slug_a,  # ← Org A slug
         })
         assert resp.status_code == 401
@@ -118,11 +119,11 @@ class TestMultiTenantLoginIsolation:
 
         slug = f"orgid-chk-{uuid.uuid4().hex[:6]}"
         org, _ = await _create_org_and_user(
-            db, slug=slug, email="orgcheck@test.com", password="pass"
+            db, slug=slug, email="orgcheck@test.com", password="validpass"
         )
         resp = await client.post("/api/v1/auth/login", json={
             "email": "orgcheck@test.com",
-            "password": "pass",
+            "password": "validpass",
             "organization_slug": slug,
         })
         assert resp.status_code == 200
@@ -151,7 +152,7 @@ class TestSQLInjectionLogin:
     async def test_sql_injection_slug_returns_401(self, client: AsyncClient):
         resp = await client.post("/api/v1/auth/login", json={
             "email": "test@test.com",
-            "password": "pass",
+            "password": "validpass",
             "organization_slug": "'; DROP TABLE organizations; --",
         })
         assert resp.status_code == 401
@@ -210,7 +211,7 @@ class TestEnumerationProtection:
     async def test_wrong_org_slug_generic_401(self, client: AsyncClient):
         resp = await client.post("/api/v1/auth/login", json={
             "email": "someone@test.com",
-            "password": "pass",
+            "password": "validpass",
             "organization_slug": "org-that-does-not-exist",
         })
         assert resp.status_code == 401
@@ -248,11 +249,11 @@ class TestDeactivatedUser:
         slug = f"inactive-{uuid.uuid4().hex[:6]}"
         _, user = await _create_org_and_user(
             db, slug=slug, email="inactive@test.com",
-            password="pass", user_active=False,
+            password="validpass", user_active=False,
         )
         resp = await client.post("/api/v1/auth/login", json={
             "email": "inactive@test.com",
-            "password": "pass",
+            "password": "validpass",
             "organization_slug": slug,
         })
         assert resp.status_code == 401
@@ -263,11 +264,11 @@ class TestDeactivatedUser:
         slug = f"inactiveorg-{uuid.uuid4().hex[:6]}"
         await _create_org_and_user(
             db, slug=slug, email="orgadmin@test.com",
-            password="pass", org_active=False,
+            password="validpass", org_active=False,
         )
         resp = await client.post("/api/v1/auth/login", json={
             "email": "orgadmin@test.com",
-            "password": "pass",
+            "password": "validpass",
             "organization_slug": slug,
         })
         assert resp.status_code == 401

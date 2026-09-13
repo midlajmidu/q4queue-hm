@@ -20,7 +20,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_active_user, get_token_for_org
+from app.core.deps import get_token_for_org, require_branch_admin_or_staff
 from app.db.deps import get_db
 from app.models.token import Token
 from app.models.user import User
@@ -28,6 +28,7 @@ from app.schemas.queue import TokenResponse, TokenRestoreResponse
 from app.services import token_service
 from app.services.notification_service import notify_queue_event
 from app.audit.service import record_event
+from app.middleware.rate_limiter import join_rate_limit
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -45,6 +46,7 @@ router = APIRouter()
 async def get_token(
     token_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    _rate_limit: None = Depends(join_rate_limit),
 ) -> TokenRestoreResponse:
     """
     Customer-facing endpoint to restore a broken browser session.
@@ -73,17 +75,13 @@ async def get_token(
     token, prefix = row
 
     return TokenRestoreResponse(
-        id=token.id,
         token_number=token.token_number,
         status=token.status,
         queue_id=token.queue_id,
         session_id=token.session_id,
         queue_prefix=prefix,
-        customer_name=token.customer_name,
-        customer_age=token.customer_age,
-        customer_phone=token.customer_phone,
+        tracking_id=token.tracking_id,
         pax_count=getattr(token, "pax_count", 1),
-        companion_names=getattr(token, "companion_names", []),
         created_at=token.created_at,
         served_at=token.served_at,
         completed_at=token.completed_at,
@@ -103,6 +101,7 @@ async def cancel_token(
     token_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    _rate_limit: None = Depends(join_rate_limit),
 ) -> dict:
     """
     Publicly accessible cancellation.
@@ -161,7 +160,7 @@ async def cancel_token(
 async def skip_token(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_branch_admin_or_staff()),
     token: Token = Depends(get_token_for_org),
 ) -> TokenResponse:
     """
@@ -235,7 +234,7 @@ async def skip_token(
 async def complete_token(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_branch_admin_or_staff()),
     token: Token = Depends(get_token_for_org),
 ) -> TokenResponse:
     """
@@ -309,7 +308,7 @@ async def complete_token(
 async def remove_token(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_branch_admin_or_staff()),
     token: Token = Depends(get_token_for_org),
 ) -> TokenResponse:
     """
@@ -388,7 +387,7 @@ async def remove_token(
 async def undo_remove_token(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_branch_admin_or_staff()),
     token: Token = Depends(get_token_for_org),
 ) -> TokenResponse:
     """

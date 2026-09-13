@@ -7,7 +7,7 @@ Status lifecycle:
     waiting ──► skipped
 
 Concurrency safety:
-    Unique(queue_id, token_number) enforced at DB level.
+    Unique(queue_id, session_id, token_number) enforced at DB level.
     Additional row-level lock on the queue row prevents duplicates.
 """
 import enum
@@ -45,13 +45,21 @@ class Token(Base):
     __tablename__ = "tokens"
 
     __table_args__ = (
-        UniqueConstraint("queue_id", "token_number", name="uq_token_queue_number"),
+        UniqueConstraint("queue_id", "session_id", "token_number", name="uq_token_queue_session_number"),
         # Composite index: fetch waiting tokens for a queue in order
         Index("ix_tokens_queue_status", "queue_id", "status"),
         # Composite index: position calculation (count ahead)
         Index("ix_tokens_queue_number", "queue_id", "token_number"),
         # Composite index: duplicate-prevention lookup by phone within a queue
         Index("ix_tokens_queue_phone_status", "queue_id", "customer_phone", "status"),
+        # Current-session queue operations: ordered lists, counts and serving state.
+        Index(
+            "ix_tokens_queue_session_status_number",
+            "queue_id",
+            "session_id",
+            "status",
+            "token_number",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -70,7 +78,7 @@ class Token(Base):
         index=True,
     )
     session_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, index=True
+        UUID(as_uuid=True), ForeignKey("sessions.id", ondelete="CASCADE"), nullable=False, index=True
     )
     token_number: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[TokenStatus] = mapped_column(
@@ -109,6 +117,7 @@ class Token(Base):
     customer_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     customer_phone: Mapped[str] = mapped_column(String(20), nullable=False)
     custom_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    field_schema: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
     removed_by: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     assigned_line: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     pax_count: Mapped[int] = mapped_column(Integer, default=1, server_default='1', nullable=False)

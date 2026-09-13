@@ -4,9 +4,9 @@ Pydantic schemas for messages (notifications).
 """
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 # pyrefly: ignore [missing-import]
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class MessageBase(BaseModel):
     content: str
@@ -21,8 +21,8 @@ class MessageCreate(MessageBase):
 
 
 class MessageCreateRequest(BaseModel):
-    content: str
-    message_type: str
+    content: str = Field(..., min_length=1, max_length=2000)
+    message_type: Literal["info", "warning", "success", "error", "critical"]
 
 
 class MessageResponse(MessageBase):

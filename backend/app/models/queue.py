@@ -44,8 +44,12 @@ class Queue(Base):
         index=True,
     )
 
-    token_session_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, default=uuid.uuid4, index=True
+    token_session_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("sessions.id", ondelete="SET NULL", use_alter=True, name="fk_queues_token_session_id"),
+        nullable=True,
+        default=None,
+        index=True,
     )
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     prefix: Mapped[str] = mapped_column(String(10), nullable=False, default="A")
@@ -78,7 +82,7 @@ class Queue(Base):
         "Token", back_populates="queue", lazy="noload"
     )
     sessions: Mapped[list["Session"]] = relationship(  # noqa: F821
-        "Session", back_populates="queue", lazy="noload"
+        "Session", back_populates="queue", lazy="noload", foreign_keys="Session.queue_id"
     )
 
     def __repr__(self) -> str:

@@ -35,31 +35,63 @@ async def get_or_create_active_session(
     org_id: uuid.UUID,
 ) -> Session:
     """Fetch today's session for the queue, creating it and resetting the queue if missing."""
-    from datetime import datetime
-    from zoneinfo import ZoneInfo
     from app.services.queue_service import get_queue_or_404
+    from app.core.tz_helpers import queue_business_date, safe_zoneinfo
     
     from app.models.organization import Organization
     org = await db.scalar(select(Organization).where(Organization.id == org_id))
     tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-    today = datetime.now(ZoneInfo(tz_str)).date()
-    
+    local_now = datetime.now(safe_zoneinfo(tz_str))
+    queue_obj = await db.scalar(select(Queue).where(Queue.id == queue_id))
+    today = queue_business_date(
+        local_now,
+        queue_obj.open_time if queue_obj else None,
+        queue_obj.close_time if queue_obj else None,
+    )
+
     query = select(Session).where(
         Session.queue_id == queue_id, 
         Session.session_date == today
     )
     session = await db.scalar(query)
-    
+
+    is_currently_open = True
+    if queue_obj and queue_obj.open_time and queue_obj.close_time:
+        current_hm = local_now.strftime("%H:%M")
+        open_t, close_t = queue_obj.open_time, queue_obj.close_time
+        if open_t <= close_t:
+            is_outside = current_hm < open_t or current_hm > close_t
+        else:
+            is_outside = current_hm < open_t and current_hm > close_t
+        if is_outside:
+            is_currently_open = False
+
     if session:
         # Self-heal: ensure queue.token_session_id matches actual session.id
         queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
         if queue.token_session_id != session.id:
             queue.token_session_id = session.id
-            await db.commit()
+        if not is_currently_open and session.is_active:
+            session.is_active = False
+        await db.execute(
+            update(Session)
+            .where(Session.queue_id == queue_id, Session.id != session.id, Session.is_active == True)
+            .values(is_active=False, is_paused=False)
+        )
+        await db.commit()
         return session
         
     # Verify queue exists
     queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
+
+    from app.services.entitlement_service import consume
+    await consume(
+        db,
+        org_id=org_id,
+        key="sessions.created.max",
+        scope_type="subscription",
+        scope_id=org_id,
+    )
     
     # Create the session
     session = Session(
@@ -67,15 +99,15 @@ async def get_or_create_active_session(
         queue_id=queue_id,
         session_date=today,
         title=today.strftime("%Y-%m-%d"),
+        is_active=is_currently_open,
     )
     db.add(session)
     await db.flush()
-    
-    # Move all unserved tokens from the OLD session to skipped so tracking links show Turn Skipped
+
     await db.execute(
-        update(Token)
-        .where(Token.queue_id == queue_id, Token.status.in_([TokenStatus.waiting, TokenStatus.serving]))
-        .values(status=TokenStatus.skipped, completed_at=func.now(), removed_by="session_end")
+        update(Session)
+        .where(Session.queue_id == queue_id, Session.id != session.id, Session.is_active == True)
+        .values(is_active=False, is_paused=False)
     )
     
     # Reset queue for the new day and link token_session_id directly to Session.id PK
@@ -113,7 +145,9 @@ async def create_queue_session(
     from app.models.organization import Organization
     org = await db.scalar(select(Organization).where(Organization.id == org_id))
     tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-    today = datetime.now(ZoneInfo(tz_str)).date()
+    from app.core.tz_helpers import queue_business_date, safe_zoneinfo
+    local_now = datetime.now(safe_zoneinfo(tz_str))
+    today = queue_business_date(local_now, queue.open_time, queue.close_time)
 
     if data.session_date > today:
         raise ValueError("Cannot create a session for a future date.")
@@ -126,6 +160,15 @@ async def create_queue_session(
     )
     if existing:
         raise ValueError("A session already exists for this date.")
+
+    from app.services.entitlement_service import consume
+    await consume(
+        db,
+        org_id=org_id,
+        key="sessions.created.max",
+        scope_type="subscription",
+        scope_id=org_id,
+    )
         
     session_title = data.title.strip() if data.title and data.title.strip() else data.session_date.strftime("%Y-%m-%d")
     
@@ -134,12 +177,17 @@ async def create_queue_session(
         queue_id=queue_id,
         session_date=data.session_date,
         title=session_title,
+        is_active=data.session_date == today,
     )
     db.add(session)
     await db.flush()
     
-    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
     if data.session_date == today:
+        await db.execute(
+            update(Session)
+            .where(Session.queue_id == queue_id, Session.id != session.id, Session.is_active == True)
+            .values(is_active=False, is_paused=False)
+        )
         await db.execute(
             update(Token)
             .where(Token.queue_id == queue_id, Token.status.in_([TokenStatus.waiting, TokenStatus.serving]))
@@ -174,20 +222,16 @@ async def list_sessions(
     from app.services.queue_service import get_queue_or_404
     await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
 
-    from app.core.tz_helpers import get_org_timezone
-    tz_name = await get_org_timezone(db, org_id)
-
-    date_expr = func.date(func.timezone(tz_name, Token.created_at))
-
-    # Subquery: token stats per session
+    # Tokens now have an authoritative session foreign key. Grouping by token
+    # creation date misattributes late/manual imports and overnight queues.
     token_agg_sq = (
         select(
-            date_expr.label("session_date"),
+            Token.session_id.label("session_id"),
             func.sum(case((Token.status == TokenStatus.done, 1), else_=0)).label("total_served"),
             func.count(Token.id).label("total_issued"),
         )
         .where(Token.queue_id == queue_id)
-        .group_by(date_expr)
+        .group_by(Token.session_id)
         .subquery()
     )
 
@@ -196,7 +240,7 @@ async def list_sessions(
         Session, 
         func.coalesce(token_agg_sq.c.total_served, 0).label("total_served"),
         func.coalesce(token_agg_sq.c.total_issued, 0).label("total_issued"),
-    ).outerjoin(token_agg_sq, token_agg_sq.c.session_date == Session.session_date)
+    ).outerjoin(token_agg_sq, token_agg_sq.c.session_id == Session.id)
     
     base_query = base_query.where(Session.queue_id == queue_id)
     
@@ -289,11 +333,6 @@ async def update_session(
     
     if data.title is not None:
         session.title = data.title
-    if data.is_active is not None:
-        session.is_active = data.is_active
-    if data.is_paused is not None:
-        session.is_paused = data.is_paused
-        
     await db.commit()
     await db.refresh(session)
     
@@ -317,6 +356,24 @@ async def set_session_active(
     is_active: bool,
 ) -> Session:
     session = await get_session_or_404(db, session_id=session_id, org_id=org_id, user=user)
+    queue = await db.scalar(select(Queue).where(Queue.id == session.queue_id, Queue.org_id == session.org_id))
+    org = await db.scalar(select(Organization).where(Organization.id == session.org_id))
+    tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
+    from app.core.tz_helpers import queue_business_date, safe_zoneinfo
+    local_now = datetime.now(safe_zoneinfo(tz_str))
+    today = queue_business_date(
+        local_now,
+        queue.open_time if queue else None,
+        queue.close_time if queue else None,
+    )
+    if is_active and (queue is None or queue.token_session_id != session.id or session.session_date != today):
+        raise ValueError("Only today's current queue session can be started.")
+    if is_active:
+        await db.execute(
+            update(Session)
+            .where(Session.queue_id == session.queue_id, Session.id != session.id, Session.is_active == True)
+            .values(is_active=False, is_paused=False)
+        )
     session.is_active = is_active
     if not is_active:
         # Move remaining unserved tokens to skipped status when session is stopped
@@ -345,7 +402,12 @@ async def set_session_paused(
     is_paused: bool,
 ) -> Session:
     session = await get_session_or_404(db, session_id=session_id, org_id=org_id, user=user)
+    queue = await db.scalar(select(Queue).where(Queue.id == session.queue_id, Queue.org_id == session.org_id))
+    if queue is None or queue.token_session_id != session.id or not session.is_active:
+        raise ValueError("Only the active current session can be paused or resumed.")
     session.is_paused = is_paused
+    if queue:
+        queue.is_paused = is_paused
     await db.commit()
     await db.refresh(session)
     return session
@@ -358,12 +420,15 @@ async def delete_session(
     org_id: Optional[uuid.UUID] = None,
     user: Optional[User] = None,
 ) -> None:
-    """Delete a session (cascades to queues and tokens)."""
+    """Permanently delete a non-current session and its token history."""
     session = await get_session_or_404(db, session_id=session_id, org_id=org_id, user=user)
+    queue = await db.scalar(select(Queue).where(Queue.id == session.queue_id))
+    if queue and queue.token_session_id == session.id:
+        raise ValueError("The current session cannot be deleted. End it and create/select another session first.")
+    await db.execute(Token.__table__.delete().where(Token.session_id == session.id))
     await db.delete(session)
     await db.commit()
     logger.info("Session deleted | id=%s", session_id)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-

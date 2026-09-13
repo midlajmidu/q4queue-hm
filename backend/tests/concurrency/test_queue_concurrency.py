@@ -12,6 +12,8 @@ locking strategy is effective.
 import asyncio
 import uuid
 from collections import Counter
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
@@ -21,8 +23,17 @@ from app.db.session import AsyncSessionLocal
 from app.main import app
 from app.models.organization import Organization
 from app.models.queue import Queue
+from app.models.session import Session
 from app.models.token import Token, TokenStatus
 from app.models.user import User
+
+
+# Production uses a bounded SQLAlchemy pool (10 connections + 20 overflow).
+# ENVIRONMENT=test intentionally uses NullPool so sync WebSocket tests cannot
+# reuse asyncpg connections across event loops. Bound DB-heavy requests here to
+# model the production pool and avoid turning this correctness test into a test
+# of PostgreSQL's max_connections setting.
+_join_db_slots = asyncio.Semaphore(20)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -37,7 +48,12 @@ async def _provision(tag: str) -> tuple[str, str, str]:
     """Create org + user + queue in isolated sessions; return (queue_id, org_id, token)."""
     async with AsyncSessionLocal() as db:
         slug = f"conc-{tag}-{uuid.uuid4().hex[:8]}"
-        org = Organization(name=f"Conc {tag}", slug=slug)
+        org = Organization(
+            name=f"Conc {tag}",
+            slug=slug,
+            # These tests validate locking/number allocation, not plan limits.
+            max_waiting_capacity=500,
+        )
         db.add(org)
         await db.flush()
 
@@ -46,12 +62,24 @@ async def _provision(tag: str) -> tuple[str, str, str]:
             email=f"admin@{slug}.test",
             password_hash=hash_password("pass"),
             role="admin",
+            is_first_login=False,
         )
         db.add(user)
         await db.flush()
 
         queue = Queue(org_id=org.id, name=f"Q-{tag}", prefix="C")
         db.add(queue)
+        await db.flush()
+        session = Session(
+            org_id=org.id,
+            queue_id=queue.id,
+            session_date=datetime.now(ZoneInfo("Asia/Kolkata")).date(),
+            title="Concurrency test session",
+            is_active=True,
+        )
+        db.add(session)
+        await db.flush()
+        queue.token_session_id = session.id
         await db.commit()
         await db.refresh(org)
         await db.refresh(user)
@@ -61,8 +89,18 @@ async def _provision(tag: str) -> tuple[str, str, str]:
             user_id=str(user.id),
             org_id=str(org.id),
             role="admin",
+            email=user.email,
         )
         return str(queue.id), str(org.id), jwt
+
+
+async def _admin_join(client: AsyncClient, queue_id: str, jwt: str):
+    async with _join_db_slots:
+        return await client.post(
+            f"/api/v1/queues/{queue_id}/admin-join",
+            json={"name": "Concurrent Customer", "phone": "9876543210"},
+            headers={"Authorization": f"Bearer {jwt}"},
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -77,11 +115,11 @@ class TestParallelJoin:
         100 goroutines join simultaneously.
         Expected: token_numbers 1-100, each exactly once.
         """
-        queue_id, _, _ = await _provision("pjoin")
+        queue_id, _, jwt = await _provision("pjoin")
 
         async with _new_client() as client:
             tasks = [
-                client.post(f"/api/v1/queues/{queue_id}/join")
+                _admin_join(client, queue_id, jwt)
                 for _ in range(100)
             ]
             responses = await asyncio.gather(*tasks, return_exceptions=True)
@@ -109,11 +147,11 @@ class TestParallelJoin:
 
     async def test_200_concurrent_joins_sequential_and_unique(self):
         """Scale test: 200 concurrent joins on the same queue."""
-        queue_id, _, _ = await _provision("pjoin200")
+        queue_id, _, jwt = await _provision("pjoin200")
 
         async with _new_client() as client:
             tasks = [
-                client.post(f"/api/v1/queues/{queue_id}/join")
+                _admin_join(client, queue_id, jwt)
                 for _ in range(200)
             ]
             responses = await asyncio.gather(*tasks, return_exceptions=True)
@@ -147,7 +185,7 @@ class TestParallelNext:
         # Seed 5 waiting tokens
         async with _new_client() as client:
             for _ in range(5):
-                await client.post(f"/api/v1/queues/{queue_id}/join")
+                await _admin_join(client, queue_id, jwt)
 
             # 10 concurrent Next calls
             tasks = [
@@ -188,7 +226,7 @@ class TestParallelNext:
 
         async with _new_client() as client:
             for _ in range(N):
-                await client.post(f"/api/v1/queues/{queue_id}/join")
+                await _admin_join(client, queue_id, jwt)
             tasks = [
                 client.post(f"/api/v1/queues/{queue_id}/next", headers=headers)
                 for _ in range(N)
@@ -231,7 +269,7 @@ class TestConcurrentIsolation:
         async with _new_client() as client:
             # Seed Org A queue
             for _ in range(3):
-                await client.post(f"/api/v1/queues/{queue_a_id}/join")
+                await _admin_join(client, queue_a_id, jwt_a)
 
             # Org B tries to call Next on Org A's queue — 10 concurrent attempts
             tasks = [
@@ -256,7 +294,7 @@ class TestConcurrentIsolation:
 
         async with _new_client() as client:
             for _ in range(3):
-                await client.post(f"/api/v1/queues/{queue_a_id}/join")
+                await _admin_join(client, queue_a_id, jwt_a)
 
             # Org B noise
             for _ in range(5):

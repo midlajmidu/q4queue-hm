@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Plus, GripVertical, Trash2, Save, Settings2, LayoutList, Type, Hash, Phone, Mail, Calendar, List } from "lucide-react";
+import { Plus, GripVertical, Trash2, Save, Settings2, LayoutList, Type, Hash, Phone, Mail, Calendar, List, Lock } from "lucide-react";
 
 export interface CustomField {
     id: string; // for drag and drop keys
@@ -18,6 +18,8 @@ export interface CustomField {
 interface QueueTokenSettingsProps {
     queueId: string;
     initialFields: CustomField[] | null;
+    readOnly?: boolean;
+    readOnlyReason?: string;
     onUpdate: (fields: CustomField[]) => void;
 }
 
@@ -130,36 +132,48 @@ const CustomDropdown = ({ value, onChange, options }: { value: string, onChange:
     );
 };
 
-export default function QueueTokenSettings({ queueId, initialFields, onUpdate }: QueueTokenSettingsProps) {
-    const [fields, setFields] = useState<CustomField[]>(() => {
-        if (initialFields === null || initialFields === undefined) {
-            return DEFAULT_FIELDS;
-        }
-        return initialFields;
-    });
+const ensureMandatoryFields = (rawFields: CustomField[] | null | undefined): CustomField[] => {
+    let list = rawFields ? rawFields.map(f => ({ ...f })) : [...DEFAULT_FIELDS];
+    
+    const nameIndex = list.findIndex(f => f.key === 'name');
+    if (nameIndex === -1) {
+        list.unshift({ id: "default_name", key: "name", label: "Full Name", type: "text", required: true, order: 0 });
+    } else {
+        list[nameIndex].required = true;
+    }
+
+    const phoneIndex = list.findIndex(f => f.key === 'phone');
+    if (phoneIndex === -1) {
+        const insertIdx = list.findIndex(f => f.key === 'name') + 1;
+        list.splice(insertIdx > 0 ? insertIdx : 1, 0, { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 });
+    } else {
+        list[phoneIndex].required = true;
+    }
+
+    list.forEach((f, i) => { f.order = i; });
+    return list;
+};
+
+export default function QueueTokenSettings({ queueId, initialFields, readOnly = false, readOnlyReason, onUpdate }: QueueTokenSettingsProps) {
+    const [fields, setFields] = useState<CustomField[]>(() => ensureMandatoryFields(initialFields));
     const [isSaving, setIsSaving] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
 
     // Sync state when initialFields prop updates asynchronously from parent
     useEffect(() => {
         if (!isDirty) {
-            if (initialFields === null || initialFields === undefined) {
-                setFields(DEFAULT_FIELDS);
-            } else {
-                setFields(initialFields);
-            }
+            setFields(ensureMandatoryFields(initialFields));
         }
     }, [initialFields, isDirty]);
 
     const handleResetToDefault = () => {
-        setFields(DEFAULT_FIELDS);
+        if (readOnly) return;
+        setFields(ensureMandatoryFields(DEFAULT_FIELDS));
         setIsDirty(true);
     };
 
-    // If there are no fields at all, it implies the legacy mode (Name, Pax, Phone).
-    // The UI should explain this.
-
     const handleAddField = () => {
+        if (readOnly) return;
         const newField: CustomField = {
             id: Math.random().toString(36).substr(2, 9),
             key: `custom_${fields.length + 1}`,
@@ -173,6 +187,7 @@ export default function QueueTokenSettings({ queueId, initialFields, onUpdate }:
     };
 
     const handleAddCoreField = (type: 'name' | 'phone' | 'pax') => {
+        if (readOnly) return;
         const newField: CustomField = {
             id: Math.random().toString(36).substr(2, 9),
             key: type,
@@ -181,18 +196,28 @@ export default function QueueTokenSettings({ queueId, initialFields, onUpdate }:
             required: true,
             order: fields.length,
         };
-        setFields([...fields, newField]);
+        setFields(ensureMandatoryFields([...fields, newField]));
         setIsDirty(true);
     };
 
     const handleRemoveField = (id: string) => {
+        if (readOnly) return;
+        const fieldToRemove = fields.find(f => f.id === id);
+        if (fieldToRemove && ['name', 'phone'].includes(fieldToRemove.key)) {
+            toast.error("Full Name and Phone Number are mandatory fields and cannot be removed.");
+            return;
+        }
         setFields(fields.filter(f => f.id !== id));
         setIsDirty(true);
     };
 
     const handleFieldChange = (id: string, key: keyof CustomField, value: any) => {
+        if (readOnly) return;
         setFields(fields.map(f => {
             if (f.id === id) {
+                if (['name', 'phone'].includes(f.key) && key === 'required') {
+                    return { ...f, required: true };
+                }
                 const updated = { ...f, [key]: value };
                 if (key === 'label' && !['name', 'phone', 'pax'].includes(f.key)) {
                     const oldAutoKey = f.label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
@@ -208,6 +233,7 @@ export default function QueueTokenSettings({ queueId, initialFields, onUpdate }:
     };
 
     const moveField = (index: number, direction: 'up' | 'down') => {
+        if (readOnly) return;
         if (direction === 'up' && index === 0) return;
         if (direction === 'down' && index === fields.length - 1) return;
 
@@ -218,18 +244,18 @@ export default function QueueTokenSettings({ queueId, initialFields, onUpdate }:
         newFields[index] = newFields[targetIndex];
         newFields[targetIndex] = temp;
 
-        // Update order properties
         newFields.forEach((f, i) => { f.order = i; });
         setFields(newFields);
         setIsDirty(true);
     };
 
     const handleSave = async () => {
+        if (readOnly) return;
         setIsSaving(true);
         try {
-            // Validate keys
+            const validatedFields = ensureMandatoryFields(fields);
             const keys = new Set();
-            for (const f of fields) {
+            for (const f of validatedFields) {
                 if (!f.key || !f.label) {
                     toast.error("All fields must have a label and key.");
                     setIsSaving(false);
@@ -243,9 +269,10 @@ export default function QueueTokenSettings({ queueId, initialFields, onUpdate }:
                 keys.add(f.key);
             }
 
-            await api.updateQueue(queueId, { custom_fields: fields });
+            await api.updateQueue(queueId, { custom_fields: validatedFields });
             toast.success("Token fields saved successfully");
-            onUpdate(fields);
+            setFields(validatedFields);
+            onUpdate(validatedFields);
             setIsDirty(false);
         } catch (error: any) {
             toast.error(error.message || "Failed to save settings");
@@ -255,7 +282,13 @@ export default function QueueTokenSettings({ queueId, initialFields, onUpdate }:
     };
 
     return (
-        <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-white/10 overflow-visible shadow-sm">
+        <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-white/10 overflow-hidden shadow-sm">
+            {readOnly && (
+                <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800/60 px-6 py-3.5 flex items-center gap-3 text-amber-800 dark:text-amber-200 text-xs sm:text-sm font-medium">
+                    <Lock className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>{readOnlyReason || "Viewing a closed or historical queue session. Registration form settings are read-only."}</span>
+                </div>
+            )}
             <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                 <div>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -267,14 +300,16 @@ export default function QueueTokenSettings({ queueId, initialFields, onUpdate }:
                         If empty, the system defaults to asking for Name, Phone, and Group Size.
                     </p>
                 </div>
-                <button
-                    onClick={handleSave}
-                    disabled={!isDirty || isSaving}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white px-4 py-2 rounded-lg font-medium transition-all"
-                >
-                    <Save className="w-4 h-4" />
-                    {isSaving ? "Saving..." : "Save Changes"}
-                </button>
+                {!readOnly && (
+                    <button
+                        onClick={handleSave}
+                        disabled={!isDirty || isSaving}
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white px-4 py-2 rounded-lg font-medium transition-all"
+                    >
+                        <Save className="w-4 h-4" />
+                        {isSaving ? "Saving..." : "Save Changes"}
+                    </button>
+                )}
             </div>
 
             <div className="p-6 space-y-4">
@@ -328,18 +363,25 @@ export default function QueueTokenSettings({ queueId, initialFields, onUpdate }:
                                         <input
                                             type="text"
                                             value={field.label}
+                                            disabled={readOnly}
                                             onChange={(e) => handleFieldChange(field.id, "label", e.target.value)}
                                             placeholder="e.g. Full Name"
-                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                                            className={`w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 ${readOnly ? 'opacity-60 cursor-not-allowed' : ''}`}
                                         />
                                     </div>
                                     <div className="md:col-span-3">
                                         <label className="block text-xs font-semibold text-slate-500 mb-1">Field Type</label>
-                                        <CustomDropdown
-                                            value={field.type}
-                                            onChange={(val) => handleFieldChange(field.id, "type", val)}
-                                            options={FIELD_TYPES}
-                                        />
+                                        {readOnly ? (
+                                            <div className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 opacity-60 cursor-not-allowed">
+                                                {FIELD_TYPES.find(t => t.value === field.type)?.label || field.type}
+                                            </div>
+                                        ) : (
+                                            <CustomDropdown
+                                                value={field.type}
+                                                onChange={(val) => handleFieldChange(field.id, "type", val)}
+                                                options={FIELD_TYPES}
+                                            />
+                                        )}
                                     </div>
                                     <div className="md:col-span-3">
                                         <label className="block text-xs font-semibold text-slate-500 mb-1">Database Key</label>
@@ -348,79 +390,100 @@ export default function QueueTokenSettings({ queueId, initialFields, onUpdate }:
                                             value={field.key}
                                             onChange={(e) => handleFieldChange(field.id, "key", e.target.value)}
                                             placeholder="e.g. full_name"
-                                            disabled={['name', 'phone', 'pax'].includes(field.key)}
-                                            className={`w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 font-mono ${['name', 'phone', 'pax'].includes(field.key) ? 'opacity-60 cursor-not-allowed text-slate-500' : ''}`}
+                                            disabled={readOnly || ['name', 'phone', 'pax'].includes(field.key)}
+                                            className={`w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 font-mono ${readOnly || ['name', 'phone', 'pax'].includes(field.key) ? 'opacity-60 cursor-not-allowed text-slate-500' : ''}`}
                                             title={['name', 'phone', 'pax'].includes(field.key) ? 'Core database keys cannot be changed to prevent tracking errors.' : ''}
                                         />
                                     </div>
                                     <div className="md:col-span-2 flex items-center justify-between pt-5">
-                                        <label className="flex items-center gap-2 cursor-pointer">
+                                        <label className="flex items-center gap-2 cursor-pointer" title={['name', 'phone'].includes(field.key) ? "Full Name and Phone Number are mandatory required fields" : ""}>
                                             <input
                                                 type="checkbox"
-                                                checked={field.required}
+                                                checked={field.required || ['name', 'phone'].includes(field.key)}
+                                                disabled={readOnly || ['name', 'phone'].includes(field.key)}
                                                 onChange={(e) => handleFieldChange(field.id, "required", e.target.checked)}
-                                                className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                className={`w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 ${readOnly || ['name', 'phone'].includes(field.key) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             />
-                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Required</span>
+                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                Required {['name', 'phone'].includes(field.key) && <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider ml-0.5">(Always)</span>}
+                                            </span>
                                         </label>
 
-                                        <button
-                                            onClick={() => handleRemoveField(field.id)}
-                                            className="text-rose-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50"
-                                            title="Remove Field"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        {!['name', 'phone'].includes(field.key) && !readOnly ? (
+                                            <button
+                                                onClick={() => handleRemoveField(field.id)}
+                                                className="text-rose-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                                title="Remove Field"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        ) : (
+                                            <span className="p-1 cursor-not-allowed" title={readOnly ? "Read-only mode" : "Name and Phone are mandatory core fields and cannot be deleted"}>
+                                                <Trash2 className="w-4 h-4 text-slate-300 dark:text-slate-700 opacity-40" />
+                                            </span>
+                                        )}
                                     </div>
 
                                     {field.type === 'select' && (
                                         <div className="md:col-span-8 md:col-start-5 mt-1">
-                                            <label className="block text-xs font-semibold text-slate-500 mb-1.5">Options (press Enter to add)</label>
-                                            <TagsInput
-                                                options={field.options || []}
-                                                onChange={(newOptions) => handleFieldChange(field.id, "options", newOptions)}
-                                            />
+                                            <label className="block text-xs font-semibold text-slate-500 mb-1.5">Options</label>
+                                            {readOnly ? (
+                                                <div className="flex flex-wrap gap-1.5 py-1">
+                                                    {(field.options || []).map((opt, optIdx) => (
+                                                        <span key={optIdx} className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-xs">
+                                                            {opt}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <TagsInput
+                                                    options={field.options || []}
+                                                    onChange={(newOptions) => handleFieldChange(field.id, "options", newOptions)}
+                                                />
+                                            )}
                                         </div>
                                     )}
                                 </div>
                             </div>
                         ))}
 
-                        <div className="pt-4 flex flex-col gap-4 border-t border-slate-100 dark:border-slate-800/60 mt-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                                {!fields.some(f => f.key === 'name') && (
-                                    <button onClick={() => handleAddCoreField('name')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
-                                        <Plus className="w-3.5 h-3.5" /> Name
+                        {!readOnly && (
+                            <div className="pt-4 flex flex-col gap-4 border-t border-slate-100 dark:border-slate-800/60 mt-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {!fields.some(f => f.key === 'name') && (
+                                        <button onClick={() => handleAddCoreField('name')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
+                                            <Plus className="w-3.5 h-3.5" /> Name
+                                        </button>
+                                    )}
+                                    {!fields.some(f => f.key === 'phone') && (
+                                        <button onClick={() => handleAddCoreField('phone')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
+                                            <Plus className="w-3.5 h-3.5" /> Phone
+                                        </button>
+                                    )}
+                                    {!fields.some(f => f.key === 'pax') && (
+                                        <button onClick={() => handleAddCoreField('pax')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
+                                            <Plus className="w-3.5 h-3.5" /> Pax
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={handleAddField}
+                                        className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/80 px-3 py-2 rounded-lg transition-colors border border-indigo-200/60"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        Add Custom Field
                                     </button>
-                                )}
-                                {!fields.some(f => f.key === 'phone') && (
-                                    <button onClick={() => handleAddCoreField('phone')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
-                                        <Plus className="w-3.5 h-3.5" /> Phone
-                                    </button>
-                                )}
-                                {!fields.some(f => f.key === 'pax') && (
-                                    <button onClick={() => handleAddCoreField('pax')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
-                                        <Plus className="w-3.5 h-3.5" /> Pax
-                                    </button>
-                                )}
-                                <button
-                                    onClick={handleAddField}
-                                    className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/80 px-3 py-2 rounded-lg transition-colors border border-indigo-200/60"
-                                >
-                                    <Plus className="w-3.5 h-3.5" />
-                                    Add Custom Field
-                                </button>
 
-                                <div className="flex-1"></div>
+                                    <div className="flex-1"></div>
 
-                                <button
-                                    onClick={handleResetToDefault}
-                                    className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 px-4 py-2 rounded-lg transition-colors shrink-0"
-                                >
-                                    Reset to Defaults
-                                </button>
+                                    <button
+                                        onClick={handleResetToDefault}
+                                        className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 px-4 py-2 rounded-lg transition-colors shrink-0"
+                                    >
+                                        Reset to Defaults
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 )}
             </div>

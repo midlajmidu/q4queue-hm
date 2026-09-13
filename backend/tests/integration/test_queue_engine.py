@@ -35,13 +35,14 @@ async def _make_org_user_token(db: AsyncSession, tag: str) -> tuple[Organization
         email=f"admin-{tag}@q.test",
         password_hash=hash_password("pass"),
         role="admin",
+        is_first_login=False,
     )
     db.add(user)
     await db.commit()
     await db.refresh(org)
     await db.refresh(user)
     token = create_access_token(
-        user_id=str(user.id), org_id=str(org.id), role="admin"
+        user_id=str(user.id), org_id=str(org.id), role="admin", email=user.email
     )
     return org, user, token
 
@@ -58,7 +59,21 @@ async def _create_queue(
         headers=auth_headers,
     )
     assert resp.status_code == 201, resp.text
-    return resp.json()
+    queue = resp.json()
+    session_resp = await client.post(
+        f"/api/v1/queues/{queue['id']}/active-session",
+        headers=auth_headers,
+    )
+    assert session_resp.status_code in (200, 201), session_resp.text
+    return queue
+
+
+async def _admin_join(client: AsyncClient, queue_id: str, headers: dict) -> object:
+    return await client.post(
+        f"/api/v1/queues/{queue_id}/admin-join",
+        json={"name": "Test Customer", "phone": "9876543210"},
+        headers=headers,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -141,7 +156,8 @@ class TestTokenJoin:
     ):
         _, _, tok = await _make_org_user_token(db, "join1")
         q = await _create_queue(client, {"Authorization": f"Bearer {tok}"}, "Join Q1")
-        resp = await client.post(f"/api/v1/queues/{q['id']}/join")
+        headers = {"Authorization": f"Bearer {tok}"}
+        resp = await _admin_join(client, q["id"], headers)
         assert resp.status_code == 201
         data = resp.json()
         assert data["token_number"] == 1
@@ -155,7 +171,7 @@ class TestTokenJoin:
         q = await _create_queue(client, {"Authorization": f"Bearer {tok}"}, "Join Q2")
         numbers = []
         for _ in range(5):
-            r = await client.post(f"/api/v1/queues/{q['id']}/join")
+            r = await _admin_join(client, q["id"], {"Authorization": f"Bearer {tok}"})
             numbers.append(r.json()["token_number"])
         assert numbers == [1, 2, 3, 4, 5]
 
@@ -168,7 +184,7 @@ class TestTokenJoin:
             f"/api/v1/queues/{q['id']}/active?is_active=false",
             headers={"Authorization": f"Bearer {tok}"},
         )
-        resp = await client.post(f"/api/v1/queues/{q['id']}/join")
+        resp = await _admin_join(client, q["id"], {"Authorization": f"Bearer {tok}"})
         assert resp.status_code == 400
 
     async def test_join_nonexistent_queue_returns_404(self, client: AsyncClient):
@@ -182,8 +198,8 @@ class TestTokenJoin:
         _, _, tok = await _make_org_user_token(db, "pos")
         q = await _create_queue(client, {"Authorization": f"Bearer {tok}"}, "PosQ")
         for _ in range(4):
-            await client.post(f"/api/v1/queues/{q['id']}/join")
-        r = await client.post(f"/api/v1/queues/{q['id']}/join")
+            await _admin_join(client, q["id"], {"Authorization": f"Bearer {tok}"})
+        r = await _admin_join(client, q["id"], {"Authorization": f"Bearer {tok}"})
         data = r.json()
         assert data["token_number"] == 5
         assert data["position"] == 4   # 4 tokens ahead
@@ -202,7 +218,7 @@ class TestAdminNext:
         headers = {"Authorization": f"Bearer {tok}"}
         q = await _create_queue(client, headers, f"Next Q {tag}")
         for _ in range(count):
-            await client.post(f"/api/v1/queues/{q['id']}/join")
+            await _admin_join(client, q["id"], headers)
         return q, headers
 
     async def test_next_serves_token_1_first(
@@ -257,7 +273,7 @@ class TestAdminNext:
         headers_b = {"Authorization": f"Bearer {tok_b}"}
 
         q = await _create_queue(client, headers_a, "Org A Queue")
-        await client.post(f"/api/v1/queues/{q['id']}/join")
+        await _admin_join(client, q["id"], headers_a)
 
         resp = await client.post(
             f"/api/v1/queues/{q['id']}/next",
@@ -278,7 +294,7 @@ class TestTokenLifecycle:
         _, _, tok = await _make_org_user_token(db, tag)
         headers = {"Authorization": f"Bearer {tok}"}
         q = await _create_queue(client, headers, f"LC Q {tag}")
-        join = await client.post(f"/api/v1/queues/{q['id']}/join")
+        join = await _admin_join(client, q["id"], headers)
         join.json()  # we only have token_number; need to get token ID via serving
         return q["id"], headers, tok
 
@@ -288,11 +304,11 @@ class TestTokenLifecycle:
         _, _, auth_tok = await _make_org_user_token(db, "skip1")
         headers = {"Authorization": f"Bearer {auth_tok}"}
         q = await _create_queue(client, headers, "Skip Q")
-        await client.post(f"/api/v1/queues/{q['id']}/join")
+        await _admin_join(client, q["id"], headers)
 
         # Get token ID from DB directly via next (it returns the token being served)
         # For skip we need a waiting token — so join another and skip it
-        await client.post(f"/api/v1/queues/{q['id']}/join")
+        await _admin_join(client, q["id"], headers)
         # Call next to serve token 1; token 2 stays waiting
         next_r = await client.post(f"/api/v1/queues/{q['id']}/next", headers=headers)
         assert next_r.json()["serving"] == 1
@@ -323,7 +339,7 @@ class TestTokenLifecycle:
         _, _, auth_tok = await _make_org_user_token(db, "skip-err")
         headers = {"Authorization": f"Bearer {auth_tok}"}
         q = await _create_queue(client, headers, "SkipErr Q")
-        await client.post(f"/api/v1/queues/{q['id']}/join")
+        await _admin_join(client, q["id"], headers)
         await client.post(f"/api/v1/queues/{q['id']}/next", headers=headers)
 
         # Get serving token id
@@ -349,7 +365,7 @@ class TestTokenLifecycle:
         _, _, auth_tok = await _make_org_user_token(db, "done1")
         headers = {"Authorization": f"Bearer {auth_tok}"}
         q = await _create_queue(client, headers, "Done Q")
-        await client.post(f"/api/v1/queues/{q['id']}/join")
+        await _admin_join(client, q["id"], headers)
         await client.post(f"/api/v1/queues/{q['id']}/next", headers=headers)
 
         from sqlalchemy import select
@@ -374,7 +390,7 @@ class TestTokenLifecycle:
         _, _, auth_tok = await _make_org_user_token(db, "done-err")
         headers = {"Authorization": f"Bearer {auth_tok}"}
         q = await _create_queue(client, headers, "DoneErr Q")
-        await client.post(f"/api/v1/queues/{q['id']}/join")
+        await _admin_join(client, q["id"], headers)
 
         from sqlalchemy import select
         from app.db.session import AsyncSessionLocal
@@ -401,7 +417,7 @@ class TestTokenLifecycle:
         headers_b = {"Authorization": f"Bearer {tok_b}"}
 
         q = await _create_queue(client, headers_a, "CT Q")
-        await client.post(f"/api/v1/queues/{q['id']}/join")
+        await _admin_join(client, q["id"], headers_a)
         await client.post(f"/api/v1/queues/{q['id']}/next", headers=headers_a)
 
         from sqlalchemy import select

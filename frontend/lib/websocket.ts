@@ -18,11 +18,18 @@ import type { QueueSnapshot } from "@/types/api";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected" | "reconnecting";
 
+export interface NewCustomerEvent {
+    type: "new_customer";
+    token: string;
+    name?: string;
+    time?: string;
+}
+
 export interface QueueWebSocketOptions {
     token?: string;
     onSnapshot?: (snapshot: QueueSnapshot) => void;
     onUpdate?: (update: QueueSnapshot) => void;
-    onNewCustomer?: (data: any) => void;
+    onNewCustomer?: (data: NewCustomerEvent) => void;
     onStatusChange?: (status: ConnectionStatus) => void;
     onError?: (error: Event | Error) => void;
 }
@@ -66,7 +73,7 @@ export class QueueWebSocket {
 
         let url = `${config.wsBaseUrl}/queues/${this.queueId}`;
         if (this.options.token) {
-            url += `?token=${encodeURIComponent(this.options.token)}`;
+            url += "?auth=frame";
         }
 
         try {
@@ -79,6 +86,9 @@ export class QueueWebSocket {
         }
 
         this.ws.onopen = () => {
+            if (this.options.token) {
+                this.ws?.send(JSON.stringify({ type: "auth", token: this.options.token }));
+            }
             this.reconnectAttempts = 0;
             this.setStatus("connected");
             this.startPing();
@@ -92,7 +102,7 @@ export class QueueWebSocket {
 
                 if (data.type === "new_customer") {
                     console.log("RECEIVED NEW CUSTOMER EVENT via WS:", data);
-                    this.options.onNewCustomer?.(data);
+                    this.options.onNewCustomer?.(data as unknown as NewCustomerEvent);
                 } else if (data.type === "queue_update") {
                     this.options.onUpdate?.(data);
                 } else {

@@ -9,6 +9,7 @@ import type {
     WhatsAppMessage,
     WhatsAppEventStat,
     QueueResponse,
+    SubscriptionSummary,
 } from "@/types/api";
 import {
     MessageSquareText,
@@ -432,6 +433,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
     const [activeTab, setActiveTab] = useState<"overview" | "history" | "settings">("overview");
 
     const [config, setConfig] = useState<WhatsAppOrgConfig | null>(null);
+    const [sub, setSub] = useState<SubscriptionSummary | null>(null);
     const [stats, setStats] = useState<WhatsAppOrgStats | null>(null);
     const [eventStats, setEventStats] = useState<WhatsAppEventStat[]>([]);
     const [logs, setLogs] = useState<PaginatedWhatsAppMessages | null>(null);
@@ -514,12 +516,14 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
 
     const loadInitialData = useCallback(async () => {
         try {
-            const [cfg, qs] = await Promise.all([
+            const [cfg, qs, s] = await Promise.all([
                 api.getOrgWhatsAppConfig().catch(() => null),
                 api.listQueues().catch(() => []),
+                api.getSubscriptionSummary().catch(() => null),
             ]);
             if (cfg) setConfig(cfg);
             setQueues(qs || []);
+            if (s) setSub(s);
         } catch (e) {
             console.error("Failed to load initial data", e);
         }
@@ -696,7 +700,12 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
     const totalPages = logs ? Math.ceil(logs.total / limit) : 1;
 
     // Active Preview Template
-    const activePreview = SAMPLE_MESSAGES[selectedPreviewEvent] || SAMPLE_MESSAGES["queue_joined_v4"];
+    const rawPreview = SAMPLE_MESSAGES[selectedPreviewEvent] || SAMPLE_MESSAGES["queue_joined_v4"];
+    const baseOrigin = typeof window !== "undefined" ? window.location.origin : "https://app.localhost:3000";
+    const activePreview = {
+        ...rawPreview,
+        body: rawPreview.body.replace(/https:\/\/q4queue\.com/g, baseOrigin)
+    };
 
     /* ─── Compact Filter Toolbar ──────────────────────────── */
     const FilterBar = () => (
@@ -776,17 +785,44 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
     );
 
     return (
-        <div className="space-y-6 w-full pb-6 animate-in fade-in duration-300">
-            {/* ── 1. Header & Channel Switcher (Matches Staff Monitoring & Voice Calls) ── */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 pb-6 border-b border-slate-200/60 dark:border-white/10">
-                <div>
-                    <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-200 dark:to-slate-400">
-                        WhatsApp & Communications
-                    </h1>
-                    <div className="flex items-center flex-wrap gap-2.5 text-sm text-slate-500 dark:text-slate-400 mt-2">
-                        <span className="leading-none font-medium">
-                            Automated queue lifecycle triggers, live delivery telemetry, and interactive message preview
-                        </span>
+        <div className="space-y-6 w-full pb-16 min-h-screen">
+            {(sub?.status === "trialing" || sub?.whatsapp_allowed === false) && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3.5 text-amber-900 dark:text-amber-200">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                        <h4 className="font-semibold text-sm">WhatsApp Notifications & Voice Calling Disabled in Free Trial</h4>
+                        <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                            Outbound WhatsApp queue notifications and WebRTC voice calls are disabled during your Free Trial. Upgrade to a commercial subscription plan to enable automated messaging and voice calling for your customers.
+                        </p>
+                    </div>
+                </div>
+            )}
+            {/* ══════════════════════════════════════════════
+                1. EXECUTIVE STUDIO APP HEADER & TABS
+            ══════════════════════════════════════════════ */}
+            <div className="bg-white dark:bg-slate-900/70 dark:backdrop-blur-xl rounded-2xl p-5 sm:p-6 border border-slate-200/80 dark:border-white/10 shadow-xs space-y-4">
+                {/* Header Top Row: Title + Status + Channel Switcher */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex items-start sm:items-center gap-3.5">
+                        <div className="p-2 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0 border border-emerald-100 dark:border-emerald-500/20 shadow-2xs">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2.5 flex-wrap">
+                                <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                                    WhatsApp & Communications
+                                </h1>
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/40">
+                                    <span className="inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    <span>Meta Cloud API • Connected</span>
+                                </div>
+                            </div>
+                            <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
+                                Automated queue lifecycle triggers, live delivery telemetry, and interactive message preview
+                            </p>
+                        </div>
                     </div>
                 </div>
 

@@ -57,7 +57,16 @@ async def get_session(
             db, session_id=session_id, user=current_user
         )
     except ValueError as exc:
-        _raise_404(exc)
+        if "not found" in str(exc).lower():
+            _raise_404(exc)
+        _raise_400(exc)
+
+    if session and getattr(session, "is_active", True) and session.queue_id:
+        from app.models.queue import Queue
+        queue = await db.get(Queue, session.queue_id)
+        if queue:
+            from app.services.queue_service import check_and_auto_close_queue_session
+            await check_and_auto_close_queue_session(db, queue)
 
     return SessionResponse(
         id=session.id,
@@ -81,9 +90,9 @@ async def update_session(
     body: SessionUpdate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin_or_staff()),
+    current_user: User = Depends(require_branch_admin()),
 ) -> SessionResponse:
-    """Update a specific session (e.g., its title, active, paused)."""
+    """Update a session title. State changes use the guarded endpoints below."""
     try:
         session = await session_service.update_session(
             db, session_id=session_id, user=current_user, data=body
@@ -94,7 +103,9 @@ async def update_session(
             org_id=session.org_id,
         )
     except ValueError as exc:
-        _raise_404(exc)
+        if "not found" in str(exc).lower():
+            _raise_404(exc)
+        _raise_400(exc)
 
     return session
 
@@ -109,7 +120,7 @@ async def toggle_session_active(
     is_active: bool,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin_or_staff()),
+    current_user: User = Depends(require_branch_admin()),
 ) -> SessionResponse:
     """Activate or deactivate a specific session."""
     try:
@@ -122,7 +133,9 @@ async def toggle_session_active(
             org_id=session.org_id,
         )
     except ValueError as exc:
-        _raise_404(exc)
+        if "not found" in str(exc).lower():
+            _raise_404(exc)
+        _raise_400(exc)
 
     return SessionResponse(
         id=session.id,
@@ -146,7 +159,7 @@ async def toggle_session_paused(
     is_paused: bool,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin_or_staff()),
+    current_user: User = Depends(require_branch_admin()),
 ) -> SessionResponse:
     """Pause or resume a specific session."""
     try:
@@ -159,7 +172,9 @@ async def toggle_session_paused(
             org_id=session.org_id,
         )
     except ValueError as exc:
-        _raise_404(exc)
+        if "not found" in str(exc).lower():
+            _raise_404(exc)
+        _raise_400(exc)
 
     return SessionResponse(
         id=session.id,
@@ -177,7 +192,7 @@ async def toggle_session_paused(
     "/{session_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete Session",
-    description="Deletes a session and ALL its queues and tokens forever.",
+    description="Permanently deletes a non-current session and its token history.",
 )
 async def delete_session(
     session_id: uuid.UUID,
@@ -190,6 +205,6 @@ async def delete_session(
             db, session_id=session_id, user=current_user
         )
     except ValueError as exc:
-        _raise_404(exc)
-
-
+        if "not found" in str(exc).lower():
+            _raise_404(exc)
+        _raise_400(exc)

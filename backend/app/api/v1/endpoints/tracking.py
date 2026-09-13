@@ -99,26 +99,21 @@ async def track_token(
     token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name, org_timezone = row
 
     is_past_session = False
+    session_is_active = True
+    effective_status = token.status
     session_date_str = None
     if token.session_id:
         sess = await db.get(SessionModel, token.session_id)
         if sess:
+            session_is_active = sess.is_active
             session_date_str = sess.session_date.isoformat()
             tz_str = org_timezone if org_timezone else "Asia/Kolkata"
             today = datetime.now(ZoneInfo(tz_str)).date()
             if sess.session_date < today:
                 is_past_session = True
 
-            if is_past_session or not sess.is_active:
-                if token.status in (TokenStatus.waiting, TokenStatus.serving):
-                    token.status = TokenStatus.skipped
-                    token.removed_by = "session_end"
-                    token.completed_at = datetime.utcnow()
-                    await db.commit()
-                    await db.refresh(token)
-
     # Calculate current position
-    if token.status == TokenStatus.waiting:
+    if effective_status == TokenStatus.waiting:
         pos_result = await db.execute(
             select(
                 __import__("sqlalchemy", fromlist=["func"]).func.count()
@@ -126,6 +121,7 @@ async def track_token(
             .select_from(Token)
             .where(
                 Token.queue_id == token.queue_id,
+                Token.session_id == token.session_id,
                 Token.status == TokenStatus.waiting,
                 Token.token_number < token.token_number,
             )
@@ -139,13 +135,13 @@ async def track_token(
         tracking_id=str(token.tracking_id),
         token_number=token.token_number,
         token_prefix=queue_prefix,
-        status=token.status.value,
+        status=effective_status.value,
         position=position,
         queue_name=queue_name,
         org_name=org_name,
         queue_id=str(token.queue_id),
         session_id=str(token.session_id),
-        queue_is_active=queue_is_active,
+        queue_is_active=bool(queue_is_active and session_is_active and not is_past_session),
         queue_is_paused=queue_is_paused,
         is_past_session=is_past_session,
         session_date=session_date_str,

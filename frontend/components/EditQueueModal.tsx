@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { QueueResponse } from "@/types/api";
+import { Clock, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface Props {
     isOpen: boolean;
@@ -84,8 +85,13 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative bg-white dark:bg-slate-900 border border-transparent dark:border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-slate-900/5">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 tracking-tight">Edit Queue Settings</h3>
+            <div className="relative bg-white dark:bg-slate-900 border border-transparent dark:border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 ring-1 ring-slate-900/5 animate-in fade-in zoom-in duration-200">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">Queue Settings</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Configure queue parameters and automated daily session schedule.</p>
+                    </div>
+                </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -112,7 +118,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                 onChange={(e) => setPrefix(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase())}
                                 placeholder="A"
                                 maxLength={3}
-                                className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
+                                className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm font-mono font-bold text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
                                 disabled={isLoading}
                             />
                         </div>
@@ -122,37 +128,49 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                 type="number"
                                 min="1"
                                 value={startingSequence}
-                                onChange={(e) => setStartingSequence(parseInt(e.target.value))}
-                                className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
+                                onChange={(e) => setStartingSequence(parseInt(e.target.value) || 1)}
+                                className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm font-mono font-bold text-slate-800 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
                                 disabled={isLoading}
                             />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Open Time (Optional)</label>
-                            <input
-                                type="time"
-                                value={openTime}
-                                onChange={(e) => setOpenTime(e.target.value)}
-                                className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
-                                disabled={isLoading}
-                            />
+                    {/* Daily Automated Operating Schedule */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-3">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                            <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                            Daily Operating Hours
                         </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Close Time (Optional)</label>
-                            <input
-                                type="time"
-                                value={closeTime}
-                                onChange={(e) => setCloseTime(e.target.value)}
-                                className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-shadow"
-                                disabled={isLoading}
-                            />
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Open Time</label>
+                                <input
+                                    type="time"
+                                    value={openTime}
+                                    onChange={(e) => setOpenTime(e.target.value)}
+                                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-white focus:border-indigo-500 focus:outline-none"
+                                    disabled={isLoading}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Close Time</label>
+                                <input
+                                    type="time"
+                                    value={closeTime}
+                                    onChange={(e) => setCloseTime(e.target.value)}
+                                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-white focus:border-indigo-500 focus:outline-none"
+                                    disabled={isLoading}
+                                />
+                            </div>
                         </div>
+
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                            Supports overnight operating hours (e.g. 09:00 AM to 03:00 AM next day).
+                        </p>
                     </div>
 
-                    {/* Queue Type */}
+                    {/* Queue Mode */}
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Queue Mode</label>
                         <div className="grid grid-cols-2 gap-3">
@@ -207,8 +225,9 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                     </div>
 
                     {error && (
-                        <div className="bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-sm font-medium p-3 rounded-xl border border-rose-200 dark:border-rose-900/40">
-                            {error}
+                        <div className="bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-sm font-medium p-3 rounded-xl border border-rose-200 dark:border-rose-900/40 flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            <span>{error}</span>
                         </div>
                     )}
 
@@ -234,3 +253,4 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
         </div>
     );
 }
+

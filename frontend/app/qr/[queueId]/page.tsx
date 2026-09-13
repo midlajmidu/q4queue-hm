@@ -6,14 +6,7 @@ import { useQueueSocket } from "@/hooks/useQueueSocket";
 import { QRCodeCanvas } from "qrcode.react";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
-import { TOTP, NobleCryptoPlugin, ScureBase32Plugin } from "otplib";
-import { getSystemTime, getQueueQrConfig } from "@/lib/api";
-
-const totp = new TOTP({
-    period: 15,
-    crypto: new NobleCryptoPlugin(),
-    base32: new ScureBase32Plugin(),
-});
+import { getQueueQrConfig } from "@/lib/api";
 
 export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ queueId: string }> }) {
     const rawQueueId = use(params).queueId;
@@ -21,33 +14,26 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
 
     const { state: queueData, status } = useQueueSocket(queueId);
 
-    const [joinUrl, setJoinUrl] = useState("");
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
+    const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
+    const defaultJoinUrl = `${normalizedAppUrl}/join/${queueId}`;
+
+    const [joinUrl, setJoinUrl] = useState(defaultJoinUrl);
     const [timeLeft, setTimeLeft] = useState(15);
-    const [isMounted, setIsMounted] = useState(false);
-
     useEffect(() => {
-        setIsMounted(true);
-    }, []);
+        if (!queueId) return;
 
-    useEffect(() => {
-        if (!isMounted || !queueId) return;
+        setJoinUrl(defaultJoinUrl);
 
         let isCancelled = false;
-        let timerId: NodeJS.Timeout | null = null;
+        let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+        let countdownTimer: ReturnType<typeof setInterval> | null = null;
 
         const initAndStartTotp = async () => {
             try {
-                const [{ server_time }, { qr_secret_seed }] = await Promise.all([
-                    getSystemTime().catch(() => ({ server_time: Math.floor(Date.now() / 1000) })),
-                    getQueueQrConfig(queueId),
-                ]);
+                const { totp, valid_for } = await getQueueQrConfig(queueId);
 
                 if (isCancelled) return;
-
-                const timeOffset = server_time * 1000 - Date.now();
-
-                const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-                const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
 
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
                 const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
@@ -57,25 +43,17 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
                     fullApiUrl = normalizedAppUrl + normalizedApiUrl;
                 }
 
-                const updateCode = async () => {
-                    const nowWithOffset = Date.now() + timeOffset;
-                    const seconds = Math.floor(nowWithOffset / 1000);
-                    const remaining = 15 - (seconds % 15);
-                    setTimeLeft(remaining);
-
-                    try {
-                        const token = await totp.generate({ secret: qr_secret_seed, epoch: seconds });
-                        const fullUrl = `${fullApiUrl}/queues/${queueId}/scan?totp=${token}`;
-                        setJoinUrl(fullUrl);
-                    } catch (err) {
-                        console.error("Failed to generate TOTP:", err);
-                    }
-                };
-
-                await updateCode();
-                timerId = setInterval(updateCode, 1000);
+                setJoinUrl(`${fullApiUrl}/queues/${queueId}/scan?totp=${encodeURIComponent(totp)}`);
+                setTimeLeft(valid_for);
+                if (countdownTimer) clearInterval(countdownTimer);
+                countdownTimer = setInterval(() => setTimeLeft((value) => Math.max(0, value - 1)), 1000);
+                refreshTimer = setTimeout(initAndStartTotp, Math.max(1000, valid_for * 1000));
             } catch (error) {
                 console.error("Failed to initialize dynamic QR code:", error);
+                if (!isCancelled) {
+                    setJoinUrl(defaultJoinUrl);
+                    refreshTimer = setTimeout(initAndStartTotp, 5000);
+                }
             }
         };
 
@@ -83,9 +61,10 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
 
         return () => {
             isCancelled = true;
-            if (timerId) clearInterval(timerId);
+            if (refreshTimer) clearTimeout(refreshTimer);
+            if (countdownTimer) clearInterval(countdownTimer);
         };
-    }, [queueId, isMounted]);
+    }, [queueId, defaultJoinUrl]);
 
 
 

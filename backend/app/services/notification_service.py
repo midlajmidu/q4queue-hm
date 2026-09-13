@@ -90,6 +90,14 @@ async def notify_queue_event(
         # have been disabled to keep the notification tray exclusively for high wait time alerts.
         pass
 
+        # 0. Check Free Trial entitlement (WhatsApp disabled during free trial)
+        async with AsyncSessionLocal() as trial_db:
+            from app.services.entitlement_service import get_subscription_for_org, effective_status
+            sub = await get_subscription_for_org(trial_db, org_id)
+            if sub is not None and effective_status(sub) == "trialing":
+                logger.info("WhatsApp notifications disabled during Free Trial for org %s, skipping event=%s", org_id, event_type)
+                return
+
         # 1. Check org has WhatsApp enabled and the specific event is enabled
         cfg = await get_org_notification_config(org_id)
         if not (cfg["global_enabled"] and cfg["is_enabled"]):
@@ -183,7 +191,7 @@ async def notify_queue_event(
             # joined template uses variables for ticket_confirmed_v1
             from app.core.config import get_settings
             settings = get_settings()
-            frontend_url = getattr(settings, "FRONTEND_URL", "https://q4queue.com").rstrip("/")
+            frontend_url = getattr(settings, "FRONTEND_URL", "http://app.localhost:3000").rstrip("/")
             track_target = tracking_id or token_id or queue_id
             track_url = f"{frontend_url}/track/{track_target}" if track_target else f"{frontend_url}/track"
             display_url = f"{frontend_url}/display/{queue_id}" if queue_id else f"{frontend_url}/display"
@@ -206,16 +214,23 @@ async def notify_queue_event(
                 logger.warning("Token %s not found in DB for event %s, skipping", token_id, event_type)
                 return
                 
-            # Check if customer opted into WhatsApp live alerts
-            if not db_token.whatsapp_alerts_active:
-                logger.info(
-                    "Customer %s did not opt into WhatsApp live alerts for token %s, skipping event %s",
-                    customer_phone, token_id, event_type
-                )
-                return
+            delivery_mode = cfg.get("delivery_mode", "button_reply_only")
 
-            # Always send official approved Meta template messages
-            is_raw_text = False
+            if delivery_mode == "button_reply_only":
+                if not db_token.whatsapp_alerts_active:
+                    logger.info(
+                        "Delivery mode 'button_reply_only': Customer %s did not click 'Get Live Queue Updates' for token %s, skipping follow-up event %s",
+                        customer_phone, token_id, event_type
+                    )
+                    return
+                # User clicked button -> active 24h window -> send as free session text message
+                is_raw_text = True
+            else: # "always_send"
+                if db_token.whatsapp_alerts_active:
+                    is_raw_text = True
+                else:
+                    is_raw_text = False
+
             raw_body = None
 
             if event_type in ("queue_called_v3", "queue_recalled_v2"):
@@ -237,7 +252,7 @@ async def notify_queue_event(
                 
                 from app.core.config import get_settings
                 settings = get_settings()
-                frontend_url = getattr(settings, "FRONTEND_URL", "https://q4queue.com").rstrip("/")
+                frontend_url = getattr(settings, "FRONTEND_URL", "http://app.localhost:3000").rstrip("/")
                 track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
 
                 if event_type == "queue_nearby_5_v3":

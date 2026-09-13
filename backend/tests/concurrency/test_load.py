@@ -43,9 +43,21 @@ class TestDBPoolStress:
         errors = [r for r in responses if isinstance(r, Exception)]
         assert not errors, f"Exceptions during load: {errors}"
 
-        status_codes = [r.status_code for r in responses if not isinstance(r, Exception)]
-        non_200 = [s for s in status_codes if s != 200]
-        assert not non_200, f"Non-200 responses: {non_200}"
+        # ASGITransport does not run application lifespan, so Redis may be
+        # intentionally uninitialised and health may correctly return 503.
+        # This test is specifically about DB pool exhaustion: every response
+        # must still show a successful database probe.
+        bad_statuses = [
+            r.status_code
+            for r in responses
+            if not isinstance(r, Exception) and r.status_code not in (200, 503)
+        ]
+        assert not bad_statuses, f"Unexpected responses: {bad_statuses}"
+        assert all(
+            r.json()["database"] == "connected"
+            for r in responses
+            if not isinstance(r, Exception)
+        ), "Database health degraded under parallel load"
 
     async def test_100_parallel_health_average_under_threshold(self):
         start = time.perf_counter()
@@ -72,6 +84,7 @@ class TestConcurrentLogin:
             email="conc@test.com",
             password_hash=hash_password("concpass"),
             role="admin",
+            is_first_login=False,
         )
         db.add(user)
         await db.commit()
@@ -133,12 +146,13 @@ class TestConcurrentProtectedRoute:
             email="metest@test.com",
             password_hash=hash_password("mepass"),
             role="admin",
+            is_first_login=False,
         )
         db.add(user)
         await db.commit()
         await db.refresh(user)
         self.token = create_access_token(
-            user_id=str(user.id), org_id=str(org.id), role="admin"
+            user_id=str(user.id), org_id=str(org.id), role="admin", email=user.email
         )
 
     async def test_50_concurrent_me_calls_no_session_corruption(self):
@@ -199,6 +213,7 @@ class TestPerformanceBaseline:
         db.add(User(
             org_id=org.id, email="perf@test.com",
             password_hash=hash_password("perfpass"), role="admin",
+            is_first_login=False,
         ))
         await db.commit()
 
@@ -222,13 +237,14 @@ class TestPerformanceBaseline:
         user = User(
             org_id=org.id, email="perfme@test.com",
             password_hash=hash_password("pass"), role="admin",
+            is_first_login=False,
         )
         db.add(user)
         await db.commit()
         await db.refresh(user)
 
         token = create_access_token(
-            user_id=str(user.id), org_id=str(org.id), role="admin"
+            user_id=str(user.id), org_id=str(org.id), role="admin", email=user.email
         )
         headers = {"Authorization": f"Bearer {token}"}
         times = []

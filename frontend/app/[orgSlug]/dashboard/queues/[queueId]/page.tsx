@@ -164,6 +164,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
         setSessionActionLoading(prev => ({ ...prev, [session.id]: 'paused' }));
         try {
             await api.toggleSessionPaused(session.id, nextPaused);
+            setSessions(prev => prev.map(s => s.id === session.id ? { ...s, is_paused: nextPaused } : s));
             if (nextPaused) {
                 toast.warning("Session is on break. Token registrations are paused.");
             } else {
