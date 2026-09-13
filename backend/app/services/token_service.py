@@ -13,6 +13,7 @@ org_id in the initial locking query to prevent cross-tenant DoS attacks.
 Public (unauthenticated) operations use the unsafe lock only on public queues.
 """
 import logging
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
