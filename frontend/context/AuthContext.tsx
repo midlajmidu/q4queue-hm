@@ -125,10 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     syncAuthState();
                     
                     const currentPath = window.location.pathname;
-                    const isAlreadyOnLogin = currentPath === "/login" || currentPath.endsWith("/login") || currentPath === "/organization-login";
+                    const isProtectedRoute = currentPath.startsWith("/organization-admin") || currentPath.startsWith("/super-admin") || currentPath.startsWith("/org-admin") || currentPath.includes("/dashboard");
                     
-                    if (!isAlreadyOnLogin) {
-                        if (currentPath.startsWith("/organization-admin")) {
+                    if (isProtectedRoute) {
+                        if (currentPath.startsWith("/organization-admin") || currentPath.startsWith("/org-admin")) {
                             router.push("/organization-login");
                         } else if (currentPath.startsWith("/super-admin")) {
                             router.push("/super-admin/login");
@@ -156,12 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 removeToken();
                 syncAuthState();
                 const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
-                if (currentPath.startsWith("/organization-admin")) {
-                    router.replace("/organization-login");
-                } else if (currentPath.startsWith("/super-admin")) {
-                    router.replace("/super-admin/login");
-                } else {
-                    router.replace("/login");
+                const isProtectedRoute = currentPath.startsWith("/organization-admin") || currentPath.startsWith("/super-admin") || currentPath.startsWith("/org-admin") || currentPath.includes("/dashboard");
+                if (isProtectedRoute) {
+                    if (currentPath.startsWith("/organization-admin") || currentPath.startsWith("/org-admin")) {
+                        router.replace("/organization-login");
+                    } else if (currentPath.startsWith("/super-admin")) {
+                        router.replace("/super-admin/login");
+                    } else {
+                        router.replace("/login");
+                    }
                 }
             }
         }, 30_000);
@@ -256,10 +259,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         broadcastEvent("LOGOUT");
         
         const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
-        const isAlreadyOnLogin = currentPath === "/login" || currentPath.endsWith("/login") || currentPath === "/organization-login";
+        const isProtectedRoute = currentPath.startsWith("/organization-admin") || currentPath.startsWith("/super-admin") || currentPath.startsWith("/org-admin") || currentPath.includes("/dashboard");
         
-        if (!isAlreadyOnLogin) {
-            if (currentPath.startsWith("/organization-admin")) {
+        if (isProtectedRoute) {
+            if (currentPath.startsWith("/organization-admin") || currentPath.startsWith("/org-admin")) {
                 router.push("/organization-login");
             } else if (currentPath.startsWith("/super-admin")) {
                 router.push("/super-admin/login");
