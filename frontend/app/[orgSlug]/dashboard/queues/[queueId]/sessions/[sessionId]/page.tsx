@@ -2146,34 +2146,54 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                     key={index}
                                                                     id={`pin-${index}`}
                                                                     type="text"
-                                                                    inputMode="numeric"
-                                                                    pattern="[0-9]*"
-                                                                    maxLength={1}
+                                                                    autoCapitalize="characters"
+                                                                    autoComplete="off"
+                                                                    autoCorrect="off"
+                                                                    spellCheck={false}
+                                                                    maxLength={6}
                                                                     value={qrPairingCodeInput[index] || ""}
                                                                     onChange={(e) => {
-                                                                        const val = e.target.value.replace(/[^0-9]/g, '');
-                                                                        if (!val) {
+                                                                        const rawVal = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                                                        if (!rawVal) {
                                                                             const newPin = qrPairingCodeInput.split('');
                                                                             newPin[index] = '';
                                                                             setQrPairingCodeInput(newPin.join(''));
                                                                             return;
                                                                         }
-                                                                        const newPin = qrPairingCodeInput.split('');
-                                                                        newPin[index] = val;
-                                                                        const updated = newPin.join('').slice(0, 6);
+                                                                        if (rawVal.length > 1) {
+                                                                            const pasted = rawVal.slice(0, 6);
+                                                                            setQrPairingCodeInput(pasted);
+                                                                            const nextIdx = Math.min(pasted.length, 5);
+                                                                            document.getElementById(`pin-${nextIdx}`)?.focus();
+                                                                            return;
+                                                                        }
+                                                                        const charArr = Array.from({ length: 6 }, (_, i) => qrPairingCodeInput[i] || '');
+                                                                        charArr[index] = rawVal;
+                                                                        const updated = charArr.join('');
                                                                         setQrPairingCodeInput(updated);
-                                                                        if (index < 5 && val) {
+                                                                        if (index < 5 && rawVal) {
                                                                             const next = document.getElementById(`pin-${index + 1}`);
                                                                             next?.focus();
                                                                         }
                                                                     }}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Backspace' && !qrPairingCodeInput[index] && index > 0) {
-                                                                            const prev = document.getElementById(`pin-${index - 1}`);
-                                                                            prev?.focus();
+                                                                    onPaste={(e) => {
+                                                                        e.preventDefault();
+                                                                        const pastedText = e.clipboardData.getData('text').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+                                                                        if (pastedText) {
+                                                                            setQrPairingCodeInput(pastedText);
+                                                                            const nextIdx = Math.min(pastedText.length, 5);
+                                                                            document.getElementById(`pin-${nextIdx}`)?.focus();
                                                                         }
                                                                     }}
-                                                                    className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl font-bold bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Backspace') {
+                                                                            if (!qrPairingCodeInput[index] && index > 0) {
+                                                                                const prev = document.getElementById(`pin-${index - 1}`);
+                                                                                prev?.focus();
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                    className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl font-bold font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none uppercase"
                                                                 />
                                                             ))}
                                                         </div>
