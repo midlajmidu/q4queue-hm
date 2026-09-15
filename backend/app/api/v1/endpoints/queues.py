@@ -544,8 +544,13 @@ async def get_queue_public_status(
 async def get_queue_qr_config(
     queue_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_queue_for_org),
 ):
+    from sqlalchemy import select as sa_select
+    result = await db.execute(sa_select(Queue).where(Queue.id == queue_id))
+    queue = result.scalar_one_or_none()
+    if not queue or queue.is_deleted:
+        raise HTTPException(status_code=404, detail="Queue not found")
+
     if not queue.is_active or queue.is_paused or not queue.token_session_id:
         raise HTTPException(status_code=409, detail="Start the queue session before showing its QR code.")
     from app.models.session import Session as SessionModel

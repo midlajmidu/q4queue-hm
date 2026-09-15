@@ -264,9 +264,11 @@ async function request<T>(
                 const path = window.location.pathname;
                 const isSuperAdminPath = path.startsWith("/super-admin");
                 const isOrgAdminPath = path.startsWith("/organization-admin");
+                const isDashboardPath = path.includes("/dashboard");
+                const isPublicPath = path.startsWith("/qr") || path.startsWith("/display") || path.startsWith("/join") || path.startsWith("/track") || path === "/" || path.startsWith("/features") || path.startsWith("/pricing") || path.startsWith("/solutions") || path.startsWith("/industries");
                 const isAlreadyonLogin = path === "/login" || path.endsWith("/login") || path === "/organization-login";
 
-                if (!isAlreadyonLogin) {
+                if (!isAlreadyonLogin && !isPublicPath && (isSuperAdminPath || isOrgAdminPath || isDashboardPath)) {
                     if (isOrgAdminPath) {
                         window.location.href = "/organization-login";
                     } else {
