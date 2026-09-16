@@ -1,7 +1,7 @@
 """add field_schema snapshot to tokens
 
 Revision ID: z004_add_field_schema
-Revises: z003_add_custom_fields
+Revises: z019_history_perf_indexes
 Create Date: 2026-09-13 23:49:00.000000
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'z004_add_field_schema'
-down_revision = 'z003_add_custom_fields'
+down_revision = 'z019_history_perf_indexes'
 branch_labels = None
 depends_on = None
 
