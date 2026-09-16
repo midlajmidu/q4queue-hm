@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
+import { config } from "@/lib/config";
 
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,11 +21,6 @@ export default function LoginPage() {
     // Redirect to dashboard if already logged in
     useEffect(() => {
         if (isHydrated && isAuthenticated && user) {
-            const isAppSubdomain = typeof window !== "undefined" && window.location.hostname.startsWith("app.");
-            const currentHost = typeof window !== "undefined" ? window.location.host : "";
-            const appHost = isAppSubdomain ? currentHost : `app.${currentHost}`;
-            const protocol = typeof window !== "undefined" ? window.location.protocol : "http:";
-
             let targetPath = "/dashboard";
             if (user.is_first_login) {
                 if (user.role === "super_admin") {
@@ -42,13 +38,7 @@ export default function LoginPage() {
                 targetPath = `/${user.org_slug}/dashboard`;
             }
 
-            if (typeof window !== "undefined" && !isAppSubdomain) {
-                const token = localStorage.getItem("fc_access_token") || "";
-                const hashStr = token ? `#token=${token}` : "";
-                window.location.href = `${protocol}//${appHost}${targetPath}${hashStr}`;
-            } else {
-                router.replace(targetPath);
-            }
+            router.replace(targetPath);
         }
     }, [isHydrated, isAuthenticated, user, router]);
 
@@ -111,9 +101,9 @@ export default function LoginPage() {
                     <div className="w-full max-w-[420px] flex flex-col justify-center my-auto py-6">
                         {/* Logo */}
                         <div className="mb-8 sm:mb-10 -ml-9 sm:-ml-12">
-                            <Link href="/" className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg overflow-visible" aria-label="Go to home page">
+                            <a href={config.landingUrl} className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg overflow-visible" aria-label="Go to home page">
                                 <Image src="/q4queue-new_logo.png" alt="Q4Queue Logo" width={300} height={80} className="h-12 sm:h-14 w-auto object-contain origin-left scale-[2.7] sm:scale-[3.0]" priority />
-                            </Link>
+                            </a>
                         </div>
 
                         <div className="mb-8 flex flex-col items-start">

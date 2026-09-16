@@ -35,7 +35,26 @@ export const config = {
   })(),
 
   appName: process.env.NEXT_PUBLIC_APP_NAME || "Q4Queue",
-  appUrl: (typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || "http://app.localhost:3000")),
+  appUrl: (() => {
+    if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+    if (typeof window !== 'undefined') {
+      const isApp = window.location.hostname.startsWith('app.');
+      if (isApp) return window.location.origin;
+      return `${window.location.protocol}//app.${window.location.host}`;
+    }
+    return "http://app.localhost:3000";
+  })(),
   isProduction: process.env.NODE_ENV === "production",
-  landingUrl: (typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost:3000")),
+  landingUrl: (() => {
+    if (process.env.NEXT_PUBLIC_LANDING_URL) return process.env.NEXT_PUBLIC_LANDING_URL;
+    if (typeof window !== 'undefined') {
+      const isApp = window.location.hostname.startsWith('app.');
+      if (isApp) {
+        const rootHost = window.location.host.replace(/^app\./, '');
+        return `${window.location.protocol}//${rootHost}`;
+      }
+      return window.location.origin;
+    }
+    return "http://localhost:3000";
+  })(),
 } as const;
