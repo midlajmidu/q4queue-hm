@@ -123,6 +123,8 @@ async def build_queue_snapshot(
     # ── Total Issued count & Session info for current session ──
     session_date_str = None
     is_past_session = False
+    session_is_current = False
+    within_hours = True
     session = None
     if queue.token_session_id:
         from app.models.session import Session
@@ -135,6 +137,14 @@ async def build_queue_snapshot(
             today = queue_business_date(local_now, queue.open_time, queue.close_time)
             if session.session_date < today:
                 is_past_session = True
+            session_is_current = session.session_date == today
+            if queue.open_time and queue.close_time:
+                current_hm = local_now.strftime("%H:%M")
+                within_hours = (
+                    queue.open_time <= current_hm <= queue.close_time
+                    if queue.open_time <= queue.close_time
+                    else current_hm >= queue.open_time or current_hm <= queue.close_time
+                )
 
     else:
         issued_count = 0
