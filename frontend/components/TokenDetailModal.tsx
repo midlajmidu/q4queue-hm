@@ -5,6 +5,8 @@ import { api } from "@/lib/api";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { fmtTime, fmtDateTime } from "@/lib/tzformat";
 
+import { getMaskedToken } from "@/lib/utils";
+
 export interface TokenDetailData {
     id?: string;
     token_number: number;
@@ -27,12 +29,14 @@ export interface TokenDetailData {
     deleted_at?: string | null;
     skipped_at?: string | null;
     recalled_at?: string | null;
+    masked_token?: string | null;
 }
 
 interface TokenDetailModalProps {
     token: TokenDetailData | null;
     onClose: () => void;
     onRecall?: () => void;
+    maskTokenNumber?: boolean;
 }
 
 
@@ -72,7 +76,7 @@ const ENTRY_STYLES: Record<string, string> = {
     auto: "bg-orange-100 dark:bg-amber-950/80 text-orange-700 dark:text-amber-300",
 };
 
-export default function TokenDetailModal({ token, onClose, onRecall }: TokenDetailModalProps) {
+export default function TokenDetailModal({ token, onClose, onRecall, maskTokenNumber }: TokenDetailModalProps) {
     const [fullToken, setFullToken] = useState<TokenDetailData | null>(token);
 
     useEffect(() => {
@@ -93,6 +97,7 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
     const entryType = fullToken.entry_type ?? "manual";
     const waitingTime = calcWaitingTime(fullToken.created_at, fullToken.served_at, fullToken.status);
     const serviceTime = calcServiceTime(fullToken.served_at, fullToken.completed_at);
+    const maskedVal = maskTokenNumber ? (fullToken.masked_token || getMaskedToken(fullToken.customer_name, fullToken.customer_phone)) : null;
 
     // Close on backdrop click
     const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -117,6 +122,12 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         <p className="text-4xl font-black text-white tabular-nums leading-none">
                             {fullToken.prefix || ""}{fullToken.token_number}
                         </p>
+                        {maskedVal && (
+                            <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/15 dark:bg-white/10 backdrop-blur-sm border border-white/20">
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-blue-200 dark:text-indigo-300">Customer Token</span>
+                                <span className="font-mono text-xs font-bold text-white tracking-wide">{maskedVal}</span>
+                            </div>
+                        )}
                         {fullToken.queue_name && (
                             <p className="text-blue-200 dark:text-slate-400 text-xs mt-2 font-medium">{fullToken.queue_name}</p>
                         )}
@@ -157,6 +168,9 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
 
                     {/* Detail grid */}
                     <div className="grid grid-cols-2 gap-3">
+                        {maskedVal && (
+                            <DetailItem label="Customer Token" value={maskedVal} highlight="emerald" />
+                        )}
                         <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
                         {fullToken.assigned_line != null && (
                             <DetailItem label="Lane Number" value={String(fullToken.assigned_line)} highlight="emerald" />

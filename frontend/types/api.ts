@@ -281,6 +281,7 @@ export interface QueueResponse {
     open_time?: string;
     close_time?: string;
     created_at: string;
+    mask_token_number?: boolean;
 }
 
 export interface PaginatedQueueResponse {
@@ -391,6 +392,7 @@ export interface RecentToken {
     skipped_at?: string | null;
     deleted_at?: string | null;
     recalled_at?: string | null;
+    masked_token?: string | null;
 }
 
 export interface WaitingToken {
@@ -411,6 +413,7 @@ export interface WaitingToken {
     skipped_at?: string | null;
     deleted_at?: string | null;
     recalled_at?: string | null;
+    masked_token?: string | null;
 }
 
 export interface ServingToken {
@@ -425,12 +428,14 @@ export interface ServingToken {
     entry_type?: "manual" | "qr" | "auto" | null;
     shared_lines?: number[];
     completed_lines?: number[];
+    masked_token?: string | null;
 }
 
 export interface QueueSnapshot {
     type?: string;
     enable_shared_tokens?: boolean;
     is_whatsapp_enabled?: boolean;
+    mask_token_number?: boolean;
     queue_id: string;
 
     session_id: string;
@@ -451,6 +456,7 @@ export interface QueueSnapshot {
         pax_count?: number;
         assigned_line?: number | null;
         called_via_invite?: boolean;
+        masked_token?: string | null;
     } | null;
     all_serving_tokens: ServingToken[];  // all lanes currently serving
     waiting_count: number;

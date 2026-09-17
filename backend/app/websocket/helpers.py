@@ -46,10 +46,16 @@ async def build_queue_snapshot(
     org = org_result.scalar_one_or_none()
     
     from app.models.parent_organization import ParentOrganization
+    from app.whatsapp.config_service import get_org_notification_config
+    from app.services.notification_service import get_masked_token_string
+
     parent_org = None
     if org and org.parent_organization_id:
         parent_org_result = await db.execute(select(ParentOrganization).where(ParentOrganization.id == org.parent_organization_id))
         parent_org = parent_org_result.scalar_one_or_none()
+
+    cfg = await get_org_notification_config(queue.org_id)
+    mask_token_number = cfg.get("mask_token_number", False)
     
     # ── Currently serving ──────────────────────────────────────────
     serving_result = await db.execute(
@@ -73,6 +79,7 @@ async def build_queue_snapshot(
             "called_via_invite": serving_token.called_via_invite,
             "entry_type": getattr(serving_token, "entry_type", "qr"),
             "pax_count": getattr(serving_token, "pax_count", 1),
+            "masked_token": get_masked_token_string(serving_token.customer_name, serving_token.customer_phone) if mask_token_number else None,
         }
         if is_admin:
             # Mask sensitive data for public screens
@@ -102,6 +109,7 @@ async def build_queue_snapshot(
             "pax_count": getattr(t, "pax_count", 1),
             "shared_lines": getattr(t, "shared_lines", []),
             "completed_lines": getattr(t, "completed_lines", []),
+            "masked_token": get_masked_token_string(t.customer_name, t.customer_phone) if mask_token_number else None,
         }
         if is_admin:
             sd["customer_phone"] = t.customer_phone
@@ -167,6 +175,7 @@ async def build_queue_snapshot(
             "deleted_at": getattr(t, "deleted_at", None).isoformat() if getattr(t, "deleted_at", None) else None,
             "recalled_at": getattr(t, "recalled_at", None).isoformat() if getattr(t, "recalled_at", None) else None,
             "pax_count": getattr(t, "pax_count", 1),
+            "masked_token": get_masked_token_string(t.customer_name, t.customer_phone) if mask_token_number else None,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -204,6 +213,7 @@ async def build_queue_snapshot(
             "deleted_at": getattr(t, "deleted_at", None).isoformat() if getattr(t, "deleted_at", None) else None,
             "recalled_at": getattr(t, "recalled_at", None).isoformat() if getattr(t, "recalled_at", None) else None,
             "pax_count": getattr(t, "pax_count", 1),
+            "masked_token": get_masked_token_string(t.customer_name, t.customer_phone) if mask_token_number else None,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -239,6 +249,7 @@ async def build_queue_snapshot(
             "skipped_at": getattr(t, "skipped_at", None).isoformat() if getattr(t, "skipped_at", None) else None,
             "deleted_at": getattr(t, "deleted_at", None).isoformat() if getattr(t, "deleted_at", None) else None,
             "recalled_at": getattr(t, "recalled_at", None).isoformat() if getattr(t, "recalled_at", None) else None,
+            "masked_token": get_masked_token_string(t.customer_name, t.customer_phone) if mask_token_number else None,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -274,6 +285,7 @@ async def build_queue_snapshot(
             "skipped_at": getattr(t, "skipped_at", None).isoformat() if getattr(t, "skipped_at", None) else None,
             "deleted_at": getattr(t, "deleted_at", None).isoformat() if getattr(t, "deleted_at", None) else None,
             "recalled_at": getattr(t, "recalled_at", None).isoformat() if getattr(t, "recalled_at", None) else None,
+            "masked_token": get_masked_token_string(t.customer_name, t.customer_phone) if mask_token_number else None,
         }
         if is_admin:
             token_data["customer_age"] = t.customer_age
@@ -310,5 +322,6 @@ async def build_queue_snapshot(
         "org_brand_color": None,
         "enable_shared_tokens": getattr(org, "enable_shared_tokens", False) or getattr(parent_org, "enable_shared_tokens", False),
         "is_whatsapp_enabled": getattr(org, "is_whatsapp_enabled", True),
+        "mask_token_number": mask_token_number,
     }
 

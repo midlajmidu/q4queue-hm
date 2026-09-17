@@ -52,6 +52,7 @@ class QueueResponse(BaseModel):
     open_time: Optional[str] = None
     close_time: Optional[str] = None
     created_at: datetime
+    mask_token_number: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -178,6 +179,7 @@ class TokenResponse(BaseModel):
     entry_type: Optional[str] = None
     shared_lines: list[int] = []
     completed_lines: list[int] = []
+    masked_token: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

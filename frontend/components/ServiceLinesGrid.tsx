@@ -3,6 +3,7 @@
 import React from "react";
 import { api } from "@/lib/api";
 import { ServingToken } from "@/types/api";
+import { getMaskedToken } from "@/lib/utils";
 import { CheckCircle, PhoneCall, FastForward, UserPlus, Check, ChevronDown, LayoutGrid, List, Users, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { createPortal } from "react-dom";
@@ -17,6 +18,7 @@ interface Props {
     isPaused?: boolean;
     isReadOnly?: boolean;
     enableSharedTokens?: boolean;
+    maskTokenNumber?: boolean;
 }
 
 export default function ServiceLinesGrid({
@@ -29,6 +31,7 @@ export default function ServiceLinesGrid({
     isPaused = false,
     isReadOnly = false,
     enableSharedTokens = false,
+    maskTokenNumber = false,
 }: Props) {
     const [loadingLine, setLoadingLine] = React.useState<number | null>(null);
     const [expandedLine, setExpandedLine] = React.useState<number | null>(null);
@@ -138,6 +141,7 @@ export default function ServiceLinesGrid({
                     const isOccupied = !!token;
                     const isLoading = loadingLine === lineNum;
                     const isShared = token != null && token.assigned_line !== lineNum;
+                    const maskedVal = maskTokenNumber && token ? (token.masked_token || getMaskedToken(token.customer_name, token.customer_phone)) : null;
 
                     return (
                         <div
@@ -177,7 +181,7 @@ export default function ServiceLinesGrid({
                                     <div className="text-[24px] font-black tracking-tight text-slate-900 dark:text-white leading-none mb-1">
                                         <span className={isShared ? "text-indigo-500 font-bold" : "text-emerald-500 font-bold"}>{prefix}</span>{token.token_number}
                                     </div>
-                                    <div className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-3 truncate flex items-center">
+                                    <div className={`text-[12px] font-medium text-slate-500 dark:text-slate-400 ${maskedVal ? "mb-1" : "mb-3"} truncate flex items-center`}>
                                         <span className="truncate">{token.customer_name || "Guest"}</span>
                                         {((token as any).pax_count && (token as any).pax_count > 1) && (
                                             <span className="inline-flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] ml-1.5 shadow-sm border border-slate-200 dark:border-slate-700" title={`Total Pax: ${(token as any).pax_count}`}>
@@ -186,6 +190,13 @@ export default function ServiceLinesGrid({
                                             </span>
                                         )}
                                     </div>
+
+                                    {/* Customer Masked Token Number */}
+                                    {maskedVal && (
+                                        <div className="text-[13.5px] font-mono font-semibold text-slate-700 dark:text-slate-200 mb-2.5 tracking-tight flex items-center">
+                                            <span>{maskedVal}</span>
+                                        </div>
+                                    )}
 
                                     {/* Actions */}
                                     {!isGlobalOrOrgAdmin && !isReadOnly && (
@@ -288,6 +299,7 @@ export default function ServiceLinesGrid({
                     const isShared = token != null && token.assigned_line !== lineNum;
                     const isLoading = loadingLine === lineNum;
                     const isExpanded = mobileExpandAll || expandedLine === lineNum;
+                    const maskedVal = maskTokenNumber && token ? (token.masked_token || getMaskedToken(token.customer_name, token.customer_phone)) : null;
 
                     return (
                         <div key={lineNum} className="overflow-hidden rounded-xl transition-all duration-300">
@@ -320,6 +332,11 @@ export default function ServiceLinesGrid({
                                             <span className="text-[17px] font-black tabular-nums text-slate-900 dark:text-white leading-none">
                                                 <span className="text-emerald-500">{prefix}</span>{token.token_number}
                                             </span>
+                                            {maskedVal && (
+                                                <span className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                                                    {maskedVal}
+                                                </span>
+                                            )}
                                             {token.customer_name && (
                                                 <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[80px]">
                                                     {token.customer_name}
@@ -416,6 +433,11 @@ export default function ServiceLinesGrid({
                                                     <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">
                                                         {token.customer_name || "Guest"}
                                                     </span>
+                                                    {maskedVal && (
+                                                        <span className="text-[12px] font-mono font-semibold text-slate-700 dark:text-slate-300">
+                                                            {maskedVal}
+                                                        </span>
+                                                    )}
                                                     {token.customer_phone && (
                                                         <span className="text-[11px] text-slate-400 dark:text-slate-500">
                                                             {token.customer_phone}
@@ -523,6 +545,7 @@ export default function ServiceLinesGrid({
                 allServingTokens={allServingTokens}
                 prefix={prefix}
                 onShare={(tokenNumber) => shareToken(sharingForLine!, tokenNumber)}
+                maskTokenNumber={maskTokenNumber}
             />
         </div>
     );
@@ -535,6 +558,7 @@ function ShareTokenModal({
     allServingTokens,
     prefix,
     onShare,
+    maskTokenNumber = false,
 }: {
     isOpen: boolean;
     onClose: () => void;
@@ -542,6 +566,7 @@ function ShareTokenModal({
     allServingTokens: ServingToken[];
     prefix: string;
     onShare: (tokenNumber: number) => void;
+    maskTokenNumber?: boolean;
 }) {
     const [mounted, setMounted] = React.useState(false);
     
@@ -575,21 +600,31 @@ function ShareTokenModal({
                     {availableTokens.length === 0 ? (
                         <div className="text-sm text-slate-400 py-4 text-center">No other tokens currently serving.</div>
                     ) : (
-                        availableTokens.map(t => (
-                            <button
-                                key={t.id}
-                                onClick={() => onShare(t.token_number)}
-                                className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-left"
-                            >
-                                <div>
-                                    <div className="font-bold text-slate-900 dark:text-white"><span className="text-emerald-500">{prefix}</span>{t.token_number}</div>
-                                    <div className="text-xs text-slate-500">{t.customer_name || "Guest"} (from L{t.assigned_line})</div>
-                                </div>
-                                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
-                                    <Plus size={15} />
-                                </div>
-                            </button>
-                        ))
+                        availableTokens.map(t => {
+                            const maskedVal = maskTokenNumber ? (t.masked_token || getMaskedToken(t.customer_name, t.customer_phone)) : null;
+                            return (
+                                <button
+                                    key={t.id}
+                                    onClick={() => onShare(t.token_number)}
+                                    className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-left"
+                                >
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-slate-900 dark:text-white"><span className="text-emerald-500">{prefix}</span>{t.token_number}</span>
+                                            {maskedVal && (
+                                                <span className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                                                    {maskedVal}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-slate-500">{t.customer_name || "Guest"} (from L{t.assigned_line})</div>
+                                    </div>
+                                    <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
+                                        <Plus size={15} />
+                                    </div>
+                                </button>
+                            );
+                        })
                     )}
                 </div>
                 <div className="mt-6 flex justify-end">

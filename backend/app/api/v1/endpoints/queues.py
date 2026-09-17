@@ -152,7 +152,11 @@ async def get_queue(
     Get a specific queue (tenant-scoped).
     SECURITY: queue ownership is verified by get_queue_for_org dependency.
     """
-    return QueueResponse.model_validate(queue)
+    res = QueueResponse.model_validate(queue)
+    from app.whatsapp.config_service import get_org_notification_config
+    cfg = await get_org_notification_config(queue.org_id)
+    res.mask_token_number = cfg.get("mask_token_number", False)
+    return res
 
 
 @router.get(
@@ -172,7 +176,17 @@ async def list_tokens(
     tokens = await token_service.list_queue_tokens(
         db, queue_id=queue.id, org_id=queue.org_id
     )
-    return [TokenResponse.model_validate(t) for t in tokens]
+    from app.whatsapp.config_service import get_org_notification_config
+    from app.services.notification_service import get_masked_token_string
+    cfg = await get_org_notification_config(queue.org_id)
+    mask_token_number = cfg.get("mask_token_number", False)
+    responses = []
+    for t in tokens:
+        item = TokenResponse.model_validate(t)
+        if mask_token_number:
+            item.masked_token = get_masked_token_string(t.customer_name, t.customer_phone)
+        responses.append(item)
+    return responses
 
 
 @router.put(

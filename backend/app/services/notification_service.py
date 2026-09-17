@@ -27,13 +27,13 @@ logger = logging.getLogger(__name__)
 
 
 def get_masked_token_string(customer_name: Optional[str], customer_phone: Optional[str]) -> str:
-    name_part = "cus"
+    name_part = "Cus"
     if customer_name:
-        cleaned_name = "".join(c for c in customer_name if c.isalpha()).lower()
+        cleaned_name = "".join(c for c in customer_name if c.isalpha())
         if len(cleaned_name) >= 3:
-            name_part = cleaned_name[:3]
+            name_part = cleaned_name[:3].capitalize()
         elif len(cleaned_name) > 0:
-            name_part = cleaned_name
+            name_part = cleaned_name.capitalize()
     phone_part = ""
     if customer_phone:
         digits = "".join(c for c in customer_phone if c.isdigit())

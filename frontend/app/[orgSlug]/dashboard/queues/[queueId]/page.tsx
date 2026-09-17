@@ -24,6 +24,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { fmtTime, fmtDateTime, nowInTz } from "@/lib/tzformat";
+import { getMaskedToken } from "@/lib/utils";
 
 const formatTime12 = (time24?: string | null) => {
     if (!time24) return "";
@@ -536,6 +537,7 @@ export default function QueueDetailPage({ params }: PageProps) {
         setCallModalOpen(true);
     }, [state?.prefix]);
 
+    const [initialQueue, setInitialQueue] = useState<QueueResponse | null>(null);
     const [isClient, setIsClient] = useState(false);
     const [waitingPage, setWaitingPage] = useState(1);
     const [recentPage, setRecentPage] = useState(1);
@@ -545,17 +547,21 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const [activeListTab, setActiveListTab] = useState<"recent" | "waiting" | "skipped" | "deleted">("waiting");
 
+    const isMaskEnabled = Boolean(state?.mask_token_number ?? initialQueue?.mask_token_number);
+
     const filteredWaiting = React.useMemo(() => {
         if (!state?.waiting_tokens) return [];
+        const term = waitingSearch.toLowerCase();
         const filtered = waitingSearch
             ? state.waiting_tokens.filter(t =>
                 String(t.token_number).includes(waitingSearch) ||
-                t.customer_name?.toLowerCase().includes(waitingSearch.toLowerCase()) ||
-                t.customer_phone?.includes(waitingSearch)
+                t.customer_name?.toLowerCase().includes(term) ||
+                t.customer_phone?.includes(waitingSearch) ||
+                (isMaskEnabled && (t.masked_token || getMaskedToken(t.customer_name, t.customer_phone))?.toLowerCase().includes(term))
             )
             : state.waiting_tokens;
         return [...filtered].sort((a, b) => (a.token_number ?? 0) - (b.token_number ?? 0));
-    }, [state?.waiting_tokens, waitingSearch]);
+    }, [state?.waiting_tokens, waitingSearch, isMaskEnabled]);
 
     const paginatedWaiting = React.useMemo(() => {
         const start = (waitingPage - 1) * PAGE_SIZE;
@@ -564,15 +570,17 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const filteredSkipped = React.useMemo(() => {
         if (!state?.skipped_tokens) return [];
+        const term = waitingSearch.toLowerCase();
         const filtered = waitingSearch
             ? state.skipped_tokens.filter(t =>
                 String(t.token_number).includes(waitingSearch) ||
-                (t.customer_name || "").toLowerCase().includes(waitingSearch.toLowerCase()) ||
-                (t.customer_phone || "").includes(waitingSearch)
+                (t.customer_name || "").toLowerCase().includes(term) ||
+                (t.customer_phone || "").includes(waitingSearch) ||
+                (isMaskEnabled && (t.masked_token || getMaskedToken(t.customer_name, t.customer_phone))?.toLowerCase().includes(term))
             )
             : state.skipped_tokens;
         return [...filtered].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-    }, [state?.skipped_tokens, waitingSearch]);
+    }, [state?.skipped_tokens, waitingSearch, isMaskEnabled]);
 
     const paginatedSkipped = React.useMemo(() => {
         const start = (waitingPage - 1) * PAGE_SIZE;
@@ -581,15 +589,17 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const filteredDeleted = React.useMemo(() => {
         if (!state?.deleted_tokens) return [];
+        const term = waitingSearch.toLowerCase();
         const filtered = waitingSearch
             ? state.deleted_tokens.filter(t =>
                 String(t.token_number).includes(waitingSearch) ||
-                (t.customer_name || "").toLowerCase().includes(waitingSearch.toLowerCase()) ||
-                (t.customer_phone || "").includes(waitingSearch)
+                (t.customer_name || "").toLowerCase().includes(term) ||
+                (t.customer_phone || "").includes(waitingSearch) ||
+                (isMaskEnabled && (t.masked_token || getMaskedToken(t.customer_name, t.customer_phone))?.toLowerCase().includes(term))
             )
             : state.deleted_tokens;
         return [...filtered].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-    }, [state?.deleted_tokens, waitingSearch]);
+    }, [state?.deleted_tokens, waitingSearch, isMaskEnabled]);
 
     const paginatedDeleted = React.useMemo(() => {
         const start = (waitingPage - 1) * PAGE_SIZE;
@@ -598,11 +608,13 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const filteredRecent = React.useMemo(() => {
         if (!state?.recent_tokens) return [];
+        const term = recentSearch.toLowerCase();
         const filtered = recentSearch
             ? state.recent_tokens.filter(t =>
                 String(t.token_number).includes(recentSearch) ||
-                t.customer_name?.toLowerCase().includes(recentSearch.toLowerCase()) ||
-                t.customer_phone?.includes(recentSearch)
+                t.customer_name?.toLowerCase().includes(term) ||
+                t.customer_phone?.includes(recentSearch) ||
+                (isMaskEnabled && (t.masked_token || getMaskedToken(t.customer_name, t.customer_phone))?.toLowerCase().includes(term))
             )
             : [...state.recent_tokens];
 
@@ -612,7 +624,7 @@ export default function QueueDetailPage({ params }: PageProps) {
             const timeB = new Date(b.served_at || b.completed_at || b.created_at || 0).getTime();
             return timeB - timeA;
         });
-    }, [state?.recent_tokens, recentSearch]);
+    }, [state?.recent_tokens, recentSearch, isMaskEnabled]);
 
     const paginatedRecent = React.useMemo(() => {
         const start = (recentPage - 1) * RECENT_PAGE_SIZE;
@@ -622,7 +634,6 @@ export default function QueueDetailPage({ params }: PageProps) {
     React.useEffect(() => { setWaitingPage(1); }, [waitingSearch]);
     React.useEffect(() => { setRecentPage(1); }, [recentSearch]);
 
-    const [initialQueue, setInitialQueue] = useState<QueueResponse | null>(null);
     const lastActionRef = useRef(0);
     const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1174,6 +1185,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         isPaused={(state?.is_paused ?? initialQueue?.is_paused) === true}
                                                         isReadOnly={isReadOnly}
                                                         enableSharedTokens={state?.enable_shared_tokens ?? false}
+                                                        maskTokenNumber={state?.mask_token_number ?? initialQueue?.mask_token_number ?? false}
                                                     />
                                                 );
                                             }
@@ -1234,6 +1246,12 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                                     </span>
                                                                                 )}
                                                                             </div>
+
+                                                                            {Boolean(state.mask_token_number ?? initialQueue?.mask_token_number) && (
+                                                                                <div className="text-[13px] font-mono font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                                                                                    {state.serving_details.masked_token || getMaskedToken(state.serving_details.customer_name, state.serving_details.customer_phone)}
+                                                                                </div>
+                                                                            )}
 
                                                                             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm mt-1">
                                                                                 <span>{state.serving_details.customer_phone}</span>
@@ -1508,6 +1526,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                             queueName={queueName}
                                                             isManual={t.entry_type === "manual"}
                                                             onView={setSelectedToken}
+                                                            maskTokenNumber={isMaskEnabled}
                                                         />
                                                     )) : (
                                                         <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
@@ -1535,6 +1554,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                             onView={setSelectedToken}
                                                             onCall={canManageQueue ? handleCall : undefined}
                                                             hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
+                                                            maskTokenNumber={isMaskEnabled}
                                                             extraActions={
                                                                 <>
                                                                     {canManageQueue && activeListTab === "waiting" ? (
@@ -2033,6 +2053,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     onView={setSelectedToken}
                                                     onCall={canManageQueue ? handleCall : undefined}
                                                     hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
+                                                    maskTokenNumber={isMaskEnabled}
                                                 />
                                             )) : (
                                                 <div className="h-full flex flex-col items-center justify-center p-8 text-center">
@@ -2073,6 +2094,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         onCall={canManageQueue ? handleCall : undefined}
                                                         customTimeStr={customTimeStr || undefined}
                                                         hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
+                                                        maskTokenNumber={isMaskEnabled}
                                                         extraActions={
                                                             <>
                                                                 {canManageQueue && activeListTab === "waiting" ? (
@@ -2305,6 +2327,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                     token={selectedToken}
                     onClose={() => setSelectedToken(null)}
                     onRecall={selectedToken && !isReadOnly ? () => handleRecallFlow(selectedToken.token_number) : undefined}
+                    maskTokenNumber={isMaskEnabled}
                 />
             </div>
 
@@ -2371,7 +2394,7 @@ export default function QueueDetailPage({ params }: PageProps) {
 
 // ── Recent Token Row ───────────────────────────────────────────────
 const RecentTokenRow = React.memo(function RecentTokenRow({
-    token: t, prefix, queueName, isManual, onView, onCall, hasServiceLines = true, extraActions
+    token: t, prefix, queueName, isManual, onView, onCall, hasServiceLines = true, extraActions, maskTokenNumber
 }: {
     token: RecentToken | WaitingToken;
     prefix: string;
@@ -2381,8 +2404,10 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
     onCall?: (token: any) => void;
     hasServiceLines?: boolean;
     extraActions?: React.ReactNode;
+    maskTokenNumber?: boolean;
 }) {
     const tz = useBranchTimezone();
+    const maskedVal = maskTokenNumber ? (t.masked_token || getMaskedToken(t.customer_name, t.customer_phone)) : null;
     const statusClasses: Record<string, string> = {
         serving: "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
         done: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
@@ -2422,7 +2447,8 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                 skipped_at: (t as WaitingToken).skipped_at,
                 deleted_at: (t as WaitingToken).deleted_at,
                 recalled_at: (t as WaitingToken).recalled_at,
-                removed_by: (t as WaitingToken).removed_by
+                removed_by: (t as WaitingToken).removed_by,
+                masked_token: t.masked_token || maskedVal
             })}
         >
             <div className="flex items-center gap-3.5 min-w-0 flex-1">
@@ -2444,6 +2470,11 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                             </span>
                         ) : null}
                     </div>
+                    {maskedVal && (
+                        <div className="text-[11.5px] font-mono font-semibold text-slate-600 dark:text-slate-300 tracking-wide">
+                            {maskedVal}
+                        </div>
+                    )}
                     <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
                         <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${sClass.replace("border-slate-200", "border-transparent").replace("bg-slate-50", "bg-slate-100")}`}>
                             {t.status === "done" && <CheckCircle2 size={12} className="text-emerald-500" />}
@@ -2476,7 +2507,7 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
 };
 
 const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
-    token: t, prefix, queueName, isManual, onView, onCall, customTimeStr, extraActions, hasServiceLines = true
+    token: t, prefix, queueName, isManual, onView, onCall, customTimeStr, extraActions, hasServiceLines = true, maskTokenNumber
 }: {
     token: RecentToken | WaitingToken;
     prefix: string;
@@ -2487,9 +2518,11 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
     customTimeStr?: string;
     extraActions?: React.ReactNode;
     hasServiceLines?: boolean;
+    maskTokenNumber?: boolean;
 }) {
     const tz = useBranchTimezone();
     const st = STATUS_LABELS[t.status] ?? { label: t.status, cls: "bg-slate-50 text-slate-600 border-slate-200" };
+    const maskedVal = maskTokenNumber ? (t.masked_token || getMaskedToken(t.customer_name, t.customer_phone)) : null;
 
     const timeStr = customTimeStr ?? (t.created_at
         ? fmtTime(t.created_at, tz)
@@ -2514,6 +2547,7 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
         deleted_at: (t as WaitingToken).deleted_at,
         recalled_at: (t as WaitingToken).recalled_at,
         removed_by: (t as WaitingToken).removed_by,
+        masked_token: t.masked_token || maskedVal,
     };
 
     return (
@@ -2586,6 +2620,11 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                                 </span>
                             )}
                         </span>
+                        {maskedVal && (
+                            <span className="text-[11.5px] font-mono font-semibold text-slate-600 dark:text-slate-300 tracking-wide">
+                                {maskedVal}
+                            </span>
+                        )}
                         <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
                             {t.customer_phone || "No phone"}
                         </span>
@@ -2652,6 +2691,11 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                                 </span>
                             )}
                         </span>
+                        {maskedVal && (
+                            <span className="text-[11.5px] font-mono font-semibold text-slate-600 dark:text-slate-300 tracking-wide">
+                                {maskedVal}
+                            </span>
+                        )}
                         <span className="text-[11px] text-slate-400">{t.customer_phone || "No phone"}</span>
                     </div>
                     <div className="flex items-center gap-1">

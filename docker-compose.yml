@@ -15,8 +15,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data_develop:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       # In Ubuntu 24.04 production, swap this to: /var/q4queue_backups:/app/backups
+
       - ./local_backups:/app/backups
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
@@ -75,7 +76,8 @@ services:
       dockerfile: Dockerfile
     container_name: queue_backend
     restart: always
-    command: [ "sh", "-c", "export PYTHONPATH=/app && alembic upgrade head && gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000" ]
+    command: [ "sh", "-c", "export PYTHONPATH=/app && alembic upgrade heads && gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000" ]
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -176,8 +178,9 @@ services:
         max-file: "3"
 
 volumes:
-  postgres_data_develop:
+  postgres_data:
     driver: local
+
   redis_data:
     driver: local
   uploads_data:

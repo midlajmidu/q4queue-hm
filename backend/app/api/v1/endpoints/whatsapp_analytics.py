@@ -72,6 +72,22 @@ async def update_org_settings(
     await db.commit()
     await db.refresh(cfg)
     
+    if body.mask_token_number is not None:
+        try:
+            from app.models.queue import Queue
+            from app.websocket.helpers import build_queue_snapshot
+            from app.websocket.pubsub import publish_queue_update
+            from app.core.redis import get_redis
+            q_res = await db.execute(select(Queue).where(Queue.org_id == current_user.org_id, Queue.is_deleted == False))
+            redis_client = get_redis()
+            for q in q_res.scalars().all():
+                ch = f"org_{current_user.org_id}_queue_{q.id}"
+                pub_snap = await build_queue_snapshot(db, queue_id=q.id, is_admin=False)
+                adm_snap = await build_queue_snapshot(db, queue_id=q.id, is_admin=True)
+                await publish_queue_update(redis_client, channel=ch, payload={"public": pub_snap, "admin": adm_snap})
+        except Exception as ws_err:
+            logger.warning("Failed to broadcast queue updates after mask_token_number toggle: %s", ws_err)
+
     await record_event(
         event_type="whatsapp.org_settings_updated",
         org_id=current_user.org_id,
