@@ -17,7 +17,7 @@ export interface TokenDetailData {
     created_at?: string | null;
     served_at?: string | null;
     completed_at?: string | null;
-    entry_type?: "manual" | "qr" | "auto" | null;
+    entry_type?: "manual" | "qr" | "auto" | "appointment" | null;
     queue_name?: string;
     removed_by?: string | null;
     assigned_line?: number | null;
@@ -72,6 +72,7 @@ const ENTRY_STYLES: Record<string, string> = {
     manual: "bg-violet-100 dark:bg-violet-950/80 text-violet-700 dark:text-violet-300",
     qr: "bg-cyan-100 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300",
     auto: "bg-orange-100 dark:bg-amber-950/80 text-orange-700 dark:text-amber-300",
+    appointment: "bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800",
 };
 
 export default function TokenDetailModal({ token, onClose, onRecall }: TokenDetailModalProps) {

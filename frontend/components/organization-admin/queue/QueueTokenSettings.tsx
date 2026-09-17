@@ -1,9 +1,31 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
+
 import { toast } from "sonner";
-import { Plus, GripVertical, Trash2, Save, Settings2, LayoutList, Type, Hash, Phone, Mail, Calendar, List, Lock } from "lucide-react";
+import {
+    Plus,
+    GripVertical,
+    Trash2,
+    Save,
+    Settings2,
+    LayoutList,
+    Type,
+    Hash,
+    Phone,
+    Mail,
+    Calendar,
+    List,
+    Lock,
+    Clock,
+    Copy,
+    ExternalLink,
+    CheckCircle,
+    CalendarDays,
+    Sliders
+} from "lucide-react";
 
 export interface CustomField {
     id: string; // for drag and drop keys
@@ -98,66 +120,94 @@ const CustomDropdown = ({ value, onChange, options }: { value: string, onChange:
     const selectedOption = options.find(o => o.value === value) || options[0];
 
     return (
-        <div ref={dropdownRef} className="relative w-full">
+        <div className="relative w-full" ref={dropdownRef}>
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full flex items-center justify-between bg-slate-50 dark:bg-slate-800 border ${isOpen ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-700'} rounded-lg px-3 py-2 text-sm text-left outline-none transition-all focus:border-indigo-500`}
+                className="w-full flex items-center justify-between bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white hover:border-slate-300 focus:outline-none focus:border-indigo-500 transition-colors"
             >
-                <div className="flex items-center gap-2.5">
-                    {selectedOption?.icon && React.createElement(selectedOption.icon, { className: "w-4 h-4 text-slate-400 dark:text-slate-500" })}
-                    <span className="text-slate-700 dark:text-slate-200 font-medium">{selectedOption?.label}</span>
-                </div>
-                <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                <span className="flex items-center gap-2 truncate">
+                    {selectedOption.icon && <selectedOption.icon className="w-4 h-4 text-slate-400" />}
+                    {selectedOption.label}
+                </span>
+                <svg className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
             </button>
 
             {isOpen && (
-                <div className="absolute z-10 w-full mt-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="max-h-60 overflow-y-auto py-1">
-                        {options.map((opt) => (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 py-1 overflow-hidden">
+                    {options.map((option) => {
+                        const Icon = option.icon;
+                        const isSelected = option.value === value;
+                        return (
                             <button
-                                key={opt.value}
+                                key={option.value}
                                 type="button"
-                                onClick={() => { onChange(opt.value); setIsOpen(false); }}
-                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors ${value === opt.value ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white'}`}
+                                onClick={() => {
+                                    onChange(option.value);
+                                    setIsOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors ${
+                                    isSelected ? 'bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-slate-700 dark:text-slate-300'
+                                }`}
                             >
-                                {opt.icon && React.createElement(opt.icon, { className: `w-4 h-4 ${value === opt.value ? 'text-indigo-500 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}` })}
-                                <span>{opt.label}</span>
+                                {Icon && <Icon className={`w-4 h-4 ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />}
+                                <span>{option.label}</span>
                             </button>
-                        ))}
-                    </div>
+                        );
+                    })}
                 </div>
             )}
         </div>
     );
 };
 
-const ensureMandatoryFields = (rawFields: CustomField[] | null | undefined): CustomField[] => {
-    let list = rawFields ? rawFields.map(f => ({ ...f })) : [...DEFAULT_FIELDS];
-    
-    const nameIndex = list.findIndex(f => f.key === 'name');
-    if (nameIndex === -1) {
-        list.unshift({ id: "default_name", key: "name", label: "Full Name", type: "text", required: true, order: 0 });
-    } else {
-        list[nameIndex].required = true;
+const ensureMandatoryFields = (fieldsList: CustomField[] | null): CustomField[] => {
+    if (!fieldsList || fieldsList.length === 0) {
+        return DEFAULT_FIELDS;
     }
+    const result = [...fieldsList];
+    const hasName = result.some(f => f.key === 'name');
+    const hasPhone = result.some(f => f.key === 'phone');
 
-    const phoneIndex = list.findIndex(f => f.key === 'phone');
-    if (phoneIndex === -1) {
-        const insertIdx = list.findIndex(f => f.key === 'name') + 1;
-        list.splice(insertIdx > 0 ? insertIdx : 1, 0, { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 });
-    } else {
-        list[phoneIndex].required = true;
+    if (!hasName) {
+        result.unshift({ id: "default_name", key: "name", label: "Full Name", type: "text", required: true, order: 0 });
     }
-
-    list.forEach((f, i) => { f.order = i; });
-    return list;
+    if (!hasPhone) {
+        const nameIdx = result.findIndex(f => f.key === 'name');
+        result.splice(nameIdx + 1, 0, { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 });
+    }
+    return result;
 };
 
 export default function QueueTokenSettings({ queueId, initialFields, readOnly = false, readOnlyReason, onUpdate }: QueueTokenSettingsProps) {
+    const [activeTab, setActiveTab] = useState<"fields" | "appointments">("fields");
     const [fields, setFields] = useState<CustomField[]>(() => ensureMandatoryFields(initialFields));
     const [isSaving, setIsSaving] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
+
+    // Appointment settings state
+    const [appointmentEnabled, setAppointmentEnabled] = useState<boolean>(true);
+    const [slotDuration, setSlotDuration] = useState<number>(15);
+    const [slotCapacity, setSlotCapacity] = useState<number>(1);
+    const [advanceDays, setAdvanceDays] = useState<number>(7);
+    const [approvalMode, setApprovalMode] = useState<string>("instant");
+    const [industryTemplate, setIndustryTemplate] = useState<string>("general");
+    const [isSavingAppt, setIsSavingAppt] = useState<boolean>(false);
+    const [copied, setCopied] = useState<boolean>(false);
+
+    // Load queue appointment settings on mount
+    useEffect(() => {
+        api.getQueue(queueId).then((q: any) => {
+            if (q.appointment_enabled !== undefined) setAppointmentEnabled(q.appointment_enabled);
+            if (q.slot_duration) setSlotDuration(q.slot_duration);
+            if (q.slot_capacity) setSlotCapacity(q.slot_capacity);
+            if (q.advance_booking_days) setAdvanceDays(q.advance_booking_days);
+            if (q.approval_mode) setApprovalMode(q.approval_mode);
+            if (q.industry_template) setIndustryTemplate(q.industry_template);
+        }).catch(() => {});
+    }, [queueId]);
 
     // Sync state when initialFields prop updates asynchronously from parent
     useEffect(() => {
@@ -202,28 +252,28 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
 
     const handleRemoveField = (id: string) => {
         if (readOnly) return;
-        const fieldToRemove = fields.find(f => f.id === id);
-        if (fieldToRemove && ['name', 'phone'].includes(fieldToRemove.key)) {
-            toast.error("Full Name and Phone Number are mandatory fields and cannot be removed.");
+        const target = fields.find(f => f.id === id);
+        if (target && ['name', 'phone'].includes(target.key)) {
+            toast.error("Name and Phone are mandatory core fields and cannot be deleted");
             return;
         }
         setFields(fields.filter(f => f.id !== id));
         setIsDirty(true);
     };
 
-    const handleFieldChange = (id: string, key: keyof CustomField, value: any) => {
+    const handleFieldChange = (id: string, prop: keyof CustomField, val: any) => {
         if (readOnly) return;
         setFields(fields.map(f => {
             if (f.id === id) {
-                if (['name', 'phone'].includes(f.key) && key === 'required') {
-                    return { ...f, required: true };
+                if (prop === 'key' && ['name', 'phone'].includes(f.key)) {
+                    return f;
                 }
-                const updated = { ...f, [key]: value };
-                if (key === 'label' && !['name', 'phone', 'pax'].includes(f.key)) {
-                    const oldAutoKey = f.label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
-                    if (!f.key || f.key === oldAutoKey || f.key.startsWith('field_') || f.key.startsWith('custom_')) {
-                        updated.key = value.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
-                    }
+                if (prop === 'required' && ['name', 'phone'].includes(f.key)) {
+                    return f;
+                }
+                const updated = { ...f, [prop]: val };
+                if (prop === 'label' && !['name', 'phone', 'pax'].includes(f.key) && (!f.key || f.key.startsWith('custom_'))) {
+                    updated.key = val.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 32);
                 }
                 return updated;
             }
@@ -232,20 +282,28 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
         setIsDirty(true);
     };
 
-    const moveField = (index: number, direction: 'up' | 'down') => {
+    const handleDragStart = (e: React.DragEvent, index: number) => {
         if (readOnly) return;
-        if (direction === 'up' && index === 0) return;
-        if (direction === 'down' && index === fields.length - 1) return;
+        e.dataTransfer.setData("text/plain", index.toString());
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        if (readOnly) return;
+        e.preventDefault();
+    };
+
+    const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+        if (readOnly) return;
+        e.preventDefault();
+        const sourceIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+        if (isNaN(sourceIndex) || sourceIndex === targetIndex) return;
 
         const newFields = [...fields];
-        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        const [movedField] = newFields.splice(sourceIndex, 1);
+        newFields.splice(targetIndex, 0, movedField);
 
-        const temp = newFields[index];
-        newFields[index] = newFields[targetIndex];
-        newFields[targetIndex] = temp;
-
-        newFields.forEach((f, i) => { f.order = i; });
-        setFields(newFields);
+        const reordered = newFields.map((f, i) => ({ ...f, order: i }));
+        setFields(reordered);
         setIsDirty(true);
     };
 
@@ -281,6 +339,40 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
         }
     };
 
+    const handleSaveAppointmentSettings = async () => {
+        if (readOnly) return;
+        setIsSavingAppt(true);
+        try {
+            await api.updateQueue(queueId, {
+                appointment_enabled: appointmentEnabled,
+                slot_duration: slotDuration,
+                slot_capacity: slotCapacity,
+                advance_booking_days: advanceDays,
+                approval_mode: approvalMode,
+                industry_template: industryTemplate
+            });
+            toast.success("Appointment booking settings updated successfully!");
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update appointment settings");
+        } finally {
+            setIsSavingAppt(false);
+        }
+    };
+
+    const params = useParams();
+    const branchSlug = params?.orgSlug as string;
+    const bookingUrl = typeof window !== "undefined"
+        ? (branchSlug ? `${window.location.origin}/${branchSlug}/book?queueId=${queueId}` : `${window.location.origin}/book/${queueId}`)
+        : (branchSlug ? `/${branchSlug}/book?queueId=${queueId}` : `/book/${queueId}`);
+
+    const copyBookingUrl = () => {
+        navigator.clipboard.writeText(bookingUrl);
+        setCopied(true);
+        toast.success("Branch booking link copied to clipboard!");
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+
     return (
         <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-white/10 overflow-hidden shadow-sm">
             {readOnly && (
@@ -289,204 +381,373 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
                     <span>{readOnlyReason || "Viewing a closed or historical queue session. Registration form settings are read-only."}</span>
                 </div>
             )}
-            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+
+            {/* Header with Sub-tabs */}
+            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Settings2 className="w-5 h-5 text-indigo-500" />
-                        Queue Token Settings
+                        Queue Configuration
                     </h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Configure the exact fields customers must fill out when joining this queue.
-                        If empty, the system defaults to asking for Name, Phone, and Group Size.
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        Customize registration inputs and manage early appointment booking rules.
                     </p>
                 </div>
-                {!readOnly && (
+
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
                     <button
-                        onClick={handleSave}
-                        disabled={!isDirty || isSaving}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white px-4 py-2 rounded-lg font-medium transition-all"
+                        onClick={() => setActiveTab("fields")}
+                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                            activeTab === "fields"
+                                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
+                                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                        }`}
                     >
-                        <Save className="w-4 h-4" />
-                        {isSaving ? "Saving..." : "Save Changes"}
+                        <Sliders size={14} />
+                        <span>Form Fields</span>
                     </button>
-                )}
+                    <button
+                        onClick={() => setActiveTab("appointments")}
+                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                            activeTab === "appointments"
+                                ? "bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm"
+                                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                        }`}
+                    >
+                        <CalendarDays size={14} />
+                        <span>Appointments</span>
+                    </button>
+                </div>
             </div>
 
-            <div className="p-6 space-y-4">
-                {fields.length === 0 ? (
-                    <div className="text-center py-12 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-dashed border-amber-300 dark:border-amber-800/60 p-6">
-                        <LayoutList className="w-12 h-12 text-amber-500/80 mx-auto mb-3" />
-                        <h3 className="text-slate-900 dark:text-white font-bold text-base mb-1">No Registration Fields Configured</h3>
-                        <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm max-w-md mx-auto mb-6 leading-relaxed">
-                            You have removed all input fields. Token registration forms will display a notice stating that no fields are configured until you add fields or restore defaults.
-                        </p>
-                        <div className="flex flex-col items-center justify-center gap-3 w-full max-w-sm mx-auto">
-                            <button
-                                onClick={handleResetToDefault}
-                                className="w-full text-indigo-600 dark:text-indigo-400 font-semibold text-sm hover:bg-indigo-100/60 dark:hover:bg-indigo-900/40 bg-indigo-50 dark:bg-indigo-950/60 px-4 py-3 rounded-xl border border-indigo-200/60 dark:border-indigo-800/60 transition-colors"
-                            >
-                                Restore Default Fields (Name, Phone, Pax)
-                            </button>
-                            <div className="w-full relative flex items-center py-2">
-                                <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-                                <span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-medium">OR BUILD MANUALLY</span>
-                                <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 w-full">
-                                <button onClick={() => handleAddCoreField('name')} className="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2.5 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
-                                    + Name
-                                </button>
-                                <button onClick={() => handleAddCoreField('phone')} className="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2.5 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
-                                    + Phone
-                                </button>
-                                <button onClick={() => handleAddCoreField('pax')} className="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2.5 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
-                                    + Pax
-                                </button>
-                                <button onClick={handleAddField} className="text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-2.5 rounded-lg shadow-sm transition-colors">
-                                    + Custom
-                                </button>
-                            </div>
+            {/* TAB 1: FORM FIELDS */}
+            {activeTab === "fields" && (
+                <div>
+                    <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Customer Registration Fields</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Fields asked to customers joining on-site via QR or staff manual entry.
+                            </p>
                         </div>
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {fields.map((field, index) => (
-                            <div key={field.id} style={{ zIndex: fields.length - index }} className="relative flex items-start gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
-                                <div className="flex flex-col gap-1 mt-1 text-slate-400">
-                                    <button onClick={() => moveField(index, 'up')} disabled={index === 0} className="hover:text-slate-900 disabled:opacity-30">▲</button>
-                                    <button onClick={() => moveField(index, 'down')} disabled={index === fields.length - 1} className="hover:text-slate-900 disabled:opacity-30">▼</button>
-                                </div>
-
-                                <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4">
-                                    <div className="md:col-span-4">
-                                        <label className="block text-xs font-semibold text-slate-500 mb-1">Field Label</label>
-                                        <input
-                                            type="text"
-                                            value={field.label}
-                                            disabled={readOnly}
-                                            onChange={(e) => handleFieldChange(field.id, "label", e.target.value)}
-                                            placeholder="e.g. Full Name"
-                                            className={`w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 ${readOnly ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                        />
-                                    </div>
-                                    <div className="md:col-span-3">
-                                        <label className="block text-xs font-semibold text-slate-500 mb-1">Field Type</label>
-                                        {readOnly ? (
-                                            <div className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 opacity-60 cursor-not-allowed">
-                                                {FIELD_TYPES.find(t => t.value === field.type)?.label || field.type}
-                                            </div>
-                                        ) : (
-                                            <CustomDropdown
-                                                value={field.type}
-                                                onChange={(val) => handleFieldChange(field.id, "type", val)}
-                                                options={FIELD_TYPES}
-                                            />
-                                        )}
-                                    </div>
-                                    <div className="md:col-span-3">
-                                        <label className="block text-xs font-semibold text-slate-500 mb-1">Database Key</label>
-                                        <input
-                                            type="text"
-                                            value={field.key}
-                                            onChange={(e) => handleFieldChange(field.id, "key", e.target.value)}
-                                            placeholder="e.g. full_name"
-                                            disabled={readOnly || ['name', 'phone', 'pax'].includes(field.key)}
-                                            className={`w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 font-mono ${readOnly || ['name', 'phone', 'pax'].includes(field.key) ? 'opacity-60 cursor-not-allowed text-slate-500' : ''}`}
-                                            title={['name', 'phone', 'pax'].includes(field.key) ? 'Core database keys cannot be changed to prevent tracking errors.' : ''}
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2 flex items-center justify-between pt-5">
-                                        <label className="flex items-center gap-2 cursor-pointer" title={['name', 'phone'].includes(field.key) ? "Full Name and Phone Number are mandatory required fields" : ""}>
-                                            <input
-                                                type="checkbox"
-                                                checked={field.required || ['name', 'phone'].includes(field.key)}
-                                                disabled={readOnly || ['name', 'phone'].includes(field.key)}
-                                                onChange={(e) => handleFieldChange(field.id, "required", e.target.checked)}
-                                                className={`w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 ${readOnly || ['name', 'phone'].includes(field.key) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            />
-                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                                Required {['name', 'phone'].includes(field.key) && <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider ml-0.5">(Always)</span>}
-                                            </span>
-                                        </label>
-
-                                        {!['name', 'phone'].includes(field.key) && !readOnly ? (
-                                            <button
-                                                onClick={() => handleRemoveField(field.id)}
-                                                className="text-rose-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
-                                                title="Remove Field"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        ) : (
-                                            <span className="p-1 cursor-not-allowed" title={readOnly ? "Read-only mode" : "Name and Phone are mandatory core fields and cannot be deleted"}>
-                                                <Trash2 className="w-4 h-4 text-slate-300 dark:text-slate-700 opacity-40" />
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {field.type === 'select' && (
-                                        <div className="md:col-span-8 md:col-start-5 mt-1">
-                                            <label className="block text-xs font-semibold text-slate-500 mb-1.5">Options</label>
-                                            {readOnly ? (
-                                                <div className="flex flex-wrap gap-1.5 py-1">
-                                                    {(field.options || []).map((opt, optIdx) => (
-                                                        <span key={optIdx} className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-xs">
-                                                            {opt}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <TagsInput
-                                                    options={field.options || []}
-                                                    onChange={(newOptions) => handleFieldChange(field.id, "options", newOptions)}
-                                                />
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-
                         {!readOnly && (
-                            <div className="pt-4 flex flex-col gap-4 border-t border-slate-100 dark:border-slate-800/60 mt-4">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    {!fields.some(f => f.key === 'name') && (
-                                        <button onClick={() => handleAddCoreField('name')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
-                                            <Plus className="w-3.5 h-3.5" /> Name
-                                        </button>
-                                    )}
-                                    {!fields.some(f => f.key === 'phone') && (
-                                        <button onClick={() => handleAddCoreField('phone')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
-                                            <Plus className="w-3.5 h-3.5" /> Phone
-                                        </button>
-                                    )}
-                                    {!fields.some(f => f.key === 'pax') && (
-                                        <button onClick={() => handleAddCoreField('pax')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
-                                            <Plus className="w-3.5 h-3.5" /> Pax
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={handleAddField}
-                                        className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/80 px-3 py-2 rounded-lg transition-colors border border-indigo-200/60"
-                                    >
-                                        <Plus className="w-3.5 h-3.5" />
-                                        Add Custom Field
-                                    </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={!isDirty || isSaving}
+                                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm"
+                            >
+                                <Save className="w-4 h-4" />
+                                {isSaving ? "Saving..." : "Save Fields"}
+                            </button>
+                        )}
+                    </div>
 
-                                    <div className="flex-1"></div>
-
+                    <div className="p-6 space-y-4">
+                        {fields.length === 0 ? (
+                            <div className="text-center py-12 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-dashed border-amber-300 dark:border-amber-800/60 p-6">
+                                <LayoutList className="w-12 h-12 text-amber-500/80 mx-auto mb-3" />
+                                <h3 className="text-slate-900 dark:text-white font-bold text-base mb-1">No Registration Fields Configured</h3>
+                                <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm max-w-md mx-auto mb-6 leading-relaxed">
+                                    Your customers will be asked for Name, Phone, and Pax Count by default.
+                                </p>
+                                {!readOnly && (
                                     <button
                                         onClick={handleResetToDefault}
-                                        className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 px-4 py-2 rounded-lg transition-colors shrink-0"
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
                                     >
-                                        Reset to Defaults
+                                        Use Default Fields
                                     </button>
-                                </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {fields.map((field, index) => (
+                                    <div
+                                        key={field.id}
+                                        draggable={!readOnly}
+                                        onDragStart={(e) => handleDragStart(e, index)}
+                                        onDragOver={handleDragOver}
+                                        onDrop={(e) => handleDrop(e, index)}
+                                        className={`flex flex-col gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 transition-all ${
+                                            readOnly ? 'opacity-90' : 'hover:border-slate-300 dark:hover:border-slate-700'
+                                        }`}
+                                    >
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                                            <div className="md:col-span-1 flex items-center gap-2">
+                                                {!readOnly ? (
+                                                    <span className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 p-1">
+                                                        <GripVertical className="w-4 h-4" />
+                                                    </span>
+                                                ) : null}
+                                                <span className="text-xs font-bold text-slate-400 w-4">#{index + 1}</span>
+                                            </div>
+
+                                            <div className="md:col-span-4">
+                                                <label className="block text-xs font-semibold text-slate-500 mb-1">Label Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={field.label}
+                                                    disabled={readOnly}
+                                                    onChange={(e) => handleFieldChange(field.id, "label", e.target.value)}
+                                                    placeholder="e.g. Appointment Type"
+                                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 transition-colors disabled:bg-slate-100 dark:disabled:bg-slate-900 disabled:opacity-60"
+                                                />
+                                            </div>
+
+                                            <div className="md:col-span-3">
+                                                <label className="block text-xs font-semibold text-slate-500 mb-1">Field Type</label>
+                                                {readOnly ? (
+                                                    <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-300">
+                                                        {FIELD_TYPES.find(t => t.value === field.type)?.label || field.type}
+                                                    </div>
+                                                ) : (
+                                                    <CustomDropdown
+                                                        value={field.type}
+                                                        onChange={(val) => handleFieldChange(field.id, "type", val)}
+                                                        options={FIELD_TYPES}
+                                                    />
+                                                )}
+                                            </div>
+
+                                            <div className="md:col-span-4 flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-4">
+                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={field.required || ['name', 'phone'].includes(field.key)}
+                                                        disabled={readOnly || ['name', 'phone'].includes(field.key)}
+                                                        onChange={(e) => handleFieldChange(field.id, "required", e.target.checked)}
+                                                        className={`w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 ${readOnly || ['name', 'phone'].includes(field.key) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    />
+                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                        Required {['name', 'phone'].includes(field.key) && <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider ml-0.5">(Always)</span>}
+                                                    </span>
+                                                </label>
+
+                                                {!['name', 'phone'].includes(field.key) && !readOnly ? (
+                                                    <button
+                                                        onClick={() => handleRemoveField(field.id)}
+                                                        className="text-rose-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                                        title="Remove Field"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                ) : (
+                                                    <span className="p-1 cursor-not-allowed" title={readOnly ? "Read-only mode" : "Name and Phone are mandatory core fields and cannot be deleted"}>
+                                                        <Trash2 className="w-4 h-4 text-slate-300 dark:text-slate-700 opacity-40" />
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {field.type === 'select' && (
+                                                <div className="md:col-span-8 md:col-start-5 mt-1">
+                                                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">Options</label>
+                                                    {readOnly ? (
+                                                        <div className="flex flex-wrap gap-1.5 py-1">
+                                                            {(field.options || []).map((opt, optIdx) => (
+                                                                <span key={optIdx} className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-xs">
+                                                                    {opt}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <TagsInput
+                                                            options={field.options || []}
+                                                            onChange={(newOptions) => handleFieldChange(field.id, "options", newOptions)}
+                                                        />
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {!readOnly && (
+                                    <div className="pt-4 flex flex-col gap-4 border-t border-slate-100 dark:border-slate-800/60 mt-4">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {!fields.some(f => f.key === 'name') && (
+                                                <button onClick={() => handleAddCoreField('name')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                    <Plus className="w-3.5 h-3.5" /> Name
+                                                </button>
+                                            )}
+                                            {!fields.some(f => f.key === 'phone') && (
+                                                <button onClick={() => handleAddCoreField('phone')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                    <Plus className="w-3.5 h-3.5" /> Phone
+                                                </button>
+                                            )}
+                                            {!fields.some(f => f.key === 'pax') && (
+                                                <button onClick={() => handleAddCoreField('pax')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                    <Plus className="w-3.5 h-3.5" /> Pax
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={handleAddField}
+                                                className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/80 px-3 py-2 rounded-lg transition-colors border border-indigo-200/60"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" />
+                                                Add Custom Field
+                                            </button>
+
+                                            <div className="flex-1"></div>
+
+                                            <button
+                                                onClick={handleResetToDefault}
+                                                className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 px-4 py-2 rounded-lg transition-colors shrink-0"
+                                            >
+                                                Reset to Defaults
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
+
+            {/* TAB 2: APPOINTMENT SETTINGS */}
+            {activeTab === "appointments" && (
+                <div className="p-6 space-y-6">
+                    {/* Shareable Booking Link Banner */}
+                    <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-transparent p-5 rounded-2xl border border-purple-200/60 dark:border-purple-800/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider">
+                                <CalendarDays size={14} /> Unified Branch Booking Link
+                            </span>
+                            <p className="text-xs text-slate-600 dark:text-slate-300">
+                                Customers use this single booking link to choose any doctor or service. This link pre-selects this queue.
+                            </p>
+                            <div className="font-mono text-xs text-indigo-600 dark:text-indigo-400 break-all select-all pt-1">
+                                {bookingUrl}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button
+                                onClick={copyBookingUrl}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-colors shadow-sm"
+                            >
+                                {copied ? <CheckCircle size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                                <span>{copied ? "Copied" : "Copy Link"}</span>
+                            </button>
+                            <a
+                                href={bookingUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+                            >
+                                <span>Preview Portal</span>
+                                <ExternalLink size={14} />
+                            </a>
+                        </div>
+                    </div>
+
+
+                    {/* Enable Switch */}
+                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <div>
+                            <h4 className="text-sm font-bold text-slate-900 dark:text-white">Enable Early Appointments</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Allow customers to book time slots in advance before arriving at your branch.
+                            </p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={appointmentEnabled}
+                                disabled={readOnly}
+                                onChange={(e) => setAppointmentEnabled(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-purple-600"></div>
+                        </label>
+                    </div>
+
+                    {/* Slot Configuration */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Slot Duration (Minutes)
+                            </label>
+                            <p className="text-[11px] text-slate-500">How long each appointment takes.</p>
+                            <select
+                                value={slotDuration}
+                                disabled={readOnly || !appointmentEnabled}
+                                onChange={(e) => setSlotDuration(parseInt(e.target.value))}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white outline-none"
+                            >
+                                <option value={10}>10 minutes</option>
+                                <option value={15}>15 minutes (Standard)</option>
+                                <option value={20}>20 minutes</option>
+                                <option value={30}>30 minutes</option>
+                                <option value={45}>45 minutes</option>
+                                <option value={60}>60 minutes (1 hour)</option>
+                            </select>
+                        </div>
+
+                        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Slot Capacity
+                            </label>
+                            <p className="text-[11px] text-slate-500">Max concurrent bookings permitted per slot.</p>
+                            <input
+                                type="number"
+                                min={1}
+                                max={50}
+                                value={slotCapacity}
+                                disabled={readOnly || !appointmentEnabled}
+                                onChange={(e) => setSlotCapacity(parseInt(e.target.value) || 1)}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white outline-none"
+                            />
+                        </div>
+
+                        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Advance Booking Window (Days)
+                            </label>
+                            <p className="text-[11px] text-slate-500">How many days in advance customers can schedule.</p>
+                            <input
+                                type="number"
+                                min={1}
+                                max={90}
+                                value={advanceDays}
+                                disabled={readOnly || !appointmentEnabled}
+                                onChange={(e) => setAdvanceDays(parseInt(e.target.value) || 7)}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white outline-none"
+                            />
+                        </div>
+
+                        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Approval Mode
+                            </label>
+                            <p className="text-[11px] text-slate-500">Control if bookings are immediately confirmed or need review.</p>
+                            <select
+                                value={approvalMode}
+                                disabled={readOnly || !appointmentEnabled}
+                                onChange={(e) => setApprovalMode(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white outline-none"
+                            >
+                                <option value="instant">Instant Auto-Confirmation</option>
+                                <option value="manual">Manual Staff Approval Required</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Save Button */}
+                    {!readOnly && (
+                        <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <button
+                                onClick={handleSaveAppointmentSettings}
+                                disabled={isSavingAppt}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:scale-[1.01] disabled:opacity-50"
+                            >
+                                <Save size={15} />
+                                <span>{isSavingAppt ? "Saving..." : "Save Appointment Settings"}</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

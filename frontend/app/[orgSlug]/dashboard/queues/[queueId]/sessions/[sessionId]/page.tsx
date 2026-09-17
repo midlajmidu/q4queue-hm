@@ -16,7 +16,7 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken } from "@/types/api";
-import { Pause, Play, Square, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck, Settings2 } from "lucide-react";
+import { Pause, Play, Square, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck, Settings2, Calendar } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
@@ -25,6 +25,7 @@ import { Logo } from "@/components/ui/Logo";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { fmtTime, fmtDateTime, nowInTz, localTodayStr } from "@/lib/tzformat";
 import QueueTokenSettings from "@/components/organization-admin/queue/QueueTokenSettings";
+import QueueAppointmentsTab from "@/components/organization-admin/queue/QueueAppointmentsTab";
 
 const formatTime12 = (time24?: string | null) => {
     if (!time24) return "";
@@ -329,10 +330,10 @@ const QD_STYLES = `
 `;
 
 interface PageProps {
-    params: Promise<{ queueId: string; sessionId: string }>;
+    params: Promise<{ orgSlug?: string; queueId: string; sessionId: string }>;
 }
 
-type ActiveSection = "queues" | "waiting_list" | "qrcode" | "announcement" | "history" | "connect_tv" | "settings";
+type ActiveSection = "queues" | "waiting_list" | "appointments" | "qrcode" | "announcement" | "history" | "connect_tv" | "settings";
 
 const COUNTRY_CODES = [
     { code: "+91", country: "India", flag: "🇮🇳" },
@@ -350,7 +351,8 @@ const COUNTRY_CODES = [
 
 
 export default function QueueDetailPage({ params }: PageProps) {
-    const { queueId, sessionId } = use(params);
+    const { orgSlug, queueId, sessionId } = use(params);
+
     const token = getToken();
     const user = getCurrentUser();
     const { isReadOnly } = useAuth();
@@ -1254,6 +1256,10 @@ export default function QueueDetailPage({ params }: PageProps) {
         {
             id: "waiting_list", label: "Queue Lists",
             icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
+        },
+        {
+            id: "appointments", label: "Appointments",
+            icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
         },
         {
             id: "qrcode", label: "QR Code",
@@ -2653,6 +2659,21 @@ export default function QueueDetailPage({ params }: PageProps) {
                             </div>
                         )}
 
+                        {activeSection === "appointments" && (
+                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both max-w-6xl mx-auto">
+                                <QueueAppointmentsTab
+                                    queueId={queueId}
+                                    sessionId={sessionId}
+                                    sessionDate={sessionInfo?.session_date ? String(sessionInfo.session_date).slice(0, 10) : undefined}
+                                    orgSlug={orgSlug}
+                                    queueName={queueName}
+                                    canManage={canManageQueue}
+                                    onTokenCreated={refresh}
+                                />
+
+                            </div>
+                        )}
+
                         {activeSection === "settings" && (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both max-w-4xl mx-auto">
                                 <QueueTokenSettings 
@@ -3026,6 +3047,11 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                             {t.status === "waiting" && <Clock size={12} />}
                             <span className="capitalize tracking-wide">{t.status === "done" ? "Done" : t.status === "deleted" ? "Removed" : t.status === "skipped" ? "Skipped" : t.status}</span>
                         </span>
+                        {t.entry_type === "appointment" && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 font-semibold text-[10px]">
+                                <Calendar size={10} /> Appt
+                            </span>
+                        )}
                         {timeStr && <span>• {timeStr}</span>}
                         {hasServiceLines && t.assigned_line != null && <span>• L{t.assigned_line}</span>}
                     </div>
@@ -3079,7 +3105,7 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
         created_at: t.created_at,
         served_at: t.served_at,
         completed_at: t.completed_at,
-        entry_type: isManual ? "manual" : "qr",
+        entry_type: t.entry_type || (isManual ? "manual" : "qr"),
         queue_name: queueName,
         called_via_invite: t.called_via_invite,
         assigned_line: t.assigned_line,
@@ -3121,10 +3147,13 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
 
                 {/* Entry Type */}
                 <div>
-                    {isManual
-                        ? <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><User size={13} />Manual</span>
-                        : <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={13} />QR</span>
-                    }
+                    {t.entry_type === "appointment" ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800"><Calendar size={12} />Appt</span>
+                    ) : isManual ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><User size={13} />Manual</span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={13} />QR</span>
+                    )}
                 </div>
 
                 {/* Line */}
@@ -3530,10 +3559,15 @@ function QueueHistory({
                                             </div>
                                         </td>
                                         <td style={{ padding: "10px 18px", whiteSpace: "nowrap" }}>
-                                            {isManual
-                                                ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400"><User size={11} />Manual</span>
-                                                : <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={11} />QR</span>
-                                            }
+                                            {item.entry_type === "appointment" ? (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
+                                                    <Calendar size={11} />Appt
+                                                </span>
+                                            ) : isManual ? (
+                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400"><User size={11} />Manual</span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={11} />QR</span>
+                                            )}
                                         </td>
                                         <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
                                         <td className="text-emerald-600 dark:text-emerald-400 font-medium" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
@@ -3568,7 +3602,7 @@ function QueueHistory({
                                                         token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name,
                                                         customer_phone: item.customer_phone, pax_count: item.pax_count,
                                                         status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at,
-                                                        entry_type: isManual ? "manual" : "qr", queue_name: queueName,
+                                                        entry_type: item.entry_type || (isManual ? "manual" : "qr"), queue_name: queueName,
                                                         assigned_line: item.assigned_line, served_by_staff_name: item.served_by_staff_name, completed_by_staff_name: item.completed_by_staff_name,
                                                         skipped_at: item.skipped_at, deleted_at: item.deleted_at, recalled_at: item.recalled_at, removed_by: item.removed_by,
                                                         custom_data: (item as any).custom_data || null,

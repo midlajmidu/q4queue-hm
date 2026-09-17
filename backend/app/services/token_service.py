@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.queue import Queue
 from app.models.token import Token, TokenStatus
 from app.models.session import Session
+from app.models.appointment import Appointment, AppointmentStatus
 from app.schemas.queue import JoinResponse, NextResponse, JoinRequest
 from app.websocket.connection_manager import manager as ws_manager
 from app.websocket.pubsub import publish_queue_update
@@ -657,6 +658,12 @@ async def call_next(
                 currently_serving.completed_at = now
                 currently_serving.completed_by_id = user_id
                 queue.total_served += 1
+                if getattr(currently_serving, "entry_type", None) == "appointment":
+                    await db.execute(
+                        update(Appointment)
+                        .where(Appointment.token_id == currently_serving.id)
+                        .values(status=AppointmentStatus.completed)
+                    )
             elif target_status == TokenStatus.deleted:
                 currently_serving.deleted_at = now
             else:
@@ -754,6 +761,13 @@ async def call_next(
         # In multi-lane mode, assign the token to the specified line
         if line_number is not None:
             next_token.assigned_line = line_number
+
+        if getattr(next_token, "entry_type", None) == "appointment":
+            await db.execute(
+                update(Appointment)
+                .where(Appointment.token_id == next_token.id)
+                .values(status=AppointmentStatus.serving)
+            )
 
         await _log_audit(
             db,

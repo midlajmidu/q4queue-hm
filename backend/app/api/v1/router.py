@@ -33,6 +33,8 @@ from app.api.v1.endpoints import (
     calls,
     whatsapp_media,
     subscriptions,
+    appointments,
+    public_appointments,
 )
 
 api_router = APIRouter()
@@ -100,3 +102,7 @@ api_router.include_router(pairing.router, prefix="/pairing", tags=["Pairing"])
 
 # ── Plivo WebRTC ───────────────────────────────────────────
 api_router.include_router(plivo.router, prefix="/plivo", tags=["Plivo"])
+
+# ── Appointments ───────────────────────────────────────────
+api_router.include_router(appointments.router, prefix="/appointments", tags=["Appointments"])
+api_router.include_router(public_appointments.router, prefix="/public", tags=["Public Appointments"])

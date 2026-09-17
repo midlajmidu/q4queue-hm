@@ -146,6 +146,18 @@ class QueueCreate(BaseModel):
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     service_lines: int = Field(default=0, ge=0, le=20, description="0=single counter, >0=multi-lane mode")
     custom_fields: Optional[list[dict]] = None
+    appointment_enabled: bool = False
+    slot_duration: int = Field(default=15, ge=5, le=1440)
+    slot_capacity: int = Field(default=1, ge=1, le=100)
+    advance_booking_days: int = Field(default=14, ge=1, le=365)
+    min_lead_time_mins: int = Field(default=60, ge=0, le=10080)
+    approval_mode: str = Field(default="instant", pattern=r"^(instant|requires_approval)$")
+    schedule_config: Optional[dict] = None
+    blackout_dates: Optional[list[str]] = None
+    checkin_window_before: int = Field(default=30, ge=0, le=1440)
+    checkin_window_after: int = Field(default=15, ge=0, le=1440)
+    auto_noshow_mins: int = Field(default=30, ge=0, le=1440)
+    industry_template: str = Field(default="general", max_length=30)
 
     @field_validator("open_time", "close_time", mode="before")
     @classmethod
@@ -166,6 +178,18 @@ class QueueUpdate(BaseModel):
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     service_lines: Optional[int] = Field(None, ge=0, le=20)
     custom_fields: Optional[list[dict]] = None
+    appointment_enabled: Optional[bool] = None
+    slot_duration: Optional[int] = Field(None, ge=5, le=1440)
+    slot_capacity: Optional[int] = Field(None, ge=1, le=100)
+    advance_booking_days: Optional[int] = Field(None, ge=1, le=365)
+    min_lead_time_mins: Optional[int] = Field(None, ge=0, le=10080)
+    approval_mode: Optional[str] = Field(None, pattern=r"^(instant|requires_approval)$")
+    schedule_config: Optional[dict] = None
+    blackout_dates: Optional[list[str]] = None
+    checkin_window_before: Optional[int] = Field(None, ge=0, le=1440)
+    checkin_window_after: Optional[int] = Field(None, ge=0, le=1440)
+    auto_noshow_mins: Optional[int] = Field(None, ge=0, le=1440)
+    industry_template: Optional[str] = Field(None, max_length=30)
 
     @field_validator("open_time", "close_time", mode="before")
     @classmethod
@@ -198,6 +222,18 @@ class QueueResponse(BaseModel):
     open_time: Optional[str] = None
     close_time: Optional[str] = None
     custom_fields: Optional[list] = None
+    appointment_enabled: bool = False
+    slot_duration: int = 15
+    slot_capacity: int = 1
+    advance_booking_days: int = 14
+    min_lead_time_mins: int = 60
+    approval_mode: str = "instant"
+    schedule_config: Optional[dict] = None
+    blackout_dates: Optional[list] = None
+    checkin_window_before: int = 30
+    checkin_window_after: int = 15
+    auto_noshow_mins: int = 30
+    industry_template: str = "general"
     token_session_id: Optional[uuid.UUID] = None
     created_at: datetime
 
