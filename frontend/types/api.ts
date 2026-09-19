@@ -375,6 +375,7 @@ export interface BranchStatItem {
     slug: string;
     is_active: boolean;
     created_at: string;
+    branch_type?: "standard" | "dine";
 }
 
 export interface OrgAdminDashboardResponse {
@@ -509,6 +510,13 @@ export interface CustomField {
     options?: string[];
 }
 
+export interface TableConfig {
+    id: number;
+    name: string;
+    capacity: number;
+    section?: string;
+}
+
 export interface QueueCreate {
     name: string;
     prefix?: string;
@@ -517,6 +525,7 @@ export interface QueueCreate {
     close_time?: string;
     service_lines?: number;
     custom_fields?: CustomField[] | null;
+    table_config?: TableConfig[];
 }
 
 export interface QueueResponse {
@@ -537,6 +546,7 @@ export interface QueueResponse {
     close_time?: string;
     created_at: string;
     custom_fields?: CustomField[] | null;
+    table_config?: TableConfig[];
     token_session_id?: string | null;
 }
 
@@ -581,6 +591,7 @@ export interface QueuePublicStatus {
     has_session: boolean;
     within_operating_hours?: boolean;
     is_current_session?: boolean;
+    branch_type?: "standard" | "dine" | string;
 }
 
 // ── Join ─────────────────────────────────────────────────────────
@@ -593,6 +604,7 @@ export interface JoinRequest {
     entry_type?: string;
     qr_token?: string;
     session_id?: string;
+    force_new?: boolean;
     custom_data?: Record<string, any> | null;
 }
 
@@ -606,7 +618,7 @@ export interface JoinResponse {
     is_existing?: boolean; // True if this was an already-active token (duplicate phone)
     tracking_id?: string;
     removed_by?: string | null;
-
+    pax_count?: number;
 }
 
 export interface TokenRestoreResponse {
@@ -693,6 +705,7 @@ export interface ServingToken {
     customer_name: string;
     customer_phone?: string;
     customer_age?: number | null;
+    pax_count?: number;
     assigned_line: number | null;
     served_at: string | null;
     called_via_invite?: boolean;
@@ -717,6 +730,8 @@ export interface QueueSnapshot {
     is_current_session?: boolean;
     within_operating_hours?: boolean;
     service_lines: number;           // 0 = single counter, >0 = multi-lane
+    table_config?: TableConfig[];
+    branch_type?: "standard" | "dine";
     open_time?: string;
     close_time?: string;
     current_serving: number;
@@ -862,6 +877,7 @@ export interface OrgDetail {
     id: string;
     name: string;
     slug: string;
+    branch_type?: "standard" | "dine";
     is_active: boolean;
     created_at: string;
     max_sessions: number;
@@ -892,6 +908,7 @@ export interface OrgUsageResponse {
 export interface OrgCreateRequest {
     org_name: string;
     org_slug: string;
+    branch_type?: "standard" | "dine";
     parent_organization_id: string;
     admin_email: string;
     admin_password: string;
@@ -903,6 +920,7 @@ export interface OrgCreateRequest {
 export interface OrgUpdateRequest {
     org_name: string;
     org_slug: string;
+    branch_type?: "standard" | "dine";
     is_active: boolean;
     max_sessions?: number;
     max_queues_per_session?: number;
@@ -1078,6 +1096,7 @@ export interface ParentOrgSummary {
 export interface OrganizationSettingsResponse {
     name: string;
     slug: string;
+    branch_type?: "standard" | "dine";
     email: string;
     address: string | null;
     phone_number?: string;
@@ -1405,6 +1424,9 @@ export interface TrackingResponse {
     served_at?: string | null;
     completed_at?: string | null;
     removed_by?: string | null;
+    branch_type?: "standard" | "dine";
+    table_config?: TableConfig[];
+    pax_count?: number;
 }
 
 // ── Super Admin Branch User Management ──────────────────────────────────────────────────────────

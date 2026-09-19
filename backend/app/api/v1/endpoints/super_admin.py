@@ -71,6 +71,7 @@ def _validate_slug(v: str) -> str:
 class OrgCreateRequest(BaseModel):
     org_name: str
     org_slug: str
+    branch_type: str = "standard"
     parent_organization_id: _uuid.UUID
     admin_email: str | None = None
     admin_password: str | None = None
@@ -87,6 +88,7 @@ class OrgCreateRequest(BaseModel):
 class OrgUpdateRequest(BaseModel):
     org_name: str = Field(..., min_length=2)
     org_slug: str = Field(..., min_length=2)
+    branch_type: str | None = None
     is_active: bool
     admin_email: str | None = None
     max_sessions: int | None = Field(None, ge=1)
@@ -103,6 +105,7 @@ class OrgDetail(BaseModel):
     id: str
     name: str
     slug: str
+    branch_type: str = "standard"
     is_active: bool
     created_at: str
     max_sessions: int
@@ -344,6 +347,7 @@ def _org_to_detail(o: Organization, admin_user: User | None = None) -> OrgDetail
         id=str(o.id),
         name=o.name,
         slug=o.slug,
+        branch_type=getattr(o, "branch_type", "standard") or "standard",
         is_active=o.is_active,
         created_at=o.created_at.isoformat(),
         max_sessions=o.max_sessions,
@@ -1065,6 +1069,7 @@ async def create_organization(
     org = Organization(
         name=body.org_name, 
         slug=body.org_slug,
+        branch_type=body.branch_type if body.branch_type in ("standard", "dine") else "standard",
         max_sessions=body.max_sessions if body.max_sessions is not None else IN_MEMORY_SETTINGS.get("default_session_limit", 10),
         max_queues_per_session=body.max_queues_per_session if body.max_queues_per_session is not None else IN_MEMORY_SETTINGS.get("default_queue_limit", 20),
         max_staff=body.max_staff if body.max_staff is not None else 5,
@@ -1269,6 +1274,8 @@ async def update_organization(
     org.name = body.org_name
     org.slug = body.org_slug
     org.is_active = body.is_active
+    if body.branch_type is not None and body.branch_type in ("standard", "dine"):
+        org.branch_type = body.branch_type
     
     if body.max_sessions is not None:
         org.max_sessions = body.max_sessions

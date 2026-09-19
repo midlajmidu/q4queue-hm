@@ -51,6 +51,9 @@ class TrackingResponse(BaseModel):
     served_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     removed_by: Optional[str] = None
+    branch_type: str = "standard"
+    table_config: Optional[list] = None
+    pax_count: int = 1
 
 
 @router.get(
@@ -82,7 +85,9 @@ async def track_token(
             Queue.open_time,
             Queue.close_time,
             Organization.name,
-            Organization.timezone
+            Organization.timezone,
+            Organization.branch_type,
+            Queue.table_config
         )
         .join(Queue, Token.queue_id == Queue.id)
         .join(Organization, Token.org_id == Organization.id)
@@ -96,7 +101,7 @@ async def track_token(
             detail="Token not found",
         )
 
-    token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name, org_timezone = row
+    token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name, org_timezone, org_branch_type, queue_table_config = row
 
     is_past_session = False
     session_is_active = True
@@ -151,6 +156,9 @@ async def track_token(
         served_at=token.served_at,
         completed_at=token.completed_at,
         removed_by=token.removed_by,
+        branch_type=getattr(org_branch_type, "value", org_branch_type) or "standard",
+        table_config=queue_table_config or [],
+        pax_count=getattr(token, "pax_count", 1) or 1,
     )
 
 

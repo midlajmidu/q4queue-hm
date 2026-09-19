@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users } from "lucide-react";
-import { ServingToken } from "@/types/api";
+import { ServingToken, TableConfig } from "@/types/api";
 import type { DisplayTheme } from "./displayTheme";
 import { cardBg, cardBorder, cardShadow, iconBg, iconColor, labelText, primaryText, secondaryText, mutedText, gradientText, counterPillBg, counterPillStrong } from "./displayTheme";
 
@@ -17,6 +17,7 @@ interface NowServingHeroProps {
     queueName?: string;
     isActive?: boolean;
     theme?: DisplayTheme;
+    tableConfig?: TableConfig[];
 }
 
 export function NowServingHero({
@@ -29,6 +30,7 @@ export function NowServingHero({
     queueName,
     isActive,
     theme = "light",
+    tableConfig,
 }: NowServingHeroProps) {
     const [prevServing, setPrevServing] = useState(serving);
     const [recentlyCalled, setRecentlyCalled] = useState<Set<number>>(new Set());
@@ -158,7 +160,14 @@ export function NowServingHero({
                                         hasToken ? secondaryText(theme) : mutedText(theme)
                                     }`}
                                 >
-                                    Counter {String(counterNum).padStart(2, "0")}
+                                    {tableConfig && tableConfig.length > 0 ? (
+                                        (() => {
+                                            const tbl = tableConfig.find(t => t.id === counterNum);
+                                            return tbl ? `${tbl.name}${tbl.capacity ? ` (${tbl.capacity}p)` : ""}` : `Table ${String(counterNum).padStart(2, "0")}`;
+                                        })()
+                                    ) : (
+                                        `Counter ${String(counterNum).padStart(2, "0")}`
+                                    )}
                                 </span>
 
                                 <AnimatePresence mode="wait">
@@ -306,11 +315,15 @@ export function NowServingHero({
                             <span>
                                 Please proceed to{" "}
                                 <strong className={`font-bold ml-1 ${counterPillStrong(theme)}`}>
-                                    Counter {String(activeTokens[0].assigned_line).padStart(2, "0")}
+                                    {tableConfig && tableConfig.length > 0 ? (
+                                        tableConfig.find(t => t.id === activeTokens[0].assigned_line)?.name || `Table ${activeTokens[0].assigned_line}`
+                                    ) : (
+                                        `Counter ${String(activeTokens[0].assigned_line).padStart(2, "0")}`
+                                    )}
                                 </strong>
                             </span>
                         ) : (
-                            <span>Please approach the counter</span>
+                            <span>{tableConfig && tableConfig.length > 0 ? "Please proceed to your dining table" : "Please approach the counter"}</span>
                         )}
                     </motion.div>
                 )}

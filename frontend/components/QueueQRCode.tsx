@@ -14,7 +14,7 @@ interface QueueQRCodeProps {
 export default function QueueQRCode({ queueId, queueName, isCollapsible = false, className = "" }: QueueQRCodeProps) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
     const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
-    const defaultJoinUrl = `${normalizedAppUrl}/join/${queueId}`;
+    const defaultJoinUrl = `${normalizedAppUrl}/join/${queueId}?new=true`;
 
     const [joinUrl, setJoinUrl] = useState(defaultJoinUrl);
     const [isExpanded, setIsExpanded] = useState(!isCollapsible);
@@ -44,7 +44,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                     fullApiUrl = normalizedAppUrl + normalizedApiUrl;
                 }
 
-                setJoinUrl(`${fullApiUrl}/queues/${queueId}/scan?totp=${encodeURIComponent(totp)}`);
+                setJoinUrl(`${fullApiUrl}/queues/${queueId}/scan?totp=${encodeURIComponent(totp)}&new=true`);
                 setTimeLeft(valid_for);
                 if (countdownTimer) clearInterval(countdownTimer);
                 countdownTimer = setInterval(() => setTimeLeft((value) => Math.max(0, value - 1)), 1000);

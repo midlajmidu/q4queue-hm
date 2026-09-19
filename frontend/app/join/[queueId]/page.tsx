@@ -155,6 +155,116 @@ function WhatsAppConsentModal({ brandColor, onConfirm, onClose }: WhatsAppConsen
     );
 }
 
+// ── Duplicate Token Modal ────────────────────────────────────────────────────
+interface DuplicateTokenModalProps {
+    brandColor: string;
+    tokenNumber: number;
+    prefix?: string;
+    onViewActive: () => void;
+    onIssueNew: () => void;
+    onClose: () => void;
+    isJoining: boolean;
+}
+
+function DuplicateTokenModal({
+    brandColor,
+    tokenNumber,
+    prefix = "",
+    onViewActive,
+    onIssueNew,
+    onClose,
+    isJoining
+}: DuplicateTokenModalProps) {
+    const formattedToken = `${prefix}${tokenNumber}`;
+    return (
+        <>
+            <div
+                onClick={onClose}
+                style={{
+                    position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+                    zIndex: 45, backdropFilter: "blur(4px)",
+                    animation: "fadeIn 0.15s ease"
+                }}
+            />
+            <div style={{
+                position: "fixed", bottom: 0, left: 0, right: 0,
+                background: "#fff", borderRadius: "24px 24px 0 0",
+                padding: "28px 24px 36px",
+                zIndex: 50, maxWidth: 480, margin: "0 auto",
+                animation: "slideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
+                boxShadow: "0 -10px 40px rgba(0,0,0,0.12)"
+            }}>
+                <div style={{
+                    width: 40, height: 4, background: "#e2e8f0",
+                    borderRadius: 4, margin: "0 auto 20px"
+                }} />
+
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12, marginBottom: 24 }}>
+                    <div style={{
+                        width: 58, height: 58, borderRadius: "50%",
+                        background: "#eff6ff", border: "2px solid #bfdbfe",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#2563eb"
+                    }}>
+                        <span style={{ fontSize: 22, fontWeight: 900 }}>#{formattedToken}</span>
+                    </div>
+                    <div>
+                        <h3 style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                            Active Token Found
+                        </h3>
+                        <p style={{ fontSize: 13.5, color: "#64748b", marginTop: 8, lineHeight: 1.5, maxWidth: 360, margin: "8px auto 0" }}>
+                            An active token <strong style={{ color: "#0f172a" }}>#{formattedToken}</strong> already exists for this phone number.
+                        </p>
+                    </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <button
+                        onClick={onIssueNew}
+                        disabled={isJoining}
+                        style={{
+                            width: "100%", padding: "14px 0",
+                            backgroundColor: brandColor,
+                            color: "#fff", fontWeight: 700, fontSize: 14.5,
+                            border: "none", borderRadius: 14, cursor: "pointer",
+                            boxShadow: "0 4px 14px rgba(37,99,235,0.25)",
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                            opacity: isJoining ? 0.7 : 1
+                        }}
+                    >
+                        <span>Issue Another Token Anyway</span>
+                    </button>
+
+                    <button
+                        onClick={onViewActive}
+                        style={{
+                            width: "100%", padding: "14px 0",
+                            background: "#f8fafc", color: "#334155",
+                            fontWeight: 700, fontSize: 14,
+                            border: "1.5px solid #cbd5e1", borderRadius: 14,
+                            cursor: "pointer"
+                        }}
+                    >
+                        View Active Token (#{formattedToken})
+                    </button>
+
+                    <button
+                        onClick={onClose}
+                        style={{
+                            width: "100%", padding: "10px 0",
+                            background: "transparent", color: "#94a3b8",
+                            fontWeight: 600, fontSize: 13,
+                            border: "none", cursor: "pointer"
+                        }}
+                    >
+                        Cancel & Edit Form
+                    </button>
+                </div>
+            </div>
+        </>
+    );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function JoinQueuePage({ params }: PageProps) {
     const rawQueueId = use(params).queueId;
@@ -168,6 +278,15 @@ export default function JoinQueuePage({ params }: PageProps) {
     const isInactiveError = errorParam === "inactive";
     const querySessionId = searchParams.get("sessionId") || searchParams.get("session_id") || undefined;
     const querySessionDate = searchParams.get("sessionDate") || searchParams.get("session_date") || searchParams.get("date") || undefined;
+    const isForceNewParam = searchParams.get("new") === "true" || searchParams.get("kiosk") === "true" || searchParams.get("reset") === "true";
+    const [forceNew, setForceNew] = useState(isForceNewParam);
+
+    useEffect(() => {
+        if (isForceNewParam) {
+            setForceNew(true);
+            clearTokenFromStorage(queueId);
+        }
+    }, [isForceNewParam, queueId]);
 
     useEffect(() => {
         if (errorParam === "expired_qr") {
@@ -182,8 +301,9 @@ export default function JoinQueuePage({ params }: PageProps) {
         if (token) {
             setQrToken(token);
             sessionStorage.setItem(`qr_token_${queueId}`, token);
-            // Hide token from URL bar for visual security
-            window.history.replaceState({}, "", window.location.pathname);
+            // Hide token from URL bar for visual security while preserving new=true
+            const cleanUrl = isForceNewParam ? `${window.location.pathname}?new=true` : window.location.pathname;
+            window.history.replaceState({}, "", cleanUrl);
         } else {
             // Check if it was saved in this tab's session (survives refreshes, but not link sharing)
             const savedToken = sessionStorage.getItem(`qr_token_${queueId}`);
@@ -191,7 +311,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                 setQrToken(savedToken);
             }
         }
-    }, [searchParams, queueId, errorParam]);
+    }, [searchParams, queueId, errorParam, isForceNewParam]);
 
 
     const { state: live, status: wsStatus } = useQueueSocket(queueId);
@@ -223,6 +343,21 @@ export default function JoinQueuePage({ params }: PageProps) {
     const [error, setError] = useState<string | null>(null);
     const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
 
+    // Prompt shown when phone number already has an active ticket
+    const [duplicatePrompt, setDuplicatePrompt] = useState<{
+        trackingId: string;
+        tokenNumber: number;
+        prefix?: string;
+        sendWhatsApp: boolean;
+    } | null>(null);
+
+    // Banner shown when user directly visits join page while having an active token in localStorage
+    const [activeTicketBanner, setActiveTicketBanner] = useState<{
+        trackingId: string;
+        tokenNumber: number;
+        prefix?: string;
+    } | null>(null);
+
     // ── Customer form state ──────────────────────────────────────
     const [customerName, setCustomerName] = useState("");
     const [debouncedCustomerName, setDebouncedCustomerName] = useState("");
@@ -243,6 +378,7 @@ export default function JoinQueuePage({ params }: PageProps) {
     const queueClosed = live?.is_active === false || isPastSession;
     const queuePaused = live?.is_paused === true;
     const queueName = live?.queue_name || "Queue";
+    const isDineQueue = live?.branch_type === "dine" || sessionStatus?.branch_type === "dine" || Boolean(live?.table_config && live.table_config.length > 0);
     const prefix = live?.prefix || joinData?.queue_prefix || "";
     const serving = live?.current_serving ?? 0;
     const activeServingTokens = live?.all_serving_tokens ?? [];
@@ -261,8 +397,8 @@ export default function JoinQueuePage({ params }: PageProps) {
         ? (customFieldsList.length > 0 && !customFieldsList.some(f => f.required && !customData[f.key]))
         : isLegacyFormValid;
 
-    // Called after WhatsApp consent answer
-    const doJoin = useCallback(async (sendWhatsApp: boolean) => {
+    // Called after WhatsApp consent answer (or re-called when user confirms force_new)
+    const doJoin = useCallback(async (sendWhatsApp: boolean, forceNewOverride = false) => {
         setShowWhatsAppModal(false);
         if (isPastSession) {
             setError("This QR code is expired. The session is closed. Please scan today's active QR code.");
@@ -277,6 +413,8 @@ export default function JoinQueuePage({ params }: PageProps) {
             const resolvedPhone = rawPhone ? `${countryCode}${rawPhone.replace(/\D/g, "")}` : '+910000000000';
             const resolvedPax = parseInt(customData['pax'] || customData['group_size'] || String(paxCount)) || 1;
 
+            const effectiveForceNew = Boolean(forceNewOverride || forceNew || isForceNewParam);
+
             const payload = {
                 name: resolvedName,
                 phone: resolvedPhone,
@@ -284,13 +422,20 @@ export default function JoinQueuePage({ params }: PageProps) {
                 send_whatsapp: sendWhatsApp,
                 qr_token: qrToken || undefined,
                 session_id: querySessionId || undefined,
+                force_new: effectiveForceNew,
                 custom_data: hasCustomFieldsConfigured ? customData : undefined
             };
 
             const data = await api.joinQueue(queueId, payload);
 
             if (data.is_existing && data.tracking_id) {
-                router.push(`/track/${data.tracking_id}`);
+                setIsJoining(false);
+                setDuplicatePrompt({
+                    trackingId: data.tracking_id,
+                    tokenNumber: data.token_number,
+                    prefix: data.queue_prefix || prefix,
+                    sendWhatsApp: sendWhatsApp,
+                });
                 return;
             }
 
@@ -304,7 +449,15 @@ export default function JoinQueuePage({ params }: PageProps) {
             setError(err instanceof ApiError ? err.detail : "Failed to join queue. Please try again.");
             setIsJoining(false);
         }
-    }, [isLegacyFormValid, isJoining, isPastSession, customerName, customerPhone, countryCode, paxCount, queueId, router, customData, hasCustomFieldsConfigured, qrToken, querySessionId]);
+    }, [isPastSession, customerName, customerPhone, countryCode, paxCount, queueId, router, customData, hasCustomFieldsConfigured, qrToken, querySessionId, forceNew, isForceNewParam, prefix]);
+
+    const handleConfirmForceNew = useCallback(async () => {
+        if (!duplicatePrompt) return;
+        const sendWhatsApp = duplicatePrompt.sendWhatsApp;
+        setDuplicatePrompt(null);
+        setForceNew(true);
+        await doJoin(sendWhatsApp, true);
+    }, [duplicatePrompt, doJoin]);
 
     // Clicking the button → show modal first
     const handleJoin = useCallback(() => {
@@ -333,8 +486,15 @@ export default function JoinQueuePage({ params }: PageProps) {
     }, [isLegacyFormValid, isJoining, isPastSession, hasCustomFieldsConfigured, customFieldsList, customData]);
 
 
-    // ── Restore from localStorage on mount ────────────────────────
+    // ── Restore from localStorage on mount (Direct visits only) ────
     useEffect(() => {
+        // If arriving via fresh QR scan or explicit new session request, NEVER auto-redirect
+        const hasQrInUrl = Boolean(searchParams.get("qrToken"));
+        const hasSavedQr = typeof window !== "undefined" && Boolean(sessionStorage.getItem(`qr_token_${queueId}`));
+        if (isForceNewParam || forceNew || hasQrInUrl || hasSavedQr) {
+            return;
+        }
+
         const tokenId = getTokenFromStorage(queueId);
         if (!tokenId) return;
 
@@ -342,6 +502,7 @@ export default function JoinQueuePage({ params }: PageProps) {
         const attemptRestore = async () => {
             try {
                 const restored = await api.restoreToken(tokenId);
+                if (!mounted) return;
 
                 // If it belongs to a different queue, ignore it
                 if (restored.queue_id !== queueId) {
@@ -351,8 +512,12 @@ export default function JoinQueuePage({ params }: PageProps) {
 
                 if (restored.status === "waiting" || restored.status === "serving") {
                     if (restored.tracking_id) {
-                        router.push(`/track/${restored.tracking_id}`);
-                        return;
+                        // Display informative banner instead of auto-redirecting
+                        setActiveTicketBanner({
+                            trackingId: restored.tracking_id,
+                            tokenNumber: restored.token_number,
+                            prefix: restored.queue_prefix || prefix,
+                        });
                     }
                 } else {
                     // Token finished or skipped — clear it
@@ -368,7 +533,7 @@ export default function JoinQueuePage({ params }: PageProps) {
 
         attemptRestore();
         return () => { mounted = false; };
-    }, [queueId]);
+    }, [queueId, isForceNewParam, forceNew, searchParams, prefix]);
 
     // ── Marquee auto-scroll logic ────────────────────────────────────────────────
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -435,6 +600,19 @@ export default function JoinQueuePage({ params }: PageProps) {
                 />
             )}
 
+            {/* Duplicate / Existing Token Modal */}
+            {duplicatePrompt && (
+                <DuplicateTokenModal
+                    brandColor={brandColor}
+                    tokenNumber={duplicatePrompt.tokenNumber}
+                    prefix={duplicatePrompt.prefix}
+                    isJoining={isJoining}
+                    onViewActive={() => router.push(`/track/${duplicatePrompt.trackingId}`)}
+                    onIssueNew={handleConfirmForceNew}
+                    onClose={() => setDuplicatePrompt(null)}
+                />
+            )}
+
             <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
                 <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
                     {/* Header */}
@@ -460,7 +638,7 @@ export default function JoinQueuePage({ params }: PageProps) {
 
                             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-1 drop-shadow-md">{queueName}</h1>
                             <p className="text-[10px] sm:text-xs font-semibold tracking-[0.25em] uppercase text-white/70 mb-4">
-                                {queueClosed ? "Currently Closed" : "Now Serving"}
+                                {queueClosed ? "Currently Closed" : isDineQueue ? "Table Waitlist / Now Seating" : "Now Serving"}
                             </p>
 
                             <div className="relative mx-auto w-full mt-3">
@@ -475,7 +653,9 @@ export default function JoinQueuePage({ params }: PageProps) {
                                         </span>
                                         {activeServingTokens[0].assigned_line !== null && (
                                             <span className="text-[10px] font-bold text-white/90 mt-2 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full">
-                                                Lane {activeServingTokens[0].assigned_line}
+                                                {isDineQueue
+                                                    ? (live?.table_config?.find(tbl => tbl.id === activeServingTokens[0].assigned_line)?.name || `Table ${activeServingTokens[0].assigned_line}`)
+                                                    : `Lane ${activeServingTokens[0].assigned_line}`}
                                             </span>
                                         )}
                                     </div>
@@ -486,7 +666,11 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                 <div key={t.id || t.token_number} className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 sm:py-3 flex flex-col items-center min-w-[88px] shrink-0 border border-white/20 shadow-sm transition-all">
                                                     <span className="text-2xl sm:text-[26px] font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
                                                     {t.assigned_line !== null && (
-                                                        <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">Lane {t.assigned_line}</span>
+                                                        <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                                                            {isDineQueue
+                                                                ? (live?.table_config?.find(tbl => tbl.id === t.assigned_line)?.name || `Table ${t.assigned_line}`)
+                                                                : `Lane ${t.assigned_line}`}
+                                                        </span>
                                                     )}
                                                 </div>
                                             ))}
@@ -514,7 +698,11 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                 <div key={`${t.id || t.token_number}-${i}`} className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 sm:py-3 flex flex-col items-center min-w-[88px] shrink-0 border border-white/20 shadow-sm transition-all">
                                                     <span className="text-2xl sm:text-[26px] font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
                                                     {t.assigned_line !== null && (
-                                                        <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">Lane {t.assigned_line}</span>
+                                                        <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                                                            {isDineQueue
+                                                                ? (live?.table_config?.find(tbl => tbl.id === t.assigned_line)?.name || `Table ${t.assigned_line}`)
+                                                                : `Lane ${t.assigned_line}`}
+                                                        </span>
                                                     )}
                                                 </div>
                                             ))}
@@ -586,11 +774,56 @@ export default function JoinQueuePage({ params }: PageProps) {
                             </div>
                         ) : (
                             <div className="space-y-4">
+                                {/* Informative Active Ticket Banner for direct visits */}
+                                {activeTicketBanner && (
+                                    <div className="p-4 rounded-2xl bg-blue-50/90 border border-blue-200 text-blue-950 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                                                #{activeTicketBanner.prefix || ""}{activeTicketBanner.tokenNumber}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-xs sm:text-sm text-slate-900 leading-tight">
+                                                    {isDineQueue ? "Active Table Waitlist Ticket" : "Active Ticket in this Queue"}
+                                                </p>
+                                                <p className="text-[11px] text-slate-600 mt-0.5">
+                                                    {isDineQueue 
+                                                        ? `You already have active waitlist Token #${activeTicketBanner.prefix || ""}{activeTicketBanner.tokenNumber}.`
+                                                        : `You already have Token #${activeTicketBanner.prefix || ""}{activeTicketBanner.tokenNumber} active.`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 pt-1 sm:pt-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => router.push(`/track/${activeTicketBanner.trackingId}`)}
+                                                className="flex-1 sm:flex-none px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs whitespace-nowrap"
+                                            >
+                                                View Ticket
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setActiveTicketBanner(null);
+                                                    setForceNew(true);
+                                                    clearTokenFromStorage(queueId);
+                                                }}
+                                                className="flex-1 sm:flex-none px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold rounded-xl transition whitespace-nowrap"
+                                            >
+                                                {isDineQueue ? "Register Another Party" : "Register Another Customer"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Info text */}
                                 <div className="text-center px-2">
-                                    <h2 className="text-lg font-black text-slate-900 tracking-tight mb-1">Welcome</h2>
+                                    <h2 className="text-lg font-black text-slate-900 tracking-tight mb-1">
+                                        {isDineQueue ? "Join Table Waitlist" : "Welcome"}
+                                    </h2>
                                     <p className="text-slate-500 text-xs leading-relaxed">
-                                        Please enter your details below to secure your position.
+                                        {isDineQueue
+                                            ? "Enter your party details below. We'll alert you on WhatsApp the moment your table is ready."
+                                            : "Please enter your details below to secure your position."}
                                     </p>
                                 </div>
 
@@ -760,28 +993,73 @@ export default function JoinQueuePage({ params }: PageProps) {
 
                                             <div>
                                                 <label htmlFor="customer-pax" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                                                    No of Pax <span className="text-emerald-500 ml-0.5">*</span>
+                                                    {isDineQueue ? "Party Size (Number of Guests)" : "No of Pax"} <span className="text-emerald-500 ml-0.5">*</span>
                                                 </label>
-                                                <div className="relative">
-                                                    <input
-                                                        id="customer-pax"
-                                                        type="number"
-                                                        min="1"
-                                                        max="999"
-                                                        value={companionInput}
-                                                        onChange={(e) => {
-                                                            let val = e.target.value;
-                                                            if (val.length > 3) {
-                                                                val = val.slice(0, 3);
-                                                            }
-                                                            setCompanionInput(val);
-                                                        }}
-                                                        placeholder="0"
-                                                        required
-                                                        disabled={isJoining || queueClosed}
-                                                        className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none disabled:opacity-50"
-                                                    />
-                                                </div>
+                                                {isDineQueue ? (
+                                                    <div className="space-y-2">
+                                                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                                                            {[1, 2, 3, 4, 5, 6, 7, 8].map(paxNum => {
+                                                                const isSelected = companionInput === String(paxNum);
+                                                                return (
+                                                                    <button
+                                                                        key={paxNum}
+                                                                        type="button"
+                                                                        onClick={() => setCompanionInput(String(paxNum))}
+                                                                        disabled={isJoining || queueClosed}
+                                                                        className={`py-2.5 rounded-xl font-bold text-xs transition-all ${
+                                                                            isSelected
+                                                                                ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900/20"
+                                                                                : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                                                                        }`}
+                                                                    >
+                                                                        {paxNum}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        {parseInt(companionInput) > 8 && (
+                                                            <div className="relative">
+                                                                <input
+                                                                    id="customer-pax"
+                                                                    type="number"
+                                                                    min="1"
+                                                                    max="999"
+                                                                    value={companionInput}
+                                                                    onChange={(e) => {
+                                                                        let val = e.target.value;
+                                                                        if (val.length > 3) val = val.slice(0, 3);
+                                                                        setCompanionInput(val);
+                                                                    }}
+                                                                    placeholder="Party size"
+                                                                    required
+                                                                    disabled={isJoining || queueClosed}
+                                                                    className="w-full px-4 py-2.5 bg-white text-slate-900 text-xs font-semibold rounded-xl border border-slate-200 outline-none"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="relative">
+                                                        <input
+                                                            id="customer-pax"
+                                                            type="number"
+                                                            min="1"
+                                                            max="999"
+                                                            value={companionInput}
+                                                            onChange={(e) => {
+                                                                let val = e.target.value;
+                                                                if (val.length > 3) {
+                                                                    val = val.slice(0, 3);
+                                                                }
+                                                                setCompanionInput(val);
+                                                            }}
+                                                            placeholder="0"
+                                                            required
+                                                            disabled={isJoining || queueClosed}
+                                                            className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none disabled:opacity-50"
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         </>
                                     )}
@@ -806,17 +1084,17 @@ export default function JoinQueuePage({ params }: PageProps) {
                                             {isJoining ? (
                                                 <>
                                                     <span className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
-                                                    Getting Ticket...
+                                                    {isDineQueue ? "Securing Table Spot..." : "Getting Ticket..."}
                                                 </>
                                             ) : isPastSession ? (
                                                 "QR Code Expired / Invalid"
                                             ) : queueClosed ? (
-                                                "Queue is Closed"
+                                                isDineQueue ? "Waitlist is Closed" : "Queue is Closed"
                                             ) : queuePaused ? (
                                                 "Operator on Break"
                                             ) : (
                                                 <>
-                                                    Take a Token
+                                                    {isDineQueue ? "Join Table Waitlist" : "Take a Token"}
                                                     <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                                     </svg>

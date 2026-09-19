@@ -15,10 +15,11 @@ import ConfirmModal from "@/components/ConfirmModal";
 import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
-import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken } from "@/types/api";
-import { Pause, Play, Square, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck, Settings2 } from "lucide-react";
+import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken, TableConfig } from "@/types/api";
+import { Pause, Play, Square, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck, Settings2, Utensils } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
+import DineTableGrid from "@/components/dine/DineTableGrid";
 import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
@@ -430,6 +431,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     });
     const [sessionInfo, setSessionInfo] = useState<{ session_date: string; title: string; is_active?: boolean; is_paused?: boolean } | null>(null);
     const [todaySessionId, setTodaySessionId] = useState<string | null>(null);
+    const [branchType, setBranchType] = useState<"standard" | "dine">("standard");
 
     useEffect(() => {
         api.getQueue(queueId).then(q => {
@@ -441,7 +443,12 @@ export default function QueueDetailPage({ params }: PageProps) {
             }
         }).catch(() => { });
         api.getSession(sessionId).then(s => setSessionInfo({ session_date: s.session_date, title: s.title, is_active: s.is_active, is_paused: s.is_paused })).catch(() => { });
+        api.getOrganizationSettings().then(org => {
+            if (org.branch_type) setBranchType(org.branch_type);
+        }).catch(() => { });
     }, [queueId, sessionId]);
+
+    const isDineMode = branchType === "dine" || Boolean(initialQueue?.table_config && initialQueue.table_config.length > 0);
 
     const isTodaySession = React.useMemo(() => {
         if (!sessionInfo?.session_date) return true;
@@ -701,6 +708,19 @@ export default function QueueDetailPage({ params }: PageProps) {
                 pax_count: t.pax_count || 1,
             }));
     }, [isTodaySession, state?.recent_tokens, staticSessionTokens]);
+
+    const dineTables: TableConfig[] = React.useMemo(() => {
+        if (initialQueue?.table_config && initialQueue.table_config.length > 0) {
+            return initialQueue.table_config;
+        }
+        const count = Math.max(initialQueue?.service_lines || state?.service_lines || 1, 1);
+        return Array.from({ length: count }, (_, i) => ({
+            id: i + 1,
+            name: `Table ${i + 1}`,
+            capacity: 4,
+            section: "Main Dining",
+        }));
+    }, [initialQueue?.table_config, initialQueue?.service_lines, state?.service_lines]);
 
     const filteredWaiting = React.useMemo(() => {
         if (!effectiveWaitingTokens) return [];
@@ -1133,6 +1153,34 @@ export default function QueueDetailPage({ params }: PageProps) {
         } finally { setActionLoading(null); }
     }, [isTodaySession, isActive, isPaused, queueId, sessionId, addName, addPhone, addPaxCount, addCountryCode, state?.prefix, hasAdminCustomFieldsConfigured, addCustomData, toast]);
 
+    const handleSeatParty = useCallback(async (token: WaitingToken, preferredTableId?: number) => {
+        const serving = (state?.all_serving_tokens ?? []) as ServingToken[];
+        const occupiedLineNumbers = new Set(
+            serving
+                .filter(t => t.assigned_line !== null && t.assigned_line !== undefined && !(t.completed_lines ?? []).includes(t.assigned_line!))
+                .map(t => t.assigned_line!)
+        );
+        
+        let targetTableId = preferredTableId;
+        if (!targetTableId) {
+            const vacantTables = dineTables.filter(tbl => !occupiedLineNumbers.has(tbl.id));
+            if (vacantTables.length === 0) {
+                toast("No tables currently vacant. Free a table first.", "error");
+                return;
+            }
+            // Find best matching table where capacity >= pax
+            const partyPax = token.pax_count || 1;
+            const match = vacantTables.find(t => t.capacity >= partyPax) || vacantTables[0];
+            targetTableId = match.id;
+        }
+
+        await performAction(`seat_${token.id}`, async () => {
+            await api.serveSpecificToken(queueId, token.token_number, targetTableId);
+            const tbl = dineTables.find(t => t.id === targetTableId);
+            toast(`Seated Party #${state?.prefix || ""}${token.token_number} at ${tbl?.name || `Table ${targetTableId}`}`, "success");
+            refresh();
+        });
+    }, [state?.all_serving_tokens, state?.prefix, dineTables, queueId, performAction, toast, refresh]);
 
     const executeInviteWithNumber = useCallback(async (num: number, lineNum?: number) => {
         setActionLoading("invite");
@@ -1248,11 +1296,13 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const baseNavItems: { id: ActiveSection; label: string; icon: React.ReactNode }[] = [
         {
-            id: "queues", label: "Dashboard / Queues",
-            icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
+            id: "queues", 
+            label: isDineMode ? "Floor Plan & Tables" : "Dashboard / Queues",
+            icon: isDineMode ? <Utensils width="15" height="15" strokeWidth="1.8" /> : <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
         },
         {
-            id: "waiting_list", label: "Queue Lists",
+            id: "waiting_list", 
+            label: isDineMode ? "Guest Waitlist" : "Queue Lists",
             icon: <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
         },
         {
@@ -1447,7 +1497,7 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                 {/* ── Main Content ──────────────────────────────────── */}
                 <div className="bg-gray-50 dark:bg-transparent" style={{ flex: 1, overflowY: "auto" }} onScroll={handleScroll}>
-                    <div className="px-4 py-6 md:px-7 md:py-7" style={{ maxWidth: 1160, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+                    <div className="px-4 py-6 md:px-7 md:py-7" style={{ maxWidth: isDineMode ? 1400 : 1160, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
 
                         {/* ═══════════════════════════════════════════
                         SECTION: Dashboard / Queues
@@ -1643,6 +1693,21 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 );
                                             }
 
+                                            if (isDineMode) {
+                                                return (
+                                                    <DineTableGrid
+                                                        queueId={queueId}
+                                                        tables={dineTables}
+                                                        allServingTokens={(state?.all_serving_tokens ?? []) as ServingToken[]}
+                                                        prefix={state?.prefix ?? initialQueue?.prefix ?? ""}
+                                                        onUpdate={refresh}
+                                                        isPaused={(state?.is_paused ?? initialQueue?.is_paused) === true}
+                                                        isReadOnly={isReadOnly}
+                                                        waitingTokens={effectiveWaitingTokens}
+                                                    />
+                                                );
+                                            }
+
                                             if (numLines > 0) {
                                                 return (
                                                     <ServiceLinesGrid
@@ -1662,8 +1727,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             return null;
                                         })()}
 
-                                        {/* Original single-counter serving hero (only when queue metadata is loaded and service_lines === 0) */}
-                                        {!!(state !== null || initialQueue !== null) && (state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && (
+                                        {/* Original single-counter serving hero (only when queue metadata is loaded and service_lines === 0 and not dine mode) */}
+                                        {!!(state !== null || initialQueue !== null) && !isDineMode && (state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && (
                                             <>
                                                 <div className="pt-4 pb-1 px-4 sm:px-6 lg:px-8 w-full flex justify-center">
                                                     <div className="relative w-full max-w-2xl flex flex-col filter drop-shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
@@ -1873,7 +1938,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     className="w-auto h-10 px-5 text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] shadow-[0_4px_12px_rgba(79,70,229,0.25)] hover:shadow-[0_6px_16px_rgba(79,70,229,0.35)] transition-all flex justify-center items-center gap-2 flex-shrink-0 disabled:opacity-50 disabled:shadow-none cursor-pointer"
                                                 >
                                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                                                    Add Customer
+                                                    {isDineMode ? "Add Walk-in" : "Add Customer"}
                                                 </button>
 
                                                 <div className="w-[1px] h-7 bg-slate-200 dark:bg-slate-700/50 mx-1" />
@@ -2018,6 +2083,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                             hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
                                                             extraActions={
                                                                 <>
+                                                                    {isDineMode && canManageQueue && activeListTab === "waiting" && (
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); handleSeatParty(t); }}
+                                                                            disabled={actionLoading === `seat_${t.id}`}
+                                                                            className="px-2.5 h-7 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm ml-1 disabled:opacity-50"
+                                                                        >
+                                                                            {actionLoading === `seat_${t.id}` ? "..." : "Seat"}
+                                                                        </button>
+                                                                    )}
                                                                     {canManageQueue && activeListTab === "waiting" ? (
                                                                         <button
                                                                             onClick={(e) => { e.stopPropagation(); setTokenToRemove({ id: t.id, number: t.token_number }); }}
@@ -2579,6 +2653,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
                                                         extraActions={
                                                             <>
+                                                                {isDineMode && canManageQueue && activeListTab === "waiting" && (
+                                                                    <button
+                                                                        onClick={() => handleSeatParty(t)}
+                                                                        disabled={actionLoading === `seat_${t.id}`}
+                                                                        className="px-2.5 h-8 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
+                                                                    >
+                                                                        {actionLoading === `seat_${t.id}` ? "..." : "Seat"}
+                                                                    </button>
+                                                                )}
                                                                 {canManageQueue && activeListTab === "waiting" ? (
                                                                     <button
                                                                         onClick={() => setTokenToRemove({ id: t.id, number: t.token_number })}
@@ -2918,7 +3001,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                             className="flex-1 w-full h-11 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:shadow-none cursor-pointer"
                         >
                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                            Add Customer
+                            {isDineMode ? "Add Walk-in" : "Add Customer"}
                         </button>
 
                         {/* More Actions Toggle */}

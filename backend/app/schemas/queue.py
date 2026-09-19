@@ -144,8 +144,9 @@ class QueueCreate(BaseModel):
     starting_sequence: int = Field(default=1, ge=1)
     open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
-    service_lines: int = Field(default=0, ge=0, le=20, description="0=single counter, >0=multi-lane mode")
+    service_lines: int = Field(default=0, ge=0, le=50, description="0=single counter, >0=multi-lane / tables mode")
     custom_fields: Optional[list[dict]] = None
+    table_config: Optional[list[dict]] = None
 
     @field_validator("open_time", "close_time", mode="before")
     @classmethod
@@ -164,8 +165,9 @@ class QueueUpdate(BaseModel):
     starting_sequence: Optional[int] = Field(None, ge=1)
     open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
-    service_lines: Optional[int] = Field(None, ge=0, le=20)
+    service_lines: Optional[int] = Field(None, ge=0, le=50)
     custom_fields: Optional[list[dict]] = None
+    table_config: Optional[list[dict]] = None
 
     @field_validator("open_time", "close_time", mode="before")
     @classmethod
@@ -198,6 +200,7 @@ class QueueResponse(BaseModel):
     open_time: Optional[str] = None
     close_time: Optional[str] = None
     custom_fields: Optional[list] = None
+    table_config: Optional[list] = None
     token_session_id: Optional[uuid.UUID] = None
     created_at: datetime
 
@@ -216,6 +219,7 @@ class JoinRequest(BaseModel):
     entry_type: Optional[str] = Field(default="qr")
     qr_token: Optional[str] = Field(default=None, description="Single-use QR validation token")
     session_id: Optional[uuid.UUID] = Field(default=None, description="Optional target session ID to join")
+    force_new: bool = Field(default=False, description="Explicitly request a new token, bypassing phone duplicate check")
     custom_data: Optional[dict] = None
 
     @field_validator("name", mode="before")

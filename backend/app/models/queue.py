@@ -58,6 +58,7 @@ class Queue(Base):
         Integer, nullable=False, default=1, server_default="1"
     )
     custom_fields: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
+    table_config: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True, server_default='[]')
     current_token_number: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0
     )

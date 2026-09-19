@@ -495,6 +495,9 @@ async def get_queue_public_status(
     session_is_current = False
     within_hours = True
 
+    org_res = await db.execute(sa_select(OrgModel).where(OrgModel.id == queue.org_id))
+    org = org_res.scalar_one_or_none()
+
     # Never let a public caller inspect an arbitrary historical/cross-queue session.
     target_session_id = queue.token_session_id
     if session_id and session_id != target_session_id:
@@ -505,8 +508,6 @@ async def get_queue_public_status(
             session_active = bool(session.is_active)
             session_paused = bool(session.is_paused)
             session_date_str = session.session_date.isoformat()
-            org_res = await db.execute(sa_select(OrgModel).where(OrgModel.id == queue.org_id))
-            org = org_res.scalar_one_or_none()
             tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
             local_now = datetime.now(ZoneInfo(tz_str))
             from app.core.tz_helpers import queue_business_date
@@ -522,6 +523,10 @@ async def get_queue_public_status(
                     else current_hm >= queue.open_time or current_hm <= queue.close_time
                 )
 
+    branch_type_val = getattr(org, "branch_type", "standard")
+    if hasattr(branch_type_val, "value"):
+        branch_type_val = branch_type_val.value
+
     return {
         "queue_id": str(queue_id),
         "queue_name": queue.name,
@@ -532,6 +537,7 @@ async def get_queue_public_status(
         "is_current_session": session_is_current,
         "has_session": queue.token_session_id is not None,
         "within_operating_hours": True,
+        "branch_type": branch_type_val or "standard",
     }
 
 
@@ -631,9 +637,13 @@ async def scan_queue_qr(
     # Generate single-use token and store in Redis for 600 seconds (10 minutes)
     redis = get_redis()
     qr_token = uuid.uuid4().hex
-    await redis.setex(f"qr_token:{queue_id}:{qr_token}", 600, "VALID")
+    await redis.set(f"qr_token:{queue_id}:{qr_token}", "VALID", ex=600)
 
-    return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?qrToken={qr_token}")
+    extra_params = ""
+    if request.query_params.get("kiosk") == "true":
+        extra_params += "&kiosk=true"
+
+    return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?qrToken={qr_token}&new=true{extra_params}")
 
 
 
@@ -662,18 +672,17 @@ async def create_token(
     SECURITY NOTE: This is a public, unauthenticated endpoint. The only data
     it acts on is the queue_id (public knowledge — printed on QR codes).
     """
-    # QR admission is mandatory for public QR joins. Consume the credential
-    # atomically so missing, fabricated, expired, and replayed values fail.
+    # QR admission is mandatory for public QR joins. Verify the credential.
     if not body.qr_token:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Scan the active QR code to join this queue.")
     try:
         redis = get_redis()
         token_key = f"qr_token:{queue_id}:{body.qr_token}"
-        consumed = await redis.getdel(token_key)
+        valid = await redis.get(token_key)
     except Exception:
         logger.exception("QR admission validation unavailable")
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="QR validation is temporarily unavailable. Please try again.")
-    if consumed != "VALID":
+    if valid != "VALID":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This QR code has expired or was already used. Please scan again.")
 
     # Public callers cannot select an entry channel or historical session.
@@ -682,7 +691,12 @@ async def create_token(
     try:
         # Atomic token generation via queue service uses _lock_queue_public which does NOT expose
         # any other org's data; it just joins whatever public queue is at that ID.
-        result = await token_service.join_queue(db, queue_id=queue_id, data=body)
+        result = await token_service.join_queue(
+            db, queue_id=queue_id, data=body, bypass_duplicate_check=bool(body.force_new)
+        )
+        # If a new token was successfully issued (not an existing duplicate), consume the single-use QR token
+        if not getattr(result, "is_existing", False):
+            await redis.delete(token_key)
         await db.commit()
         # org_id comes from the queue row that was already fetched inside join_queue
         # We re-read it from the result rather than making a second DB round-trip

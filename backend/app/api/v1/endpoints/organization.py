@@ -42,6 +42,7 @@ class ParentOrgSummary(BaseModel):
 class OrganizationSettingsResponse(BaseModel):
     name: str = ""
     slug: str = ""
+    branch_type: str = "standard"
     email: Optional[str] = None
     address: Optional[str] = None
     phone_number: Optional[str] = None
@@ -143,6 +144,7 @@ async def get_organization_settings(
         return OrganizationSettingsResponse(
             name=org.name or "",
             slug=org.slug or "",
+            branch_type=getattr(org, "branch_type", "standard") or "standard",
             email=current_user.email,
             address=org.address,
             phone_number=org.phone_number,

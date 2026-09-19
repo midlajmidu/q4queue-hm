@@ -1,7 +1,8 @@
 "use client";
 
 import React, { use, useState, useEffect, useCallback, useRef } from "react";
-import { CheckCircle2, Clock, Share2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, Clock, Share2, PlusCircle } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useQueueSocket } from "@/hooks/useQueueSocket";
 import {
@@ -13,7 +14,7 @@ import {
 } from "@/utils/queueNotifications";
 import ConnectionBadge from "@/components/ConnectionBadge";
 import ConfirmModal from "@/components/ConfirmModal";
-import type { JoinResponse, TokenStatus } from "@/types/api";
+import type { JoinResponse, TokenStatus, TableConfig } from "@/types/api";
 
 interface PageProps {
     params: Promise<{ trackingId: string }>;
@@ -64,6 +65,7 @@ const formatTime12 = (time24?: string | null) => {
 
 export default function TrackingPage({ params }: PageProps) {
     const { trackingId } = use(params);
+    const router = useRouter();
     const [queueId, setQueueId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -121,6 +123,8 @@ export default function TrackingPage({ params }: PageProps) {
     const [isPastSession, setIsPastSession] = useState(false);
     const [sessionDate, setSessionDate] = useState<string | null>(null);
     const [isCopied, setIsCopied] = useState(false);
+    const [branchType, setBranchType] = useState<"standard" | "dine">("standard");
+    const [tableConfig, setTableConfig] = useState<TableConfig[]>([]);
 
     // ── Fetch Tracking Info on Mount ────────────────────────
     useEffect(() => {
@@ -132,6 +136,8 @@ export default function TrackingPage({ params }: PageProps) {
                     setQueueId(info.queue_id);
                     setIsPastSession(info.is_past_session === true);
                     setSessionDate(info.session_date || null);
+                    if (info.branch_type) setBranchType(info.branch_type);
+                    if (info.table_config) setTableConfig(info.table_config);
                     setJoinData({
                         id: info.token_id,
                         token_number: info.token_number,
@@ -140,7 +146,8 @@ export default function TrackingPage({ params }: PageProps) {
                         queue_prefix: info.token_prefix,
                         session_id: info.session_id || "",
                         tracking_id: info.tracking_id,
-                        removed_by: info.removed_by
+                        removed_by: info.removed_by,
+                        pax_count: info.pax_count
                     });
                     setTokenStatus(info.status as TokenStatus);
                     setIsLoading(false);
@@ -237,6 +244,13 @@ export default function TrackingPage({ params }: PageProps) {
     }, [joinData, queueId, isCancelling, trackingId]);
 
     const handleCancelRequest = () => setShowCancelConfirm(true);
+
+    const handleTakeNewToken = useCallback(() => {
+        if (queueId) {
+            clearTokenFromStorage(queueId);
+            router.push(`/join/${queueId}?new=true`);
+        }
+    }, [queueId, router]);
 
     const handleShare = async () => {
         if (isSharing) return;
@@ -398,13 +412,24 @@ export default function TrackingPage({ params }: PageProps) {
         else positionMessage = `${peopleAhead} people ahead of you`;
     }
 
-    // Derive the assigned service line for this customer (multi-lane queues)
+    const effectiveBranchType = live?.branch_type || branchType;
+    const effectiveTableConfig = (live?.table_config && live.table_config.length > 0) ? live.table_config : tableConfig;
+    const isDineMode = effectiveBranchType === "dine" || Boolean(effectiveTableConfig && effectiveTableConfig.length > 0);
+
+    // Derive the assigned service line for this customer (multi-lane queues / tables)
     const myAssignedLine = React.useMemo(() => {
         if (!myNumber || !isMyTurn) return null;
         const allServing = (live?.all_serving_tokens ?? []) as { token_number: number; assigned_line: number | null }[];
         const mine = allServing.find(t => t.token_number === myNumber);
         return mine?.assigned_line ?? null;
     }, [myNumber, isMyTurn, live?.all_serving_tokens]);
+
+    // Derive assigned table name in dine mode
+    const myAssignedTableName = React.useMemo(() => {
+        if (!isDineMode || myAssignedLine === null) return null;
+        const table = effectiveTableConfig?.find(t => t.id === myAssignedLine);
+        return table?.name || `Table ${myAssignedLine}`;
+    }, [isDineMode, myAssignedLine, effectiveTableConfig]);
 
     const brandColor = live?.org_brand_color || '#2563eb';
     const logoUrl = live?.org_logo_url;
@@ -454,7 +479,7 @@ export default function TrackingPage({ params }: PageProps) {
 
                         <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1 text-white/95 px-10 leading-tight" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{queueName}</h1>
                         <p className="text-white/60 text-[10px] font-bold uppercase tracking-[0.25em] mb-4">
-                            {queueClosed ? "Currently Closed" : "Now Serving"}
+                            {queueClosed ? "Currently Closed" : isDineMode ? "Table Waitlist / Now Seating" : "Now Serving"}
                         </p>
 
                         <div className="relative mx-auto w-full mt-3">
@@ -469,7 +494,9 @@ export default function TrackingPage({ params }: PageProps) {
                                     </span>
                                     {activeServingTokens[0].assigned_line !== null && (
                                         <span className="text-[10px] font-bold text-white/90 mt-2 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full">
-                                            Lane {activeServingTokens[0].assigned_line}
+                                            {isDineMode
+                                                ? (effectiveTableConfig?.find(tbl => tbl.id === activeServingTokens[0].assigned_line)?.name || `Table ${activeServingTokens[0].assigned_line}`)
+                                                : `Lane ${activeServingTokens[0].assigned_line}`}
                                         </span>
                                     )}
                                 </div>
@@ -480,7 +507,11 @@ export default function TrackingPage({ params }: PageProps) {
                                             <div key={t.id || t.token_number} className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 sm:py-3 flex flex-col items-center min-w-[88px] shrink-0 border border-white/20 shadow-sm transition-all">
                                                 <span className="text-2xl sm:text-[26px] font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
                                                 {t.assigned_line !== null && (
-                                                    <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">Lane {t.assigned_line}</span>
+                                                    <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                                                        {isDineMode
+                                                            ? (effectiveTableConfig?.find(tbl => tbl.id === t.assigned_line)?.name || `Table ${t.assigned_line}`)
+                                                            : `Lane ${t.assigned_line}`}
+                                                    </span>
                                                 )}
                                             </div>
                                         ))}
@@ -510,7 +541,11 @@ export default function TrackingPage({ params }: PageProps) {
                                             <div key={`${t.id || t.token_number}-${i}`} className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 sm:py-3 flex flex-col items-center min-w-[88px] shrink-0 border border-white/20 shadow-sm transition-all">
                                                 <span className="text-2xl sm:text-[26px] font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
                                                 {t.assigned_line !== null && (
-                                                    <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">Lane {t.assigned_line}</span>
+                                                    <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                                                        {isDineMode
+                                                            ? (effectiveTableConfig?.find(tbl => tbl.id === t.assigned_line)?.name || `Table ${t.assigned_line}`)
+                                                            : `Lane ${t.assigned_line}`}
+                                                    </span>
                                                 )}
                                             </div>
                                         ))}
@@ -668,7 +703,9 @@ export default function TrackingPage({ params }: PageProps) {
                                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                             </span>
                                             <span className="text-[11px] font-extrabold text-emerald-700 uppercase tracking-wider">
-                                                {myAssignedLine != null ? `It’s Your Turn • Lane ${myAssignedLine}` : "It’s Your Turn • Ready"}
+                                                {isDineMode
+                                                    ? "Your Table is Ready!"
+                                                    : (myAssignedLine != null ? `It’s Your Turn • Lane ${myAssignedLine}` : "It’s Your Turn • Ready")}
                                             </span>
                                         </div>
                                     ) : isSkipped ? (
@@ -681,7 +718,14 @@ export default function TrackingPage({ params }: PageProps) {
                                     ) : (
                                         <div className="flex items-center justify-center gap-2 mb-3">
                                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
-                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Ticket</span>
+                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                                {isDineMode ? "Table Waitlist Ticket" : "Your Ticket"}
+                                            </span>
+                                            {isDineMode && (joinData?.pax_count || 1) > 0 && (
+                                                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10.5px] font-extrabold tracking-wide border border-slate-200/60">
+                                                    Party of {joinData?.pax_count || 1}
+                                                </span>
+                                            )}
                                         </div>
                                     )}
 
@@ -691,12 +735,18 @@ export default function TrackingPage({ params }: PageProps) {
 
                                     <p aria-live="polite" className={`text-xs sm:text-sm font-semibold tracking-wide ${isMyTurn ? "text-emerald-700" : alreadyServed ? "text-slate-500" : isSkipped ? "text-amber-700" : (!isNext ? "text-slate-500" : "")}`} style={(!isMyTurn && !alreadyServed && !isSkipped && isNext) ? { color: brandColor } : {}}>
                                         {alreadyServed 
-                                            ? "Thank you for visiting! Your consultation is complete."
+                                            ? (isDineMode ? "Thank you for dining with us! Your visit is complete." : "Thank you for visiting! Your consultation is complete.")
                                             : isSkipped
                                             ? "Your token was skipped because the queue session closed."
                                             : isMyTurn 
-                                            ? (myAssignedLine != null ? `Please proceed to Lane ${myAssignedLine} now` : "Please proceed to the counter now") 
-                                            : positionMessage}
+                                            ? (isDineMode 
+                                                ? (myAssignedTableName 
+                                                    ? `Your table (${myAssignedTableName}) is ready! Please proceed to your table or the Host Stand.` 
+                                                    : "Your table is ready! Please proceed to the Host Stand.") 
+                                                : (myAssignedLine != null ? `Please proceed to Lane ${myAssignedLine} now` : "Please proceed to the counter now")) 
+                                            : (isDineMode && (joinData?.pax_count || 1) > 0
+                                                ? `${positionMessage} (Party of ${joinData?.pax_count})`
+                                                : positionMessage)}
                                     </p>
                                 </div>
 
@@ -706,7 +756,9 @@ export default function TrackingPage({ params }: PageProps) {
                                 <div className="p-4 pt-5">
                                     <div className="flex bg-slate-50/50 rounded-2xl border border-slate-100 divide-x divide-slate-100 overflow-hidden text-sm">
                                         <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
-                                            <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">Ahead</p>
+                                            <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">
+                                                {isDineMode ? "Ahead" : "Ahead"}
+                                            </p>
                                             <p className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
                                                 {alreadyServed ? "—" : isMyTurn ? "0" : peopleAhead}
                                             </p>
@@ -714,12 +766,14 @@ export default function TrackingPage({ params }: PageProps) {
                                         <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
                                             <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">Status</p>
                                             <p className={`text-[17px] sm:text-[19px] font-extrabold tracking-tight leading-none ${isMyTurn ? "text-slate-900" : isSkipped ? "text-amber-500" : alreadyServed ? "text-slate-400" : (!isNext ? "text-slate-800" : "")}`} style={isNext ? { color: brandColor } : {}}>
-                                                {isMyTurn ? "Serving" : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "Next" : "Waiting"}
+                                                {isMyTurn ? (isDineMode ? "Ready" : "Serving") : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "Next" : "Waiting"}
                                             </p>
                                         </div>
                                         {(!isMyTurn && !alreadyServed) ? (
                                             <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
-                                                <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">Serving</p>
+                                                <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">
+                                                    {isDineMode ? "Now Seated" : "Serving"}
+                                                </p>
                                                 <p className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
                                                     {activeServingTokens.length > 0
                                                         ? `${prefix}${activeServingTokens[0].token_number}`
@@ -728,10 +782,12 @@ export default function TrackingPage({ params }: PageProps) {
                                                         : "—"}
                                                 </p>
                                             </div>
-                                        ) : (isMyTurn && myAssignedLine != null) ? (
+                                        ) : (isMyTurn && (myAssignedLine != null || isDineMode)) ? (
                                             <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
                                                 <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">Assigned</p>
-                                                <p className="text-[17px] sm:text-[19px] font-extrabold text-emerald-600 tracking-tight leading-none">Lane {myAssignedLine}</p>
+                                                <p className="text-[17px] sm:text-[19px] font-extrabold text-emerald-600 tracking-tight leading-none">
+                                                    {isDineMode ? (myAssignedTableName || "Host Stand") : `Lane ${myAssignedLine}`}
+                                                </p>
                                             </div>
                                         ) : null}
                                     </div>
@@ -760,7 +816,7 @@ export default function TrackingPage({ params }: PageProps) {
                             </div>
 
                             {/* Actions */}
-                            {!alreadyServed && !isDeleted && !isSkipped && (
+                            {!alreadyServed && !isDeleted && !isSkipped ? (
                                 <div className="pt-5 border-t border-slate-200/80 space-y-3">
                                     {/* Share Action Button */}
                                     <button
@@ -784,17 +840,37 @@ export default function TrackingPage({ params }: PageProps) {
                                         )}
                                     </button>
 
+                                    {/* Take Another Token / Register New */}
+                                    <button
+                                        onClick={handleTakeNewToken}
+                                        className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200/80 active:bg-slate-200 text-slate-700 font-bold uppercase tracking-wider text-[11px] rounded-xl transition-all duration-200 shadow-xs"
+                                    >
+                                        <PlusCircle className="w-3.5 h-3.5 text-slate-500" />
+                                        <span>Take Another Token / Register New</span>
+                                    </button>
+
                                     {/* Leave Queue Action Button */}
                                     {!isMyTurn && (
                                         <button
                                             onClick={handleCancelRequest}
                                             disabled={isCancelling}
-                                            className="w-full flex items-center justify-center gap-2 py-3 bg-transparent text-rose-400 active:opacity-60 font-bold uppercase tracking-wider text-[11px] rounded-xl transition-all duration-200 disabled:opacity-50 mt-1"
+                                            className="w-full flex items-center justify-center gap-2 py-2.5 bg-transparent text-rose-400 active:opacity-60 font-bold uppercase tracking-wider text-[11px] rounded-xl transition-all duration-200 disabled:opacity-50"
                                         >
                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                            <span>Cancel Ticket</span>
+                                            <span>{isDineMode ? "Leave Waitlist" : "Cancel Ticket"}</span>
                                         </button>
                                     )}
+                                </div>
+                            ) : (
+                                <div className="pt-5 border-t border-slate-200/80 space-y-3">
+                                    <button
+                                        onClick={handleTakeNewToken}
+                                        className="w-full flex items-center justify-center gap-2.5 py-3.5 text-white font-bold uppercase tracking-wider text-[12px] rounded-xl shadow-md active:opacity-80 transition-all duration-200"
+                                        style={{ backgroundColor: brandColor }}
+                                    >
+                                        <PlusCircle className="w-4 h-4" />
+                                        <span>{isDineMode ? "Join Table Waitlist Again" : "Take New Token / Join Again"}</span>
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -813,9 +889,11 @@ export default function TrackingPage({ params }: PageProps) {
 
             <ConfirmModal
                 isOpen={showCancelConfirm}
-                title="Leave Queue?"
-                message="Are you sure you want to leave the queue? Your ticket will be cancelled and you will lose your position."
-                confirmLabel="Yes, Leave Queue"
+                title={isDineMode ? "Leave Table Waitlist?" : "Leave Queue?"}
+                message={isDineMode 
+                    ? "Are you sure you want to leave the waitlist? Your table reservation will be cancelled."
+                    : "Are you sure you want to leave the queue? Your ticket will be cancelled and you will lose your position."}
+                confirmLabel={isDineMode ? "Yes, Leave Waitlist" : "Yes, Leave Queue"}
                 confirmVariant="danger"
                 onConfirm={handleConfirmCancel}
                 onCancel={() => setShowCancelConfirm(false)}

@@ -139,21 +139,27 @@ async def notify_queue_event(
                 )
                 return
 
-        # 3. Fetch Token and Org details
+        # 3. Fetch Token, Org, and Queue details
         db_token = None
+        db_org = None
+        db_queue = None
         from app.models.organization import Organization
         from app.models.token import Token
+        from app.models.queue import Queue
         from sqlalchemy import select
         async with AsyncSessionLocal() as db:
             if token_id:
                 t_res = await db.execute(select(Token).where(Token.id == token_id))
                 db_token = t_res.scalar_one_or_none()
-                
-            if not organization_name:
-                org_res = await db.execute(select(Organization).where(Organization.id == org_id))
-                org_db = org_res.scalar_one_or_none()
-                if org_db:
-                    organization_name = org_db.name
+
+            org_res = await db.execute(select(Organization).where(Organization.id == org_id))
+            db_org = org_res.scalar_one_or_none()
+            if db_org and not organization_name:
+                organization_name = db_org.name
+
+            if queue_id:
+                q_res = await db.execute(select(Queue).where(Queue.id == queue_id))
+                db_queue = q_res.scalar_one_or_none()
                     
             if not session_id and queue_id:
                 from app.models.session import Session
@@ -174,11 +180,21 @@ async def notify_queue_event(
             logger.debug("WhatsApp disabled for token %s, skipping event=%s", token_id, event_type)
             return
 
-        # 4. Handle Hybrid Logic
+        # 4. Handle Hybrid Logic & Dining vs Clinic terminology
         token_str = f"{token_prefix}-{token_number}"
         is_raw_text = False
         raw_body = None
         variables = []
+
+        is_dine = bool(
+            (db_org and getattr(db_org, "branch_type", None) == "dine")
+            or (db_queue and getattr(db_queue, "table_config", None) and len(db_queue.table_config) > 0)
+            or (db_token and getattr(db_token, "pax_count", None) and db_token.pax_count > 1)
+        )
+
+        pax_count = getattr(db_token, "pax_count", None) if db_token else None
+        pax_str = f"\n👥 Party Size: {pax_count}" if pax_count and pax_count > 0 else ""
+        pax_suffix = f" (Party of {pax_count})" if pax_count and pax_count > 1 else ""
 
         # Upgrade any v2 events emitted by the system to v3
         if event_type == "queue_called_v2": event_type = "queue_called_v3"
@@ -196,6 +212,8 @@ async def notify_queue_event(
             track_url = f"{frontend_url}/track/{track_target}" if track_target else f"{frontend_url}/track"
             display_url = f"{frontend_url}/display/{queue_id}" if queue_id else f"{frontend_url}/display"
             
+            queue_label = f"{queue_name or org_name_to_use or ('Table Waitlist' if is_dine else 'General Queue')}{pax_suffix}"
+
             variables = [
                 c_name or "Customer",
                 token_str or "A-1",
@@ -203,7 +221,7 @@ async def notify_queue_event(
                 track_url,
                 display_url,
                 org_name_to_use or "Main Branch",
-                queue_name or org_name_to_use or "General Queue"
+                queue_label
             ]
         else:
             if not token_id:
@@ -234,19 +252,40 @@ async def notify_queue_event(
             raw_body = None
 
             if event_type in ("queue_called_v3", "queue_recalled_v2"):
-                dest = f"Service Lane {assigned_line}" if assigned_line else "the counter"
-                variables = [token_str, queue_name or org_name_to_use, dest]
-                if is_raw_text:
-                    action = "ready to assist you" if event_type == "queue_called_v3" else "waiting to assist you"
-                    header = "📢 It's Your Turn" if event_type == "queue_called_v3" else "🔄 Token Recalled"
-                    recall_text = "\n\nYour ticket has been recalled.\n" if event_type == "queue_recalled_v2" else ""
-                    raw_body = (
-                        f"*{header}*\n\n"
-                        f"Please proceed to {dest}.{recall_text}\n"
-                        f"🎫 Ticket Number: {token_str}\n"
-                        f"📋 Queue: {queue_name or org_name_to_use}\n\n"
-                        f"Our staff is {action}."
-                    )
+                if is_dine:
+                    table_name = None
+                    if assigned_line and db_queue and getattr(db_queue, "table_config", None):
+                        for tbl in db_queue.table_config:
+                            if tbl.get("id") == assigned_line:
+                                table_name = tbl.get("name")
+                                break
+                    dest = table_name or (f"Table {assigned_line}" if assigned_line else "the Host Stand")
+                    variables = [token_str, queue_name or org_name_to_use, dest]
+                    if is_raw_text:
+                        header = "🍽️ *Your Table is Ready!*" if event_type == "queue_called_v3" else "🔄 *Table Recalled*"
+                        recall_text = "\n\nYour table waitlist entry has been recalled.\n" if event_type == "queue_recalled_v2" else ""
+                        raw_body = (
+                            f"{header}\n\n"
+                            f"Hello {c_name}! Your table at {org_name_to_use} is ready.\n"
+                            f"Please proceed to {dest}.{recall_text}\n"
+                            f"🎫 Ticket Number: {token_str}{pax_str}\n"
+                            f"📋 Waitlist: {queue_name or org_name_to_use}\n\n"
+                            f"Our team is ready to welcome you!"
+                        )
+                else:
+                    dest = f"Service Lane {assigned_line}" if assigned_line else "the counter"
+                    variables = [token_str, queue_name or org_name_to_use, dest]
+                    if is_raw_text:
+                        action = "ready to assist you" if event_type == "queue_called_v3" else "waiting to assist you"
+                        header = "📢 It's Your Turn" if event_type == "queue_called_v3" else "🔄 Token Recalled"
+                        recall_text = "\n\nYour ticket has been recalled.\n" if event_type == "queue_recalled_v2" else ""
+                        raw_body = (
+                            f"*{header}*\n\n"
+                            f"Please proceed to {dest}.{recall_text}\n"
+                            f"🎫 Ticket Number: {token_str}\n"
+                            f"📋 Queue: {queue_name or org_name_to_use}\n\n"
+                            f"Our staff is {action}."
+                        )
             elif event_type in ("queue_nearby_5_v3", "queue_nearby_3_v3"):
                 pos_str = str(position) if position else "0"
                 
