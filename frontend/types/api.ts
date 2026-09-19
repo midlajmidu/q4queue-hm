@@ -688,6 +688,9 @@ export interface RecentToken {
     deleted_at?: string | null;
     recalled_at?: string | null;
     custom_data?: Record<string, any> | null;
+    appointment_time?: string | null;
+    appointment_date?: string | null;
+    appointment_booking_ref?: string | null;
 }
 
 export interface WaitingToken {
@@ -709,6 +712,9 @@ export interface WaitingToken {
     deleted_at?: string | null;
     recalled_at?: string | null;
     custom_data?: Record<string, any> | null;
+    appointment_time?: string | null;
+    appointment_date?: string | null;
+    appointment_booking_ref?: string | null;
 }
 
 export interface ServingToken {
@@ -723,6 +729,9 @@ export interface ServingToken {
     entry_type?: "manual" | "qr" | "auto" | "appointment" | null;
     shared_lines?: number[];
     completed_lines?: number[];
+    appointment_time?: string | null;
+    appointment_date?: string | null;
+    appointment_booking_ref?: string | null;
 }
 
 export interface QueueSnapshot {
@@ -1175,6 +1184,9 @@ export interface TokenHistoryItem {
     removed_by?: string | null;
     custom_data?: Record<string, any> | null;
     field_schema?: Array<{ key: string; label: string; type?: string; options?: string[] }> | null;
+    appointment_time?: string | null;
+    appointment_date?: string | null;
+    appointment_booking_ref?: string | null;
 }
 
 export interface PaginatedHistoryResponse {
@@ -1475,6 +1487,8 @@ export interface CallLogItem {
     called_by_id?: string | null;
     called_by_name?: string | null;
     queue_name?: string | null;
+    appointment_id?: string | null;
+    booking_reference?: string | null;
     created_at: string;
 }
 
@@ -1552,6 +1566,7 @@ export interface TimeSlot {
     capacity: number;
     booked_count: number;
     available: boolean;
+    is_next_day?: boolean;
 }
 
 export interface AvailableSlotsResponse {
@@ -1641,6 +1656,11 @@ export interface AppointmentResponse {
     booked_by: string;
     checked_in_at?: string | null;
     checked_in_by?: string | null;
+    is_next_day?: boolean;
+    total_call_duration_seconds?: number;
+    call_count?: number;
+    last_call_status?: string | null;
+    last_called_at?: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -1659,16 +1679,25 @@ export interface AppointmentPublicPass {
     pax_count: number;
     can_check_in: boolean;
     check_in_window_message?: string | null;
+    is_next_day?: boolean;
     token_id?: string | null;
     token_number?: number | null;
     token_prefix?: string | null;
     tracking_id?: string | null;
+    org_name?: string | null;
+    org_slug?: string | null;
+    parent_org_name?: string | null;
+    branch_address?: string | null;
+    branch_phone?: string | null;
+    notes?: string | null;
 }
 
 export interface BranchDirectoryQueue {
     id: string;
     name: string;
     prefix: string;
+    branch_id?: string;
+    branch_name?: string | null;
     appointment_enabled: boolean;
     slot_duration: number;
     advance_booking_days?: number;
@@ -1681,6 +1710,8 @@ export interface BranchDirectoryQueue {
 export interface BranchDirectoryResponse {
     org_name: string;
     org_slug: string;
+    parent_org_name?: string | null;
+    branch_name?: string | null;
     address?: string | null;
     phone_number?: string | null;
     timezone: string;

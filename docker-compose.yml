@@ -75,7 +75,7 @@ services:
       dockerfile: Dockerfile
     container_name: queue_backend
     restart: always
-    command: [ "sh", "-c", "export PYTHONPATH=/app && alembic upgrade head && gunicorn -w 2 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000" ]
+    command: [ "sh", "-c", "export PYTHONPATH=/app && alembic upgrade heads && gunicorn -w 2 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000" ]
     depends_on:
       postgres:
         condition: service_healthy
@@ -128,6 +128,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    ports:
+      - "3002:3000"
     environment:
       # - NEXT_PUBLIC_API_URL=https://amoebaq.com/api/v1
       # - NEXT_PUBLIC_APP_URL=https://amoebaq.com

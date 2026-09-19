@@ -17,41 +17,8 @@ from app.core.tz_helpers import queue_business_date
 logger = logging.getLogger(__name__)
 
 async def check_and_close_expired_sessions():
-    """Auto-close active sessions when local time is outside queue operating hours."""
-    utc_now = datetime.now(ZoneInfo("UTC"))
-    async with AsyncSessionLocal() as db:
-        stmt = (
-            select(Session, Queue, Organization)
-            .join(Queue, Session.queue_id == Queue.id)
-            .join(Organization, Session.org_id == Organization.id)
-            .where(
-                Session.is_active == True,
-                Queue.close_time.isnot(None),
-                Queue.open_time.isnot(None),
-            )
-        )
-        result = await db.execute(stmt)
-        rows = result.all()
-
-        for session, queue, org in rows:
-            try:
-                local_now = utc_now.astimezone(ZoneInfo(org.timezone or "Asia/Kolkata"))
-                current_hm = local_now.strftime("%H:%M")
-                open_t = queue.open_time
-                close_t = queue.close_time
-
-                if open_t <= close_t:
-                    is_outside = current_hm < open_t or current_hm > close_t
-                else:
-                    is_outside = current_hm < open_t and current_hm > close_t
-
-                if is_outside:
-                    session.is_active = False
-                    await db.commit()
-                    logger.info("Auto-closed session %s for queue %s at %s", session.id, queue.id, current_hm)
-            except Exception as e:
-                await db.rollback()
-                logger.error("Error auto-closing session %s: %s", session.id, e)
+    """No-op: sessions remain active until explicitly closed by staff."""
+    pass
 
 
 async def auto_session_task():
@@ -106,40 +73,40 @@ async def rollover_queue_session(db, queue: Queue, org: Organization, force: boo
     )
 
     if active_session:
-        # Rollover if forced OR if current session belongs to a prior date
-        if force or active_session.session_date < today:
-            active_session.is_active = False
-            active_session.is_paused = False
-
-            # Check if session for today already exists
-            existing_today_session = await db.scalar(
-                select(Session).where(
-                    Session.queue_id == queue.id,
-                    Session.session_date == today
-                )
-            )
-
-            if existing_today_session:
-                new_session = existing_today_session
-                new_session.is_active = True
-            else:
-                new_session = Session(
-                    org_id=org.id,
-                    queue_id=queue.id,
-                    session_date=today,
-                    title=today.strftime("%Y-%m-%d"),
-                    is_active=True
-                )
-                db.add(new_session)
-                await db.flush()
-
-            queue.token_session_id = new_session.id
-            queue.current_token_number = queue.starting_sequence - 1
-            queue.total_served = 0
-            await db.commit()
-            return new_session
-        else:
+        # Sessions remain active until explicitly ended by staff
+        if not force:
             return active_session
+
+        active_session.is_active = False
+        active_session.is_paused = False
+
+        # Check if session for today already exists
+        existing_today_session = await db.scalar(
+            select(Session).where(
+                Session.queue_id == queue.id,
+                Session.session_date == today
+            )
+        )
+
+        if existing_today_session:
+            new_session = existing_today_session
+            new_session.is_active = True
+        else:
+            new_session = Session(
+                org_id=org.id,
+                queue_id=queue.id,
+                session_date=today,
+                title=today.strftime("%Y-%m-%d"),
+                is_active=True
+            )
+            db.add(new_session)
+            await db.flush()
+
+        queue.token_session_id = new_session.id
+        queue.current_token_number = queue.starting_sequence - 1
+        queue.total_served = 0
+        await db.commit()
+        return new_session
     else:
         # No active session exists, get or create session for today
         return await get_or_create_active_session(db, queue_id=queue.id, org_id=org.id)

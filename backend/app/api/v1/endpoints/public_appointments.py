@@ -7,13 +7,14 @@ from datetime import date, datetime, timedelta
 from typing import Optional, List
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, and_
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from sqlalchemy import select, and_, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.deps import get_db
 from app.models.queue import Queue
 from app.models.organization import Organization
+from app.models.parent_organization import ParentOrganization
 from app.models.appointment import Appointment, AppointmentStatus
 from app.schemas.appointment import (
     AppointmentCreate,
@@ -21,12 +22,14 @@ from app.schemas.appointment import (
     AppointmentPublicPass,
     AvailableSlotsResponse,
 )
+from app.core.tz_helpers import queue_business_date
 from app.services.appointment_service import (
     get_available_slots,
     create_appointment,
-    check_in_appointment,
     get_appointment_by_ref,
     get_queue_timezone,
+    maybe_remove_appointment_token,
+    _is_next_day_slot,
 )
 
 router = APIRouter()
@@ -51,7 +54,8 @@ async def public_get_queue_booking_info(
 
     tz_str = org.timezone if (org and org.timezone) else "Asia/Kolkata"
     now_local = datetime.now(ZoneInfo(tz_str))
-    today_local = now_local.date().isoformat()
+    business_date = queue_business_date(now_local, queue.open_time, queue.close_time)
+    today_local = business_date.isoformat()
 
     return {
         "queue_id": str(queue.id),
@@ -95,6 +99,7 @@ async def public_get_available_slots(
 async def public_book_appointment(
     queue_id: uuid.UUID,
     data: AppointmentCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """Customer submits an appointment booking."""
@@ -102,6 +107,39 @@ async def public_book_appointment(
         appointment = await create_appointment(db, queue_id=queue_id, data=data, booked_by="customer_online")
         await db.commit()
         await db.refresh(appointment)
+        queue = await db.get(Queue, queue_id)
+        appointment.queue_name = queue.name if queue else ""
+        appointment.is_next_day = _is_next_day_slot(
+            appointment.start_time,
+            queue.open_time if queue else None,
+            queue.close_time if queue else None,
+        )
+
+        # Dispatch WhatsApp appointment booking confirmation
+        if appointment.customer_phone:
+            from app.services.notification_service import notify_appointment_booked
+            org = await db.get(Organization, appointment.org_id)
+            org_name = org.name if org else ""
+
+            date_str = appointment.appointment_date.strftime("%d %b %Y")
+            start_str = appointment.start_time.strftime("%I:%M %p").lstrip("0")
+            end_str = appointment.end_time.strftime("%I:%M %p").lstrip("0")
+            time_slot_str = f"{start_str} - {end_str}"
+
+            background_tasks.add_task(
+                notify_appointment_booked,
+                appointment_id=appointment.id,
+                org_id=appointment.org_id,
+                queue_id=appointment.queue_id,
+                customer_name=appointment.customer_name,
+                customer_phone=appointment.customer_phone,
+                booking_reference=appointment.booking_reference,
+                appointment_date=date_str,
+                time_slot=time_slot_str,
+                queue_name=queue.name if queue else "",
+                organization_name=org_name,
+            )
+
         return appointment
     except ValueError as e:
         await db.rollback()
@@ -133,26 +171,9 @@ async def public_get_appointment_pass(
     else:
         masked_phone = "****"
 
-    # Evaluate check-in window
+    # Self check-in is disabled for customers (only staff can check in)
     can_check_in = False
-    window_msg = None
-
-    if appt.status == AppointmentStatus.confirmed:
-        appt_dt = datetime.combine(appt.appointment_date, appt.start_time, tzinfo=ZoneInfo(tz_str))
-        win_before = queue.checkin_window_before if queue else 30
-        win_after = queue.checkin_window_after if queue else 15
-
-        early_window = appt_dt - timedelta(minutes=win_before)
-        late_window = appt_dt + timedelta(minutes=win_after)
-
-        if local_now < early_window:
-            window_msg = f"Check-in opens {win_before} minutes before your slot."
-        elif local_now > late_window:
-            window_msg = "The check-in window for this appointment has expired."
-        else:
-            can_check_in = True
-    elif appt.status == AppointmentStatus.checked_in:
-        window_msg = "You are checked in! Please wait for your token to be called."
+    window_msg = "Please present your booking reference to reception staff upon arrival to check in."
 
     token_number = None
     token_prefix = None
@@ -166,6 +187,24 @@ async def public_get_appointment_pass(
             token_prefix = queue.prefix if queue else "A"
             tracking_id = tok.tracking_id
 
+    is_next_day = _is_next_day_slot(
+        appt.start_time,
+        queue.open_time if queue else None,
+        queue.close_time if queue else None,
+    )
+
+    org = await db.get(Organization, appt.org_id)
+    org_name = org.name if org else None
+    org_slug = org.slug if org else None
+    branch_address = org.address if org else None
+    branch_phone = org.phone_number if org else None
+
+    parent_org_name = None
+    if org and org.parent_organization_id:
+        parent_org = await db.get(ParentOrganization, org.parent_organization_id)
+        if parent_org:
+            parent_org_name = parent_org.name
+
     return AppointmentPublicPass(
         booking_reference=appt.booking_reference,
         org_id=appt.org_id,
@@ -178,12 +217,19 @@ async def public_get_appointment_pass(
         end_time=appt.end_time.strftime("%H:%M"),
         status=appt.status,
         pax_count=appt.pax_count or 1,
-        can_check_in=can_check_in,
+        can_check_in=False,
         check_in_window_message=window_msg,
         token_id=appt.token_id,
         token_number=token_number,
         token_prefix=token_prefix,
         tracking_id=tracking_id,
+        is_next_day=is_next_day,
+        org_name=org_name,
+        org_slug=org_slug,
+        parent_org_name=parent_org_name,
+        branch_address=branch_address,
+        branch_phone=branch_phone,
+        notes=appt.notes,
     )
 
 
@@ -192,63 +238,17 @@ async def public_self_check_in(
     booking_reference: str,
     db: AsyncSession = Depends(get_db),
 ):
-    """Customer performs self-service arrival check-in."""
-    appt = await get_appointment_by_ref(db, booking_reference)
-    if not appt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
-
-    if appt.status == AppointmentStatus.checked_in:
-        return {"message": "Already checked in", "token_id": appt.token_id}
-
-    if appt.status != AppointmentStatus.confirmed:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot check in appointment with status: {appt.status.value}",
-        )
-
-    queue = await db.get(Queue, appt.queue_id)
-    tz_str = await get_queue_timezone(db, appt.org_id)
-    local_now = datetime.now(ZoneInfo(tz_str))
-
-    appt_dt = datetime.combine(appt.appointment_date, appt.start_time, tzinfo=ZoneInfo(tz_str))
-    win_before = queue.checkin_window_before if queue else 30
-    win_after = queue.checkin_window_after if queue else 15
-
-    early_window = appt_dt - timedelta(minutes=win_before)
-    late_window = appt_dt + timedelta(minutes=win_after)
-
-    if local_now < early_window:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Check-in is not open yet. It opens {win_before} minutes before your slot time.",
-        )
-    if local_now > late_window:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The arrival check-in window for this appointment has expired. Please speak with reception.",
-        )
-
-    try:
-        updated_appt, token = await check_in_appointment(db, appointment=appt, checked_in_by="self_qr")
-        await db.commit()
-        return {
-            "message": "Checked in successfully",
-            "token_id": str(token.id),
-            "token_number": token.token_number,
-            "prefix": queue.prefix if queue else "A",
-            "tracking_id": str(token.tracking_id),
-        }
-    except ValueError as e:
-        await db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Check-in failed")
+    """Public customer self check-in is disabled. Check-in is handled exclusively by staff."""
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Self-check-in is disabled. Please present your booking reference at the reception desk upon arrival.",
+    )
 
 
 @router.post("/appointments/{booking_reference}/cancel")
 async def public_cancel_appointment(
     booking_reference: str,
+    background_tasks: BackgroundTasks,
     pin: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
@@ -267,7 +267,14 @@ async def public_cancel_appointment(
         )
 
     appt.status = AppointmentStatus.cancelled
+    token_removed = await maybe_remove_appointment_token(db, appt)
     await db.commit()
+
+    # If a waiting token was removed, notify the queue WebSocket
+    if token_removed:
+        from app.services.token_service import notify_queue_update
+        background_tasks.add_task(notify_queue_update, queue_id=appt.queue_id, org_id=appt.org_id)
+
     return {"message": "Appointment cancelled successfully"}
 
 
@@ -277,32 +284,123 @@ async def public_get_branch_directory(
     org_slug: str,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get active queues and branch info for the public booking portal."""
+    """Get active queues and branch/organization info for the public booking portal."""
+    # First check if org_slug matches an active branch (Organization)
     org_res = await db.execute(
         select(Organization).where(Organization.slug == org_slug, Organization.is_active.is_(True))
     )
-    org = org_res.scalar_one_or_none()
-    if not org:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Branch not found")
+    branch = org_res.scalar_one_or_none()
 
-    queues_res = await db.execute(
-        select(Queue).where(
-            Queue.org_id == org.id,
-            Queue.is_active.is_(True),
-            Queue.is_deleted.is_(False),
-        ).order_by(Queue.created_at.asc())
-    )
-    queues_list = queues_res.scalars().all()
+    if branch:
+        # Check if this branch belongs to a ParentOrganization
+        if branch.parent_organization_id:
+            po = await db.get(ParentOrganization, branch.parent_organization_id)
+            branches_res = await db.execute(
+                select(Organization).where(
+                    Organization.parent_organization_id == branch.parent_organization_id,
+                    Organization.is_active.is_(True),
+                )
+            )
+            all_branches = branches_res.scalars().all()
+            branch_ids = [b.id for b in all_branches]
+            branch_map = {b.id: b for b in all_branches}
 
-    tz_str = org.timezone or "Asia/Kolkata"
+            # Fetch queues for all branches in this org, current branch queues first
+            queues_res = await db.execute(
+                select(Queue).where(
+                    Queue.org_id.in_(branch_ids),
+                    Queue.is_active.is_(True),
+                    Queue.is_deleted.is_(False),
+                    Queue.appointment_enabled.is_(True),
+                ).order_by(
+                    case((Queue.org_id == branch.id, 0), else_=1),
+                    Queue.created_at.asc(),
+                )
+            )
+            queues_list = queues_res.scalars().all()
+
+            tz_str = branch.timezone or (po.timezone if po else None) or "Asia/Kolkata"
+            display_org_name = po.name if po else branch.name
+            parent_org_name = po.name if po else None
+            branch_name = branch.name
+            display_slug = branch.slug
+            address = branch.address or (po.address if po else None)
+            phone_number = branch.phone_number or (po.contact_phone if po else None)
+        else:
+            branch_map = {branch.id: branch}
+            queues_res = await db.execute(
+                select(Queue).where(
+                    Queue.org_id == branch.id,
+                    Queue.is_active.is_(True),
+                    Queue.is_deleted.is_(False),
+                    Queue.appointment_enabled.is_(True),
+                ).order_by(Queue.created_at.asc())
+            )
+            queues_list = queues_res.scalars().all()
+
+            tz_str = branch.timezone or "Asia/Kolkata"
+            display_org_name = branch.name
+            parent_org_name = None
+            branch_name = branch.name
+            display_slug = branch.slug
+            address = branch.address
+            phone_number = branch.phone_number
+    else:
+        # Check if org_slug matches an active ParentOrganization
+        po_res = await db.execute(
+            select(ParentOrganization).where(ParentOrganization.slug == org_slug, ParentOrganization.is_active.is_(True))
+        )
+        po = po_res.scalar_one_or_none()
+        if not po:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Branch or organization not found")
+
+        branches_res = await db.execute(
+            select(Organization).where(
+                Organization.parent_organization_id == po.id,
+                Organization.is_active.is_(True),
+            )
+        )
+        all_branches = branches_res.scalars().all()
+        branch_ids = [b.id for b in all_branches]
+        branch_map = {b.id: b for b in all_branches}
+
+        queues_res = await db.execute(
+            select(Queue).where(
+                Queue.org_id.in_(branch_ids),
+                Queue.is_active.is_(True),
+                Queue.is_deleted.is_(False),
+                Queue.appointment_enabled.is_(True),
+            ).order_by(Queue.created_at.asc())
+        )
+        queues_list = queues_res.scalars().all()
+
+        first_branch = all_branches[0] if all_branches else None
+        tz_str = po.timezone or (first_branch.timezone if first_branch else "Asia/Kolkata")
+        display_org_name = po.name
+        parent_org_name = po.name
+        branch_name = first_branch.name if len(all_branches) == 1 else None
+        display_slug = po.slug
+        address = po.address or (first_branch.address if first_branch else None)
+        phone_number = po.contact_phone or (first_branch.phone_number if first_branch else None)
+
     now_local = datetime.now(ZoneInfo(tz_str))
-    today_local = now_local.date().isoformat()
+    # If any queue is currently in its overnight window before close_time, use that operating business date
+    business_date = now_local.date()
+    for q in queues_list:
+        if q.open_time and q.close_time and q.open_time > q.close_time:
+            q_bdate = queue_business_date(now_local, q.open_time, q.close_time)
+            if q_bdate < business_date:
+                business_date = q_bdate
+                break
+    today_local = business_date.isoformat()
 
     return {
-        "org_name": org.name,
-        "org_slug": org.slug,
-        "address": org.address,
-        "phone_number": org.phone_number,
+        "org_name": display_org_name,
+        "org_slug": display_slug,
+        "parent_org_name": parent_org_name,
+        "branch_name": branch_name,
+        "address": address,
+        "phone_number": phone_number,
         "timezone": tz_str,
         "today_date": today_local,
         "queues": [
@@ -310,16 +408,17 @@ async def public_get_branch_directory(
                 "id": str(q.id),
                 "name": q.name,
                 "prefix": q.prefix,
+                "branch_id": str(q.org_id),
+                "branch_name": branch_map[q.org_id].name if q.org_id in branch_map else None,
                 "appointment_enabled": q.appointment_enabled if q.appointment_enabled is not None else True,
                 "slot_duration": q.slot_duration or 15,
                 "advance_booking_days": q.advance_booking_days or 7,
                 "industry_template": q.industry_template or "general",
-                "open_time": q.open_time or "00:00",
-                "close_time": q.close_time or "23:59",
+                "open_time": q.open_time or "09:00",
+                "close_time": q.close_time or "18:00",
                 "custom_fields": q.custom_fields or [],
             }
             for q in queues_list
-            if (q.appointment_enabled if q.appointment_enabled is not None else True)
         ],
     }
 

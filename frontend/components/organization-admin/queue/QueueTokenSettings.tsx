@@ -192,6 +192,7 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
     const [slotDuration, setSlotDuration] = useState<number>(15);
     const [slotCapacity, setSlotCapacity] = useState<number>(1);
     const [advanceDays, setAdvanceDays] = useState<number>(7);
+    const [minLeadTimeMins, setMinLeadTimeMins] = useState<number | string>(60);
     const [approvalMode, setApprovalMode] = useState<string>("instant");
     const [industryTemplate, setIndustryTemplate] = useState<string>("general");
     const [isSavingAppt, setIsSavingAppt] = useState<boolean>(false);
@@ -204,7 +205,8 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
             if (q.slot_duration) setSlotDuration(q.slot_duration);
             if (q.slot_capacity) setSlotCapacity(q.slot_capacity);
             if (q.advance_booking_days) setAdvanceDays(q.advance_booking_days);
-            if (q.approval_mode) setApprovalMode(q.approval_mode);
+            if (q.min_lead_time_mins !== undefined && q.min_lead_time_mins !== null) setMinLeadTimeMins(q.min_lead_time_mins);
+            if (q.approval_mode) setApprovalMode(q.approval_mode === "manual" ? "requires_approval" : q.approval_mode);
             if (q.industry_template) setIndustryTemplate(q.industry_template);
         }).catch(() => {});
     }, [queueId]);
@@ -348,7 +350,8 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
                 slot_duration: slotDuration,
                 slot_capacity: slotCapacity,
                 advance_booking_days: advanceDays,
-                approval_mode: approvalMode,
+                min_lead_time_mins: typeof minLeadTimeMins === "number" ? minLeadTimeMins : (isNaN(parseInt(minLeadTimeMins, 10)) ? 0 : Math.max(0, parseInt(minLeadTimeMins, 10))),
+                approval_mode: (approvalMode === "manual" ? "requires_approval" : approvalMode) as "instant" | "requires_approval",
                 industry_template: industryTemplate
             });
             toast.success("Appointment booking settings updated successfully!");
@@ -360,7 +363,7 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
     };
 
     const params = useParams();
-    const branchSlug = params?.orgSlug as string;
+    const branchSlug = (params?.orgSlug as string) || (params?.branchSlug as string) || "";
     const bookingUrl = typeof window !== "undefined"
         ? (branchSlug ? `${window.location.origin}/${branchSlug}/book?queueId=${queueId}` : `${window.location.origin}/book/${queueId}`)
         : (branchSlug ? `/${branchSlug}/book?queueId=${queueId}` : `/book/${queueId}`);
@@ -614,7 +617,7 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
                                 <CalendarDays size={14} /> Unified Branch Booking Link
                             </span>
                             <p className="text-xs text-slate-600 dark:text-slate-300">
-                                Customers use this single booking link to choose any doctor or service. This link pre-selects this queue.
+                                Customers use this single booking link to choose any service. This link pre-selects this queue.
                             </p>
                             <div className="font-mono text-xs text-indigo-600 dark:text-indigo-400 break-all select-all pt-1">
                                 {bookingUrl}
@@ -718,17 +721,41 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
 
                         <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
                             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Minimum Lead Time (Minutes)
+                            </label>
+                            <p className="text-[11px] text-slate-500">Minimum notice required before an appointment (default: 60 mins).</p>
+                            <input
+                                type="number"
+                                min={0}
+                                max={10080}
+                                value={minLeadTimeMins}
+                                disabled={readOnly || !appointmentEnabled}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "") {
+                                        setMinLeadTimeMins("");
+                                    } else {
+                                        const parsed = parseInt(val, 10);
+                                        setMinLeadTimeMins(isNaN(parsed) ? "" : Math.max(0, parsed));
+                                    }
+                                }}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white outline-none"
+                            />
+                        </div>
+
+                        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                                 Approval Mode
                             </label>
                             <p className="text-[11px] text-slate-500">Control if bookings are immediately confirmed or need review.</p>
                             <select
-                                value={approvalMode}
+                                value={approvalMode === "manual" ? "requires_approval" : approvalMode}
                                 disabled={readOnly || !appointmentEnabled}
                                 onChange={(e) => setApprovalMode(e.target.value)}
                                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white outline-none"
                             >
                                 <option value="instant">Instant Auto-Confirmation</option>
-                                <option value="manual">Manual Staff Approval Required</option>
+                                <option value="requires_approval">Manual Staff Approval Required</option>
                             </select>
                         </div>
                     </div>

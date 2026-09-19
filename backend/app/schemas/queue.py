@@ -151,13 +151,20 @@ class QueueCreate(BaseModel):
     slot_capacity: int = Field(default=1, ge=1, le=100)
     advance_booking_days: int = Field(default=14, ge=1, le=365)
     min_lead_time_mins: int = Field(default=60, ge=0, le=10080)
-    approval_mode: str = Field(default="instant", pattern=r"^(instant|requires_approval)$")
+    approval_mode: str = Field(default="instant", pattern=r"^(instant|requires_approval|manual)$")
     schedule_config: Optional[dict] = None
     blackout_dates: Optional[list[str]] = None
     checkin_window_before: int = Field(default=30, ge=0, le=1440)
     checkin_window_after: int = Field(default=15, ge=0, le=1440)
     auto_noshow_mins: int = Field(default=30, ge=0, le=1440)
     industry_template: str = Field(default="general", max_length=30)
+
+    @field_validator("approval_mode", mode="before")
+    @classmethod
+    def normalize_approval_mode(cls, v: Optional[str]) -> Optional[str]:
+        if v == "manual":
+            return "requires_approval"
+        return v
 
     @field_validator("open_time", "close_time", mode="before")
     @classmethod
@@ -183,13 +190,20 @@ class QueueUpdate(BaseModel):
     slot_capacity: Optional[int] = Field(None, ge=1, le=100)
     advance_booking_days: Optional[int] = Field(None, ge=1, le=365)
     min_lead_time_mins: Optional[int] = Field(None, ge=0, le=10080)
-    approval_mode: Optional[str] = Field(None, pattern=r"^(instant|requires_approval)$")
+    approval_mode: Optional[str] = Field(None, pattern=r"^(instant|requires_approval|manual)$")
     schedule_config: Optional[dict] = None
     blackout_dates: Optional[list[str]] = None
     checkin_window_before: Optional[int] = Field(None, ge=0, le=1440)
     checkin_window_after: Optional[int] = Field(None, ge=0, le=1440)
     auto_noshow_mins: Optional[int] = Field(None, ge=0, le=1440)
     industry_template: Optional[str] = Field(None, max_length=30)
+
+    @field_validator("approval_mode", mode="before")
+    @classmethod
+    def normalize_approval_mode(cls, v: Optional[str]) -> Optional[str]:
+        if v == "manual":
+            return "requires_approval"
+        return v
 
     @field_validator("open_time", "close_time", mode="before")
     @classmethod
@@ -316,6 +330,8 @@ class TokenRestoreResponse(BaseModel):
     queue_prefix: Optional[str] = None
     tracking_id: uuid.UUID
     pax_count: int = 1
+    entry_type: Optional[str] = None
+    assigned_line: Optional[int] = None
     created_at: datetime
     served_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None

@@ -447,7 +447,7 @@ export const api = {
         });
     },
 
-    submitExpiredTrialContactSales(data: { email: string; organization_slug: string; password: string; contact_phone?: string; message?: string }): Promise<{ message: string }> {
+    submitExpiredTrialContactSales(data: { email: string; organization_slug?: string; password: string; contact_phone?: string; message?: string }): Promise<{ message: string }> {
         return request<{ message: string }>("/subscriptions/contact-sales/expired", {
             method: "POST",
             body: JSON.stringify(data),
@@ -1407,8 +1407,13 @@ export const api = {
     },
 
     // ── Enterprise Branch Details (Operations Center) ───────────
-    getBranchDashboard: (branchId: string) => {
-        return request<any>(`/organization-admin/operations/${branchId}/dashboard`);
+    getBranchDashboard: (branchId: string, params?: { period?: string; start_date?: string; end_date?: string }) => {
+        const q = new URLSearchParams();
+        if (params?.period) q.set("period", params.period);
+        if (params?.start_date) q.set("start_date", params.start_date);
+        if (params?.end_date) q.set("end_date", params.end_date);
+        const qs = q.toString();
+        return request<any>(`/organization-admin/operations/${branchId}/dashboard${qs ? `?${qs}` : ""}`);
     },
     getBranchSummary: (branchId: string) => {
         return request<any>(`/organization-admin/operations/${branchId}/summary`);
@@ -1849,6 +1854,24 @@ export const api = {
         return request<AppointmentResponse>(`/appointments/${appointmentId}`, {
             method: "PATCH",
             body: JSON.stringify(data),
+        });
+    },
+
+    approveAppointment: (appointmentId: string) => {
+        return request<AppointmentResponse>(`/appointments/${appointmentId}/approve`, {
+            method: "POST",
+        });
+    },
+
+    rejectAppointment: (appointmentId: string) => {
+        return request<AppointmentResponse>(`/appointments/${appointmentId}/reject`, {
+            method: "POST",
+        });
+    },
+
+    deleteAppointment: (appointmentId: string) => {
+        return request<{ message: string }>(`/appointments/${appointmentId}`, {
+            method: "DELETE",
         });
     },
 

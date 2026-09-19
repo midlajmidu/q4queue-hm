@@ -223,31 +223,18 @@ export default function QueueSessionListPage({ params }: PageProps) {
             return;
         }
 
-        const todayStr = localTodayStr(tz);
-        if (newSessionDate > todayStr) {
-            setCreateError("Cannot create a session for a future date.");
-            return;
-        }
-
-        // Check if session for this date already exists in current list
-        const exists = sessions.some(s => s.session_date === newSessionDate);
-        if (exists) {
-            setCreateError("A session already exists for this date.");
-            return;
-        }
-
         setCreatingSession(true);
         try {
             const newSession = await api.createQueueSession(queueId, {
                 session_date: newSessionDate,
                 title: newSessionTitle.trim() || undefined,
             });
-            toast.success("Session created successfully!");
+            toast.success("Session ready!");
             setIsCreateModalOpen(false);
             setNewSessionTitle("");
             // Refresh sessions list
             loadSessions(1, false, selectedDate);
-            // Navigate to newly created session
+            // Navigate to created / activated session
             router.push(`${dashBase}/queues/${queueId}/sessions/${newSession.id}`);
         } catch (err: any) {
             const msg = err?.detail || err?.message || "Failed to create session";
@@ -488,7 +475,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                 }`}
                                                             >
                                                                 <div className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full ${
-                                                                    isPaused ? "bg-amber-500" : isInactive ? "bg-slate-400" : today ? "bg-indigo-500" : "bg-slate-200 dark:bg-white/10"
+                                                                    isPaused ? "bg-amber-500" : isInactive ? "bg-slate-400" : "bg-indigo-500"
                                                                 }`} />
 
                                                                 <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -497,11 +484,9 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                             ? "bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200"
                                                                             : isInactive
                                                                             ? "bg-slate-100 dark:bg-slate-800 text-slate-500"
-                                                                            : today
-                                                                            ? "bg-indigo-600 text-white"
-                                                                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                                                                            : "bg-indigo-600 text-white"
                                                                     }`}>
-                                                                        <span className={`text-[9px] font-bold uppercase tracking-widest leading-none mb-0.5 ${today && !isPaused && !isInactive ? "text-indigo-200" : "text-slate-400 dark:text-slate-500"}`}>
+                                                                        <span className={`text-[9px] font-bold uppercase tracking-widest leading-none mb-0.5 ${!isPaused && !isInactive ? "text-indigo-200" : "text-slate-400 dark:text-slate-500"}`}>
                                                                             {monthAbbr}
                                                                         </span>
                                                                         <span className="text-[18px] font-bold leading-none">{dayNum}</span>
@@ -520,7 +505,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
                                                                                     CLOSED
                                                                                 </span>
-                                                                            ) : today ? (
+                                                                            ) : (
                                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-widest shrink-0">
                                                                                     <span className="relative flex h-1.5 w-1.5">
                                                                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
@@ -528,7 +513,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                                     </span>
                                                                                     Live
                                                                                 </span>
-                                                                            ) : null}
+                                                                            )}
                                                                         </div>
                                                                         <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{fullDate}</p>
                                                                     </div>
@@ -553,7 +538,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                         </div>
                                                                     </div>
 
-                                                                    {!isGlobalOrOrgAdmin && today && (
+                                                                    {!isGlobalOrOrgAdmin && (
                                                                         <div className="flex items-center gap-1.5" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                                                             <button
                                                                                 type="button"
@@ -621,7 +606,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                 href={`${dashBase}/queues/${queueId}/sessions/${session.id}`}
                                                                 className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
                                                             >
-                                                                <span className={`w-2 h-2 rounded-full shrink-0 ${isPaused ? "bg-amber-500" : isInactive ? "bg-slate-400" : today ? "bg-indigo-500 animate-pulse" : "bg-slate-300 dark:bg-slate-700"}`} />
+                                                                <span className={`w-2 h-2 rounded-full shrink-0 ${isPaused ? "bg-amber-500" : isInactive ? "bg-slate-400" : "bg-indigo-500 animate-pulse"}`} />
                                                                 <span className="font-semibold text-xs text-slate-900 dark:text-white shrink-0">
                                                                     {session.session_date}
                                                                 </span>
@@ -641,18 +626,18 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                     <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded border border-slate-200 dark:border-white/10 shrink-0 ml-1">
                                                                         CLOSED
                                                                     </span>
-                                                                ) : today ? (
+                                                                ) : (
                                                                     <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded border border-indigo-200 dark:border-indigo-800/50 shrink-0 ml-1">
                                                                         LIVE
                                                                     </span>
-                                                                ) : null}
+                                                                )}
                                                             </Link>
 
                                                             <div className="flex items-center gap-3 text-xs shrink-0">
                                                                 <span className="text-slate-500 dark:text-slate-400"><strong className="text-slate-900 dark:text-white font-bold">{session.total_issued}</strong> Issued</span>
                                                                 <span className="text-emerald-600 dark:text-emerald-400"><strong className="text-emerald-700 dark:text-emerald-300 font-bold">{session.total_served}</strong> Served</span>
 
-                                                                {!isGlobalOrOrgAdmin && today && (
+                                                                {!isGlobalOrOrgAdmin && (
                                                                     <div className="flex items-center gap-1.5" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                                                         <button
                                                                             type="button"
@@ -736,7 +721,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                         <div className="flex items-start justify-between mb-5">
                             <div>
                                 <h3 className="text-base font-bold text-slate-900 dark:text-white">New Session</h3>
-                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 font-medium">One session allowed per day per queue</p>
+                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 font-medium">Create or open a session for this queue</p>
                             </div>
                             <button
                                 onClick={() => setIsCreateModalOpen(false)}
@@ -755,16 +740,11 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                     type="date"
                                     value={newSessionDate}
                                     onChange={(e) => {
-                                        const val = e.target.value;
-                                        setNewSessionDate(val);
-                                        if (val && val > localTodayStr(tz)) {
-                                            setCreateError("Cannot create a session for a future date.");
-                                        } else {
-                                            setCreateError(null);
-                                        }
+                                        setNewSessionDate(e.target.value);
+                                        setCreateError(null);
                                     }}
                                     className={`w-full h-10 px-3.5 bg-slate-50 dark:bg-slate-800 border ${
-                                        createError && (!newSessionDate || newSessionDate > localTodayStr(tz))
+                                        createError && !newSessionDate
                                             ? "border-red-500 dark:border-red-500/80 focus:ring-red-500/25 focus:border-red-500"
                                             : "border-slate-200 dark:border-white/10 focus:ring-indigo-500/25 focus:border-indigo-500"
                                     } rounded-lg text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 transition-all`}

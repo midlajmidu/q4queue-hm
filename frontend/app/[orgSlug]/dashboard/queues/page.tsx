@@ -73,6 +73,7 @@ export default function QueuesPage({ params }: PageProps) {
     const [newServiceLines, setNewServiceLines] = useState<number>(2);
     const [newOpenTime, setNewOpenTime] = useState("");
     const [newCloseTime, setNewCloseTime] = useState("");
+    const [newAppointmentEnabled, setNewAppointmentEnabled] = useState(false);
     const [createLoading, setCreateLoading] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
     const [templates, setTemplates] = useState<QueueTemplate[]>([]);
@@ -164,6 +165,7 @@ export default function QueuesPage({ params }: PageProps) {
             setNewServiceLines(2);
             setNewOpenTime("");
             setNewCloseTime("");
+            setNewAppointmentEnabled(false);
             setCreateError(null);
             setSelectedTemplateId("");
             setTimeout(() => nameRef.current?.focus(), 100);
@@ -183,6 +185,7 @@ export default function QueuesPage({ params }: PageProps) {
                 service_lines: newQueueType === "service_lines" ? newServiceLines : 0,
                 open_time: newOpenTime || undefined,
                 close_time: newCloseTime || undefined,
+                appointment_enabled: newAppointmentEnabled,
             });
             setShowCreate(false);
             setPage(1); // Reset to page 1 to see the newly created queue at the top
@@ -571,6 +574,27 @@ export default function QueuesPage({ params }: PageProps) {
                                         />
                                     </div>
                                 )}
+
+                                {/* Appointment Booking Checkbox */}
+                                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10">
+                                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={newAppointmentEnabled}
+                                            onChange={(e) => setNewAppointmentEnabled(e.target.checked)}
+                                            className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600 cursor-pointer"
+                                        />
+                                        <div>
+                                            <span className="text-xs font-bold text-slate-800 dark:text-white block">
+                                                Add this into appointment booking
+                                            </span>
+                                            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-snug">
+                                                When enabled, this queue will be available for online appointment booking on your public booking link.
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div>
+
                                 {/* Error message is now handled globally via toast notification */}
                                 <div className="flex gap-3 pt-2">
                                     <button

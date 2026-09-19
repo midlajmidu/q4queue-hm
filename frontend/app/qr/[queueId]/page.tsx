@@ -20,6 +20,8 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
 
     const [joinUrl, setJoinUrl] = useState(defaultJoinUrl);
     const [timeLeft, setTimeLeft] = useState(15);
+    const [isSessionActive, setIsSessionActive] = useState<boolean | null>(null);
+
     useEffect(() => {
         if (!queueId) return;
 
@@ -34,6 +36,7 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
                 const { totp, valid_for } = await getQueueQrConfig(queueId);
 
                 if (isCancelled) return;
+                setIsSessionActive(true);
 
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
                 const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
@@ -51,8 +54,8 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
             } catch (error) {
                 console.error("Failed to initialize dynamic QR code:", error);
                 if (!isCancelled) {
-                    setJoinUrl(defaultJoinUrl);
-                    refreshTimer = setTimeout(initAndStartTotp, 5000);
+                    setIsSessionActive(false);
+                    refreshTimer = setTimeout(initAndStartTotp, 4000);
                 }
             }
         };
@@ -232,6 +235,32 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
                     animation: pulse-dot 2s ease-in-out infinite;
                 }
 
+                .qr-showcase-badge-closed {
+                    background: #f1f5f9;
+                    color: #64748b;
+                }
+
+                .qr-showcase-badge-closed::before {
+                    content: '';
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 50%;
+                    background: #94a3b8;
+                }
+
+                .qr-showcase-badge-paused {
+                    background: #fffbeb;
+                    color: #b45309;
+                }
+
+                .qr-showcase-badge-paused::before {
+                    content: '';
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 50%;
+                    background: #f59e0b;
+                }
+
                 .qr-showcase-badge-waiting {
                     background: #f1f5f9;
                     color: #475569;
@@ -371,63 +400,124 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
 
                 {/* {ThemeToggle && <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 2 }}><ThemeToggle /></div>} */}
 
-                <div className="qr-showcase-content">
-                    {/* Header */}
-                    <div className="qr-showcase-header">
-                        <h1 className="qr-showcase-queue-name">{queueName}</h1>
-                        <div className="qr-showcase-badges">
-                            <span className="qr-showcase-badge qr-showcase-badge-active">Active</span>
-                            {prefix && (
-                                <span className="qr-showcase-badge qr-showcase-badge-prefix">{prefix}</span>
-                            )}
-                            <span className="qr-showcase-badge qr-showcase-badge-waiting">
-                                {waitingCount} waiting
-                            </span>
-                        </div>
-                    </div>
+                {(() => {
+                    const isPaused = queueData.is_paused === true;
+                    const isClosed = queueData.is_active === false || isSessionActive === false;
+                    const isOpen = !isClosed && !isPaused;
 
-                    {/* QR Card */}
-                    <div className="qr-showcase-card">
-                        <div className="qr-showcase-qr-frame">
-                            <div className="qr-showcase-qr-inner">
-                                <QRCodeCanvas
-                                    value={joinUrl}
-                                    size={220}
-                                    level="H"
-                                    includeMargin={false}
+                    return (
+                        <div className="qr-showcase-content">
+                            {/* Header */}
+                            <div className="qr-showcase-header">
+                                <h1 className="qr-showcase-queue-name">{queueName}</h1>
+                                <div className="qr-showcase-badges">
+                                    {isClosed ? (
+                                        <span className="qr-showcase-badge qr-showcase-badge-closed">Closed</span>
+                                    ) : isPaused ? (
+                                        <span className="qr-showcase-badge qr-showcase-badge-paused">On Break</span>
+                                    ) : (
+                                        <span className="qr-showcase-badge qr-showcase-badge-active">Active</span>
+                                    )}
+                                    {prefix && (
+                                        <span className="qr-showcase-badge qr-showcase-badge-prefix">{prefix}</span>
+                                    )}
+                                    <span className="qr-showcase-badge qr-showcase-badge-waiting">
+                                        {waitingCount} waiting
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* State-aware Card */}
+                            {isClosed ? (
+                                <div className="qr-showcase-card">
+                                    <div style={{
+                                        width: 64,
+                                        height: 64,
+                                        borderRadius: '50%',
+                                        background: '#f8fafc',
+                                        border: '1.5px solid #e2e8f0',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#64748b',
+                                        marginBottom: 16
+                                    }}>
+                                        <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-3.5a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1e293b', margin: '0 0 8px' }}>Queue is Closed</h2>
+                                    <p style={{ fontSize: 14, color: '#64748b', textAlign: 'center', maxWidth: 320, margin: 0, lineHeight: 1.5 }}>
+                                        There is no active session open for this queue. QR code registration will become available once staff starts a session.
+                                    </p>
+                                </div>
+                            ) : isPaused ? (
+                                <div className="qr-showcase-card">
+                                    <div style={{
+                                        width: 64,
+                                        height: 64,
+                                        borderRadius: '50%',
+                                        background: '#fffbeb',
+                                        border: '1.5px solid #fef3c7',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#d97706',
+                                        marginBottom: 16
+                                    }}>
+                                        <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1e293b', margin: '0 0 8px' }}>Queue on Break</h2>
+                                    <p style={{ fontSize: 14, color: '#64748b', textAlign: 'center', maxWidth: 320, margin: 0, lineHeight: 1.5 }}>
+                                        The queue is temporarily taking a break. Registration will resume shortly.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="qr-showcase-card">
+                                    <div className="qr-showcase-qr-frame">
+                                        <div className="qr-showcase-qr-inner">
+                                            <QRCodeCanvas
+                                                value={joinUrl}
+                                                size={220}
+                                                level="H"
+                                                includeMargin={false}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="qr-showcase-instruction">
+                                        <p className="qr-showcase-instruction-title">Scan to join the queue</p>
+                                        <p className="qr-showcase-instruction-desc">
+                                            Open your phone camera and point it at the QR code to get your digital ticket instantly.
+                                        </p>
+                                        <div className="mt-4 flex justify-center">
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold shadow-xs">
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
+                                                </span>
+                                                QR Refreshes In <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-200/80 px-1.5 py-0.5 rounded">{timeLeft}s</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Footer */}
+                            <div className="qr-showcase-footer">
+                                <Image
+                                    src="/logo-main-trimmed.png"
+                                    alt="Q4Queue"
+                                    width={300}
+                                    height={60}
+                                    priority
                                 />
                             </div>
                         </div>
-
-                        <div className="qr-showcase-instruction">
-                            <p className="qr-showcase-instruction-title">Scan to join the queue</p>
-                            <p className="qr-showcase-instruction-desc">
-                                Open your phone camera and point it at the QR code to get your digital ticket instantly.
-                            </p>
-                            <div className="mt-4 flex justify-center">
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold shadow-xs">
-                                    <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
-                                    </span>
-                                    QR Refreshes In <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-200/80 px-1.5 py-0.5 rounded">{timeLeft}s</span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    {/* Footer */}
-                    <div className="qr-showcase-footer">
-                        <Image
-                            src="/logo-main-trimmed.png"
-                            alt="Q4Queue"
-                            width={300}
-                            height={60}
-                            priority
-                        />
-                    </div>
-                </div>
+                    );
+                })()}
             </div>
         </>
     );

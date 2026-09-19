@@ -122,7 +122,7 @@ async def get_call_logs_paginated(
 
     # Fetch paginated items with joins
     query = (
-        query.options(joinedload(CallLog.called_by), joinedload(CallLog.queue))
+        query.options(joinedload(CallLog.called_by), joinedload(CallLog.queue), joinedload(CallLog.appointment))
         .order_by(desc(CallLog.created_at))
         .offset(offset)
         .limit(limit)
@@ -141,6 +141,7 @@ async def get_call_logs_paginated(
         queue_name = log.queue.name if log.queue else None
         billable_mins = calculate_billable_minutes(log.duration_seconds)
         cost = round(billable_mins * rate_per_minute, 2)
+        booking_ref = log.appointment.booking_reference if getattr(log, "appointment", None) else None
 
         items.append(
             CallLogRead(
@@ -149,6 +150,8 @@ async def get_call_logs_paginated(
                 queue_id=log.queue_id,
                 session_id=log.session_id,
                 token_id=log.token_id,
+                appointment_id=getattr(log, "appointment_id", None),
+                booking_reference=booking_ref,
                 customer_name=log.customer_name,
                 customer_phone=log.customer_phone,
                 duration_seconds=log.duration_seconds,

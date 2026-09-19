@@ -4,6 +4,8 @@ import { useParams } from "next/navigation";
 import { useNotifications, DashboardNotification } from "@/context/NotificationContext";
 import { PageWrapper } from "@/components/PageWrapper";
 import { api } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
+import { useDashBase } from "@/hooks/useDashBase";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -69,7 +71,9 @@ function NotifIcon({ type }: { type: NotifType }) {
 export default function NotificationsPage() {
   const params = useParams();
   const orgSlug = params?.orgSlug as string;
-  const dashBase = `/${orgSlug}/dashboard`;
+  const dashBase = useDashBase();
+  const { user, isReadOnly: authReadOnly } = useAuth();
+  const isReadOnly = !!authReadOnly || user?.role === "super_admin" || user?.role === "organization_admin";
 
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll, error: notificationError, reload } = useNotifications();
 
@@ -149,7 +153,7 @@ export default function NotificationsPage() {
   // ── Actions ──────────────────────────────────────────────────────────────
 
   const handleMarkAsRead = (item: NotificationRow) => {
-    if (item.isAnnouncement || item.isRead) return;
+    if (isReadOnly || item.isAnnouncement || item.isRead) return;
     const id = item.id;
     markAsRead(id);
     setFadingIds(prev => new Set(prev).add(id));
@@ -210,25 +214,31 @@ export default function NotificationsPage() {
           subtitle="Stay updated with queue events, performance alerts, and system logs."
           breadcrumbs={[{ label: "Activity Center", href: dashBase }, { label: "Notifications" }]}
           action={
-            <div style={{ display: "flex", gap: 8 }}>
-            {unreadCount > 0 && (
-              <button className="btn-primary" onClick={markAllAsRead} style={{
-                height: 38, padding: "0 14px", background: "#4f46e5", color: "#fff",
-                border: "none", borderRadius: 9, fontSize: 13, fontWeight: 600,
-                cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 8, transition: "background .15s",
-              }}>
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg>
-                Mark all as read
-              </button>
-            )}
-            {notifications.length > 0 && (
-              <button className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer flex items-center gap-2 h-[38px] px-3.5 bg-transparent border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-semibold" onClick={clearAll}>
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
-                Clear all
-              </button>
-            )}
-          </div>
+            isReadOnly ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-xs font-semibold border border-violet-200 dark:border-violet-800/40">
+                Read-only mode
+              </span>
+            ) : (
+              <div style={{ display: "flex", gap: 8 }}>
+                {unreadCount > 0 && (
+                  <button className="btn-primary" onClick={markAllAsRead} style={{
+                    height: 38, padding: "0 14px", background: "#4f46e5", color: "#fff",
+                    border: "none", borderRadius: 9, fontSize: 13, fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 8, transition: "background .15s",
+                  }}>
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" /></svg>
+                    Mark all as read
+                  </button>
+                )}
+                {notifications.length > 0 && (
+                  <button className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer flex items-center gap-2 h-[38px] px-3.5 bg-transparent border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-semibold" onClick={clearAll}>
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                    Clear all
+                  </button>
+                )}
+              </div>
+            )
           }
         >
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>

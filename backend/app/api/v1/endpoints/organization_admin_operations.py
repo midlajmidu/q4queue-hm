@@ -221,12 +221,14 @@ async def remove_staff(
 
 # ── Branch Operations Center Endpoints ─────────────────────────────────────
 from typing import List
+from app.models.appointment import Appointment, AppointmentStatus
 from app.schemas.organization_admin_operations import (
     BranchExecutiveSummary, BranchPerformanceMetrics, QueueBreakdownItem,
     SessionBreakdownItem, StaffOverviewItem, BranchAdminItem,
     BranchWhatsAppStats, BranchHealthDetails, BranchActivityEvent,
     BranchAlert, BranchContactDetails, BranchContactDetailsUpdate,
-    BranchDashboardResponse, BranchTrafficData, PeakTrafficItem
+    BranchDashboardResponse, BranchTrafficData, PeakTrafficItem,
+    AppointmentSummaryItem, BranchAppointmentStats
 )
 
 async def _verify_branch_access(branch_id: uuid.UUID, db: AsyncSession, current_user: User):
@@ -241,43 +243,157 @@ async def _verify_branch_access(branch_id: uuid.UUID, db: AsyncSession, current_
     return branch
 
 
+def _build_date_conditions(
+    col,
+    tz_name: str,
+    period: Optional[str] = "today",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+) -> list:
+    from datetime import timedelta
+    from dateutil.parser import parse as parse_date
+    from app.core.tz_helpers import local_today, tz_date_clause
+
+    today = local_today(tz_name)
+    clauses = []
+
+    if start_date or end_date:
+        if start_date:
+            try:
+                s_dt = parse_date(start_date).date()
+                clauses.append(tz_date_clause(col, tz_name) >= s_dt)
+            except Exception:
+                pass
+        if end_date:
+            try:
+                e_dt = parse_date(end_date).date()
+                clauses.append(tz_date_clause(col, tz_name) <= e_dt)
+            except Exception:
+                pass
+        return clauses
+
+    period = (period or "today").lower()
+
+    if period == "today":
+        clauses.append(tz_date_clause(col, tz_name) == today)
+    elif period == "yesterday":
+        clauses.append(tz_date_clause(col, tz_name) == (today - timedelta(days=1)))
+    elif period in ("7d", "week"):
+        clauses.append(tz_date_clause(col, tz_name) >= (today - timedelta(days=6)))
+        clauses.append(tz_date_clause(col, tz_name) <= today)
+    elif period in ("30d", "month"):
+        clauses.append(tz_date_clause(col, tz_name) >= (today - timedelta(days=29)))
+        clauses.append(tz_date_clause(col, tz_name) <= today)
+    elif period == "this_month":
+        clauses.append(tz_date_clause(col, tz_name) >= today.replace(day=1))
+        clauses.append(tz_date_clause(col, tz_name) <= today)
+    elif period == "all":
+        pass
+    else:
+        clauses.append(tz_date_clause(col, tz_name) == today)
+
+    return clauses
+
+
+def _build_session_date_conditions(
+    tz_name: str,
+    period: Optional[str] = "today",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+) -> list:
+    from datetime import timedelta
+    from dateutil.parser import parse as parse_date
+    from app.core.tz_helpers import local_today
+
+    today = local_today(tz_name)
+    clauses = []
+
+    if start_date or end_date:
+        if start_date:
+            try:
+                s_dt = parse_date(start_date).date()
+                clauses.append(Session.session_date >= s_dt)
+            except Exception:
+                pass
+        if end_date:
+            try:
+                e_dt = parse_date(end_date).date()
+                clauses.append(Session.session_date <= e_dt)
+            except Exception:
+                pass
+        return clauses
+
+    period = (period or "today").lower()
+
+    if period == "today":
+        clauses.append(Session.session_date == today)
+    elif period == "yesterday":
+        clauses.append(Session.session_date == (today - timedelta(days=1)))
+    elif period in ("7d", "week"):
+        clauses.append(Session.session_date >= (today - timedelta(days=6)))
+        clauses.append(Session.session_date <= today)
+    elif period in ("30d", "month"):
+        clauses.append(Session.session_date >= (today - timedelta(days=29)))
+        clauses.append(Session.session_date <= today)
+    elif period == "this_month":
+        clauses.append(Session.session_date >= today.replace(day=1))
+        clauses.append(Session.session_date <= today)
+    elif period == "all":
+        pass
+    else:
+        clauses.append(Session.session_date == today)
+
+    return clauses
+
+
 @router.get("/operations/{branch_id}/summary", response_model=BranchExecutiveSummary)
 async def get_branch_summary(
     branch_id: uuid.UUID,
+    period: Optional[str] = Query("today"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_organization_admin()),
 ):
     await _verify_branch_access(branch_id, db, current_user)
     
-    from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
+    from app.core.tz_helpers import get_org_timezone
     tz_name = await get_org_timezone(db, branch_id)
-    today = local_today(tz_name)
     
     # Staff counts
     staff_res = await db.execute(select(func.count(User.id)).where(User.org_id == branch_id, User.role == "staff"))
     total_staff = staff_res.scalar() or 0
-    # Assuming online staff is those with an active session today. This is an approximation.
     online_staff = total_staff if total_staff > 0 else 0
     
-    # Active queues & sessions
+    # Active queues
     aq_res = await db.execute(select(func.count(Queue.id)).where(Queue.org_id == branch_id, Queue.is_active == True))
     active_queues = aq_res.scalar() or 0
     
-    as_res = await db.execute(select(func.count(Session.id)).where(Session.org_id == branch_id, Session.session_date == today))
+    # Active sessions in period
+    session_clauses = [Session.org_id == branch_id] + _build_session_date_conditions(tz_name, period, start_date, end_date)
+    as_res = await db.execute(select(func.count(Session.id)).where(*session_clauses))
     active_sessions = as_res.scalar() or 0
     
-    # Token stats
-    wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == "waiting"))
+    # Token date conditions
+    token_date_clauses = _build_date_conditions(Token.created_at, tz_name, period, start_date, end_date)
+    
+    tot_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, *token_date_clauses))
+    total_customers = tot_res.scalar() or 0
+    
+    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, Token.status == TokenStatus.done, *token_date_clauses))
+    customers_served = comp_res.scalar() or 0
+    
+    skip_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, Token.status == TokenStatus.skipped, *token_date_clauses))
+    customers_skipped = skip_res.scalar() or 0
+    
+    wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, Token.status == TokenStatus.waiting, *token_date_clauses))
     customers_waiting = wait_res.scalar() or 0
     
-    serv_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.serving))
+    serv_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, Token.status == TokenStatus.serving, *token_date_clauses))
     customers_being_served = serv_res.scalar() or 0
     
-    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.done))
-    customers_served_today = comp_res.scalar() or 0
-    
-    tot_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today))
-    tokens_issued_today = tot_res.scalar() or 0
+    completion_rate = f"{round((customers_served / total_customers) * 100)}%" if total_customers > 0 else "0%"
+    skip_rate = f"{round((customers_skipped / total_customers) * 100)}%" if total_customers > 0 else "0%"
 
     return BranchExecutiveSummary(
         total_staff=total_staff,
@@ -286,100 +402,146 @@ async def get_branch_summary(
         active_queues=active_queues,
         customers_waiting=customers_waiting,
         customers_being_served=customers_being_served,
-        customers_served_today=customers_served_today,
-        tokens_issued_today=tokens_issued_today
+        customers_served_today=customers_served,
+        tokens_issued_today=total_customers,
+        total_customers=total_customers,
+        customers_served=customers_served,
+        customers_skipped=customers_skipped,
+        completion_rate=completion_rate,
+        skip_rate=skip_rate,
     )
 
 @router.get("/operations/{branch_id}/performance", response_model=BranchPerformanceMetrics)
 async def get_branch_performance(
     branch_id: uuid.UUID,
+    period: Optional[str] = Query("today"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_organization_admin()),
 ):
     await _verify_branch_access(branch_id, db, current_user)
     
-    from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
+    from app.core.tz_helpers import get_org_timezone
     tz_name = await get_org_timezone(db, branch_id)
-    today = local_today(tz_name)
     
-    wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.waiting))
+    token_date_clauses = _build_date_conditions(Token.created_at, tz_name, period, start_date, end_date)
+    
+    tot_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, *token_date_clauses))
+    total_customers = tot_res.scalar() or 0
+    
+    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, Token.status == TokenStatus.done, *token_date_clauses))
+    customers_served = comp_res.scalar() or 0
+    
+    skip_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, Token.status == TokenStatus.skipped, *token_date_clauses))
+    customers_skipped = skip_res.scalar() or 0
+    
+    wait_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, Token.status == TokenStatus.waiting, *token_date_clauses))
     customers_waiting = wait_res.scalar() or 0
     
-    comp_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.done))
-    customers_served_today = comp_res.scalar() or 0
+    completion_rate = f"{round((customers_served / total_customers) * 100)}%" if total_customers > 0 else "0%"
+    skip_rate = f"{round((customers_skipped / total_customers) * 100)}%" if total_customers > 0 else "0%"
     
-    canc_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.skipped))
-    cancelled_tokens = canc_res.scalar() or 0
-    
-    tot_res = await db.execute(select(func.count(Token.id)).where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today))
-    total_tokens = tot_res.scalar() or 0
-    
-    completion_rate = f"{round((customers_served_today / total_tokens) * 100)}%" if total_tokens > 0 else "0%"
-    
-    # Wait time & service time approximation
+    # Wait time & service time calculation
     avg_wait = await db.execute(
         select(func.avg(func.extract('epoch', Token.served_at) - func.extract('epoch', Token.created_at)))
-        .where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.served_at != None)
+        .where(Token.org_id == branch_id, Token.served_at.isnot(None), *token_date_clauses)
     )
     avg_wait_sec = avg_wait.scalar() or 0
-    avg_wait_str = f"{int(avg_wait_sec // 60)}m {int(avg_wait_sec % 60)}s"
+    avg_wait_str = f"{int(avg_wait_sec // 60)}m {int(avg_wait_sec % 60)}s" if avg_wait_sec > 0 else "0m"
     
     avg_svc = await db.execute(
         select(func.avg(func.extract('epoch', Token.completed_at) - func.extract('epoch', Token.served_at)))
-        .where(Token.org_id == branch_id, tz_date_clause(Token.created_at, tz_name) == today, Token.completed_at != None, Token.served_at != None)
+        .where(Token.org_id == branch_id, Token.completed_at.isnot(None), Token.served_at.isnot(None), *token_date_clauses)
     )
     avg_svc_sec = avg_svc.scalar() or 0
-    avg_svc_str = f"{int(avg_svc_sec // 60)}m {int(avg_svc_sec % 60)}s"
+    avg_svc_str = f"{int(avg_svc_sec // 60)}m {int(avg_svc_sec % 60)}s" if avg_svc_sec > 0 else "0m"
 
     return BranchPerformanceMetrics(
-        customers_served_today=customers_served_today,
+        customers_served_today=customers_served,
         customers_waiting=customers_waiting,
         average_wait_time=avg_wait_str,
         average_service_time=avg_svc_str,
-        cancelled_tokens=cancelled_tokens,
-        completion_rate=completion_rate
+        cancelled_tokens=customers_skipped,
+        completion_rate=completion_rate,
+        total_customers=total_customers,
+        customers_served=customers_served,
+        customers_skipped=customers_skipped,
+        skip_rate=skip_rate,
     )
 
 @router.get("/operations/{branch_id}/queues", response_model=List[QueueBreakdownItem])
 async def get_branch_queues(
     branch_id: uuid.UUID,
+    period: Optional[str] = Query("today"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_organization_admin()),
 ):
     try:
         await _verify_branch_access(branch_id, db, current_user)
         
-        from app.core.tz_helpers import get_org_timezone, local_today, tz_date_clause
+        from app.core.tz_helpers import get_org_timezone
         tz_name = await get_org_timezone(db, branch_id)
-        today = local_today(tz_name)
+        
+        token_date_clauses = _build_date_conditions(Token.created_at, tz_name, period, start_date, end_date)
         
         queues_res = await db.execute(select(Queue).where(Queue.org_id == branch_id).order_by(Queue.created_at.desc()))
         queues = queues_res.scalars().all()
         
         results = []
         for q in queues:
-            wait_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.waiting))
-            serv_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.serving))
-            comp_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, tz_date_clause(Token.created_at, tz_name) == today, Token.status == TokenStatus.done))
+            tot_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, *token_date_clauses))
+            q_total = tot_res.scalar() or 0
+            
+            comp_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, Token.status == TokenStatus.done, *token_date_clauses))
+            q_served = comp_res.scalar() or 0
+            
+            skip_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, Token.status == TokenStatus.skipped, *token_date_clauses))
+            q_skipped = skip_res.scalar() or 0
+            
+            wait_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, Token.status == TokenStatus.waiting, *token_date_clauses))
+            q_waiting = wait_res.scalar() or 0
+            
+            serv_res = await db.execute(select(func.count(Token.id)).where(Token.queue_id == q.id, Token.status == TokenStatus.serving, *token_date_clauses))
+            q_serving = serv_res.scalar() or 0
+            
+            comp_rate = f"{round((q_served / q_total) * 100)}%" if q_total > 0 else "0%"
+            skip_rate = f"{round((q_skipped / q_total) * 100)}%" if q_total > 0 else "0%"
             
             avg_wait = await db.execute(
                 select(func.avg(func.extract('epoch', Token.served_at) - func.extract('epoch', Token.created_at)))
-                .where(Token.queue_id == q.id, tz_date_clause(Token.created_at, tz_name) == today, Token.served_at.isnot(None))
+                .where(Token.queue_id == q.id, Token.served_at.isnot(None), *token_date_clauses)
             )
             avg_wait_sec = avg_wait.scalar() or 0
             avg_wait_str = f"{int(avg_wait_sec // 60)}m" if avg_wait_sec > 0 else "-"
+            
+            avg_svc = await db.execute(
+                select(func.avg(func.extract('epoch', Token.completed_at) - func.extract('epoch', Token.served_at)))
+                .where(Token.queue_id == q.id, Token.completed_at.isnot(None), Token.served_at.isnot(None), *token_date_clauses)
+            )
+            avg_svc_sec = avg_svc.scalar() or 0
+            avg_svc_str = f"{int(avg_svc_sec // 60)}m" if avg_svc_sec > 0 else "-"
             
             current_token_str = str(q.current_token_number) if q.current_token_number and q.current_token_number > 0 else "-"
             
             results.append(QueueBreakdownItem(
                 queue_id=q.id,
                 queue_name=q.name,
+                queue_prefix=q.prefix,
                 status="Active" if q.is_active else "Inactive",
                 current_token=current_token_str,
-                waiting_count=wait_res.scalar() or 0,
-                serving_count=serv_res.scalar() or 0,
-                completed_today=comp_res.scalar() or 0,
-                average_wait=avg_wait_str
+                waiting_count=q_waiting,
+                serving_count=q_serving,
+                completed_today=q_served,
+                average_wait=avg_wait_str,
+                total_customers=q_total,
+                served_count=q_served,
+                skipped_count=q_skipped,
+                average_service_time=avg_svc_str,
+                completion_rate=comp_rate,
+                skip_rate=skip_rate,
             ))
             
         return results
@@ -392,16 +554,19 @@ async def get_branch_queues(
 @router.get("/operations/{branch_id}/sessions", response_model=List[SessionBreakdownItem])
 async def get_branch_sessions(
     branch_id: uuid.UUID,
+    period: Optional[str] = Query("today"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_organization_admin()),
 ):
     await _verify_branch_access(branch_id, db, current_user)
     
-    from app.core.tz_helpers import get_org_timezone, local_today
+    from app.core.tz_helpers import get_org_timezone
     tz_name = await get_org_timezone(db, branch_id)
-    today = local_today(tz_name)
     
-    sessions_res = await db.execute(select(Session).where(Session.org_id == branch_id, Session.session_date == today).order_by(Session.created_at.desc()))
+    session_clauses = [Session.org_id == branch_id] + _build_session_date_conditions(tz_name, period, start_date, end_date)
+    sessions_res = await db.execute(select(Session).where(*session_clauses).order_by(Session.created_at.desc()))
     sessions = sessions_res.scalars().all()
     
     results = []
@@ -433,7 +598,7 @@ async def get_branch_sessions(
             session_name=s.title or f"Desk {str(s.id)[:8]}",
             operator_name=operator_name,
             started_at=s.created_at.isoformat(),
-            status="Active",
+            status="Active" if s.is_active else "Closed",
             customers_served=comp_res.scalar() or 0,
             average_service_time=avg_svc_str
         ))
@@ -757,20 +922,119 @@ async def get_distinct_queues_for_branch(
     
     return queues
 
+@router.get("/operations/{branch_id}/appointments", response_model=BranchAppointmentStats)
+async def get_branch_appointments(
+    branch_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_organization_admin()),
+):
+    await _verify_branch_access(branch_id, db, current_user)
+
+    from datetime import timedelta
+    from app.core.tz_helpers import get_org_timezone, local_today
+    tz_name = await get_org_timezone(db, branch_id)
+    today = local_today(tz_name)
+    tomorrow = today + timedelta(days=1)
+
+    # Total Confirmed
+    tot_conf_res = await db.execute(
+        select(func.count(Appointment.id))
+        .where(Appointment.org_id == branch_id, Appointment.status == AppointmentStatus.confirmed)
+    )
+    total_confirmed = tot_conf_res.scalar() or 0
+
+    # Today Confirmed
+    today_conf_res = await db.execute(
+        select(func.count(Appointment.id))
+        .where(
+            Appointment.org_id == branch_id,
+            Appointment.status == AppointmentStatus.confirmed,
+            Appointment.appointment_date == today
+        )
+    )
+    today_confirmed = today_conf_res.scalar() or 0
+
+    # Tomorrow Confirmed
+    tom_conf_res = await db.execute(
+        select(func.count(Appointment.id))
+        .where(
+            Appointment.org_id == branch_id,
+            Appointment.status == AppointmentStatus.confirmed,
+            Appointment.appointment_date == tomorrow
+        )
+    )
+    tomorrow_confirmed = tom_conf_res.scalar() or 0
+
+    # Upcoming Confirmed (>= today)
+    up_conf_res = await db.execute(
+        select(func.count(Appointment.id))
+        .where(
+            Appointment.org_id == branch_id,
+            Appointment.status == AppointmentStatus.confirmed,
+            Appointment.appointment_date >= today
+        )
+    )
+    upcoming_confirmed = up_conf_res.scalar() or 0
+
+    # Total All Appointments
+    tot_all_res = await db.execute(
+        select(func.count(Appointment.id))
+        .where(Appointment.org_id == branch_id)
+    )
+    total_all = tot_all_res.scalar() or 0
+
+    # Recent & Upcoming confirmed list
+    appts_res = await db.execute(
+        select(Appointment, Queue.name)
+        .join(Queue, Appointment.queue_id == Queue.id)
+        .where(
+            Appointment.org_id == branch_id,
+            Appointment.status == AppointmentStatus.confirmed
+        )
+        .order_by(Appointment.appointment_date.desc(), Appointment.start_time.desc())
+        .limit(15)
+    )
+
+    recent_items = []
+    for apt, q_name in appts_res.all():
+        recent_items.append(AppointmentSummaryItem(
+            id=apt.id,
+            booking_reference=apt.booking_reference,
+            customer_name=apt.customer_name,
+            customer_phone=apt.customer_phone,
+            queue_name=q_name,
+            appointment_date=apt.appointment_date.isoformat(),
+            start_time=apt.start_time.strftime("%H:%M") if apt.start_time else "",
+            end_time=apt.end_time.strftime("%H:%M") if apt.end_time else "",
+            status=apt.status.value if hasattr(apt.status, "value") else str(apt.status)
+        ))
+
+    return BranchAppointmentStats(
+        total_confirmed=total_confirmed,
+        today_confirmed=today_confirmed,
+        tomorrow_confirmed=tomorrow_confirmed,
+        upcoming_confirmed=upcoming_confirmed,
+        total_all=total_all,
+        recent_confirmed=recent_items
+    )
+
 from app.api.v1.endpoints.organization_admin_monitoring import get_traffic_trend
 
 @router.get("/operations/{branch_id}/dashboard", response_model=BranchDashboardResponse)
 async def get_branch_dashboard(
     branch_id: uuid.UUID,
+    period: Optional[str] = Query("today"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_organization_admin()),
 ):
     branch = await _verify_branch_access(branch_id, db, current_user)
     
-    summary = await get_branch_summary(branch_id, db, current_user)
-    performance = await get_branch_performance(branch_id, db, current_user)
-    queues = await get_branch_queues(branch_id, db, current_user)
-    sessions = await get_branch_sessions(branch_id, db, current_user)
+    summary = await get_branch_summary(branch_id, period, start_date, end_date, db, current_user)
+    performance = await get_branch_performance(branch_id, period, start_date, end_date, db, current_user)
+    queues = await get_branch_queues(branch_id, period, start_date, end_date, db, current_user)
+    sessions = await get_branch_sessions(branch_id, period, start_date, end_date, db, current_user)
     staff = await get_branch_staff(branch_id, db, current_user)
     admins = await get_branch_admins(branch_id, db, current_user)
     whatsapp = await get_branch_whatsapp(branch_id, db, current_user)
@@ -778,6 +1042,7 @@ async def get_branch_dashboard(
     timeline = await get_branch_timeline(branch_id, db, current_user)
     alerts = await get_branch_alerts(branch_id, db, current_user)
     contact = await get_branch_contact(branch_id, db, current_user)
+    appointments = await get_branch_appointments(branch_id, db, current_user)
     
     traffic_data = await get_traffic_trend(db, current_user, branch_id)
     traffic = BranchTrafficData(
@@ -800,5 +1065,7 @@ async def get_branch_dashboard(
         timeline=timeline,
         alerts=alerts,
         contact=contact,
-        traffic=traffic
+        traffic=traffic,
+        appointments=appointments
     )
+

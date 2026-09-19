@@ -9,6 +9,7 @@ import {
     Clock,
     User,
     Phone,
+    PhoneCall,
     Plus,
     Search,
     RefreshCw,
@@ -19,10 +20,14 @@ import {
     QrCode,
     Users,
     FileText,
-    ExternalLink
+    ExternalLink,
+    Trash2,
+    CalendarClock
 } from "lucide-react";
 
 import { useParams } from "next/navigation";
+import RescheduleAppointmentModal from "@/components/RescheduleAppointmentModal";
+import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
 
 interface QueueAppointmentsTabProps {
     queueId: string;
@@ -67,6 +72,7 @@ export default function QueueAppointmentsTab({
     const [selectedStatus, setSelectedStatus] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [appointments, setAppointments] = useState<AppointmentResponse[]>([]);
+    const [futureCount, setFutureCount] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(true);
     const [checkingInId, setCheckingInId] = useState<string | null>(null);
 
@@ -89,15 +95,45 @@ export default function QueueAppointmentsTab({
     const [bookNotes, setBookNotes] = useState<string>("");
     const [isBooking, setIsBooking] = useState<boolean>(false);
 
+    // Calling state (Plivo WebRTC)
+    const [callModalOpen, setCallModalOpen] = useState<boolean>(false);
+    const [callCustomerPhone, setCallCustomerPhone] = useState<string>("");
+    const [callCustomerName, setCallCustomerName] = useState<string>("");
+    const [callTokenNumber, setCallTokenNumber] = useState<string>("");
+    const [callAppointmentId, setCallAppointmentId] = useState<string>("");
+    const [callTokenId, setCallTokenId] = useState<string>("");
+    const [callOrgId, setCallOrgId] = useState<string | undefined>(undefined);
+
+    const handleCallCustomer = (app: AppointmentResponse) => {
+        if (!app.customer_phone) {
+            toast.error("No phone number available for this customer");
+            return;
+        }
+        setCallCustomerPhone(app.customer_phone);
+        setCallCustomerName(app.customer_name);
+        setCallTokenNumber(app.token_number ? `${app.token_prefix || ""}${app.token_number}` : `#${app.booking_reference}`);
+        setCallAppointmentId(app.id);
+        setCallTokenId(app.token_id || "");
+        setCallOrgId(app.org_id);
+        setCallModalOpen(true);
+    };
+
     const loadAppointments = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await api.getAppointments({
-                queue_id: queueId,
-                date: selectedDate || undefined,
-                status: selectedStatus !== "all" ? (selectedStatus as AppointmentStatus) : undefined
-            });
+            const [data, allQueueData] = await Promise.all([
+                api.getAppointments({
+                    queue_id: queueId,
+                    date: selectedDate || undefined,
+                    status: selectedStatus !== "all" ? (selectedStatus as AppointmentStatus) : undefined
+                }),
+                api.getAppointments({
+                    queue_id: queueId,
+                })
+            ]);
             setAppointments(data);
+            const otherCount = allQueueData.filter(a => selectedDate ? a.appointment_date !== selectedDate : false).length;
+            setFutureCount(otherCount);
         } catch (err: any) {
             toast.error(err.message || "Failed to load appointments");
         } finally {
@@ -110,6 +146,11 @@ export default function QueueAppointmentsTab({
     }, [loadAppointments]);
 
     const handleCheckIn = async (app: AppointmentResponse) => {
+        const currentOpDate = sessionDate || todayStr;
+        if (app.appointment_date !== currentOpDate) {
+            toast.error(`Cannot check in: this appointment is booked for ${app.appointment_date}, not this session (${currentOpDate}).`);
+            return;
+        }
         setCheckingInId(app.id);
         try {
             const res = await api.staffCheckInAppointment(app.id, sessionId);
@@ -120,6 +161,25 @@ export default function QueueAppointmentsTab({
             toast.error(err.message || "Failed to check in appointment");
         } finally {
             setCheckingInId(null);
+        }
+    };
+
+    const [rescheduleAppt, setRescheduleAppt] = useState<AppointmentResponse | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const handleDeleteAppointment = async (app: AppointmentResponse) => {
+        if (!confirm(`Are you sure you want to permanently delete the appointment for ${app.customer_name}?`)) {
+            return;
+        }
+        setDeletingId(app.id);
+        try {
+            await api.deleteAppointment(app.id);
+            toast.success(`Appointment for ${app.customer_name} deleted.`);
+            loadAppointments();
+        } catch (err: any) {
+            toast.error(err?.detail || err?.message || "Failed to delete appointment");
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -247,6 +307,34 @@ export default function QueueAppointmentsTab({
             {/* Filter Bar */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-white/10 p-4 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
                 <div className="flex flex-wrap items-center gap-3">
+                    {/* Quick Session / All Filter */}
+                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                        {sessionDate && (
+                            <button
+                                type="button"
+                                onClick={() => setSelectedDate(sessionDate)}
+                                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                                    selectedDate === sessionDate
+                                        ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                }`}
+                            >
+                                This Session
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => setSelectedDate("")}
+                            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                                !selectedDate
+                                    ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                            }`}
+                        >
+                            All Dates {futureCount > 0 && selectedDate ? `(${futureCount} other)` : ""}
+                        </button>
+                    </div>
+
                     <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5">
                         <Calendar size={15} className="text-slate-400" />
                         <input
@@ -255,25 +343,17 @@ export default function QueueAppointmentsTab({
                             onChange={(e) => setSelectedDate(e.target.value)}
                             className="bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none cursor-pointer"
                         />
-                    </div>
-
-                    {sessionDate && (
-                        selectedDate === sessionDate ? (
-                            <span className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/40 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
-                                Session Date: {sessionDate}
-                            </span>
-                        ) : (
+                        {selectedDate && (
                             <button
                                 type="button"
-                                onClick={() => setSelectedDate(sessionDate)}
-                                className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/40 text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/80 transition-colors"
-                                title="Click to view appointments for this session's operational date"
+                                onClick={() => setSelectedDate("")}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold"
+                                title="Show All Dates"
                             >
-                                Reset to Session Date ({sessionDate})
+                                <X size={13} />
                             </button>
-                        )
-                    )}
-
+                        )}
+                    </div>
 
                     <select
                         value={selectedStatus}
@@ -310,6 +390,25 @@ export default function QueueAppointmentsTab({
                 </div>
             </div>
 
+            {/* Upcoming notice banner if viewing session date and other appointments exist */}
+            {selectedDate && futureCount > 0 && (
+                <div className="p-3.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/40 text-indigo-900 dark:text-indigo-200 text-xs flex items-center justify-between gap-3 animate-in fade-in">
+                    <div className="flex items-center gap-2">
+                        <Calendar size={15} className="text-indigo-600 shrink-0" />
+                        <span>
+                            You have <strong>{futureCount}</strong> appointment(s) booked for upcoming dates.
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedDate("")}
+                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs shadow-xs transition-colors shrink-0 cursor-pointer"
+                    >
+                        View All Dates
+                    </button>
+                </div>
+            )}
+
             {/* Appointment Cards / Table */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-white/10 overflow-hidden shadow-sm">
                 {loading ? (
@@ -324,8 +423,17 @@ export default function QueueAppointmentsTab({
                         </div>
                         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No appointments found</p>
                         <p className="text-xs text-slate-400 max-w-sm">
-                            {searchQuery ? "No appointments match your search criteria." : `No appointments scheduled for ${selectedDate}. Customers can book online or you can add one manually.`}
+                            {searchQuery ? "No appointments match your search criteria." : `No appointments scheduled for ${selectedDate || "selected criteria"}.`}
                         </p>
+                        {selectedDate && futureCount > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setSelectedDate("")}
+                                className="mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors cursor-pointer"
+                            >
+                                View {futureCount} Upcoming Appointments
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -343,7 +451,8 @@ export default function QueueAppointmentsTab({
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {filteredAppointments.map((app) => {
                                     const cfg = STATUS_CONFIG[app.status] || STATUS_CONFIG.confirmed;
-                                    const canCheckIn = (app.status === "confirmed" || app.status === "pending_approval") && !app.token_id;
+                                    const isForThisSession = app.appointment_date === (sessionDate || todayStr);
+                                    const canCheckIn = (app.status === "confirmed" || app.status === "pending_approval") && !app.token_id && isForThisSession;
 
                                     return (
                                         <tr key={app.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
@@ -378,11 +487,32 @@ export default function QueueAppointmentsTab({
                                                     <div>
                                                         <div className="font-bold text-slate-800 dark:text-slate-100">{app.customer_name}</div>
                                                         {app.customer_phone ? (
-                                                            <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                                                                <Phone size={10} />
-                                                                <a href={`tel:${app.customer_phone}`} className="hover:underline">
-                                                                    {app.customer_phone}
-                                                                </a>
+                                                            <div className="flex flex-col gap-0.5 mt-0.5">
+                                                                <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                                                                    <Phone size={10} />
+                                                                    <a href={`tel:${app.customer_phone}`} className="hover:underline">
+                                                                        {app.customer_phone}
+                                                                    </a>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleCallCustomer(app);
+                                                                        }}
+                                                                        className="inline-flex items-center justify-center p-1 rounded-md text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors cursor-pointer"
+                                                                        title="Call customer via Plivo"
+                                                                    >
+                                                                        <PhoneCall size={12} />
+                                                                    </button>
+                                                                </div>
+                                                                {Boolean(app.call_count && app.call_count > 0) && (
+                                                                    <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium" title={`Last called: ${app.last_called_at || "recently"}`}>
+                                                                        <PhoneCall size={9} className="shrink-0" />
+                                                                        <span>
+                                                                            {app.call_count} call{(app.call_count ?? 0) > 1 ? "s" : ""} • {Math.floor((app.total_call_duration_seconds || 0) / 60)}m {(app.total_call_duration_seconds || 0) % 60}s
+                                                                        </span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ) : (
                                                             <div className="text-[10px] text-slate-400">No phone</div>
@@ -427,11 +557,11 @@ export default function QueueAppointmentsTab({
                                             {/* Actions */}
                                             <td className="px-5 py-4 whitespace-nowrap text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {canCheckIn && (
+                                                    {canCheckIn ? (
                                                         <button
                                                             onClick={() => handleCheckIn(app)}
                                                             disabled={checkingInId === app.id}
-                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm hover:scale-[1.02] disabled:opacity-50"
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm hover:scale-[1.02] disabled:opacity-50 cursor-pointer"
                                                             title="Check in customer and issue token directly into active session"
                                                         >
                                                             {checkingInId === app.id ? (
@@ -441,7 +571,11 @@ export default function QueueAppointmentsTab({
                                                             )}
                                                             <span>Check In</span>
                                                         </button>
-                                                    )}
+                                                    ) : !isForThisSession && (app.status === "confirmed" || app.status === "pending_approval") && !app.token_id ? (
+                                                        <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10" title={`Check-in only available on ${app.appointment_date}`}>
+                                                            Scheduled
+                                                        </span>
+                                                    ) : null}
 
                                                     {app.status === "pending_approval" && (
                                                         <>
@@ -472,6 +606,29 @@ export default function QueueAppointmentsTab({
                                                         </button>
                                                     )}
 
+                                                    {/* Reschedule Button */}
+                                                    {!app.token_id && app.status !== "completed" && app.status !== "cancelled" && (
+                                                        <button
+                                                            onClick={() => setRescheduleAppt(app)}
+                                                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors cursor-pointer"
+                                                            title="Reschedule Appointment"
+                                                        >
+                                                            <CalendarClock size={14} />
+                                                        </button>
+                                                    )}
+
+                                                    {/* Plivo Call Button */}
+                                                    {app.customer_phone && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleCallCustomer(app)}
+                                                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors cursor-pointer"
+                                                            title="Call customer via Plivo"
+                                                        >
+                                                            <PhoneCall size={14} />
+                                                        </button>
+                                                    )}
+
                                                     <a
                                                         href={`/appointments/${app.booking_reference}`}
                                                         target="_blank"
@@ -481,6 +638,20 @@ export default function QueueAppointmentsTab({
                                                     >
                                                         <QrCode size={14} />
                                                     </a>
+
+                                                    {/* Delete Button */}
+                                                    <button
+                                                        onClick={() => handleDeleteAppointment(app)}
+                                                        disabled={deletingId === app.id}
+                                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                                                        title="Delete Appointment"
+                                                    >
+                                                        {deletingId === app.id ? (
+                                                            <RefreshCw size={14} className="animate-spin" />
+                                                        ) : (
+                                                            <Trash2 size={14} />
+                                                        )}
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -586,7 +757,7 @@ export default function QueueAppointmentsTab({
                                     value={bookNotes}
                                     onChange={(e) => setBookNotes(e.target.value)}
                                     rows={2}
-                                    placeholder="Doctor request, special assistance, etc."
+                                    placeholder="Special requests, assistance, notes, etc."
                                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-white outline-none focus:border-indigo-500"
                                 />
                             </div>
@@ -611,6 +782,31 @@ export default function QueueAppointmentsTab({
                     </div>
                 </div>
             )}
+
+            {/* Reschedule Modal */}
+            <RescheduleAppointmentModal
+                isOpen={!!rescheduleAppt}
+                onClose={() => setRescheduleAppt(null)}
+                appointment={rescheduleAppt}
+                onRescheduled={() => loadAppointments()}
+            />
+
+            {/* WebRTC Call Modal (Plivo) */}
+            <WebRTCCallModal
+                isOpen={callModalOpen}
+                onClose={() => {
+                    setCallModalOpen(false);
+                    loadAppointments();
+                }}
+                customerPhone={callCustomerPhone}
+                customerName={callCustomerName}
+                tokenNumber={callTokenNumber}
+                tokenId={callTokenId || undefined}
+                appointmentId={callAppointmentId || undefined}
+                queueId={queueId}
+                sessionId={sessionId}
+                organizationId={callOrgId}
+            />
         </div>
     );
 }

@@ -16,6 +16,7 @@ class TimeSlot(BaseModel):
     capacity: int = Field(default=1)
     booked_count: int = Field(default=0)
     available: bool = Field(default=True)
+    is_next_day: bool = Field(default=False, description="True if slot falls past midnight into next calendar day")
 
 
 class AvailableSlotsResponse(BaseModel):
@@ -83,6 +84,11 @@ class AppointmentResponse(BaseModel):
     booked_by: str
     checked_in_at: Optional[datetime] = None
     checked_in_by: Optional[str] = None
+    is_next_day: bool = Field(default=False)
+    total_call_duration_seconds: int = Field(default=0)
+    call_count: int = Field(default=0)
+    last_call_status: Optional[str] = None
+    last_called_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 
@@ -104,7 +110,14 @@ class AppointmentPublicPass(BaseModel):
     pax_count: int
     can_check_in: bool
     check_in_window_message: Optional[str] = None
+    is_next_day: bool = Field(default=False)
     token_id: Optional[uuid.UUID] = None
     token_number: Optional[int] = None
     token_prefix: Optional[str] = None
     tracking_id: Optional[uuid.UUID] = None
+    org_name: Optional[str] = None
+    org_slug: Optional[str] = None
+    parent_org_name: Optional[str] = None
+    branch_address: Optional[str] = None
+    branch_phone: Optional[str] = None
+    notes: Optional[str] = None

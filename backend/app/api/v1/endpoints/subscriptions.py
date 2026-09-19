@@ -242,12 +242,20 @@ async def create_expired_trial_sales_request(
     db: AsyncSession = Depends(get_db),
 ):
     clean_email = body.email.strip().lower()
-    branch = await db.scalar(select(Organization).where(Organization.slug == body.organization_slug.strip()))
+    branch = None
     user = None
-    if branch:
-        user = await db.scalar(select(User).where(
-            User.org_id == branch.id, func.lower(User.email) == clean_email, User.is_active == True
-        ))
+    if body.organization_slug and body.organization_slug.strip():
+        branch = await db.scalar(select(Organization).where(Organization.slug == body.organization_slug.strip()))
+        if branch:
+            user = await db.scalar(select(User).where(
+                User.org_id == branch.id, func.lower(User.email) == clean_email, User.is_active == True
+            ))
+    else:
+        user = await db.scalar(select(User).where(func.lower(User.email) == clean_email, User.is_active == True))
+        if user and user.org_id:
+            branch = await db.scalar(select(Organization).where(Organization.id == user.org_id))
+        elif user and user.parent_organization_id:
+            branch = await db.scalar(select(Organization).where(Organization.parent_organization_id == user.parent_organization_id))
     if not branch or not user or not branch.parent_organization_id or not verify_password(body.password, user.password_hash):
         # Do not reveal whether an account exists through this public endpoint.
         return {"message": "If the account details match an expired trial, our sales team will receive your request."}

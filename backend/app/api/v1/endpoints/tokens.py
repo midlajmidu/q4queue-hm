@@ -82,6 +82,8 @@ async def get_token(
         queue_prefix=prefix,
         tracking_id=token.tracking_id,
         pax_count=getattr(token, "pax_count", 1),
+        entry_type=getattr(token, "entry_type", "qr"),
+        assigned_line=getattr(token, "assigned_line", None),
         created_at=token.created_at,
         served_at=token.served_at,
         completed_at=token.completed_at,

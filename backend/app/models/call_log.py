@@ -17,6 +17,7 @@ class CallLog(Base):
     queue_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("queues.id", ondelete="SET NULL"), nullable=True)
     session_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("sessions.id", ondelete="SET NULL"), nullable=True)
     token_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("tokens.id", ondelete="SET NULL"), nullable=True)
+    appointment_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("appointments.id", ondelete="SET NULL"), nullable=True, index=True)
     
     called_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
@@ -33,3 +34,4 @@ class CallLog(Base):
 
     called_by = relationship("User", foreign_keys=[called_by_id], lazy="joined")
     queue = relationship("Queue", foreign_keys=[queue_id], lazy="joined")
+    appointment = relationship("Appointment", foreign_keys=[appointment_id], lazy="joined")

@@ -94,17 +94,10 @@ async def _require_current_operational_session(
         raise ValueError("Queue is not active")
 
     session = await db.get(Session, queue.token_session_id)
-    from app.models.organization import Organization
-    from app.core.tz_helpers import queue_business_date, safe_zoneinfo
-
-    org = await db.scalar(select(Organization).where(Organization.id == queue.org_id))
-    local_now = datetime.now(safe_zoneinfo(org.timezone if org and org.timezone else "Asia/Kolkata"))
-    business_date = queue_business_date(local_now, queue.open_time, queue.close_time)
     if (
         session is None
         or session.queue_id != queue.id
         or session.org_id != queue.org_id
-        or session.session_date != business_date
         or not session.is_active
     ):
         raise ValueError("This queue session is closed")

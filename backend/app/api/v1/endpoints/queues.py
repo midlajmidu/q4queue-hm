@@ -499,37 +499,31 @@ async def get_queue_public_status(
     target_session_id = queue.token_session_id
     if session_id and session_id != target_session_id:
         raise HTTPException(status_code=400, detail="This is not the queue's current session")
+    session_active = False
+    session_paused = False
+    session_date_str = None
+    target_session_id = queue.token_session_id
+
+    if session_id:
+        target_session_id = session_id
+
     if target_session_id:
         session = await db.get(SessionModel, target_session_id)
         if session:
             session_active = bool(session.is_active)
             session_paused = bool(session.is_paused)
             session_date_str = session.session_date.isoformat()
-            org_res = await db.execute(sa_select(OrgModel).where(OrgModel.id == queue.org_id))
-            org = org_res.scalar_one_or_none()
-            tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-            local_now = datetime.now(ZoneInfo(tz_str))
-            from app.core.tz_helpers import queue_business_date
-            today = queue_business_date(local_now, queue.open_time, queue.close_time)
-            if session.session_date < today:
-                is_past_session = True
-            session_is_current = session.session_date == today
-            if queue.open_time and queue.close_time:
-                current_hm = local_now.strftime("%H:%M")
-                within_hours = (
-                    queue.open_time <= current_hm <= queue.close_time
-                    if queue.open_time <= queue.close_time
-                    else current_hm >= queue.open_time or current_hm <= queue.close_time
-                )
+
+    is_open = bool(queue.is_active and session_active)
 
     return {
         "queue_id": str(queue_id),
         "queue_name": queue.name,
-        "is_active": bool(queue.is_active and session_active),
+        "is_active": is_open,
         "is_paused": bool(getattr(queue, "is_paused", False) or session_paused),
         "session_date": session_date_str,
-        "is_past_session": is_past_session,
-        "is_current_session": session_is_current,
+        "is_past_session": not is_open,
+        "is_current_session": is_open,
         "has_session": queue.token_session_id is not None,
         "within_operating_hours": True,
     }
@@ -554,19 +548,13 @@ async def get_queue_qr_config(
     if not queue.is_active or queue.is_paused or not queue.token_session_id:
         raise HTTPException(status_code=409, detail="Start the queue session before showing its QR code.")
     from app.models.session import Session as SessionModel
-    from app.models.organization import Organization as OrgModel
     session = await db.get(SessionModel, queue.token_session_id)
-    org = await db.get(OrgModel, queue.org_id)
-    tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-    local_now = datetime.now(ZoneInfo(tz_str))
-    from app.core.tz_helpers import queue_business_date
-    business_date = queue_business_date(local_now, queue.open_time, queue.close_time)
     if (
         session is None
         or not session.is_active
         or session.is_paused
     ):
-        raise HTTPException(status_code=409, detail="The current queue session is not accepting customers.")
+        raise HTTPException(status_code=409, detail="The current queue session is not open.")
     settings = get_settings()
     seed = get_qr_secret_seed(queue.id, settings.SECRET_KEY)
     interval = 15
@@ -600,14 +588,11 @@ async def scan_queue_qr(
     # Verify queue and its current session are open for admission.
     from sqlalchemy import select
     from app.models.session import Session as SessionModel
-    from app.models.organization import Organization as OrgModel
-    from zoneinfo import ZoneInfo
     result = await db.execute(select(Queue).where(Queue.id == queue_id))
     queue = result.scalar_one_or_none()
     if not queue or queue.is_deleted or not queue.is_active or queue.is_paused:
         return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=inactive")
 
-    # Verify session is today
     if not queue.token_session_id:
         return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=inactive")
     session = await db.get(SessionModel, queue.token_session_id)
@@ -618,8 +603,7 @@ async def scan_queue_qr(
         or not session.is_active
         or session.is_paused
     ):
-        session_date = session.session_date.isoformat() if session else "unknown"
-        return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=expired_qr&session_date={session_date}")
+        return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=inactive")
 
     # Validate TOTP if secret seed & totp validation is enforced
     seed = get_qr_secret_seed(queue_id, settings.SECRET_KEY)

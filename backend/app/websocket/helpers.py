@@ -130,21 +130,12 @@ async def build_queue_snapshot(
         from app.models.session import Session
         session = await db.get(Session, queue.token_session_id)
         if session:
+            session_active = bool(session.is_active)
+            session_paused = bool(session.is_paused)
             session_date_str = session.session_date.isoformat()
-            tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-            local_now = datetime.now(ZoneInfo(tz_str))
-            from app.core.tz_helpers import queue_business_date
-            today = queue_business_date(local_now, queue.open_time, queue.close_time)
-            if session.session_date < today:
-                is_past_session = True
-            session_is_current = session.session_date == today
-            if queue.open_time and queue.close_time:
-                current_hm = local_now.strftime("%H:%M")
-                within_hours = (
-                    queue.open_time <= current_hm <= queue.close_time
-                    if queue.open_time <= queue.close_time
-                    else current_hm >= queue.open_time or current_hm <= queue.close_time
-                )
+            is_past_session = not session_active
+            session_is_current = session_active
+            within_hours = True
 
     else:
         issued_count = 0
@@ -161,8 +152,9 @@ async def build_queue_snapshot(
         .limit(50)
     )
     
+    recent_rows = recent_result.scalars().all()
     recent_tokens = []
-    for t in recent_result.scalars().all():
+    for t in recent_rows:
         token_data = {
             "token_number": t.token_number,
             "status": t.status.value,
@@ -311,6 +303,71 @@ async def build_queue_snapshot(
             token_data["removed_by"] = getattr(t, "removed_by", None)
             token_data["custom_data"] = getattr(t, "custom_data", None)
         deleted_tokens.append(token_data)
+
+    # ── Enrich appointment information (time, date, reference) ──
+    all_token_objs = (
+        ([serving_token] if serving_token else [])
+        + serving_rows
+        + recent_rows
+        + waiting_rows
+        + skipped_rows
+        + deleted_rows
+    )
+    appt_token_ids = [
+        t.id for t in all_token_objs
+        if getattr(t, "entry_type", None) == "appointment"
+        and not (getattr(t, "custom_data", None) or {}).get("appointment_time")
+    ]
+    appt_lookup = {}
+    if appt_token_ids:
+        try:
+            from app.models.appointment import Appointment
+            appts_res = await db.execute(select(Appointment).where(Appointment.token_id.in_(appt_token_ids)))
+            appt_lookup = {a.token_id: a for a in appts_res.scalars().all()}
+        except Exception as e:
+            logger.warning("Could not lookup appointments for tokens: %s", e)
+
+    def _attach_appt_info(t_obj, t_dict):
+        cdata = getattr(t_obj, "custom_data", None) or {}
+        a_time = cdata.get("appointment_time")
+        a_date = cdata.get("appointment_date")
+        a_ref = cdata.get("booking_reference") or cdata.get("appointment_booking_ref")
+        if not a_time and appt_lookup and getattr(t_obj, "id", None) in appt_lookup:
+            a = appt_lookup[t_obj.id]
+            start_str = a.start_time.strftime("%I:%M %p").lstrip("0")
+            end_str = a.end_time.strftime("%I:%M %p").lstrip("0")
+            a_time = f"{start_str} - {end_str}"
+            a_date = str(a.appointment_date)
+            a_ref = a.booking_reference
+            if t_dict.get("custom_data") is None:
+                t_dict["custom_data"] = {}
+            t_dict["custom_data"]["appointment_time"] = a_time
+            t_dict["custom_data"]["appointment_date"] = a_date
+            t_dict["custom_data"]["booking_reference"] = a_ref
+        if a_time:
+            t_dict["appointment_time"] = a_time
+        if a_date:
+            t_dict["appointment_date"] = a_date
+        if a_ref:
+            t_dict["appointment_booking_ref"] = a_ref
+
+    if serving_details and serving_token:
+        _attach_appt_info(serving_token, serving_details)
+    for idx, t in enumerate(serving_rows):
+        if idx < len(all_serving_tokens):
+            _attach_appt_info(t, all_serving_tokens[idx])
+    for idx, t in enumerate(recent_rows):
+        if idx < len(recent_tokens):
+            _attach_appt_info(t, recent_tokens[idx])
+    for idx, t in enumerate(waiting_rows):
+        if idx < len(waiting_tokens):
+            _attach_appt_info(t, waiting_tokens[idx])
+    for idx, t in enumerate(skipped_rows):
+        if idx < len(skipped_tokens):
+            _attach_appt_info(t, skipped_tokens[idx])
+    for idx, t in enumerate(deleted_rows):
+        if idx < len(deleted_tokens):
+            _attach_appt_info(t, deleted_tokens[idx])
 
     # Public display sockets must never become a customer-directory API. They
     # receive operational ticket numbers only; authenticated admin sockets keep

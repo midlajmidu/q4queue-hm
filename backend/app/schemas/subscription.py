@@ -167,8 +167,8 @@ class SalesRequestCreate(BaseModel):
 
 class ExpiredTrialSalesRequestCreate(SalesRequestCreate):
     email: EmailStr
-    organization_slug: str = Field(..., min_length=1, max_length=100)
-    password: str = Field(..., min_length=8, max_length=128)
+    organization_slug: str | None = Field(default=None, max_length=100)
+    password: str = Field(..., min_length=6, max_length=128)
 
 
 class SalesRequestItem(BaseModel):

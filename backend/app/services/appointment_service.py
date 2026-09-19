@@ -42,6 +42,19 @@ def _format_time_hhmm(t: time) -> str:
     return t.strftime("%H:%M")
 
 
+def _is_next_day_slot(start_time: time, open_time: Optional[str], close_time: Optional[str]) -> bool:
+    """Returns True if start_time falls in the post-midnight portion of an overnight schedule."""
+    if not open_time or not close_time:
+        return False
+    try:
+        open_t = _parse_time_hhmm(open_time)
+        close_t = _parse_time_hhmm(close_time)
+        is_overnight = open_t > close_t
+        return bool(is_overnight and start_time < close_t)
+    except Exception:
+        return False
+
+
 async def get_queue_timezone(db: AsyncSession, org_id: uuid.UUID) -> str:
     org = await db.scalar(select(Organization).where(Organization.id == org_id))
     return org.timezone if (org and org.timezone) else "Asia/Kolkata"
@@ -65,72 +78,73 @@ async def get_available_slots(
     local_now = datetime.now(ZoneInfo(tz_str))
     today_date = local_now.date()
 
-    if target_date < today_date:
+    # Operating windows strictly use queue.open_time and queue.close_time for all days
+    open_t = _parse_time_hhmm(queue.open_time) if queue.open_time else time(9, 0)
+    close_t = _parse_time_hhmm(queue.close_time) if queue.close_time else time(18, 0)
+    is_overnight = open_t > close_t
+
+    # Check if target_date is in past, allowing an active ongoing overnight session from yesterday
+    is_ongoing_yesterday_overnight = (
+        is_overnight
+        and target_date == today_date - timedelta(days=1)
+        and local_now.time() < close_t
+    )
+    if target_date < today_date and not is_ongoing_yesterday_overnight:
         return AvailableSlotsResponse(queue_id=queue.id, date=target_date, slot_duration=queue.slot_duration, slots=[])
 
-    max_future_date = today_date + timedelta(days=queue.advance_booking_days or 14)
-    if target_date > max_future_date:
-        return AvailableSlotsResponse(queue_id=queue.id, date=target_date, slot_duration=queue.slot_duration, slots=[])
+    # Each segment: (start_datetime, end_datetime, is_next_day)
+    operating_segments: List[Tuple[datetime, datetime, bool]] = []
+    if open_t < close_t:
+        # Standard same-day operating schedule e.g., 09:00 to 18:00
+        start_dt = datetime.combine(target_date, open_t)
+        end_dt = datetime.combine(target_date, close_t)
+        operating_segments.append((start_dt, end_dt, False))
+    elif open_t > close_t:
+        # Overnight operating schedule e.g., 15:00 to 02:00 next day
+        # Shift Part 1: target_date open_time -> target_date + 1 midnight
+        start_dt1 = datetime.combine(target_date, open_t)
+        end_dt1 = datetime.combine(target_date + timedelta(days=1), time(0, 0))
+        operating_segments.append((start_dt1, end_dt1, False))
 
-    # Check blackout dates
-    blackout_list = queue.blackout_dates or []
-    if target_date.strftime("%Y-%m-%d") in blackout_list:
-        return AvailableSlotsResponse(queue_id=queue.id, date=target_date, slot_duration=queue.slot_duration, slots=[])
-
-    # Determine operating windows for target weekday
-    weekday_map = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-    target_day_name = weekday_map[target_date.weekday()]
-
-    operating_windows: List[Tuple[time, time]] = []
-    sched = queue.schedule_config or {}
-    weekly = sched.get("weekly", {})
-
-    if target_day_name in weekly and isinstance(weekly[target_day_name], list):
-        for interval in weekly[target_day_name]:
-            try:
-                s_t = _parse_time_hhmm(interval["start"])
-                e_t = _parse_time_hhmm(interval["end"])
-                if s_t < e_t:
-                    operating_windows.append((s_t, e_t))
-            except Exception:
-                continue
+        # Shift Part 2: target_date + 1 00:00 -> target_date + 1 close_time
+        start_dt2 = datetime.combine(target_date + timedelta(days=1), time(0, 0))
+        end_dt2 = datetime.combine(target_date + timedelta(days=1), close_t)
+        operating_segments.append((start_dt2, end_dt2, True))
     else:
-        # Fallback to queue.open_time and close_time
-        open_t = _parse_time_hhmm(queue.open_time) if queue.open_time else time(9, 0)
-        close_t = _parse_time_hhmm(queue.close_time) if queue.close_time else time(18, 0)
-        if open_t < close_t:
-            operating_windows.append((open_t, close_t))
+        # 24-hour schedule (e.g. 00:00 to 00:00 or identical open/close)
+        start_dt = datetime.combine(target_date, time(0, 0))
+        end_dt = datetime.combine(target_date + timedelta(days=1), time(0, 0))
+        operating_segments.append((start_dt, end_dt, False))
 
     slot_duration = queue.slot_duration or 15
     slot_capacity = queue.slot_capacity or 1
-    min_lead_time = queue.min_lead_time_mins or 60
+    min_lead_time = queue.min_lead_time_mins if queue.min_lead_time_mins is not None else 60
 
     generated_slots: List[TimeSlot] = []
+    step = timedelta(minutes=slot_duration)
+    earliest_valid = local_now + timedelta(minutes=min_lead_time)
 
-    for start_w, end_w in operating_windows:
-        cur_dt = datetime.combine(target_date, start_w)
-        end_dt = datetime.combine(target_date, end_w)
-        step = timedelta(minutes=slot_duration)
+    for start_dt, end_dt, is_next_day in operating_segments:
+        cur_dt = start_dt
 
         while cur_dt + step <= end_dt:
-            slot_start = cur_dt.time()
-            slot_end = (cur_dt + step).time()
+            slot_start_time = cur_dt.time()
+            slot_end_dt = cur_dt + step
+            slot_end_time = slot_end_dt.time()
+            slot_end_str = "23:59" if (slot_end_time == time(0, 0) and not is_next_day and slot_end_dt.date() > target_date) else _format_time_hhmm(slot_end_time)
 
-            # Check lead time if today
-            is_in_past = False
-            if target_date == today_date:
-                slot_full_dt = datetime.combine(target_date, slot_start, tzinfo=ZoneInfo(tz_str))
-                earliest_valid = local_now + timedelta(minutes=min_lead_time)
-                if slot_full_dt < earliest_valid:
-                    is_in_past = True
+            # Check lead time against the exact occurrence datetime in branch timezone
+            slot_full_dt = cur_dt.replace(tzinfo=ZoneInfo(tz_str))
+            is_in_past = slot_full_dt < earliest_valid
 
             generated_slots.append(
                 TimeSlot(
-                    start_time=_format_time_hhmm(slot_start),
-                    end_time=_format_time_hhmm(slot_end),
+                    start_time=_format_time_hhmm(slot_start_time),
+                    end_time=slot_end_str,
                     capacity=slot_capacity,
                     booked_count=0,
                     available=not is_in_past,
+                    is_next_day=is_next_day,
                 )
             )
             cur_dt += step
@@ -205,6 +219,24 @@ async def create_appointment(
     if current_booked >= cap:
         raise ValueError("This time slot is fully booked. Please choose another slot.")
 
+    # Re-validate lead time at booking submit time to prevent TOCTOU (only for online customers)
+    if booked_by == "customer_online":
+        tz_str = await get_queue_timezone(db, queue.org_id)
+        local_now = datetime.now(ZoneInfo(tz_str))
+        min_lead = queue.min_lead_time_mins if queue.min_lead_time_mins is not None else 60
+        open_t_raw = _parse_time_hhmm(queue.open_time) if queue.open_time else time(9, 0)
+        close_t_raw = _parse_time_hhmm(queue.close_time) if queue.close_time else time(18, 0)
+        is_overnight = open_t_raw > close_t_raw
+        # For post-midnight slots (is_next_day), the actual calendar date is business_date + 1
+        slot_calendar_date = (
+            data.appointment_date + timedelta(days=1)
+            if (is_overnight and start_t < close_t_raw)
+            else data.appointment_date
+        )
+        slot_dt = datetime.combine(slot_calendar_date, start_t).replace(tzinfo=ZoneInfo(tz_str))
+        if slot_dt < local_now + timedelta(minutes=min_lead):
+            raise ValueError("This time slot is no longer available for booking. Please choose another slot.")
+
     # Generate unique reference
     booking_ref = ""
     for _ in range(5):
@@ -247,6 +279,24 @@ async def create_appointment(
     await db.flush()
 
     return appointment
+
+
+async def maybe_remove_appointment_token(db: AsyncSession, appointment: Appointment) -> bool:
+    """
+    If the appointment has a linked waiting token, mark it as deleted.
+    Call this before db.commit() when cancelling/rejecting an appointment.
+    Returns True if a token was removed.
+    """
+    if not appointment.token_id:
+        return False
+    from app.models.token import Token, TokenStatus
+    token = await db.get(Token, appointment.token_id)
+    if token and token.status == TokenStatus.waiting:
+        token.status = TokenStatus.deleted
+        token.deleted_at = datetime.now(timezone.utc)
+        token.removed_by = "appointment_cancelled"
+        return True
+    return False
 
 
 async def check_in_appointment(
@@ -323,36 +373,74 @@ async def check_in_appointment(
     if not session or not session.is_active or not target_session_id:
         raise ValueError("No active queue session is currently running for this queue. Please start or open a session first.")
 
+    from app.core.tz_helpers import queue_business_date
+    tz_str = await get_queue_timezone(db, queue.org_id)
+    local_now = datetime.now(ZoneInfo(tz_str))
+    local_today = queue_business_date(local_now, queue.open_time, queue.close_time)
+    if appointment.appointment_date != local_today:
+        raise ValueError(
+            f"Cannot check in: this appointment is scheduled for {appointment.appointment_date}. Check-in is only permitted on the scheduled business day ({local_today})."
+        )
+
+    if session.session_date != appointment.appointment_date:
+        raise ValueError(
+            f"This appointment is scheduled for {appointment.appointment_date}, not this session's date ({session.session_date}). Check-in is only permitted on the scheduled date."
+        )
+
     now_utc = datetime.now(timezone.utc) if "timezone" in globals() else datetime.utcnow()
 
-    # Assign next token number
-    max_token_res = await db.execute(
-        select(func.max(Token.token_number)).where(
-            Token.queue_id == queue.id,
-            Token.session_id == target_session_id,
+    # Check if this customer already has an active waiting or serving token in this session (Bug #7)
+    phone_cleaned = appointment.customer_phone.strip() if appointment.customer_phone else None
+    existing_token = None
+    if phone_cleaned:
+        existing_res = await db.execute(
+            select(Token).where(
+                Token.queue_id == queue.id,
+                Token.session_id == target_session_id,
+                Token.customer_phone == phone_cleaned,
+                Token.status.in_([TokenStatus.waiting, TokenStatus.serving]),
+            ).order_by(Token.created_at.desc()).limit(1)
         )
-    )
-    max_existing_number = max_token_res.scalar() or 0
-    next_number = max(queue.current_token_number + 1, max_existing_number + 1)
-    queue.current_token_number = next_number
+        existing_token = existing_res.scalar_one_or_none()
 
-    token = Token(
-        org_id=queue.org_id,
-        queue_id=queue.id,
-        session_id=target_session_id,
-        token_number=next_number,
-        status=TokenStatus.waiting,
-        customer_name=appointment.customer_name,
-        customer_phone=appointment.customer_phone,
-        pax_count=appointment.pax_count or 1,
-        called_via_invite=False,
-        entry_type="appointment",
-        is_whatsapp_enabled=True,
-        custom_data=appointment.custom_data,
-        field_schema=appointment.field_schema or queue.custom_fields,
-    )
-    db.add(token)
-    await db.flush()
+    if existing_token:
+        token = existing_token
+    else:
+        # Assign next token number
+        max_token_res = await db.execute(
+            select(func.max(Token.token_number)).where(
+                Token.queue_id == queue.id,
+                Token.session_id == target_session_id,
+            )
+        )
+        max_existing_number = max_token_res.scalar() or 0
+        next_number = max(queue.current_token_number + 1, max_existing_number + 1)
+        queue.current_token_number = next_number
+
+        t_custom_data = dict(appointment.custom_data or {})
+        start_str = appointment.start_time.strftime("%I:%M %p").lstrip("0")
+        end_str = appointment.end_time.strftime("%I:%M %p").lstrip("0")
+        t_custom_data["appointment_time"] = f"{start_str} - {end_str}"
+        t_custom_data["appointment_date"] = str(appointment.appointment_date)
+        t_custom_data["booking_reference"] = appointment.booking_reference
+
+        token = Token(
+            org_id=queue.org_id,
+            queue_id=queue.id,
+            session_id=target_session_id,
+            token_number=next_number,
+            status=TokenStatus.waiting,
+            customer_name=appointment.customer_name,
+            customer_phone=appointment.customer_phone,
+            pax_count=appointment.pax_count or 1,
+            called_via_invite=False,
+            entry_type="appointment",
+            is_whatsapp_enabled=True,
+            custom_data=t_custom_data,
+            field_schema=appointment.field_schema or queue.custom_fields,
+        )
+        db.add(token)
+        await db.flush()
 
     # Link appointment
     appointment.token_id = token.id
@@ -397,6 +485,10 @@ async def list_appointments(
         query = query.where(Appointment.appointment_date == target_date)
     elif start_date and end_date:
         query = query.where(Appointment.appointment_date.between(start_date, end_date))
+    elif start_date:
+        query = query.where(Appointment.appointment_date >= start_date)
+    elif end_date:
+        query = query.where(Appointment.appointment_date <= end_date)
 
     if status:
         query = query.where(Appointment.status == status)

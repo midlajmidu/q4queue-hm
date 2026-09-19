@@ -559,6 +559,9 @@ async def get_history_details(
             "recalled_at": token.recalled_at.isoformat() if token.recalled_at else None,
             "custom_data": token.custom_data,
             "field_schema": token.field_schema,
+            "appointment_time": (token.custom_data or {}).get("appointment_time") if isinstance(token.custom_data, dict) else None,
+            "appointment_date": (token.custom_data or {}).get("appointment_date") if isinstance(token.custom_data, dict) else None,
+            "appointment_booking_ref": (token.custom_data or {}).get("booking_reference") or (token.custom_data or {}).get("appointment_booking_ref") if isinstance(token.custom_data, dict) else None,
         })
 
     return {

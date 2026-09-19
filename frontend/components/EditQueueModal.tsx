@@ -20,6 +20,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
     const [closeTime, setCloseTime] = useState("");
     const [queueType, setQueueType] = useState<"normal" | "service_lines">("normal");
     const [serviceLines, setServiceLines] = useState(2);
+    const [appointmentEnabled, setAppointmentEnabled] = useState(false);
     
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -32,6 +33,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
             setStartingSequence(queue.starting_sequence || 1);
             setOpenTime(queue.open_time || "");
             setCloseTime(queue.close_time || "");
+            setAppointmentEnabled(!!queue.appointment_enabled);
             if ((queue.service_lines || 0) > 0) {
                 setQueueType("service_lines");
                 setServiceLines(queue.service_lines || 2);
@@ -66,6 +68,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                 open_time: openTime || undefined,
                 close_time: closeTime || undefined,
                 service_lines: queueType === "service_lines" ? serviceLines : 0,
+                appointment_enabled: appointmentEnabled,
             });
             onUpdated();
             onClose();
@@ -222,6 +225,27 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                 />
                             </div>
                         )}
+                    </div>
+
+                    {/* Appointment Booking Checkbox */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
+                        <label className="flex items-start gap-3 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={appointmentEnabled}
+                                onChange={(e) => setAppointmentEnabled(e.target.checked)}
+                                disabled={isLoading}
+                                className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600 cursor-pointer"
+                            />
+                            <div>
+                                <span className="text-xs font-bold text-slate-800 dark:text-white block">
+                                    Add this into appointment booking
+                                </span>
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-snug">
+                                    When checked, this queue will be available for customers to choose and book online on the public booking portal.
+                                </span>
+                            </div>
+                        </label>
                     </div>
 
                     {error && (

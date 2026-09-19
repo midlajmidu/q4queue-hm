@@ -7,6 +7,7 @@ import { Lock, CheckCircle, AlertCircle, Eye, EyeOff, Building2, Shield, Zap, Gl
 import { PageWrapper } from "@/components/PageWrapper";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useDashBase } from "@/hooks/useDashBase";
 import { toast } from "sonner";
 import { useRef } from "react";
 import { setToken } from "@/lib/auth";
@@ -171,7 +172,10 @@ export default function SettingsPage() {
     const [pendingTab, setPendingTab] = useState<'profile' | 'security' | 'operations' | null>(null);
     const params = useParams();
     const orgSlug = params?.orgSlug as string;
-    const { user } = useAuth();
+    const { user, isReadOnly: authReadOnly } = useAuth();
+    const dashBase = useDashBase();
+    const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
+    const isReadOnly = !!authReadOnly || isGlobalOrOrgAdmin;
     const isAdmin = user?.role === "admin" || user?.role === "branch_admin";
 
     // Clinic Info State
@@ -345,8 +349,9 @@ export default function SettingsPage() {
 
     const handleSaveInfo = async (e: React.FormEvent) => {
         e.preventDefault();
-        setInfoSuccess(null);
+        if (isReadOnly) return;
         setInfoError(null);
+        setInfoSuccess(null);
         setIsSavingInfo(true);
 
         try {
@@ -384,7 +389,8 @@ export default function SettingsPage() {
 
     const handleRequestOtp = async (e: React.FormEvent) => {
         e.preventDefault();
-        setPwdSuccess(null);
+        if (isReadOnly) return;
+        setPwdError(null);
         setPwdError(null);
         setIsSavingPassword(true);
 
@@ -418,7 +424,8 @@ export default function SettingsPage() {
 
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault();
-        setPwdSuccess(null);
+        if (isReadOnly) return;
+        setPwdError(null);
         setPwdError(null);
 
         if (newPassword !== confirmPassword) {
@@ -466,7 +473,7 @@ export default function SettingsPage() {
                     title="Settings"
                     subtitle="Update your organization's core details and manage admin credentials."
                     breadcrumbs={[
-                        { label: "Configuration", href: `/${orgSlug}/dashboard` },
+                        { label: "Configuration", href: dashBase },
                         { label: "Settings" }
                     ]}
                 >
@@ -521,7 +528,7 @@ export default function SettingsPage() {
                                             {isAdmin ? (
                                                 <div style={{ gridColumn: '1 / -1' }}>
                                                     <label className="lbl">Organization Name</label>
-                                                    <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="premium-input" placeholder="e.g. Acme Health Clinic" />
+                                                    <input type="text" disabled={isReadOnly} required value={name} onChange={(e) => setName(e.target.value)} className="premium-input disabled:opacity-60 disabled:cursor-not-allowed" placeholder="e.g. Acme Health Clinic" />
                                                 </div>
                                             ) : (
                                                 <>
@@ -546,11 +553,11 @@ export default function SettingsPage() {
                                                     </div>
                                                     <div>
                                                         <label className="lbl">First Name</label>
-                                                        <input type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="premium-input capitalize" placeholder="e.g. John" />
+                                                        <input type="text" disabled={isReadOnly} required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="premium-input capitalize disabled:opacity-60 disabled:cursor-not-allowed" placeholder="e.g. John" />
                                                     </div>
                                                     <div>
                                                         <label className="lbl">Last Name</label>
-                                                        <input type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="premium-input capitalize" placeholder="e.g. Doe" />
+                                                        <input type="text" disabled={isReadOnly} required value={lastName} onChange={(e) => setLastName(e.target.value)} className="premium-input capitalize disabled:opacity-60 disabled:cursor-not-allowed" placeholder="e.g. Doe" />
                                                     </div>
                                                     <div style={{ gridColumn: '1 / -1' }}>
                                                         <label className="lbl" style={{ display: "flex", alignItems: "center", gap: 6 }} title="Your email address used for login.">
@@ -566,12 +573,12 @@ export default function SettingsPage() {
                                                 <>
                                                     <div style={{ gridColumn: '1 / -1' }}>
                                                         <label className="lbl">Address</label>
-                                                        <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={3} className="premium-input" style={{ resize: 'vertical' }} placeholder="123 Main Street..." />
+                                                        <textarea disabled={isReadOnly} value={address} onChange={(e) => setAddress(e.target.value)} rows={3} className="premium-input disabled:opacity-60 disabled:cursor-not-allowed" style={{ resize: 'vertical' }} placeholder="123 Main Street..." />
                                                     </div>
 
                                                     <div>
                                                         <label className="lbl">Contact Phone</label>
-                                                        <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="premium-input" placeholder="(555) 123-4567" />
+                                                        <input type="text" disabled={isReadOnly} value={phone} onChange={(e) => setPhone(e.target.value)} className="premium-input disabled:opacity-60 disabled:cursor-not-allowed" placeholder="(555) 123-4567" />
                                                     </div>
 
                                                     {/* Timezone */}
@@ -581,9 +588,10 @@ export default function SettingsPage() {
                                                             Branch Timezone
                                                         </label>
                                                         <select
+                                                            disabled={isReadOnly}
                                                             value={timezone}
                                                             onChange={(e) => setTimezone(e.target.value)}
-                                                            className="ov-sel"
+                                                            className="ov-sel disabled:opacity-60 disabled:cursor-not-allowed"
                                                             style={{ width: '100%', minWidth: 0 }}
                                                         >
                                                             {TIMEZONES.map(tz => (
@@ -615,14 +623,23 @@ export default function SettingsPage() {
                                         </div>
 
                                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.borderLight}` }}>
-                                            {hasProfileChanges && (
-                                                <button type="button" onClick={handleDiscardChanges} style={{ padding: '10px 20px', fontSize: '13.5px', fontWeight: 600, color: C.textSub, background: C.cardBgAlt, border: `1px solid ${C.border}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }} className="hover:bg-slate-100">
-                                                    Discard Changes
-                                                </button>
+                                            {isReadOnly ? (
+                                                <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-xs font-semibold border border-violet-200 dark:border-violet-800/40">
+                                                    <Eye size={14} className="text-violet-600 dark:text-violet-400" />
+                                                    Read-Only View: Branch settings can only be edited by the branch admin
+                                                </span>
+                                            ) : (
+                                                <>
+                                                    {hasProfileChanges && (
+                                                        <button type="button" onClick={handleDiscardChanges} style={{ padding: '10px 20px', fontSize: '13.5px', fontWeight: 600, color: C.textSub, background: C.cardBgAlt, border: `1px solid ${C.border}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }} className="hover:bg-slate-100">
+                                                            Discard Changes
+                                                        </button>
+                                                    )}
+                                                    <button type="submit" disabled={isSavingInfo || !hasProfileChanges || (isAdmin ? !name.trim() : (!firstName.trim() || !lastName.trim()))} className="qa-btn">
+                                                        {isSavingInfo ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Saving...</> : "Save Details"}
+                                                    </button>
+                                                </>
                                             )}
-                                            <button type="submit" disabled={isSavingInfo || !hasProfileChanges || (isAdmin ? !name.trim() : (!firstName.trim() || !lastName.trim()))} className="qa-btn">
-                                                {isSavingInfo ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Saving...</> : "Save Details"}
-                                            </button>
                                         </div>
                                     </form>
                                 </div>
@@ -742,8 +759,20 @@ export default function SettingsPage() {
                                             </div>
                                         </div>
                                     </div>
-
-                                    <form onSubmit={pwdStep === 1 ? handleRequestOtp : handleUpdatePassword} style={{ padding: '32px 24px' }}>
+                                    {isReadOnly ? (
+                                        <div style={{ padding: '32px 24px' }}>
+                                            <div className="max-w-md p-5 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/40 text-violet-800 dark:text-violet-300">
+                                                <div className="flex items-center gap-2 font-bold text-sm mb-1">
+                                                    <Shield size={16} className="text-violet-600 dark:text-violet-400" />
+                                                    Read-Only Administrative Mode
+                                                </div>
+                                                <p className="text-xs text-violet-700 dark:text-violet-300 leading-relaxed">
+                                                    Branch admin credentials and security password settings can only be altered by the branch admin directly.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <form onSubmit={pwdStep === 1 ? handleRequestOtp : handleUpdatePassword} style={{ padding: '32px 24px' }}>
                                         {/* Toast notifications will handle success/error popups */}
                                         <div className="w-full">
                                             {pwdStep === 1 ? (
@@ -880,6 +909,7 @@ export default function SettingsPage() {
                                             )}
                                         </div>
                                     </form>
+                                    )}
                                 </div>
                             )}
 
