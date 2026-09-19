@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { setToken, setSuperAdminToken, getToken } from "@/lib/auth";
 import type { OrgDetail } from "@/types/api";
 
 export default function SupportToolsPage() {
+    const router = useRouter();
     const [orgs, setOrgs] = useState<OrgDetail[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -41,13 +43,8 @@ export default function SupportToolsPage() {
             // Set the new org token locally just in case
             setToken(response.access_token, "staff");
             
-            // Construct the app subdomain URL to cross the domain boundary
-            const protocol = window.location.protocol;
-            const host = window.location.host;
-            const appHost = host.startsWith("app.") ? host : `app.${host}`;
-            
-            // Hard redirect to the app subdomain with tokens in the URL fragment
-            window.location.href = `${protocol}//${appHost}/${org.slug}/dashboard#token=${response.access_token}&saToken=${currentToken || ''}`;
+            // Navigate directly to the organization's dashboard within the app domain
+            router.push(`/${org.slug}/dashboard`);
         } catch (err) {
             console.error("Impersonation failed", err);
             let errMsg = "Failed to impersonate organization.";

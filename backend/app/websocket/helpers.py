@@ -421,6 +421,8 @@ async def build_queue_snapshot(
         "is_current_session": session_is_current,
         "within_operating_hours": within_hours,
         "service_lines": queue.service_lines,
+        "table_config": getattr(queue, "table_config", []) or [],
+        "branch_type": getattr(org, "branch_type", "standard") or "standard",
         "open_time": queue.open_time,
         "close_time": queue.close_time,
         "current_serving": current_serving,

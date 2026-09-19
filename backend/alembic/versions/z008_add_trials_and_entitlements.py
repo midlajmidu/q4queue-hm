@@ -1,7 +1,7 @@
 """Add plans, trial subscriptions and entitlement usage.
 
 Revision ID: z008_trials
-Revises: z007_session_flags
+Revises: z008_call_status_ring_duration
 """
 import uuid
 
@@ -10,7 +10,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "z008_trials"
-down_revision = "z007_session_flags"
+down_revision = "z008_call_status_ring_duration"
 branch_labels = None
 depends_on = None
 

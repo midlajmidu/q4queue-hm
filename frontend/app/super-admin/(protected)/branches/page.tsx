@@ -360,6 +360,7 @@ export default function BranchesPage() {
                                 <tr>
                                     <SortableHeader col="name" label="Name" />
                                     <th className="px-6 py-3">Slug</th>
+                                    <th className="px-6 py-3">Mode</th>
                                     <th className="px-6 py-3">Admin Email</th>
                                     <SortableHeader col="is_active" label="Status" />
                                     <SortableHeader col="created_at" label="Created At" />
@@ -371,7 +372,7 @@ export default function BranchesPage() {
                             ) : orgs.length === 0 ? (
                                 <tbody>
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center">
+                                        <td colSpan={7} className="px-6 py-12 text-center">
                                             <svg className="w-12 h-12 text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                                             <p className="text-slate-400">No branches found.</p>
                                         </td>
@@ -387,6 +388,17 @@ export default function BranchesPage() {
                                                 </Link>
                                             </td>
                                             <td className="px-6 py-4 text-slate-400 font-mono text-xs">{o.slug}</td>
+                                            <td className="px-6 py-4">
+                                                {o.branch_type === "dine" ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/20 whitespace-nowrap">
+                                                        <span>🍽️</span> Dine
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 whitespace-nowrap">
+                                                        <span>🏥</span> Queue
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 text-slate-400">{o.admin_email || <span className="text-slate-600 italic">None</span>}</td>
                                             <td className="px-6 py-4">
                                                 <button onClick={() => setStatusOrg(o)} className="focus:outline-none focus:ring-2 focus:ring-violet-500 rounded-full" title={`Click to ${o.is_active ? 'deactivate' : 'activate'}`}>

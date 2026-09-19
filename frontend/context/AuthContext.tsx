@@ -198,11 +198,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     currentUser = JSON.parse(atob(parts[1])) as JwtPayload;
                 }
                 
-                const isAppSubdomain = typeof window !== "undefined" && window.location.hostname.startsWith("app.");
-                const currentHost = typeof window !== "undefined" ? window.location.host : "";
-                const appHost = isAppSubdomain ? currentHost : `app.${currentHost}`;
-                const protocol = typeof window !== "undefined" ? window.location.protocol : "http:";
-
                 let targetPath = "/dashboard";
                 if (response.force_password_change) {
                     if (currentUser && currentUser.role === "organization_admin") {
@@ -222,11 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     targetPath = "/super-admin";
                 }
 
-                if (typeof window !== "undefined" && !isAppSubdomain) {
-                    window.location.href = `${protocol}//${appHost}${targetPath}#token=${response.access_token}`;
-                } else {
-                    router.push(targetPath);
-                }
+                router.push(targetPath);
             } catch (err) {
                 if (err instanceof ApiError) {
                     if (err.status === 429) {
@@ -275,10 +266,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stopImpersonating = useCallback(() => {
         const saToken = getSuperAdminToken();
         if (saToken) {
-            const isAppSubdomain = window.location.hostname.startsWith("app.");
-            const rootHost = isAppSubdomain ? window.location.host.replace("app.", "") : window.location.host;
-            const protocol = window.location.protocol;
-            
             let decodedRole = "super_admin";
             try {
                 const parts = saToken.split(".");
@@ -295,13 +282,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             removeToken("staff");
             removeToken("org_admin");
             removeSuperAdminToken();
+            setToken(saToken);
             syncAuthState();
             broadcastEvent("LOGOUT");
             
-            const targetPath = decodedRole === "organization_admin" ? "organization-admin" : "super-admin";
-            window.location.href = `${protocol}//${rootHost}/${targetPath}#token=${saToken}`;
+            const targetPath = decodedRole === "organization_admin" ? "/organization-admin" : "/super-admin";
+            router.push(targetPath);
         }
-    }, [syncAuthState, broadcastEvent]);
+    }, [router, syncAuthState, broadcastEvent]);
 
     return (
         <AuthContext.Provider

@@ -16,7 +16,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Repair legacy pointers and the historical multiple-active-session state
+    # 1. Allow nullable FIRST before setting invalid foreign keys to NULL
+    op.alter_column("queues", "token_session_id", existing_type=sa.UUID(), nullable=True)
+
+    # 2. Repair legacy pointers and the historical multiple-active-session state
     # before constraints are installed.
     op.execute(
         """
@@ -39,8 +42,14 @@ def upgrade() -> None:
         ) THEN is_paused ELSE false END
         """
     )
+    op.execute(
+        """
+        DELETE FROM tokens
+        WHERE session_id IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM sessions s WHERE s.id = tokens.session_id)
+        """
+    )
 
-    op.alter_column("queues", "token_session_id", existing_type=sa.UUID(), nullable=True)
     op.create_foreign_key(
         "fk_queues_token_session_id", "queues", "sessions",
         ["token_session_id"], ["id"], ondelete="SET NULL",

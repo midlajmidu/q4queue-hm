@@ -208,6 +208,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
                             queueName={queueName}
                             isActive={state?.is_active ?? false}
                             theme={theme}
+                            tableConfig={state?.table_config}
                         />
                     </div>
                     <div className="w-[32%] flex flex-col gap-4 min-h-0">

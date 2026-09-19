@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import { api } from "@/lib/api";
 import type { TenantAnalyticsRow, TenantAnalyticsResponse } from "@/types/api";
 
@@ -291,9 +291,8 @@ export default function SuperAdminAnalyticsPage() {
                                     </td>
                                 </tr>
                             ) : sortedFiltered.map(row => (
-                                <>
+                                <Fragment key={row.branch_id}>
                                     <tr
-                                        key={row.branch_id}
                                         className="hover:bg-slate-800/30 transition-colors cursor-pointer"
                                         onClick={() => setExpandedRow(expandedRow === row.branch_id ? null : row.branch_id)}
                                     >
@@ -350,7 +349,7 @@ export default function SuperAdminAnalyticsPage() {
                                             </td>
                                         </tr>
                                     )}
-                                </>
+                                </Fragment>
                             ))}
                         </tbody>
                     </table>

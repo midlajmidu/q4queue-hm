@@ -248,7 +248,7 @@ async def websocket_queue(
     except WebSocketDisconnect:
         pass
     except Exception as exc:
-        logger.error("WebSocket error | queue=%s err=%s", queue_id, exc)
+        logger.exception("WebSocket error | queue=%s err=%s", queue_id, exc)
     finally:
         # ── 6. Clean up ──────────────────────────────────────────
         if channel:

@@ -43,6 +43,9 @@ class Organization(Base):
     phone_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
     timezone: Mapped[str] = mapped_column(String(50), default="Asia/Kolkata", server_default="Asia/Kolkata", nullable=False)
 
+    # ── Branch Operating Mode ──────────────────────────────────────
+    branch_type: Mapped[str] = mapped_column(String(50), default="standard", server_default="standard", nullable=False)
+
     # ── Limits ─────────────────────────────────────────────────────
     max_sessions: Mapped[int] = mapped_column(default=10, nullable=False)
     max_queues_per_session: Mapped[int] = mapped_column(default=20, nullable=False)

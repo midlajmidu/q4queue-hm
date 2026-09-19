@@ -19,6 +19,7 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
     const [form, setForm] = useState<OrgUpdateRequest>({
         org_name: org.name,
         org_slug: org.slug,
+        branch_type: org.branch_type || "standard",
         is_active: org.is_active,
         max_sessions: org.max_sessions ?? 10,
         max_queues_per_session: org.max_queues_per_session ?? 20,
@@ -64,6 +65,40 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
                     <div>
                         <label htmlFor="edit-name" className="block text-sm font-medium text-slate-300 mb-1.5">Name</label>
                         <input id="edit-name" type="text" value={form.org_name} onChange={(e) => setForm(f => ({ ...f, org_name: e.target.value }))} required disabled={isSaving} className="w-full rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Branch Type</label>
+                        <div className="grid grid-cols-2 gap-2.5">
+                            <button
+                                type="button"
+                                onClick={() => setForm(f => ({ ...f, branch_type: "standard" }))}
+                                className={`p-2.5 rounded-xl border text-left transition-all ${
+                                    form.branch_type !== "dine"
+                                        ? "bg-violet-600/15 border-violet-500 text-white shadow-sm"
+                                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                                }`}
+                            >
+                                <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                                    <span>🏥</span> Hospitals & Queues
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-0.5">Counters & tokens</p>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setForm(f => ({ ...f, branch_type: "dine" }))}
+                                className={`p-2.5 rounded-xl border text-left transition-all ${
+                                    form.branch_type === "dine"
+                                        ? "bg-amber-500/15 border-amber-500 text-white shadow-sm"
+                                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                                }`}
+                            >
+                                <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                                    <span>🍽️</span> Hotels & Dine
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-0.5">Tables & pax seating</p>
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="edit-slug" className="block text-sm font-medium text-slate-300 mb-1.5">Slug</label>
@@ -202,7 +237,7 @@ export function ConfirmStatusModal({ org, onClose, onConfirm, isUpdating }: { or
 
 // ── Create Modal ────────────────────────────────────────────────────────────────
 export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void; }) {
-    const [form, setForm] = useState<OrgCreateRequest>({ org_name: "", org_slug: "", admin_email: "", admin_password: "", parent_organization_id: "", max_sessions: 10, max_queues_per_session: 20, max_staff: 5 });
+    const [form, setForm] = useState<OrgCreateRequest>({ org_name: "", org_slug: "", branch_type: "standard", admin_email: "", admin_password: "", parent_organization_id: "", max_sessions: 10, max_queues_per_session: 20, max_staff: 5 });
     const [showAdminPassword, setShowAdminPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
@@ -261,6 +296,40 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                     <div>
                         <label htmlFor="org-name" className="block text-sm font-medium text-slate-300 mb-1.5">Branch Name</label>
                         <input id="org-name" type="text" value={form.org_name} onChange={(e) => handleNameChange(e.target.value)} placeholder="Sunrise Clinic" required disabled={isSubmitting} className="w-full rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 px-3.5 py-2.5 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none transition-colors" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Branch Type / Operating Mode</label>
+                        <div className="grid grid-cols-2 gap-2.5">
+                            <button
+                                type="button"
+                                onClick={() => setForm(f => ({ ...f, branch_type: "standard" }))}
+                                className={`p-2.5 rounded-xl border text-left transition-all ${
+                                    form.branch_type !== "dine"
+                                        ? "bg-violet-600/15 border-violet-500 text-white shadow-sm"
+                                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                                }`}
+                            >
+                                <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                                    <span>🏥</span> Hospitals & Queues
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-0.5">Counters & tokens</p>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setForm(f => ({ ...f, branch_type: "dine" }))}
+                                className={`p-2.5 rounded-xl border text-left transition-all ${
+                                    form.branch_type === "dine"
+                                        ? "bg-amber-500/15 border-amber-500 text-white shadow-sm"
+                                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                                }`}
+                            >
+                                <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                                    <span>🍽️</span> Hotels & Dine
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-0.5">Tables & pax seating</p>
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="parent-org" className="block text-sm font-medium text-slate-300 mb-1.5">Parent Organization</label>

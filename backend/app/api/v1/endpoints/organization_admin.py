@@ -72,9 +72,11 @@ async def create_branch(
     if existing_org_result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Organization slug already exists")
 
+    branch_type = request.branch_type if request.branch_type in ("standard", "dine") else "standard"
     new_branch = Organization(
         name=request.name,
         slug=request.slug,
+        branch_type=branch_type,
         address=request.address,
         phone_number=request.phone_number,
         timezone=request.timezone,
@@ -113,7 +115,8 @@ async def create_branch(
         name=new_branch.name,
         slug=new_branch.slug,
         is_active=new_branch.is_active,
-        created_at=new_branch.created_at
+        created_at=new_branch.created_at,
+        branch_type=new_branch.branch_type
     )
 
 @router.get("/branches/{branch_id}", response_model=BranchDetailResponse)
@@ -200,6 +203,8 @@ async def update_branch(
 
     if request.name is not None:
         branch.name = request.name
+    if request.branch_type is not None and request.branch_type in ("standard", "dine"):
+        branch.branch_type = request.branch_type
     if request.address is not None:
         branch.address = request.address
     if request.phone_number is not None:
@@ -213,7 +218,8 @@ async def update_branch(
         name=branch.name,
         slug=branch.slug,
         is_active=branch.is_active,
-        created_at=branch.created_at
+        created_at=branch.created_at,
+        branch_type=getattr(branch, "branch_type", "standard") or "standard"
     )
 
 @router.patch("/branches/{branch_id}/status", response_model=BranchStatItem)
@@ -243,7 +249,8 @@ async def update_branch_status(
         name=branch.name,
         slug=branch.slug,
         is_active=branch.is_active,
-        created_at=branch.created_at
+        created_at=branch.created_at,
+        branch_type=getattr(branch, "branch_type", "standard") or "standard"
     )
 
 @router.post("/branches/{branch_id}/admins", response_model=BranchAdminResponse)

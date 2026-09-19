@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Building2, Check, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { setToken } from "@/lib/auth";
+import { config } from "@/lib/config";
 
 type SignupStep = "details" | "verify";
 
@@ -87,7 +88,7 @@ export default function SignupPage() {
             <div className="z-10 flex h-full w-full flex-col p-4 lg:w-1/2 lg:p-6">
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} className="flex h-full w-full flex-col overflow-y-auto rounded-3xl border border-slate-100 bg-white px-6 py-6 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] hide-scrollbar sm:px-10 lg:px-14 xl:px-20">
                     <div className="my-auto flex w-full max-w-[460px] flex-col py-3">
-                        <div className="mb-4 -ml-9 sm:-ml-12"><Link href="/" aria-label="Go to home page" className="inline-block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"><Image src="/q4queue-new_logo.png" alt="Q4Queue Logo" width={300} height={80} className="h-10 w-auto origin-left scale-[2.3] object-contain sm:h-12 sm:scale-[2.5]" priority /></Link></div>
+                        <div className="mb-4 -ml-9 sm:-ml-12"><a href={config.landingUrl} aria-label="Go to home page" className="inline-block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"><Image src="/q4queue-new_logo.png" alt="Q4Queue Logo" width={300} height={80} className="h-10 w-auto origin-left scale-[2.3] object-contain sm:h-12 sm:scale-[2.5]" priority /></a></div>
 
                         {step === "details" ? (
                             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>

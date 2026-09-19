@@ -35,14 +35,18 @@ async def create_queue(
     current_count = await db.scalar(
         select(func.count(Queue.id)).where(Queue.org_id == org_id, Queue.is_deleted == False)
     ) or 0
-    await assert_resource_capacity(db, org_id, "queues.max", current_count)
+    service_lines = data.service_lines
+    if data.table_config and len(data.table_config) > 0:
+        service_lines = len(data.table_config)
+
     queue = Queue(
         org_id=org_id,
         name=data.name,
         prefix=data.prefix,
         starting_sequence=data.starting_sequence,
         current_token_number=data.starting_sequence - 1,
-        service_lines=data.service_lines,
+        service_lines=service_lines,
+        table_config=data.table_config or [],
         open_time=data.open_time,
         close_time=data.close_time,
         appointment_enabled=bool(data.appointment_enabled),
@@ -125,6 +129,11 @@ async def update_queue(
                 value = validate_custom_fields_list(value)
                 from sqlalchemy.orm.attributes import flag_modified
                 flag_modified(queue, "custom_fields")
+            elif key == "table_config" and value is not None:
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(queue, "table_config")
+                if len(value) > 0:
+                    queue.service_lines = len(value)
             setattr(queue, key, value)
     await db.commit()
     await db.refresh(queue)

@@ -7,6 +7,7 @@ import { Menu, X, ArrowRight, ChevronDown, Building2, Stethoscope, Landmark, Sho
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { config } from "@/lib/config";
 
 interface NavItem {
   label: string;
@@ -209,8 +210,8 @@ export default function Navbar() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-5">
-          <Link
-            href="/login"
+          <a
+            href={`${config.appUrl}/login`}
             className={cn(
               "hidden sm:inline-flex text-[14px] font-medium transition-colors",
               isLightNav
@@ -219,7 +220,7 @@ export default function Navbar() {
             )}
           >
             Log in
-          </Link>
+          </a>
 
           <Button
             size="sm"
@@ -314,13 +315,13 @@ export default function Navbar() {
           </Link>
 
           <div className="pt-4 border-t border-slate-100/20 flex flex-col gap-3">
-            <Link
-              href="/login"
+            <a
+              href={`${config.appUrl}/login`}
               onClick={() => setMobileOpen(false)}
               className="block py-2 text-base font-medium"
             >
               Log in
-            </Link>
+            </a>
             <Button
               size="default"
               onClick={() => {

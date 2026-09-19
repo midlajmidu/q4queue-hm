@@ -34,6 +34,7 @@ export default function CreateBranchModal({ isOpen, onClose, onCreated }: Create
     const [formData, setFormData] = useState({
         name: "",
         slug: "",
+        branch_type: "standard" as "standard" | "dine",
         address: "",
         phone_number: "",
         assignAdmin: false,
@@ -54,6 +55,7 @@ export default function CreateBranchModal({ isOpen, onClose, onCreated }: Create
             setIsSlugManuallyEdited(false);
             setFormData({
                 name: "", slug: "",
+                branch_type: "standard",
                 address: "", phone_number: "",
                 assignAdmin: false, admin_first_name: "", admin_last_name: "", admin_email: "", admin_password: "",
             });
@@ -111,6 +113,7 @@ export default function CreateBranchModal({ isOpen, onClose, onCreated }: Create
             const payload: any = {
                 name: formData.name,
                 slug: formData.slug,
+                branch_type: formData.branch_type || "standard",
                 address: formData.address || null,
                 phone_number: formData.phone_number ? `${countryCode}${formData.phone_number}` : null,
                 timezone: "Asia/Kolkata", // Hardcoded default for now
@@ -213,6 +216,41 @@ export default function CreateBranchModal({ isOpen, onClose, onCreated }: Create
                                     <div className="mt-1.5 flex items-center justify-between">
                                         <p className="text-[13px] text-gray-500">URL: yourdomain.com/<strong>{formData.slug || 'slug'}</strong></p>
                                         {slugStatus === 'taken' && <span className="text-[13px] font-semibold text-red-500">Slug already in use</span>}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Branch Operating Mode</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, branch_type: "standard" }))}
+                                            className={`p-3 rounded-lg border text-left transition-all ${
+                                                formData.branch_type !== "dine"
+                                                    ? "bg-indigo-50/70 border-indigo-500 text-indigo-950 ring-1 ring-indigo-500"
+                                                    : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                                            }`}
+                                        >
+                                            <div className="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
+                                                <span>🏥</span> Hospitals & Queues
+                                            </div>
+                                            <p className="text-[11px] text-gray-500 mt-0.5">Counters & FIFO tokens</p>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, branch_type: "dine" }))}
+                                            className={`p-3 rounded-lg border text-left transition-all ${
+                                                formData.branch_type === "dine"
+                                                    ? "bg-amber-50/70 border-amber-500 text-amber-950 ring-1 ring-amber-500"
+                                                    : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                                            }`}
+                                        >
+                                            <div className="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
+                                                <span>🍽️</span> Hotels & Dine
+                                            </div>
+                                            <p className="text-[11px] text-gray-500 mt-0.5">Tables & pax seating</p>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
