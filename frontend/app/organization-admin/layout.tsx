@@ -144,9 +144,9 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                             Fixed at top-left (left-0 top-0), always 260px wide, h-16 (64px) tall.
                             Never collapses. Never hides logo.
                         ══════════════════════════════════════════════ */}
-                        <div className="hidden md:flex fixed top-0 left-0 z-30 items-center justify-between h-16 w-[260px] bg-white border-b border-r border-slate-200/80 px-4">
+                        <div className="hidden md:flex fixed top-0 left-0 z-30 items-center justify-center h-16 w-[260px] bg-white border-b border-r border-slate-200/80 px-4">
                             <Link href="/organization-admin" className="focus:outline-none transition-opacity hover:opacity-80 flex items-center justify-center">
-                                <Logo size="sm" />
+                                <Logo size="md" />
                             </Link>
 
                             {/* Collapse Toggle Button (Positioned cleanly on logo rail border) */}
@@ -188,7 +188,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                             {/* Mobile Header (Close button) — hidden on desktop */}
                             <div className="md:hidden h-16 flex items-center justify-between px-4 shrink-0 border-b border-slate-100/80 relative z-10 bg-white/40 backdrop-blur-xs">
                                 <Link href="/organization-admin" className="focus:outline-none transition-opacity hover:opacity-80 flex items-center justify-center">
-                                    <Logo size="sm" />
+                                    <Logo size="md" />
                                 </Link>
                                 <button
                                     onClick={() => setIsMobileMenuOpen(false)}

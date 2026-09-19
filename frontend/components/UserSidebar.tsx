@@ -188,14 +188,14 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                 Never collapses. Never hides.
             ══════════════════════════════════════════════ */}
             <div
-                className="hidden lg:flex fixed top-0 left-0 z-30 items-center justify-between flex-shrink-0 bg-white dark:bg-[#0b1121] border-b border-r border-gray-200 dark:border-white/5"
+                className="hidden lg:flex fixed top-0 left-0 z-30 items-center justify-center flex-shrink-0 bg-white dark:bg-[#0b1121] border-b border-r border-gray-200 dark:border-white/5"
                 style={{ width: 256, height: 64 }}
             >
                 <Link
                     href={dashBase}
-                    className="flex items-center gap-3 py-2 px-4 focus:outline-none rounded-lg"
+                    className="flex items-center justify-center py-2 px-4 focus:outline-none rounded-lg"
                 >
-                    <Logo size="sm" className="" />
+                    <Logo size="md" className="" />
                 </Link>
 
                 {/* Desktop Collapse Toggle — sits on the right edge of the logo rail */}
@@ -239,7 +239,7 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                 {/* ── Mobile Header (logo + close button) — hidden on desktop ── */}
                 <div className="lg:hidden h-16 flex items-center justify-between flex-shrink-0 border-b border-gray-200 dark:border-white/5 px-4">
                     <Link href={dashBase} className="flex items-center gap-3 focus:outline-none rounded-lg">
-                        <Logo size="sm" className="" />
+                        <Logo size="md" className="" />
                     </Link>
                     <button
                         onClick={onClose}
