@@ -60,7 +60,7 @@ async def notify_queue_event(
     queue_id: Optional[uuid.UUID] = None,
     customer_name: str,
     customer_phone: str,
-    token_number: int,
+    token_number: int = 0,
     token_prefix: str = "",
     queue_name: str = "",
     position: int = 0,
@@ -68,9 +68,12 @@ async def notify_queue_event(
     organization_name: str = "",
     session_id: Optional[uuid.UUID] = None,
     assigned_line: Optional[int] = None,
+    booking_reference: Optional[str] = None,
+    appointment_date: Optional[str] = None,
+    time_slot: Optional[str] = None,
 ) -> None:
     """
-    Dispatch a WhatsApp notification for a queue event.
+    Dispatch a WhatsApp notification for a queue or appointment event.
     Fire-and-forget — call with BackgroundTasks.add_task().
 
     event_type values (v4):
@@ -83,6 +86,7 @@ async def notify_queue_event(
       queue_removed_v3
       queue_completed_v3
       test_notification_v2
+      appointment_booked_v1
     """
     try:
         # -- DASHBOARD NOTIFICATIONS (Internal) --
@@ -108,6 +112,8 @@ async def notify_queue_event(
 
         # Check granular toggles based on event type
         if event_type == "queue_joined_v4" and not cfg.get("notify_queue_joined", True):
+            return
+        if event_type == "appointment_booked_v1" and not cfg.get("notify_appointment_booked", True):
             return
         if event_type == "queue_nearby_5_v3" and not cfg.get("notify_position_5", True):
             return
@@ -222,6 +228,29 @@ async def notify_queue_event(
                 display_url,
                 org_name_to_use or "Main Branch",
                 queue_label
+            ]
+        elif event_type == "appointment_booked_v1":
+            from app.core.config import get_settings
+            settings = get_settings()
+            frontend_url = getattr(settings, "FRONTEND_URL", "http://app.localhost:3000").rstrip("/")
+            pass_url = f"{frontend_url}/appointments/{booking_reference}" if booking_reference else frontend_url
+
+            # Variables for appointment_confirmed_v1:
+            # 1: Customer Name
+            # 2: Booking Reference
+            # 3: Location / Branch
+            # 4: Service Name
+            # 5: Appointment Date
+            # 6: Time Slot
+            # 7: Appointment Pass URL
+            variables = [
+                c_name or "Customer",
+                booking_reference or "",
+                org_name_to_use or "Our Branch",
+                queue_name or "Appointment Service",
+                appointment_date or "",
+                time_slot or "",
+                pass_url,
             ]
         else:
             if not token_id:
@@ -357,24 +386,25 @@ async def notify_queue_event(
             redis_client = get_redis()
             
             # Determine throttle expiry based on event_type
-            if event_type in ("queue_joined_v4", "queue_called_v3", "queue_skipped_v3", "queue_recalled_v2"):
+            if event_type in ("queue_joined_v4", "queue_called_v3", "queue_skipped_v3", "queue_recalled_v2", "appointment_booked_v1"):
                 expiry = 3  # 3 seconds for critical events (prevents UI double-clicks)
             else:
                 expiry = 15 # 15 seconds for others (like nearby)
             
             # Use event-specific key so a 15s 'nearby' lock doesn't block a critical 'called' event
-            rl_key = f"wa_throttle:{token_id}:{event_type}"
+            throttle_target = token_id or booking_reference or phone
+            rl_key = f"wa_throttle:{throttle_target}:{event_type}"
             
             # Set key if not exists (NX)
             acquired = await redis_client.set(rl_key, "1", ex=expiry, nx=True)
             if not acquired:
-                logger.info("WhatsApp throttled for token %s (event=%s)", token_id, event_type)
+                logger.info("WhatsApp throttled for %s (event=%s)", throttle_target, event_type)
                 return
         except Exception as e:
             logger.warning("Redis rate limit check failed, proceeding anyway: %s", e)
 
         # 3.8 Pacing & Timing:
-        # High-priority operational events (Joined, Called, Skipped, Recalled): Immediate (0 delay / ~1-2s delivery)
+        # High-priority operational events (Joined, Called, Skipped, Recalled, Appointment Booked): Immediate (0 delay / ~1-2s delivery)
         # Background status events (5 ahead, 3 ahead, Completed, Removed): 8-10s pacing delay
         if event_type in ("queue_nearby_5_v3", "queue_nearby_3_v3", "queue_completed_v3", "queue_removed_v3"):
             import asyncio
@@ -401,8 +431,8 @@ async def notify_queue_event(
                 event_type=f"notification.{event_type}",
                 org_id=org_id,
                 user_id=None,
-                resource_type="token",
-                resource_id=str(token_id) if token_id else None,
+                resource_type="appointment" if event_type == "appointment_booked_v1" else "token",
+                resource_id=booking_reference if event_type == "appointment_booked_v1" else (str(token_id) if token_id else None),
                 details={"phone": phone, "variables": variables, "is_raw_text": is_raw_text},
             )
         except Exception as audit_exc:
@@ -413,3 +443,35 @@ async def notify_queue_event(
             "NotificationService error | event=%s org=%s err=%s",
             event_type, org_id, exc,
         )
+
+
+async def notify_appointment_booked(
+    *,
+    appointment_id: uuid.UUID,
+    org_id: uuid.UUID,
+    queue_id: uuid.UUID,
+    customer_name: str,
+    customer_phone: str,
+    booking_reference: str,
+    appointment_date: str,
+    time_slot: str,
+    queue_name: str = "",
+    organization_name: str = "",
+) -> None:
+    """
+    Dispatch a WhatsApp confirmation notification when an appointment is booked.
+    Fire-and-forget — call with BackgroundTasks.add_task().
+    """
+    await notify_queue_event(
+        event_type="appointment_booked_v1",
+        org_id=org_id,
+        queue_id=queue_id,
+        customer_name=customer_name,
+        customer_phone=customer_phone,
+        token_number=0,
+        booking_reference=booking_reference,
+        appointment_date=appointment_date,
+        time_slot=time_slot,
+        queue_name=queue_name,
+        organization_name=organization_name,
+    )

@@ -17,7 +17,7 @@ export interface TokenDetailData {
     created_at?: string | null;
     served_at?: string | null;
     completed_at?: string | null;
-    entry_type?: "manual" | "qr" | "auto" | null;
+    entry_type?: "manual" | "qr" | "auto" | "appointment" | null;
     queue_name?: string;
     removed_by?: string | null;
     assigned_line?: number | null;
@@ -29,12 +29,17 @@ export interface TokenDetailData {
     recalled_at?: string | null;
     custom_data?: Record<string, any> | null;
     field_schema?: Array<{ key: string; label: string; type?: string; options?: string[] }> | null;
+    appointment_time?: string | null;
+    appointment_date?: string | null;
+    appointment_booking_ref?: string | null;
 }
 
 interface TokenDetailModalProps {
     token: TokenDetailData | null;
     onClose: () => void;
     onRecall?: () => void;
+    onRemove?: () => void;
+    onUndo?: () => void;
 }
 
 
@@ -72,9 +77,10 @@ const ENTRY_STYLES: Record<string, string> = {
     manual: "bg-violet-100 dark:bg-violet-950/80 text-violet-700 dark:text-violet-300",
     qr: "bg-cyan-100 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300",
     auto: "bg-orange-100 dark:bg-amber-950/80 text-orange-700 dark:text-amber-300",
+    appointment: "bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800",
 };
 
-export default function TokenDetailModal({ token, onClose, onRecall }: TokenDetailModalProps) {
+export default function TokenDetailModal({ token, onClose, onRecall, onRemove, onUndo }: TokenDetailModalProps) {
     const [fullToken, setFullToken] = useState<TokenDetailData | null>(token);
     const tz = useBranchTimezone();
 
@@ -87,6 +93,10 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
     const entryType = fullToken.entry_type ?? "manual";
     const waitingTime = calcWaitingTime(fullToken.created_at, fullToken.served_at, fullToken.status);
     const serviceTime = calcServiceTime(fullToken.served_at, fullToken.completed_at);
+
+    const appointmentTime = fullToken.appointment_time || fullToken.custom_data?.appointment_time;
+    const appointmentDate = fullToken.appointment_date || fullToken.custom_data?.appointment_date;
+    const appointmentRef = fullToken.appointment_booking_ref || fullToken.custom_data?.booking_reference || fullToken.custom_data?.appointment_booking_ref;
 
     // Close on backdrop click
     const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -149,9 +159,43 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         </span>
                     </div>
 
+                    {/* Appointment Banner if appointment */}
+                    {(entryType === "appointment" || appointmentTime) && (
+                        <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 rounded-xl p-3.5 flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-300 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300">
+                                        Scheduled Appointment
+                                    </span>
+                                    {appointmentRef && (
+                                        <span className="text-[11px] font-mono font-semibold text-purple-600 dark:text-purple-400 bg-purple-100/80 dark:bg-purple-900/40 px-2 py-0.5 rounded">
+                                            #{appointmentRef}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-base font-bold text-purple-950 dark:text-purple-100 mt-0.5">
+                                    {appointmentTime || "Appointment"}
+                                </p>
+                                {appointmentDate && (
+                                    <p className="text-xs text-purple-700/80 dark:text-purple-300/80 mt-0.5 font-medium">
+                                        Date: {appointmentDate}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Detail grid */}
                     <div className="grid grid-cols-2 gap-3">
                         <DetailItem label="Phone Number" value={fullToken.customer_phone || "Not Provided"} />
+                        {appointmentTime && (
+                            <DetailItem label="Appointment Slot" value={appointmentTime} highlight="purple" />
+                        )}
                         {(fullToken.pax_count && fullToken.pax_count > 1) && (
                             <DetailItem label="Number of Pax" value={String(fullToken.pax_count)} highlight="emerald" />
                         )}
@@ -193,8 +237,14 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                         {fullToken.custom_data && Object.keys(fullToken.custom_data).length > 0 && (
                             <>
                                 {Object.entries(fullToken.custom_data).map(([key, value]) => {
-                                    // Skip mapping duplicated known keys handled in the header
-                                    if (key === 'name' || key === 'full_name' || key === 'phone' || key === 'phone_number' || key === 'pax' || key === 'group_size') return null;
+                                    // Skip mapping duplicated known keys handled in the header or dedicated cards
+                                    if (
+                                        key === 'name' || key === 'full_name' || 
+                                        key === 'phone' || key === 'phone_number' || 
+                                        key === 'pax' || key === 'group_size' ||
+                                        key === 'appointment_time' || key === 'appointment_date' ||
+                                        key === 'booking_reference' || key === 'appointment_booking_ref'
+                                    ) return null;
                                     
                                     // Check if field_schema snapshot contains the exact historical label
                                     const schemaMatch = Array.isArray(fullToken.field_schema)
@@ -214,14 +264,22 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                     </div>
 
                     {/* Full timestamps */}
-                    {fullToken.created_at && (
+                    {(fullToken.created_at || appointmentTime) && (
                         <div className="pt-3 border-t border-gray-50 dark:border-white/10">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-400 mb-2">Timestamps</p>
                             <div className="space-y-1.5 text-xs text-gray-500 dark:text-slate-400">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-400 dark:text-slate-400">Registered</span>
-                                    <span className="font-medium text-gray-700 dark:text-slate-200">{fmtDateTime(fullToken.created_at, tz)}</span>
-                                </div>
+                                {appointmentTime && (
+                                    <div className="flex justify-between">
+                                        <span className="text-purple-600 dark:text-purple-400 font-semibold">Appointment Slot</span>
+                                        <span className="font-bold text-purple-700 dark:text-purple-300">{appointmentTime}{appointmentDate ? ` (${appointmentDate})` : ''}</span>
+                                    </div>
+                                )}
+                                {fullToken.created_at && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400 dark:text-slate-400">Registered</span>
+                                        <span className="font-medium text-gray-700 dark:text-slate-200">{fmtDateTime(fullToken.created_at, tz)}</span>
+                                    </div>
+                                )}
                                 {fullToken.served_at && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-400 dark:text-slate-400">Called</span>
@@ -261,13 +319,42 @@ export default function TokenDetailModal({ token, onClose, onRecall }: TokenDeta
                 <div className="px-6 pb-5 flex gap-3">
                     {fullToken.status === "skipped" && onRecall && (
                         <button
+                            type="button"
                             onClick={() => { onClose(); onRecall(); }}
-                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold rounded-xl transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 shadow-sm flex items-center justify-center gap-2"
                         >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
                             Recall Token
                         </button>
                     )}
+                    {fullToken.status === "waiting" && onRemove && (
+                        <button
+                            type="button"
+                            onClick={() => { onClose(); onRemove(); }}
+                            className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold rounded-xl transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 shadow-sm flex items-center justify-center gap-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Remove Token
+                        </button>
+                    )}
+                    {fullToken.status === "deleted" && onUndo && (
+                        <button
+                            type="button"
+                            onClick={() => { onClose(); onUndo(); }}
+                            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 shadow-sm flex items-center justify-center gap-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                            </svg>
+                            Undo Remove
+                        </button>
+                    )}
                     <button
+                        type="button"
                         onClick={onClose}
                         className="w-full py-2.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 font-bold rounded-xl transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
@@ -286,13 +373,15 @@ function DetailItem({
 }: {
     label: string;
     value: string;
-    highlight?: "emerald" | "amber";
+    highlight?: "emerald" | "amber" | "purple";
 }) {
     const valCls = highlight === "emerald"
         ? "text-emerald-700 dark:text-emerald-400 font-bold"
         : highlight === "amber"
             ? "text-amber-700 dark:text-amber-400 font-bold"
-            : "text-gray-900 dark:text-white font-semibold";
+            : highlight === "purple"
+                ? "text-purple-700 dark:text-purple-400 font-bold"
+                : "text-gray-900 dark:text-white font-semibold";
 
     return (
         <div className="bg-gray-50 dark:bg-slate-800/60 rounded-xl px-3 py-2.5">

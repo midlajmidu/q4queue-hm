@@ -819,7 +819,14 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                                             <div className="flex justify-between items-center py-0.5">
                                                 <span className="text-slate-500 font-medium">Customer</span>
                                                 <div className="text-right">
-                                                    <span className="font-semibold text-slate-900 dark:text-white">{phoneMasked ? maskPhone(item.customer_phone) : item.customer_phone}</span>
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        <span className="font-semibold text-slate-900 dark:text-white">{phoneMasked ? maskPhone(item.customer_phone) : item.customer_phone}</span>
+                                                        {item.booking_reference && (
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
+                                                                <Calendar size={9} /> #{item.booking_reference}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     {item.customer_name && (
                                                         <p className="text-[11px] text-slate-400">{item.customer_name}</p>
                                                     )}
@@ -904,9 +911,16 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div>
-                                                        <p className="font-semibold text-slate-900 dark:text-white text-sm tabular-nums">
-                                                            {phoneMasked ? maskPhone(item.customer_phone) : item.customer_phone}
-                                                        </p>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <p className="font-semibold text-slate-900 dark:text-white text-sm tabular-nums">
+                                                                {phoneMasked ? maskPhone(item.customer_phone) : item.customer_phone}
+                                                            </p>
+                                                            {item.booking_reference && (
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40" title={`Appointment #${item.booking_reference}`}>
+                                                                    <Calendar size={10} /> #{item.booking_reference}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         {item.customer_name && (
                                                             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[160px]">{item.customer_name}</p>
                                                         )}

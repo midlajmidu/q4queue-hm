@@ -101,49 +101,112 @@ async def authenticate_user(
         raise ValueError(_INVALID_CREDENTIALS)
 
     # ── 2. Resolve organization (Branch Login) ────────────────────────────────────
-    if not org_slug:
-        logger.warning("Login failed: org_slug required for staff login")
-        raise ValueError(_INVALID_CREDENTIALS)
-
     from sqlalchemy.orm import joinedload
-    org_result = await db.execute(
-        select(Organization).options(joinedload(Organization.parent_organization)).where(Organization.slug == org_slug)
-    )
-    org: Organization | None = org_result.scalar_one_or_none()
+    from sqlalchemy import func
+
+    clean_email = email.strip().lower()
+
+    if org_slug and org_slug.strip():
+        # Scoped branch login with explicit slug
+        org_result = await db.execute(
+            select(Organization).options(joinedload(Organization.parent_organization)).where(Organization.slug == org_slug.strip())
+        )
+        org: Organization | None = org_result.scalar_one_or_none()
+
+        if org is None:
+            logger.warning("Login failed: org not found | slug=%s", org_slug)
+            raise ValueError(_INVALID_CREDENTIALS)
+
+        user_result = await db.execute(
+            select(User).where(
+                func.lower(User.email) == clean_email,
+                User.org_id == org.id        # ← TENANT ISOLATION
+            )
+        )
+        user: User | None = user_result.scalar_one_or_none()
+    else:
+        # Branch login without slug: lookup user by email directly
+        user_result = await db.execute(
+            select(User).where(func.lower(User.email) == clean_email)
+        )
+        candidates = user_result.scalars().all()
+
+        if not candidates:
+            logger.warning("Login failed: user not found | email=%s", clean_email)
+            raise ValueError(_INVALID_CREDENTIALS)
+
+        # In case multiple users share this email across different branches,
+        # match the candidate with the correct password
+        user = None
+        for candidate in candidates:
+            if verify_password(plain_password, candidate.password_hash):
+                user = candidate
+                break
+
+        if user is None:
+            logger.warning("Login failed: bad password | email=%s", clean_email)
+            raise ValueError(_INVALID_CREDENTIALS)
+
+        # Handle organization_admin logging in on standard login page
+        if user.role == "organization_admin" and user.parent_organization_id and not user.org_id:
+            from app.models.parent_organization import ParentOrganization
+            parent_org_result = await db.execute(
+                select(ParentOrganization).where(ParentOrganization.id == user.parent_organization_id)
+            )
+            parent_org = parent_org_result.scalar_one_or_none()
+            if parent_org and parent_org.is_active:
+                if not user.is_active:
+                    raise ValueError("Your account has been deactivated. Please contact your administrator.")
+                await _reject_expired_trial(db, parent_org.id)
+                token = create_access_token(
+                    user_id=str(user.id),
+                    org_id=None,
+                    parent_org_id=str(parent_org.id),
+                    role=user.role,
+                    email=user.email,
+                    org_slug=parent_org.slug,
+                    org_name=parent_org.name,
+                    org_logo_url=None,
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                    is_first_login=user.is_first_login,
+                )
+                return token, user
+
+        # Resolve organization from user's org_id
+        if not user.org_id:
+            logger.warning("Login failed: user has no org_id | user_id=%s", user.id)
+            raise ValueError(_INVALID_CREDENTIALS)
+
+        org_result = await db.execute(
+            select(Organization).options(joinedload(Organization.parent_organization)).where(Organization.id == user.org_id)
+        )
+        org = org_result.scalar_one_or_none()
 
     if org is None:
-        logger.warning("Login failed: org not found | slug=%s", org_slug)
+        logger.warning("Login failed: org not found | email=%s", clean_email)
         raise ValueError(_INVALID_CREDENTIALS)
 
     if not org.is_active:
-        logger.warning("Login failed: org inactive | slug=%s", org_slug)
+        logger.warning("Login failed: org inactive | org_id=%s", org.id)
         raise ValueError("Your organization has been deactivated. Please contact your administrator.")
 
     if org.parent_organization and not org.parent_organization.is_active:
-        logger.warning("Login failed: parent org inactive | slug=%s", org_slug)
+        logger.warning("Login failed: parent org inactive | parent_org_id=%s", org.parent_organization_id)
         raise ValueError("Your organization has been deactivated. Please contact your administrator.")
 
-    # ── 3. Find user scoped to THIS org only ───────────────────────
-    user_result = await db.execute(
-        select(User).where(
-            User.email == email,
-            User.org_id == org.id        # ← TENANT ISOLATION
-        )
-    )
-    user: User | None = user_result.scalar_one_or_none()
-
     if user is None:
-        logger.warning("Login failed: user not found | email=%s org=%s", email, org_slug)
+        logger.warning("Login failed: user not found | email=%s", clean_email)
         raise ValueError(_INVALID_CREDENTIALS)
 
     # ── 4. Verify password (constant-time bcrypt) ──────────────────
     if not verify_password(plain_password, user.password_hash):
-        logger.warning("Login failed: bad password | email=%s org=%s", email, org_slug)
+        logger.warning("Login failed: bad password | email=%s", clean_email)
         raise ValueError(_INVALID_CREDENTIALS)
 
     # ── 5. Active check ────────────────────────────────────────────
     if not user.is_active:
-        logger.warning("Login failed: user inactive | email=%s org=%s", email, org_slug)
+        logger.warning("Login failed: user inactive | email=%s", clean_email)
         raise ValueError("Your account has been deactivated. Please contact your administrator.")
 
     # Credentials are valid, but an expired trial must not receive an operational JWT.
@@ -164,7 +227,7 @@ async def authenticate_user(
         is_first_login=user.is_first_login,
     )
 
-    logger.info("Login successful | user_id=%s org=%s role=%s", user.id, org_slug, user.role)
+    logger.info("Login successful | user_id=%s org=%s role=%s", user.id, org.slug, user.role)
     return token, user
 
 

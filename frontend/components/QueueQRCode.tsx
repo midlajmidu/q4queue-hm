@@ -19,6 +19,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
     const [joinUrl, setJoinUrl] = useState(defaultJoinUrl);
     const [isExpanded, setIsExpanded] = useState(!isCollapsible);
     const [timeLeft, setTimeLeft] = useState(15);
+    const [isSessionInactive, setIsSessionInactive] = useState(false);
     const qrRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -35,6 +36,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                 const { totp, valid_for } = await getQueueQrConfig(queueId);
 
                 if (isCancelled) return;
+                setIsSessionInactive(false);
 
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
                 const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
@@ -52,7 +54,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
             } catch (error) {
                 console.error("Failed to initialize dynamic QR code:", error);
                 if (!isCancelled) {
-                    setJoinUrl(defaultJoinUrl);
+                    setIsSessionInactive(true);
                     refreshTimer = setTimeout(initAndStartTotp, 5000);
                 }
             }
@@ -184,54 +186,68 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
 
             <div className={`transition-all duration-300 ease-in-out ${isExpanded ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
                 <div className={`p-6 flex flex-col items-center ${isCollapsible ? "border-t border-slate-100 dark:border-white/10" : ""}`}>
-                    <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-white/10 mb-3 flex items-center justify-center w-full" ref={qrRef}>
-                        <div className="bg-white p-3.5 rounded-xl shadow-md flex items-center justify-center">
-                            <QRCodeCanvas
-                                value={joinUrl}
-                                size={200}
-                                level={"H"}
-                                includeMargin={false}
-                            />
+                    {isSessionInactive ? (
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-6 rounded-2xl border border-slate-200 dark:border-white/10 mb-2 flex flex-col items-center justify-center text-center w-full">
+                            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-400 mb-3">
+                                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-3.5a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">Queue Session Inactive</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
+                                Start or activate the queue session to enable the QR code for customer check-ins.
+                            </p>
                         </div>
-                    </div>
+                    ) : (
+                        <>
+                            <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-white/10 mb-3 flex items-center justify-center w-full" ref={qrRef}>
+                                <div className="bg-white p-3.5 rounded-xl shadow-md flex items-center justify-center">
+                                    <QRCodeCanvas
+                                        value={joinUrl}
+                                        size={200}
+                                        level={"H"}
+                                        includeMargin={false}
+                                    />
+                                </div>
+                            </div>
 
-                    <a href={joinUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline mb-3 truncate w-full max-w-[250px] text-center opacity-90 transition-colors" title={joinUrl}>
-                        {joinUrl}
-                    </a>
+                            <a href={joinUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline mb-3 truncate w-full max-w-[250px] text-center opacity-90 transition-colors" title={joinUrl}>
+                                {joinUrl}
+                            </a>
 
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 text-xs font-medium mb-4 shadow-xs transition-all duration-300">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
-                        </span>
-                        <span className="tracking-wide">QR Refreshes In</span>
-                        <span className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-200/80 dark:bg-slate-700/80 px-1.5 py-0.5 rounded-md">
-                            {timeLeft}s
-                        </span>
-                    </div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 text-xs font-medium mb-4 shadow-xs transition-all duration-300">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
+                                </span>
+                                <span className="tracking-wide">QR Refreshes In</span>
+                                <span className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-200/80 dark:bg-slate-700/80 px-1.5 py-0.5 rounded-md">
+                                    {timeLeft}s
+                                </span>
+                            </div>
 
-
-
-                    <div className="flex gap-3 w-full">
-                        <button
-                            onClick={handleOpenQR}
-                            className="flex-1 py-2 px-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium text-sm rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                            </svg>
-                            Open QR
-                        </button>
-                        <button
-                            onClick={handleDownload}
-                            className="flex-1 py-2 px-3 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-medium text-sm rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors flex items-center justify-center gap-2"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                            </svg>
-                            Download
-                        </button>
-                    </div>
+                            <div className="flex gap-3 w-full">
+                                <button
+                                    onClick={handleOpenQR}
+                                    className="flex-1 py-2 px-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium text-sm rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                    </svg>
+                                    Open QR
+                                </button>
+                                <button
+                                    onClick={handleDownload}
+                                    className="flex-1 py-2 px-3 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-medium text-sm rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                    </svg>
+                                    Download
+                                </button>
+                            </div>
+                        </>
+                    )}
 
                     <div className="mt-5 flex items-center justify-center">
                         <div className="flex items-center gap-1.5 opacity-70 hover:opacity-100 transition-opacity cursor-default">

@@ -205,6 +205,22 @@ async def update_branch(
         branch.name = request.name
     if request.branch_type is not None and request.branch_type in ("standard", "dine"):
         branch.branch_type = request.branch_type
+        if request.branch_type == "dine":
+            from sqlalchemy.orm.attributes import flag_modified
+            queues_res = await db.execute(select(Queue).where(Queue.org_id == branch.id, Queue.is_deleted == False))
+            for q in queues_res.scalars().all():
+                fields = list(q.custom_fields or [])
+                if not any(f.get("key") in ("pax", "pax_count", "no_of_pax", "number_of_pax") for f in fields):
+                    fields.append({
+                        "id": f"field_pax_default_{q.id}",
+                        "key": "pax",
+                        "label": "Number of Pax",
+                        "type": "number",
+                        "required": True,
+                        "order": len(fields),
+                    })
+                    q.custom_fields = fields
+                    flag_modified(q, "custom_fields")
     if request.address is not None:
         branch.address = request.address
     if request.phone_number is not None:

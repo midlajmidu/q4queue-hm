@@ -54,6 +54,8 @@ async def log_call(
     ]
     if call_in.token_id:
         conditions.append(CallLog.token_id == call_in.token_id)
+    if call_in.appointment_id:
+        conditions.append(CallLog.appointment_id == call_in.appointment_id)
 
     res = await db.execute(
         select(CallLog).where(and_(*conditions)).order_by(desc(CallLog.created_at)).limit(1)
@@ -67,6 +69,8 @@ async def log_call(
             existing_log.customer_name = call_in.customer_name
         if call_in.queue_id and not existing_log.queue_id:
             existing_log.queue_id = call_in.queue_id
+        if call_in.appointment_id and not existing_log.appointment_id:
+            existing_log.appointment_id = call_in.appointment_id
         await db.commit()
         await db.refresh(existing_log)
         call_log = existing_log
@@ -76,6 +80,7 @@ async def log_call(
             queue_id=call_in.queue_id,
             session_id=call_in.session_id,
             token_id=call_in.token_id,
+            appointment_id=call_in.appointment_id,
             customer_name=call_in.customer_name,
             customer_phone=call_in.customer_phone,
             duration_seconds=call_in.duration_seconds,
@@ -92,12 +97,23 @@ async def log_call(
         name_parts = [p for p in [current_user.first_name, current_user.last_name] if p]
         called_by_name = " ".join(name_parts) if name_parts else current_user.email
 
+    booking_ref = None
+    if getattr(call_log, "appointment", None):
+        booking_ref = call_log.appointment.booking_reference
+    elif call_log.appointment_id:
+        from app.models.appointment import Appointment
+        appt = await db.get(Appointment, call_log.appointment_id)
+        if appt:
+            booking_ref = appt.booking_reference
+
     return CallLogRead(
         id=call_log.id,
         organization_id=call_log.organization_id,
         queue_id=call_log.queue_id,
         session_id=call_log.session_id,
         token_id=call_log.token_id,
+        appointment_id=call_log.appointment_id,
+        booking_reference=booking_ref,
         customer_name=call_log.customer_name,
         customer_phone=call_log.customer_phone,
         duration_seconds=call_log.duration_seconds,

@@ -175,6 +175,36 @@ DEFAULT_TEMPLATES = [
             "3": "Destination",
         },
         "status": WhatsAppTemplateStatus.approved,
+    },
+    {
+        "template_name": "appointment_confirmed_v1",
+        "event_type": "appointment_booked_v1",
+        "category": "UTILITY",
+        "language": "en",
+        "description": "Sent to customer when an appointment booking is confirmed",
+        "body_text": (
+            "Greetings, {{1}}!\n\n"
+            "📅 Your appointment has been confirmed.\n\n"
+            "🔖 Booking Reference: #{{2}}\n"
+            "🏢 Location: {{3}}\n"
+            "📋 Service: {{4}}\n"
+            "🗓️ Date: {{5}}\n"
+            "⏰ Time Slot: {{6}}\n\n"
+            "View Live Appointment Pass:\n{{7}}\n\n"
+            "Please arrive 5-10 minutes before your time slot."
+        ),
+        "variables": {
+            "header": "Appointment Confirmed",
+            "footer": "Powered by Q4Queue",
+            "1": "Customer Name",
+            "2": "Booking Reference",
+            "3": "Location / Branch",
+            "4": "Service Name",
+            "5": "Appointment Date",
+            "6": "Time Slot",
+            "7": "Appointment Pass URL",
+        },
+        "status": WhatsAppTemplateStatus.approved,
     }
 ]
 
@@ -190,6 +220,7 @@ EVENT_TO_TEMPLATE_NAME = {
     "queue_skipped_v3": "token_skipped_v1",
     "queue_removed_v3": "ticket_deleted_v1",
     "queue_recalled_v2": "token_recalled_v1",
+    "appointment_booked_v1": "appointment_confirmed_v1",
 }
 
 

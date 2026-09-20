@@ -21,6 +21,7 @@ from app.whatsapp.models import (
 from app.models.system_setting import SystemSetting
 from app.audit.models import AuditLog
 from app.models.call_log import CallLog
+from app.models.appointment import Appointment, AppointmentStatus
 
 __all__ = [
     "ParentOrganization", "Organization", "User", "Queue", "Session", "Token", "Message", "MessageReceipt",
@@ -28,5 +29,6 @@ __all__ = [
     "SystemAnnouncement", "OrganizationAnnouncement", "SystemSetting",
     "WhatsAppConfig", "WhatsAppTemplate", "WhatsAppMessage",
     "WhatsAppWebhookLog", "WhatsAppUsageStat",
-    "AuditLog", "CallLog"
+    "AuditLog", "CallLog",
+    "Appointment", "AppointmentStatus"
 ]

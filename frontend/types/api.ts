@@ -526,6 +526,18 @@ export interface QueueCreate {
     service_lines?: number;
     custom_fields?: CustomField[] | null;
     table_config?: TableConfig[];
+    appointment_enabled?: boolean;
+    slot_duration?: number;
+    slot_capacity?: number;
+    advance_booking_days?: number;
+    min_lead_time_mins?: number;
+    approval_mode?: "instant" | "requires_approval" | string;
+    schedule_config?: Record<string, any> | null;
+    blackout_dates?: string[] | null;
+    checkin_window_before?: number;
+    checkin_window_after?: number;
+    auto_noshow_mins?: number;
+    industry_template?: string;
 }
 
 export interface QueueResponse {
@@ -547,6 +559,18 @@ export interface QueueResponse {
     created_at: string;
     custom_fields?: CustomField[] | null;
     table_config?: TableConfig[];
+    appointment_enabled?: boolean;
+    slot_duration?: number;
+    slot_capacity?: number;
+    advance_booking_days?: number;
+    min_lead_time_mins?: number;
+    approval_mode?: "instant" | "requires_approval";
+    schedule_config?: Record<string, any> | null;
+    blackout_dates?: string[] | null;
+    checkin_window_before?: number;
+    checkin_window_after?: number;
+    auto_noshow_mins?: number;
+    industry_template?: string;
     token_session_id?: string | null;
 }
 
@@ -577,7 +601,7 @@ export interface TokenDetail {
     customer_phone: string;
     pax_count: number;
     called_via_invite?: boolean;
-    entry_type?: "manual" | "qr" | "auto" | null;
+    entry_type?: "manual" | "qr" | "auto" | "appointment" | null;
 }
 
 // ── Public Queue Status (used by join page on mount, no auth) ────
@@ -671,11 +695,14 @@ export interface RecentToken {
     pax_count: number;
     assigned_line?: number | null;
     called_via_invite?: boolean;
-    entry_type?: "manual" | "qr" | "auto" | null;
+    entry_type?: "manual" | "qr" | "auto" | "appointment" | null;
     skipped_at?: string | null;
     deleted_at?: string | null;
     recalled_at?: string | null;
     custom_data?: Record<string, any> | null;
+    appointment_time?: string | null;
+    appointment_date?: string | null;
+    appointment_booking_ref?: string | null;
 }
 
 export interface WaitingToken {
@@ -692,11 +719,14 @@ export interface WaitingToken {
     removed_by?: string | null;
     assigned_line?: number | null;
     called_via_invite?: boolean;
-    entry_type?: "manual" | "qr" | "auto" | null;
+    entry_type?: "manual" | "qr" | "auto" | "appointment" | null;
     skipped_at?: string | null;
     deleted_at?: string | null;
     recalled_at?: string | null;
     custom_data?: Record<string, any> | null;
+    appointment_time?: string | null;
+    appointment_date?: string | null;
+    appointment_booking_ref?: string | null;
 }
 
 export interface ServingToken {
@@ -709,9 +739,12 @@ export interface ServingToken {
     assigned_line: number | null;
     served_at: string | null;
     called_via_invite?: boolean;
-    entry_type?: "manual" | "qr" | "auto" | null;
+    entry_type?: "manual" | "qr" | "auto" | "appointment" | null;
     shared_lines?: number[];
     completed_lines?: number[];
+    appointment_time?: string | null;
+    appointment_date?: string | null;
+    appointment_booking_ref?: string | null;
 }
 
 export interface QueueSnapshot {
@@ -1160,7 +1193,7 @@ export interface TokenHistoryItem {
     served_at: string | null;
     completed_at: string | null;
     called_via_invite?: boolean;
-    entry_type?: "manual" | "qr" | "auto" | null;
+    entry_type?: "manual" | "qr" | "auto" | "appointment" | null;
     assigned_line?: number;
     served_by_staff_name?: string;
     completed_by_staff_name?: string;
@@ -1170,6 +1203,9 @@ export interface TokenHistoryItem {
     removed_by?: string | null;
     custom_data?: Record<string, any> | null;
     field_schema?: Array<{ key: string; label: string; type?: string; options?: string[] }> | null;
+    appointment_time?: string | null;
+    appointment_date?: string | null;
+    appointment_booking_ref?: string | null;
 }
 
 export interface PaginatedHistoryResponse {
@@ -1473,6 +1509,8 @@ export interface CallLogItem {
     called_by_id?: string | null;
     called_by_name?: string | null;
     queue_name?: string | null;
+    appointment_id?: string | null;
+    booking_reference?: string | null;
     created_at: string;
 }
 
@@ -1533,3 +1571,174 @@ export interface CallingConfigUpdate {
     currency?: string;
     branch_overrides?: Record<string, number | null>;
 }
+
+// ── Appointments & Early Bookings ────────────────────────────────
+export type AppointmentStatus =
+    | "pending_approval"
+    | "confirmed"
+    | "checked_in"
+    | "serving"
+    | "completed"
+    | "cancelled"
+    | "no_show";
+
+export interface TimeSlot {
+    start_time: string; // HH:MM
+    end_time: string;   // HH:MM
+    capacity: number;
+    booked_count: number;
+    available: boolean;
+    is_next_day?: boolean;
+}
+
+export interface AvailableSlotsResponse {
+    queue_id: string;
+    date: string;
+    slot_duration: number;
+    slots: TimeSlot[];
+}
+
+export interface PublicQueueBookingInfo {
+    queue_id: string;
+    queue_name: string;
+    prefix: string;
+    org_id: string;
+    org_name: string;
+    org_slug: string;
+    org_logo_url?: string | null;
+    address?: string | null;
+    phone_number?: string | null;
+    timezone: string;
+    today_date: string;
+    open_time?: string | null;
+    close_time?: string | null;
+    slot_duration: number;
+    slot_capacity: number;
+    advance_booking_days: number;
+    appointment_enabled: boolean;
+    industry_template?: string;
+    custom_fields?: CustomField[] | null;
+}
+
+export interface AppointmentCreateRequest {
+    customer_name: string;
+    customer_phone: string;
+    customer_email?: string;
+    appointment_date: string;
+    start_time: string;
+    pax_count?: number;
+    custom_data?: Record<string, any> | null;
+    security_pin?: string;
+}
+
+export interface StaffAppointmentCreateRequest {
+    queue_id: string;
+    customer_name: string;
+    customer_phone?: string;
+    customer_email?: string;
+    appointment_date: string;
+    start_time: string;
+    end_time?: string;
+    pax_count?: number;
+    custom_data?: Record<string, any> | null;
+    notes?: string;
+    status?: AppointmentStatus;
+}
+
+export interface AppointmentUpdateRequest {
+    appointment_date?: string;
+    start_time?: string;
+    status?: AppointmentStatus;
+    notes?: string;
+    custom_data?: Record<string, any> | null;
+}
+
+export interface AppointmentResponse {
+    id: string;
+    org_id: string;
+    queue_id: string;
+    queue_name?: string;
+    session_id?: string | null;
+    token_id?: string | null;
+    token_number?: number | null;
+    token_prefix?: string | null;
+    booking_reference: string;
+    security_pin?: string | null;
+    customer_name: string;
+    customer_phone: string;
+    customer_email?: string | null;
+    pax_count: number;
+    appointment_date: string;
+    start_time: string;
+    end_time: string;
+    status: AppointmentStatus;
+    custom_data?: Record<string, any> | null;
+    field_schema?: any[] | null;
+    notes?: string | null;
+    booked_by: string;
+    checked_in_at?: string | null;
+    checked_in_by?: string | null;
+    is_next_day?: boolean;
+    total_call_duration_seconds?: number;
+    call_count?: number;
+    last_call_status?: string | null;
+    last_called_at?: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AppointmentPublicPass {
+    booking_reference: string;
+    org_id: string;
+    queue_id: string;
+    queue_name: string;
+    customer_name: string;
+    customer_phone_masked: string;
+    appointment_date: string;
+    start_time: string;
+    end_time: string;
+    status: AppointmentStatus;
+    pax_count: number;
+    can_check_in: boolean;
+    check_in_window_message?: string | null;
+    is_next_day?: boolean;
+    token_id?: string | null;
+    token_number?: number | null;
+    token_prefix?: string | null;
+    tracking_id?: string | null;
+    org_name?: string | null;
+    org_slug?: string | null;
+    parent_org_name?: string | null;
+    branch_address?: string | null;
+    branch_phone?: string | null;
+    notes?: string | null;
+}
+
+export interface BranchDirectoryQueue {
+    id: string;
+    name: string;
+    prefix: string;
+    branch_id?: string;
+    branch_name?: string | null;
+    appointment_enabled: boolean;
+    slot_duration: number;
+    advance_booking_days?: number;
+    industry_template: string;
+    open_time?: string | null;
+    close_time?: string | null;
+    custom_fields?: CustomField[] | null;
+}
+
+export interface BranchDirectoryResponse {
+    org_name: string;
+    org_slug: string;
+    parent_org_name?: string | null;
+    branch_name?: string | null;
+    address?: string | null;
+    phone_number?: string | null;
+    timezone: string;
+    today_date?: string;
+    queues: BranchDirectoryQueue[];
+}
+
+

@@ -7,7 +7,7 @@ import type { QueueResponse, SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashBase } from "@/hooks/useDashBase";
 import QueueCard from "@/components/QueueCard";
-import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays, CalendarOff, CheckCircle2, AlertCircle, Utensils, Coffee, Users, Trash2, PlusCircle } from "lucide-react";
+import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays, CalendarOff, CheckCircle2, AlertCircle, Utensils, Coffee, Users, Trash2, PlusCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { Bookmark } from "lucide-react";
 import type { QueueTemplate, TableConfig } from "@/types/api";
@@ -42,47 +42,55 @@ function shiftDate(dateStr: string, days: number): string {
 }
 
 const DEFAULT_CAFE_TABLES: TableConfig[] = [
-    { id: 1, name: "Table 1", capacity: 2, section: "Indoor" },
-    { id: 2, name: "Table 2", capacity: 2, section: "Indoor" },
-    { id: 3, name: "Table 3", capacity: 2, section: "Indoor" },
-    { id: 4, name: "Table 4", capacity: 2, section: "Indoor" },
-    { id: 5, name: "Table 5", capacity: 4, section: "Indoor" },
-    { id: 6, name: "Table 6", capacity: 4, section: "Indoor" },
-    { id: 7, name: "Table 7", capacity: 4, section: "Window" },
-    { id: 8, name: "Table 8", capacity: 6, section: "Window" },
+    { id: 1, name: "Table 1", capacity: 2 },
+    { id: 2, name: "Table 2", capacity: 2 },
+    { id: 3, name: "Table 3", capacity: 2 },
+    { id: 4, name: "Table 4", capacity: 2 },
+    { id: 5, name: "Table 5", capacity: 4 },
+    { id: 6, name: "Table 6", capacity: 4 },
+    { id: 7, name: "Table 7", capacity: 4 },
+    { id: 8, name: "Table 8", capacity: 6 },
 ];
 
 const DEFAULT_RESTAURANT_TABLES: TableConfig[] = [
-    { id: 1, name: "Table 1", capacity: 2, section: "Main" },
-    { id: 2, name: "Table 2", capacity: 2, section: "Main" },
-    { id: 3, name: "Table 3", capacity: 2, section: "Main" },
-    { id: 4, name: "Table 4", capacity: 2, section: "Main" },
-    { id: 5, name: "Table 5", capacity: 4, section: "Main" },
-    { id: 6, name: "Table 6", capacity: 4, section: "Main" },
-    { id: 7, name: "Table 7", capacity: 4, section: "Main" },
-    { id: 8, name: "Table 8", capacity: 4, section: "Main" },
-    { id: 9, name: "Table 9", capacity: 4, section: "Terrace" },
-    { id: 10, name: "Table 10", capacity: 4, section: "Terrace" },
-    { id: 11, name: "Table 11", capacity: 6, section: "Family" },
-    { id: 12, name: "Table 12", capacity: 6, section: "Family" },
-    { id: 13, name: "Table 13", capacity: 6, section: "Family" },
-    { id: 14, name: "Table 14", capacity: 8, section: "VIP Room" },
+    { id: 1, name: "Table 1", capacity: 2 },
+    { id: 2, name: "Table 2", capacity: 2 },
+    { id: 3, name: "Table 3", capacity: 2 },
+    { id: 4, name: "Table 4", capacity: 2 },
+    { id: 5, name: "Table 5", capacity: 4 },
+    { id: 6, name: "Table 6", capacity: 4 },
+    { id: 7, name: "Table 7", capacity: 4 },
+    { id: 8, name: "Table 8", capacity: 4 },
+    { id: 9, name: "Table 9", capacity: 4 },
+    { id: 10, name: "Table 10", capacity: 4 },
+    { id: 11, name: "Table 11", capacity: 6 },
+    { id: 12, name: "Table 12", capacity: 6 },
+    { id: 13, name: "Table 13", capacity: 6 },
+    { id: 14, name: "Table 14", capacity: 8 },
 ];
 
 const DEFAULT_FAMILY_TABLES: TableConfig[] = [
-    { id: 1, name: "Table 1", capacity: 2, section: "Main" },
-    { id: 2, name: "Table 2", capacity: 2, section: "Main" },
-    { id: 3, name: "Table 3", capacity: 4, section: "Main" },
-    { id: 4, name: "Table 4", capacity: 4, section: "Main" },
-    { id: 5, name: "Table 5", capacity: 4, section: "Main" },
-    { id: 6, name: "Table 6", capacity: 4, section: "Main" },
-    { id: 7, name: "Table 7", capacity: 4, section: "Main" },
-    { id: 8, name: "Table 8", capacity: 4, section: "Main" },
-    { id: 9, name: "Table 9", capacity: 6, section: "Family Hall" },
-    { id: 10, name: "Table 10", capacity: 6, section: "Family Hall" },
-    { id: 11, name: "Table 11", capacity: 6, section: "Family Hall" },
-    { id: 12, name: "Table 12", capacity: 8, section: "Private Dining" },
+    { id: 1, name: "Table 1", capacity: 2 },
+    { id: 2, name: "Table 2", capacity: 2 },
+    { id: 3, name: "Table 3", capacity: 4 },
+    { id: 4, name: "Table 4", capacity: 4 },
+    { id: 5, name: "Table 5", capacity: 4 },
+    { id: 6, name: "Table 6", capacity: 4 },
+    { id: 7, name: "Table 7", capacity: 4 },
+    { id: 8, name: "Table 8", capacity: 4 },
+    { id: 9, name: "Table 9", capacity: 6 },
+    { id: 10, name: "Table 10", capacity: 6 },
+    { id: 11, name: "Table 11", capacity: 6 },
 ];
+
+function generateDefaultTables(count: number): TableConfig[] {
+    const validCount = Math.min(50, Math.max(1, count));
+    return Array.from({ length: validCount }, (_, idx) => {
+        const id = idx + 1;
+        const capacity = id % 5 === 0 ? 8 : id % 3 === 0 ? 6 : id % 2 === 0 ? 4 : 2;
+        return { id, name: `Table ${id}`, capacity };
+    });
+}
 
 export default function QueuesPage({ params }: PageProps) {
     const { orgSlug } = use(params);
@@ -116,9 +124,10 @@ export default function QueuesPage({ params }: PageProps) {
     const [newQueueType, setNewQueueType] = useState<"normal" | "service_lines">("normal");
     const [newServiceLines, setNewServiceLines] = useState<number>(2);
     const [newTables, setNewTables] = useState<TableConfig[]>(DEFAULT_CAFE_TABLES);
-    const [selectedPreset, setSelectedPreset] = useState<"cafe" | "restaurant" | "family" | "custom">("cafe");
+    const [selectedPreset, setSelectedPreset] = useState<"cafe" | "restaurant" | "family" | "grand" | "custom">("cafe");
     const [newOpenTime, setNewOpenTime] = useState("");
     const [newCloseTime, setNewCloseTime] = useState("");
+    const [newAppointmentEnabled, setNewAppointmentEnabled] = useState(false);
     const [createLoading, setCreateLoading] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
     const [templates, setTemplates] = useState<QueueTemplate[]>([]);
@@ -202,18 +211,23 @@ export default function QueuesPage({ params }: PageProps) {
     const [inactiveCollapsed, setInactiveCollapsed] = useState(false);
 
     // Table preset handlers for Dine mode
-    const applyPreset = (preset: "cafe" | "restaurant" | "family") => {
+    const applyPreset = (preset: "cafe" | "restaurant" | "family" | "grand") => {
         setSelectedPreset(preset);
         if (preset === "cafe") setNewTables(DEFAULT_CAFE_TABLES);
         else if (preset === "restaurant") setNewTables(DEFAULT_RESTAURANT_TABLES);
         else if (preset === "family") setNewTables(DEFAULT_FAMILY_TABLES);
+        else if (preset === "grand") setNewTables(generateDefaultTables(50));
     };
 
     const addTable = () => {
+        if (newTables.length >= 50) {
+            toast.error("Maximum 50 tables allowed for now.");
+            return;
+        }
         setSelectedPreset("custom");
         setNewTables(prev => [
             ...prev,
-            { id: prev.length + 1, name: `Table ${prev.length + 1}`, capacity: 4, section: "Main" }
+            { id: prev.length + 1, name: `Table ${prev.length + 1}`, capacity: 4 }
         ]);
     };
 
@@ -255,11 +269,22 @@ export default function QueuesPage({ params }: PageProps) {
             setNewServiceLines(2);
             setNewOpenTime("");
             setNewCloseTime("");
+            setNewAppointmentEnabled(false);
             setCreateError(null);
             setSelectedTemplateId("");
             setTimeout(() => nameRef.current?.focus(), 100);
         }
     }, [showCreate, branchType]);
+
+    useEffect(() => {
+        function onKey(e: KeyboardEvent) {
+            if (e.key === "Escape" && showCreate) {
+                setShowCreate(false);
+            }
+        }
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [showCreate]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -277,10 +302,10 @@ export default function QueuesPage({ params }: PageProps) {
                         id: idx + 1,
                         name: t.name.trim() || `Table ${idx + 1}`,
                         capacity: Number(t.capacity) || 4,
-                        section: t.section?.trim() || undefined,
                     })),
                     open_time: newOpenTime || undefined,
                     close_time: newCloseTime || undefined,
+                    appointment_enabled: newAppointmentEnabled,
                 });
             } else {
                 await api.createQueue({
@@ -290,6 +315,7 @@ export default function QueuesPage({ params }: PageProps) {
                     service_lines: newQueueType === "service_lines" ? newServiceLines : 0,
                     open_time: newOpenTime || undefined,
                     close_time: newCloseTime || undefined,
+                    appointment_enabled: newAppointmentEnabled,
                 });
             }
             setShowCreate(false);
@@ -542,39 +568,54 @@ export default function QueuesPage({ params }: PageProps) {
                     )}
                 </div>
 
-                {/* ── Create Queue Modal ── */}
+                {/* ── Create Queue Slide-Over Drawer ── */}
                 {showCreate && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
-                        <div className={`relative bg-white dark:bg-slate-900 border border-transparent dark:border-white/10 rounded-2xl shadow-2xl ${branchType === "dine" ? "max-w-xl" : "max-w-sm"} w-full p-6 md:p-7 animate-in fade-in zoom-in duration-200 max-h-[92vh] overflow-y-auto`}>
-                            <button
-                                onClick={() => setShowCreate(false)}
-                                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200 transition-all"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                    <div className="fixed inset-0 z-50 overflow-hidden">
+                        {/* Backdrop */}
+                        <div 
+                            className="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in" 
+                            onClick={() => setShowCreate(false)} 
+                        />
 
-                            <div className={`w-10 h-10 rounded-xl ${branchType === "dine" ? "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400" : "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"} flex items-center justify-center mb-3`}>
-                                {branchType === "dine" ? (
-                                    <Utensils className="w-5 h-5" />
-                                ) : (
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                    </svg>
-                                )}
-                            </div>
-                            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">
-                                {branchType === "dine" ? "Setup Dining Floor & Tables" : "Create New Queue"}
-                            </h3>
-                            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mb-5">
-                                {branchType === "dine"
-                                    ? "Configure your tables, seating capacity, and dining floor sections."
-                                    : "Define a new service lane for this session."}
-                            </p>
+                        {/* Slide-over Drawer Container */}
+                        <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
+                            <div className={`w-screen ${branchType === "dine" ? "max-w-xl md:max-w-2xl" : "max-w-lg md:max-w-xl"} bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200/80 dark:border-white/10 flex flex-col h-full animate-in slide-in-from-right duration-300 ease-out`}>
+                                
+                                {/* Sticky Drawer Header */}
+                                <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex items-start justify-between gap-4 shrink-0">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className={`w-10 h-10 rounded-xl ${branchType === "dine" ? "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400" : "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"} flex items-center justify-center shrink-0`}>
+                                            {branchType === "dine" ? (
+                                                <Utensils className="w-5 h-5" />
+                                            ) : (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight truncate">
+                                                {branchType === "dine" ? "Setup Dining Floor & Tables" : "Create New Queue"}
+                                            </h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
+                                                {branchType === "dine"
+                                                    ? "Configure your tables, seating capacity, and dining floor sections."
+                                                    : "Define a new service lane for this session."}
+                                            </p>
+                                        </div>
+                                    </div>
 
-                            <form onSubmit={handleCreate} className="flex flex-col gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCreate(false)}
+                                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors shrink-0"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleCreate} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5">
                                         {branchType === "dine" ? "Floor / Section Name" : "Queue Name"}
@@ -662,7 +703,7 @@ export default function QueuesPage({ params }: PageProps) {
                                             </div>
 
                                             {/* Presets */}
-                                            <div className="grid grid-cols-3 gap-2 mb-3">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                                                 <button
                                                     type="button"
                                                     onClick={() => applyPreset("cafe")}
@@ -676,7 +717,7 @@ export default function QueuesPage({ params }: PageProps) {
                                                         <Coffee className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                                                         Cafe
                                                     </div>
-                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">8 Tables (2-6 pax)</p>
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">8 Tables</p>
                                                 </button>
 
                                                 <button
@@ -692,7 +733,7 @@ export default function QueuesPage({ params }: PageProps) {
                                                         <Utensils className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                                                         Restaurant
                                                     </div>
-                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">14 Tables (2-8 pax)</p>
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">14 Tables</p>
                                                 </button>
 
                                                 <button
@@ -708,7 +749,23 @@ export default function QueuesPage({ params }: PageProps) {
                                                         <Users className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                                                         Family Dine
                                                     </div>
-                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">12 Tables (2-8+ pax)</p>
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">12 Tables</p>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyPreset("grand")}
+                                                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                                                        selectedPreset === "grand"
+                                                            ? "border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 ring-2 ring-amber-500/20"
+                                                            : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-1.5 font-bold text-xs">
+                                                        <Utensils className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                                                        50 Tables
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Full Floor (50p)</p>
                                                 </button>
                                             </div>
 
@@ -724,12 +781,12 @@ export default function QueuesPage({ params }: PageProps) {
                                                             value={tbl.name}
                                                             onChange={(e) => updateTable(idx, { name: e.target.value })}
                                                             placeholder={`Table ${idx + 1}`}
-                                                            className="w-24 px-2 py-1 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 bg-transparent text-slate-800 dark:text-white focus:outline-none focus:border-amber-500"
+                                                            className="flex-1 min-w-[90px] px-2 py-1 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 bg-transparent text-slate-800 dark:text-white focus:outline-none focus:border-amber-500"
                                                         />
                                                         <div className="flex items-center gap-1">
                                                             <span className="text-[10px] text-slate-400 uppercase font-bold shrink-0">Pax:</span>
                                                             <div className="flex items-center gap-0.5">
-                                                                {[2, 4, 6, 8].map(cap => (
+                                                                {[2, 4, 6, 8, 10].map(cap => (
                                                                     <button
                                                                         key={cap}
                                                                         type="button"
@@ -745,13 +802,6 @@ export default function QueuesPage({ params }: PageProps) {
                                                                 ))}
                                                             </div>
                                                         </div>
-                                                        <input
-                                                            type="text"
-                                                            value={tbl.section || ""}
-                                                            onChange={(e) => updateTable(idx, { section: e.target.value })}
-                                                            placeholder="Section (opt)"
-                                                            className="flex-1 min-w-[70px] px-2 py-1 text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-transparent text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-amber-500"
-                                                        />
                                                         <button
                                                             type="button"
                                                             onClick={() => removeTable(idx)}
@@ -764,14 +814,30 @@ export default function QueuesPage({ params }: PageProps) {
                                                 ))}
                                             </div>
 
-                                            <button
-                                                type="button"
-                                                onClick={addTable}
-                                                className="mt-2 w-full py-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 rounded-lg border border-amber-200 dark:border-amber-900/40 flex items-center justify-center gap-1.5 transition-colors"
-                                            >
-                                                <PlusCircle className="w-3.5 h-3.5" />
-                                                Add Another Table
-                                            </button>
+                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mt-2.5">
+                                                <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                                    <span>Quick fill:</span>
+                                                    {[10, 20, 30, 50].map(cnt => (
+                                                        <button
+                                                            key={cnt}
+                                                            type="button"
+                                                            onClick={() => { setSelectedPreset("custom"); setNewTables(generateDefaultTables(cnt)); }}
+                                                            className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/50 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors"
+                                                        >
+                                                            {cnt}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={addTable}
+                                                    disabled={newTables.length >= 50}
+                                                    className="py-1.5 px-3 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 rounded-lg border border-amber-200 dark:border-amber-900/40 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <PlusCircle className="w-3.5 h-3.5" />
+                                                    {newTables.length >= 50 ? "Maximum 50 Tables Reached" : `Add Table (${newTables.length}/50)`}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
@@ -822,28 +888,50 @@ export default function QueuesPage({ params }: PageProps) {
                                     </>
                                 )}
 
-                                {/* Error message is now handled globally via toast notification */}
-                                <div className="flex gap-3 pt-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowCreate(false)}
-                                        className="flex-1 px-4 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={createLoading || !newName.trim() || (branchType === "standard" && queues.some(q => (q.prefix || "").toUpperCase() === (newPrefix.trim().toUpperCase() || "A")))}
-                                        className={`flex-1 px-4 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm ${
-                                            branchType === "dine"
-                                                ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/10"
-                                                : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/10"
-                                        }`}
-                                    >
-                                        {createLoading ? "Building…" : (branchType === "dine" ? "Create Dining Floor" : "Build Queue")}
-                                    </button>
+                                {/* Appointment Booking Checkbox */}
+                                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10">
+                                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={newAppointmentEnabled}
+                                            onChange={(e) => setNewAppointmentEnabled(e.target.checked)}
+                                            className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600 cursor-pointer"
+                                        />
+                                        <div>
+                                            <span className="text-xs font-bold text-slate-800 dark:text-white block">
+                                                Add this into appointment booking
+                                            </span>
+                                            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-snug">
+                                                When enabled, this queue will be available for online appointment booking on your public booking link.
+                                            </span>
+                                        </div>
+                                    </label>
                                 </div>
-                            </form>
+                                    </div>
+
+                                    {/* Sticky Drawer Footer */}
+                                    <div className="px-6 py-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm flex items-center justify-end gap-3 shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowCreate(false)}
+                                            className="px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-white/10 rounded-xl transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={createLoading || !newName.trim() || (branchType === "standard" && queues.some(q => (q.prefix || "").toUpperCase() === (newPrefix.trim().toUpperCase() || "A")))}
+                                            className={`px-5 py-2.5 text-xs sm:text-sm font-bold text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm ${
+                                                branchType === "dine"
+                                                    ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/10"
+                                                    : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/10"
+                                            }`}
+                                        >
+                                            {createLoading ? "Building…" : (branchType === "dine" ? "Create Dining Floor" : "Build Queue")}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 )}

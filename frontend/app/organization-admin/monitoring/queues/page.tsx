@@ -216,9 +216,9 @@ export default function LiveQueuesMonitoringPage() {
                     ) : (
                         paginatedQueues.map((q) => {
                             const isServingActive = q.current_token && q.current_token !== "—" && q.current_token !== "-";
-                            const targetLink = q.active_session_id
-                                ? `/${q.branch_slug}/dashboard/queues/${q.id}/sessions/${q.active_session_id}`
-                                : `/${q.branch_slug}/dashboard/queues/${q.id}`;
+                            const targetLink = q.branch_id
+                                ? `/organization-admin/branches/${q.branch_id}`
+                                : `/organization-admin/branches`;
 
                             return (
                                 <div key={q.id} className="p-4 space-y-4 hover:bg-slate-50/60 transition-colors">
@@ -270,11 +270,10 @@ export default function LiveQueuesMonitoringPage() {
                                     </div>
                                     <Link
                                         href={targetLink}
-                                        target="_blank"
                                         className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors"
                                     >
-                                        Open Queue View
-                                        <ExternalLink size={13} />
+                                        <span>View Branch Section</span>
+                                        <ArrowUpRight size={13} />
                                     </Link>
                                 </div>
                             );
@@ -311,9 +310,9 @@ export default function LiveQueuesMonitoringPage() {
                                 paginatedQueues.map((q) => {
                                     const loadPct = q.load_percentage || 0;
                                     const isServingActive = q.current_token && q.current_token !== "—" && q.current_token !== "-";
-                                    const targetLink = q.active_session_id
-                                        ? `/${q.branch_slug}/dashboard/queues/${q.id}/sessions/${q.active_session_id}`
-                                        : `/${q.branch_slug}/dashboard/queues/${q.id}`;
+                                    const targetLink = q.branch_id
+                                        ? `/organization-admin/branches/${q.branch_id}`
+                                        : `/organization-admin/branches`;
 
                                     return (
                                         <tr key={q.id} className="hover:bg-slate-50/60 transition-colors">
@@ -330,7 +329,14 @@ export default function LiveQueuesMonitoringPage() {
                                             </td>
 
                                             {/* Branch */}
-                                            <td className="px-6 py-3.5 text-sm font-medium text-slate-700">{q.branch}</td>
+                                            <td className="px-6 py-3.5 text-sm font-medium text-slate-700">
+                                                <Link
+                                                    href={targetLink}
+                                                    className="hover:text-indigo-600 hover:underline transition-colors"
+                                                >
+                                                    {q.branch}
+                                                </Link>
+                                            </td>
 
                                             {/* Now Serving */}
                                             <td className="px-6 py-3.5">
@@ -376,11 +382,10 @@ export default function LiveQueuesMonitoringPage() {
                                             <td className="px-6 py-3.5 text-right">
                                                 <Link
                                                     href={targetLink}
-                                                    target="_blank"
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors shadow-2xs"
                                                 >
-                                                    <ExternalLink size={13} />
-                                                    Queue
+                                                    <span>Branch</span>
+                                                    <ArrowUpRight size={13} />
                                                 </Link>
                                             </td>
                                         </tr>

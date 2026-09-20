@@ -39,6 +39,21 @@ async def create_queue(
     if data.table_config and len(data.table_config) > 0:
         service_lines = len(data.table_config)
 
+    from app.models.organization import Organization
+    org = await db.get(Organization, org_id)
+    is_dine = bool((org and getattr(org, "branch_type", "standard") == "dine") or (data.table_config and len(data.table_config) > 0))
+
+    fields = list(data.custom_fields) if data.custom_fields else []
+    if is_dine and not any(f.get("key") in ("pax", "pax_count", "no_of_pax") for f in fields):
+        fields.append({
+            "id": "default_pax",
+            "key": "pax",
+            "label": "Number of Pax",
+            "type": "number",
+            "required": True,
+            "order": len(fields),
+        })
+
     queue = Queue(
         org_id=org_id,
         name=data.name,
@@ -47,8 +62,13 @@ async def create_queue(
         current_token_number=data.starting_sequence - 1,
         service_lines=service_lines,
         table_config=data.table_config or [],
+        custom_fields=fields if fields else None,
         open_time=data.open_time,
         close_time=data.close_time,
+        appointment_enabled=bool(data.appointment_enabled),
+        slot_duration=data.slot_duration or 15,
+        slot_capacity=data.slot_capacity or 1,
+        advance_booking_days=data.advance_booking_days or 14,
     )
     db.add(queue)
     await db.commit()
@@ -61,45 +81,8 @@ async def check_and_auto_close_queue_session(
     db: AsyncSession,
     queue: Queue,
 ) -> bool:
-    """
-    Check operating hours against org local time and session date.
-    - Stale sessions from past dates (session_date < today) are automatically closed.
-    - Returns True if within operational hours, False otherwise.
-    """
-    has_open = bool(queue.open_time and queue.open_time.strip())
-    has_close = bool(queue.close_time and queue.close_time.strip())
-    
-    from app.models.organization import Organization
-    from app.models.session import Session
-    from app.models.token import Token, TokenStatus
-    from app.core.tz_helpers import is_within_operational_hours, queue_business_date, safe_zoneinfo
-    from datetime import datetime
-
-    org = await db.scalar(select(Organization).where(Organization.id == queue.org_id))
-    tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-    local_now = datetime.now(safe_zoneinfo(tz_str))
-    current_hm = local_now.strftime("%H:%M")
-    today = queue_business_date(local_now, queue.open_time, queue.close_time)
-
-    within_hours = True
-    if has_open or has_close:
-        within_hours = is_within_operational_hours(current_hm, queue.open_time, queue.close_time)
-
-    modified = False
-    if queue.token_session_id:
-        session = await db.get(Session, queue.token_session_id)
-        if session and session.is_active:
-            # Close session if date is past OR if current time is outside operating hours
-            if session.session_date < today or (has_open and has_close and not within_hours):
-                session.is_active = False
-                modified = True
-
-    if modified:
-        await db.commit()
-        await db.refresh(queue)
-        logger.info("Queue %s & session %s auto-closed", queue.id, queue.token_session_id)
-
-    return within_hours
+    """Sessions remain active until staff explicitly ends them."""
+    return True
 
 
 async def list_queues(

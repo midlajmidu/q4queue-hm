@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import type { QueueResponse, TokenHistoryItem, AnalyticsOverview } from "@/types/api";
-import { Users } from "lucide-react";
+import { Users, Calendar } from "lucide-react";
 import { useParams } from "next/navigation";
 import { StandardPageHeader } from "@/components/StandardPageHeader";
 import TokenDetailModal from "@/components/TokenDetailModal";
@@ -524,6 +524,11 @@ export default function HistoryPage() {
                                                 <td style={tdStyle}>
                                                     {h.called_via_invite ? (
                                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-900/40">Invited</span>
+                                                    ) : h.entry_type === "appointment" ? (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-900/40">
+                                                            <Calendar className="w-2.5 h-2.5" />
+                                                            Appt
+                                                        </span>
                                                     ) : (h.entry_type === "manual" || h.entry_type === "auto") ? (
                                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/40">
                                                             {h.entry_type === "manual" ? "Manual" : "Auto"}

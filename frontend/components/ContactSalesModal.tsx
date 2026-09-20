@@ -25,9 +25,9 @@ export function ContactSalesModal({ mode, email, organizationSlug, password, onC
         setSaving(true); setError(null);
         try {
             if (mode === "expired") {
-                if (!email || !organizationSlug || !password) throw new Error("Please enter your branch, email and password again, then retry.");
+                if (!email || !password) throw new Error("Please enter your email and password again, then retry.");
                 await api.submitExpiredTrialContactSales({
-                    email, organization_slug: organizationSlug, password,
+                    email, organization_slug: organizationSlug || undefined, password,
                     contact_phone: phone.trim() || undefined,
                     message: message.trim() || undefined,
                 });
@@ -57,7 +57,7 @@ export function ContactSalesModal({ mode, email, organizationSlug, password, onC
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><MessageSquareText size={21} /></div>
                 <h2 id="contact-sales-title" className="mt-4 text-xl font-bold">Continue with Q4Queue</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">Send your details to our sales team. They will review your account, discuss the right limits, and activate your existing workspace.</p>
-                {mode === "expired" && email && <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600"><strong className="text-slate-800">Account:</strong> {email}<br /><strong className="text-slate-800">Branch:</strong> {organizationSlug}</div>}
+                {mode === "expired" && email && <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600"><strong className="text-slate-800">Account:</strong> {email}{organizationSlug ? <><br /><strong className="text-slate-800">Branch:</strong> {organizationSlug}</> : null}</div>}
                 {error && <div role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">{error}</div>}
                 <form onSubmit={submit} className="mt-5 space-y-4">
                     <label className="block text-sm font-semibold text-slate-700">Phone number <span className="font-normal text-slate-400">(optional)</span><div className="mt-1.5 flex items-center rounded-xl border border-slate-300 bg-white focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10"><Phone size={16} className="ml-3 text-slate-400" /><input value={phone} onChange={event => setPhone(event.target.value)} maxLength={30} placeholder="Your contact number" className="w-full rounded-xl bg-transparent px-2.5 py-2.5 text-sm outline-none" /></div></label>

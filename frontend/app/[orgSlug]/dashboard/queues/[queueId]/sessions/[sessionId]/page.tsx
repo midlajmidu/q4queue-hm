@@ -16,7 +16,7 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken, TableConfig } from "@/types/api";
-import { Pause, Play, Square, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck, Settings2, Utensils } from "lucide-react";
+import { Pause, Play, Square, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, PhoneCall, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck, Settings2, Calendar, Utensils } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 import DineTableGrid from "@/components/dine/DineTableGrid";
@@ -330,7 +330,7 @@ const QD_STYLES = `
 `;
 
 interface PageProps {
-    params: Promise<{ queueId: string; sessionId: string }>;
+    params: Promise<{ orgSlug?: string; queueId: string; sessionId: string }>;
 }
 
 type ActiveSection = "queues" | "waiting_list" | "qrcode" | "announcement" | "history" | "connect_tv" | "settings";
@@ -351,7 +351,8 @@ const COUNTRY_CODES = [
 
 
 export default function QueueDetailPage({ params }: PageProps) {
-    const { queueId, sessionId } = use(params);
+    const { orgSlug, queueId, sessionId } = use(params);
+
     const token = getToken();
     const user = getCurrentUser();
     const { isReadOnly } = useAuth();
@@ -451,11 +452,8 @@ export default function QueueDetailPage({ params }: PageProps) {
     const isDineMode = branchType === "dine" || Boolean(initialQueue?.table_config && initialQueue.table_config.length > 0);
 
     const isTodaySession = React.useMemo(() => {
-        if (!sessionInfo?.session_date) return true;
-        const sessionDateStr = String(sessionInfo.session_date).slice(0, 10);
-        const todayStr = localTodayStr(tz);
-        return sessionDateStr === todayStr;
-    }, [sessionInfo?.session_date, tz]);
+        return sessionInfo?.is_active !== false;
+    }, [sessionInfo?.is_active]);
 
     useEffect(() => {
         if (!queueId) return;
@@ -644,6 +642,11 @@ export default function QueueDetailPage({ params }: PageProps) {
                 assigned_line: t.assigned_line,
                 called_via_invite: t.called_via_invite,
                 pax_count: t.pax_count || 1,
+                entry_type: t.entry_type,
+                custom_data: (t as any).custom_data || null,
+                appointment_time: (t as any).appointment_time || (t as any).custom_data?.appointment_time || null,
+                appointment_date: (t as any).appointment_date || (t as any).custom_data?.appointment_date || null,
+                appointment_booking_ref: (t as any).appointment_booking_ref || (t as any).custom_data?.booking_reference || (t as any).custom_data?.appointment_booking_ref || null,
             }));
     }, [isTodaySession, state?.waiting_tokens, staticSessionTokens]);
 
@@ -665,6 +668,11 @@ export default function QueueDetailPage({ params }: PageProps) {
                 assigned_line: t.assigned_line,
                 called_via_invite: t.called_via_invite,
                 pax_count: t.pax_count || 1,
+                entry_type: t.entry_type,
+                custom_data: (t as any).custom_data || null,
+                appointment_time: (t as any).appointment_time || (t as any).custom_data?.appointment_time || null,
+                appointment_date: (t as any).appointment_date || (t as any).custom_data?.appointment_date || null,
+                appointment_booking_ref: (t as any).appointment_booking_ref || (t as any).custom_data?.booking_reference || (t as any).custom_data?.appointment_booking_ref || null,
             }));
     }, [isTodaySession, state?.skipped_tokens, staticSessionTokens]);
 
@@ -686,6 +694,11 @@ export default function QueueDetailPage({ params }: PageProps) {
                 assigned_line: t.assigned_line,
                 called_via_invite: t.called_via_invite,
                 pax_count: t.pax_count || 1,
+                entry_type: t.entry_type,
+                custom_data: (t as any).custom_data || null,
+                appointment_time: (t as any).appointment_time || (t as any).custom_data?.appointment_time || null,
+                appointment_date: (t as any).appointment_date || (t as any).custom_data?.appointment_date || null,
+                appointment_booking_ref: (t as any).appointment_booking_ref || (t as any).custom_data?.booking_reference || (t as any).custom_data?.appointment_booking_ref || null,
             }));
     }, [isTodaySession, state?.deleted_tokens, staticSessionTokens]);
 
@@ -706,6 +719,11 @@ export default function QueueDetailPage({ params }: PageProps) {
                 assigned_line: t.assigned_line,
                 called_via_invite: t.called_via_invite,
                 pax_count: t.pax_count || 1,
+                entry_type: t.entry_type,
+                custom_data: (t as any).custom_data || null,
+                appointment_time: (t as any).appointment_time || (t as any).custom_data?.appointment_time || null,
+                appointment_date: (t as any).appointment_date || (t as any).custom_data?.appointment_date || null,
+                appointment_booking_ref: (t as any).appointment_booking_ref || (t as any).custom_data?.booking_reference || (t as any).custom_data?.appointment_booking_ref || null,
             }));
     }, [isTodaySession, state?.recent_tokens, staticSessionTokens]);
 
@@ -731,7 +749,12 @@ export default function QueueDetailPage({ params }: PageProps) {
                 t.customer_phone?.includes(waitingSearch)
             )
             : effectiveWaitingTokens;
-        return [...filtered].sort((a, b) => (a.token_number ?? 0) - (b.token_number ?? 0));
+        return [...filtered].sort((a, b) => {
+            const timeA = new Date(a.created_at || 0).getTime();
+            const timeB = new Date(b.created_at || 0).getTime();
+            if (timeA !== timeB) return timeA - timeB;
+            return (a.token_number ?? 0) - (b.token_number ?? 0);
+        });
     }, [effectiveWaitingTokens, waitingSearch]);
 
     const paginatedWaiting = React.useMemo(() => {
@@ -1497,7 +1520,7 @@ export default function QueueDetailPage({ params }: PageProps) {
 
                 {/* ── Main Content ──────────────────────────────────── */}
                 <div className="bg-gray-50 dark:bg-transparent" style={{ flex: 1, overflowY: "auto" }} onScroll={handleScroll}>
-                    <div className="px-4 py-6 md:px-7 md:py-7" style={{ maxWidth: isDineMode ? 1400 : 1160, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+                    <div className="px-4 py-6 md:px-7 md:py-7 w-full" style={{ maxWidth: isDineMode ? "100%" : 1160, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
 
                         {/* ═══════════════════════════════════════════
                         SECTION: Dashboard / Queues
@@ -1515,12 +1538,12 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             <div className="flex items-center gap-3 flex-wrap">
                                                 <h1 className="qd-section-title text-gray-900 dark:text-white capitalize">{queueName}</h1>
                                             </div>
-                                            <p className="text-gray-600 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
-                                                Prefix: <span className="mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
+                                            <p className="text-slate-500 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
+                                                Prefix: <span className="mono text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
                                             </p>
                                             {(state?.open_time || initialQueue?.open_time) && (state?.close_time || initialQueue?.close_time) && (
                                                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold shadow-sm mt-2">
-                                                    <Clock className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
+                                                    <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                                                     <span>{formatTime12(state?.open_time || initialQueue?.open_time)} - {formatTime12(state?.close_time || initialQueue?.close_time)}</span>
                                                 </div>
                                             )}
@@ -1533,7 +1556,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <>
                                                     <div className="fixed inset-0 z-[40]" onClick={() => setMobileActionsOpen(false)} />
                                                     <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-[50] flex flex-col gap-1 text-left">
-                                                        {canConfigureQueue && isTodaySession && (
+                                                        {canConfigureQueue && (
                                                             <>
                                                                 <button onClick={() => { handlePauseToggle(); setMobileActionsOpen(false); }} disabled={isDisabled || pausing || !isActive} className="text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2 disabled:opacity-40">
                                                                     {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
@@ -1545,7 +1568,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                 </button>
                                                             </>
                                                         )}
-                                                        {!isStaff && canManageQueue && isTodaySession && (
+                                                        {!isStaff && canManageQueue && (
                                                             <button onClick={() => { setShowResetConfirm(true); setMobileActionsOpen(false); }} disabled={isDisabled || resetting} className="text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
                                                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                                                 Reset Queue
@@ -1573,7 +1596,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div className="hidden md:block border-r border-slate-200 dark:border-white/10 h-6 mx-1" />
 
                                         <div className="hidden md:flex items-center gap-2">
-                                            {canConfigureQueue && isTodaySession && (
+                                            {canConfigureQueue && (
                                                 <>
                                                     <button
                                                         onClick={handlePauseToggle}
@@ -1593,7 +1616,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     </button>
                                                 </>
                                             )}
-                                            {!isStaff && canManageQueue && isTodaySession && (
+                                            {!isStaff && canManageQueue && (
                                                 <button
                                                     onClick={() => setShowResetConfirm(true)}
                                                     disabled={isDisabled || resetting}
@@ -1669,10 +1692,13 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </div>
                                 )}
 
-                                {/* Main 2-col Grid */}
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:h-[calc(100vh-theme(spacing.36))]">
-                                    {/* Left: Serving + Actions */}
-                                    <div className="lg:col-span-2 flex flex-col gap-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1 pb-4 relative">
+                                {/* Main Layout (Full-width for Dine / Hotel queues; 2-col for Counter queues) */}
+                                <div className={isDineMode 
+                                    ? "w-full flex flex-col gap-4 lg:h-[calc(100vh-theme(spacing.36))]" 
+                                    : "grid grid-cols-1 lg:grid-cols-3 gap-5 lg:h-[calc(100vh-theme(spacing.36))]"
+                                }>
+                                    {/* Left: Serving + Actions (Full width in Dine Mode) */}
+                                    <div className={`${isDineMode ? "w-full flex-1" : "lg:col-span-2"} flex flex-col gap-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1 pb-4 relative`}>
 
                                         {/* Hero – Now Serving or Service Lanes Grid */}
                                         {(() => {
@@ -1989,179 +2015,197 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         )}
                                     </div>
 
-                                    {/* Right: Lists */}
-                                    <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
+                                    {/* Right: Lists (Hidden in Dine Mode because dedicated Guest Waitlist tab exists in sidebar) */}
+                                    {!isDineMode && (
+                                        <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
 
-                                        {/* Combined Lists */}
-                                        <aside className="flex flex-col flex-1 min-h-0 bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none overflow-hidden" aria-label="Queue Lists">
-                                            <div className="px-4 pt-4 pb-0 border-b border-slate-200/80 dark:border-white/10 flex flex-col gap-3">
-                                                <div className="flex items-center gap-2 text-slate-800 dark:text-white">
-                                                    <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                                                        <List size={14} strokeWidth={2.5} />
+                                            {/* Combined Lists */}
+                                            <aside className="flex flex-col flex-1 min-h-0 bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none overflow-hidden" aria-label="Queue Lists">
+                                                <div className="px-4 pt-4 pb-0 border-b border-slate-200/80 dark:border-white/10 flex flex-col gap-3">
+                                                    <div className="flex items-center gap-2 text-slate-800 dark:text-white">
+                                                        <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                                            <List size={14} strokeWidth={2.5} />
+                                                        </div>
+                                                        <h2 className="text-[14px] font-bold m-0">Queue Lists</h2>
                                                     </div>
-                                                    <h2 className="text-[14px] font-bold m-0">Queue Lists</h2>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex gap-4 pt-1 overflow-x-auto scrollbar-none">
+                                                            <button
+                                                                onClick={() => { setActiveListTab("recent"); setRecentPage(1); }}
+                                                                className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "recent" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                            >
+                                                                Recent
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }}
+                                                                className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                            >
+                                                                Waiting
+                                                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-bold">{effectiveWaitingTokens.length}</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }}
+                                                                className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                            >
+                                                                Skipped
+                                                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-bold">{effectiveSkippedTokens.length}</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setActiveListTab("deleted"); setWaitingPage(1); }}
+                                                                className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "deleted" ? "text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
+                                                            >
+                                                                Removed
+                                                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-bold">{effectiveDeletedTokens.length}</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="relative group pb-3">
+                                                        <div className="absolute left-3 top-[18px] -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                        </div>
+                                                        {activeListTab === "recent" ? (
+                                                            <input 
+                                                                type="text" 
+                                                                placeholder="Search recent…" 
+                                                                value={recentSearch} 
+                                                                onChange={e => setRecentSearch(e.target.value)} 
+                                                                className="w-full h-9 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-xl pl-9 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" 
+                                                            />
+                                                        ) : (
+                                                            <input 
+                                                                type="text" 
+                                                                placeholder={`Search ${activeListTab}…`} 
+                                                                value={waitingSearch} 
+                                                                onChange={e => setWaitingSearch(e.target.value)} 
+                                                                className="w-full h-9 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-xl pl-9 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" 
+                                                            />
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex gap-4 pt-1 overflow-x-auto scrollbar-none">
-                                                        <button
-                                                            onClick={() => { setActiveListTab("recent"); setRecentPage(1); }}
-                                                            className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "recent" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
-                                                        >
-                                                            Recent
-                                                        </button>
-                                                        <button
-                                                            onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }}
-                                                            className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "waiting" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
-                                                        >
-                                                            Waiting
-                                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-bold">{effectiveWaitingTokens.length}</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => { setActiveListTab("skipped"); setWaitingPage(1); }}
-                                                            className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "skipped" ? "text-rose-600 dark:text-rose-400 border-b-2 border-rose-600 dark:border-rose-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
-                                                        >
-                                                            Skipped
-                                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-bold">{effectiveSkippedTokens.length}</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => { setActiveListTab("deleted"); setWaitingPage(1); }}
-                                                            className={`flex items-center gap-1.5 text-[12px] font-semibold pb-2 transition-colors whitespace-nowrap ${activeListTab === "deleted" ? "text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
-                                                        >
-                                                            Removed
-                                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-bold">{effectiveDeletedTokens.length}</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div className="relative group pb-3">
-                                                    <div className="absolute left-3 top-[18px] -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
-                                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                    </div>
-                                                    {activeListTab === "recent" ? (
-                                                        <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="w-full h-9 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-xl pl-9 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
-                                                    ) : (
-                                                        <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="w-full h-9 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/5 rounded-xl pl-9 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500/50 transition-all outline-none" />
+
+                                                <div className="scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700" style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+                                                    {activeListTab === "recent" && (
+                                                        paginatedRecent.length > 0 ? paginatedRecent.map((t: RecentToken, i: number) => (
+                                                            <RecentTokenRow
+                                                                key={`${t.token_number}-${i}`}
+                                                                token={t}
+                                                                prefix={state?.prefix || ""}
+                                                                queueName={queueName}
+                                                                isManual={t.entry_type === "manual"}
+                                                                onView={setSelectedToken}
+                                                            />
+                                                        )) : (
+                                                            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                                                                <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-emerald-100 dark:ring-emerald-500/10 shadow-sm">
+                                                                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-emerald-500 dark:text-emerald-600"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                                </div>
+                                                                <p className="text-[14px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                                                    {recentSearch ? "No matching activity" : "No recent activity"}
+                                                                </p>
+                                                                <p className="text-[12.5px] font-medium text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">
+                                                                    {recentSearch ? "Try a different search term" : "Your queue's recent actions will appear here."}
+                                                                </p>
+                                                            </div>
+                                                        )
+                                                    )}
+
+                                                    {activeListTab !== "recent" && (
+                                                        (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).map((t: WaitingToken) => (
+                                                            <RecentTokenRow
+                                                                key={t.id}
+                                                                token={t}
+                                                                prefix={state?.prefix || ""}
+                                                                queueName={queueName}
+                                                                isManual={t.entry_type === "manual"}
+                                                                onView={setSelectedToken}
+                                                                onCall={canManageQueue ? handleCall : undefined}
+                                                                hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
+                                                                extraActions={
+                                                                    <>
+                                                                        {isDineMode && canManageQueue && activeListTab === "waiting" && (
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); handleSeatParty(t); }}
+                                                                                disabled={actionLoading === `seat_${t.id}`}
+                                                                                className="px-2.5 h-7 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm ml-1 disabled:opacity-50"
+                                                                            >
+                                                                                {actionLoading === `seat_${t.id}` ? "..." : "Seat"}
+                                                                            </button>
+                                                                        )}
+                                                                        {canManageQueue && activeListTab === "waiting" ? (
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); setTokenToRemove({ id: t.id, number: t.token_number }); }}
+                                                                                className="px-2.5 h-7 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-500/30 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shadow-sm ml-1"
+                                                                            >
+                                                                                Remove
+                                                                            </button>
+                                                                        ) : canManageQueue && activeListTab === "deleted" ? (
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    performAction(`undo_remove_${t.id}`, async () => {
+                                                                                        await api.undoRemoveToken(t.id);
+                                                                                        toast(`Restored ${state?.prefix || ""}${t.token_number} back to queue`, "success");
+                                                                                        refresh();
+                                                                                    });
+                                                                                }}
+                                                                                disabled={actionLoading === `undo_remove_${t.id}`}
+                                                                                className="px-2.5 h-7 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm disabled:opacity-50 ml-1"
+                                                                            >
+                                                                                {actionLoading === `undo_remove_${t.id}` ? "..." : "Undo"}
+                                                                            </button>
+                                                                        ) : canManageQueue && activeListTab === "skipped" ? (
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); handleRecallFlow(t.token_number); }}
+                                                                                className="px-2.5 h-7 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors shadow-sm ml-1"
+                                                                            >
+                                                                                Recall
+                                                                            </button>
+                                                                        ) : activeListTab === "deleted" ? (
+                                                                            <span className="text-[11px] font-bold text-slate-400 h-7 px-2 flex items-center border border-transparent">
+                                                                                {t.removed_by === "customer" ? "By Customer" : "By Admin"}
+                                                                            </span>
+                                                                        ) : null}
+                                                                    </>
+                                                                }
+                                                            />
+                                                        )) : (
+                                                            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                                                                <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-slate-100 dark:ring-white/5 shadow-sm">
+                                                                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-slate-400 dark:text-slate-500"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                </div>
+                                                                <p className="text-[14px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                                                    {waitingSearch ? "No matching tokens" : activeListTab === "waiting" ? "Queue is clear" : activeListTab === "skipped" ? "No skipped tokens" : "No removed tokens"}
+                                                                </p>
+                                                                <p className="text-[12.5px] font-medium text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">
+                                                                    {waitingSearch ? "Try a different search term" : activeListTab === "waiting" ? "There are no customers currently waiting in line." : activeListTab === "skipped" ? "No customers have been skipped recently." : "No customers have been removed."}
+                                                                </p>
+                                                            </div>
+                                                        )
                                                     )}
                                                 </div>
-                                            </div>
 
-                                            <div className="scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700" style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-                                                {activeListTab === "recent" && (
-                                                    paginatedRecent.length > 0 ? paginatedRecent.map((t: RecentToken, i: number) => (
-                                                        <RecentTokenRow
-                                                            key={`${t.token_number}-${i}`}
-                                                            token={t}
-                                                            prefix={state?.prefix || ""}
-                                                            queueName={queueName}
-                                                            isManual={t.entry_type === "manual"}
-                                                            onView={setSelectedToken}
-                                                        />
-                                                    )) : (
-                                                        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                                                            <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-emerald-100 dark:ring-emerald-500/10 shadow-sm">
-                                                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-emerald-500 dark:text-emerald-600"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                                            </div>
-                                                            <p className="text-[14px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                                                {recentSearch ? "No matching activity" : "No recent activity"}
-                                                            </p>
-                                                            <p className="text-[12.5px] font-medium text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">
-                                                                {recentSearch ? "Try a different search term" : "Your queue's recent actions will appear here."}
-                                                            </p>
+                                                {activeListTab === "recent" && filteredRecent.length > RECENT_PAGE_SIZE && (
+                                                    <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
+                                                        <span>Showing {paginatedRecent.length} of {filteredRecent.length}</span>
+                                                        <div style={{ display: "flex", gap: 4 }}>
+                                                            <button onClick={() => setRecentPage(p => Math.max(1, p - 1))} disabled={recentPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: recentPage === 1 ? .4 : 1 }}>Prev</button>
+                                                            <button onClick={() => setRecentPage(p => p + 1)} disabled={recentPage * RECENT_PAGE_SIZE >= filteredRecent.length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: recentPage * RECENT_PAGE_SIZE >= filteredRecent.length ? .4 : 1 }}>Next</button>
                                                         </div>
-                                                    )
+                                                    </div>
                                                 )}
 
-                                                {activeListTab !== "recent" && (
-                                                    (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length > 0 ? (activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).map((t: WaitingToken, idx: number) => (
-                                                        <RecentTokenRow
-                                                            key={t.id}
-                                                            token={t}
-                                                            prefix={state?.prefix || ""}
-                                                            queueName={queueName}
-                                                            isManual={t.entry_type === "manual"}
-                                                            onView={setSelectedToken}
-                                                            onCall={canManageQueue ? handleCall : undefined}
-                                                            hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
-                                                            extraActions={
-                                                                <>
-                                                                    {isDineMode && canManageQueue && activeListTab === "waiting" && (
-                                                                        <button
-                                                                            onClick={(e) => { e.stopPropagation(); handleSeatParty(t); }}
-                                                                            disabled={actionLoading === `seat_${t.id}`}
-                                                                            className="px-2.5 h-7 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm ml-1 disabled:opacity-50"
-                                                                        >
-                                                                            {actionLoading === `seat_${t.id}` ? "..." : "Seat"}
-                                                                        </button>
-                                                                    )}
-                                                                    {canManageQueue && activeListTab === "waiting" ? (
-                                                                        <button
-                                                                            onClick={(e) => { e.stopPropagation(); setTokenToRemove({ id: t.id, number: t.token_number }); }}
-                                                                            className="px-2.5 h-7 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-500/30 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shadow-sm ml-1"
-                                                                        >
-                                                                            Remove
-                                                                        </button>
-                                                                    ) : canManageQueue && activeListTab === "deleted" ? (
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                performAction(`undo_remove_${t.id}`, async () => {
-                                                                                    await api.undoRemoveToken(t.id);
-                                                                                    toast(`Restored ${state?.prefix || ""}${t.token_number} back to queue`, "success");
-                                                                                    refresh();
-                                                                                });
-                                                                            }}
-                                                                            disabled={actionLoading === `undo_remove_${t.id}`}
-                                                                            className="px-2.5 h-7 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm disabled:opacity-50 ml-1"
-                                                                        >
-                                                                            {actionLoading === `undo_remove_${t.id}` ? "..." : "Undo"}
-                                                                        </button>
-                                                                    ) : canManageQueue ? (
-                                                                        <button
-                                                                            onClick={(e) => { e.stopPropagation(); handleRecallFlow(t.token_number); }}
-                                                                            className="px-2.5 h-7 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors shadow-sm ml-1"
-                                                                        >
-                                                                            Recall
-                                                                        </button>
-                                                                    ) : null}
-                                                                </>
-                                                            }
-                                                        />
-                                                    )) : (
-                                                        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                                                            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-slate-100 dark:ring-white/5 shadow-sm">
-                                                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-slate-400 dark:text-slate-500"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                            </div>
-                                                            <p className="text-[14px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                                                {waitingSearch ? "No matching tokens" : activeListTab === "waiting" ? "Queue is clear" : activeListTab === "skipped" ? "No skipped tokens" : "No removed tokens"}
-                                                            </p>
-                                                            <p className="text-[12.5px] font-medium text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">
-                                                                {waitingSearch ? "Try a different search term" : activeListTab === "waiting" ? "There are no customers currently waiting in line." : activeListTab === "skipped" ? "No customers have been skipped recently." : "No customers have been removed."}
-                                                            </p>
+                                                {activeListTab !== "recent" && (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length > PAGE_SIZE && (
+                                                    <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
+                                                        <span>Showing {(activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length} of {(activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length}</span>
+                                                        <div style={{ display: "flex", gap: 4 }}>
+                                                            <button onClick={() => setWaitingPage(p => Math.max(1, p - 1))} disabled={waitingPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage === 1 ? .4 : 1 }}>Prev</button>
+                                                            <button onClick={() => setWaitingPage(p => p + 1)} disabled={waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length ? .4 : 1 }}>Next</button>
                                                         </div>
-                                                    )
+                                                    </div>
                                                 )}
-                                            </div>
-
-                                            {activeListTab === "recent" && filteredRecent.length > RECENT_PAGE_SIZE && (
-                                                <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
-                                                    <span>Showing {paginatedRecent.length} of {filteredRecent.length}</span>
-                                                    <div style={{ display: "flex", gap: 4 }}>
-                                                        <button onClick={() => setRecentPage(p => Math.max(1, p - 1))} disabled={recentPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: recentPage === 1 ? .4 : 1 }}>Prev</button>
-                                                        <button onClick={() => setRecentPage(p => p + 1)} disabled={recentPage * RECENT_PAGE_SIZE >= filteredRecent.length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: recentPage * RECENT_PAGE_SIZE >= filteredRecent.length ? .4 : 1 }}>Next</button>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {activeListTab !== "recent" && (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length > PAGE_SIZE && (
-                                                <div className="text-gray-600 dark:text-slate-400 dark:border-white/10" style={{ padding: "10px 18px", borderTopWidth: 1, borderTopStyle: "solid", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
-                                                    <span>Showing {(activeListTab === "waiting" ? paginatedWaiting : activeListTab === "skipped" ? paginatedSkipped : paginatedDeleted).length} of {(activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length}</span>
-                                                    <div style={{ display: "flex", gap: 4 }}>
-                                                        <button onClick={() => setWaitingPage(p => Math.max(1, p - 1))} disabled={waitingPage === 1} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage === 1 ? .4 : 1 }}>Prev</button>
-                                                        <button onClick={() => setWaitingPage(p => p + 1)} disabled={waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length} style={{ padding: "3px 9px", borderRadius: 6, background: "#fff", border: `1px solid ${T.cardBorder}`, fontSize: 12, cursor: "pointer", opacity: waitingPage * PAGE_SIZE >= (activeListTab === "waiting" ? filteredWaiting : activeListTab === "skipped" ? filteredSkipped : filteredDeleted).length ? .4 : 1 }}>Next</button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </aside>
-                                    </div>
+                                            </aside>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Mobile bottom spacer so content isn't hidden behind the fixed dock */}
@@ -2547,6 +2591,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             className={`flex items-center gap-2 text-[14px] font-semibold pb-2.5 transition-colors whitespace-nowrap ${activeListTab === "recent" ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 border-b-2 border-transparent"}`}
                                         >
                                             Recent
+                                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${activeListTab === "recent" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>{effectiveRecentTokens.length}</span>
                                         </button>
                                         <button
                                             onClick={() => { setActiveListTab("waiting"); setWaitingPage(1); }}
@@ -2576,9 +2621,23 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 <svg width="14" height="14" fill="none" stroke={T.textMuted} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                             </span>
                                             {activeListTab === "recent" ? (
-                                                <input type="text" placeholder="Search recent…" value={recentSearch} onChange={e => setRecentSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34, height: 42 }} />
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Search recent…" 
+                                                    value={recentSearch} 
+                                                    onChange={e => setRecentSearch(e.target.value)} 
+                                                    className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" 
+                                                    style={{ paddingLeft: 34, height: 42 }} 
+                                                />
                                             ) : (
-                                                <input type="text" placeholder={`Search ${activeListTab}…`} value={waitingSearch} onChange={e => setWaitingSearch(e.target.value)} className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" style={{ paddingLeft: 34, height: 42 }} />
+                                                <input 
+                                                    type="text" 
+                                                    placeholder={`Search ${activeListTab}…`} 
+                                                    value={waitingSearch} 
+                                                    onChange={e => setWaitingSearch(e.target.value)} 
+                                                    className="qd-input bg-[#fafbfc] dark:bg-slate-950 dark:border-white/10 dark:text-white" 
+                                                    style={{ paddingLeft: 34, height: 42 }} 
+                                                />
                                             )}
                                         </div>
                                         <button className="h-[42px] px-3.5 border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center shrink-0 shadow-sm">
@@ -2588,7 +2647,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 </div>
 
                                 <div className="w-full overflow-x-auto border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden flex-1 flex flex-col">
-                                    <div className="hidden md:grid gap-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" style={{ gridTemplateColumns: ((state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0) ? '80px 110px 120px 70px 120px 1fr 120px 80px' : '80px 110px 120px 120px 1fr 120px 80px' }}>
+                                    <div className="hidden md:grid gap-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" style={{ gridTemplateColumns: ((state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0) ? '80px 110px 130px 70px 120px 1fr 120px 80px' : '80px 110px 130px 120px 1fr 120px 80px' }}>
                                         <div>Token</div>
                                         <div>Status</div>
                                         <div>Entry Method</div>
@@ -2678,19 +2737,24 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                         Recall
                                                                     </button>
                                                                 ) : canManageQueue && activeListTab === "deleted" ? (
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            performAction(`undo_remove_${t.id}`, async () => {
-                                                                                await api.undoRemoveToken(t.id);
-                                                                                toast(`Restored ${state?.prefix || ""}${t.token_number} back to queue`, "success");
-                                                                                refresh();
-                                                                            });
-                                                                        }}
-                                                                        disabled={actionLoading === `undo_remove_${t.id}`}
-                                                                        className="text-[11px] font-bold h-8 px-3 flex items-center text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors disabled:opacity-50 shadow-sm"
-                                                                    >
-                                                                        {actionLoading === `undo_remove_${t.id}` ? "..." : "Undo"}
-                                                                    </button>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-[11px] font-bold text-slate-400 h-8 px-2 flex items-center border border-transparent">
+                                                                            {t.removed_by === "customer" ? "By Customer" : "By Admin"}
+                                                                        </span>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                performAction(`undo_remove_${t.id}`, async () => {
+                                                                                    await api.undoRemoveToken(t.id);
+                                                                                    toast(`Restored ${state?.prefix || ""}${t.token_number} back to queue`, "success");
+                                                                                    refresh();
+                                                                                });
+                                                                            }}
+                                                                            disabled={actionLoading === `undo_remove_${t.id}`}
+                                                                            className="text-[11px] font-bold h-8 px-3 flex items-center text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors disabled:opacity-50 shadow-sm"
+                                                                        >
+                                                                            {actionLoading === `undo_remove_${t.id}` ? "..." : "Undo"}
+                                                                        </button>
+                                                                    </div>
                                                                 ) : activeListTab === "deleted" ? (
                                                                     <span className="text-[11px] font-bold text-slate-400 h-8 px-2 flex items-center border border-transparent">
                                                                         {t.removed_by === "customer" ? "By Customer" : "By Admin"}
@@ -2736,16 +2800,19 @@ export default function QueueDetailPage({ params }: PageProps) {
                             </div>
                         )}
 
+
                         {activeSection === "settings" && (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both max-w-4xl mx-auto">
                                 <QueueTokenSettings 
                                     queueId={queueId} 
                                     initialFields={state?.custom_fields ?? initialQueue?.custom_fields ?? null}
-                                    readOnly={!isActive || state?.is_past_session === true || (!!state?.session_id && state.session_id !== sessionId)}
+                                    readOnly={isReadOnly || isGlobalOrOrgAdmin || !isActive || state?.is_past_session === true || (!!state?.session_id && state.session_id !== sessionId)}
                                     readOnlyReason={
-                                        !isActive || state?.is_past_session === true
-                                            ? "This queue session is closed. Registration field settings are read-only for historical records." 
-                                            : "You are viewing an old historical session. Registration form settings can only be edited on today's active live queue."
+                                        isReadOnly || isGlobalOrOrgAdmin
+                                            ? "Registration form settings cannot be modified in parent admin view."
+                                            : !isActive || state?.is_past_session === true
+                                                ? "This queue session is closed. Registration field settings are read-only for historical records." 
+                                                : "You are viewing an old historical session. Registration form settings can only be edited on today's active live queue."
                                     }
                                     onUpdate={(fields) => {
                                         refresh();
@@ -2958,7 +3025,23 @@ export default function QueueDetailPage({ params }: PageProps) {
                 <TokenDetailModal
                     token={selectedToken}
                     onClose={() => setSelectedToken(null)}
-                    onRecall={selectedToken && !isReadOnly ? () => handleRecallFlow(selectedToken.token_number) : undefined}
+                    onRecall={selectedToken && !isReadOnly && canManageQueue ? () => handleRecallFlow(selectedToken.token_number) : undefined}
+                    onRemove={selectedToken && !isReadOnly && canManageQueue ? () => {
+                        const targetId = selectedToken.id || effectiveWaitingTokens.find(w => w.token_number === selectedToken.token_number)?.id;
+                        if (targetId) {
+                            setTokenToRemove({ id: targetId, number: selectedToken.token_number });
+                        }
+                    } : undefined}
+                    onUndo={selectedToken && !isReadOnly && canManageQueue ? () => {
+                        const targetId = selectedToken.id || effectiveDeletedTokens.find(d => d.token_number === selectedToken.token_number)?.id;
+                        if (targetId) {
+                            performAction(`undo_remove_${targetId}`, async () => {
+                                await api.undoRemoveToken(targetId);
+                                toast(`Restored ${state?.prefix || ""}${selectedToken.token_number} back to queue`, "success");
+                                refresh();
+                            });
+                        }
+                    } : undefined}
                 />
             </div>
 
@@ -3056,6 +3139,10 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
         timeStr = fmtTime(t.created_at, tz);
     }
 
+    const apptTime = (t as any).appointment_time || (t as any).custom_data?.appointment_time;
+    const apptDate = (t as any).appointment_date || (t as any).custom_data?.appointment_date;
+    const apptBookingRef = (t as any).appointment_booking_ref || (t as any).custom_data?.booking_reference || (t as any).custom_data?.appointment_booking_ref;
+
     return (
         <div
             className="group border-b border-slate-100 dark:border-white/5 px-4 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors bg-transparent cursor-pointer"
@@ -3079,13 +3166,12 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                 recalled_at: (t as WaitingToken).recalled_at,
                 removed_by: (t as WaitingToken).removed_by,
                 custom_data: (t as any).custom_data || null,
+                appointment_time: apptTime || null,
+                appointment_date: apptDate || null,
+                appointment_booking_ref: apptBookingRef || null,
             })}
         >
             <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-[12px] flex-shrink-0 bg-[hsl(var(--hue),70%,90%)] text-[hsl(var(--hue),70%,30%)] dark:bg-[hsl(var(--hue),40%,25%)] dark:text-[hsl(var(--hue),70%,85%)]" style={{ "--hue": t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200 } as React.CSSProperties}>
-                    {t.customer_name ? t.customer_name.substring(0, 2).toUpperCase() : "WA"}
-                </div>
-
                 <div className="flex flex-col min-w-0 gap-0.5">
                     <div className="flex items-center gap-2">
                         <span className="font-bold text-[14px] text-slate-800 dark:text-slate-100 tracking-tight">
@@ -3109,6 +3195,11 @@ const RecentTokenRow = React.memo(function RecentTokenRow({
                             {t.status === "waiting" && <Clock size={12} />}
                             <span className="capitalize tracking-wide">{t.status === "done" ? "Done" : t.status === "deleted" ? "Removed" : t.status === "skipped" ? "Skipped" : t.status}</span>
                         </span>
+                        {t.entry_type === "appointment" && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 font-semibold text-[10px]">
+                                <Calendar size={10} /> Appt{apptTime ? ` • ${apptTime}` : ""}
+                            </span>
+                        )}
                         {timeStr && <span>• {timeStr}</span>}
                         {hasServiceLines && t.assigned_line != null && <span>• L{t.assigned_line}</span>}
                     </div>
@@ -3151,6 +3242,10 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
         ? fmtTime(t.created_at, tz)
         : "");
 
+    const apptTime = (t as any).appointment_time || (t as any).custom_data?.appointment_time;
+    const apptDate = (t as any).appointment_date || (t as any).custom_data?.appointment_date;
+    const apptBookingRef = (t as any).appointment_booking_ref || (t as any).custom_data?.booking_reference || (t as any).custom_data?.appointment_booking_ref;
+
     const tokenData: TokenDetailData = {
         id: (t as WaitingToken).id,
         token_number: t.token_number,
@@ -3162,7 +3257,7 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
         created_at: t.created_at,
         served_at: t.served_at,
         completed_at: t.completed_at,
-        entry_type: isManual ? "manual" : "qr",
+        entry_type: t.entry_type || (isManual ? "manual" : "qr"),
         queue_name: queueName,
         called_via_invite: t.called_via_invite,
         assigned_line: t.assigned_line,
@@ -3171,6 +3266,9 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
         recalled_at: (t as WaitingToken).recalled_at,
         removed_by: (t as WaitingToken).removed_by,
         custom_data: (t as any).custom_data || null,
+        appointment_time: apptTime || null,
+        appointment_date: apptDate || null,
+        appointment_booking_ref: apptBookingRef || null,
     };
 
     return (
@@ -3181,7 +3279,7 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
             {/* ── Desktop row ─────────────────────────────── */}
             <div
                 className="hidden md:grid px-4 py-3 items-center gap-3"
-                style={{ gridTemplateColumns: hasServiceLines ? '80px 110px 120px 70px 120px 1fr 120px 80px' : '80px 110px 120px 120px 1fr 120px 80px' }}
+                style={{ gridTemplateColumns: hasServiceLines ? '80px 110px 130px 70px 120px 1fr 120px 80px' : '80px 110px 130px 120px 1fr 120px 80px' }}
             >
                 {/* Token # */}
                 <div className="flex items-center">
@@ -3203,11 +3301,23 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                 </div>
 
                 {/* Entry Type */}
-                <div>
-                    {isManual
-                        ? <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><User size={13} />Manual</span>
-                        : <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={13} />QR</span>
-                    }
+                <div className="flex flex-col items-start gap-0.5">
+                    {t.entry_type === "appointment" ? (
+                        <>
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
+                                <Calendar size={11} />Appt
+                            </span>
+                            {apptTime && (
+                                <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 truncate max-w-[120px]" title={apptTime}>
+                                    {apptTime}
+                                </span>
+                            )}
+                        </>
+                    ) : isManual ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><User size={13} />Manual</span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={13} />QR</span>
+                    )}
                 </div>
 
                 {/* Line */}
@@ -3230,9 +3340,6 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
 
                 {/* Customer */}
                 <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] flex-shrink-0 bg-[hsl(var(--hue),70%,90%)] text-[hsl(var(--hue),70%,30%)] dark:bg-[hsl(var(--hue),40%,25%)] dark:text-[hsl(var(--hue),70%,85%)]" style={{ "--hue": t.customer_name ? t.customer_name.charCodeAt(0) * 20 % 360 : 200 } as React.CSSProperties}>
-                        {t.customer_name ? t.customer_name.substring(0, 2).toUpperCase() : "WA"}
-                    </div>
                     <div className="flex flex-col min-w-0">
                         <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 truncate flex items-center">
                             {t.customer_name || "Walk-in"}
@@ -3257,7 +3364,7 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center justify-end gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
                     {onView && (
                         <button
                             onClick={() => onView(tokenData)}
@@ -3288,10 +3395,15 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                             <span className="text-indigo-500">{prefix}</span>{t.token_number}
                         </span>
                         <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border ${st.cls}`}>{st.label}</span>
-                        {isManual
-                            ? <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200">Manual</span>
-                            : <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200">QR</span>
-                        }
+                        {t.entry_type === "appointment" ? (
+                            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
+                                <Calendar size={10} /> Appt{apptTime ? ` • ${apptTime}` : ""}
+                            </span>
+                        ) : isManual ? (
+                            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200">Manual</span>
+                        ) : (
+                            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200">QR</span>
+                        )}
                         {hasServiceLines && t.assigned_line != null && (
                             <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">L{t.assigned_line}</span>
                         )}
@@ -3572,9 +3684,6 @@ function QueueHistory({
                                         <td className="text-slate-900 dark:text-white" style={{ padding: "12px 18px", fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{item.queue_prefix}{item.token_number}</td>
                                         <td style={{ padding: "12px 18px" }}>
                                             <div className="flex items-center gap-2.5 min-w-0">
-                                                <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] flex-shrink-0 bg-[hsl(var(--hue),70%,90%)] text-[hsl(var(--hue),70%,30%)] dark:bg-[hsl(var(--hue),40%,25%)] dark:text-[hsl(var(--hue),70%,85%)]" style={{ "--hue": item.customer_name ? item.customer_name.charCodeAt(0) * 20 % 360 : 200 } as React.CSSProperties}>
-                                                    {item.customer_name ? item.customer_name.substring(0, 2).toUpperCase() : "WA"}
-                                                </div>
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 truncate flex items-center">
                                                         {item.customer_name || "Walk-in"}
@@ -3613,10 +3722,28 @@ function QueueHistory({
                                             </div>
                                         </td>
                                         <td style={{ padding: "10px 18px", whiteSpace: "nowrap" }}>
-                                            {isManual
-                                                ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400"><User size={11} />Manual</span>
-                                                : <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={11} />QR</span>
-                                            }
+                                            {(() => {
+                                                const apptTime = (item as any).appointment_time || (item as any).custom_data?.appointment_time;
+                                                if (item.entry_type === "appointment") {
+                                                    return (
+                                                        <div className="flex flex-col items-start gap-0.5">
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
+                                                                <Calendar size={11} />Appt
+                                                            </span>
+                                                            {apptTime && (
+                                                                <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400">
+                                                                    {apptTime}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                }
+                                                return isManual ? (
+                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400"><User size={11} />Manual</span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400"><QrCode size={11} />QR</span>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
                                         <td className="text-emerald-600 dark:text-emerald-400 font-medium" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
@@ -3646,16 +3773,24 @@ function QueueHistory({
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                 <button
-                                                    onClick={() => onViewToken({
-                                                        id: item.id,
-                                                        token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name,
-                                                        customer_phone: item.customer_phone, pax_count: item.pax_count,
-                                                        status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at,
-                                                        entry_type: isManual ? "manual" : "qr", queue_name: queueName,
-                                                        assigned_line: item.assigned_line, served_by_staff_name: item.served_by_staff_name, completed_by_staff_name: item.completed_by_staff_name,
-                                                        skipped_at: item.skipped_at, deleted_at: item.deleted_at, recalled_at: item.recalled_at, removed_by: item.removed_by,
-                                                        custom_data: (item as any).custom_data || null,
-                                                    })}
+                                                    onClick={() => {
+                                                        const apptTime = (item as any).appointment_time || (item as any).custom_data?.appointment_time;
+                                                        const apptDate = (item as any).appointment_date || (item as any).custom_data?.appointment_date;
+                                                        const apptBookingRef = (item as any).appointment_booking_ref || (item as any).custom_data?.booking_reference || (item as any).custom_data?.appointment_booking_ref;
+                                                        onViewToken({
+                                                            id: item.id,
+                                                            token_number: item.token_number, prefix: item.queue_prefix, customer_name: item.customer_name,
+                                                            customer_phone: item.customer_phone, pax_count: item.pax_count,
+                                                            status: item.status, created_at: item.created_at, served_at: item.served_at, completed_at: item.completed_at,
+                                                            entry_type: item.entry_type || (isManual ? "manual" : "qr"), queue_name: queueName,
+                                                            assigned_line: item.assigned_line, served_by_staff_name: item.served_by_staff_name, completed_by_staff_name: item.completed_by_staff_name,
+                                                            skipped_at: item.skipped_at, deleted_at: item.deleted_at, recalled_at: item.recalled_at, removed_by: item.removed_by,
+                                                            custom_data: (item as any).custom_data || null,
+                                                            appointment_time: apptTime || null,
+                                                            appointment_date: apptDate || null,
+                                                            appointment_booking_ref: apptBookingRef || null,
+                                                        });
+                                                    }}
                                                     className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-lg transition-colors"
                                                     title="View Details"
                                                 >

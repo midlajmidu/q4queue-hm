@@ -34,7 +34,7 @@ async def get_or_create_active_session(
     queue_id: uuid.UUID,
     org_id: uuid.UUID,
 ) -> Session:
-    """Fetch today's session for the queue, creating it and resetting the queue if missing."""
+    """Fetch or create active session for the queue. Never auto-ends until staff explicitly ends it."""
     from app.services.queue_service import get_queue_or_404
     from app.core.tz_helpers import queue_business_date, safe_zoneinfo
     
@@ -49,30 +49,34 @@ async def get_or_create_active_session(
         queue_obj.close_time if queue_obj else None,
     )
 
+    # 1. If queue currently points to an active session, keep it open and return it!
+    if queue_obj and queue_obj.token_session_id:
+        current_session = await db.get(Session, queue_obj.token_session_id)
+        if current_session and current_session.is_active:
+            return current_session
+
+    # 2. Check if any active session exists for this queue
+    active_session = await db.scalar(
+        select(Session).where(Session.queue_id == queue_id, Session.is_active == True)
+    )
+    if active_session:
+        queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
+        queue.token_session_id = active_session.id
+        await db.commit()
+        return active_session
+
+    # 3. Check if a session exists for today
     query = select(Session).where(
         Session.queue_id == queue_id, 
         Session.session_date == today
     )
     session = await db.scalar(query)
-
-    is_currently_open = True
-    if queue_obj and queue_obj.open_time and queue_obj.close_time:
-        current_hm = local_now.strftime("%H:%M")
-        open_t, close_t = queue_obj.open_time, queue_obj.close_time
-        if open_t <= close_t:
-            is_outside = current_hm < open_t or current_hm > close_t
-        else:
-            is_outside = current_hm < open_t and current_hm > close_t
-        if is_outside:
-            is_currently_open = False
+    queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
 
     if session:
-        # Self-heal: ensure queue.token_session_id matches actual session.id
-        queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
-        if queue.token_session_id != session.id:
-            queue.token_session_id = session.id
-        if not is_currently_open and session.is_active:
-            session.is_active = False
+        queue.token_session_id = session.id
+        session.is_active = True
+        session.is_paused = False
         await db.execute(
             update(Session)
             .where(Session.queue_id == queue_id, Session.id != session.id, Session.is_active == True)
@@ -80,9 +84,6 @@ async def get_or_create_active_session(
         )
         await db.commit()
         return session
-        
-    # Verify queue exists
-    queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
 
     from app.services.entitlement_service import consume
     await consume(
@@ -93,13 +94,13 @@ async def get_or_create_active_session(
         scope_id=org_id,
     )
     
-    # Create the session
+    # 4. Create new active session
     session = Session(
         org_id=org_id,
         queue_id=queue_id,
         session_date=today,
         title=today.strftime("%Y-%m-%d"),
-        is_active=is_currently_open,
+        is_active=True,
     )
     db.add(session)
     await db.flush()
@@ -110,7 +111,6 @@ async def get_or_create_active_session(
         .values(is_active=False, is_paused=False)
     )
     
-    # Reset queue for the new day and link token_session_id directly to Session.id PK
     queue.token_session_id = session.id
     queue.current_token_number = queue.starting_sequence - 1
     queue.total_served = 0
@@ -137,20 +137,11 @@ async def create_queue_session(
     org_id: uuid.UUID,
     data: SessionCreate,
 ) -> Session:
-    """Create a session for a specific date for a queue. Enforces 1 session per day per queue."""
+    """Create a session for a queue. No artificial date or timing restrictions."""
     from app.services.queue_service import get_queue_or_404
-    
     queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
     
-    from app.models.organization import Organization
-    org = await db.scalar(select(Organization).where(Organization.id == org_id))
-    tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-    from app.core.tz_helpers import queue_business_date, safe_zoneinfo
-    local_now = datetime.now(safe_zoneinfo(tz_str))
-    today = queue_business_date(local_now, queue.open_time, queue.close_time)
-
-    if data.session_date > today:
-        raise ValueError("Cannot create a session for a future date.")
+    session_title = data.title.strip() if data.title and data.title.strip() else data.session_date.strftime("%Y-%m-%d")
 
     existing = await db.scalar(
         select(Session).where(
@@ -159,7 +150,20 @@ async def create_queue_session(
         )
     )
     if existing:
-        raise ValueError("A session already exists for this date.")
+        # Re-activate and update title of existing session for this date
+        existing.title = session_title
+        existing.is_active = True
+        existing.is_paused = False
+        queue.token_session_id = existing.id
+        await db.execute(
+            update(Session)
+            .where(Session.queue_id == queue_id, Session.id != existing.id, Session.is_active == True)
+            .values(is_active=False, is_paused=False)
+        )
+        await db.commit()
+        await db.refresh(existing)
+        logger.info("Existing session re-activated | queue=%s date=%s title=%s", queue_id, data.session_date, session_title)
+        return existing
 
     from app.services.entitlement_service import consume
     await consume(
@@ -169,34 +173,26 @@ async def create_queue_session(
         scope_type="subscription",
         scope_id=org_id,
     )
-        
-    session_title = data.title.strip() if data.title and data.title.strip() else data.session_date.strftime("%Y-%m-%d")
-    
+
     session = Session(
         org_id=org_id,
         queue_id=queue_id,
         session_date=data.session_date,
         title=session_title,
-        is_active=data.session_date == today,
+        is_active=True,
     )
     db.add(session)
     await db.flush()
-    
-    if data.session_date == today:
-        await db.execute(
-            update(Session)
-            .where(Session.queue_id == queue_id, Session.id != session.id, Session.is_active == True)
-            .values(is_active=False, is_paused=False)
-        )
-        await db.execute(
-            update(Token)
-            .where(Token.queue_id == queue_id, Token.status.in_([TokenStatus.waiting, TokenStatus.serving]))
-            .values(status=TokenStatus.skipped, completed_at=func.now(), removed_by="session_end")
-        )
-        queue.token_session_id = session.id
-        queue.current_token_number = queue.starting_sequence - 1
-        queue.total_served = 0
-        
+
+    await db.execute(
+        update(Session)
+        .where(Session.queue_id == queue_id, Session.id != session.id, Session.is_active == True)
+        .values(is_active=False, is_paused=False)
+    )
+    queue.token_session_id = session.id
+    queue.current_token_number = queue.starting_sequence - 1
+    queue.total_served = 0
+
     try:
         await db.commit()
         await db.refresh(session)
@@ -357,25 +353,23 @@ async def set_session_active(
 ) -> Session:
     session = await get_session_or_404(db, session_id=session_id, org_id=org_id, user=user)
     queue = await db.scalar(select(Queue).where(Queue.id == session.queue_id, Queue.org_id == session.org_id))
-    org = await db.scalar(select(Organization).where(Organization.id == session.org_id))
-    tz_str = org.timezone if org and org.timezone else "Asia/Kolkata"
-    from app.core.tz_helpers import queue_business_date, safe_zoneinfo
-    local_now = datetime.now(safe_zoneinfo(tz_str))
-    today = queue_business_date(
-        local_now,
-        queue.open_time if queue else None,
-        queue.close_time if queue else None,
-    )
-    if is_active and (queue is None or queue.token_session_id != session.id or session.session_date != today):
-        raise ValueError("Only today's current queue session can be started.")
+
     if is_active:
+        session.is_active = True
+        session.is_paused = False
+        if queue:
+            queue.token_session_id = session.id
+            queue.is_paused = False
         await db.execute(
             update(Session)
             .where(Session.queue_id == session.queue_id, Session.id != session.id, Session.is_active == True)
             .values(is_active=False, is_paused=False)
         )
-    session.is_active = is_active
-    if not is_active:
+    else:
+        session.is_active = False
+        session.is_paused = False
+        if queue and queue.token_session_id == session.id:
+            queue.is_paused = False
         # Move remaining unserved tokens to skipped status when session is stopped
         await db.execute(
             update(Token)
@@ -403,10 +397,10 @@ async def set_session_paused(
 ) -> Session:
     session = await get_session_or_404(db, session_id=session_id, org_id=org_id, user=user)
     queue = await db.scalar(select(Queue).where(Queue.id == session.queue_id, Queue.org_id == session.org_id))
-    if queue is None or queue.token_session_id != session.id or not session.is_active:
-        raise ValueError("Only the active current session can be paused or resumed.")
+    if not session.is_active:
+        raise ValueError("Cannot pause or resume an inactive session.")
     session.is_paused = is_paused
-    if queue:
+    if queue and queue.token_session_id == session.id:
         queue.is_paused = is_paused
     await db.commit()
     await db.refresh(session)

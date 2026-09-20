@@ -51,9 +51,11 @@ import {
     Wifi,
     Battery,
     Sparkles,
-    Zap
+    Zap,
+    CalendarCheck
 } from "lucide-react";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { useAuth } from "@/hooks/useAuth";
 import { fmtDateTime, fmtDate, fmtTime, fmtTime as fmtTimeTz, nowInTz } from "@/lib/tzformat";
 import { toast } from "sonner";
 
@@ -66,6 +68,7 @@ const EVENT_LABEL: Record<string, string> = {
     "queue_skipped_v3": "Token Skipped Notice",
     "queue_removed_v3": "Token Cancelled / Removed",
     "queue_recalled_v2": "Token Recalled Alert",
+    "appointment_booked_v1": "Appointment Booking Confirmed",
 
     // Legacy Events mapping
     "queue_nearby_5_v2": "Position 5 Warning",
@@ -89,6 +92,7 @@ const EVENT_SHORT_LABEL: Record<string, string> = {
     "queue_skipped_v3": "Skipped",
     "queue_removed_v3": "Cancelled",
     "queue_recalled_v2": "Recalled",
+    "appointment_booked_v1": "Appointment Confirmed",
     "test": "Test Message",
 };
 
@@ -101,6 +105,7 @@ const EVENT_COLOR: Record<string, string> = {
     "queue_skipped_v3": "bg-purple-500",
     "queue_removed_v3": "bg-rose-500",
     "queue_recalled_v2": "bg-teal-500",
+    "appointment_booked_v1": "bg-indigo-500",
     "test": "bg-emerald-500",
 };
 
@@ -113,6 +118,7 @@ const EVENT_DESCRIPTION: Record<string, string> = {
     "queue_skipped_v3": "Notifies customer when their ticket is skipped for no-show",
     "queue_recalled_v2": "Alerts customer when staff re-calls a previously skipped ticket",
     "queue_removed_v3": "Notifies customer if token is cancelled or removed from queue",
+    "appointment_booked_v1": "Dispatches digital pass & booking details when appointment is confirmed",
     "test": "Dispatches connectivity verification message via Meta Cloud API",
 };
 
@@ -136,6 +142,7 @@ const EVENT_ICON: Record<string, React.ElementType> = {
     "queue_skipped_v3": SkipForward,
     "queue_recalled_v2": RotateCcw,
     "queue_removed_v3": UserX,
+    "appointment_booked_v1": CalendarCheck,
     "test": Sparkles,
 };
 
@@ -188,6 +195,12 @@ const EVENT_THEME: Record<string, { bg: string; text: string; lightBg: string; b
         lightBg: "bg-rose-50 dark:bg-rose-950/40",
         border: "border-rose-200/80 dark:border-rose-800/40"
     },
+    "appointment_booked_v1": {
+        bg: "bg-indigo-500",
+        text: "text-indigo-600 dark:text-indigo-400",
+        lightBg: "bg-indigo-50 dark:bg-indigo-950/40",
+        border: "border-indigo-200/80 dark:border-indigo-800/40"
+    },
     "test": {
         bg: "bg-emerald-500",
         text: "text-emerald-600 dark:text-emerald-400",
@@ -205,6 +218,7 @@ const EVENT_TOKENS: Record<string, string[]> = {
     "queue_skipped_v3": ["counter_name", "ticket_number", "queue_name"],
     "queue_recalled_v2": ["counter_name", "ticket_number", "queue_name"],
     "queue_removed_v3": ["ticket_number", "queue_name"],
+    "appointment_booked_v1": ["customer_name", "booking_ref", "location_name", "service_name", "appointment_date", "time_slot", "pass_url"],
     "test": ["meta_cloud_api"],
 };
 
@@ -217,9 +231,10 @@ const ACTIVE_EVENTS = [
     "queue_skipped_v3",
     "queue_recalled_v2",
     "queue_removed_v3",
+    "appointment_booked_v1",
 ];
 
-const SAMPLE_MESSAGES: Record<string, { title: string; body: string }> = {
+const SAMPLE_MESSAGES: Record<string, { title: string; body: string; header?: string; footer?: string }> = {
     "queue_joined_v4": {
         title: "Joined Queue Confirmation",
         body: "Greetings, *John Doe*!\n\n🎟️ Your queue ticket has been confirmed.\n\n🎫 *Ticket Number:* A-104\n👥 *People Ahead:* 6\n\n*Track your queue:*\nhttps://q4queue.com/track/t-abc123\n\n*View Live Display:*\nhttps://q4queue.com/live/branch-01\n\n🏢 *Branch:* Main Branch\n📋 *Queue:* General Inquiries\n\n_We'll keep you updated as your turn gets closer._"
@@ -251,6 +266,12 @@ const SAMPLE_MESSAGES: Record<string, { title: string; body: string }> = {
     "queue_removed_v3": {
         title: "Token Cancelled",
         body: "Your queue ticket has been cancelled.\n\n🎫 *Ticket Number:* A-104\n📋 *Queue:* General Inquiries\n\nIf this was unexpected, please contact our staff."
+    },
+    "appointment_booked_v1": {
+        title: "Appointment Booking Confirmed",
+        header: "Appointment Confirmed",
+        body: "Greetings, *John Doe*!\n\n📅 Your appointment has been confirmed.\n\n🔖 *Booking Reference:* #APT-AS4579\n🏢 *Location:* Kerala (Calicut)\n📋 *Service:* General Consultation\n🗓️ *Date:* September 20, 2026\n⏰ *Time Slot:* 10:30 AM – 10:45 AM\n\n*View Live Appointment Pass:*\nhttps://q4queue.com/appointments/APT-AS4579\n\n_Please arrive 5–10 minutes before your time slot._",
+        footer: "Powered by Q4Queue"
     },
     "test": {
         title: "Live Test Notification",
@@ -430,6 +451,8 @@ interface WhatsAppPortalProps {
 
 export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsAppPortalProps) {
     const tz = useBranchTimezone();
+    const { user, isReadOnly: authReadOnly } = useAuth();
+    const isReadOnly = !!authReadOnly || user?.role === "super_admin" || user?.role === "organization_admin";
     const [activeTab, setActiveTab] = useState<"overview" | "history" | "settings">("overview");
 
     const [config, setConfig] = useState<WhatsAppOrgConfig | null>(null);
@@ -617,6 +640,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
     }, [allEventsToDisplay, triggerCategory]);
 
     const handleSettingChange = async (key: keyof WhatsAppOrgConfig, value: boolean) => {
+        if (isReadOnly) return;
         if (!config) return;
         const previousConfig = { ...config };
         setConfig({ ...config, [key]: value });
@@ -630,6 +654,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
     };
 
     const handleEnableAll = async (enabled: boolean) => {
+        if (isReadOnly) return;
         if (!config) return;
         const updated = {
             notify_queue_joined: enabled,
@@ -656,6 +681,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
     };
 
     const sendTest = async () => {
+        if (isReadOnly) return;
         const cleaned = testPhone.trim();
         if (!cleaned || !cleaned.startsWith("+") || cleaned.length < 8) {
             setTestMsg({ type: "error", text: "Please enter a valid phone number with country code (e.g. +919876543210)" });
@@ -1120,15 +1146,19 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                                                             {configKey && config && (
                                                                 <button
                                                                     type="button"
+                                                                    disabled={isReadOnly}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
+                                                                        if (isReadOnly) return;
                                                                         handleSettingChange(configKey, !isTriggerEnabled);
                                                                     }}
-                                                                    title={isTriggerEnabled ? "Click to disable this WhatsApp trigger" : "Click to enable this WhatsApp trigger"}
-                                                                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10.5px] font-bold border transition-all cursor-pointer ${
-                                                                        isTriggerEnabled
-                                                                            ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-emerald-400 dark:hover:border-emerald-500"
-                                                                            : "bg-slate-100/50 dark:bg-slate-800/30 text-slate-400 border-slate-200/50 dark:border-white/5 opacity-70"
+                                                                    title={isReadOnly ? "Read-only view" : (isTriggerEnabled ? "Click to disable this WhatsApp trigger" : "Click to enable this WhatsApp trigger")}
+                                                                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10.5px] font-bold border transition-all ${
+                                                                        isReadOnly
+                                                                            ? "opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-white/10"
+                                                                            : isTriggerEnabled
+                                                                            ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-emerald-400 dark:hover:border-emerald-500 cursor-pointer"
+                                                                            : "bg-slate-100/50 dark:bg-slate-800/30 text-slate-400 border-slate-200/50 dark:border-white/5 opacity-70 cursor-pointer"
                                                                     }`}
                                                                 >
                                                                     <span className={`w-1.5 h-1.5 rounded-full ${isTriggerEnabled ? "bg-emerald-500" : "bg-slate-400"}`} />
@@ -1312,10 +1342,24 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                                                     <span className="text-[9.5px] uppercase tracking-wider font-semibold text-[#008069]/70 dark:text-[#25D366]/70">Automated</span>
                                                 </div>
 
+                                                {/* WhatsApp Official Header Component */}
+                                                {activePreview.header && (
+                                                    <div className="font-black text-[13px] text-slate-900 dark:text-white pt-1">
+                                                        {activePreview.header}
+                                                    </div>
+                                                )}
+
                                                 {/* Message Body Content */}
                                                 <div>
                                                     {renderWhatsAppText(activePreview.body)}
                                                 </div>
+
+                                                {/* WhatsApp Official Footer Component */}
+                                                {activePreview.footer && (
+                                                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-1 select-none">
+                                                        {activePreview.footer}
+                                                    </div>
+                                                )}
 
                                                 {/* Timestamp & Double Blue Read Checks */}
                                                 <div className="flex items-center justify-end gap-1 pt-1 text-[10px] text-[#667781] dark:text-[#8696A0]">
@@ -1379,17 +1423,19 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                                         <Phone size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input
                                             type="tel"
-                                            placeholder="+919876543210"
+                                            disabled={isReadOnly}
+                                            placeholder={isReadOnly ? "Test dispatch disabled in read-only view" : "+919876543210"}
                                             value={testPhone}
                                             onChange={e => { setTestPhone(e.target.value); setTestMsg(null); }}
-                                            className="w-full h-10 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 rounded-xl pl-9 pr-3 text-[12.5px] font-mono text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                                            className="w-full h-10 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 rounded-xl pl-9 pr-3 text-[12.5px] font-mono text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                                         />
                                     </div>
                                     <button
                                         type="button"
                                         onClick={sendTest}
-                                        disabled={sendingTest || !testPhone}
-                                        className="h-10 px-4.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[12px] font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-2xs"
+                                        disabled={isReadOnly || sendingTest || !testPhone}
+                                        title={isReadOnly ? "Disabled in read-only view" : undefined}
+                                        className="h-10 px-4.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[12px] font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 disabled:cursor-not-allowed cursor-pointer shrink-0 shadow-2xs"
                                     >
                                         <Send size={13} />
                                         <span>{sendingTest ? "Sending..." : "Dispatch Test"}</span>
@@ -1646,7 +1692,13 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                 4. TAB: NOTIFICATION TRIGGER SETTINGS
             ══════════════════════════════════════════════ */}
             {activeTab === "settings" && (
-                <div className="max-w-4xl space-y-5">
+                <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
+                    {isReadOnly && (
+                        <div className="px-4 py-3 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/40 text-violet-800 dark:text-violet-300 text-xs font-semibold flex items-center gap-2">
+                            <Eye size={14} className="shrink-0 text-violet-600 dark:text-violet-400" />
+                            <span>Read-Only View: Trigger toggles and test notifications cannot be modified in parent admin view.</span>
+                        </div>
+                    )}
                     {/* Master Switch Card */}
                     <div className="bg-white dark:bg-slate-900/70 dark:backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-white/10 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
@@ -1658,9 +1710,9 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                                 Global toggle for all outbound WhatsApp messaging. When disabled, no notifications will be dispatched to customers.
                             </p>
                         </div>
-                        <label className="flex items-center gap-3 cursor-pointer shrink-0">
+                        <label className={`flex items-center gap-3 shrink-0 ${isReadOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
                             <div
-                                onClick={() => handleSettingChange("is_enabled", !(config?.is_enabled ?? true))}
+                                onClick={() => { if (!isReadOnly) handleSettingChange("is_enabled", !(config?.is_enabled ?? true)); }}
                                 className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-300 ${config?.is_enabled ?? true ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"}`}
                             >
                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${config?.is_enabled ?? true ? "translate-x-6" : "translate-x-1"}`} />
@@ -1678,15 +1730,15 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => handleEnableAll(true)}
-                                    disabled={updatingSettings}
-                                    className="px-3.5 py-1.5 text-[12px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-xl transition-colors border border-emerald-200/70 dark:border-emerald-800/40 cursor-pointer"
+                                    disabled={isReadOnly || updatingSettings}
+                                    className="px-3.5 py-1.5 text-[12px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-xl transition-colors border border-emerald-200/70 dark:border-emerald-800/40 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 >
                                     Enable All
                                 </button>
                                 <button
                                     onClick={() => handleEnableAll(false)}
-                                    disabled={updatingSettings}
-                                    className="px-3.5 py-1.5 text-[12px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl transition-colors border border-slate-200/80 dark:border-white/5 cursor-pointer"
+                                    disabled={isReadOnly || updatingSettings}
+                                    className="px-3.5 py-1.5 text-[12px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl transition-colors border border-slate-200/80 dark:border-white/5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 >
                                     Disable All
                                 </button>
@@ -1759,8 +1811,8 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                                         </div>
 
                                         <div
-                                            onClick={() => handleSettingChange(setting.key as keyof WhatsAppOrgConfig, !isEnabled)}
-                                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 cursor-pointer ${isEnabled ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"}`}
+                                            onClick={() => { if (!isReadOnly) handleSettingChange(setting.key as keyof WhatsAppOrgConfig, !isEnabled); }}
+                                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${isReadOnly ? "opacity-60 cursor-not-allowed" : "cursor-pointer"} ${isEnabled ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"}`}
                                         >
                                             <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${isEnabled ? "translate-x-4.5" : "translate-x-0.5"}`} />
                                         </div>

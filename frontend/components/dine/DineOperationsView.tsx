@@ -69,7 +69,6 @@ export default function DineOperationsView({
     }, []);
 
     // Filter states
-    const [selectedSection, setSelectedSection] = useState<string>("all");
     const [statusFilter, setStatusFilter] = useState<"all" | "vacant" | "dining" | "alert">("all");
     const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
 
@@ -107,21 +106,21 @@ export default function DineOperationsView({
         }));
     }, [initialQueue, state?.service_lines]);
 
-    // Available unique sections
-    const sections = useMemo(() => {
-        const set = new Set<string>();
-        tables.forEach(t => {
-            if (t.section) set.add(t.section);
-        });
-        return Array.from(set);
-    }, [tables]);
 
-    // Current serving tokens mapped by assigned table line
+    // Current serving tokens mapped by assigned table line AND shared table lines
     const servingByLine = useMemo(() => {
         const map = new Map<number, ServingToken>();
         (state?.all_serving_tokens || []).forEach(token => {
-            if (token.assigned_line != null) {
+            const comps = (token as any).completed_lines || [];
+            if (token.assigned_line != null && !comps.includes(token.assigned_line)) {
                 map.set(token.assigned_line, token);
+            }
+            if (Array.isArray((token as any).shared_lines)) {
+                (token as any).shared_lines.forEach((lineId: number) => {
+                    if (!comps.includes(lineId)) {
+                        map.set(lineId, token);
+                    }
+                });
             }
         });
         return map;
@@ -202,12 +201,9 @@ export default function DineOperationsView({
         };
     }, [tables, servingByLine, waitingTokens]);
 
-    // Filtered tables by Section & Status
+    // Filtered tables by Status
     const filteredTables = useMemo(() => {
         return tables.filter(t => {
-            if (selectedSection !== "all" && (t.section || "Main Dining") !== selectedSection) {
-                return false;
-            }
             const isOccupied = servingByLine.has(t.id);
             if (statusFilter === "vacant" && isOccupied) return false;
             if (statusFilter === "dining" && !isOccupied) return false;
@@ -218,7 +214,7 @@ export default function DineOperationsView({
             }
             return true;
         });
-    }, [tables, selectedSection, statusFilter, servingByLine]);
+    }, [tables, statusFilter, servingByLine]);
 
     // Smart Match: Oldest waitlist party where pax <= table.capacity
     const getSmartMatch = useCallback((tableCapacity: number) => {
@@ -279,6 +275,7 @@ export default function DineOperationsView({
     const handleSeatCombined = async () => {
         if (!combineModeToken || combinedTableIds.length === 0 || isReadOnly) return;
         const primaryTableId = combinedTableIds[0];
+        const sharedTableIds = combinedTableIds.slice(1);
         const tableNames = combinedTableIds
             .map(id => tables.find(t => t.id === id)?.name || `T${id}`)
             .join(" + ");
@@ -287,6 +284,10 @@ export default function DineOperationsView({
         try {
             // Seat on the primary table in backend
             await api.serveSpecificToken(queueId, combineModeToken.token_number, primaryTableId);
+            // Share all additional merged tables
+            for (const lineId of sharedTableIds) {
+                await api.shareToken(queueId, combineModeToken.token_number, lineId);
+            }
             toast.success(`Seated Party #${combineModeToken.token_number} across combined [${tableNames}]`);
             setCombineModeToken(null);
             setCombinedTableIds([]);
@@ -502,40 +503,7 @@ export default function DineOperationsView({
                     </div>
                 </div>
 
-                {/* Section Filter Pills (if multiple sections exist) */}
-                {sections.length > 1 && (
-                    <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 dark:border-white/5 overflow-x-auto">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mr-1 shrink-0">Section:</span>
-                        <button
-                            type="button"
-                            onClick={() => setSelectedSection("all")}
-                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors shrink-0 cursor-pointer ${
-                                selectedSection === "all"
-                                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-                            }`}
-                        >
-                            All Sections ({tables.length})
-                        </button>
-                        {sections.map(sec => {
-                            const count = tables.filter(t => (t.section || "Main Dining") === sec).length;
-                            return (
-                                <button
-                                    key={sec}
-                                    type="button"
-                                    onClick={() => setSelectedSection(sec)}
-                                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors shrink-0 cursor-pointer ${
-                                        selectedSection === sec
-                                            ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
-                                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-                                    }`}
-                                >
-                                    {sec} ({count})
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
+
             </div>
 
             {/* ── 2. Split Workspace: 70% Floor Matrix + 30% Docked Waitlist ── */}
@@ -610,6 +578,20 @@ export default function DineOperationsView({
                         {filteredTables.map(tbl => {
                             const seatedToken = servingByLine.get(tbl.id);
                             const isOccupied = Boolean(seatedToken);
+                            const comps = (seatedToken as any)?.completed_lines || [];
+                            const tokenTables: number[] = [];
+                            if (seatedToken?.assigned_line != null && !comps.includes(seatedToken.assigned_line)) {
+                                tokenTables.push(seatedToken.assigned_line);
+                            }
+                            if (Array.isArray((seatedToken as any)?.shared_lines)) {
+                                (seatedToken as any).shared_lines.forEach((lid: number) => {
+                                    if (!comps.includes(lid) && !tokenTables.includes(lid)) {
+                                        tokenTables.push(lid);
+                                    }
+                                });
+                            }
+                            const isMerged = tokenTables.length > 1;
+
                             const smartMatch = !isOccupied ? getSmartMatch(tbl.capacity) : null;
                             const isLoading = actionLoadingId === `seat-${tbl.id}` || actionLoadingId === `free-${tbl.id}`;
                             const elapsedMins = isOccupied ? getElapsedMinutes(seatedToken?.served_at) : 0;
@@ -639,9 +621,11 @@ export default function DineOperationsView({
                                             : isSelected
                                                 ? "ring-2 ring-indigo-500 border-indigo-500 shadow-md bg-indigo-50/30 dark:bg-indigo-950/20"
                                                 : isOccupied
-                                                    ? isLingering
-                                                        ? "bg-rose-500/[0.04] dark:bg-rose-950/20 border-rose-300 dark:border-rose-900/60 ring-1 ring-rose-500/20 hover:border-rose-400"
-                                                        : "bg-amber-500/[0.03] dark:bg-amber-950/20 border-amber-200/90 dark:border-amber-900/40 hover:border-amber-300"
+                                                    ? isMerged
+                                                        ? "bg-indigo-500/[0.04] dark:bg-indigo-950/20 border-indigo-300 dark:border-indigo-800/80 ring-1 ring-indigo-500/20 hover:border-indigo-400"
+                                                        : isLingering
+                                                            ? "bg-rose-500/[0.04] dark:bg-rose-950/20 border-rose-300 dark:border-rose-900/60 ring-1 ring-rose-500/20 hover:border-rose-400"
+                                                            : "bg-amber-500/[0.03] dark:bg-amber-950/20 border-amber-200/90 dark:border-amber-900/40 hover:border-amber-300"
                                                     : "bg-emerald-500/[0.02] dark:bg-emerald-950/15 border-emerald-200/70 dark:border-emerald-900/40 hover:border-emerald-400 hover:shadow-xs"
                                     }`}
                                 >
@@ -649,19 +633,22 @@ export default function DineOperationsView({
                                     <div className="flex items-start justify-between gap-2 pb-1.5 border-b border-slate-100 dark:border-white/5">
                                         {/* Table Number Hero (Never Truncates!) */}
                                         <div className="min-w-0">
-                                            <div className="flex items-baseline gap-1.5">
+                                            <div className="flex items-baseline gap-1.5 flex-wrap">
                                                 <span className={`text-base font-black font-mono tracking-tight leading-none ${
                                                     isOccupied
-                                                        ? isLingering
-                                                            ? "text-rose-600 dark:text-rose-400"
-                                                            : "text-amber-600 dark:text-amber-400"
+                                                        ? isMerged
+                                                            ? "text-indigo-600 dark:text-indigo-400"
+                                                            : isLingering
+                                                                ? "text-rose-600 dark:text-rose-400"
+                                                                : "text-amber-600 dark:text-amber-400"
                                                         : "text-emerald-700 dark:text-emerald-400"
                                                 }`}>
                                                     T{tbl.id.toString().padStart(2, "0")}
                                                 </span>
-                                                {tbl.section && tbl.section !== "Main Dining" && (
-                                                    <span className="text-[9px] font-bold text-slate-400 truncate uppercase tracking-wider">
-                                                        {tbl.section}
+                                                {isMerged && (
+                                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300">
+                                                        <Link2 size={9} />
+                                                        {tokenTables.map(id => `T${id}`).join("+")}
                                                     </span>
                                                 )}
                                             </div>

@@ -144,3 +144,32 @@ export function fmtHourLabel(hour: number, tz: string, showAbbr = true): string 
     `${hour - 12} PM`;
   return showAbbr ? `${label} ${tzAbbr(tz)}` : label;
 }
+
+/**
+ * Return the current "business date" (YYYY-MM-DD) for an operating schedule,
+ * accounting for overnight schedules that end in the early morning (e.g. 17:00 to 04:00).
+ * If open_time > close_time and current time is <= close_time, returns yesterday's date.
+ */
+export function queueBusinessDate(
+  tz: string,
+  openTime?: string | null,
+  closeTime?: string | null
+): string {
+  const today = localTodayStr(tz);
+  if (!openTime || !closeTime) return today;
+  if (openTime > closeTime) {
+    const now = nowInTz(tz);
+    const curH = String(now.getHours()).padStart(2, "0");
+    const curM = String(now.getMinutes()).padStart(2, "0");
+    const curHM = `${curH}:${curM}`;
+    if (curHM <= closeTime) {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const y = yesterday.getFullYear();
+      const m = String(yesterday.getMonth() + 1).padStart(2, "0");
+      const d = String(yesterday.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+  }
+  return today;
+}

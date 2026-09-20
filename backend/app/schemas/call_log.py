@@ -8,6 +8,7 @@ class CallLogBase(BaseModel):
     queue_id: Optional[uuid.UUID] = None
     session_id: Optional[uuid.UUID] = None
     token_id: Optional[uuid.UUID] = None
+    appointment_id: Optional[uuid.UUID] = None
     customer_name: Optional[str] = None
     customer_phone: str
     duration_seconds: int = 0
@@ -23,6 +24,7 @@ class CallLogRead(CallLogBase):
     called_by_id: Optional[uuid.UUID] = None
     called_by_name: Optional[str] = None
     queue_name: Optional[str] = None
+    booking_reference: Optional[str] = None
     billable_minutes: int = 0
     call_status: str = "completed"
     ring_duration_seconds: int = 0

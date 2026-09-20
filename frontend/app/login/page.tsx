@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Eye, EyeOff, Building2, Mail, Lock, KeyRound, ArrowLeft } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Mail, Lock, KeyRound, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { config } from "@/lib/config";
@@ -15,7 +15,6 @@ import { ContactSalesModal } from "@/components/ContactSalesModal";
 export default function LoginPage() {
     const router = useRouter();
     const { login, isLoading, error, isAuthenticated, isHydrated, user } = useAuth();
-    const [orgSlug, setOrgSlug] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +23,6 @@ export default function LoginPage() {
     // Forgot Password Flow States
     const [viewMode, setViewMode] = useState<"login" | "request_otp" | "verify_otp">("login");
     const [forgotEmail, setForgotEmail] = useState("");
-    const [forgotOrgSlug, setForgotOrgSlug] = useState("");
     const [otp, setOtp] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -72,11 +70,11 @@ export default function LoginPage() {
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await login({ organization_slug: orgSlug, email, password, login_type: "staff" });
+            await login({ email, password, login_type: "staff" });
         } catch {
             // Error is handled in useAuth hook
         }
-    }, [login, orgSlug, email, password]);
+    }, [login, email, password]);
 
     const handleRequestOtp = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -87,7 +85,6 @@ export default function LoginPage() {
         try {
             const res = await api.requestForgotPasswordOtp({
                 email: forgotEmail,
-                organization_slug: forgotOrgSlug,
             });
             toast.success(res.message || "OTP sent to your email!");
             setViewMode("verify_otp");
@@ -118,11 +115,9 @@ export default function LoginPage() {
                 email: forgotEmail,
                 otp,
                 new_password: newPassword,
-                organization_slug: forgotOrgSlug,
             });
             toast.success(res.message || "Password reset successfully!");
             setEmail(forgotEmail);
-            if (forgotOrgSlug) setOrgSlug(forgotOrgSlug);
             setViewMode("login");
         } catch (err: unknown) {
             setForgotError(err instanceof ApiError ? err.detail : "Failed to reset password. Please check your OTP.");
@@ -216,27 +211,6 @@ export default function LoginPage() {
                                         )}
                                     </AnimatePresence>
 
-                                    <div className="space-y-1">
-                                        <label htmlFor="org-slug" className="block text-[12.5px] font-bold text-slate-800">
-                                            Branch Slug <span className="text-indigo-600">*</span>
-                                        </label>
-                                        <div className="relative flex items-center rounded-xl border-2 border-slate-300/80 bg-slate-50/50 hover:bg-slate-50/90 hover:border-slate-400 focus-within:border-indigo-600 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:bg-white transition-all">
-                                            <div className="pl-3 text-slate-400 pointer-events-none flex items-center justify-center">
-                                                <Building2 className="w-4 h-4" />
-                                            </div>
-                                            <input
-                                                id="org-slug"
-                                                type="text"
-                                                value={orgSlug}
-                                                onChange={(e) => setOrgSlug(e.target.value)}
-                                                required
-                                                autoComplete="organization"
-                                                placeholder="Enter your branch slug"
-                                                className="w-full rounded-xl bg-transparent pl-2 pr-3 py-2 text-[14px] font-medium text-slate-900 outline-none placeholder:text-slate-400/70 placeholder:font-normal transition-all focus:placeholder:opacity-0"
-                                                disabled={isLoading}
-                                            />
-                                        </div>
-                                    </div>
 
                                     <div className="space-y-1">
                                         <label htmlFor="email" className="block text-[12.5px] font-bold text-slate-800">
@@ -293,7 +267,7 @@ export default function LoginPage() {
 
                                     <button
                                         type="submit"
-                                        disabled={isLoading || !orgSlug || !email || !password}
+                                        disabled={isLoading || !email || !password}
                                         aria-label="Log in"
                                         className="w-full h-11 mt-2 bg-slate-100 text-slate-400 border border-slate-200 font-bold text-[14.5px] rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 enabled:bg-indigo-600 enabled:text-white enabled:border-transparent enabled:hover:bg-indigo-700 enabled:shadow-md enabled:shadow-indigo-500/20 enabled:active:scale-[0.99] disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
@@ -325,8 +299,6 @@ export default function LoginPage() {
                                             type="button"
                                             onClick={() => {
                                                 setForgotEmail(email);
-                                                setForgotOrgSlug(orgSlug);
-                                                setForgotError(null);
                                                 setViewMode("request_otp");
                                             }}
                                             className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors cursor-pointer"
@@ -354,7 +326,7 @@ export default function LoginPage() {
                                             Reset your password
                                         </h1>
                                         <p className="text-[14px] text-slate-600 mt-1">
-                                            Enter your email and branch slug to receive a 6-digit verification code.
+                                            Enter your email to receive a 6-digit verification code.
                                         </p>
                                     </div>
 
@@ -364,18 +336,6 @@ export default function LoginPage() {
                                             {forgotError}
                                         </div>
                                     )}
-
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[13px] font-bold text-slate-800">Branch Slug (Optional)</label>
-                                        <input
-                                            type="text"
-                                            value={forgotOrgSlug}
-                                            onChange={(e) => setForgotOrgSlug(e.target.value)}
-                                            placeholder="e.g. main-branch"
-                                            className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 outline-none transition-all placeholder:text-slate-400"
-                                            disabled={isSubmittingForgot}
-                                        />
-                                    </div>
 
                                     <div className="space-y-1.5">
                                         <label className="block text-[13px] font-bold text-slate-800">Account Email *</label>
@@ -521,7 +481,7 @@ export default function LoginPage() {
                                 </span>
                             </Link>
                         </div>
-                        {showSales && <ContactSalesModal mode="expired" email={email.trim().toLowerCase()} organizationSlug={orgSlug.trim()} password={password} onClose={() => setShowSales(false)} />}
+                        {showSales && <ContactSalesModal mode="expired" email={email.trim().toLowerCase()} organizationSlug="" password={password} onClose={() => setShowSales(false)} />}
                     </div>
                 </motion.div>
             </div>

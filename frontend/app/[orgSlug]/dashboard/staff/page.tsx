@@ -6,6 +6,7 @@ import type { StaffMember, StaffCreate, StaffUpdate, QueueResponse } from "@/typ
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { fmtDate } from "@/lib/tzformat";
 import { useAuth } from "@/hooks/useAuth";
+import { useDashBase } from "@/hooks/useDashBase";
 import { StandardPageHeader } from "@/components/StandardPageHeader";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -461,6 +462,7 @@ const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=DM+Sa
 export default function StaffPage() {
   const params = useParams();
   const orgSlug = params?.orgSlug as string;
+  const dashBase = useDashBase();
   const { user, isReadOnly } = useAuth();
   const isAdmin = user?.role === "admin";
   const canEdit = isAdmin && !isReadOnly;
@@ -616,7 +618,7 @@ export default function StaffPage() {
         <p style={{ fontSize: 15, color: "var(--q-text-muted)", maxWidth: 400, margin: "0 auto 32px", lineHeight: 1.6 }}>
           You do not have permission to view or manage staff members. This section is restricted to administrators.
         </p>
-        <Link href={`/${orgSlug}/dashboard`} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", background: "var(--q-brand)", color: "#fff", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+        <Link href={dashBase} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", background: "var(--q-brand)", color: "#fff", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           Return to Dashboard
         </Link>
@@ -639,13 +641,13 @@ export default function StaffPage() {
         {/* ── Header ── */}
         <StandardPageHeader
           breadcrumbs={[
-            { label: "Organization", href: `/${orgSlug}/dashboard` },
+            { label: "Organization", href: dashBase },
             { label: "Staff" }
           ]}
           title="Staff Management"
           subtitle="Add and manage team members who can access the dashboard."
           action={
-            canEdit && (
+            canEdit ? (
               <button
                 onClick={() => setShowCreate(true)}
                 style={{
@@ -662,7 +664,11 @@ export default function StaffPage() {
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></svg>
                 Add member
               </button>
-            )
+            ) : isGlobalOrOrgAdmin ? (
+              <span className="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 uppercase tracking-wider">
+                Read-Only View
+              </span>
+            ) : null
           }
         />
 

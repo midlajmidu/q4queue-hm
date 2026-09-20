@@ -17,19 +17,54 @@ from app.services.entitlement_service import assert_calling_allowed, Entitlement
 
 router = APIRouter()
 
+def normalize_phone_number(phone: str) -> str:
+    """
+    Normalizes local and international phone numbers into standard E.164 (+<country_code><digits>).
+    Specifically defaults 10-digit numbers starting with 6-9 to India (+91).
+    """
+    if not phone:
+        return ""
+    clean = "".join(c for c in phone if c.isdigit() or c == "+")
+    if clean.startswith("+"):
+        return clean
+    if clean.startswith("00"):
+        return "+" + clean[2:]
+    # 10-digit Indian mobile number
+    if len(clean) == 10 and clean[0] in "6789":
+        return "+91" + clean
+    # 11-digit number starting with 0
+    if len(clean) == 11 and clean.startswith("0") and clean[1] in "6789":
+        return "+91" + clean[1:]
+    # 12-digit number starting with 91
+    if len(clean) == 12 and clean.startswith("91"):
+        return "+" + clean
+    return "+" + clean if clean else ""
+
+
 def _get_public_base_url(request: Request) -> str:
     """
     Returns the publicly reachable base URL for Plivo callbacks.
     Prioritizes PUBLIC_API_URL if configured, otherwise inspects reverse-proxy headers.
+    Always ensures HTTPS for public domains (like amoebaq.com) to avoid 301 redirect drops.
     """
     settings = get_settings()
     if settings.PUBLIC_API_URL and "your-ngrok" not in settings.PUBLIC_API_URL and "localhost" not in settings.PUBLIC_API_URL:
-        return settings.PUBLIC_API_URL.rstrip("/")
+        base = settings.PUBLIC_API_URL.rstrip("/")
+        if "amoebaq.com" in base and base.startswith("http://"):
+            base = base.replace("http://", "https://", 1)
+        return base
+
     proto = request.headers.get("x-forwarded-proto") or request.url.scheme
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     if host:
+        if "amoebaq.com" in host or (proto == "http" and "localhost" not in host and "127.0.0.1" not in host):
+            proto = "https"
         return f"{proto}://{host}"
-    return str(request.base_url).rstrip("/")
+
+    base = str(request.base_url).rstrip("/")
+    if "amoebaq.com" in base and base.startswith("http://"):
+        base = base.replace("http://", "https://", 1)
+    return base
 
 
 @router.get("/webrtc/token")
@@ -68,11 +103,11 @@ async def webrtc_forward(request: Request):
     settings = get_settings()
     form_data = await request.form()
     
-    to_number = form_data.get("To")
-    if not to_number:
+    raw_to_number = form_data.get("To")
+    if not raw_to_number:
         return Response(content="<Response><Hangup/></Response>", media_type="text/xml")
         
-    to_number = to_number.replace(" ", "+")
+    to_number = normalize_phone_number(raw_to_number)
     caller_id = settings.PLIVO_SOURCE_PHONE or "+918035017361"
 
     # Extract custom headers passed from frontend Plivo SDK
@@ -82,6 +117,9 @@ async def webrtc_forward(request: Request):
     token_id = form_data.get("X-PH-TokenId", "")
 
     base_url = _get_public_base_url(request)
+    if "amoebaq.com" in base_url and base_url.startswith("http://"):
+        base_url = base_url.replace("http://", "https://", 1)
+
     action_url = f"{base_url}/api/v1/plivo/webrtc/hangup?org_id={org_id}&queue_id={queue_id}&session_id={session_id}&token_id={token_id}"
     action_url_xml = action_url.replace("&", "&amp;")
 
@@ -111,8 +149,9 @@ async def webrtc_dial_callback(
     Notifies frontend via WebSocket when the callee has actually answered the call.
     """
     form_data = await request.form()
-    event = form_data.get("Event", "")
+    event = form_data.get("Event", "").lower()
     dial_status = form_data.get("DialStatus", "").lower()
+    dial_action = form_data.get("DialAction", "").lower()
     to_number = form_data.get("To", "").replace(" ", "+")
 
     o_id = None
@@ -131,7 +170,12 @@ async def webrtc_dial_callback(
         except Exception:
             pass
 
-    if dial_status in ["answered", "answer"] or event in ["DialAnswer", "dial_answer"]:
+    is_answered = (
+        dial_status in ["answered", "answer"]
+        or dial_action in ["answer", "answered", "connected"]
+        or event in ["dialanswer", "dial_answer", "answer"]
+    )
+    if is_answered:
         if o_id:
             try:
                 from app.websocket.connection_manager import manager

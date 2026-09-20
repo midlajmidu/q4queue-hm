@@ -78,12 +78,29 @@ class Queue(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    # ── Appointment Configuration ──────────────────────────────────
+    appointment_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
+    slot_duration: Mapped[int] = mapped_column(Integer, default=15, server_default="15", nullable=False)
+    slot_capacity: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
+    advance_booking_days: Mapped[int] = mapped_column(Integer, default=14, server_default="14", nullable=False)
+    min_lead_time_mins: Mapped[int] = mapped_column(Integer, default=60, server_default="60", nullable=False)
+    approval_mode: Mapped[str] = mapped_column(String(20), default="instant", server_default="instant", nullable=False)
+    schedule_config: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    blackout_dates: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
+    checkin_window_before: Mapped[int] = mapped_column(Integer, default=30, server_default="30", nullable=False)
+    checkin_window_after: Mapped[int] = mapped_column(Integer, default=15, server_default="15", nullable=False)
+    auto_noshow_mins: Mapped[int] = mapped_column(Integer, default=30, server_default="30", nullable=False)
+    industry_template: Mapped[str] = mapped_column(String(30), default="general", server_default="general", nullable=False)
+
     # ── Relationships ──────────────────────────────────────────────
     tokens: Mapped[list["Token"]] = relationship(  # noqa: F821
         "Token", back_populates="queue", lazy="noload"
     )
     sessions: Mapped[list["Session"]] = relationship(  # noqa: F821
         "Session", back_populates="queue", lazy="noload", foreign_keys="Session.queue_id"
+    )
+    appointments: Mapped[list["Appointment"]] = relationship(  # noqa: F821
+        "Appointment", back_populates="queue", lazy="noload"
     )
 
     def __repr__(self) -> str:

@@ -10,8 +10,9 @@ import { toast } from "sonner";
 
 export default function TrashPage() {
     const tz = useBranchTimezone();
-    const { user, isReadOnly, isImpersonating } = useAuth();
-    const canRestore = user?.role === "super_admin" || user?.role === "organization_admin" || isImpersonating;
+    const { user, isReadOnly: authReadOnly, isImpersonating } = useAuth();
+    const isReadOnly = !!authReadOnly || user?.role === "super_admin" || user?.role === "organization_admin";
+    const canRestore = !isReadOnly && (user?.role === "super_admin" || user?.role === "organization_admin" || isImpersonating);
 
     const [queues, setQueues] = useState<QueueResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +39,7 @@ export default function TrashPage() {
     }, []);
 
     const handleRestore = async (queueId: string) => {
-        if (!canRestore) return;
+        if (isReadOnly || !canRestore) return;
         setRestoringId(queueId);
         try {
             await api.restoreQueue(queueId);
@@ -87,9 +88,11 @@ export default function TrashPage() {
                     </div>
                     <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight m-0">Deleted Queues</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                        {canRestore
-                            ? "Browse deleted queues. As an admin, you can restore them back to their session."
-                            : "View deleted queues from your branch. Contact an admin to restore them."}
+                        {isReadOnly
+                            ? "Viewing deleted queues in read-only mode. Restoration is disabled in parent admin view."
+                            : canRestore
+                                ? "Browse deleted queues. As an admin, you can restore them back to their session."
+                                : "View deleted queues from your branch. Contact an admin to restore them."}
                     </p>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl px-4 py-2.5">
@@ -97,7 +100,11 @@ export default function TrashPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span className="font-medium text-[13px]">
-                        {canRestore ? "Restoration is subject to queue limits per session." : "Only Global Admins can restore queues."}
+                        {isReadOnly
+                            ? "Read-Only View: Restoring queues is disabled in parent admin view."
+                            : canRestore
+                                ? "Restoration is subject to queue limits per session."
+                                : "Only Global Admins can restore queues."}
                     </span>
                 </div>
             </div>
@@ -243,7 +250,11 @@ export default function TrashPage() {
                                             )}
                                         </td>
                                         <td className="py-4 px-5 text-right">
-                                            {canRestore ? (
+                                            {isReadOnly ? (
+                                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 uppercase tracking-wider">
+                                                    Read-Only
+                                                </span>
+                                            ) : canRestore ? (
                                                 <button
                                                     onClick={() => handleRestore(queue.id)}
                                                     disabled={restoringId === queue.id}

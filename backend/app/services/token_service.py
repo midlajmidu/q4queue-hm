@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.queue import Queue
 from app.models.token import Token, TokenStatus
 from app.models.session import Session
+from app.models.appointment import Appointment, AppointmentStatus
 from app.schemas.queue import JoinResponse, NextResponse, JoinRequest
 from app.websocket.connection_manager import manager as ws_manager
 from app.websocket.pubsub import publish_queue_update
@@ -93,17 +94,10 @@ async def _require_current_operational_session(
         raise ValueError("Queue is not active")
 
     session = await db.get(Session, queue.token_session_id)
-    from app.models.organization import Organization
-    from app.core.tz_helpers import queue_business_date, safe_zoneinfo
-
-    org = await db.scalar(select(Organization).where(Organization.id == queue.org_id))
-    local_now = datetime.now(safe_zoneinfo(org.timezone if org and org.timezone else "Asia/Kolkata"))
-    business_date = queue_business_date(local_now, queue.open_time, queue.close_time)
     if (
         session is None
         or session.queue_id != queue.id
         or session.org_id != queue.org_id
-        or session.session_date != business_date
         or not session.is_active
     ):
         raise ValueError("This queue session is closed")
@@ -521,7 +515,15 @@ async def join_queue(
         customer_name=data.name.strip(),
         customer_age=data.age,
         customer_phone=phone_cleaned,
-        pax_count=data.pax_count,
+        pax_count=(
+            data.pax_count
+            if (data.pax_count and data.pax_count > 1)
+            else (
+                int(str(data.custom_data.get("pax") or data.custom_data.get("pax_count") or data.custom_data.get("no_of_pax") or data.custom_data.get("number_of_pax")).strip())
+                if (data.custom_data and any(k in data.custom_data for k in ("pax", "pax_count", "no_of_pax", "number_of_pax")) and str(data.custom_data.get("pax") or data.custom_data.get("pax_count") or data.custom_data.get("no_of_pax") or data.custom_data.get("number_of_pax")).strip().isdigit())
+                else (data.pax_count or 1)
+            )
+        ),
         called_via_invite=False,
         entry_type=data.entry_type,
         is_whatsapp_enabled=data.send_whatsapp,
@@ -657,6 +659,12 @@ async def call_next(
                 currently_serving.completed_at = now
                 currently_serving.completed_by_id = user_id
                 queue.total_served += 1
+                if getattr(currently_serving, "entry_type", None) == "appointment":
+                    await db.execute(
+                        update(Appointment)
+                        .where(Appointment.token_id == currently_serving.id)
+                        .values(status=AppointmentStatus.completed)
+                    )
             elif target_status == TokenStatus.deleted:
                 currently_serving.deleted_at = now
             else:
@@ -754,6 +762,13 @@ async def call_next(
         # In multi-lane mode, assign the token to the specified line
         if line_number is not None:
             next_token.assigned_line = line_number
+
+        if getattr(next_token, "entry_type", None) == "appointment":
+            await db.execute(
+                update(Appointment)
+                .where(Appointment.token_id == next_token.id)
+                .values(status=AppointmentStatus.serving)
+            )
 
         await _log_audit(
             db,
@@ -890,10 +905,26 @@ async def share_token(
     if line_number in comps:
         raise ValueError(f"Token has already completed service on lane {line_number}")
 
-    # Limit total serving lanes to pax_count
+    # Ensure target line is not occupied by another active serving token
+    occ_result = await db.execute(
+        select(Token).where(
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,
+            Token.session_id == queue.token_session_id,
+            Token.status == TokenStatus.serving,
+            Token.id != token.id,
+        )
+    )
+    for other in occ_result.scalars().all():
+        other_comps = getattr(other, "completed_lines", []) or []
+        if (other.assigned_line == line_number or line_number in (getattr(other, "shared_lines", []) or [])) and line_number not in other_comps:
+            raise ValueError(f"Table/Lane {line_number} is currently occupied by Token #{other.token_number}")
+
+    # Limit total serving lanes to pax_count (only applies to standard counter queues, not dining table merges)
+    is_dine = bool(queue.table_config and len(queue.table_config) > 0)
     pax_count = getattr(token, "pax_count", 1) or 1
     current_lanes = 1 + len(shared)
-    if current_lanes >= pax_count:
+    if not is_dine and current_lanes >= pax_count:
         raise ValueError(f"Token cannot be shared to more than {pax_count} lane(s) based on Pax count ({pax_count})")
 
     # Add the lane to shared_lines
