@@ -39,6 +39,21 @@ async def create_queue(
     if data.table_config and len(data.table_config) > 0:
         service_lines = len(data.table_config)
 
+    from app.models.organization import Organization
+    org = await db.get(Organization, org_id)
+    is_dine = bool((org and getattr(org, "branch_type", "standard") == "dine") or (data.table_config and len(data.table_config) > 0))
+
+    fields = list(data.custom_fields) if data.custom_fields else []
+    if is_dine and not any(f.get("key") in ("pax", "pax_count", "no_of_pax") for f in fields):
+        fields.append({
+            "id": "default_pax",
+            "key": "pax",
+            "label": "Number of Pax",
+            "type": "number",
+            "required": True,
+            "order": len(fields),
+        })
+
     queue = Queue(
         org_id=org_id,
         name=data.name,
@@ -47,6 +62,7 @@ async def create_queue(
         current_token_number=data.starting_sequence - 1,
         service_lines=service_lines,
         table_config=data.table_config or [],
+        custom_fields=fields if fields else None,
         open_time=data.open_time,
         close_time=data.close_time,
         appointment_enabled=bool(data.appointment_enabled),

@@ -1276,6 +1276,22 @@ async def update_organization(
     org.is_active = body.is_active
     if body.branch_type is not None and body.branch_type in ("standard", "dine"):
         org.branch_type = body.branch_type
+        if body.branch_type == "dine":
+            from sqlalchemy.orm.attributes import flag_modified
+            queues_res = await db.execute(select(Queue).where(Queue.org_id == org.id, Queue.is_deleted == False))
+            for q in queues_res.scalars().all():
+                fields = list(q.custom_fields or [])
+                if not any(f.get("key") in ("pax", "pax_count", "no_of_pax", "number_of_pax") for f in fields):
+                    fields.append({
+                        "id": f"field_pax_default_{q.id}",
+                        "key": "pax",
+                        "label": "Number of Pax",
+                        "type": "number",
+                        "required": True,
+                        "order": len(fields),
+                    })
+                    q.custom_fields = fields
+                    flag_modified(q, "custom_fields")
     
     if body.max_sessions is not None:
         org.max_sessions = body.max_sessions

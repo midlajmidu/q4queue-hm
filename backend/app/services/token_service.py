@@ -515,7 +515,15 @@ async def join_queue(
         customer_name=data.name.strip(),
         customer_age=data.age,
         customer_phone=phone_cleaned,
-        pax_count=data.pax_count,
+        pax_count=(
+            data.pax_count
+            if (data.pax_count and data.pax_count > 1)
+            else (
+                int(str(data.custom_data.get("pax") or data.custom_data.get("pax_count") or data.custom_data.get("no_of_pax") or data.custom_data.get("number_of_pax")).strip())
+                if (data.custom_data and any(k in data.custom_data for k in ("pax", "pax_count", "no_of_pax", "number_of_pax")) and str(data.custom_data.get("pax") or data.custom_data.get("pax_count") or data.custom_data.get("no_of_pax") or data.custom_data.get("number_of_pax")).strip().isdigit())
+                else (data.pax_count or 1)
+            )
+        ),
         called_via_invite=False,
         entry_type=data.entry_type,
         is_whatsapp_enabled=data.send_whatsapp,
@@ -897,10 +905,26 @@ async def share_token(
     if line_number in comps:
         raise ValueError(f"Token has already completed service on lane {line_number}")
 
-    # Limit total serving lanes to pax_count
+    # Ensure target line is not occupied by another active serving token
+    occ_result = await db.execute(
+        select(Token).where(
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,
+            Token.session_id == queue.token_session_id,
+            Token.status == TokenStatus.serving,
+            Token.id != token.id,
+        )
+    )
+    for other in occ_result.scalars().all():
+        other_comps = getattr(other, "completed_lines", []) or []
+        if (other.assigned_line == line_number or line_number in (getattr(other, "shared_lines", []) or [])) and line_number not in other_comps:
+            raise ValueError(f"Table/Lane {line_number} is currently occupied by Token #{other.token_number}")
+
+    # Limit total serving lanes to pax_count (only applies to standard counter queues, not dining table merges)
+    is_dine = bool(queue.table_config and len(queue.table_config) > 0)
     pax_count = getattr(token, "pax_count", 1) or 1
     current_lanes = 1 + len(shared)
-    if current_lanes >= pax_count:
+    if not is_dine and current_lanes >= pax_count:
         raise ValueError(f"Token cannot be shared to more than {pax_count} lane(s) based on Pax count ({pax_count})")
 
     # Add the lane to shared_lines
