@@ -1,0 +1,3 @@
+[submodule "landing"]
+	path = landing
+	url = https://github.com/q4queuee-ui/q4queue-landing.git

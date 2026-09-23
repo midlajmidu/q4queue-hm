@@ -83,6 +83,18 @@ const QD_STYLES = `
     letter-spacing: -0.01em;
   }
 
+  .hide-scrollbar::-webkit-scrollbar,
+  .scrollbar-none::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  .hide-scrollbar,
+  .scrollbar-none {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+
   /* ── Sidebar ── */
   .qd-sidebar {
     display: flex;
@@ -1519,7 +1531,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                 </aside>
 
                 {/* ── Main Content ──────────────────────────────────── */}
-                <div className="bg-gray-50 dark:bg-transparent" style={{ flex: 1, overflowY: "auto" }} onScroll={handleScroll}>
+                <div className={`bg-gray-50 dark:bg-transparent ${isDineMode ? "hide-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : ""}`} style={{ flex: 1, overflowY: "auto" }} onScroll={handleScroll}>
                     <div className="px-4 py-6 md:px-7 md:py-7 w-full" style={{ maxWidth: isDineMode ? "100%" : 1160, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
 
                         {/* ═══════════════════════════════════════════
@@ -1698,7 +1710,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     : "grid grid-cols-1 lg:grid-cols-3 gap-5 lg:h-[calc(100vh-theme(spacing.36))]"
                                 }>
                                     {/* Left: Serving + Actions (Full width in Dine Mode) */}
-                                    <div className={`${isDineMode ? "w-full flex-1" : "lg:col-span-2"} flex flex-col gap-4 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1 pb-4 relative`}>
+                                    <div className={`${isDineMode ? "w-full flex-1 hide-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pr-0" : "lg:col-span-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1"} flex flex-col gap-4 lg:overflow-y-auto pb-4 relative`}>
 
                                         {/* Hero – Now Serving or Service Lanes Grid */}
                                         {(() => {
@@ -2848,7 +2860,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                     title="Send WhatsApp Update?"
                     message={`Do you want to send a WhatsApp notification to ${addName.trim()} containing their token number and tracking link?`}
                     confirmLabel="Send with WhatsApp"
-                    confirmVariant="primary"
+                    confirmVariant="whatsapp"
                     cancelLabel="Skip WhatsApp"
                     onConfirm={() => handleConfirmAddCustomer(true)}
                     onCancel={() => handleConfirmAddCustomer(false)}
