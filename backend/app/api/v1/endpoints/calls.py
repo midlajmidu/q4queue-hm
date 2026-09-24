@@ -1,6 +1,7 @@
 import uuid
 import csv
 import io
+import logging
 from typing import Optional
 from datetime import date, datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -19,8 +20,21 @@ from app.schemas.call_log import (
     PaginatedCallLogsResponse,
 )
 from app.services import call_log_service
+from app.services.plivo_sync_service import sync_plivo_calls
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+@router.post("/sync")
+async def trigger_plivo_call_sync(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Explicitly trigger synchronization of Call Detail Records from Plivo."""
+    org_id = current_user.org_id
+    synced = await sync_plivo_calls(db, org_id=org_id, force=True)
+    return {"status": "success", "synced": synced}
 
 
 @router.post("/save", response_model=CallLogRead)
@@ -33,7 +47,27 @@ async def log_call(
     Log a WebRTC call from the frontend client.
     Reconciles with any authoritative Plivo webhook log created within the last 3 minutes.
     """
-    org_id = call_in.organization_id or current_user.org_id
+    # Enforce strict tenant isolation: non-superadmin users cannot log calls to arbitrary organizations
+    if getattr(current_user, "role", "") == "super_admin":
+        org_id = call_in.organization_id or current_user.org_id
+    elif current_user.org_id:
+        org_id = current_user.org_id
+    elif current_user.parent_organization_id and call_in.organization_id:
+        # Verify the target branch belongs to this parent organization
+        p_res = await db.execute(
+            select(Organization.id).where(
+                and_(
+                    Organization.id == call_in.organization_id,
+                    Organization.parent_organization_id == current_user.parent_organization_id,
+                )
+            )
+        )
+        if not p_res.scalar_one_or_none():
+            raise HTTPException(status_code=403, detail="Branch does not belong to your organization")
+        org_id = call_in.organization_id
+    else:
+        org_id = current_user.org_id
+
     if not org_id:
         raise HTTPException(status_code=400, detail="User does not belong to any organization")
 
@@ -125,6 +159,12 @@ async def get_call_logs(
     org_id = current_user.org_id
     if not org_id:
         raise HTTPException(status_code=400, detail="User does not belong to any organization")
+
+    # Cooldown-throttled sync from Plivo (max once per 10s)
+    try:
+        await sync_plivo_calls(db, org_id=org_id)
+    except Exception as e:
+        logger.warning(f"Background Plivo sync in get_call_logs failed: {e}")
     
     return await call_log_service.get_call_logs_paginated(
         db,
@@ -153,6 +193,12 @@ async def get_call_logs_overview(
     org_id = current_user.org_id
     if not org_id:
         raise HTTPException(status_code=400, detail="User does not belong to any organization")
+
+    # Cooldown-throttled sync from Plivo (max once per 10s)
+    try:
+        await sync_plivo_calls(db, org_id=org_id)
+    except Exception as e:
+        logger.warning(f"Background Plivo sync in get_call_logs_overview failed: {e}")
 
     return await call_log_service.get_call_logs_overview(
         db,

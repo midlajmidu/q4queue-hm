@@ -130,7 +130,7 @@ export default function WebRTCCallModal({
 
         // Don't save a phantom failed customer call if it was just a local microphone permission block
         if (!isMediaDeniedRef.current) {
-            await saveCallRecord();
+            await saveCallRecordRef.current();
         }
 
         if (plivoClientRef.current) {
@@ -356,6 +356,7 @@ const normalizePhoneE164 = (phone: string): string => {
             client.removeAllListeners?.('onCallRemoteRinging');
             client.removeAllListeners?.('onCallAnswered');
             client.removeAllListeners?.('onMediaConnected');
+            client.removeAllListeners?.('remoteAudioStatus');
             client.removeAllListeners?.('onCallFailed');
             client.removeAllListeners?.('onCallTerminated');
             client.removeAllListeners?.('onMediaPermission');
@@ -373,27 +374,36 @@ const normalizePhoneE164 = (phone: string): string => {
             });
 
             client.on('onCallConnected', (callInfo: any) => {
-                console.log("Plivo onCallConnected (remote ringing started):", callInfo);
-                setStatus("Ringing");
-            });
-
-            client.on('onCallRemoteRinging', (callInfo: any) => {
-                console.log("Plivo onCallRemoteRinging:", callInfo);
-                setStatus("Ringing");
-            });
-
-            client.on('onMediaConnected', (callInfo: any) => {
-                console.log("Plivo onMediaConnected (audio stream ready for ringtone):", callInfo);
-                // Early media connects so the agent hears the ringing tone.
-                // DO NOT start call timer here — wait until customer actually picks up!
+                console.log("Plivo onCallConnected (remote party ringing):", callInfo);
                 if (!isCalleeAnsweredRef.current) {
                     setStatus("Ringing");
                 }
             });
 
+            client.on('onCallRemoteRinging', (callInfo: any) => {
+                console.log("Plivo onCallRemoteRinging:", callInfo);
+                if (!isCalleeAnsweredRef.current) {
+                    setStatus("Ringing");
+                }
+            });
+
+            client.on('onMediaConnected', (callInfo: any) => {
+                console.log("Plivo onMediaConnected (audio stream ready for ringback):", callInfo);
+                if (!isCalleeAnsweredRef.current) {
+                    setStatus("Ringing");
+                }
+            });
+
+            client.on('remoteAudioStatus', (hasAudio: boolean) => {
+                console.log("Plivo remoteAudioStatus (callee audio active):", hasAudio);
+                if (hasAudio) {
+                    markCallConnectedRef.current();
+                }
+            });
+
             client.on('onCallAnswered', (callInfo: any) => {
-                console.log("Plivo onCallAnswered (Customer answered):", callInfo);
-                markCallConnected(callInfo);
+                console.log("Plivo onCallAnswered:", callInfo);
+                markCallConnectedRef.current(callInfo);
             });
 
             client.on('onMediaPermission', (event: any) => {
@@ -439,7 +449,7 @@ const normalizePhoneE164 = (phone: string): string => {
                 }
                 setTimeout(() => {
                     if (!isMediaDeniedRef.current) {
-                        cleanupCall();
+                        cleanupCallRef.current();
                     }
                 }, 2500);
             });
@@ -450,7 +460,7 @@ const normalizePhoneE164 = (phone: string): string => {
                     // DO NOT close the modal! Keep open for permission guidance
                     return;
                 }
-                cleanupCall();
+                cleanupCallRef.current();
             });
 
             if (client.isLoggedIn) {
@@ -495,6 +505,18 @@ const normalizePhoneE164 = (phone: string): string => {
             setIsRetryingMic(false);
         }
     };
+
+    const initPlivoRef = useRef(initPlivo);
+    initPlivoRef.current = initPlivo;
+
+    const cleanupCallRef = useRef(cleanupCall);
+    cleanupCallRef.current = cleanupCall;
+
+    const saveCallRecordRef = useRef(saveCallRecord);
+    saveCallRecordRef.current = saveCallRecord;
+
+    const markCallConnectedRef = useRef(markCallConnected);
+    markCallConnectedRef.current = markCallConnected;
 
     useEffect(() => {
         if (!isOpen) return;
@@ -550,7 +572,7 @@ const normalizePhoneE164 = (phone: string): string => {
             const payload = e.detail;
             if (payload && isMatchingPhone(payload.customer_phone, customerPhone)) {
                 setStatus("Call Ended");
-                setTimeout(() => cleanupCall(), 1200);
+                setTimeout(() => cleanupCallRef.current(), 1200);
             }
         };
 
@@ -558,7 +580,7 @@ const normalizePhoneE164 = (phone: string): string => {
             const payload = e.detail;
             console.log("WebSocket event plivo_call_answered:", payload);
             if (payload && isMatchingPhone(payload.customer_phone, customerPhone)) {
-                markCallConnected(payload);
+                markCallConnectedRef.current(payload);
             }
         };
 
@@ -576,11 +598,11 @@ const normalizePhoneE164 = (phone: string): string => {
             script.src = "https://cdn.plivo.com/sdk/browser/v2/plivo.min.js";
             script.async = true;
             script.onload = () => {
-                initPlivo();
+                initPlivoRef.current();
             };
             document.body.appendChild(script);
         } else {
-            initPlivo();
+            initPlivoRef.current();
         }
 
         return () => {
@@ -592,16 +614,22 @@ const normalizePhoneE164 = (phone: string): string => {
                 try {
                     client.removeAllListeners?.('onLogin');
                     client.removeAllListeners?.('onLoginFailed');
+                    client.removeAllListeners?.('onCalling');
+                    client.removeAllListeners?.('onCallConnected');
                     client.removeAllListeners?.('onCallRemoteRinging');
                     client.removeAllListeners?.('onCallAnswered');
                     client.removeAllListeners?.('onMediaConnected');
+                    client.removeAllListeners?.('remoteAudioStatus');
                     client.removeAllListeners?.('onCallFailed');
                     client.removeAllListeners?.('onCallTerminated');
                     client.removeAllListeners?.('onMediaPermission');
                 } catch (e) { }
             }
+            if (!hasLoggedRef.current && !isMediaDeniedRef.current && callStartTimeRef.current > 0) {
+                saveCallRecordRef.current();
+            }
         };
-    }, [isOpen, customerPhone, initPlivo, markCallConnected, cleanupCall]);
+    }, [isOpen, customerPhone]);
 
     if (!isOpen) return null;
 

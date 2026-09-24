@@ -310,6 +310,12 @@ export const api = {
         });
     },
 
+    syncCalls(): Promise<{ status: string; synced: number }> {
+        return request("/calls/sync", {
+            method: "POST",
+        });
+    },
+
     getCallLogs(params?: { queue_id?: string; staff_id?: string; search?: string; page?: number; limit?: number; startDate?: string; endDate?: string; start_date?: string; end_date?: string }): Promise<PaginatedCallLogsResponse> {
         const queryParams = new URLSearchParams();
         if (params?.queue_id) queryParams.append("queue_id", params.queue_id);

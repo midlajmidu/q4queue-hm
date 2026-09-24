@@ -23,6 +23,7 @@ from app.schemas.call_log import (
     ParentOrgCallLogItem,
     PaginatedCallLogsResponse,
 )
+from app.services.plivo_sync_service import sync_plivo_calls
 
 router = APIRouter()
 
@@ -57,6 +58,12 @@ async def get_parent_org_calling_overview(
     """
     if not current_user.parent_organization_id:
         raise HTTPException(status_code=400, detail="User is not linked to any Parent Organization")
+
+    # Best-effort background sync of recent Plivo calls (cooldown-throttled)
+    try:
+        await sync_plivo_calls(db)
+    except Exception:
+        pass
 
     global_rate, global_currency = await _get_global_call_rate(db)
 
@@ -173,6 +180,14 @@ async def get_parent_org_calling_logs(
     branch_map = {b.id: b for b in branches}
 
     target_branch_ids = [branch_id] if (branch_id and branch_id in branch_map) else list(branch_map.keys())
+    if not target_branch_ids:
+        return {
+            "items": [],
+            "total": 0,
+            "page": page,
+            "limit": limit,
+            "pages": 0,
+        }
 
     query = select(CallLog).where(CallLog.organization_id.in_(target_branch_ids))
     query = _apply_date_filters(query, start_date, end_date)
@@ -273,6 +288,29 @@ async def export_parent_org_calling_csv(
     branch_map = {b.id: b for b in branches}
 
     target_branch_ids = [branch_id] if (branch_id and branch_id in branch_map) else list(branch_map.keys())
+    if not target_branch_ids:
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "Date & Time",
+            "Branch",
+            "Staff Caller",
+            "Customer Phone",
+            "Customer Name",
+            "Queue",
+            "Status",
+            "Talk Duration (s)",
+            "Ring Duration (s)",
+            "Billable Mins",
+            "Rate/min",
+            "Cost Amount",
+        ])
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=organization_calling_export.csv"},
+        )
 
     query = select(CallLog).where(CallLog.organization_id.in_(target_branch_ids))
     query = _apply_date_filters(query, start_date, end_date)

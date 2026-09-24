@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     WHATSAPP_API_VERSION: str = "v21.0"
 
     # ── Plivo WebRTC ──────────────────────────────────────────────
+    PLIVO_AUTH_ID: str = ""
+    PLIVO_AUTH_TOKEN: str = ""
     PLIVO_WEBRTC_USERNAME: str = ""
     PLIVO_WEBRTC_PASSWORD: str = ""
     PLIVO_SOURCE_PHONE: str = "+918035017361"
