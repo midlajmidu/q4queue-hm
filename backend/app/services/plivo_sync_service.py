@@ -9,13 +9,14 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 import uuid
 import httpx
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.models.call_log import CallLog
 from app.models.organization import Organization
 from app.models.user import User
+from app.models.token import Token
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +174,6 @@ async def sync_plivo_calls(db: AsyncSession, org_id: Optional[uuid.UUID] = None,
                 synced_count += 1
         else:
             # Try to resolve true branch, queue, and customer details via recent tokens
-            from app.models.token import Token
             digits_tail = "".join(filter(str.isdigit, raw_to))[-10:] if len(raw_to) >= 10 else raw_to
             t_query = select(Token).where(
                 Token.customer_phone.like(f"%{digits_tail}")
