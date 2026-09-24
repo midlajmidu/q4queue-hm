@@ -130,7 +130,7 @@ export default function WebRTCCallModal({
 
         // Don't save a phantom failed customer call if it was just a local microphone permission block
         if (!isMediaDeniedRef.current) {
-            await saveCallRecordRef.current();
+            await saveCallRecord();
         }
 
         if (plivoClientRef.current) {

@@ -118,6 +118,14 @@ class ConnectionManager:
         """Total WebSocket connections across all channels."""
         return sum(len(s) for s in self._connections.values())
 
+    async def broadcast_to_org(self, org_id: str, message: dict[str, Any]) -> None:
+        """Broadcast message to all channels belonging to this organization."""
+        prefix = f"org_{org_id}_"
+        async with self._lock:
+            target_channels = [c for c in self._connections.keys() if c.startswith(prefix)]
+        for ch in target_channels:
+            await self.broadcast(ch, message)
+
     @property
     def active_channels(self) -> list[str]:
         """List of channels with at least one client."""

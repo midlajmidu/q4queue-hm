@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.call_log import CallLog
 from app.models.queue import Queue
 from app.models.organization import Organization
+from app.models.token import Token
 
 router = APIRouter()
 
@@ -102,11 +103,12 @@ async def webrtc_forward(request: Request):
     to_number = normalize_phone_number(raw_to_number)
     caller_id = settings.PLIVO_SOURCE_PHONE or "+918035017361"
 
-    # Extract custom headers passed from frontend Plivo SDK
-    org_id = form_data.get("X-PH-OrgId", "")
-    queue_id = form_data.get("X-PH-QueueId", "")
-    session_id = form_data.get("X-PH-SessionId", "")
-    token_id = form_data.get("X-PH-TokenId", "")
+    # Extract custom headers passed from frontend Plivo SDK case-insensitively
+    form_ci = {str(k).lower().replace("-", "").replace("_", ""): str(v) for k, v in form_data.items()}
+    org_id = form_ci.get("xphorgid") or form_ci.get("orgid") or form_data.get("X-PH-OrgId") or request.query_params.get("org_id", "")
+    queue_id = form_ci.get("xphqueueid") or form_ci.get("queueid") or form_data.get("X-PH-QueueId") or request.query_params.get("queue_id", "")
+    session_id = form_ci.get("xphsessionid") or form_ci.get("sessionid") or form_data.get("X-PH-SessionId") or request.query_params.get("session_id", "")
+    token_id = form_ci.get("xphtokenid") or form_ci.get("tokenid") or form_data.get("X-PH-TokenId") or request.query_params.get("token_id", "")
 
     base_url = _get_public_base_url(request)
     if "amoebaq.com" in base_url and base_url.startswith("http://"):
@@ -236,6 +238,16 @@ async def webrtc_hangup(
     to_number = form_data.get("To", "").replace(" ", "+")
     
     try:
+        form_ci = {str(k).lower().replace("-", "").replace("_", ""): str(v) for k, v in form_data.items()}
+        if not org_id:
+            org_id = form_ci.get("xphorgid") or form_ci.get("orgid") or ""
+        if not queue_id:
+            queue_id = form_ci.get("xphqueueid") or form_ci.get("queueid") or ""
+        if not token_id:
+            token_id = form_ci.get("xphtokenid") or form_ci.get("tokenid") or ""
+        if not session_id:
+            session_id = form_ci.get("xphsessionid") or form_ci.get("sessionid") or ""
+
         q_id = uuid.UUID(queue_id) if queue_id else None
         
         o_id = None
@@ -244,6 +256,17 @@ async def webrtc_hangup(
                 o_id = uuid.UUID(org_id)
         except ValueError:
             pass
+
+        if token_id and not o_id:
+            try:
+                tok_res = await db.execute(select(Token).where(Token.id == uuid.UUID(token_id)))
+                tok = tok_res.scalar_one_or_none()
+                if tok and tok.org_id:
+                    o_id = tok.org_id
+                    if not q_id and tok.queue_id:
+                        q_id = tok.queue_id
+            except Exception:
+                pass
 
         if q_id and not o_id:
             result = await db.execute(select(Queue).where(Queue.id == q_id))
