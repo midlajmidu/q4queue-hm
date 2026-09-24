@@ -13,6 +13,7 @@ from app.db.deps import get_db
 from app.core.deps import get_current_active_user
 from app.models.user import User
 from app.models.call_log import CallLog
+from app.models.organization import Organization
 from app.schemas.call_log import (
     CallLogCreate,
     CallLogRead,
