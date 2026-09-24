@@ -103,7 +103,7 @@ export default function WebRTCCallModal({
         }
 
         try {
-            await api.logCall({
+            const logged = await api.logCall({
                 organization_id: organizationId || undefined,
                 queue_id: queueId || undefined,
                 session_id: sessionId || undefined,
@@ -116,6 +116,7 @@ export default function WebRTCCallModal({
                 call_status,
             });
             console.log("Call logged successfully:", { duration_seconds: duration, ring_duration_seconds: ringDuration, call_status });
+            window.dispatchEvent(new CustomEvent("call_record_updated", { detail: logged }));
         } catch (err) {
             console.error("Failed to log call record:", err);
         }

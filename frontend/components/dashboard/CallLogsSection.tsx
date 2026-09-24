@@ -263,6 +263,30 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
         }
     }, [subTab, fetchOverview, fetchHistory]);
 
+    // Live real-time call update listeners
+    useEffect(() => {
+        const handleLivelyRefresh = () => {
+            fetchOverview();
+            fetchHistory();
+        };
+
+        window.addEventListener("plivo_call_hung_up", handleLivelyRefresh);
+        window.addEventListener("call_record_updated", handleLivelyRefresh);
+
+        // Auto-refresh every 8s while page is visible
+        const timer = setInterval(() => {
+            if (typeof document !== "undefined" && document.visibilityState === "visible") {
+                handleLivelyRefresh();
+            }
+        }, 8000);
+
+        return () => {
+            window.removeEventListener("plivo_call_hung_up", handleLivelyRefresh);
+            window.removeEventListener("call_record_updated", handleLivelyRefresh);
+            clearInterval(timer);
+        };
+    }, [fetchOverview, fetchHistory]);
+
     const handleExportCSV = async () => {
         setExporting(true);
         try {

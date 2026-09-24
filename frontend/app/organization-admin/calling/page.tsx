@@ -151,6 +151,32 @@ export default function OrgAdminCallingPage() {
         loadLogs();
     }, [loadLogs]);
 
+    // Live real-time call update listeners
+    useEffect(() => {
+        const handleLivelyRefresh = () => {
+            loadOverview();
+            if (subTab === "logs") {
+                loadLogs();
+            }
+        };
+
+        window.addEventListener("plivo_call_hung_up", handleLivelyRefresh);
+        window.addEventListener("call_record_updated", handleLivelyRefresh);
+
+        // Auto-refresh every 8s while page is visible
+        const timer = setInterval(() => {
+            if (typeof document !== "undefined" && document.visibilityState === "visible") {
+                handleLivelyRefresh();
+            }
+        }, 8000);
+
+        return () => {
+            window.removeEventListener("plivo_call_hung_up", handleLivelyRefresh);
+            window.removeEventListener("call_record_updated", handleLivelyRefresh);
+            clearInterval(timer);
+        };
+    }, [loadOverview, loadLogs, subTab]);
+
     // Export CSV
     const handleExport = async () => {
         setExporting(true);
