@@ -86,7 +86,7 @@ async def sync_plivo_calls(db: AsyncSession, org_id: Optional[uuid.UUID] = None,
     target_org_id = org_id
     if not target_org_id:
         res = await db.execute(select(Organization.id).where(Organization.is_active == True).limit(1))
-        target_org_id = res.scalar_one_or_none()
+        target_org_id = res.scalars().first()
 
     if not target_org_id:
         logger.warning("No active organization found to attach synced calls.")
@@ -96,7 +96,7 @@ async def sync_plivo_calls(db: AsyncSession, org_id: Optional[uuid.UUID] = None,
     user_res = await db.execute(
         select(User.id).where(User.org_id == target_org_id).order_by(User.created_at.asc()).limit(1)
     )
-    default_user_id = user_res.scalar_one_or_none()
+    default_user_id = user_res.scalars().first()
 
     synced_count = 0
 
@@ -145,7 +145,7 @@ async def sync_plivo_calls(db: AsyncSession, org_id: Optional[uuid.UUID] = None,
                     )
                 ).limit(1)
             )
-            existing_log = existing_res.scalar_one_or_none()
+            existing_log = existing_res.scalars().first()
 
         if not existing_log:
             existing_res = await db.execute(
@@ -156,9 +156,9 @@ async def sync_plivo_calls(db: AsyncSession, org_id: Optional[uuid.UUID] = None,
                         CallLog.created_at >= created_at - time_margin,
                         CallLog.created_at <= created_at + time_margin,
                     )
-                )
+                ).limit(1)
             )
-            existing_log = existing_res.scalar_one_or_none()
+            existing_log = existing_res.scalars().first()
 
         if existing_log:
             # Update duration and status if it was incomplete
@@ -184,7 +184,7 @@ async def sync_plivo_calls(db: AsyncSession, org_id: Optional[uuid.UUID] = None,
                 ).order_by(desc(Token.created_at)).limit(1)
 
             t_res = await db.execute(t_query)
-            matched_token = t_res.scalar_one_or_none()
+            matched_token = t_res.scalars().first()
 
             actual_org_id = matched_token.org_id if matched_token else target_org_id
             actual_queue_id = matched_token.queue_id if matched_token else None

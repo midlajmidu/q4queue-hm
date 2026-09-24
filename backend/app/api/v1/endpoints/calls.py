@@ -161,12 +161,6 @@ async def get_call_logs(
     if not org_id:
         raise HTTPException(status_code=400, detail="User does not belong to any organization")
 
-    # Cooldown-throttled sync from Plivo (max once per 10s)
-    try:
-        await sync_plivo_calls(db, org_id=org_id)
-    except Exception as e:
-        logger.warning(f"Background Plivo sync in get_call_logs failed: {e}")
-    
     return await call_log_service.get_call_logs_paginated(
         db,
         org_id=org_id,
@@ -194,12 +188,6 @@ async def get_call_logs_overview(
     org_id = current_user.org_id
     if not org_id:
         raise HTTPException(status_code=400, detail="User does not belong to any organization")
-
-    # Cooldown-throttled sync from Plivo (max once per 10s)
-    try:
-        await sync_plivo_calls(db, org_id=org_id)
-    except Exception as e:
-        logger.warning(f"Background Plivo sync in get_call_logs_overview failed: {e}")
 
     return await call_log_service.get_call_logs_overview(
         db,
