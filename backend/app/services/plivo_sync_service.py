@@ -130,13 +130,15 @@ async def sync_plivo_calls(db: AsyncSession, org_id: Optional[uuid.UUID] = None,
         # Check if record already exists within +/- 20 seconds window for this phone
         time_margin = timedelta(seconds=20)
         
+        phone_variants = list(set([phone, phone.lstrip("+"), f"+{phone.lstrip('+')}"]))
+
         # If org_id is not specified, check if any branch already has this call logged
         existing_log = None
         if not org_id:
             existing_res = await db.execute(
                 select(CallLog).where(
                     and_(
-                        CallLog.customer_phone == phone,
+                        CallLog.customer_phone.in_(phone_variants),
                         CallLog.created_at >= created_at - time_margin,
                         CallLog.created_at <= created_at + time_margin,
                     )
@@ -149,7 +151,7 @@ async def sync_plivo_calls(db: AsyncSession, org_id: Optional[uuid.UUID] = None,
                 select(CallLog).where(
                     and_(
                         CallLog.organization_id == target_org_id,
-                        CallLog.customer_phone == phone,
+                        CallLog.customer_phone.in_(phone_variants),
                         CallLog.created_at >= created_at - time_margin,
                         CallLog.created_at <= created_at + time_margin,
                     )
@@ -186,7 +188,7 @@ async def sync_plivo_calls(db: AsyncSession, org_id: Optional[uuid.UUID] = None,
 
             actual_org_id = matched_token.org_id if matched_token else target_org_id
             actual_queue_id = matched_token.queue_id if matched_token else None
-            actual_session_id = matched_token.session_id if matched_token else None
+            actual_session_id = None
             actual_token_id = matched_token.id if matched_token else None
             actual_cust_name = matched_token.customer_name if (matched_token and matched_token.customer_name) else "Customer"
             actual_caller_id = matched_token.served_by_id if (matched_token and matched_token.served_by_id) else default_user_id

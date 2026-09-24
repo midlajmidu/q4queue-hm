@@ -29,6 +29,8 @@ from app.models.call_log import CallLog
 from app.models.organization import Organization
 from app.models.token import Token
 from app.models.user import User
+from app.models.session import Session
+from app.models.queue import Queue
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("sync_plivo_history")
@@ -65,6 +67,12 @@ async def sync_history(days: int = 60, default_branch_slug: Optional[str] = "chu
         logger.info("Found %d active branches in database.", len(all_orgs))
         if fallback_org:
             logger.info("Default fallback branch: %s (slug=%s, id=%s)", fallback_org.name, fallback_org.slug, fallback_org.id)
+
+        # Cache existing IDs to prevent ForeignKeyViolationError on deleted/dangling sessions, queues, etc.
+        valid_sessions = set((await db.execute(select(Session.id))).scalars().all())
+        valid_queues = set((await db.execute(select(Queue.id))).scalars().all())
+        valid_tokens = set((await db.execute(select(Token.id))).scalars().all())
+        valid_users = set((await db.execute(select(User.id))).scalars().all())
 
         # Calculate time cutoff
         now = datetime.now(timezone.utc)
@@ -176,11 +184,11 @@ async def sync_history(days: int = 60, default_branch_slug: Optional[str] = "chu
             matched_token = tok_res.scalar_one_or_none()
 
             actual_org_id = matched_token.org_id if matched_token else (fallback_org.id if fallback_org else None)
-            actual_queue_id = matched_token.queue_id if matched_token else None
-            actual_session_id = matched_token.session_id if matched_token else None
-            actual_token_id = matched_token.id if matched_token else None
+            actual_queue_id = matched_token.queue_id if (matched_token and matched_token.queue_id in valid_queues) else None
+            actual_session_id = matched_token.session_id if (matched_token and matched_token.session_id in valid_sessions) else None
+            actual_token_id = matched_token.id if (matched_token and matched_token.id in valid_tokens) else None
             actual_cust_name = matched_token.customer_name if (matched_token and matched_token.customer_name) else "Customer"
-            actual_caller_id = matched_token.served_by_id if (matched_token and matched_token.served_by_id) else None
+            actual_caller_id = matched_token.served_by_id if (matched_token and matched_token.served_by_id in valid_users) else None
 
             if not actual_org_id:
                 continue
