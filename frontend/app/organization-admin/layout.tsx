@@ -9,7 +9,7 @@ import {
     Building2, LogOut, LayoutDashboard, Users, UserCog,
     Settings, Megaphone, Download, Database, Search,
     Bell, ChevronRight, Activity, LineChart, MessageCircle, ChevronDown,
-    Menu, X
+    Menu, X, Phone
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -105,6 +105,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
         if (path.startsWith("/organization-admin/monitoring/queues")) return "Active Queues";
         if (path.startsWith("/organization-admin/monitoring/staff")) return "Staff Presence";
         if (path.startsWith("/organization-admin/monitoring/audit")) return "Audit Logs";
+        if (path.startsWith("/organization-admin/calling")) return "Voice Calling & Telephony";
         if (path.startsWith("/organization-admin/announcements")) return "Announcements";
         if (path.startsWith("/organization-admin/exports")) return "Data Exports";
         if (path.startsWith("/organization-admin/settings")) return "Settings";
@@ -205,6 +206,7 @@ export default function OrgAdminLayout({ children }: { children: ReactNode }) {
                                         <NavLink href="/organization-admin/monitoring/sessions" icon={Users} label="Live Sessions" />
                                         <NavLink href="/organization-admin/monitoring/queues" icon={Activity} label="Active Queues" />
                                         <NavLink href="/organization-admin/monitoring/staff" icon={UserCog} label="Staff Presence" />
+                                        <NavLink href="/organization-admin/calling" icon={Phone} label="Voice Calling" />
                                     </div>
                                 </div>
 

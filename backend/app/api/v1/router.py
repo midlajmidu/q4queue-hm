@@ -20,6 +20,7 @@ from app.api.v1.endpoints import (
     organization_admin_exports,
     organization_admin_backups,
     organization_admin_operations,
+    organization_admin_calling,
     sessions,
     analytics,
     messages,
@@ -31,6 +32,7 @@ from app.api.v1.endpoints import (
     plivo,
     calls,
     whatsapp_media,
+    super_admin_calling,
 )
 
 api_router = APIRouter()
@@ -78,9 +80,11 @@ api_router.include_router(organization_admin_announcements.router, prefix="/orga
 api_router.include_router(organization_admin_exports.router, prefix="/organization-admin", tags=["Organization Admin Exports"])
 api_router.include_router(organization_admin_backups.router, prefix="/organization-admin", tags=["Organization Admin Backups"])
 api_router.include_router(organization_admin_operations.router, prefix="/organization-admin", tags=["Organization Admin Operations"])
+api_router.include_router(organization_admin_calling.router, prefix="/organization-admin", tags=["Organization Admin Calling"])
 
 # ── Super Admin ────────────────────────────────────────────────────
 api_router.include_router(super_admin.router, prefix="/super-admin", tags=["Super Admin"])
+api_router.include_router(super_admin_calling.router, prefix="/super-admin", tags=["Super Admin Calling"])
 
 # ── WhatsApp ─────────────────────────────────────────────────
 api_router.include_router(whatsapp.router, prefix="/whatsapp", tags=["WhatsApp"])

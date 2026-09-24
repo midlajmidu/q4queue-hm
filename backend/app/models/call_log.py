@@ -25,6 +25,10 @@ class CallLog(Base):
     
     duration_seconds: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     
+    # Call status & ring duration
+    call_status: Mapped[str] = mapped_column(String(20), default="completed", server_default="completed", nullable=False)
+    ring_duration_seconds: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     called_by = relationship("User", foreign_keys=[called_by_id], lazy="joined")

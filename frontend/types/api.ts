@@ -12,6 +12,20 @@ export interface LoginRequest {
     login_type?: "staff" | "org_admin";
 }
 
+// ── Subscription ─────────────────────────────────────────────────
+export interface SubscriptionSummary {
+    mode: "legacy" | "subscription";
+    status: "legacy" | "trialing" | "active" | "expired" | "suspended" | string;
+    plan_code?: string | null;
+    plan_name?: string | null;
+    trial_started_at?: string | null;
+    trial_ends_at?: string | null;
+    days_remaining?: number | null;
+    is_operational: boolean;
+    calling_allowed?: boolean;
+    whatsapp_allowed?: boolean;
+}
+
 // ── Analytics ────────────────────────────────────────────────────
 export interface AnalyticsOverview {
     status_counts: {
@@ -1129,9 +1143,13 @@ export interface CallLogItem {
     customer_phone: string;
     duration_seconds: number;
     billable_minutes: number;
+    call_status?: string;
+    ring_duration_seconds?: number;
+    cost_amount?: number;
     called_by_id?: string | null;
     called_by_name?: string | null;
     queue_name?: string | null;
+    booking_reference?: string | null;
     created_at: string;
 }
 
@@ -1141,6 +1159,7 @@ export interface StaffCallStat {
     call_count: number;
     total_duration_seconds: number;
     total_billable_minutes: number;
+    total_cost_amount?: number;
 }
 
 export interface CallLogsOverviewResponse {
@@ -1148,11 +1167,83 @@ export interface CallLogsOverviewResponse {
     total_duration_seconds: number;
     total_billable_minutes: number;
     avg_duration_seconds: number;
+    connection_rate?: number;
+    total_amount?: number;
+    rate_per_minute?: number;
+    currency?: string;
     staff_stats: StaffCallStat[];
 }
 
 export interface PaginatedCallLogsResponse {
     items: CallLogItem[];
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+}
+
+export interface BranchCallingConfig {
+    id: string;
+    name: string;
+    slug: string;
+    call_rate_per_minute?: number | null;
+    effective_rate: number;
+    calling_currency: string;
+    total_calls: number;
+    total_duration_seconds: number;
+    total_billable_minutes: number;
+    total_amount: number;
+}
+
+export interface CallingConfigRead {
+    global_rate_per_minute: number;
+    currency: string;
+    total_calls: number;
+    total_duration_seconds: number;
+    total_billable_minutes: number;
+    total_amount: number;
+    branches: BranchCallingConfig[];
+}
+
+export interface CallingConfigUpdate {
+    global_rate_per_minute: number;
+    currency?: string;
+    branch_overrides?: Record<string, number | null>;
+}
+
+export interface ParentOrgBranchCallingStat {
+    branch_id: string;
+    branch_name: string;
+    branch_slug: string;
+    rate_per_minute: number;
+    currency: string;
+    total_calls: number;
+    total_duration_seconds: number;
+    total_billable_minutes: number;
+    total_amount: number;
+    connection_rate: number;
+}
+
+export interface ParentOrgCallingOverviewResponse {
+    total_calls: number;
+    connection_rate: number;
+    total_billable_minutes: number;
+    total_amount: number;
+    total_duration_seconds: number;
+    avg_duration_seconds: number;
+    currency: string;
+    branches: ParentOrgBranchCallingStat[];
+}
+
+export interface ParentOrgCallLogItem extends CallLogItem {
+    branch_name: string;
+    branch_slug: string;
+    rate_per_minute?: number;
+    currency?: string;
+}
+
+export interface PaginatedParentOrgCallLogsResponse {
+    items: ParentOrgCallLogItem[];
     total: number;
     page: number;
     limit: number;

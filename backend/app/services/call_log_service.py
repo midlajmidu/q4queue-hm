@@ -1,12 +1,14 @@
 import math
 import uuid
 from typing import Optional, List, Tuple
-from datetime import datetime
-from sqlalchemy import select, func, desc, or_
+from datetime import datetime, date, timedelta, time
+from sqlalchemy import select, func, desc, or_, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 
 from app.models.call_log import CallLog
+from app.models.organization import Organization
+from app.models.system_setting import SystemSetting
 from app.models.user import User
 from app.models.queue import Queue
 from app.schemas.call_log import (
@@ -30,6 +32,42 @@ def calculate_billable_minutes(duration_seconds: int) -> int:
     return math.ceil(duration_seconds / 60.0)
 
 
+def _apply_date_filters(query, start_date: Optional[date] = None, end_date: Optional[date] = None):
+    """Apply date range filtering to a CallLog query."""
+    if start_date:
+        query = query.where(cast(CallLog.created_at, Date) >= start_date)
+    if end_date:
+        query = query.where(cast(CallLog.created_at, Date) <= end_date)
+    return query
+
+
+async def get_effective_call_rate(db: AsyncSession, org_id: uuid.UUID) -> Tuple[float, str]:
+    """
+    Get effective per-minute calling rate and currency for an organization.
+    Checks branch override first, then global SystemSetting, falling back to 1.50 INR (₹).
+    """
+    org_stmt = select(Organization).where(Organization.id == org_id)
+    res = await db.execute(org_stmt)
+    org = res.scalar_one_or_none()
+
+    currency = org.calling_currency if (org and hasattr(org, "calling_currency") and org.calling_currency) else "₹"
+
+    if org and hasattr(org, "call_rate_per_minute") and org.call_rate_per_minute is not None:
+        return org.call_rate_per_minute, currency
+
+    # Check global setting
+    sys_stmt = select(SystemSetting).where(SystemSetting.key == "global_call_rate_per_minute")
+    sys_res = await db.execute(sys_stmt)
+    sys_setting = sys_res.scalar_one_or_none()
+    if sys_setting:
+        try:
+            return float(sys_setting.value), currency
+        except ValueError:
+            pass
+
+    return 1.50, currency
+
+
 async def get_call_logs_paginated(
     db: AsyncSession,
     *,
@@ -39,10 +77,14 @@ async def get_call_logs_paginated(
     queue_id: Optional[uuid.UUID] = None,
     staff_id: Optional[uuid.UUID] = None,
     search: Optional[str] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
 ) -> PaginatedCallLogsResponse:
     page = max(1, page)
-    limit = max(1, min(100, limit))
+    limit = max(1, min(10000, limit))
     offset = (page - 1) * limit
+
+    rate_per_min, _ = await get_effective_call_rate(db, org_id)
 
     query = select(CallLog).where(CallLog.organization_id == org_id)
 
@@ -51,6 +93,8 @@ async def get_call_logs_paginated(
 
     if staff_id:
         query = query.where(CallLog.called_by_id == staff_id)
+
+    query = _apply_date_filters(query, start_date, end_date)
 
     if search:
         search_pattern = f"%{search.strip()}%"
@@ -85,6 +129,8 @@ async def get_call_logs_paginated(
             called_by_name = " ".join(name_parts) if name_parts else log.called_by.email
 
         queue_name = log.queue.name if log.queue else None
+        billable_mins = calculate_billable_minutes(log.duration_seconds)
+        cost_amount = round(billable_mins * rate_per_min, 2)
 
         items.append(
             CallLogRead(
@@ -96,7 +142,10 @@ async def get_call_logs_paginated(
                 customer_name=log.customer_name,
                 customer_phone=log.customer_phone,
                 duration_seconds=log.duration_seconds,
-                billable_minutes=calculate_billable_minutes(log.duration_seconds),
+                ring_duration_seconds=getattr(log, "ring_duration_seconds", 0) or 0,
+                call_status=getattr(log, "call_status", "completed") or "completed",
+                billable_minutes=billable_mins,
+                cost_amount=cost_amount,
                 called_by_id=log.called_by_id,
                 called_by_name=called_by_name,
                 queue_name=queue_name,
@@ -120,11 +169,16 @@ async def get_call_logs_overview(
     *,
     org_id: uuid.UUID,
     queue_id: Optional[uuid.UUID] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
 ) -> CallLogsOverviewResponse:
+    rate_per_min, currency = await get_effective_call_rate(db, org_id)
+
     query = select(CallLog).where(CallLog.organization_id == org_id)
     if queue_id:
         query = query.where(CallLog.queue_id == queue_id)
 
+    query = _apply_date_filters(query, start_date, end_date)
     query = query.options(joinedload(CallLog.called_by))
     result = await db.execute(query)
     logs = result.scalars().all()
@@ -132,9 +186,14 @@ async def get_call_logs_overview(
     total_calls = len(logs)
     total_duration_seconds = sum(l.duration_seconds for l in logs)
     total_billable_minutes = sum(calculate_billable_minutes(l.duration_seconds) for l in logs)
+    total_amount = round(total_billable_minutes * rate_per_min, 2)
     avg_duration_seconds = (
         round(total_duration_seconds / total_calls, 1) if total_calls > 0 else 0.0
     )
+
+    # Connection rate: percentage of calls where duration > 0 or status == 'completed'
+    connected_calls = sum(1 for l in logs if l.duration_seconds > 0 or getattr(l, "call_status", "") == "completed")
+    connection_rate = round((connected_calls / total_calls) * 100, 1) if total_calls > 0 else 0.0
 
     # Group by staff
     staff_map = {}
@@ -151,10 +210,13 @@ async def get_call_logs_overview(
                 "call_count": 0,
                 "total_duration_seconds": 0,
                 "total_billable_minutes": 0,
+                "total_cost_amount": 0.0,
             }
+        b_mins = calculate_billable_minutes(l.duration_seconds)
         staff_map[s_id]["call_count"] += 1
         staff_map[s_id]["total_duration_seconds"] += l.duration_seconds
-        staff_map[s_id]["total_billable_minutes"] += calculate_billable_minutes(l.duration_seconds)
+        staff_map[s_id]["total_billable_minutes"] += b_mins
+        staff_map[s_id]["total_cost_amount"] = round(staff_map[s_id]["total_cost_amount"] + (b_mins * rate_per_min), 2)
 
     staff_stats = [
         StaffCallStat(**data)
@@ -166,5 +228,9 @@ async def get_call_logs_overview(
         total_duration_seconds=total_duration_seconds,
         total_billable_minutes=total_billable_minutes,
         avg_duration_seconds=avg_duration_seconds,
+        connection_rate=connection_rate,
+        total_amount=total_amount,
+        rate_per_minute=rate_per_min,
+        currency=currency,
         staff_stats=staff_stats,
     )

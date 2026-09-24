@@ -18,6 +18,11 @@ import type {
     ApiErrorResponse,
     HealthResponse,
     AnalyticsOverview,
+    SubscriptionSummary,
+    CallingConfigRead,
+    CallingConfigUpdate,
+    ParentOrgCallingOverviewResponse,
+    PaginatedParentOrgCallLogsResponse,
     JoinRequest,
     JoinResponse,
     ListOrgsParams,
@@ -305,20 +310,114 @@ export const api = {
         });
     },
 
-    getCallLogs(params?: { queue_id?: string; staff_id?: string; search?: string; page?: number; limit?: number }): Promise<PaginatedCallLogsResponse> {
+    getCallLogs(params?: { queue_id?: string; staff_id?: string; search?: string; page?: number; limit?: number; startDate?: string; endDate?: string; start_date?: string; end_date?: string }): Promise<PaginatedCallLogsResponse> {
         const queryParams = new URLSearchParams();
         if (params?.queue_id) queryParams.append("queue_id", params.queue_id);
         if (params?.staff_id) queryParams.append("staff_id", params.staff_id);
         if (params?.search) queryParams.append("search", params.search);
+        const sDate = params?.startDate || params?.start_date;
+        const eDate = params?.endDate || params?.end_date;
+        if (sDate) queryParams.append("start_date", sDate);
+        if (eDate) queryParams.append("end_date", eDate);
         if (params?.page) queryParams.append("page", params.page.toString());
         if (params?.limit) queryParams.append("limit", params.limit.toString());
         const q = queryParams.toString();
         return request<PaginatedCallLogsResponse>(`/calls/logs${q ? `?${q}` : ""}`);
     },
 
-    getCallLogsOverview(queue_id?: string): Promise<CallLogsOverviewResponse> {
-        const q = queue_id ? `?queue_id=${queue_id}` : "";
-        return request<CallLogsOverviewResponse>(`/calls/overview${q}`);
+    getCallLogsOverview(queue_id?: string, startDate?: string, endDate?: string): Promise<CallLogsOverviewResponse> {
+        const queryParams = new URLSearchParams();
+        if (queue_id) queryParams.append("queue_id", queue_id);
+        if (startDate) queryParams.append("start_date", startDate);
+        if (endDate) queryParams.append("end_date", endDate);
+        const q = queryParams.toString();
+        return request<CallLogsOverviewResponse>(`/calls/overview${q ? `?${q}` : ""}`);
+    },
+
+    async exportCallLogsCSV(params?: { queue_id?: string; search?: string; start_date?: string; end_date?: string }): Promise<Blob> {
+        const qs = new URLSearchParams();
+        if (params?.queue_id) qs.append("queue_id", params.queue_id);
+        if (params?.search) qs.append("search", params.search);
+        if (params?.start_date) qs.append("start_date", params.start_date);
+        if (params?.end_date) qs.append("end_date", params.end_date);
+        const q = qs.toString();
+
+        const url = `${config.apiBaseUrl}/calls/logs/export${q ? `?${q}` : ""}`;
+        const headers = new Headers();
+        const token = getToken();
+        if (token) headers.set("Authorization", `Bearer ${token}`);
+
+        const resp = await fetch(url, { headers });
+        if (!resp.ok) {
+            throw new Error("Failed to export call logs");
+        }
+        return await resp.blob();
+    },
+
+    getCallingConfig(startDate?: string, endDate?: string): Promise<CallingConfigRead> {
+        const queryParams = new URLSearchParams();
+        if (startDate) queryParams.append("start_date", startDate);
+        if (endDate) queryParams.append("end_date", endDate);
+        const q = queryParams.toString();
+        return request<CallingConfigRead>(`/super-admin/calling-config${q ? `?${q}` : ""}`);
+    },
+
+    updateCallingConfig(data: CallingConfigUpdate): Promise<CallingConfigRead> {
+        return request<CallingConfigRead>("/super-admin/calling-config", {
+            method: "PUT",
+            body: JSON.stringify(data),
+        });
+    },
+
+    getParentOrgCallingOverview(params?: { startDate?: string; endDate?: string; branchId?: string }): Promise<ParentOrgCallingOverviewResponse> {
+        const queryParams = new URLSearchParams();
+        if (params?.startDate) queryParams.append("start_date", params.startDate);
+        if (params?.endDate) queryParams.append("end_date", params.endDate);
+        if (params?.branchId) queryParams.append("branch_id", params.branchId);
+        const q = queryParams.toString();
+        return request<ParentOrgCallingOverviewResponse>(`/organization-admin/calling${q ? `?${q}` : ""}`);
+    },
+
+    getParentOrgCallingLogs(params?: { startDate?: string; endDate?: string; branchId?: string; search?: string; page?: number; limit?: number }): Promise<PaginatedParentOrgCallLogsResponse> {
+        const queryParams = new URLSearchParams();
+        if (params?.startDate) queryParams.append("start_date", params.startDate);
+        if (params?.endDate) queryParams.append("end_date", params.endDate);
+        if (params?.branchId) queryParams.append("branch_id", params.branchId);
+        if (params?.search) queryParams.append("search", params.search);
+        if (params?.page) queryParams.append("page", params.page.toString());
+        if (params?.limit) queryParams.append("limit", params.limit.toString());
+        const q = queryParams.toString();
+        return request<PaginatedParentOrgCallLogsResponse>(`/organization-admin/calling/logs${q ? `?${q}` : ""}`);
+    },
+
+    async exportParentOrgCallingCSV(params?: { startDate?: string; endDate?: string; branchId?: string; search?: string }): Promise<Blob> {
+        const qs = new URLSearchParams();
+        if (params?.startDate) qs.append("start_date", params.startDate);
+        if (params?.endDate) qs.append("end_date", params.endDate);
+        if (params?.branchId) qs.append("branch_id", params.branchId);
+        if (params?.search) qs.append("search", params.search);
+        const q = qs.toString();
+
+        const url = `${config.apiBaseUrl}/organization-admin/calling/export${q ? `?${q}` : ""}`;
+        const headers = new Headers();
+        const token = getToken();
+        if (token) headers.set("Authorization", `Bearer ${token}`);
+
+        const resp = await fetch(url, { headers });
+        if (!resp.ok) {
+            throw new Error("Failed to export organization call logs");
+        }
+        return await resp.blob();
+    },
+
+    getSubscriptionSummary(): Promise<SubscriptionSummary> {
+        return request<SubscriptionSummary>("/subscriptions/current").catch(() => ({
+            mode: "legacy",
+            status: "legacy",
+            is_operational: true,
+            calling_allowed: true,
+            whatsapp_allowed: true,
+        }));
     },
 
     login(data: LoginRequest): Promise<TokenResponse> {

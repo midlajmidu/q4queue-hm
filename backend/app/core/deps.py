@@ -188,18 +188,16 @@ async def get_current_active_user(
             detail="force_password_change"
         )
         
-    # If organization_admin, allow them to view a branch by providing X-Org-Slug
-    if current_user.role == "organization_admin":
+    # If organization_admin or super_admin, allow them to view a branch by providing X-Org-Slug
+    if current_user.role in ("organization_admin", "super_admin"):
         x_org_slug = request.headers.get("x-org-slug")
         if x_org_slug:
             from app.models.organization import Organization
             from sqlalchemy import select
-            res = await db.execute(
-                select(Organization).where(
-                    Organization.slug == x_org_slug,
-                    Organization.parent_organization_id == current_user.parent_organization_id
-                )
-            )
+            query = select(Organization).where(Organization.slug == x_org_slug)
+            if current_user.role == "organization_admin":
+                query = query.where(Organization.parent_organization_id == current_user.parent_organization_id)
+            res = await db.execute(query)
             branch = res.scalar_one_or_none()
             if branch:
                 # We dynamically set org_id on this request's user instance

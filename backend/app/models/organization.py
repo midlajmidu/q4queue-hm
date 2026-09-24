@@ -9,7 +9,7 @@ Design:
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, func, JSON, ForeignKey
+from sqlalchemy import Boolean, DateTime, String, func, JSON, ForeignKey, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -58,6 +58,8 @@ class Organization(Base):
     auto_session_time: Mapped[str | None] = mapped_column(String(5), nullable=True) # HH:MM format
     enable_shared_tokens: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
     is_whatsapp_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default='true', nullable=False)
+    call_rate_per_minute: Mapped[float | None] = mapped_column(Float, nullable=True)
+    calling_currency: Mapped[str] = mapped_column(String(10), default="₹", server_default="₹", nullable=False)
 
 
     # ── Relationships ──────────────────────────────────────────────

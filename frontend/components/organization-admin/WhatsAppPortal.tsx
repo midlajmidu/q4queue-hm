@@ -28,7 +28,8 @@ import {
     Check, 
     XCircle,
     BellRing,
-    Search
+    Search,
+    Phone
 } from "lucide-react";
 
 const STATUS_ICON = {
@@ -116,7 +117,12 @@ function StatCard({ label, value, color, icon: Icon, trend }: { label: string; v
     );
 }
 
-export function WhatsAppPortal() {
+interface WhatsAppPortalProps {
+    channel?: "whatsapp" | "calls";
+    onChannelChange?: (channel: "whatsapp" | "calls") => void;
+}
+
+export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsAppPortalProps = {}) {
     const [activeTab, setActiveTab] = useState<"overview" | "history" | "settings">("overview");
 
     const [config, setConfig] = useState<WhatsAppOrgConfig | null>(null);
@@ -353,18 +359,48 @@ export function WhatsAppPortal() {
                             Manage WhatsApp notifications, delivery analytics and messaging settings for this branch.
                         </p>
                     </div>
-                    <div className="shrink-0 flex items-center gap-3 bg-[#F7F9FC] dark:bg-slate-800/60 px-4 py-3 rounded-2xl border border-[#E9EDF5] dark:border-white/10">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center">
-                            <MessageSquareText size={20} className="text-emerald-500 dark:text-emerald-400" strokeWidth={2} />
-                        </div>
-                        <div>
-                            <div className="text-[14px] font-bold text-[#111827] dark:text-white">WhatsApp</div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                </span>
-                                <span className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400">Connected</span>
+                    <div className="shrink-0 flex items-center gap-3">
+                        {onChannelChange && (
+                            <div className="flex items-center p-1 bg-[#F7F9FC] dark:bg-slate-800/80 rounded-2xl border border-[#E9EDF5] dark:border-white/10 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => onChannelChange("whatsapp")}
+                                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${
+                                        channel === "whatsapp"
+                                            ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                                            : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                    }`}
+                                >
+                                    <MessageSquareText size={15} className="text-emerald-500 dark:text-emerald-400" />
+                                    <span>WhatsApp</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => onChannelChange("calls")}
+                                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${
+                                        channel === "calls"
+                                            ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                                            : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                    }`}
+                                >
+                                    <Phone size={15} className="text-indigo-500 dark:text-indigo-400" />
+                                    <span>Voice Calls</span>
+                                </button>
+                            </div>
+                        )}
+                        <div className="flex items-center gap-3 bg-[#F7F9FC] dark:bg-slate-800/60 px-4 py-3 rounded-2xl border border-[#E9EDF5] dark:border-white/10">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center">
+                                <MessageSquareText size={20} className="text-emerald-500 dark:text-emerald-400" strokeWidth={2} />
+                            </div>
+                            <div>
+                                <div className="text-[14px] font-bold text-[#111827] dark:text-white">WhatsApp</div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </span>
+                                    <span className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400">Connected</span>
+                                </div>
                             </div>
                         </div>
                     </div>

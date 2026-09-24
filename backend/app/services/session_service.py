@@ -49,6 +49,20 @@ async def create_session(
     if data.session_date > datetime.now(ZoneInfo("Asia/Kolkata")).date():
         raise ValueError("Cannot create sessions for future dates.")
 
+    # ── Check if session already exists for this branch and date ──
+    existing_session = await db.scalar(
+        select(Session).where(
+            Session.org_id == org_id,
+            Session.session_date == data.session_date,
+        )
+    )
+    if existing_session:
+        raise ValueError(
+            f"A session already exists for {data.session_date}. "
+            f"Each organization can only have one active session per day. "
+            f"Please manage the existing session or choose a different date."
+        )
+
     # ── Deactivate all active queues from previous sessions ──
     await db.execute(
         update(Queue)
@@ -67,11 +81,8 @@ async def create_session(
         await db.refresh(session)
     except Exception as exc:
         await db.rollback()
-        raise ValueError(
-            f"A session already exists for {data.session_date}. "
-            f"Each organization can only have one active session per day. "
-            f"Please manage the existing session or choose a different date."
-        ) from exc
+        logger.exception("Failed to commit session | org=%s date=%s error=%s", org_id, data.session_date, exc)
+        raise ValueError(f"Failed to create session: {exc}") from exc
 
     # ── Auto-Inject Active Templates ──
     from app.services.queue_service import create_queue
