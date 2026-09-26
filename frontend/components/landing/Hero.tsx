@@ -272,12 +272,12 @@ export default function Hero() {
               </div>
             </motion.div>
 
-            {/* ── 2. SMARTPHONE DEVICE — Customer Mobile Experience (Overlapping Lower-Right on Desktop, Centered on Mobile) ── */}
+            {/* ── 2. SMARTPHONE DEVICE — Customer Mobile Experience (Hidden on mobile, Overlapping Lower-Right on Desktop) ── */}
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.75, delay: 0.95, ease }}
-              className="relative mt-8 sm:mt-10 mx-auto lg:mt-0 lg:absolute lg:bottom-[-20px] xl:bottom-[-25px] lg:right-6 xl:right-16 z-30 w-[205px] sm:w-[235px] md:w-[245px] lg:w-[252px] max-w-[85vw]"
+              className="hidden lg:block lg:absolute lg:bottom-[-20px] xl:bottom-[-25px] lg:right-6 xl:right-16 z-30 lg:w-[252px]"
             >
               {/* Outer phone frame with subtle titanium bevel & side buttons */}
               <div className="relative">

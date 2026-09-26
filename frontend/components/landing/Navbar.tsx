@@ -240,8 +240,8 @@ export default function Navbar() {
             type="button"
             className={cn(
               "md:hidden p-2 focus:outline-none transition-colors",
-              scrolled
-                ? "text-slate-600 hover:text-slate-900"
+              isLightNav
+                ? "text-slate-700 hover:text-slate-900"
                 : "text-white/80 hover:text-white"
             )}
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -256,82 +256,101 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer - Full Screen White Overlay */}
       {mobileOpen && (
-        <div
-          className={cn(
-            "md:hidden backdrop-blur-lg border-b px-6 pt-3 pb-6 space-y-3 shadow-lg max-h-[85vh] overflow-y-auto",
-            scrolled
-              ? "bg-white/98 border-slate-200 text-slate-800"
-              : "bg-[#06133D]/95 border-white/10 text-white"
-          )}
-        >
-          <Link
-            href="/features"
-            onClick={() => setMobileOpen(false)}
-            className="block py-2 text-base font-medium"
-          >
-            Features
-          </Link>
+        <div className="md:hidden fixed inset-0 z-[100] bg-white text-slate-900 flex flex-col h-[100dvh] w-full overflow-hidden">
+          {/* Top Bar with Logo and Close (X) Button */}
+          <div className="h-[68px] px-6 flex items-center justify-between border-b border-slate-100 shrink-0">
+            <Link
+              href="/"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2"
+            >
+              <Logo size="md" />
+            </Link>
 
-          <div className="py-2 border-t border-b border-slate-100/20 my-2">
-            <div className="text-xs font-bold uppercase tracking-wider text-blue-500 mb-2">
-              Industries
-            </div>
-            <div className="grid grid-cols-1 gap-2 pl-2">
-              {industryLinks.map((ind) => (
-                <Link
-                  key={ind.href}
-                  href={ind.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="py-1 text-sm font-medium hover:text-blue-500"
-                >
-                  {ind.label}
-                </Link>
-              ))}
-              <Link
-                href="/industries"
-                onClick={() => setMobileOpen(false)}
-                className="py-1 text-xs font-bold text-blue-600"
-              >
-                View All Industries →
-              </Link>
-            </div>
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="p-2.5 rounded-xl text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-colors focus:outline-none"
+              aria-label="Close menu"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
 
-          <a
-            href="/#how-it-works"
-            onClick={(e) => handleNavClick(e, { label: "How it works", href: "/#how-it-works", isHash: true })}
-            className="block py-2 text-base font-medium"
-          >
-            How it works
-          </a>
-          <Link
-            href="/pricing"
-            onClick={() => setMobileOpen(false)}
-            className="block py-2 text-base font-medium"
-          >
-            Pricing
-          </Link>
-
-          <div className="pt-4 border-t border-slate-100/20 flex flex-col gap-3">
-            <a
-              href={`${config.appUrl}/login`}
+          {/* Scrollable Navigation Body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <Link
+              href="/features"
               onClick={() => setMobileOpen(false)}
-              className="block py-2 text-base font-medium"
+              className="block py-2 text-base font-semibold text-slate-900 hover:text-blue-600 transition-colors"
             >
-              Log in
+              Features
+            </Link>
+
+            {/* Industries Group */}
+            <div className="py-3 border-y border-slate-100">
+              <div className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-2.5">
+                Industries
+              </div>
+              <div className="grid grid-cols-1 gap-2 pl-2">
+                {industryLinks.map((ind) => (
+                  <Link
+                    key={ind.href}
+                    href={ind.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="py-1 text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors"
+                  >
+                    {ind.label}
+                  </Link>
+                ))}
+                <Link
+                  href="/industries"
+                  onClick={() => setMobileOpen(false)}
+                  className="py-1 text-xs font-bold text-blue-600 hover:underline"
+                >
+                  View All Industries →
+                </Link>
+              </div>
+            </div>
+
+            <a
+              href="/#how-it-works"
+              onClick={(e) => handleNavClick(e, { label: "How it works", href: "/#how-it-works", isHash: true })}
+              className="block py-2 text-base font-semibold text-slate-900 hover:text-blue-600 transition-colors"
+            >
+              How it works
             </a>
-            <Button
-              size="default"
-              onClick={() => {
-                setMobileOpen(false);
-                router.push("/pricing");
-              }}
-              className="w-full justify-center gap-2 h-11 rounded-lg text-sm font-semibold bg-blue-600 text-white"
+
+            <Link
+              href="/pricing"
+              onClick={() => setMobileOpen(false)}
+              className="block py-2 text-base font-semibold text-slate-900 hover:text-blue-600 transition-colors"
             >
-              Start 14-Day Free Trial <ArrowRight className="w-4 h-4" />
-            </Button>
+              Pricing
+            </Link>
+
+            {/* Bottom Actions */}
+            <div className="pt-5 border-t border-slate-100 flex flex-col gap-3">
+              <a
+                href={`${config.appUrl}/login`}
+                onClick={() => setMobileOpen(false)}
+                className="w-full text-center py-2.5 text-sm font-semibold text-slate-700 hover:text-slate-950 border border-slate-200 rounded-xl"
+              >
+                Log in
+              </a>
+              <Button
+                size="default"
+                onClick={() => {
+                  setMobileOpen(false);
+                  router.push("/pricing");
+                }}
+                className="w-full justify-center gap-2 h-11 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
+              >
+                Start 14-Day Free Trial <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       )}
