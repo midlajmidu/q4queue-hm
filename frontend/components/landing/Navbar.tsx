@@ -226,7 +226,7 @@ export default function Navbar() {
             size="sm"
             onClick={() => router.push("/pricing")}
             className={cn(
-              "h-[44px] px-5 text-[14px] font-semibold rounded-[9px] shadow-sm transition-all active:scale-[0.99] cursor-pointer",
+              "hidden md:inline-flex h-[44px] px-5 text-[14px] font-semibold rounded-[9px] shadow-sm transition-all active:scale-[0.99] cursor-pointer",
               isLightNav
                 ? "bg-blue-600 hover:bg-blue-700 text-white"
                 : "bg-white hover:bg-slate-100 text-[#0B1220]"

@@ -1,14 +1,13 @@
 import React from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { ArrowRight, Star, Quote } from "lucide-react";
+import { Star } from "lucide-react";
 
 export default function CustomerSpotlight() {
   return (
-    <section className="bg-white py-20 md:py-28 border-b border-slate-200/80 relative overflow-hidden">
+    <section className="bg-white py-16 md:py-24 border-b border-slate-200/80 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* ── 1. MAIN ENTERPRISE SPOTLIGHT: AMOEBA ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+        {/* ── MAIN ENTERPRISE SPOTLIGHT: AMOEBA ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
           {/* LEFT COLUMN: Quote, Attribution & Scale Metrics */}
           <div className="lg:col-span-6 flex flex-col justify-between h-full">
             <div>
@@ -27,8 +26,8 @@ export default function CustomerSpotlight() {
               </div>
 
               {/* Flagship Pull Quote */}
-              <blockquote className="mt-8 sm:mt-10">
-                <p className="text-2xl sm:text-3xl lg:text-[36px] font-extrabold text-slate-900 tracking-tight leading-[1.25]">
+              <blockquote className="mt-7 sm:mt-9">
+                <p className="text-2xl sm:text-3xl lg:text-[34px] font-extrabold text-slate-900 tracking-tight leading-[1.25]">
                   &ldquo;Q4Queue has been invaluable for helping us manage intense
                   weekend rushes and eliminate waiting line chaos across our
                   bowling alleys and arcade arenas.&rdquo;
@@ -36,13 +35,13 @@ export default function CustomerSpotlight() {
               </blockquote>
 
               {/* Attribution */}
-              <div className="mt-6 sm:mt-8 flex items-center justify-between">
+              <div className="mt-6 sm:mt-7 flex items-center justify-between flex-wrap gap-3">
                 <div>
                   <div className="text-base font-bold text-slate-900 tracking-tight">
-                    Vikram Malhotra
+                    Operations GM
                   </div>
                   <div className="text-sm font-medium text-slate-500 mt-0.5">
-                    VP of Operations, Amoeba Bowling &amp; Gaming Center (HM Leisure)
+                    Amoeba Bowling &amp; Gaming Center (HM Leisure)
                   </div>
                 </div>
 
@@ -56,169 +55,38 @@ export default function CustomerSpotlight() {
             </div>
 
             {/* Scale Metric KPIs Row */}
-            <div className="mt-12 sm:mt-14 pt-8 border-t border-slate-100 grid grid-cols-2 gap-8">
+            <div className="mt-10 sm:mt-12 pt-7 border-t border-slate-100 grid grid-cols-2 gap-8">
               <div>
                 <div className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-none font-sans">
-                  2.8M+
+                  15K+
                 </div>
-                <div className="mt-2.5 text-xs sm:text-sm font-medium text-slate-500 leading-snug max-w-[170px]">
-                  guests queued &amp; served seamlessly
+                <div className="mt-2 text-xs sm:text-sm font-medium text-slate-500 leading-snug">
+                  customers queued &amp; served
                 </div>
               </div>
 
               <div>
                 <div className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-none font-sans">
-                  45+
+                  5+
                 </div>
-                <div className="mt-2.5 text-xs sm:text-sm font-medium text-slate-500 leading-snug max-w-[170px]">
-                  entertainment centers &amp; bowling lanes powered
+                <div className="mt-2 text-xs sm:text-sm font-medium text-slate-500 leading-snug">
+                  branches deployed
                 </div>
               </div>
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Venue Photo & Narrative */}
-          <div className="lg:col-span-6 flex flex-col">
-            {/* High-Resolution Venue Photography Container */}
-            <div className="relative aspect-[4/3] w-full rounded-3xl overflow-hidden border border-slate-200/80 shadow-sm bg-slate-100 group">
+          {/* RIGHT COLUMN: High-Resolution Venue Photography Container */}
+          <div className="lg:col-span-6 flex flex-col justify-center">
+            <div className="relative aspect-[4/3] w-full rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-200/80 shadow-md bg-slate-100 group">
               <Image
                 src="/images/amoeba-venue-spotlight.jpg"
-                alt="Amoeba Bowling and Gaming Center concourse with digital queue screens"
+                alt="Amoeba Bowling and Gaming Center arena"
                 fill
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                priority
               />
-            </div>
-
-            {/* Partnership Narrative Paragraph */}
-            <p className="mt-6 text-sm sm:text-[15px] text-slate-600 leading-relaxed">
-              Our deployment with HM Leisure India demonstrates how removing
-              physical queue congestion creates an engaging environment where
-              guests spend more time playing and dining instead of waiting in line.
-            </p>
-
-            {/* Case Study CTA Link */}
-            <div className="mt-3">
-              <Link
-                href="/get-started"
-                className="text-blue-600 hover:text-blue-700 font-semibold text-sm inline-flex items-center gap-1.5 transition-colors group/link"
-              >
-                <span>Learn more about how Amoeba collaborates with Q4Queue</span>
-                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover/link:translate-x-1" />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* ── 2. THREE EXECUTIVE TESTIMONIALS (ZIQX, NYSA CLAN, BASE OF STARS) ── */}
-        <div className="mt-20 pt-16 border-t border-slate-200/80">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
-              Executive Endorsements
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Trusted by leaders transforming physical operations.
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {/* TESTIMONIAL 1: ZIQX */}
-            <div className="p-7 rounded-3xl border border-slate-200/90 bg-gradient-to-b from-slate-50/50 to-white shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between relative group">
-              <Quote className="absolute top-6 right-6 w-9 h-9 text-slate-200 group-hover:text-blue-100 transition-colors pointer-events-none" />
-              <div>
-                {/* Header: Stars */}
-                <div className="flex items-center gap-1 mb-5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-
-                {/* Quote Text */}
-                <p className="text-sm sm:text-[15px] text-slate-800 font-medium leading-relaxed italic">
-                  &ldquo;Q4Queue offers a simple and practical way for businesses to manage customer queues digitally. The no-app experience and straightforward setup make it especially useful for improving day-to-day operations.&rdquo;
-                </p>
-              </div>
-
-              {/* Author Attribution */}
-              <div className="mt-7 pt-5 border-t border-slate-100 flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0">
-                  FC
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900 tracking-tight">
-                    Fathah Cr
-                  </div>
-                  <div className="text-xs font-semibold text-blue-600">
-                    CEO, ZIQX
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* TESTIMONIAL 2: NYSA CLAN */}
-            <div className="p-7 rounded-3xl border border-slate-200/90 bg-gradient-to-b from-slate-50/50 to-white shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between relative group">
-              <Quote className="absolute top-6 right-6 w-9 h-9 text-slate-200 group-hover:text-blue-100 transition-colors pointer-events-none" />
-              <div>
-                {/* Header: Stars */}
-                <div className="flex items-center gap-1 mb-5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-
-                {/* Quote Text */}
-                <p className="text-sm sm:text-[15px] text-slate-800 font-medium leading-relaxed italic">
-                  &ldquo;Implementing Q4Queue completely transformed our front-desk customer flow. The instant QR check-in and automated wait alerts eliminated lobby bottlenecks completely.&rdquo;
-                </p>
-              </div>
-
-              {/* Author Attribution */}
-              <div className="mt-7 pt-5 border-t border-slate-100 flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-slate-900 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0">
-                  AM
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900 tracking-tight">
-                    Amnas
-                  </div>
-                  <div className="text-xs font-semibold text-slate-600">
-                    Nysa Clan
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* TESTIMONIAL 3: BASE OF STARS */}
-            <div className="p-7 rounded-3xl border border-slate-200/90 bg-gradient-to-b from-slate-50/50 to-white shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between relative group">
-              <Quote className="absolute top-6 right-6 w-9 h-9 text-slate-200 group-hover:text-blue-100 transition-colors pointer-events-none" />
-              <div>
-                {/* Header: Stars */}
-                <div className="flex items-center gap-1 mb-5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-
-                {/* Quote Text */}
-                <p className="text-sm sm:text-[15px] text-slate-800 font-medium leading-relaxed italic">
-                  &ldquo;The live counter dispatch and real-time turn updates brought incredible speed and operational clarity to our staff. Our customers love the zero-app experience.&rdquo;
-                </p>
-              </div>
-
-              {/* Author Attribution */}
-              <div className="mt-7 pt-5 border-t border-slate-100 flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-indigo-600 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0">
-                  RA
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900 tracking-tight">
-                    Rashid
-                  </div>
-                  <div className="text-xs font-semibold text-indigo-600">
-                    Base of Stars
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>

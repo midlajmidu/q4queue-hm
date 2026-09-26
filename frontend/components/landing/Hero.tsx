@@ -206,8 +206,8 @@ export default function Hero() {
       {/* ════════════════════════════════════════════════════════════
           MULTI-DEVICE PRODUCT SHOWCASE
          ════════════════════════════════════════════════════════════ */}
-      <div className="relative z-10 mt-12 sm:mt-16 lg:mt-20">
-        <div className="relative mx-auto max-w-[1240px] xl:max-w-[1380px] px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 mt-12 sm:mt-16 lg:mt-20 overflow-x-clip">
+        <div className="relative mx-auto max-w-[1240px] xl:max-w-[1380px] px-3 sm:px-6 lg:px-8">
           {/* Main composition container */}
           <div className="relative">
 
@@ -216,30 +216,29 @@ export default function Hero() {
               initial={{ opacity: 0, y: 45 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.75, ease }}
-              className="relative mx-auto max-w-[760px] lg:max-w-[820px] z-10"
+              className="relative mx-auto max-w-[760px] lg:max-w-[820px] z-10 w-full"
             >
               {/* Device outer frame — realistic graphite/titanium bezel */}
               <div
-                className="relative rounded-[26px] sm:rounded-[32px]"
+                className="relative rounded-[20px] sm:rounded-[28px] md:rounded-[32px] p-2.5 sm:p-3.5 md:p-4"
                 style={{
                   background:
                     "linear-gradient(155deg, #1C2333 0%, #101522 50%, #0A0D15 100%)",
-                  padding: "16px 14px 16px 14px",
                   boxShadow:
                     "0 35px 95px -15px rgba(0,0,0,0.8), 0 15px 45px -10px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.12), inset 0 -1px 1px rgba(0,0,0,0.6)",
                   border: "1px solid rgba(255,255,255,0.08)",
                 }}
               >
                 {/* Front camera pinhole on top bezel */}
-                <div className="absolute top-[6px] left-1/2 -translate-x-1/2 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-[#151B28] border border-white/10 flex items-center justify-center">
+                <div className="absolute top-[4px] sm:top-[6px] left-1/2 -translate-x-1/2 flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#151B28] border border-white/10 flex items-center justify-center">
                     <div className="w-0.5 h-0.5 rounded-full bg-blue-500/60" />
                   </div>
                 </div>
 
                 {/* Tablet Screen Surface */}
                 <div
-                  className="relative rounded-[16px] sm:rounded-[20px] overflow-hidden bg-white border border-slate-200/80 shadow-inner"
+                  className="relative rounded-[12px] sm:rounded-[16px] md:rounded-[20px] overflow-hidden bg-white border border-slate-200/80 shadow-inner"
                 >
                   <div className="relative w-full overflow-hidden" style={{ aspectRatio: "2880/1800" }}>
                     <Image
@@ -255,7 +254,7 @@ export default function Hero() {
 
                     {/* Subtle diagonal specular screen reflection */}
                     <div
-                      className="absolute inset-0 pointer-events-none z-20 rounded-[16px] sm:rounded-[20px]"
+                      className="absolute inset-0 pointer-events-none z-20 rounded-[12px] sm:rounded-[16px] md:rounded-[20px]"
                       style={{
                         background:
                           "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 40%, transparent 100%)",
@@ -273,25 +272,24 @@ export default function Hero() {
               </div>
             </motion.div>
 
-            {/* ── 2. SMARTPHONE DEVICE — Customer Mobile Experience (Overlapping Lower-Right) ── */}
+            {/* ── 2. SMARTPHONE DEVICE — Customer Mobile Experience (Overlapping Lower-Right on Desktop, Centered on Mobile) ── */}
             <motion.div
-              initial={{ opacity: 0, y: 55, x: 20 }}
-              animate={{ opacity: 1, y: 0, x: 0 }}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.75, delay: 0.95, ease }}
-              className="relative mt-8 mx-auto lg:mt-0 lg:absolute lg:bottom-[-20px] xl:bottom-[-25px] z-30"
-              style={{ width: "252px", maxWidth: "252px", right: "120px" }}
+              className="relative mt-8 sm:mt-10 mx-auto lg:mt-0 lg:absolute lg:bottom-[-20px] xl:bottom-[-25px] lg:right-6 xl:right-16 z-30 w-[205px] sm:w-[235px] md:w-[245px] lg:w-[252px] max-w-[85vw]"
             >
               {/* Outer phone frame with subtle titanium bevel & side buttons */}
               <div className="relative">
-                {/* Hardware side buttons (iPhone 16 Pro styling) */}
-                <div className="absolute -left-[2px] top-[72px] w-[2.5px] h-[16px] bg-[#2A344A] rounded-l-xs shadow-xs" />
-                <div className="absolute -left-[2px] top-[102px] w-[2.5px] h-[32px] bg-[#2A344A] rounded-l-xs shadow-xs" />
-                <div className="absolute -left-[2px] top-[142px] w-[2.5px] h-[32px] bg-[#2A344A] rounded-l-xs shadow-xs" />
-                <div className="absolute -right-[2px] top-[110px] w-[2.5px] h-[46px] bg-[#2A344A] rounded-r-xs shadow-xs" />
+                {/* Hardware side buttons (iPhone 16 Pro styling) - hidden on mobile to prevent overflow */}
+                <div className="hidden sm:block absolute -left-[2px] top-[72px] w-[2.5px] h-[16px] bg-[#2A344A] rounded-l-xs shadow-xs" />
+                <div className="hidden sm:block absolute -left-[2px] top-[102px] w-[2.5px] h-[32px] bg-[#2A344A] rounded-l-xs shadow-xs" />
+                <div className="hidden sm:block absolute -left-[2px] top-[142px] w-[2.5px] h-[32px] bg-[#2A344A] rounded-l-xs shadow-xs" />
+                <div className="hidden sm:block absolute -right-[2px] top-[110px] w-[2.5px] h-[46px] bg-[#2A344A] rounded-r-xs shadow-xs" />
 
                 {/* Phone Outer Chassis */}
                 <div
-                  className="relative rounded-[40px] p-[8px]"
+                  className="relative rounded-[32px] sm:rounded-[40px] p-[6px] sm:p-[8px]"
                   style={{
                     background: "linear-gradient(155deg, #222B3D 0%, #121824 50%, #0A0D15 100%)",
                     boxShadow:
@@ -300,32 +298,32 @@ export default function Hero() {
                   }}
                 >
                   {/* Dynamic Island */}
-                  <div className="absolute top-[13px] left-1/2 -translate-x-1/2 w-[68px] h-[16px] rounded-full bg-[#000000] z-30 flex items-center justify-end pr-2.5 shadow-xs">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#161D2B] border border-white/10 flex items-center justify-center">
-                      <div className="w-1 h-1 rounded-full bg-blue-500/40" />
+                  <div className="absolute top-[10px] sm:top-[13px] left-1/2 -translate-x-1/2 w-[54px] sm:w-[68px] h-[13px] sm:h-[16px] rounded-full bg-[#000000] z-30 flex items-center justify-end pr-2 sm:pr-2.5 shadow-xs">
+                    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#161D2B] border border-white/10 flex items-center justify-center">
+                      <div className="w-0.5 h-0.5 sm:w-1 sm:h-1 rounded-full bg-blue-500/40" />
                     </div>
                   </div>
 
                   {/* Phone Screen */}
                   <div
-                    className="relative rounded-[32px] overflow-hidden bg-[#EEF2F6] border border-slate-200/80 select-none shadow-inner"
+                    className="relative rounded-[26px] sm:rounded-[32px] overflow-hidden bg-[#EEF2F6] border border-slate-200/80 select-none shadow-inner"
                     style={{ aspectRatio: "896/1650" }}
                   >
                     {/* iOS Status Bar (crisp white on top of blue header) */}
-                    <div className="absolute top-0 inset-x-0 z-20 px-5 pt-2 pb-1 flex items-center justify-between text-white/95 pointer-events-none">
-                      <span className="text-[8.5px] font-semibold tracking-tight">9:41</span>
+                    <div className="absolute top-0 inset-x-0 z-20 px-4 sm:px-5 pt-1.5 sm:pt-2 pb-1 flex items-center justify-between text-white/95 pointer-events-none">
+                      <span className="text-[7.5px] sm:text-[8.5px] font-semibold tracking-tight">9:41</span>
                       <div className="flex items-center gap-1">
                         {/* Signal bars */}
                         <div className="flex gap-[1.5px] items-end h-2">
-                          <div className="w-[1.5px] h-[3px] rounded-xs bg-white" />
-                          <div className="w-[1.5px] h-[4.5px] rounded-xs bg-white" />
-                          <div className="w-[1.5px] h-[6px] rounded-xs bg-white" />
-                          <div className="w-[1.5px] h-[7.5px] rounded-xs bg-white" />
+                          <div className="w-[1.5px] h-[2.5px] sm:h-[3px] rounded-xs bg-white" />
+                          <div className="w-[1.5px] h-[3.5px] sm:h-[4.5px] rounded-xs bg-white" />
+                          <div className="w-[1.5px] h-[5px] sm:h-[6px] rounded-xs bg-white" />
+                          <div className="w-[1.5px] h-[6.5px] sm:h-[7.5px] rounded-xs bg-white" />
                         </div>
                         {/* 5G */}
-                        <span className="text-[7px] font-bold tracking-tighter">5G</span>
+                        <span className="text-[6.5px] sm:text-[7px] font-bold tracking-tighter">5G</span>
                         {/* Battery */}
-                        <div className="w-3.5 h-[7.5px] rounded-[2px] border border-white/90 relative p-[1px] flex items-center">
+                        <div className="w-3 sm:w-3.5 h-[6.5px] sm:h-[7.5px] rounded-[2px] border border-white/90 relative p-[1px] flex items-center">
                           <div className="h-full w-[80%] rounded-[1px] bg-white" />
                         </div>
                       </div>
@@ -366,7 +364,7 @@ export default function Hero() {
 
                     {/* Subtle diagonal glass reflection shine */}
                     <div
-                      className="absolute inset-0 pointer-events-none z-20 rounded-[32px]"
+                      className="absolute inset-0 pointer-events-none z-20 rounded-[26px] sm:rounded-[32px]"
                       style={{
                         background:
                           "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 45%, transparent 100%)",
@@ -374,7 +372,7 @@ export default function Hero() {
                     />
 
                     {/* iOS Home Indicator Bar */}
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 rounded-full bg-slate-400/45 z-20 pointer-events-none" />
+                    <div className="absolute bottom-1.5 sm:bottom-2 left-1/2 -translate-x-1/2 w-16 sm:w-24 h-1 rounded-full bg-slate-400/45 z-20 pointer-events-none" />
                   </div>
                 </div>
               </div>
