@@ -18,7 +18,7 @@ export default function CTA() {
           <div className="mt-10 sm:mt-12 flex flex-wrap items-center gap-5 sm:gap-7">
             {/* Primary Action Button */}
             <Link
-              href="/pricing"
+              href="/signup"
               className="inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-slate-900 hover:bg-black text-white text-base font-semibold transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
             >
               Start 14-Day Free Trial

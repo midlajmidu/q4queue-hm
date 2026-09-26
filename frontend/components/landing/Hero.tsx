@@ -146,7 +146,7 @@ export default function Hero() {
         >
           <Button
             size="lg"
-            onClick={() => router.push("/pricing")}
+            onClick={() => router.push("/signup")}
             className="h-[50px] px-8 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-bold text-[15px] shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_12px_28px_-6px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>Start 14-Day Free Trial</span>
@@ -180,7 +180,6 @@ export default function Hero() {
               ))}
             </div>
             <span className="font-semibold text-white">4.9/5</span>
-            <span className="text-white/40">from 1,200+ venues</span>
           </div>
 
           {/* Feature 1 */}

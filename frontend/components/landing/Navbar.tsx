@@ -224,7 +224,7 @@ export default function Navbar() {
 
           <Button
             size="sm"
-            onClick={() => router.push("/pricing")}
+            onClick={() => router.push("/signup")}
             className={cn(
               "hidden md:inline-flex h-[44px] px-5 text-[14px] font-semibold rounded-[9px] shadow-sm transition-all active:scale-[0.99] cursor-pointer",
               isLightNav
@@ -344,7 +344,7 @@ export default function Navbar() {
                 size="default"
                 onClick={() => {
                   setMobileOpen(false);
-                  router.push("/pricing");
+                  router.push("/signup");
                 }}
                 className="w-full justify-center gap-2 h-11 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
               >
