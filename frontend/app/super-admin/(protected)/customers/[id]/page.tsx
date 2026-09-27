@@ -22,6 +22,7 @@ import {
     Mail,
     Pencil,
     Phone,
+    Play,
     RotateCcw,
     Search,
     ShieldCheck,
@@ -199,7 +200,32 @@ export default function CustomerDetailPage() {
                                     </button>
                                 ) : (
                                     <>
-                                        {(status === "trialing" || status === "expired") && (
+                                        {status === "trialing" && (
+                                            <>
+                                                <button
+                                                    onClick={() => setAction("extend_trial")}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2.5 text-sm font-medium text-slate-200 transition-all hover:bg-slate-700 hover:text-white"
+                                                >
+                                                    <Clock size={15} className="text-amber-400" />
+                                                    Extend Trial
+                                                </button>
+                                                <button
+                                                    onClick={() => setAction("activate")}
+                                                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500"
+                                                >
+                                                    <CheckCircle2 size={15} />
+                                                    Convert to Active
+                                                </button>
+                                                <button
+                                                    onClick={() => setAction("suspend")}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-sm font-medium text-amber-400 transition-all hover:bg-amber-500/20"
+                                                >
+                                                    <AlertTriangle size={15} />
+                                                    Suspend
+                                                </button>
+                                            </>
+                                        )}
+                                        {status === "expired" && (
                                             <>
                                                 <button
                                                     onClick={() => setAction("extend_trial")}
@@ -218,29 +244,46 @@ export default function CustomerDetailPage() {
                                             </>
                                         )}
                                         {status === "active" && (
-                                            <button
-                                                onClick={() => setAction("suspend")}
-                                                className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-sm font-medium text-amber-400 transition-all hover:bg-amber-500/20"
-                                            >
-                                                <AlertTriangle size={15} />
-                                                Suspend
-                                            </button>
+                                            <>
+                                                <button
+                                                    onClick={() => setAction("suspend")}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-sm font-medium text-amber-400 transition-all hover:bg-amber-500/20"
+                                                >
+                                                    <AlertTriangle size={15} />
+                                                    Suspend
+                                                </button>
+                                                <button
+                                                    onClick={() => setAction("cancel")}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-300"
+                                                >
+                                                    Cancel Subscription
+                                                </button>
+                                            </>
                                         )}
-                                        {(status === "suspended" || status === "cancelled") && (
+                                        {status === "suspended" && (
+                                            <>
+                                                <button
+                                                    onClick={() => setAction("unsuspend")}
+                                                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 active:scale-95 cursor-pointer"
+                                                >
+                                                    <Play size={15} />
+                                                    Unsuspend Account
+                                                </button>
+                                                <button
+                                                    onClick={() => setAction("cancel")}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-300"
+                                                >
+                                                    Cancel Subscription
+                                                </button>
+                                            </>
+                                        )}
+                                        {status === "cancelled" && (
                                             <button
                                                 onClick={() => setAction("reactivate")}
                                                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 active:scale-95 cursor-pointer"
                                             >
                                                 <RotateCcw size={15} />
-                                                Retake / Reactivate Subscription
-                                            </button>
-                                        )}
-                                        {status !== "cancelled" && (
-                                            <button
-                                                onClick={() => setAction("cancel")}
-                                                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-slate-700 hover:text-white"
-                                            >
-                                                Cancel Subscription
+                                                Reactivate Subscription
                                             </button>
                                         )}
                                     </>
@@ -1129,29 +1172,92 @@ function ActionModal({
         }
     };
 
-    const isDanger = action === "archive" || action === "suspend" || action === "cancel";
-    const confirmationValid = action !== "archive" || confirmation === customerName;
-    const actionTitle = action === "archive" ? "Delete Customer" : action.replaceAll("_", " ");
+    const isDanger = action === "archive" || action === "cancel";
+    const isAmber = action === "suspend";
+    const confirmationValid = (action !== "archive" && action !== "cancel") || confirmation === customerName;
+
+    const actionTitle =
+        action === "archive" ? "Delete Customer"
+        : action === "suspend" ? "Suspend Customer Account"
+        : action === "unsuspend" ? "Unsuspend Customer Account"
+        : action === "cancel" ? "Cancel Subscription"
+        : action === "reactivate" ? "Reactivate Subscription"
+        : action === "extend_trial" ? "Extend Free Trial"
+        : action === "activate" ? "Convert to Active Plan"
+        : action.replaceAll("_", " ");
+
+    const actionSubtitle =
+        action === "suspend" ? `Temporarily freeze system access and queue operations for ${customerName}.`
+        : action === "unsuspend" ? `Restore full access and resume operational queues for ${customerName}.`
+        : action === "cancel" ? `Terminate commercial subscription and service for ${customerName}.`
+        : action === "reactivate" ? `Restore an active commercial subscription for ${customerName}.`
+        : action === "archive" ? `Archive customer and preserve data for ${customerName}.`
+        : action === "extend_trial" ? `Extend the free trial period for ${customerName}.`
+        : action === "activate" ? `Promote ${customerName} to an active commercial plan.`
+        : `Perform commercial lifecycle action for ${customerName}.`;
+
+    const confirmButtonLabel =
+        saving ? "Updating..."
+        : action === "archive" ? "Archive Customer"
+        : action === "suspend" ? "Suspend Account"
+        : action === "unsuspend" ? "Unsuspend Account"
+        : action === "cancel" ? "Cancel Subscription"
+        : action === "reactivate" ? "Reactivate Subscription"
+        : action === "extend_trial" ? "Extend Trial"
+        : action === "activate" ? "Convert to Active"
+        : "Confirm Action";
 
     return (
         <Modal
             title={actionTitle}
-            subtitle={`Perform commercial lifecycle action for ${customerName}.`}
-            icon={isDanger ? AlertTriangle : Sparkles}
+            subtitle={actionSubtitle}
+            icon={isDanger ? AlertTriangle : isAmber ? AlertTriangle : action === "unsuspend" ? Play : Sparkles}
             iconBg={
                 isDanger
                     ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                    : isAmber
+                    ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                     : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
             }
             onClose={onClose}
         >
             <div className="space-y-4">
+                {action === "suspend" && (
+                    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200 flex items-start gap-3">
+                        <AlertTriangle size={20} className="shrink-0 text-amber-400 mt-0.5" />
+                        <div>
+                            <strong className="block font-semibold text-amber-100 mb-0.5">Temporary Administrative Suspension</strong>
+                            Suspending <strong className="text-white">{customerName}</strong> will immediately block login access for staff and branch administrators, and pause all active queues. All customer records, branches, token history, and configurations are safely preserved. You can unsuspend this account at any time to resume normal operations.
+                        </div>
+                    </div>
+                )}
+
+                {action === "unsuspend" && (
+                    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200 flex items-start gap-3">
+                        <CheckCircle2 size={20} className="shrink-0 text-emerald-400 mt-0.5" />
+                        <div>
+                            <strong className="block font-semibold text-emerald-100 mb-0.5">Resume &amp; Unsuspend Account</strong>
+                            This action will immediately lift the suspension for <strong className="text-white">{customerName}</strong>. Staff and branch administrators will regain login access, and all queues, sessions, and notifications will resume operation without any data loss.
+                        </div>
+                    </div>
+                )}
+
+                {action === "cancel" && (
+                    <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200 flex items-start gap-3">
+                        <AlertTriangle size={20} className="shrink-0 text-rose-400 mt-0.5" />
+                        <div>
+                            <strong className="block font-semibold text-rose-100 mb-0.5">Cancel Commercial Subscription</strong>
+                            Cancelling terminates commercial service for <strong className="text-white">{customerName}</strong>. Branch staff and admins will lose access to operational queues. Historical customer data and audit trails will remain preserved in the system for Super Admins.
+                        </div>
+                    </div>
+                )}
+
                 {action === "reactivate" && (
                     <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200 flex items-start gap-3">
                         <CheckCircle2 size={20} className="shrink-0 text-emerald-400 mt-0.5" />
                         <div>
-                            <strong className="block font-semibold text-emerald-100 mb-0.5">Retake &amp; Reactivate Subscription</strong>
-                            This action restores active subscription status for <strong className="text-white">{customerName}</strong> across all branches and staff seats. All existing queues, sessions, and historical data will be fully operational and intact.
+                            <strong className="block font-semibold text-emerald-100 mb-0.5">Reactivate Subscription</strong>
+                            This action restores an active commercial subscription for <strong className="text-white">{customerName}</strong> across all branches and staff seats. All queues, sessions, and historical records will be fully accessible.
                         </div>
                     </div>
                 )}
@@ -1160,8 +1266,8 @@ function ActionModal({
                     <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200 flex items-start gap-3">
                         <AlertTriangle size={20} className="shrink-0 text-rose-400 mt-0.5" />
                         <div>
-                            <strong className="block font-semibold text-rose-100">Archiving Account</strong>
-                            This action archives the customer and blocks access. Customer data will be preserved and can be restored later.
+                            <strong className="block font-semibold text-rose-100 mb-0.5">Archive Customer Account</strong>
+                            This action archives the customer and revokes all tenant access. Customer data will be safely preserved in an archived state and can be restored later by a Super Admin.
                         </div>
                     </div>
                 )}
@@ -1198,10 +1304,10 @@ function ActionModal({
                     </div>
                 )}
 
-                {action === "archive" && (
+                {(action === "archive" || action === "cancel") && (
                     <div>
                         <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                            Type <strong className="text-white">{customerName}</strong> to confirm
+                            Type <strong className="text-white">{customerName}</strong> to confirm {action === "cancel" ? "cancellation" : "deletion"}
                         </label>
                         <input
                             value={confirmation}
@@ -1238,14 +1344,16 @@ function ActionModal({
                         type="button"
                         disabled={saving || reason.trim().length < 3 || !confirmationValid}
                         onClick={submit}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white shadow-lg transition-all disabled:opacity-50 active:scale-95 ${
-                            isDanger
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all disabled:opacity-50 active:scale-95 ${
+                            action === "suspend"
+                                ? "bg-amber-600 hover:bg-amber-500 shadow-amber-600/25"
+                                : isDanger
                                 ? "bg-rose-600 hover:bg-rose-500 shadow-rose-600/25"
                                 : "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/25"
                         }`}
                     >
                         {saving && <Loader2 size={16} className="animate-spin" />}
-                        {saving ? "Updating..." : action === "archive" ? "Archive Customer" : "Confirm Action"}
+                        {confirmButtonLabel}
                     </button>
                 </div>
             </div>

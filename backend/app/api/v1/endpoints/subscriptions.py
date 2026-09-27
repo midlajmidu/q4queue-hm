@@ -913,6 +913,8 @@ async def update_managed_subscription(
     previous_status = effective_status(subscription)
     now = datetime.now(timezone.utc)
     if body.action == "extend_trial":
+        if previous_status not in {"trialing", "expired"}:
+            raise HTTPException(status_code=400, detail="Only trialing or expired accounts can have their trial extended")
         base = subscription.trial_ends_at or now
         if base.tzinfo is None:
             base = base.replace(tzinfo=timezone.utc)
@@ -943,28 +945,54 @@ async def update_managed_subscription(
         await db.execute(update(Organization).where(Organization.parent_organization_id == parent.id).values(is_active=True))
         await db.execute(update(User).where(User.parent_organization_id == parent.id).values(is_active=True))
     elif body.action == "suspend":
+        if previous_status not in {"active", "trialing"}:
+            raise HTTPException(status_code=400, detail="Only active or trialing customers can be suspended")
         subscription.status = "suspended"
+    elif body.action == "unsuspend":
+        if previous_status != "suspended":
+            raise HTTPException(status_code=400, detail="Only suspended accounts can be unsuspended")
+        subscription.status = "trialing" if subscription.trial_ends_at and subscription.trial_ends_at > now else "active"
+        parent.is_active = True
+        await db.execute(update(Organization).where(Organization.parent_organization_id == parent.id).values(is_active=True))
+        await db.execute(update(User).where(User.parent_organization_id == parent.id).values(is_active=True))
     elif body.action == "reactivate":
+        if previous_status not in {"cancelled", "suspended"}:
+            raise HTTPException(status_code=400, detail="Only cancelled or suspended subscriptions can be reactivated")
         subscription.status = "trialing" if subscription.trial_ends_at and subscription.trial_ends_at > now else "active"
         parent.is_active = True
         await db.execute(update(Organization).where(Organization.parent_organization_id == parent.id).values(is_active=True))
         await db.execute(update(User).where(User.parent_organization_id == parent.id).values(is_active=True))
     elif body.action == "cancel":
+        if previous_status not in {"active", "suspended", "trialing"}:
+            raise HTTPException(status_code=400, detail="Account is not in a cancellable state")
         subscription.status = "cancelled"
     elif body.action == "archive":
+        if previous_status == "archived":
+            raise HTTPException(status_code=400, detail="Customer is already archived")
         subscription.status = "archived"
         parent.is_active = False
     elif body.action == "restore":
+        if previous_status != "archived":
+            raise HTTPException(status_code=400, detail="Only archived accounts can be restored")
         subscription.status = "active"
         parent.is_active = True
         await db.execute(update(Organization).where(Organization.parent_organization_id == parent.id).values(is_active=True))
         await db.execute(update(User).where(User.parent_organization_id == parent.id).values(is_active=True))
     await db.commit()
+    event_action = (
+        "suspended" if body.action == "suspend"
+        else "unsuspended" if body.action == "unsuspend"
+        else "cancelled" if body.action == "cancel"
+        else "reactivated" if body.action == "reactivate"
+        else "trial_extended" if body.action == "extend_trial"
+        else "activated" if body.action == "activate"
+        else body.action
+    )
     await record_event(
-        event_type=f"subscription.{body.action}", user_id=current_user.id, parent_org_id=parent.id,
+        event_type=f"subscription.{event_action}", user_id=current_user.id, parent_org_id=parent.id,
         ip_address=request.client.host if request.client else None, resource_type="subscription",
         resource_id=str(subscription.id), details={
-            "reason": body.reason, "previous_status": previous_status,
+            "action": body.action, "reason": body.reason, "previous_status": previous_status,
             "new_status": effective_status(subscription), "extension_days": body.extension_days,
         },
     )

@@ -328,7 +328,7 @@ class ManagedCustomerDetail(BaseModel):
 
 
 class SubscriptionAdminUpdate(BaseModel):
-    action: Literal["extend_trial", "activate", "suspend", "reactivate", "cancel", "archive", "restore"]
+    action: Literal["extend_trial", "activate", "suspend", "unsuspend", "reactivate", "cancel", "archive", "restore"]
     extension_days: int | None = Field(default=None, ge=1, le=365)
     reason: str = Field(..., min_length=3, max_length=500)
 

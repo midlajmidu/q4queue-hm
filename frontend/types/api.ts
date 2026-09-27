@@ -198,7 +198,7 @@ export interface AvailableBranchItem {
 }
 
 export interface SubscriptionAdminUpdate {
-    action: "extend_trial" | "activate" | "suspend" | "reactivate" | "cancel" | "archive" | "restore";
+    action: "extend_trial" | "activate" | "suspend" | "unsuspend" | "reactivate" | "cancel" | "archive" | "restore";
     extension_days?: number;
     reason: string;
 }
