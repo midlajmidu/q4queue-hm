@@ -61,8 +61,16 @@ async def assert_operational(db: AsyncSession, org_id: uuid.UUID, *, lock: bool 
         return None  # Legacy organizations retain their existing behaviour.
     status = effective_status(subscription)
     if status not in {"trialing", "active"}:
+        if status == "suspended":
+            msg = "This account has been suspended by an administrator. Please contact support at contact@q4queue.com to restore access. Your data is safe."
+        elif status == "cancelled":
+            msg = "This subscription has been cancelled. Please contact support at contact@q4queue.com to reactivate your account."
+        elif status == "archived":
+            msg = "This account has been archived. Please contact support at contact@q4queue.com to restore access."
+        else:
+            msg = "Your free trial has expired. Your data is safe; contact sales to continue operating."
         raise EntitlementError(
-            "Your free trial has expired. Your data is safe; contact sales to continue operating.",
+            msg,
             code="subscription_not_operational",
         )
     return subscription

@@ -26,7 +26,7 @@ from app.schemas.auth import (
     ResetPasswordWithOtpRequest,
 )
 from app.schemas.subscription import TrialSignupOtpRequest, TrialSignupResponse, TrialSignupVerifyRequest
-from app.services.auth_service import TRIAL_EXPIRED_MESSAGE, authenticate_user
+from app.services.auth_service import TRIAL_EXPIRED_MESSAGE, ACCOUNT_SUSPENDED_MESSAGE, authenticate_user
 from app.middleware.rate_limiter import login_rate_limit, api_rate_limit
 from app.audit.service import record_event
 from app.core.deps import get_current_user
@@ -198,11 +198,17 @@ async def login(
             ip_address=client_ip,
             details={"email": body.email, "org_slug": body.organization_slug, "user_agent": user_agent},
         )
-        is_expired_trial = str(exc) == TRIAL_EXPIRED_MESSAGE
+        msg_str = str(exc)
+        is_forbidden = (
+            msg_str in {TRIAL_EXPIRED_MESSAGE, ACCOUNT_SUSPENDED_MESSAGE}
+            or "suspended" in msg_str.lower()
+            or "trial has ended" in msg_str.lower()
+            or "subscription" in msg_str.lower()
+        )
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN if is_expired_trial else status.HTTP_401_UNAUTHORIZED,
-            detail=str(exc),
-            headers=None if is_expired_trial else {"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_403_FORBIDDEN if is_forbidden else status.HTTP_401_UNAUTHORIZED,
+            detail=msg_str,
+            headers=None if is_forbidden else {"WWW-Authenticate": "Bearer"},
         ) from exc
 
     await record_event(

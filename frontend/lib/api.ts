@@ -148,11 +148,11 @@ export class ApiError extends Error {
     retryAfter?: number;
 
     constructor(resp: ApiErrorResponse & { path?: string; method?: string }) {
-        const msg = resp.path ? `[${resp.status} ${resp.method || "GET"} ${resp.path}] ${resp.detail}` : resp.detail;
-        super(msg);
+        const cleanMsg = resp.detail || "An unexpected error occurred.";
+        super(cleanMsg);
         this.name = "ApiError";
         this.status = resp.status;
-        this.detail = resp.detail;
+        this.detail = cleanMsg;
         this.path = resp.path;
         this.method = resp.method;
         this.retryAfter = resp.retryAfter;
@@ -180,8 +180,9 @@ function friendlyMessage(status: number, rawDetail: string): string {
     }
 }
 
-// Flag to prevent duplicate deactivation alerts when multiple concurrent requests fail
+// Flags to prevent duplicate modal alerts when multiple concurrent requests fail
 let isDeactivationAlertShowing = false;
+let isSuspensionAlertShowing = false;
 
 // ── Internal fetch wrapper ───────────────────────────────────────
 async function request<T>(
@@ -319,6 +320,67 @@ async function request<T>(
             const detail = "Your account has been deactivated by an administrator.";
             const method = options.method || "GET";
             logger.warn("API error response (deactivated)", { method, path, status: resp.status, detail });
+            throw new ApiError({ status: resp.status, detail, path, method });
+        }
+
+        // ── Suspended Account Interceptor (403 with suspended / subscription not active detail) ──
+        const isSuspended =
+            resp.status === 403 &&
+            typeof rawDetail === "string" &&
+            (rawDetail.toLowerCase().includes("suspended") || rawDetail.toLowerCase().includes("subscription is not active"));
+
+        if (isSuspended) {
+            clearAllAuthTokens();
+            if (typeof window !== "undefined") {
+                try {
+                    const bc = new BroadcastChannel("auth_sync_channel");
+                    bc.postMessage({ type: "LOGOUT" });
+                    bc.close();
+                } catch { }
+
+                const path = window.location.pathname;
+                const isSuperAdminPath = path.startsWith("/super-admin");
+                const isOrgAdminPath = path.startsWith("/organization-admin") || path.startsWith("/org-admin");
+                const isDashboardPath = path.includes("/dashboard");
+                const isPublicPath = path.startsWith("/qr") || path.startsWith("/display") || path.startsWith("/join") || path.startsWith("/track") || path === "/" || path.startsWith("/features") || path.startsWith("/pricing") || path.startsWith("/solutions") || path.startsWith("/industries");
+                const isAlreadyonLogin = path === "/login" || path.endsWith("/login") || path === "/organization-login";
+
+                const redirectUrl = isSuperAdminPath
+                    ? "/super-admin/login?error=account_suspended"
+                    : isOrgAdminPath
+                    ? "/organization-login?error=account_suspended"
+                    : "/login?error=account_suspended";
+
+                if (!isAlreadyonLogin && !isPublicPath && (isSuperAdminPath || isOrgAdminPath || isDashboardPath)) {
+                    if (!isSuspensionAlertShowing) {
+                        isSuspensionAlertShowing = true;
+                        import("sweetalert2").then(({ default: Swal }) => {
+                            Swal.fire({
+                                icon: "warning",
+                                title: "Account Suspended",
+                                text: "This account has been suspended by an administrator. Please contact support at contact@q4queue.com to restore access.",
+                                confirmButtonText: "Go to Login",
+                                confirmButtonColor: "#2563eb",
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                            }).then(() => {
+                                window.location.href = redirectUrl;
+                            });
+                        }).catch(() => {
+                            window.location.href = redirectUrl;
+                        });
+
+                        // Fallback auto-redirect after 6 seconds if user doesn't interact
+                        setTimeout(() => {
+                            window.location.href = redirectUrl;
+                        }, 6000);
+                    }
+                }
+            }
+
+            const detail = "This account has been suspended by an administrator. Please contact support at contact@q4queue.com to restore access.";
+            const method = options.method || "GET";
+            logger.warn("API error response (suspended)", { method, path, status: resp.status, detail });
             throw new ApiError({ status: resp.status, detail, path, method });
         }
 

@@ -22,7 +22,11 @@ export default function LoginPage() {
     useEffect(() => {
         if (typeof window !== "undefined") {
             const params = new URLSearchParams(window.location.search);
-            if (params.get("error") === "account_deactivated") {
+            const errParam = params.get("error");
+            if (errParam === "account_suspended") {
+                setBannerMessage("This account has been suspended by an administrator. Please contact support at contact@q4queue.com to restore access.");
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (errParam === "account_deactivated") {
                 setBannerMessage("Your account has been deactivated by an administrator. Please contact support.");
                 window.history.replaceState({}, document.title, window.location.pathname);
             }

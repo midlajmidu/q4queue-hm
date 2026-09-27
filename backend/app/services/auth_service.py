@@ -19,11 +19,14 @@ from app.models.user import User
 logger = logging.getLogger(__name__)
 
 # Generic message — prevent enumeration attacks
-_INVALID_CREDENTIALS = "Invalid credentials"
+ACCOUNT_SUSPENDED_MESSAGE = "This account has been suspended by an administrator. Please contact support at contact@q4queue.com to restore access."
 TRIAL_EXPIRED_MESSAGE = "Your free trial has ended. Contact our sales team to continue using Q4Queue. Your data is safe."
+SUBSCRIPTION_CANCELLED_MESSAGE = "This subscription has been cancelled. Please contact support at contact@q4queue.com to reactivate your account."
+SUBSCRIPTION_ARCHIVED_MESSAGE = "This account has been archived. Please contact support at contact@q4queue.com to restore access."
+SUBSCRIPTION_INACTIVE_MESSAGE = "This subscription is not active. Contact support at contact@q4queue.com to continue using Q4Queue. Your data is safe."
 
 
-async def _reject_expired_trial(db: AsyncSession, parent_organization_id) -> None:
+async def _assert_subscription_operational(db: AsyncSession, parent_organization_id) -> None:
     if not parent_organization_id:
         return
     from app.models.subscription import Subscription
@@ -31,8 +34,21 @@ async def _reject_expired_trial(db: AsyncSession, parent_organization_id) -> Non
     subscription = await db.scalar(select(Subscription).where(
         Subscription.parent_organization_id == parent_organization_id
     ))
-    if subscription and effective_status(subscription) == "expired":
-        raise ValueError(TRIAL_EXPIRED_MESSAGE)
+    if subscription is not None:
+        status = effective_status(subscription)
+        if status == "suspended":
+            raise ValueError(ACCOUNT_SUSPENDED_MESSAGE)
+        elif status == "expired":
+            raise ValueError(TRIAL_EXPIRED_MESSAGE)
+        elif status == "cancelled":
+            raise ValueError(SUBSCRIPTION_CANCELLED_MESSAGE)
+        elif status == "archived":
+            raise ValueError(SUBSCRIPTION_ARCHIVED_MESSAGE)
+        elif status not in {"trialing", "active"}:
+            raise ValueError(SUBSCRIPTION_INACTIVE_MESSAGE)
+
+
+_reject_expired_trial = _assert_subscription_operational
 
 
 async def authenticate_user(

@@ -219,11 +219,16 @@ async def get_current_active_user(
         if subscription is not None:
             commercial_status = effective_status(subscription)
             if commercial_status not in {"trialing", "active"}:
-                message = (
-                    "Your free trial has ended. Contact our sales team to continue using Q4Queue. Your data is safe."
-                    if commercial_status == "expired"
-                    else "This subscription is not active. Contact support to continue using Q4Queue. Your data is safe."
-                )
+                if commercial_status == "suspended":
+                    message = "This account has been suspended by an administrator. Please contact support at contact@q4queue.com to restore access. Your data is safe."
+                elif commercial_status == "expired":
+                    message = "Your free trial has ended. Contact our sales team to continue using Q4Queue. Your data is safe."
+                elif commercial_status == "cancelled":
+                    message = "This subscription has been cancelled. Please contact support at contact@q4queue.com to reactivate your account."
+                elif commercial_status == "archived":
+                    message = "This account has been archived. Please contact support at contact@q4queue.com to restore access."
+                else:
+                    message = "This subscription is not active. Contact support at contact@q4queue.com to continue using Q4Queue. Your data is safe."
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=message)
 
     return current_user

@@ -36,7 +36,13 @@ export default function LoginPage() {
         if (typeof window !== "undefined") {
             const params = new URLSearchParams(window.location.search);
             const errParam = params.get("error");
-            if (errParam === "account_deactivated") {
+            if (errParam === "account_suspended") {
+                setBannerMessage("This account has been suspended by an administrator. Please contact support at contact@q4queue.com to restore access.");
+                toast.error("This account has been suspended by an administrator.", {
+                    duration: 8000,
+                });
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (errParam === "account_deactivated") {
                 setBannerMessage("Your account has been deactivated by an administrator. Please contact your administrator for assistance.");
                 toast.error("Your account has been deactivated by an administrator.", {
                     duration: 8000,
