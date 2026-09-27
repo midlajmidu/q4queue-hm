@@ -713,11 +713,13 @@ export default function OverviewPage() {
   const [selectedQueue, setSelectedQueue] = useState("");
   const [recentPage, setRecentPage] = useState(1);
   const LIMIT = 10;
-  const [feedFilter, setFeedFilter] = useState<"all" | "waiting" | "serving" | "done">("all");
+  const [feedFilter, setFeedFilter] = useState<"all" | "waiting" | "serving" | "done" | "skipped">("all");
   const [drawerAct, setDrawerAct] = useState<AnalyticsOverview["recent_activity"][number] | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isFeedLoading, setIsFeedLoading] = useState(false);
+  const prevPageRef = useRef(recentPage);
 
-  const totalRecentActivities = overview?.total_recent_activity ?? overview?.status_counts?.total ?? 0;
+  const totalRecentActivities = Math.max(overview?.total_recent_activity || 0, overview?.status_counts?.total || 0);
   const totalPages = Math.max(1, Math.ceil(totalRecentActivities / LIMIT));
 
   useEffect(() => {
@@ -761,8 +763,18 @@ export default function OverviewPage() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    if (!silent) setIsLoading(true);
-    else setIsRefreshing(true);
+    const isPageChange = prevPageRef.current !== recentPage;
+    prevPageRef.current = recentPage;
+
+    if (!silent) {
+      if (isPageChange) {
+        setIsFeedLoading(true);
+      } else {
+        setIsLoading(true);
+      }
+    } else {
+      setIsRefreshing(true);
+    }
     setError(null);
 
     try {
@@ -781,6 +793,7 @@ export default function OverviewPage() {
     } finally {
       if (!controller.signal.aborted) {
         setIsLoading(false);
+        setIsFeedLoading(false);
         setIsRefreshing(false);
       }
     }
@@ -1342,7 +1355,7 @@ export default function OverviewPage() {
                   <div key={i} className="shimmer" style={{ height: 48, width: `${w}%`, borderRadius: 8 }} />
                 ))}
               </div>
-            ) : totalRecentActivities === 0 && (!overview?.recent_activity || overview.recent_activity.length === 0) ? (
+            ) : totalRecentActivities === 0 && (!overview?.recent_activity || overview.recent_activity.length === 0) && recentPage === 1 ? (
               <div className="flex flex-col items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl m-5">
                 <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center mb-4">
                   <Icons.Activity size={24} color="currentColor" />
@@ -1361,10 +1374,11 @@ export default function OverviewPage() {
                 <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
                   <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
                     {[
-                      { id: "all", lbl: "All", count: overview?.recent_activity?.length || 0 },
-                      { id: "waiting", lbl: "Waiting", count: (overview?.recent_activity || []).filter(a => a.status === "waiting").length },
-                      { id: "serving", lbl: "Serving", count: (overview?.recent_activity || []).filter(a => a.status === "serving").length },
-                      { id: "done", lbl: "Done", count: (overview?.recent_activity || []).filter(a => a.status === "done").length },
+                      { id: "all", lbl: "All", count: totalRecentActivities },
+                      { id: "waiting", lbl: "Waiting", count: overview?.status_counts?.waiting ?? 0 },
+                      { id: "serving", lbl: "Serving", count: overview?.status_counts?.serving ?? 0 },
+                      { id: "done", lbl: "Done", count: overview?.status_counts?.served ?? 0 },
+                      { id: "skipped", lbl: "Skipped", count: (overview?.status_counts?.skipped ?? 0) + (overview?.status_counts?.deleted ?? 0) },
                     ].map(t => {
                       const isActive = feedFilter === t.id;
                       
@@ -1385,6 +1399,10 @@ export default function OverviewPage() {
                         activeColors = "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-sm";
                         badgeActiveColors = "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300";
                         badgeColors = "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/40 group-hover:text-emerald-700 dark:group-hover:text-emerald-300";
+                      } else if (t.id === "skipped") {
+                        activeColors = "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 text-rose-700 dark:text-rose-400 shadow-sm";
+                        badgeActiveColors = "bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300";
+                        badgeColors = "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-rose-100 dark:group-hover:bg-rose-900/40 group-hover:text-rose-700 dark:group-hover:text-rose-300";
                       } else if (t.id === "all" && isActive) {
                         activeColors = "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900/40 text-indigo-700 dark:text-indigo-400 shadow-sm";
                       }
@@ -1417,8 +1435,21 @@ export default function OverviewPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(() => {
-                        const filtered = (overview?.recent_activity || []).filter(a => feedFilter === "all" || a.status === feedFilter);
+                      {isFeedLoading ? (
+                        <tr>
+                          <td colSpan={5} className="py-12 text-center">
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Loading activities...</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (() => {
+                        const filtered = (overview?.recent_activity || []).filter(a => {
+                          if (feedFilter === "all") return true;
+                          if (feedFilter === "skipped") return a.status === "skipped" || a.status === "deleted";
+                          return a.status === feedFilter;
+                        });
                         if (filtered.length === 0) {
                           return (
                             <tr>
@@ -1484,8 +1515,8 @@ export default function OverviewPage() {
                               </td>
                               <td className="py-4 px-5">
                                 <span style={{
-                                  background: act.status === 'done' ? 'var(--q-green-bg)' : act.status === 'waiting' ? 'var(--q-amber-bg)' : act.status === 'serving' ? 'var(--q-blue-bg)' : 'var(--q-slate-bg)',
-                                  color: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
+                                  background: act.status === 'done' ? 'var(--q-green-bg)' : act.status === 'waiting' ? 'var(--q-amber-bg)' : act.status === 'serving' ? 'var(--q-blue-bg)' : act.status === 'skipped' ? 'var(--q-rose-bg, #fef2f2)' : 'var(--q-slate-bg)',
+                                  color: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : act.status === 'skipped' ? '#dc2626' : 'var(--q-text-muted)'
                                 }} className="inline-flex items-center justify-center px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wider rounded-full border border-black/5 dark:border-white/5">
                                   {act.status}
                                 </span>
@@ -1506,7 +1537,7 @@ export default function OverviewPage() {
                 <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
                   <button 
                     onClick={() => setRecentPage(p => Math.max(1, p - 1))} 
-                    disabled={recentPage <= 1 || isLoading} 
+                    disabled={recentPage <= 1 || isFeedLoading || isLoading} 
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Icons.ArrowLeft size={12} color="currentColor" /> Prev
@@ -1523,7 +1554,7 @@ export default function OverviewPage() {
                   </div>
                   <button 
                     onClick={() => setRecentPage(p => p + 1)} 
-                    disabled={recentPage >= totalPages || isLoading} 
+                    disabled={recentPage >= totalPages || isFeedLoading || isLoading || (overview?.recent_activity?.length || 0) === 0} 
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next <Icons.ArrowRight size={12} color="currentColor" />

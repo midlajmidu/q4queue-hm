@@ -177,20 +177,29 @@ export default function TrackingPage({ params }: PageProps) {
             let newStatus: TokenStatus | null = null;
 
             if (live) {
-                // 1. Is it currently serving?
-                if (live.all_serving_tokens?.some((t: any) => t.token_number === joinData.token_number)) {
+                // Session isolation check: if WebSocket is reporting a different session,
+                // do not let its token numbers overwrite this token's status
+                const isDiffSession = Boolean(
+                    live.session_id && joinData.session_id && live.session_id !== joinData.session_id
+                );
+                if (isDiffSession) {
+                    return;
+                }
+
+                // 1. Is it currently serving in this session?
+                if (live.all_serving_tokens?.some((t: any) => t.token_number === joinData.token_number && (!t.session_id || !joinData.session_id || t.session_id === joinData.session_id))) {
                     newStatus = "serving";
                 }
-                // 2. Is it in recent tokens? (this covers done, skipped, deleted, serving)
+                // 2. Is it waiting in this session? (Check waiting BEFORE recent_tokens so active tokens are never overridden by past skipped tokens)
+                else if (live.waiting_tokens?.some((t: any) => t.token_number === joinData.token_number && (!t.session_id || !joinData.session_id || t.session_id === joinData.session_id))) {
+                    newStatus = "waiting";
+                }
+                // 3. Is it in recent tokens? (this covers done, skipped, deleted)
                 else if (live.recent_tokens) {
                     const recent = live.recent_tokens.find(
-                        (t: any) => t.token_number === joinData.token_number
+                        (t: any) => t.token_number === joinData.token_number && (!t.session_id || !joinData.session_id || t.session_id === joinData.session_id)
                     );
                     if (recent) newStatus = recent.status;
-                }
-                // 3. Is it waiting?
-                else if (live.waiting_tokens?.some((t: any) => t.token_number === joinData.token_number)) {
-                    newStatus = "waiting";
                 }
             }
 
@@ -293,7 +302,11 @@ export default function TrackingPage({ params }: PageProps) {
 
     // Derived: compute live position
     const myNumber = joinData?.token_number ?? null;
-    const serving = live?.current_serving ?? 0;
+    const isDifferentSession = Boolean(
+        live?.session_id && joinData?.session_id && live.session_id !== joinData.session_id
+    );
+    const activeServingTokens = (!isDifferentSession && live?.all_serving_tokens) ? live.all_serving_tokens : [];
+    const serving = (!isDifferentSession && live?.current_serving) ? live.current_serving : 0;
 
     const actualStatus = tokenStatus || "waiting";
     const isMyTurn = actualStatus === "serving";
@@ -302,18 +315,18 @@ export default function TrackingPage({ params }: PageProps) {
     const isDeleted = actualStatus === "deleted";
 
     const isClosedSessionToken = isPastSession || joinData?.removed_by === "session_end";
-    const alreadyServed = isDone || isSkipped || isDeleted || (myNumber !== null && myNumber < serving && actualStatus !== "waiting");
+    const alreadyServed = isDone || isSkipped || isDeleted || (myNumber !== null && serving > 0 && myNumber < serving && actualStatus !== "waiting");
     let peopleAhead = 0;
     if (myNumber !== null && actualStatus === "waiting") {
         let rawAhead = 0;
-        if (live?.waiting_tokens && live.waiting_tokens.length > 0) {
+        if (!isDifferentSession && live?.waiting_tokens && live.waiting_tokens.length > 0) {
             const idx = live.waiting_tokens.findIndex((t) => t.token_number === myNumber);
             if (idx !== -1) {
                 rawAhead = idx;
             } else {
                 rawAhead = joinData?.position ?? 0;
             }
-        } else if (live?.waiting_tokens && live.waiting_tokens.length === 0) {
+        } else if (!isDifferentSession && live?.waiting_tokens && live.waiting_tokens.length === 0) {
             rawAhead = 0;
         } else {
             rawAhead = joinData?.position ?? 0;
@@ -340,8 +353,6 @@ export default function TrackingPage({ params }: PageProps) {
     const queuePaused = live?.is_paused === true;
     const queueName = live?.queue_name || "Queue";
     const prefix = live?.prefix || joinData?.queue_prefix || "";
-
-    const activeServingTokens = live?.all_serving_tokens ?? [];
 
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [isInteracting, setIsInteracting] = useState(false);
@@ -780,10 +791,8 @@ export default function TrackingPage({ params }: PageProps) {
                                                     {isDineMode ? "Now Seated" : "Serving"}
                                                 </p>
                                                 <p className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
-                                                    {activeServingTokens.length > 0
+                                                    {(!isDifferentSession && activeServingTokens.length > 0)
                                                         ? `${prefix}${activeServingTokens[0].token_number}`
-                                                        : serving > 0
-                                                        ? `${prefix}${serving}`
                                                         : "—"}
                                                 </p>
                                             </div>

@@ -53,57 +53,83 @@ async def build_queue_snapshot(
         parent_org_result = await db.execute(select(ParentOrganization).where(ParentOrganization.id == org.parent_organization_id))
         parent_org = parent_org_result.scalar_one_or_none()
     
+    # ── Session info for current session ───────────────────────────
+    session_date_str = None
+    is_past_session = False
+    session_is_current = False
+    within_hours = True
+    session = None
+    session_active = False
+    session_paused = False
+    if queue.token_session_id:
+        from app.models.session import Session
+        session = await db.get(Session, queue.token_session_id)
+        if session:
+            session_active = bool(session.is_active)
+            session_paused = bool(session.is_paused)
+            session_date_str = session.session_date.isoformat()
+            is_past_session = not session_active
+            session_is_current = session_active
+            within_hours = True
+
     # ── Currently serving ──────────────────────────────────────────
     # ── All serving tokens (multi-lane: all N lanes) ───────────────
-    all_serving_result = await db.execute(
-        select(Token)
-        .where(
-            Token.queue_id == queue_id,
-            Token.session_id == queue.token_session_id,
-            Token.status == TokenStatus.serving,
-        )
-        .order_by(Token.assigned_line.asc().nullsfirst(), Token.token_number.asc())
-    )
-    serving_rows = list(all_serving_result.scalars().all())
-    serving_token = max(serving_rows, key=lambda token: token.token_number, default=None)
-    current_serving = serving_token.token_number if serving_token else 0
+    serving_rows = []
+    serving_token = None
+    current_serving = 0
     serving_details = None
-    if serving_token:
-        serving_details = {
-            "token_number": serving_token.token_number,
-            "customer_name": serving_token.customer_name,
-            "assigned_line": serving_token.assigned_line,
-            "called_via_invite": serving_token.called_via_invite,
-            "entry_type": getattr(serving_token, "entry_type", "qr"),
-            "pax_count": getattr(serving_token, "pax_count", 1),
-        }
-        if is_admin:
-            serving_details["customer_age"] = serving_token.customer_age
-            serving_details["customer_phone"] = serving_token.customer_phone
-            serving_details["companion_names"] = serving_token.companion_names
-            serving_details["custom_data"] = getattr(serving_token, "custom_data", None)
-            serving_details["field_schema"] = getattr(serving_token, "field_schema", None)
-
     all_serving_tokens = []
-    for t in serving_rows:
-        sd = {
-            "id": str(t.id),
-            "token_number": t.token_number,
-            "customer_name": t.customer_name,
-            "assigned_line": t.assigned_line,
-            "called_via_invite": t.called_via_invite,
-            "served_at": t.served_at.isoformat() if t.served_at else None,
-            "entry_type": getattr(t, "entry_type", "qr"),
-            "pax_count": getattr(t, "pax_count", 1),
-            "shared_lines": getattr(t, "shared_lines", []),
-            "completed_lines": getattr(t, "completed_lines", []),
-        }
-        if is_admin:
-            sd["customer_phone"] = t.customer_phone
-            sd["customer_age"] = t.customer_age
-            sd["custom_data"] = getattr(t, "custom_data", None)
-            sd["field_schema"] = getattr(t, "field_schema", None)
-        all_serving_tokens.append(sd)
+
+    if session_active and queue.token_session_id:
+        all_serving_result = await db.execute(
+            select(Token)
+            .where(
+                Token.queue_id == queue_id,
+                Token.session_id == queue.token_session_id,
+                Token.status == TokenStatus.serving,
+            )
+            .order_by(Token.assigned_line.asc().nullsfirst(), Token.token_number.asc())
+        )
+        serving_rows = list(all_serving_result.scalars().all())
+        serving_token = max(serving_rows, key=lambda token: token.token_number, default=None)
+        current_serving = serving_token.token_number if serving_token else 0
+        if serving_token:
+            serving_details = {
+                "token_number": serving_token.token_number,
+                "session_id": str(serving_token.session_id) if getattr(serving_token, "session_id", None) else None,
+                "customer_name": serving_token.customer_name,
+                "assigned_line": serving_token.assigned_line,
+                "called_via_invite": serving_token.called_via_invite,
+                "entry_type": getattr(serving_token, "entry_type", "qr"),
+                "pax_count": getattr(serving_token, "pax_count", 1),
+            }
+            if is_admin:
+                serving_details["customer_age"] = serving_token.customer_age
+                serving_details["customer_phone"] = serving_token.customer_phone
+                serving_details["companion_names"] = serving_token.companion_names
+                serving_details["custom_data"] = getattr(serving_token, "custom_data", None)
+                serving_details["field_schema"] = getattr(serving_token, "field_schema", None)
+
+        for t in serving_rows:
+            sd = {
+                "id": str(t.id),
+                "token_number": t.token_number,
+                "session_id": str(t.session_id) if getattr(t, "session_id", None) else None,
+                "customer_name": t.customer_name,
+                "assigned_line": t.assigned_line,
+                "called_via_invite": t.called_via_invite,
+                "served_at": t.served_at.isoformat() if t.served_at else None,
+                "entry_type": getattr(t, "entry_type", "qr"),
+                "pax_count": getattr(t, "pax_count", 1),
+                "shared_lines": getattr(t, "shared_lines", []),
+                "completed_lines": getattr(t, "completed_lines", []),
+            }
+            if is_admin:
+                sd["customer_phone"] = t.customer_phone
+                sd["customer_age"] = t.customer_age
+                sd["custom_data"] = getattr(t, "custom_data", None)
+                sd["field_schema"] = getattr(t, "field_schema", None)
+            all_serving_tokens.append(sd)
 
     # ── Waiting count ──────────────────────────────────────────────
     counts_result = await db.execute(
@@ -119,25 +145,7 @@ async def build_queue_snapshot(
         )
     )
     waiting_count, done_count, skipped_count, deleted_count, issued_count = counts_result.one()
-
-    # ── Total Issued count & Session info for current session ──
-    session_date_str = None
-    is_past_session = False
-    session_is_current = False
-    within_hours = True
-    session = None
-    if queue.token_session_id:
-        from app.models.session import Session
-        session = await db.get(Session, queue.token_session_id)
-        if session:
-            session_active = bool(session.is_active)
-            session_paused = bool(session.is_paused)
-            session_date_str = session.session_date.isoformat()
-            is_past_session = not session_active
-            session_is_current = session_active
-            within_hours = True
-
-    else:
+    if not queue.token_session_id:
         issued_count = 0
 
     # ── Recent tokens (last 5 served/serving/skipped/deleted for display) ───
@@ -157,6 +165,7 @@ async def build_queue_snapshot(
     for t in recent_rows:
         token_data = {
             "token_number": t.token_number,
+            "session_id": str(t.session_id) if getattr(t, "session_id", None) else None,
             "status": t.status.value,
             "created_at": t.created_at.isoformat() if t.created_at else None,
             "served_at": t.served_at.isoformat() if t.served_at else None,
@@ -198,6 +207,7 @@ async def build_queue_snapshot(
         token_data = {
             "id": str(t.id),
             "token_number": t.token_number,
+            "session_id": str(t.session_id) if getattr(t, "session_id", None) else None,
             "status": t.status.value,
             "created_at": t.created_at.isoformat() if t.created_at else None,
             "served_at": t.served_at.isoformat() if t.served_at else None,
@@ -475,14 +485,14 @@ async def build_queue_snapshots_dual(
     if public_snapshot.get("serving_details"):
         public_snapshot["serving_details"] = {
             k: public_snapshot["serving_details"].get(k)
-            for k in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count")
+            for k in ("token_number", "session_id", "assigned_line", "called_via_invite", "entry_type", "pax_count")
             if k in public_snapshot["serving_details"]
         }
 
     public_snapshot["all_serving_tokens"] = [
         {
             k: item.get(k)
-            for k in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count", "shared_lines", "completed_lines")
+            for k in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count", "shared_lines", "completed_lines", "session_id")
             if k in item
         }
         for item in public_snapshot.get("all_serving_tokens", [])
@@ -491,14 +501,18 @@ async def build_queue_snapshots_dual(
     public_snapshot["recent_tokens"] = [
         {
             k: item.get(k)
-            for k in ("token_number", "status", "assigned_line", "called_via_invite")
+            for k in ("token_number", "status", "assigned_line", "called_via_invite", "session_id")
             if k in item
         }
         for item in public_snapshot.get("recent_tokens", [])
     ]
 
     public_snapshot["waiting_tokens"] = [
-        {"token_number": item["token_number"]}
+        {
+            k: item.get(k)
+            for k in ("token_number", "session_id")
+            if k in item
+        }
         for item in admin_snapshot.get("waiting_tokens", [])
         if "token_number" in item
     ]

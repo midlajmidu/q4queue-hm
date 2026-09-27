@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 
 from app.db.deps import get_db
-from app.models.token import Token
+from app.models.token import Token, TokenStatus
 from app.models.organization import Organization
 from app.models.queue import Queue
 from app.utils.ticket_generator import generate_ticket_image
@@ -55,7 +55,7 @@ async def get_whatsapp_ticket_image(
         ahead_stmt = select(func.count()).where(
             Token.queue_id == token.queue_id,
             Token.session_id == token.session_id,
-            Token.status == 'waiting',
+            Token.status == TokenStatus.waiting,
             Token.token_number < token.token_number
         )
         people_ahead = await db.scalar(ahead_stmt)

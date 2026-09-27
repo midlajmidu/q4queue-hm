@@ -106,6 +106,19 @@ async def rollover_queue_session(db, queue: Queue, org: Organization, force: boo
         if existing_today_session:
             new_session = existing_today_session
             new_session.is_active = True
+            # Clear any dangling serving tokens in this session from an earlier run
+            await db.execute(
+                update(Token)
+                .where(
+                    Token.session_id == new_session.id,
+                    Token.status == TokenStatus.serving,
+                )
+                .values(
+                    status=TokenStatus.skipped,
+                    completed_at=func.now(),
+                    removed_by="session_end",
+                )
+            )
         else:
             new_session = Session(
                 org_id=org.id,

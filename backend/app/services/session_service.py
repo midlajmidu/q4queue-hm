@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 
 async def _close_other_sessions(db: AsyncSession, *, queue_id: uuid.UUID, keep_session_id: uuid.UUID) -> None:
-    """Closes all other active sessions for this queue and marks unserved tokens as skipped."""
+    """Closes all other active sessions for this queue and marks all unserved tokens outside keep_session_id as skipped."""
     other_result = await db.execute(
         select(Session.id).where(
             Session.queue_id == queue_id,
@@ -44,18 +44,20 @@ async def _close_other_sessions(db: AsyncSession, *, queue_id: uuid.UUID, keep_s
             .where(Session.id.in_(other_ids))
             .values(is_active=False, is_paused=False)
         )
-        await db.execute(
-            update(Token)
-            .where(
-                Token.session_id.in_(other_ids),
-                Token.status.in_([TokenStatus.waiting, TokenStatus.serving]),
-            )
-            .values(
-                status=TokenStatus.skipped,
-                completed_at=func.now(),
-                removed_by="session_end",
-            )
+    # Mark any unserved tokens in ALL other sessions (or null session) for this queue as skipped
+    await db.execute(
+        update(Token)
+        .where(
+            Token.queue_id == queue_id,
+            (Token.session_id != keep_session_id) | (Token.session_id.is_(None)),
+            Token.status.in_([TokenStatus.waiting, TokenStatus.serving]),
         )
+        .values(
+            status=TokenStatus.skipped,
+            completed_at=func.now(),
+            removed_by="session_end",
+        )
+    )
 
 async def get_or_create_active_session(
     db: AsyncSession,
@@ -107,6 +109,19 @@ async def get_or_create_active_session(
         session.is_active = True
         session.is_paused = False
         await _close_other_sessions(db, queue_id=queue_id, keep_session_id=session.id)
+        # Clear any dangling serving tokens in this session from an earlier run
+        await db.execute(
+            update(Token)
+            .where(
+                Token.session_id == session.id,
+                Token.status == TokenStatus.serving,
+            )
+            .values(
+                status=TokenStatus.skipped,
+                completed_at=func.now(),
+                removed_by="session_end",
+            )
+        )
         await db.commit()
         return session
 
@@ -177,6 +192,19 @@ async def create_queue_session(
         existing.is_paused = False
         queue.token_session_id = existing.id
         await _close_other_sessions(db, queue_id=queue_id, keep_session_id=existing.id)
+        # Clear any dangling serving tokens in existing session from an earlier run
+        await db.execute(
+            update(Token)
+            .where(
+                Token.session_id == existing.id,
+                Token.status == TokenStatus.serving,
+            )
+            .values(
+                status=TokenStatus.skipped,
+                completed_at=func.now(),
+                removed_by="session_end",
+            )
+        )
         await db.commit()
         await db.refresh(existing)
         logger.info("Existing session re-activated | queue=%s date=%s title=%s", queue_id, data.session_date, session_title)
@@ -374,6 +402,19 @@ async def set_session_active(
             queue.token_session_id = session.id
             queue.is_paused = False
         await _close_other_sessions(db, queue_id=session.queue_id, keep_session_id=session.id)
+        # Clear any dangling serving tokens in this session from an earlier run
+        await db.execute(
+            update(Token)
+            .where(
+                Token.session_id == session.id,
+                Token.status == TokenStatus.serving,
+            )
+            .values(
+                status=TokenStatus.skipped,
+                completed_at=func.now(),
+                removed_by="session_end",
+            )
+        )
     else:
         session.is_active = False
         session.is_paused = False
