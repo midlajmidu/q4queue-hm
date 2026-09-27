@@ -16,6 +16,7 @@ import {
     FileText,
     Globe,
     Info,
+    Link2,
     Loader2,
     Lock,
     Mail,
@@ -150,6 +151,15 @@ export default function CustomerDetailPage() {
                             </span>
                         </div>
                         <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-400">
+                            {customer.slug && (
+                                <>
+                                    <span className="font-mono text-xs bg-slate-800/80 text-indigo-300 px-2 py-0.5 rounded-md border border-slate-700/60 flex items-center gap-1">
+                                        <Link2 size={12} className="text-indigo-400" />
+                                        /{customer.slug}
+                                    </span>
+                                    <span>•</span>
+                                </>
+                            )}
                             <span className="flex items-center gap-1.5"><Mail size={14} />{customer.contact_email}</span>
                             <span>•</span>
                             <span className="flex items-center gap-1.5"><Globe size={14} />{customer.timezone}</span>
@@ -660,6 +670,7 @@ function EditCustomerModal({
 }) {
     const [form, setForm] = useState<ManagedCustomerUpdate>({
         name: customer.name,
+        slug: customer.slug || "",
         contact_email: customer.contact_email || "",
         contact_phone: customer.contact_phone || "",
         timezone: customer.timezone || "Asia/Kolkata",
@@ -667,12 +678,37 @@ function EditCustomerModal({
     });
     const [touched, setTouched] = useState({
         name: false,
+        slug: false,
         contact_email: false,
         contact_phone: false,
         timezone: false,
         reason: false,
     });
     const [saving, setSaving] = useState(false);
+
+    // Auto-generate slug when business name changes (same as create branch / customer behavior)
+    const handleNameChange = (val: string) => {
+        const generatedSlug = val
+            .toLowerCase()
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9-]/g, "")
+            .replace(/^-+|-+$/g, "");
+        setForm(prev => ({
+            ...prev,
+            name: val,
+            slug: generatedSlug,
+        }));
+        if (!touched.name) setTouched(prev => ({ ...prev, name: true }));
+    };
+
+    const handleSlugChange = (val: string) => {
+        const sanitizedSlug = val
+            .toLowerCase()
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9-]/g, "");
+        setForm(prev => ({ ...prev, slug: sanitizedSlug }));
+        if (!touched.slug) setTouched(prev => ({ ...prev, slug: true }));
+    };
 
     // Dynamic filtering for phone input (numbers, +, -, spaces, parentheses only)
     const handlePhoneChange = (val: string) => {
@@ -700,6 +736,17 @@ function EditCustomerModal({
         ? "Business name must be at least 2 characters."
         : nameTrimmed.length > 255
         ? "Business name cannot exceed 255 characters."
+        : null;
+
+    const slugTrimmed = (form.slug || "").trim();
+    const slugError = !slugTrimmed
+        ? "Slug is required."
+        : slugTrimmed.length < 2
+        ? "Slug must be at least 2 characters."
+        : slugTrimmed.length > 100
+        ? "Slug cannot exceed 100 characters."
+        : !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slugTrimmed)
+        ? "Slug must contain only lowercase letters, numbers, and hyphens without consecutive hyphens."
         : null;
 
     const emailTrimmed = (form.contact_email || "").trim();
@@ -733,7 +780,7 @@ function EditCustomerModal({
         ? "Reason cannot exceed 500 characters."
         : null;
 
-    const isFormValid = !nameError && !emailError && !phoneError && !timezoneError && !reasonError;
+    const isFormValid = !nameError && !slugError && !emailError && !phoneError && !timezoneError && !reasonError;
 
     // Timezone suggestions for datalist
     const commonTimezones = useMemo(() => {
@@ -764,6 +811,7 @@ function EditCustomerModal({
     const submit = async () => {
         setTouched({
             name: true,
+            slug: true,
             contact_email: true,
             contact_phone: true,
             timezone: true,
@@ -779,6 +827,7 @@ function EditCustomerModal({
         try {
             const payload: ManagedCustomerUpdate = {
                 name: nameTrimmed,
+                slug: slugTrimmed,
                 contact_email: emailTrimmed || undefined,
                 contact_phone: phoneTrimmed || undefined,
                 timezone: tzTrimmed,
@@ -819,10 +868,7 @@ function EditCustomerModal({
                         <input
                             type="text"
                             value={form.name}
-                            onChange={(e) => {
-                                setForm({ ...form, name: e.target.value });
-                                if (!touched.name) setTouched(prev => ({ ...prev, name: true }));
-                            }}
+                            onChange={(e) => handleNameChange(e.target.value)}
                             onBlur={() => setTouched(prev => ({ ...prev, name: true }))}
                             className={`w-full rounded-xl border bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all ${
                                 touched.name && nameError
@@ -832,6 +878,39 @@ function EditCustomerModal({
                             placeholder="e.g. Apex Health Clinic"
                         />
                     </div>
+                </div>
+
+                <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                            Slug <span className="text-slate-500 text-xs lowercase font-normal">(auto-generated)</span> <span className="text-rose-400">*</span>
+                        </label>
+                        {touched.slug && slugError && (
+                            <span className="text-[11px] font-medium text-rose-400 flex items-center gap-1">
+                                <AlertCircle size={11} className="shrink-0" /> {slugError}
+                            </span>
+                        )}
+                    </div>
+                    <div className="relative">
+                        <Link2 size={16} className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${touched.slug && slugError ? 'text-rose-400' : 'text-slate-500'}`} />
+                        <input
+                            type="text"
+                            value={form.slug || ""}
+                            onChange={(e) => handleSlugChange(e.target.value)}
+                            onBlur={() => setTouched(prev => ({ ...prev, slug: true }))}
+                            className={`w-full rounded-xl border bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all font-mono ${
+                                touched.slug && slugError
+                                    ? "border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/20"
+                                    : "border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20"
+                            }`}
+                            placeholder="e.g. apex-health-clinic"
+                        />
+                    </div>
+                    {touched.slug && slugError && (
+                        <p className="text-[11px] font-medium text-rose-400 mt-1 pl-1 flex items-center gap-1">
+                            <AlertCircle size={11} className="shrink-0" /> {slugError}
+                        </p>
+                    )}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">

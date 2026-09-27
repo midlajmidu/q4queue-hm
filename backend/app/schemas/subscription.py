@@ -347,6 +347,7 @@ class SubscriptionLimitUpdate(BaseModel):
 
 class ManagedCustomerUpdate(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
+    slug: str | None = Field(default=None, max_length=100)
     contact_email: EmailStr | None = None
     contact_phone: str | None = Field(default=None, max_length=30)
     timezone: str = Field(..., min_length=1, max_length=50)
@@ -358,6 +359,20 @@ class ManagedCustomerUpdate(BaseModel):
         v = v.strip()
         if len(v) < 2:
             raise ValueError("Business name must be at least 2 characters")
+        return v
+
+    @field_validator("slug")
+    @classmethod
+    def validate_slug(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip().lower()
+        if not v:
+            return None
+        if not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", v):
+            raise ValueError("Slug must contain only lowercase letters, numbers, and hyphens without consecutive hyphens")
+        if len(v) < 2 or len(v) > 100:
+            raise ValueError("Slug must be between 2 and 100 characters")
         return v
 
     @field_validator("contact_email", mode="before")

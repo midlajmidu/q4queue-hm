@@ -630,11 +630,27 @@ async def update_managed_customer(
         ).limit(1))
         if duplicate:
             raise HTTPException(status_code=409, detail="Contact email is already used by another customer")
+    clean_name = body.name.strip()
+    new_slug = parent.slug
+    if body.slug:
+        clean_slug = body.slug.strip().lower()
+        if clean_slug != parent.slug:
+            slug_exists = await db.scalar(select(ParentOrganization.id).where(
+                ParentOrganization.slug == clean_slug,
+                ParentOrganization.id != parent.id,
+            ).limit(1))
+            if slug_exists:
+                raise HTTPException(status_code=409, detail=f"Slug '{clean_slug}' is already used by another customer")
+            new_slug = clean_slug
+    elif clean_name != parent.name:
+        new_slug = await _available_slug(db, ParentOrganization, clean_name)
+
     before = {
-        "name": parent.name, "contact_email": parent.contact_email,
+        "name": parent.name, "slug": parent.slug, "contact_email": parent.contact_email,
         "contact_phone": parent.contact_phone, "timezone": parent.timezone,
     }
-    parent.name = body.name.strip()
+    parent.name = clean_name
+    parent.slug = new_slug
     parent.contact_email = clean_email
     parent.contact_phone = body.contact_phone.strip() if body.contact_phone else None
     parent.timezone = body.timezone
@@ -644,7 +660,7 @@ async def update_managed_customer(
         ip_address=request.client.host if request.client else None,
         resource_type="parent_organization", resource_id=str(parent.id),
         details={"reason": body.reason, "before": before, "after": {
-            "name": parent.name, "contact_email": parent.contact_email,
+            "name": parent.name, "slug": parent.slug, "contact_email": parent.contact_email,
             "contact_phone": parent.contact_phone, "timezone": parent.timezone,
         }},
     )

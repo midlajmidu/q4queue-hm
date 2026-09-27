@@ -205,6 +205,7 @@ export interface SubscriptionAdminUpdate {
 
 export interface ManagedCustomerUpdate {
     name: string;
+    slug?: string;
     contact_email?: string;
     contact_phone?: string;
     timezone: string;
