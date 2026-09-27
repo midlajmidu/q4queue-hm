@@ -16,7 +16,6 @@ import {
     FileText,
     Globe,
     Info,
-    Link2,
     Loader2,
     Lock,
     Mail,
@@ -39,7 +38,6 @@ import { toast } from "sonner";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { api, ApiError } from "@/lib/api";
 import type {
-    AvailableBranchItem,
     ManagedCustomerDetail,
     ManagedCustomerLimits,
     ManagedCustomerUpdate,
@@ -65,7 +63,6 @@ export default function CustomerDetailPage() {
     const [action, setAction] = useState<SubscriptionAdminUpdate["action"] | null>(null);
     const [editingLimits, setEditingLimits] = useState(false);
     const [editingAccount, setEditingAccount] = useState(false);
-    const [assigningBranches, setAssigningBranches] = useState(false);
     const [addingParentAdmin, setAddingParentAdmin] = useState(false);
     const [permanentlyDeleting, setPermanentlyDeleting] = useState(false);
 
@@ -445,13 +442,6 @@ export default function CustomerDetailPage() {
                         </h2>
                         <p className="mt-1 text-xs text-slate-400">Branches currently owned by this customer account.</p>
                     </div>
-                    <button
-                        onClick={() => setAssigningBranches(true)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 transition-all hover:bg-slate-700 hover:text-white"
-                    >
-                        <Link2 size={14} className="text-emerald-400" />
-                        Assign Existing Branch
-                    </button>
                 </div>
                 <div className="grid gap-3.5 p-5 md:grid-cols-2">
                     {customer.branches.map((branch) => (
@@ -552,16 +542,6 @@ export default function CustomerDetailPage() {
                     onDone={(value) => {
                         setCustomer(value);
                         setEditingAccount(false);
-                    }}
-                />
-            )}
-            {assigningBranches && (
-                <AssignBranchesModal
-                    customer={customer}
-                    onClose={() => setAssigningBranches(false)}
-                    onDone={(value) => {
-                        setCustomer(value);
-                        setAssigningBranches(false);
                     }}
                 />
             )}
@@ -1362,152 +1342,7 @@ function ActionModal({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   4. ASSIGN BRANCHES MODAL
-   ───────────────────────────────────────────────────────────────────────────── */
-function AssignBranchesModal({
-    customer,
-    onClose,
-    onDone,
-}: {
-    customer: ManagedCustomerDetail;
-    onClose: () => void;
-    onDone: (value: ManagedCustomerDetail) => void;
-}) {
-    const [branches, setBranches] = useState<AvailableBranchItem[]>([]);
-    const [selected, setSelected] = useState<string[]>([]);
-    const [search, setSearch] = useState("");
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-
-    useEffect(() => {
-        api.listAvailableBranches(customer.parent_organization_id)
-            .then(setBranches)
-            .catch((error) => toast.error(error instanceof ApiError ? error.detail : "Unable to load branches"))
-            .finally(() => setLoading(false));
-    }, [customer.parent_organization_id]);
-
-    const toggle = (id: string) =>
-        setSelected((current) =>
-            current.includes(id) ? current.filter((val) => val !== id) : [...current, id]
-        );
-
-    const filteredBranches = useMemo(() => {
-        if (!search.trim()) return branches;
-        const q = search.toLowerCase();
-        return branches.filter((b) => b.name.toLowerCase().includes(q) || b.slug.toLowerCase().includes(q));
-    }, [branches, search]);
-
-    const submit = async () => {
-        setSaving(true);
-        try {
-            const value = await api.assignManagedBranches(customer.parent_organization_id, selected);
-            toast.success(`${selected.length} branch${selected.length === 1 ? "" : "es"} assigned`);
-            onDone(value);
-        } catch (error) {
-            toast.error(error instanceof ApiError ? error.detail : "Unable to assign branches");
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    return (
-        <Modal
-            title="Assign Existing Branches"
-            subtitle="Link unassigned standalone branches directly to this parent customer account."
-            icon={Link2}
-            iconBg="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-            onClose={onClose}
-        >
-            <div className="space-y-4">
-                {/* Search Bar */}
-                <div className="relative">
-                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search unassigned branches..."
-                        className="w-full rounded-xl border border-slate-800 bg-slate-950/70 pl-10 pr-4 py-2 text-sm text-white placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    />
-                </div>
-
-                {loading ? (
-                    <div className="flex h-44 items-center justify-center">
-                        <LoadingSpinner />
-                    </div>
-                ) : filteredBranches.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 p-8 text-center text-sm text-slate-500">
-                        No unassigned branches matching search criteria.
-                    </div>
-                ) : (
-                    <div className="max-h-72 space-y-2.5 overflow-y-auto pr-1">
-                        {filteredBranches.map((branch) => {
-                            const isChecked = selected.includes(branch.id);
-                            return (
-                                <label
-                                    key={branch.id}
-                                    className={`flex cursor-pointer items-center gap-3.5 rounded-xl border p-4 transition-all ${
-                                        isChecked
-                                            ? "border-emerald-500/60 bg-emerald-500/10 shadow-sm"
-                                            : "border-slate-800 bg-slate-950/50 hover:border-slate-700 hover:bg-slate-950"
-                                    }`}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={() => toggle(branch.id)}
-                                        className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/20"
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                        <p className="font-semibold text-white text-sm">{branch.name}</p>
-                                        <p className="mt-0.5 truncate text-xs text-slate-400 font-mono">
-                                            /{branch.slug}
-                                            {branch.admin_email ? ` · ${branch.admin_email}` : " · No Admin"}
-                                        </p>
-                                    </div>
-                                    <span
-                                        className={`text-xs font-semibold ${
-                                            branch.is_active ? "text-emerald-400" : "text-slate-500"
-                                        }`}
-                                    >
-                                        {branch.is_active ? "Active" : "Inactive"}
-                                    </span>
-                                </label>
-                            );
-                        })}
-                    </div>
-                )}
-
-                <div className="mt-6 flex items-center justify-between pt-4 border-t border-slate-800">
-                    <span className="text-xs text-slate-400 font-medium">
-                        {selected.length} branch{selected.length === 1 ? "" : "es"} selected
-                    </span>
-                    <div className="flex gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-slate-700 hover:text-white"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="button"
-                            disabled={saving || selected.length === 0}
-                            onClick={submit}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-emerald-600/25 transition-all hover:bg-emerald-500 disabled:opacity-50 active:scale-95"
-                        >
-                            {saving && <Loader2 size={16} className="animate-spin" />}
-                            {saving ? "Assigning..." : `Assign Selected (${selected.length})`}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Modal>
-    );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   5. ADD PARENT ADMIN MODAL
+   4. ADD PARENT ADMIN MODAL
    ───────────────────────────────────────────────────────────────────────────── */
 function AddParentAdminModal({
     customer,
