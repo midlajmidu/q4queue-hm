@@ -55,7 +55,13 @@ async def create_branch(
         count_result = await db.execute(select(func.count(Organization.id)).where(Organization.parent_organization_id == parent_org.id))
         current_count = count_result.scalar() or 0
         if current_count >= parent_org.max_branches:
-            raise HTTPException(status_code=400, detail=f"Branch limit ({parent_org.max_branches}) reached for this organization")
+            from app.services.entitlement_service import format_limit_error_message, get_subscription_for_parent
+            sub = await get_subscription_for_parent(db, parent_org.id)
+            is_trial = sub.status == "trialing" if sub else False
+            raise HTTPException(
+                status_code=400,
+                detail=format_limit_error_message("branches.max", parent_org.max_branches, is_trial)
+            )
 
     # Check if admin email is already in use
     if request.admin_email:

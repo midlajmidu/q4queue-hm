@@ -146,6 +146,12 @@ export class ApiError extends Error {
     path?: string;
     method?: string;
     retryAfter?: number;
+    code?: string;
+    key?: string;
+    limit?: number;
+    used?: number;
+    isTrial?: boolean;
+    isEntitlementLimit?: boolean;
 
     constructor(resp: ApiErrorResponse & { path?: string; method?: string }) {
         const cleanMsg = resp.detail || "An unexpected error occurred.";
@@ -156,6 +162,14 @@ export class ApiError extends Error {
         this.path = resp.path;
         this.method = resp.method;
         this.retryAfter = resp.retryAfter;
+        this.code = resp.code;
+        this.key = resp.key;
+        this.limit = resp.limit;
+        this.used = resp.used;
+        this.isTrial = resp.is_trial;
+        this.isEntitlementLimit =
+            resp.code === "entitlement_limit_reached" ||
+            /limit reached|trial limit|plan limit|limit of|upgrade your plan|increase your allowance/i.test(cleanMsg);
     }
 }
 
@@ -243,6 +257,11 @@ async function request<T>(
     if (!resp.ok) {
         let rawDetail = "An unexpected error occurred";
         let retryAfter: number | undefined;
+        let errorCode: string | undefined;
+        let entitlementKey: string | undefined;
+        let entitlementLimit: number | undefined;
+        let entitlementUsed: number | undefined;
+        let isTrial: boolean | undefined;
 
         try {
             const body = await resp.json();
@@ -258,6 +277,11 @@ async function request<T>(
             } else if (typeof body.detail === "string") {
                 rawDetail = body.detail;
             }
+            if (body.code) errorCode = body.code;
+            if (body.key) entitlementKey = body.key;
+            if (body.limit != null) entitlementLimit = body.limit;
+            if (body.used != null) entitlementUsed = body.used;
+            if (body.is_trial != null) isTrial = body.is_trial;
         } catch {
             // Response body not JSON
         }
@@ -450,7 +474,18 @@ async function request<T>(
             logger.warn("API error response", { method, path, status: resp.status, detail });
         }
 
-        throw new ApiError({ status: resp.status, detail, path, method, retryAfter });
+        throw new ApiError({
+            status: resp.status,
+            detail,
+            path,
+            method,
+            retryAfter,
+            code: errorCode,
+            key: entitlementKey,
+            limit: entitlementLimit,
+            used: entitlementUsed,
+            is_trial: isTrial,
+        });
     }
 
     // 204 No Content

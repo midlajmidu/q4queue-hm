@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import { X, CheckCircle2, AlertCircle, Loader2, Link as LinkIcon, ChevronDown, User, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { EntitlementLimitNotice } from "@/components/EntitlementLimitNotice";
+import { ContactSalesModal } from "@/components/ContactSalesModal";
 
 interface CreateBranchModalProps {
     isOpen: boolean;
@@ -30,6 +32,8 @@ export default function CreateBranchModal({ isOpen, onClose, onCreated }: Create
     const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
     const slugTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [countryCode, setCountryCode] = useState('+91');
+    const [error, setError] = useState<string | null>(null);
+    const [showContactSales, setShowContactSales] = useState(false);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -53,6 +57,7 @@ export default function CreateBranchModal({ isOpen, onClose, onCreated }: Create
             setSlugStatus('idle');
             setCountryCode('+91');
             setIsSlugManuallyEdited(false);
+            setError(null);
             setFormData({
                 name: "", slug: "",
                 branch_type: "standard",
@@ -131,7 +136,9 @@ export default function CreateBranchModal({ isOpen, onClose, onCreated }: Create
             onCreated();
             onClose();
         } catch (error: any) {
-            toast.error(error.message || "Failed to create branch");
+            const msg = error?.detail || error?.message || "Failed to create branch";
+            setError(msg);
+            toast.error(msg);
         } finally {
             setIsLoading(false);
         }
@@ -173,6 +180,15 @@ export default function CreateBranchModal({ isOpen, onClose, onCreated }: Create
                         ))}
                     </div>
                 </div>
+
+                {error && (
+                    <div className="px-6 pt-4">
+                        <EntitlementLimitNotice
+                            message={error}
+                            onContactSales={() => setShowContactSales(true)}
+                        />
+                    </div>
+                )}
 
                 {/* Content */}
                 <div className="p-6 overflow-y-auto flex-1">
@@ -407,6 +423,12 @@ export default function CreateBranchModal({ isOpen, onClose, onCreated }: Create
                     </button>
                 </div>
             </div>
+            {showContactSales && (
+                <ContactSalesModal
+                    mode="authenticated"
+                    onClose={() => setShowContactSales(false)}
+                />
+            )}
         </div>
     );
 }

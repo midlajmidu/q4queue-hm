@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { localTodayStr } from "@/lib/tzformat";
 import ConfirmModal from "@/components/ConfirmModal";
+import { EntitlementLimitNotice } from "@/components/EntitlementLimitNotice";
+import { ContactSalesModal } from "@/components/ContactSalesModal";
 
 interface PageProps {
     params: Promise<{ queueId: string }>;
@@ -114,6 +116,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
     const [newSessionTitle, setNewSessionTitle] = useState("");
     const [creatingSession, setCreatingSession] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
+    const [showContactSales, setShowContactSales] = useState(false);
 
     useEffect(() => {
         if (isCreateModalOpen) {
@@ -877,10 +880,10 @@ export default function QueueSessionListPage({ params }: PageProps) {
                             </div>
 
                             {createError && (
-                                <div className="flex items-start gap-2.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-xs font-medium px-3.5 py-2.5 rounded-lg border border-red-100 dark:border-red-900/40 leading-relaxed">
-                                    <svg className="w-3.5 h-3.5 mt-0.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01" strokeLinecap="round"/></svg>
-                                    {createError}
-                                </div>
+                                <EntitlementLimitNotice
+                                    message={createError}
+                                    onContactSales={() => setShowContactSales(true)}
+                                />
                             )}
 
                             <div className="flex items-center justify-end gap-2.5 pt-1">
@@ -899,6 +902,13 @@ export default function QueueSessionListPage({ params }: PageProps) {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {showContactSales && (
+                <ContactSalesModal
+                    mode="authenticated"
+                    onClose={() => setShowContactSales(false)}
+                />
             )}
 
 

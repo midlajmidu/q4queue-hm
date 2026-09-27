@@ -844,6 +844,11 @@ export interface ApiErrorResponse {
     status: number;
     detail: string;
     retryAfter?: number;
+    code?: string;
+    key?: string;
+    limit?: number;
+    used?: number;
+    is_trial?: boolean;
 }
 
 // ── Staff Management ──────────────────────────────────────────────

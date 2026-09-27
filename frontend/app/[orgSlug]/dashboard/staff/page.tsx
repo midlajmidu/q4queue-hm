@@ -10,6 +10,8 @@ import { useDashBase } from "@/hooks/useDashBase";
 import { StandardPageHeader } from "@/components/StandardPageHeader";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { EntitlementLimitNotice } from "@/components/EntitlementLimitNotice";
+import { ContactSalesModal } from "@/components/ContactSalesModal";
 
 const PAGE_SIZE = 20;
 const DEBOUNCE_MS = 350;
@@ -176,6 +178,7 @@ function StaffModal({ mode, member, onClose, onSaved }: {
   const [confirmNew, setConfirmNew] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
+  const [showContactSales, setShowContactSales] = useState(false);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -247,10 +250,10 @@ function StaffModal({ mode, member, onClose, onSaved }: {
         {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-white dark:bg-slate-900" noValidate>
           {fieldError && (
-            <div className="bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-xs font-semibold p-3.5 rounded-xl border border-rose-200 dark:border-rose-900/40 flex gap-2.5 items-start">
-              <svg width={16} height={16} className="shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" /></svg>
-              {fieldError}
-            </div>
+            <EntitlementLimitNotice
+              message={fieldError}
+              onContactSales={() => setShowContactSales(true)}
+            />
           )}
 
           {/* Name fields */}
@@ -347,6 +350,12 @@ function StaffModal({ mode, member, onClose, onSaved }: {
           </div>
         </form>
       </div>
+      {showContactSales && (
+        <ContactSalesModal
+          mode="authenticated"
+          onClose={() => setShowContactSales(false)}
+        />
+      )}
     </div>
   );
 }

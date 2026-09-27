@@ -15,12 +15,80 @@ from app.models.user import User
 
 
 class EntitlementError(ValueError):
-    def __init__(self, message: str, *, code: str, key: str | None = None, limit: int | None = None, used: int | None = None):
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str,
+        key: str | None = None,
+        limit: int | None = None,
+        used: int | None = None,
+        is_trial: bool | None = None,
+    ):
         super().__init__(message)
         self.code = code
         self.key = key
         self.limit = limit
         self.used = used
+        self.is_trial = is_trial
+
+
+RESOURCE_DISPLAY_NAMES = {
+    "sessions.created.max": {
+        "noun": "daily sessions",
+        "context": "for this queue",
+        "trial_msg": "You have reached your Free Trial limit of {limit} daily session(s) for this queue.",
+        "plan_msg": "You have reached your plan limit of {limit} daily session(s) for this queue.",
+    },
+    "queues.max": {
+        "noun": "queues",
+        "context": "for this branch",
+        "trial_msg": "You have reached your Free Trial limit of {limit} queue(s) for this branch.",
+        "plan_msg": "You have reached your plan limit of {limit} queue(s) for this branch.",
+    },
+    "staff_users.max": {
+        "noun": "staff members",
+        "context": "for this branch",
+        "trial_msg": "You have reached your Free Trial limit of {limit} staff member(s) for this branch.",
+        "plan_msg": "You have reached your plan limit of {limit} staff member(s) for this branch.",
+    },
+    "branches.max": {
+        "noun": "branches",
+        "context": "for your organization",
+        "trial_msg": "You have reached your Free Trial limit of {limit} branch(es).",
+        "plan_msg": "You have reached your plan limit of {limit} branch(es).",
+    },
+    "tokens.created.max_per_session": {
+        "noun": "tokens",
+        "context": "for this session",
+        "trial_msg": "Token capacity of {limit} reached for this session. Admissions are closed.",
+        "plan_msg": "Token capacity of {limit} reached for this session. Admissions are closed.",
+    },
+}
+
+
+def format_limit_error_message(key: str, limit: int | None, is_trial: bool) -> str:
+    limit_str = str(limit) if limit is not None else "allowance"
+    res = RESOURCE_DISPLAY_NAMES.get(key)
+    if res:
+        base_msg = res["trial_msg" if is_trial else "plan_msg"].format(limit=limit_str)
+        if key == "tokens.created.max_per_session":
+            return base_msg
+        cta = (
+            "Upgrade your plan or contact sales to increase your allowance."
+            if is_trial
+            else "Contact support or your account administrator to increase your allowance."
+        )
+        return f"{base_msg} {cta}"
+
+    clean_name = key.replace(".", " ").replace("_", " ").strip()
+    tier = "Free Trial" if is_trial else "plan"
+    cta = (
+        "Upgrade your plan or contact sales to increase your allowance."
+        if is_trial
+        else "Contact support or your account administrator to increase your allowance."
+    )
+    return f"You have reached your {tier} limit of {limit_str} for {clean_name}. {cta}"
 
 
 def _utcnow() -> datetime:
@@ -128,21 +196,15 @@ async def assert_resource_capacity(db: AsyncSession, org_id: uuid.UUID, key: str
         return
     entitlement = await _entitlement(db, subscription, key)
     if entitlement and entitlement.limit_value is not None and used >= entitlement.limit_value:
-        limit_prefix = "Trial limit" if subscription.status == "trialing" else "Plan limit"
-        if key == "queues.max":
-            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for queues in this branch. Please upgrade your plan or contact support to add more queues."
-        elif key == "staff_users.max":
-            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for staff members in this branch. Please upgrade your plan or contact support to add more staff."
-        elif key == "branches.max":
-            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for branches. Please upgrade your plan or contact support to add more branches."
-        else:
-            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for {key}."
+        is_trial = subscription.status == "trialing"
+        msg = format_limit_error_message(key, entitlement.limit_value, is_trial)
         raise EntitlementError(
             msg,
             code="entitlement_limit_reached",
             key=key,
             limit=entitlement.limit_value,
             used=used,
+            is_trial=is_trial,
         )
 
 
@@ -211,19 +273,15 @@ async def consume(
     )
     used = usage.used if usage else 0
     if used + quantity > entitlement.limit_value:
-        limit_prefix = "Trial limit" if subscription.status == "trialing" else "Plan limit"
-        if key == "sessions.created.max":
-            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for sessions in this queue. Please upgrade your plan or contact support to add more sessions."
-        elif key == "tokens.created.max_per_session":
-            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for tokens in this session. Admissions are closed."
-        else:
-            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for {key}."
+        is_trial = subscription.status == "trialing"
+        msg = format_limit_error_message(key, entitlement.limit_value, is_trial)
         raise EntitlementError(
             msg,
             code="entitlement_limit_reached",
             key=key,
             limit=entitlement.limit_value,
             used=used,
+            is_trial=is_trial,
         )
     if usage:
         usage.used += quantity

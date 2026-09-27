@@ -183,6 +183,9 @@ async def create_queue_session(
         )
         return SessionResponse.model_validate(session)
     except ValueError as exc:
+        from app.services.entitlement_service import EntitlementError
+        if isinstance(exc, EntitlementError):
+            raise exc
         msg = str(exc)
         if "already exists" in msg.lower():
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)

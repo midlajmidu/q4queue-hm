@@ -42,9 +42,12 @@ async def create_queue(
     org = await db.get(Organization, org_id)
     if org and getattr(org, "max_queues_per_session", None) is not None:
         if current_count >= org.max_queues_per_session:
+            from app.services.entitlement_service import format_limit_error_message, get_subscription_for_org
+            sub = await get_subscription_for_org(db, org_id)
+            is_trial = sub.status == "trialing" if sub else False
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Queue limit reached ({org.max_queues_per_session}) for this branch. Contact support to upgrade your plan."
+                detail=format_limit_error_message("queues.max", org.max_queues_per_session, is_trial)
             )
 
     service_lines = data.service_lines
@@ -247,9 +250,12 @@ async def restore_queue(
     org = await db.get(Organization, org_id)
     if org and getattr(org, "max_queues_per_session", None) is not None:
         if current_count >= org.max_queues_per_session:
+            from app.services.entitlement_service import format_limit_error_message, get_subscription_for_org
+            sub = await get_subscription_for_org(db, org_id)
+            is_trial = sub.status == "trialing" if sub else False
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Queue limit reached ({org.max_queues_per_session}) for this branch. Contact support to upgrade your plan."
+                detail=format_limit_error_message("queues.max", org.max_queues_per_session, is_trial)
             )
 
     queue.is_deleted = False

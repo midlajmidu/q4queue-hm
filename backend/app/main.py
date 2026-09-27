@@ -183,6 +183,21 @@ if settings.METRICS_ENABLED:
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from app.redis.client import log_system_error
+from app.services.entitlement_service import EntitlementError
+
+@app.exception_handler(EntitlementError)
+async def entitlement_exception_handler(request: Request, exc: EntitlementError):
+    return JSONResponse(
+        status_code=400,
+        content={
+            "detail": str(exc),
+            "code": exc.code,
+            "key": exc.key,
+            "limit": exc.limit,
+            "used": exc.used,
+            "is_trial": exc.is_trial,
+        }
+    )
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

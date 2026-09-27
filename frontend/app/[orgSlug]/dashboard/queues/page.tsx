@@ -13,6 +13,8 @@ import { Bookmark } from "lucide-react";
 import type { QueueTemplate, TableConfig } from "@/types/api";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { nowInTz, localTodayStr, fmtDate } from "@/lib/tzformat";
+import { EntitlementLimitNotice } from "@/components/EntitlementLimitNotice";
+import { ContactSalesModal } from "@/components/ContactSalesModal";
 
 interface PageProps {
     params: Promise<{ orgSlug: string }>;
@@ -130,6 +132,7 @@ export default function QueuesPage({ params }: PageProps) {
     const [newAppointmentEnabled, setNewAppointmentEnabled] = useState(false);
     const [createLoading, setCreateLoading] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
+    const [showContactSales, setShowContactSales] = useState(false);
     const [templates, setTemplates] = useState<QueueTemplate[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
     const nameRef = useRef<HTMLInputElement>(null);
@@ -617,10 +620,10 @@ export default function QueuesPage({ params }: PageProps) {
                                 <form onSubmit={handleCreate} className="flex-1 flex flex-col min-h-0 overflow-hidden">
                                     <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
                                         {createError && (
-                                            <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-semibold px-4 py-3 rounded-xl border border-rose-200 dark:border-rose-900/50 leading-relaxed shadow-sm">
-                                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-rose-500" />
-                                                <span>{createError}</span>
-                                            </div>
+                                            <EntitlementLimitNotice
+                                                message={createError}
+                                                onContactSales={() => setShowContactSales(true)}
+                                            />
                                         )}
                                         <div>
                                     <label className="block text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5">
@@ -940,6 +943,12 @@ export default function QueuesPage({ params }: PageProps) {
                             </div>
                         </div>
                     </div>
+                )}
+                {showContactSales && (
+                    <ContactSalesModal
+                        mode="authenticated"
+                        onClose={() => setShowContactSales(false)}
+                    />
                 )}
             </div>
     );

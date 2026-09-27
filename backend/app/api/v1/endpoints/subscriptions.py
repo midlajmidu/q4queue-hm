@@ -704,9 +704,11 @@ async def assign_managed_branches(
     ))
     limit = await _branch_limit(db, parent, subscription)
     if limit is not None and current_count + len(branches) > limit:
+        from app.services.entitlement_service import format_limit_error_message
+        is_trial = subscription.status == "trialing" if subscription else False
         raise HTTPException(
             status_code=400,
-            detail=f"Branch limit exceeded. This customer can have {limit} branch(es) and already has {current_count}.",
+            detail=format_limit_error_message("branches.max", limit, is_trial),
         )
     for branch in branches:
         branch.parent_organization_id = parent.id

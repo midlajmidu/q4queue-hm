@@ -516,9 +516,10 @@ async def join_queue(
         db, queue.org_id, target_session_id
     )
     if limit_reached:
+        cap_val = limit_val if limit_val is not None else used_cnt
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="This queue has reached its maximum token capacity for the current session. Admissions are closed."
+            detail=f"Token capacity of {cap_val} reached for this session. Admissions are closed."
         )
 
     await consume(

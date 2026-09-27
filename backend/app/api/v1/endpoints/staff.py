@@ -167,13 +167,16 @@ async def create_staff(
     from app.services.entitlement_service import EntitlementError, assert_resource_capacity
     try:
         await assert_resource_capacity(db, current_admin.org_id, "staff_users.max", current_staff_count)
-    except EntitlementError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except EntitlementError:
+        raise
     
     if current_staff_count >= org.max_staff:
+        from app.services.entitlement_service import format_limit_error_message, get_subscription_for_org
+        sub = await get_subscription_for_org(db, current_admin.org_id)
+        is_trial = sub.status == "trialing" if sub else False
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Staff limit reached ({org.max_staff}). Contact support to upgrade your plan."
+            detail=format_limit_error_message("staff_users.max", org.max_staff, is_trial)
         )
 
     member = User(
@@ -363,13 +366,16 @@ async def restore_staff(
     org = await db.scalar(select(Organization).where(Organization.id == current_admin.org_id))
     try:
         await assert_resource_capacity(db, current_admin.org_id, "staff_users.max", current_staff_count)
-    except EntitlementError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except EntitlementError:
+        raise
 
     if org and current_staff_count >= org.max_staff:
+        from app.services.entitlement_service import format_limit_error_message, get_subscription_for_org
+        sub = await get_subscription_for_org(db, current_admin.org_id)
+        is_trial = sub.status == "trialing" if sub else False
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Staff limit reached ({org.max_staff}). Contact support to upgrade your plan."
+            detail=format_limit_error_message("staff_users.max", org.max_staff, is_trial)
         )
 
     member.is_deleted = False
