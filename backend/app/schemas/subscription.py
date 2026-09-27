@@ -1,4 +1,5 @@
 """Schemas shared by trial onboarding and entitlement-aware UI."""
+import re
 from datetime import datetime
 from typing import Any, Literal
 
@@ -172,6 +173,29 @@ class ManagedAuditItem(BaseModel):
 class SalesRequestCreate(BaseModel):
     contact_phone: str | None = Field(default=None, max_length=30)
     message: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("contact_phone")
+    @classmethod
+    def validate_contact_phone(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        cleaned = v.strip()
+        if not cleaned:
+            return None
+        if not re.match(r"^\+?[0-9\s\-()]+$", cleaned):
+            raise ValueError("Phone number contains invalid characters.")
+        digits = re.sub(r"\D", "", cleaned)
+        if len(digits) < 7 or len(digits) > 15:
+            raise ValueError("Phone number must contain between 7 and 15 digits.")
+        return cleaned
+
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        cleaned = v.strip()
+        return cleaned if cleaned else None
 
 
 class ExpiredTrialSalesRequestCreate(SalesRequestCreate):
