@@ -58,14 +58,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.critical("Failed to bootstrap database: %s", exc)
         raise
 
-    # Auto-create audit table if it doesn't exist
+    # Auto-create audit and system settings tables if they don't exist
     try:
         from app.db.base_class import AuditBase
         from app.audit.models import AuditLog  # noqa: F401
+        from app.models.system_setting import SystemSetting  # noqa: F401
         from app.db.session import engine as _eng
         async with _eng.begin() as conn:
             await conn.run_sync(AuditBase.metadata.create_all)
-        logger.info("✓ Audit tables ready")
+            await conn.run_sync(lambda sync_conn: SystemSetting.__table__.create(sync_conn, checkfirst=True))
+        logger.info("✓ Audit and system settings tables ready")
         
         from app.db.session import AsyncSessionLocal
         from app.whatsapp.template_service import seed_default_templates
@@ -73,7 +75,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             await seed_default_templates(db)
         logger.info("✓ WhatsApp templates seeded")
     except Exception as exc:
-        logger.warning("Audit table creation skipped: %s", exc)
+        logger.warning("Audit / system settings table creation skipped: %s", exc)
 
     try:
         await connect_redis()

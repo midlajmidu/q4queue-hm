@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { CallingConfigRead, BranchCallingConfig } from "@/types/api";
 import Link from "next/link";
 import {
@@ -89,15 +89,22 @@ export default function SuperAdminCallingConfigPage() {
             setCurrency(data.currency || "₹");
 
             const initialOverrides: Record<string, string> = {};
-            data.branches.forEach((b: BranchCallingConfig) => {
+            (data.branches || []).forEach((b: BranchCallingConfig) => {
                 initialOverrides[b.id] =
                     b.call_rate_per_minute !== null && b.call_rate_per_minute !== undefined
                         ? String(b.call_rate_per_minute)
                         : "";
             });
             setBranchRates(initialOverrides);
-        } catch {
-            toast.error("Failed to load calling configuration");
+        } catch (error) {
+            console.error("Failed to load calling configuration:", error);
+            const msg =
+                error instanceof ApiError
+                    ? error.detail
+                    : error instanceof Error
+                    ? error.message
+                    : "Failed to load calling configuration";
+            toast.error(msg || "Failed to load calling configuration");
         } finally {
             setLoading(false);
         }
@@ -132,8 +139,15 @@ export default function SuperAdminCallingConfigPage() {
 
             setConfig(updated);
             toast.success("Calling rates & configuration updated successfully!");
-        } catch {
-            toast.error("Failed to save calling configuration");
+        } catch (error) {
+            console.error("Failed to save calling configuration:", error);
+            const msg =
+                error instanceof ApiError
+                    ? error.detail
+                    : error instanceof Error
+                    ? error.message
+                    : "Failed to save calling configuration";
+            toast.error(msg || "Failed to save calling configuration");
         } finally {
             setSaving(false);
         }
