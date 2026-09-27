@@ -18,6 +18,14 @@ export default function SuperAdminLoginPage() {
 
     // If already logged in as super_admin, redirect immediately
     useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("error") === "account_deactivated") {
+                setError("Your account has been deactivated by an administrator.");
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
         if (isAuthenticated()) {
             const user = getCurrentUser();
             if (user?.role === "super_admin") {

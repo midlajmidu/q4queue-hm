@@ -397,8 +397,8 @@ function ConfirmDeleteModal({ member, onClose, onConfirm, isLoading }: {
             <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-rose-600 dark:text-rose-400" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
           </div>
           <div>
-            <h2 className="text-[17px] font-bold text-slate-900 dark:text-white tracking-tight">Delete staff member?</h2>
-            <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">This will permanently remove the user from the system. This action cannot be undone.</p>
+            <h2 className="text-[17px] font-bold text-slate-900 dark:text-white tracking-tight">Move staff to Trash?</h2>
+            <p className="text-[13.5px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">This will move the staff member to the Trash. You can restore their account anytime from the Trash page.</p>
           </div>
         </div>
         <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-white/10 rounded-xl p-3.5 mb-6">
@@ -407,7 +407,7 @@ function ConfirmDeleteModal({ member, onClose, onConfirm, isLoading }: {
         <div className="flex gap-2.5">
           <button onClick={onClose} disabled={isLoading} className="flex-1 h-10 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-[13.5px] font-semibold transition-colors">Cancel</button>
           <button onClick={onConfirm} disabled={isLoading} className="flex-[1.5] h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold transition-colors shadow-sm disabled:opacity-50">
-            {isLoading ? "Deleting…" : "Delete permanently"}
+            {isLoading ? "Moving to Trash…" : "Move to Trash"}
           </button>
         </div>
       </div>
@@ -566,7 +566,7 @@ export default function StaffPage() {
       setMembers(prev => prev.filter(m => m.id !== deleteMember.id));
       setTotal(t => Math.max(0, t - 1));
       setDeleteMember(null);
-      toast("success", `${deleteMember.email} has been deleted permanently.`);
+      toast("success", `${deleteMember.email} has been moved to Trash.`);
     } catch (err) {
       toast("error", err instanceof ApiError ? err.detail : "Failed to delete.");
     } finally {

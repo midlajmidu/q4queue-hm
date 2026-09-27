@@ -82,6 +82,8 @@ class StaffResponse(BaseModel):
     org_id: uuid.UUID
     role: str
     is_active: bool
+    is_deleted: bool = False
+    deleted_at: datetime | None = None
     is_first_login: bool
     last_active_at: datetime | None = None
     created_at: datetime

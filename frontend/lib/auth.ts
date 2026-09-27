@@ -133,6 +133,17 @@ export function removeSuperAdminToken(): void {
     removeToken("super_admin");
 }
 
+export function clearAllAuthTokens(): void {
+    _tokens.staff = null;
+    _tokens.org_admin = null;
+    _tokens.super_admin = null;
+    if (typeof window !== "undefined") {
+        sessionStorage.removeItem(STORAGE_KEYS.staff);
+        sessionStorage.removeItem(STORAGE_KEYS.org_admin);
+        sessionStorage.removeItem(STORAGE_KEYS.super_admin);
+    }
+}
+
 /**
  * Check if a valid (non-expired) token exists.
  * Uses a 30-second buffer to account for clock drift between

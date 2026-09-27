@@ -53,16 +53,19 @@ async def _get_staff_or_404(
     db: AsyncSession,
     staff_id: _uuid.UUID,
     org_id: _uuid.UUID,
+    include_deleted: bool = False,
 ) -> User:
     """Fetch a non-super_admin user in the same org, or raise 404."""
+    filters = [
+        User.id == staff_id,
+        User.org_id == org_id,
+        User.role != "super_admin",
+    ]
+    if not include_deleted:
+        filters.append(User.is_deleted == False)
+
     result = await db.execute(
-        select(User).where(
-            and_(
-                User.id == staff_id,
-                User.org_id == org_id,
-                User.role != "super_admin",
-            )
-        )
+        select(User).where(and_(*filters))
     )
     user = result.scalar_one_or_none()
     if user is None:
@@ -96,6 +99,7 @@ async def list_staff(
         filters = [
             User.org_id == current_user.org_id,
             User.role == "staff",  # only show staff — admins excluded from this view
+            User.is_deleted == False,
         ]
         if search.strip():
             filters.append(User.email.ilike(f"%{search.strip()}%"))
@@ -259,42 +263,132 @@ async def update_staff(
     return StaffResponse.model_validate(member)
 
 
+@router.get(
+    "/trash",
+    response_model=list[StaffResponse],
+    summary="List Deleted Staff in Trash",
+    description="Returns all soft-deleted staff members in the authenticated admin's organization.",
+)
+async def list_trash_staff(
+    current_admin: User = Depends(get_current_org_admin),
+    db: AsyncSession = Depends(get_db),
+) -> list[StaffResponse]:
+    """Admin-only: list soft-deleted staff members in the trash."""
+    result = await db.execute(
+        select(User).where(
+            and_(
+                User.org_id == current_admin.org_id,
+                User.role == "staff",
+                User.is_deleted == True,
+            )
+        ).order_by(User.deleted_at.desc())
+    )
+    members = result.scalars().all()
+    return [StaffResponse.model_validate(m) for m in members]
+
+
 @router.delete(
     "/{staff_id}",
     response_model=StaffResponse,
-    summary="Deactivate Staff Member",
-    description="Soft-deactivate a staff member (sets is_active = False). Does not delete.",
+    summary="Move Staff Member to Trash (Soft Delete)",
+    description="Soft-deletes a staff member into Trash (sets is_deleted = True, deleted_at = func.now(), is_active = False).",
 )
-async def deactivate_staff(
+async def delete_staff(
     staff_id: _uuid.UUID,
     background_tasks: BackgroundTasks,
     current_admin: User = Depends(get_current_org_admin),
     db: AsyncSession = Depends(get_db),
 ) -> StaffResponse:
-    """Admin-only: soft-deactivate a staff member in the same org."""
+    """Admin-only: soft-delete a staff member into Trash."""
     member = await _get_staff_or_404(db, staff_id=staff_id, org_id=current_admin.org_id)
 
     if member.id == current_admin.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You cannot deactivate your own account.",
+            detail="You cannot delete your own account.",
         )
 
+    member.is_deleted = True
+    member.deleted_at = func.now()
     member.is_active = False
     await db.commit()
     await db.refresh(member)
 
     await record_event(
-        event_type="DEACTIVATE_STAFF",
+        event_type="TRASH_STAFF",
         org_id=current_admin.org_id,
         parent_org_id=current_admin.parent_organization_id,
         user_id=current_admin.id,
         resource_type="user",
         resource_id=str(member.id),
-        details={"email": member.email, "reason": "Admin deactivated staff account"}
+        details={"email": member.email, "reason": "Admin moved staff account to trash"}
     )
 
-    logger.info("Admin deactivated staff | admin=%s staff=%s org=%s", current_admin.id, member.id, current_admin.org_id)
+    logger.info("Admin moved staff to trash | admin=%s staff=%s org=%s", current_admin.id, member.id, current_admin.org_id)
+    return StaffResponse.model_validate(member)
+
+
+@router.post(
+    "/{staff_id}/restore",
+    response_model=StaffResponse,
+    summary="Restore Staff Member from Trash",
+    description="Restores a soft-deleted staff member back to active status.",
+)
+async def restore_staff(
+    staff_id: _uuid.UUID,
+    background_tasks: BackgroundTasks,
+    current_admin: User = Depends(get_current_org_admin),
+    db: AsyncSession = Depends(get_db),
+) -> StaffResponse:
+    """Admin-only: restore a soft-deleted staff member from Trash."""
+    member = await _get_staff_or_404(db, staff_id=staff_id, org_id=current_admin.org_id, include_deleted=True)
+
+    if not member.is_deleted:
+        return StaffResponse.model_validate(member)
+
+    # Check capacity limit
+    current_staff_count = await db.scalar(
+        select(func.count(User.id)).where(
+            and_(
+                User.org_id == current_admin.org_id,
+                User.role == "staff",
+                User.is_deleted == False,
+                User.is_active == True,
+            )
+        )
+    ) or 0
+
+    from app.services.entitlement_service import EntitlementError, assert_resource_capacity
+    from app.models.organization import Organization
+    org = await db.scalar(select(Organization).where(Organization.id == current_admin.org_id))
+    try:
+        await assert_resource_capacity(db, current_admin.org_id, "staff_users.max", current_staff_count)
+    except EntitlementError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    if org and current_staff_count >= org.max_staff:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Staff limit reached ({org.max_staff}). Contact support to upgrade your plan."
+        )
+
+    member.is_deleted = False
+    member.deleted_at = None
+    member.is_active = True
+    await db.commit()
+    await db.refresh(member)
+
+    await record_event(
+        event_type="RESTORE_STAFF",
+        org_id=current_admin.org_id,
+        parent_org_id=current_admin.parent_organization_id,
+        user_id=current_admin.id,
+        resource_type="user",
+        resource_id=str(member.id),
+        details={"email": member.email, "reason": "Admin restored staff account from trash"}
+    )
+
+    logger.info("Admin restored staff from trash | admin=%s staff=%s org=%s", current_admin.id, member.id, current_admin.org_id)
     return StaffResponse.model_validate(member)
 
 
@@ -311,7 +405,7 @@ async def hard_delete_staff(
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Admin-only: permanently delete a staff member in the same org."""
-    member = await _get_staff_or_404(db, staff_id=staff_id, org_id=current_admin.org_id)
+    member = await _get_staff_or_404(db, staff_id=staff_id, org_id=current_admin.org_id, include_deleted=True)
 
     if member.id == current_admin.id:
         raise HTTPException(
@@ -323,13 +417,13 @@ async def hard_delete_staff(
     await db.commit()
 
     await record_event(
-        event_type="DELETE_STAFF",
+        event_type="PERMANENT_DELETE_STAFF",
         org_id=current_admin.org_id,
         parent_org_id=current_admin.parent_organization_id,
         user_id=current_admin.id,
         resource_type="user",
         resource_id=str(staff_id),
-        details={"reason": "Admin hard-deleted staff account"}
+        details={"reason": "Admin permanently deleted staff account"}
     )
 
     logger.info("Admin hard-deleted staff | admin=%s staff=%s org=%s", current_admin.id, staff_id, current_admin.org_id)

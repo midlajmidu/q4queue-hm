@@ -864,6 +864,8 @@ export interface StaffMember {
     org_id: string;
     role: "admin" | "staff";
     is_active: boolean;
+    is_deleted?: boolean;
+    deleted_at?: string | null;
     last_active_at?: string | null;
     created_at: string;
 }

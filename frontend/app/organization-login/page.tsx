@@ -17,6 +17,17 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loginType, setLoginType] = useState<"staff" | "org_admin">("org_admin");
+    const [bannerMessage, setBannerMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("error") === "account_deactivated") {
+                setBannerMessage("Your account has been deactivated by an administrator. Please contact support.");
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+    }, []);
 
     // Redirect to dashboard if already logged in
     useEffect(() => {
@@ -117,7 +128,7 @@ export default function LoginPage() {
 
                         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                             <AnimatePresence>
-                                {error && (
+                                {(error || bannerMessage) && (
                                     <motion.div
                                         initial={{ opacity: 0, height: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, height: 'auto', scale: 1 }}
@@ -128,7 +139,7 @@ export default function LoginPage() {
                                             <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
-                                            <span>{error}</span>
+                                            <span>{error || bannerMessage}</span>
                                         </div>
                                     </motion.div>
                                 )}

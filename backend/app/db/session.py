@@ -48,10 +48,16 @@ AsyncSessionLocal: async_sessionmaker[AsyncSession] = async_sessionmaker(
 
 
 async def connect_db() -> None:
-    """Verify DB connectivity at startup."""
-    async with engine.connect() as conn:
+    """Verify DB connectivity at startup and ensure user soft-delete columns exist."""
+    async with engine.begin() as conn:
         await conn.execute(
             __import__("sqlalchemy").text("SELECT 1")
+        )
+        await conn.execute(
+            __import__("sqlalchemy").text("""
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE;
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+            """)
         )
     logger.info("PostgreSQL connection pool ready | url=%s", settings.database_url_async.split("@")[-1])
 

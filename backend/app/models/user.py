@@ -63,6 +63,8 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(50), default="admin", nullable=False)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_first_login: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
     last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

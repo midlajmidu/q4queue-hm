@@ -12,7 +12,7 @@
  */
 
 import { config } from "@/lib/config";
-import { getToken, removeToken } from "@/lib/auth";
+import { getToken, removeToken, clearAllAuthTokens } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import type {
     ApiErrorResponse,
@@ -180,6 +180,9 @@ function friendlyMessage(status: number, rawDetail: string): string {
     }
 }
 
+// Flag to prevent duplicate deactivation alerts when multiple concurrent requests fail
+let isDeactivationAlertShowing = false;
+
 // ── Internal fetch wrapper ───────────────────────────────────────
 async function request<T>(
     path: string,
@@ -258,7 +261,68 @@ async function request<T>(
             // Response body not JSON
         }
 
-        // 401 → auto-logout
+        // ── Deactivated Account Interceptor (403 or 401 with deactivated detail) ──
+        const isDeactivated =
+            (resp.status === 403 || resp.status === 401) &&
+            typeof rawDetail === "string" &&
+            (rawDetail.toLowerCase().includes("deactivated") || rawDetail.toLowerCase().includes("user account is inactive"));
+
+        if (isDeactivated) {
+            clearAllAuthTokens();
+            if (typeof window !== "undefined") {
+                try {
+                    const bc = new BroadcastChannel("auth_sync_channel");
+                    bc.postMessage({ type: "LOGOUT" });
+                    bc.close();
+                } catch { }
+
+                const path = window.location.pathname;
+                const isSuperAdminPath = path.startsWith("/super-admin");
+                const isOrgAdminPath = path.startsWith("/organization-admin") || path.startsWith("/org-admin");
+                const isDashboardPath = path.includes("/dashboard");
+                const isPublicPath = path.startsWith("/qr") || path.startsWith("/display") || path.startsWith("/join") || path.startsWith("/track") || path === "/" || path.startsWith("/features") || path.startsWith("/pricing") || path.startsWith("/solutions") || path.startsWith("/industries");
+                const isAlreadyonLogin = path === "/login" || path.endsWith("/login") || path === "/organization-login";
+
+                const redirectUrl = isSuperAdminPath
+                    ? "/super-admin/login?error=account_deactivated"
+                    : isOrgAdminPath
+                    ? "/organization-login?error=account_deactivated"
+                    : "/login?error=account_deactivated";
+
+                if (!isAlreadyonLogin && !isPublicPath && (isSuperAdminPath || isOrgAdminPath || isDashboardPath)) {
+                    if (!isDeactivationAlertShowing) {
+                        isDeactivationAlertShowing = true;
+                        import("sweetalert2").then(({ default: Swal }) => {
+                            Swal.fire({
+                                icon: "error",
+                                title: "Account Deactivated",
+                                text: "Your account has been deactivated by the administrator.",
+                                confirmButtonText: "Go to Login",
+                                confirmButtonColor: "#2563eb",
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                            }).then(() => {
+                                window.location.href = redirectUrl;
+                            });
+                        }).catch(() => {
+                            window.location.href = redirectUrl;
+                        });
+
+                        // Fallback auto-redirect after 6 seconds if user doesn't interact
+                        setTimeout(() => {
+                            window.location.href = redirectUrl;
+                        }, 6000);
+                    }
+                }
+            }
+
+            const detail = "Your account has been deactivated by an administrator.";
+            const method = options.method || "GET";
+            logger.warn("API error response (deactivated)", { method, path, status: resp.status, detail });
+            throw new ApiError({ status: resp.status, detail, path, method });
+        }
+
+        // 401 → auto-logout (unauthorized / session expired)
         if (resp.status === 401) {
             removeToken();
             if (typeof window !== "undefined") {
@@ -281,11 +345,7 @@ async function request<T>(
                         window.location.href = "/organization-login";
                     } else {
                         const redirectUrl = isSuperAdminPath ? "/super-admin/login" : "/login";
-                        if (rawDetail && rawDetail.includes("deactivated")) {
-                            window.location.href = `${redirectUrl}?error=deactivated`;
-                        } else {
-                            window.location.href = redirectUrl;
-                        }
+                        window.location.href = redirectUrl;
                     }
                 }
             }
@@ -942,13 +1002,30 @@ export const api = {
 
     deactivateStaff(staffId: string): Promise<StaffMember> {
         return request<StaffMember>(`/staff/${staffId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ is_active: false }),
+        });
+    },
+
+    deleteStaff(staffId: string): Promise<StaffMember> {
+        return request<StaffMember>(`/staff/${staffId}`, {
             method: "DELETE",
         });
     },
 
-    deleteStaff(staffId: string): Promise<void> {
+    hardDeleteStaff(staffId: string): Promise<void> {
         return request<void>(`/staff/${staffId}/hard`, {
             method: "DELETE",
+        });
+    },
+
+    listTrashStaff(): Promise<StaffMember[]> {
+        return request<StaffMember[]>("/staff/trash");
+    },
+
+    restoreStaff(staffId: string): Promise<StaffMember> {
+        return request<StaffMember>(`/staff/${staffId}/restore`, {
+            method: "POST",
         });
     },
 
