@@ -138,11 +138,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     }
                 }
             };
-        }
 
-        return () => {
-            if (bc) bc.close();
-        };
+            const handleStorageChange = (e: StorageEvent) => {
+                if (!e.key || e.key === "fc_access_token" || e.key === "fc_org_access_token" || e.key === "fc_sa_access_token") {
+                    syncAuthState();
+                }
+            };
+            window.addEventListener("storage", handleStorageChange);
+
+            return () => {
+                window.removeEventListener("storage", handleStorageChange);
+                if (bc) bc.close();
+            };
+        }
     }, [router, syncAuthState]);
 
     // Periodically check token validity
@@ -246,6 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = useCallback(() => {
         removeToken();
+        removeSuperAdminToken();
         syncAuthState();
         broadcastEvent("LOGOUT");
         
