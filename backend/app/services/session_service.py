@@ -186,29 +186,7 @@ async def create_queue_session(
         )
     )
     if existing:
-        # Re-activate and update title of existing session for this date
-        existing.title = session_title
-        existing.is_active = True
-        existing.is_paused = False
-        queue.token_session_id = existing.id
-        await _close_other_sessions(db, queue_id=queue_id, keep_session_id=existing.id)
-        # Clear any dangling serving tokens in existing session from an earlier run
-        await db.execute(
-            update(Token)
-            .where(
-                Token.session_id == existing.id,
-                Token.status == TokenStatus.serving,
-            )
-            .values(
-                status=TokenStatus.skipped,
-                completed_at=func.now(),
-                removed_by="session_end",
-            )
-        )
-        await db.commit()
-        await db.refresh(existing)
-        logger.info("Existing session re-activated | queue=%s date=%s title=%s", queue_id, data.session_date, session_title)
-        return existing
+        raise ValueError("A session already exists for this date in this queue. Please view or start the existing session from the list.")
 
     from app.services.entitlement_service import consume
     await consume(
@@ -239,6 +217,14 @@ async def create_queue_session(
         await db.refresh(session)
     except Exception as exc:
         await db.rollback()
+        existing = await db.scalar(
+            select(Session).where(
+                Session.queue_id == queue_id,
+                Session.session_date == data.session_date,
+            )
+        )
+        if existing:
+            raise ValueError("A session already exists for this date in this queue. Please view or start the existing session from the list.")
         raise ValueError("Failed to create session") from exc
 
     logger.info("Session created | queue=%s date=%s title=%s", queue_id, data.session_date, session_title)
