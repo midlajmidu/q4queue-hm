@@ -306,6 +306,44 @@ class ManagedCustomerUpdate(BaseModel):
     timezone: str = Field(..., min_length=1, max_length=50)
     reason: str = Field(..., min_length=3, max_length=500)
 
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Business name must be at least 2 characters")
+        return v
+
+    @field_validator("contact_email", mode="before")
+    @classmethod
+    def empty_email_to_none(cls, v: Any) -> Any:
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
+    @field_validator("contact_phone")
+    @classmethod
+    def validate_phone(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        if not re.match(r"^[\d\s+\-()]+$", v):
+            raise ValueError("Phone number contains invalid characters (numbers and + - ( ) only)")
+        digits = re.sub(r"\D", "", v)
+        if len(digits) < 7 or len(digits) > 15:
+            raise ValueError("Phone number must contain between 7 and 15 digits")
+        return v
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 3:
+            raise ValueError("Reason must be at least 3 characters")
+        return v
+
 
 class ManagedParentAdminCreate(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=50)

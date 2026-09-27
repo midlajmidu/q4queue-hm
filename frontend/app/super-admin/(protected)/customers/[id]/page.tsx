@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+    AlertCircle,
     AlertTriangle,
     ArrowLeft,
     Building2,
@@ -638,15 +639,129 @@ function EditCustomerModal({
         name: customer.name,
         contact_email: customer.contact_email || "",
         contact_phone: customer.contact_phone || "",
-        timezone: customer.timezone,
+        timezone: customer.timezone || "Asia/Kolkata",
         reason: "",
+    });
+    const [touched, setTouched] = useState({
+        name: false,
+        contact_email: false,
+        contact_phone: false,
+        timezone: false,
+        reason: false,
     });
     const [saving, setSaving] = useState(false);
 
+    // Dynamic filtering for phone input (numbers, +, -, spaces, parentheses only)
+    const handlePhoneChange = (val: string) => {
+        const filtered = val.replace(/[^0-9+\s\-()]/g, "").slice(0, 25);
+        setForm(prev => ({ ...prev, contact_phone: filtered }));
+        if (!touched.contact_phone) setTouched(prev => ({ ...prev, contact_phone: true }));
+    };
+
+    // Timezone validation helper
+    const isValidTimezone = (tz: string) => {
+        if (!tz || !tz.trim()) return false;
+        try {
+            Intl.DateTimeFormat(undefined, { timeZone: tz.trim() });
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
+    // Validation computations
+    const nameTrimmed = form.name.trim();
+    const nameError = !nameTrimmed
+        ? "Business name is required."
+        : nameTrimmed.length < 2
+        ? "Business name must be at least 2 characters."
+        : nameTrimmed.length > 255
+        ? "Business name cannot exceed 255 characters."
+        : null;
+
+    const emailTrimmed = (form.contact_email || "").trim();
+    const emailError = emailTrimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)
+        ? "Please enter a valid email address (e.g. admin@example.com)."
+        : null;
+
+    const phoneTrimmed = (form.contact_phone || "").trim();
+    const phoneDigits = phoneTrimmed.replace(/\D/g, "");
+    const phoneError = phoneTrimmed
+        ? !/^[\d\s+\-()]+$/.test(phoneTrimmed)
+            ? "Phone contains invalid characters (numbers and + - ( ) only)."
+            : phoneDigits.length < 7 || phoneDigits.length > 15
+            ? "Phone number must contain between 7 and 15 digits."
+            : null
+        : null;
+
+    const tzTrimmed = form.timezone.trim();
+    const timezoneError = !tzTrimmed
+        ? "Account timezone is required."
+        : !isValidTimezone(tzTrimmed)
+        ? "Please enter a valid IANA timezone (e.g. Asia/Kolkata, UTC, America/New_York)."
+        : null;
+
+    const reasonTrimmed = form.reason.trim();
+    const reasonError = !reasonTrimmed
+        ? "Reason for update is required for audit logs."
+        : reasonTrimmed.length < 3
+        ? "Reason must be at least 3 characters."
+        : reasonTrimmed.length > 500
+        ? "Reason cannot exceed 500 characters."
+        : null;
+
+    const isFormValid = !nameError && !emailError && !phoneError && !timezoneError && !reasonError;
+
+    // Timezone suggestions for datalist
+    const commonTimezones = useMemo(() => {
+        try {
+            if (typeof Intl !== "undefined" && "supportedValuesOf" in Intl) {
+                return (Intl as any).supportedValuesOf("timeZone") as string[];
+            }
+        } catch {}
+        return [
+            "UTC",
+            "Asia/Kolkata",
+            "Asia/Dubai",
+            "Asia/Singapore",
+            "Asia/Tokyo",
+            "Europe/London",
+            "Europe/Paris",
+            "Europe/Berlin",
+            "America/New_York",
+            "America/Chicago",
+            "America/Denver",
+            "America/Los_Angeles",
+            "America/Toronto",
+            "Australia/Sydney",
+            "Pacific/Auckland",
+        ];
+    }, []);
+
     const submit = async () => {
+        setTouched({
+            name: true,
+            contact_email: true,
+            contact_phone: true,
+            timezone: true,
+            reason: true,
+        });
+
+        if (!isFormValid) {
+            toast.error("Please correct the form validation errors before saving");
+            return;
+        }
+
         setSaving(true);
         try {
-            const value = await api.updateManagedCustomer(customer.parent_organization_id, form);
+            const payload: ManagedCustomerUpdate = {
+                name: nameTrimmed,
+                contact_email: emailTrimmed || undefined,
+                contact_phone: phoneTrimmed || undefined,
+                timezone: tzTrimmed,
+                reason: reasonTrimmed,
+            };
+            const value = await api.updateManagedCustomer(customer.parent_organization_id, payload);
             toast.success("Customer details updated successfully");
             onDone(value);
         } catch (error) {
@@ -655,8 +770,6 @@ function EditCustomerModal({
             setSaving(false);
         }
     };
-
-    const isFormValid = form.name.trim().length >= 2 && form.reason.trim().length >= 3;
 
     return (
         <Modal
@@ -668,16 +781,31 @@ function EditCustomerModal({
         >
             <div className="space-y-4">
                 <div>
-                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                        Business Name <span className="text-rose-400">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                            Business Name <span className="text-rose-400">*</span>
+                        </label>
+                        {touched.name && nameError && (
+                            <span className="text-[11px] font-medium text-rose-400 flex items-center gap-1">
+                                <AlertCircle size={11} className="shrink-0" /> {nameError}
+                            </span>
+                        )}
+                    </div>
                     <div className="relative">
-                        <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <Building2 size={16} className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${touched.name && nameError ? 'text-rose-400' : 'text-slate-500'}`} />
                         <input
                             type="text"
                             value={form.name}
-                            onChange={(e) => setForm({ ...form, name: e.target.value })}
-                            className="w-full rounded-xl border border-slate-800 bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                            onChange={(e) => {
+                                setForm({ ...form, name: e.target.value });
+                                if (!touched.name) setTouched(prev => ({ ...prev, name: true }));
+                            }}
+                            onBlur={() => setTouched(prev => ({ ...prev, name: true }))}
+                            className={`w-full rounded-xl border bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all ${
+                                touched.name && nameError
+                                    ? "border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/20"
+                                    : "border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20"
+                            }`}
                             placeholder="e.g. Apex Health Clinic"
                         />
                     </div>
@@ -685,67 +813,157 @@ function EditCustomerModal({
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                            Contact Email
-                        </label>
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                                Contact Email
+                            </label>
+                            {touched.contact_email && emailError && (
+                                <span className="text-[11px] font-medium text-rose-400 flex items-center gap-1 truncate max-w-[150px]" title={emailError}>
+                                    <AlertCircle size={11} className="shrink-0" /> Invalid
+                                </span>
+                            )}
+                        </div>
                         <div className="relative">
-                            <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                            <Mail size={16} className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${touched.contact_email && emailError ? 'text-rose-400' : 'text-slate-500'}`} />
                             <input
                                 type="email"
                                 value={form.contact_email}
-                                onChange={(e) => setForm({ ...form, contact_email: e.target.value })}
-                                className="w-full rounded-xl border border-slate-800 bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                                onChange={(e) => {
+                                    setForm({ ...form, contact_email: e.target.value });
+                                    if (!touched.contact_email) setTouched(prev => ({ ...prev, contact_email: true }));
+                                }}
+                                onBlur={() => setTouched(prev => ({ ...prev, contact_email: true }))}
+                                className={`w-full rounded-xl border bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all ${
+                                    touched.contact_email && emailError
+                                        ? "border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/20"
+                                        : "border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20"
+                                }`}
                                 placeholder="admin@example.com"
                             />
                         </div>
+                        {touched.contact_email && emailError && (
+                            <p className="text-[11px] font-medium text-rose-400 mt-1 pl-1 flex items-center gap-1">
+                                <AlertCircle size={11} className="shrink-0" /> {emailError}
+                            </p>
+                        )}
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                            Contact Phone
-                        </label>
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                                Contact Phone
+                            </label>
+                            {touched.contact_phone && phoneError && (
+                                <span className="text-[11px] font-medium text-rose-400 flex items-center gap-1 truncate max-w-[150px]" title={phoneError}>
+                                    <AlertCircle size={11} className="shrink-0" /> Invalid
+                                </span>
+                            )}
+                        </div>
                         <div className="relative">
-                            <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                            <Phone size={16} className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${touched.contact_phone && phoneError ? 'text-rose-400' : 'text-slate-500'}`} />
                             <input
                                 type="text"
                                 value={form.contact_phone}
-                                onChange={(e) => setForm({ ...form, contact_phone: e.target.value })}
-                                className="w-full rounded-xl border border-slate-800 bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                                onChange={(e) => handlePhoneChange(e.target.value)}
+                                onBlur={() => setTouched(prev => ({ ...prev, contact_phone: true }))}
+                                className={`w-full rounded-xl border bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all ${
+                                    touched.contact_phone && phoneError
+                                        ? "border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/20"
+                                        : "border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20"
+                                }`}
                                 placeholder="+1 555-0192"
                             />
                         </div>
+                        {touched.contact_phone && phoneError && (
+                            <p className="text-[11px] font-medium text-rose-400 mt-1 pl-1 flex items-center gap-1">
+                                <AlertCircle size={11} className="shrink-0" /> {phoneError}
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                        Account Timezone
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                            Account Timezone <span className="text-rose-400">*</span>
+                        </label>
+                        {touched.timezone && timezoneError && (
+                            <span className="text-[11px] font-medium text-rose-400 flex items-center gap-1">
+                                <AlertCircle size={11} className="shrink-0" /> Invalid Timezone
+                            </span>
+                        )}
+                    </div>
                     <div className="relative">
-                        <Globe size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <Globe size={16} className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${touched.timezone && timezoneError ? 'text-rose-400' : 'text-slate-500'}`} />
                         <input
                             type="text"
+                            list="sa-customer-timezones"
                             value={form.timezone}
-                            onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-                            className="w-full rounded-xl border border-slate-800 bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-mono"
+                            onChange={(e) => {
+                                setForm({ ...form, timezone: e.target.value });
+                                if (!touched.timezone) setTouched(prev => ({ ...prev, timezone: true }));
+                            }}
+                            onBlur={() => setTouched(prev => ({ ...prev, timezone: true }))}
+                            className={`w-full rounded-xl border bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all font-mono ${
+                                touched.timezone && timezoneError
+                                    ? "border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/20"
+                                    : "border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20"
+                            }`}
                             placeholder="Asia/Kolkata or UTC"
                         />
+                        <datalist id="sa-customer-timezones">
+                            {commonTimezones.map(tz => (
+                                <option key={tz} value={tz} />
+                            ))}
+                        </datalist>
                     </div>
+                    {touched.timezone && timezoneError && (
+                        <p className="text-[11px] font-medium text-rose-400 mt-1 pl-1 flex items-center gap-1">
+                            <AlertCircle size={11} className="shrink-0" /> {timezoneError}
+                        </p>
+                    )}
                 </div>
 
                 <div>
-                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                        Reason for Update <span className="text-rose-400">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                            Reason for Update <span className="text-rose-400">*</span>
+                        </label>
+                        {touched.reason && reasonError && (
+                            <span className="text-[11px] font-medium text-rose-400 flex items-center gap-1">
+                                <AlertCircle size={11} className="shrink-0" /> {reasonError}
+                            </span>
+                        )}
+                    </div>
                     <div className="relative">
-                        <FileText size={16} className="absolute left-3.5 top-3 text-slate-500" />
+                        <FileText size={16} className={`absolute left-3.5 top-3 transition-colors ${touched.reason && reasonError ? 'text-rose-400' : 'text-slate-500'}`} />
                         <textarea
                             minLength={3}
                             value={form.reason}
-                            onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                            className="w-full rounded-xl border border-slate-800 bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all min-h-24"
+                            onChange={(e) => {
+                                setForm({ ...form, reason: e.target.value });
+                                if (!touched.reason) setTouched(prev => ({ ...prev, reason: true }));
+                            }}
+                            onBlur={() => setTouched(prev => ({ ...prev, reason: true }))}
+                            className={`w-full rounded-xl border bg-slate-950/70 pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all min-h-24 ${
+                                touched.reason && reasonError
+                                    ? "border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/20"
+                                    : "border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20"
+                            }`}
                             placeholder="Required for commercial audit log tracking..."
                         />
+                    </div>
+                    <div className="flex justify-between items-center mt-1 px-1">
+                        {touched.reason && reasonError ? (
+                            <p className="text-[11px] font-medium text-rose-400 flex items-center gap-1">
+                                <AlertCircle size={11} className="shrink-0" /> {reasonError}
+                            </p>
+                        ) : (
+                            <span />
+                        )}
+                        <span className="text-[10px] text-slate-500 ml-auto">
+                            {reasonTrimmed.length}/500 chars (min 3)
+                        </span>
                     </div>
                 </div>
 
@@ -762,7 +980,7 @@ function EditCustomerModal({
                         type="button"
                         disabled={saving || !isFormValid}
                         onClick={submit}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500 disabled:opacity-50 active:scale-95"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                     >
                         {saving && <Loader2 size={16} className="animate-spin" />}
                         {saving ? "Saving Changes..." : "Save Customer"}
