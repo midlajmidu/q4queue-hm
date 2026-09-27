@@ -856,7 +856,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                         setCreateError(null);
                                     }}
                                     className={`w-full h-10 px-3.5 bg-slate-50 dark:bg-slate-800 border ${
-                                        createError && !newSessionDate
+                                        createError
                                             ? "border-red-500 dark:border-red-500/80 focus:ring-red-500/25 focus:border-red-500"
                                             : "border-slate-200 dark:border-white/10 focus:ring-indigo-500/25 focus:border-indigo-500"
                                     } rounded-lg text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 transition-all`}
