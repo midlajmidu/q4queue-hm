@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import type { AdminCustomerCreate, ManagedCustomerListItem } from "@/types/api";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { TIMEZONE_GROUPS, TIMEZONES, detectBrowserTimezone } from "@/lib/timezones";
 
 const INITIAL_FORM: AdminCustomerCreate = {
     business_name: "",
@@ -125,32 +126,440 @@ export default function CustomersPage() {
 }
 
 function CreateCustomerModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-    const [form, setForm] = useState<AdminCustomerCreate>(INITIAL_FORM);
+    const [form, setForm] = useState<AdminCustomerCreate>(() => ({
+        ...INITIAL_FORM,
+        timezone: detectBrowserTimezone("Asia/Kolkata"),
+    }));
     const [step, setStep] = useState(1);
     const [saving, setSaving] = useState(false);
-    const setLimit = (key: keyof AdminCustomerCreate["limits"], value: number) => setForm(current => ({ ...current, limits: { ...current.limits, [key]: value } }));
-    const submit = async (event: FormEvent) => {
-        event.preventDefault();
-        if (step < 3) { setStep(step + 1); return; }
-        setSaving(true);
-        try { await api.createManagedCustomer(form); toast.success("Customer account created"); onCreated(); }
-        catch (error) { toast.error(error instanceof ApiError ? error.detail : "Unable to create customer"); }
-        finally { setSaving(false); }
+    const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+    const markTouched = (fields: string[]) => {
+        setTouched(prev => {
+            const next = { ...prev };
+            fields.forEach(f => { next[f] = true; });
+            return next;
+        });
     };
-    return <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-        <button aria-label="Close" className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm" onClick={onClose} />
-        <form onSubmit={submit} className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-indigo-400">Step {step} of 3</p><h2 className="mt-1 text-xl font-bold text-white">{step === 1 ? "Customer account" : step === 2 ? "Subscription and limits" : "Account owner"}</h2></div><button type="button" onClick={onClose} className="text-slate-500 hover:text-white">✕</button></div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                {step === 1 && <><Field label="Business name"><input required value={form.business_name} onChange={e => setForm({ ...form, business_name: e.target.value })} className="field" /></Field><Field label="First branch"><input required value={form.branch_name} onChange={e => setForm({ ...form, branch_name: e.target.value })} className="field" /></Field><Field label="Contact phone"><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="field" /></Field><Field label="Timezone"><input required value={form.timezone} onChange={e => setForm({ ...form, timezone: e.target.value })} className="field" /></Field></>}
-                {step === 2 && <><Field label="Account type"><select value={form.account_type} onChange={e => setForm({ ...form, account_type: e.target.value as "trial" | "active" })} className="field"><option value="trial">Free trial</option><option value="active">Active — manually approved</option></select></Field>{form.account_type === "trial" && <Field label="Trial days"><input type="number" min={1} max={365} value={form.trial_days} onChange={e => setForm({ ...form, trial_days: Number(e.target.value) })} className="field" /></Field>}{(["branches", "queues_per_branch", "staff_per_branch", "sessions", "tokens_per_session"] as const).map(key => <Field key={key} label={key === "sessions" ? "sessions per queue" : key.replaceAll("_", " ")}><input type="number" min={1} required value={form.limits[key]} onChange={e => setLimit(key, Number(e.target.value))} className="field" /></Field>)}</>}
-                {step === 3 && <><Field label="First name"><input required value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} className="field" /></Field><Field label="Last name"><input required value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} className="field" /></Field><Field label="Admin email"><input required type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="field" /></Field><Field label="Temporary password"><input required type="password" minLength={8} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="field" /></Field><div className="sm:col-span-2 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 text-sm text-slate-300">One confirmation creates the Parent Organisation, first branch, Branch Admin, subscription and limits together.</div></>}
-            </div>
-            <div className="mt-7 flex justify-between"><button type="button" onClick={() => step === 1 ? onClose() : setStep(step - 1)} className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm text-slate-300">{step === 1 ? "Cancel" : "Back"}</button><button disabled={saving} className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Creating…" : step === 3 ? "Create customer" : "Continue"}</button></div>
-        </form>
-    </div>;
+
+    const handlePhoneChange = (val: string) => {
+        const filtered = val.replace(/[^0-9+\s\-()]/g, "").slice(0, 25);
+        setForm(current => ({ ...current, phone: filtered }));
+        if (!touched.phone) setTouched(prev => ({ ...prev, phone: true }));
+    };
+
+    const setLimit = (key: keyof AdminCustomerCreate["limits"], value: number) => {
+        setForm(current => ({ ...current, limits: { ...current.limits, [key]: value } }));
+        if (!touched[`limits_${key}`]) setTouched(prev => ({ ...prev, [`limits_${key}`]: true }));
+    };
+
+    // Step 1 Validation
+    const businessNameTrimmed = form.business_name.trim();
+    const businessNameError = !businessNameTrimmed
+        ? "Business name is required."
+        : businessNameTrimmed.length < 2
+        ? "Business name must be at least 2 characters."
+        : businessNameTrimmed.length > 255
+        ? "Business name cannot exceed 255 characters."
+        : null;
+
+    const branchNameTrimmed = form.branch_name.trim();
+    const branchNameError = !branchNameTrimmed
+        ? "First branch name is required."
+        : branchNameTrimmed.length < 2
+        ? "Branch name must be at least 2 characters."
+        : branchNameTrimmed.length > 255
+        ? "Branch name cannot exceed 255 characters."
+        : null;
+
+    const phoneTrimmed = (form.phone || "").trim();
+    const phoneDigits = phoneTrimmed.replace(/\D/g, "");
+    const phoneError = phoneTrimmed
+        ? !/^[\d\s+\-()]+$/.test(phoneTrimmed)
+            ? "Phone contains invalid characters (numbers and + - ( ) only)."
+            : phoneDigits.length < 7 || phoneDigits.length > 15
+            ? "Phone number must contain between 7 and 15 digits."
+            : null
+        : null;
+
+    const isValidTimezone = (tz: string) => {
+        if (!tz || !tz.trim()) return false;
+        try {
+            Intl.DateTimeFormat(undefined, { timeZone: tz.trim() });
+            return true;
+        } catch {
+            return false;
+        }
+    };
+    const timezoneError = !form.timezone || !isValidTimezone(form.timezone)
+        ? "Please select a valid timezone."
+        : null;
+
+    const isStep1Valid = !businessNameError && !branchNameError && !phoneError && !timezoneError;
+
+    // Step 2 Validation
+    const trialDaysError = form.account_type === "trial"
+        ? !Number.isInteger(form.trial_days) || form.trial_days < 1 || form.trial_days > 365
+            ? "Trial days must be an integer between 1 and 365."
+            : null
+        : null;
+
+    const limitKeys = ["branches", "queues_per_branch", "staff_per_branch", "sessions", "tokens_per_session"] as const;
+    const limitErrors: Record<string, string | null> = {};
+    let hasLimitError = false;
+    for (const key of limitKeys) {
+        const val = form.limits[key];
+        if (val === undefined || val === null || isNaN(val) || val < 1 || !Number.isInteger(val)) {
+            limitErrors[key] = "Must be at least 1.";
+            hasLimitError = true;
+        } else {
+            limitErrors[key] = null;
+        }
+    }
+    const isStep2Valid = !trialDaysError && !hasLimitError;
+
+    // Step 3 Validation
+    const firstNameTrimmed = form.first_name.trim();
+    const firstNameError = !firstNameTrimmed
+        ? "First name is required."
+        : firstNameTrimmed.length > 50
+        ? "First name cannot exceed 50 characters."
+        : null;
+
+    const lastNameTrimmed = form.last_name.trim();
+    const lastNameError = !lastNameTrimmed
+        ? "Last name is required."
+        : lastNameTrimmed.length > 50
+        ? "Last name cannot exceed 50 characters."
+        : null;
+
+    const emailTrimmed = form.email.trim();
+    const emailError = !emailTrimmed
+        ? "Admin email is required."
+        : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)
+        ? "Please enter a valid email address."
+        : null;
+
+    const passwordTrimmed = form.password.trim();
+    const passwordError = !passwordTrimmed
+        ? "Temporary password is required."
+        : passwordTrimmed.length < 8
+        ? "Password must be at least 8 characters."
+        : passwordTrimmed.length > 128
+        ? "Password cannot exceed 128 characters."
+        : null;
+
+    const isStep3Valid = !firstNameError && !lastNameError && !emailError && !passwordError;
+
+    const handleNext = (event: FormEvent) => {
+        event.preventDefault();
+        if (step === 1) {
+            markTouched(["business_name", "branch_name", "phone", "timezone"]);
+            if (!isStep1Valid) {
+                toast.error("Please fill in all required fields correctly before continuing.");
+                return;
+            }
+            setStep(2);
+        } else if (step === 2) {
+            markTouched(["trial_days", ...limitKeys.map(k => `limits_${k}`)]);
+            if (!isStep2Valid) {
+                toast.error("Please ensure all limits are positive integers.");
+                return;
+            }
+            setStep(3);
+        } else if (step === 3) {
+            void submit();
+        }
+    };
+
+    const submit = async () => {
+        markTouched(["first_name", "last_name", "email", "password"]);
+        if (!isStep1Valid || !isStep2Valid || !isStep3Valid) {
+            toast.error("Please complete all steps with valid information.");
+            return;
+        }
+
+        setSaving(true);
+        const payload: AdminCustomerCreate = {
+            ...form,
+            business_name: form.business_name.trim(),
+            branch_name: form.branch_name.trim(),
+            phone: form.phone?.trim() || undefined,
+            timezone: form.timezone.trim(),
+            first_name: form.first_name.trim(),
+            last_name: form.last_name.trim(),
+            email: form.email.trim().toLowerCase(),
+            password: form.password,
+        };
+
+        try {
+            await api.createManagedCustomer(payload);
+            toast.success("Customer account created successfully");
+            onCreated();
+        } catch (error) {
+            toast.error(error instanceof ApiError ? error.detail : "Unable to create customer");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+            <button aria-label="Close" className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm" onClick={onClose} />
+            <form onSubmit={handleNext} noValidate className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+                <div className="flex items-start justify-between">
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-indigo-400">Step {step} of 3</p>
+                        <h2 className="mt-1 text-xl font-bold text-white">
+                            {step === 1 ? "Customer account" : step === 2 ? "Subscription and limits" : "Account owner"}
+                        </h2>
+                    </div>
+                    <button type="button" onClick={onClose} className="text-slate-500 hover:text-white transition">✕</button>
+                </div>
+
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    {step === 1 && (
+                        <>
+                            <Field label="Business name" error={touched.business_name ? businessNameError : null}>
+                                <input
+                                    required
+                                    value={form.business_name}
+                                    onChange={e => {
+                                        setForm({ ...form, business_name: e.target.value });
+                                        if (!touched.business_name) setTouched(prev => ({ ...prev, business_name: true }));
+                                    }}
+                                    onBlur={() => setTouched(prev => ({ ...prev, business_name: true }))}
+                                    placeholder="e.g. Mayura Clinic"
+                                    className={`field ${touched.business_name && businessNameError ? "border-rose-500/50 focus:border-rose-500" : ""}`}
+                                />
+                            </Field>
+                            <Field label="First branch" error={touched.branch_name ? branchNameError : null}>
+                                <input
+                                    required
+                                    value={form.branch_name}
+                                    onChange={e => {
+                                        setForm({ ...form, branch_name: e.target.value });
+                                        if (!touched.branch_name) setTouched(prev => ({ ...prev, branch_name: true }));
+                                    }}
+                                    onBlur={() => setTouched(prev => ({ ...prev, branch_name: true }))}
+                                    placeholder="e.g. Main Branch"
+                                    className={`field ${touched.branch_name && branchNameError ? "border-rose-500/50 focus:border-rose-500" : ""}`}
+                                />
+                            </Field>
+                            <Field
+                                label="Contact phone (optional)"
+                                error={touched.phone ? phoneError : null}
+                                hint="Include country code, e.g. +91 98765 43210"
+                            >
+                                <input
+                                    value={form.phone || ""}
+                                    onChange={e => handlePhoneChange(e.target.value)}
+                                    onBlur={() => setTouched(prev => ({ ...prev, phone: true }))}
+                                    placeholder="+91 98765 43210"
+                                    className={`field ${touched.phone && phoneError ? "border-rose-500/50 focus:border-rose-500" : ""}`}
+                                />
+                            </Field>
+                            <Field
+                                label="Timezone"
+                                error={touched.timezone ? timezoneError : null}
+                                hint="Governs operating hours, queues, session resets, and analytics"
+                            >
+                                <select
+                                    required
+                                    value={form.timezone}
+                                    onChange={e => {
+                                        setForm({ ...form, timezone: e.target.value });
+                                        if (!touched.timezone) setTouched(prev => ({ ...prev, timezone: true }));
+                                    }}
+                                    className={`field cursor-pointer ${touched.timezone && timezoneError ? "border-rose-500/50 focus:border-rose-500" : ""}`}
+                                >
+                                    {!TIMEZONES.some(t => t.value === form.timezone) && form.timezone && (
+                                        <option value={form.timezone}>{form.timezone}</option>
+                                    )}
+                                    {TIMEZONE_GROUPS.map(group => (
+                                        <optgroup key={group.region} label={group.region} className="bg-slate-900 text-slate-400 font-bold">
+                                            {group.zones.map(tz => (
+                                                <option key={tz.value} value={tz.value} className="bg-slate-950 text-white font-normal">
+                                                    {tz.label}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    ))}
+                                </select>
+                            </Field>
+                        </>
+                    )}
+
+                    {step === 2 && (
+                        <>
+                            <Field label="Account type">
+                                <select
+                                    value={form.account_type}
+                                    onChange={e => setForm({ ...form, account_type: e.target.value as "trial" | "active" })}
+                                    className="field cursor-pointer"
+                                >
+                                    <option value="trial">Free trial</option>
+                                    <option value="active">Active — manually approved</option>
+                                </select>
+                            </Field>
+                            {form.account_type === "trial" && (
+                                <Field label="Trial days" error={touched.trial_days ? trialDaysError : null}>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={365}
+                                        value={form.trial_days || ""}
+                                        onChange={e => {
+                                            const val = parseInt(e.target.value, 10);
+                                            setForm({ ...form, trial_days: isNaN(val) ? 0 : val });
+                                            if (!touched.trial_days) setTouched(prev => ({ ...prev, trial_days: true }));
+                                        }}
+                                        onBlur={() => setTouched(prev => ({ ...prev, trial_days: true }))}
+                                        className={`field ${touched.trial_days && trialDaysError ? "border-rose-500/50 focus:border-rose-500" : ""}`}
+                                    />
+                                </Field>
+                            )}
+                            {(["branches", "queues_per_branch", "staff_per_branch", "sessions", "tokens_per_session"] as const).map(key => (
+                                <Field
+                                    key={key}
+                                    label={key === "sessions" ? "sessions per queue" : key.replaceAll("_", " ")}
+                                    error={touched[`limits_${key}`] ? limitErrors[key] : null}
+                                >
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        required
+                                        value={form.limits[key] ?? ""}
+                                        onChange={e => {
+                                            const val = parseInt(e.target.value, 10);
+                                            setLimit(key, isNaN(val) ? 0 : val);
+                                        }}
+                                        onBlur={() => setTouched(prev => ({ ...prev, [`limits_${key}`]: true }))}
+                                        className={`field ${touched[`limits_${key}`] && limitErrors[key] ? "border-rose-500/50 focus:border-rose-500" : ""}`}
+                                    />
+                                </Field>
+                            ))}
+                        </>
+                    )}
+
+                    {step === 3 && (
+                        <>
+                            <Field label="First name" error={touched.first_name ? firstNameError : null}>
+                                <input
+                                    required
+                                    value={form.first_name}
+                                    onChange={e => {
+                                        setForm({ ...form, first_name: e.target.value });
+                                        if (!touched.first_name) setTouched(prev => ({ ...prev, first_name: true }));
+                                    }}
+                                    onBlur={() => setTouched(prev => ({ ...prev, first_name: true }))}
+                                    placeholder="John"
+                                    className={`field ${touched.first_name && firstNameError ? "border-rose-500/50 focus:border-rose-500" : ""}`}
+                                />
+                            </Field>
+                            <Field label="Last name" error={touched.last_name ? lastNameError : null}>
+                                <input
+                                    required
+                                    value={form.last_name}
+                                    onChange={e => {
+                                        setForm({ ...form, last_name: e.target.value });
+                                        if (!touched.last_name) setTouched(prev => ({ ...prev, last_name: true }));
+                                    }}
+                                    onBlur={() => setTouched(prev => ({ ...prev, last_name: true }))}
+                                    placeholder="Doe"
+                                    className={`field ${touched.last_name && lastNameError ? "border-rose-500/50 focus:border-rose-500" : ""}`}
+                                />
+                            </Field>
+                            <Field label="Admin email" error={touched.email ? emailError : null}>
+                                <input
+                                    required
+                                    type="email"
+                                    value={form.email}
+                                    onChange={e => {
+                                        setForm({ ...form, email: e.target.value });
+                                        if (!touched.email) setTouched(prev => ({ ...prev, email: true }));
+                                    }}
+                                    onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
+                                    placeholder="admin@example.com"
+                                    className={`field ${touched.email && emailError ? "border-rose-500/50 focus:border-rose-500" : ""}`}
+                                />
+                            </Field>
+                            <Field
+                                label="Temporary password"
+                                error={touched.password ? passwordError : null}
+                                hint="Minimum 8 characters"
+                            >
+                                <input
+                                    required
+                                    type="password"
+                                    minLength={8}
+                                    value={form.password}
+                                    onChange={e => {
+                                        setForm({ ...form, password: e.target.value });
+                                        if (!touched.password) setTouched(prev => ({ ...prev, password: true }));
+                                    }}
+                                    onBlur={() => setTouched(prev => ({ ...prev, password: true }))}
+                                    placeholder="••••••••"
+                                    className={`field ${touched.password && passwordError ? "border-rose-500/50 focus:border-rose-500" : ""}`}
+                                />
+                            </Field>
+                            <div className="sm:col-span-2 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 text-sm text-slate-300">
+                                One confirmation creates the Parent Organisation, first branch, Branch Admin, subscription and limits together.
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <div className="mt-7 flex justify-between">
+                    <button
+                        type="button"
+                        onClick={() => step === 1 ? onClose() : setStep(step - 1)}
+                        className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition"
+                    >
+                        {step === 1 ? "Cancel" : "Back"}
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={
+                            saving ||
+                            (step === 1 && touched.business_name && !isStep1Valid) ||
+                            (step === 2 && !isStep2Valid) ||
+                            (step === 3 && touched.email && !isStep3Valid)
+                        }
+                        className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-50"
+                    >
+                        {saving ? "Creating…" : step === 3 ? "Create customer" : "Continue"}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-    return <label className="space-y-1.5 text-sm font-medium capitalize text-slate-300"><span>{label}</span>{children}</label>;
+function Field({
+    label,
+    children,
+    error,
+    hint,
+    className = "",
+}: {
+    label: string;
+    children: React.ReactNode;
+    error?: string | null;
+    hint?: string;
+    className?: string;
+}) {
+    return (
+        <div className={`space-y-1.5 ${className}`}>
+            <label className="block text-sm font-medium capitalize text-slate-300">
+                {label}
+            </label>
+            {children}
+            {error ? (
+                <p className="text-xs text-rose-400 font-medium">{error}</p>
+            ) : hint ? (
+                <p className="text-xs text-slate-500">{hint}</p>
+            ) : null}
+        </div>
+    );
 }

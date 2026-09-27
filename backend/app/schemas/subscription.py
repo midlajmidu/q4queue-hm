@@ -2,6 +2,7 @@
 import re
 from datetime import datetime
 from typing import Any, Literal
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
@@ -106,6 +107,51 @@ class AdminCustomerCreate(BaseModel):
     account_type: Literal["trial", "active"] = "trial"
     trial_days: int = Field(default=14, ge=1, le=365)
     limits: ManagedCustomerLimits = Field(default_factory=ManagedCustomerLimits)
+
+    @field_validator("business_name", "branch_name", "first_name", "last_name", mode="before")
+    @classmethod
+    def strip_and_validate_strings(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                raise ValueError("Field cannot be blank or whitespace-only.")
+        return v
+
+    @field_validator("phone", mode="before")
+    @classmethod
+    def validate_phone(cls, v: Any) -> str | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return None
+            if not re.match(r"^[\d\s+\-()]{7,25}$", v):
+                raise ValueError("Phone number contains invalid characters (numbers and + - ( ) only).")
+            digits = re.sub(r"\D", "", v)
+            if len(digits) < 7 or len(digits) > 15:
+                raise ValueError("Phone number must contain between 7 and 15 digits.")
+            return v
+        return v
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Timezone cannot be blank.")
+        try:
+            ZoneInfo(v)
+        except Exception:
+            raise ValueError(f"'{v}' is not a valid IANA timezone.")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v.strip()) < 8:
+            raise ValueError("Password must be at least 8 characters.")
+        return v
 
 
 class ManagedCustomerListItem(BaseModel):
