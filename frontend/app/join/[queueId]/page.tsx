@@ -390,7 +390,8 @@ export default function JoinQueuePage({ params }: PageProps) {
     // Derived values
     const isNameValid = /^[A-Za-z\s'-]{2,50}$/.test(customerName.trim());
     const isPhoneValid = /^\d{10}$/.test(customerPhone);
-    const isLegacyFormValid = isNameValid && isPhoneValid && companionInput.trim() !== "";
+    const isPaxValid = paxCount >= 1 && paxCount <= 99;
+    const isLegacyFormValid = isNameValid && isPhoneValid && companionInput.trim() !== "" && isPaxValid;
     const hasCustomFieldsConfigured = Array.isArray(live?.custom_fields);
     const customFieldsList = live?.custom_fields || [];
     const isFormValid = hasCustomFieldsConfigured
@@ -412,6 +413,11 @@ export default function JoinQueuePage({ params }: PageProps) {
             const rawPhone = customData['phone'] || customData['phone_number'] || customerPhone;
             const resolvedPhone = rawPhone ? `${countryCode}${rawPhone.replace(/\D/g, "")}` : '+910000000000';
             const resolvedPax = parseInt(customData['pax'] || customData['group_size'] || String(paxCount)) || 1;
+            if (resolvedPax < 1 || resolvedPax > 99) {
+                setError("Number of Pax must be between 1 and 99 (maximum 2 digits).");
+                setIsJoining(false);
+                return;
+            }
 
             const effectiveForceNew = Boolean(forceNewOverride || forceNew || isForceNewParam);
 
@@ -446,7 +452,11 @@ export default function JoinQueuePage({ params }: PageProps) {
                 setJoinData(data);
             }
         } catch (err: unknown) {
-            setError(err instanceof ApiError ? err.detail : "Failed to join queue. Please try again.");
+            let msg = err instanceof ApiError ? err.detail : "Failed to join queue. Please try again.";
+            if (msg.includes("pax_count") || msg.toLowerCase().includes("pax")) {
+                msg = "Number of Pax must be between 1 and 99 (maximum 2 digits).";
+            }
+            setError(msg);
             setIsJoining(false);
         }
     }, [isPastSession, customerName, customerPhone, countryCode, paxCount, queueId, router, customData, hasCustomFieldsConfigured, qrToken, querySessionId, forceNew, isForceNewParam, prefix]);
@@ -903,14 +913,19 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                         </div>
                                                     ) : (
                                                         <input
-                                                            type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : 'text'}
-                                                            min={field.type === 'number' ? 1 : undefined}
-                                                            max={field.type === 'number' ? 999 : undefined}
+                                                            type={field.type === 'number' ? 'text' : field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : 'text'}
+                                                            inputMode={field.type === 'number' ? 'numeric' : undefined}
+                                                            pattern={field.type === 'number' ? '[0-9]*' : undefined}
+                                                            maxLength={field.key === 'pax' || field.key === 'pax_count' || field.key === 'group_size' || field.label.toLowerCase().includes('pax') ? 2 : undefined}
                                                             value={customData[field.key] || ""}
                                                             onChange={e => {
                                                                 let val = e.target.value;
-                                                                if (field.type === 'number' && val.length > 3) {
-                                                                    val = val.slice(0, 3);
+                                                                const isPaxField = field.key === 'pax' || field.key === 'pax_count' || field.key === 'group_size' || field.label.toLowerCase().includes('pax');
+                                                                if (isPaxField) {
+                                                                    val = val.replace(/\D/g, "").slice(0, 2);
+                                                                    if (parseInt(val) > 99) val = "99";
+                                                                } else if (field.type === 'number') {
+                                                                    val = val.replace(/\D/g, "").slice(0, 5);
                                                                 }
                                                                 setCustomData({ ...customData, [field.key]: val });
                                                             }}
@@ -1021,16 +1036,17 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                             <div className="relative">
                                                                 <input
                                                                     id="customer-pax"
-                                                                    type="number"
-                                                                    min="1"
-                                                                    max="999"
+                                                                    type="text"
+                                                                    inputMode="numeric"
+                                                                    pattern="[0-9]*"
+                                                                    maxLength={2}
                                                                     value={companionInput}
                                                                     onChange={(e) => {
-                                                                        let val = e.target.value;
-                                                                        if (val.length > 3) val = val.slice(0, 3);
+                                                                        let val = e.target.value.replace(/\D/g, "").slice(0, 2);
+                                                                        if (parseInt(val) > 99) val = "99";
                                                                         setCompanionInput(val);
                                                                     }}
-                                                                    placeholder="Party size"
+                                                                    placeholder="Party size (1-99)"
                                                                     required
                                                                     disabled={isJoining || queueClosed}
                                                                     className="w-full px-4 py-2.5 bg-white text-slate-900 text-xs font-semibold rounded-xl border border-slate-200 outline-none"
@@ -1042,18 +1058,18 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                     <div className="relative">
                                                         <input
                                                             id="customer-pax"
-                                                            type="number"
-                                                            min="1"
-                                                            max="999"
+                                                            type="text"
+                                                            inputMode="numeric"
+                                                            pattern="[0-9]*"
+                                                            maxLength={2}
                                                             value={companionInput}
                                                             onChange={(e) => {
-                                                                let val = e.target.value;
-                                                                if (val.length > 3) {
-                                                                    val = val.slice(0, 3);
-                                                                }
+                                                                let val = e.target.value.replace(/\D/g, "");
+                                                                if (val.length > 2) val = val.slice(0, 2);
+                                                                if (parseInt(val) > 99) val = "99";
                                                                 setCompanionInput(val);
                                                             }}
-                                                            placeholder="0"
+                                                            placeholder="1"
                                                             required
                                                             disabled={isJoining || queueClosed}
                                                             className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white text-slate-900 placeholder-slate-400 text-sm sm:text-[15px] font-medium rounded-xl sm:rounded-2xl border border-slate-200/80 focus:border-slate-800 focus:ring-slate-100 focus:ring-4 transition-all duration-300 shadow-[0_2px_10px_rgb(0,0,0,0.02)] outline-none disabled:opacity-50"

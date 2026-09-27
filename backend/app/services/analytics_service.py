@@ -281,7 +281,13 @@ async def get_overview_metrics(
     
     # 7. Recent Activity (for show last details request)
     recent_activity = []
+    total_recent_activity = 0
     try:
+        count_recent_query = select(func.count(Token.id)).join(Queue, Token.queue_id == Queue.id).where(
+            and_(*metric_conditions)
+        )
+        total_recent_activity = await db.scalar(count_recent_query) or 0
+
         recent_query = select(
             Token.token_number,
             Token.status,
@@ -405,6 +411,7 @@ async def get_overview_metrics(
         "daily_timings": daily_timings_data,
         "staff_performance": staff_performance_data,
         "recent_activity": recent_activity,
+        "total_recent_activity": total_recent_activity,
         "queue_summary": queue_summary,
         "longest_waiting_queue": longest_waiting_queue,
         "longest_waiting_session": longest_waiting_session

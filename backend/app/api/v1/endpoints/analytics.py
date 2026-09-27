@@ -48,6 +48,7 @@ async def get_overview(
             "daily_timings": [],
             "staff_performance": [],
             "recent_activity": [],
+            "total_recent_activity": 0,
             "longest_waiting_queue": None,
             "longest_waiting_session": None,
         }

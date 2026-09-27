@@ -43,25 +43,80 @@ interface TokenDetailModalProps {
 }
 
 
-function calcWaitingTime(created?: string | null, served?: string | null, status?: string): string {
-    if (!served) {
-        if (status === 'deleted' || status === 'skipped') return "—";
-        return "Waiting…";
-    }
+function calcWaitingTime(
+    created?: string | null,
+    served?: string | null,
+    status?: string,
+    skippedAt?: string | null,
+    deletedAt?: string | null,
+    nowMs: number = Date.now()
+): string {
     if (!created) return "—";
-    const diffMs = new Date(served).getTime() - new Date(created).getTime();
-    if (diffMs < 0) return "—";
-    const mins = Math.floor(diffMs / 60000);
-    if (mins === 0) return "< 1 min";
+    const startMs = new Date(created).getTime();
+    if (isNaN(startMs)) return "—";
+
+    const s = status?.toLowerCase();
+    let endMs: number;
+    if (served) {
+        endMs = new Date(served).getTime();
+    } else if (s === "skipped" && skippedAt) {
+        endMs = new Date(skippedAt).getTime();
+    } else if (s === "deleted" && deletedAt) {
+        endMs = new Date(deletedAt).getTime();
+    } else if (s === "skipped" || s === "deleted") {
+        return "—";
+    } else {
+        // Active waiting token: calculate real elapsed wait time from created_at until current moment
+        endMs = nowMs;
+    }
+
+    const diffMs = endMs - startMs;
+    if (diffMs < 0) return "< 1 min";
+
+    const totalSecs = Math.floor(diffMs / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const hours = Math.floor(mins / 60);
+
+    if (hours >= 24) {
+        const days = Math.floor(hours / 24);
+        const remHours = hours % 24;
+        return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
+    }
+    if (hours > 0) {
+        const remMins = mins % 60;
+        return remMins > 0 ? `${hours}h ${remMins}m` : `${hours}h`;
+    }
+    if (mins === 0) {
+        return "< 1 min";
+    }
     return `${mins} min${mins !== 1 ? "s" : ""}`;
 }
 
-function calcServiceTime(served?: string | null, completed?: string | null): string {
-    if (!served || !completed) return "—";
-    const diffMs = new Date(completed).getTime() - new Date(served).getTime();
-    if (diffMs < 0) return "—";
-    const mins = Math.floor(diffMs / 60000);
-    if (mins === 0) return "< 1 min";
+function calcServiceTime(served?: string | null, completed?: string | null, nowMs: number = Date.now()): string {
+    if (!served) return "—";
+    const startMs = new Date(served).getTime();
+    if (isNaN(startMs)) return "—";
+
+    const endMs = completed ? new Date(completed).getTime() : nowMs;
+    const diffMs = endMs - startMs;
+    if (diffMs < 0) return "< 1 min";
+
+    const totalSecs = Math.floor(diffMs / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const hours = Math.floor(mins / 60);
+
+    if (hours >= 24) {
+        const days = Math.floor(hours / 24);
+        const remHours = hours % 24;
+        return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
+    }
+    if (hours > 0) {
+        const remMins = mins % 60;
+        return remMins > 0 ? `${hours}h ${remMins}m` : `${hours}h`;
+    }
+    if (mins === 0) {
+        return "< 1 min";
+    }
     return `${mins} min${mins !== 1 ? "s" : ""}`;
 }
 
@@ -82,17 +137,46 @@ const ENTRY_STYLES: Record<string, string> = {
 
 export default function TokenDetailModal({ token, onClose, onRecall, onRemove, onUndo }: TokenDetailModalProps) {
     const [fullToken, setFullToken] = useState<TokenDetailData | null>(token);
+    const [nowMs, setNowMs] = useState<number>(() => Date.now());
     const tz = useBranchTimezone();
 
     useEffect(() => {
         setFullToken(token);
+        setNowMs(Date.now());
     }, [token]);
 
+    useEffect(() => {
+        const s = fullToken?.status?.toLowerCase();
+        if (s === "waiting" || s === "serving") {
+            const timer = setInterval(() => {
+                setNowMs(Date.now());
+            }, 5000);
+            return () => clearInterval(timer);
+        }
+    }, [fullToken?.status]);
+
     if (!fullToken) return null;
-    const statusInfo = STATUS_STYLES[fullToken.status] ?? { badge: "bg-gray-100 text-gray-500", label: fullToken.status };
+    const normalizedStatus = fullToken.status?.toLowerCase() || "";
+    const statusInfo = STATUS_STYLES[normalizedStatus] ?? STATUS_STYLES[fullToken.status] ?? { badge: "bg-gray-100 text-gray-500", label: fullToken.status };
     const entryType = fullToken.entry_type ?? "manual";
-    const waitingTime = calcWaitingTime(fullToken.created_at, fullToken.served_at, fullToken.status);
-    const serviceTime = calcServiceTime(fullToken.served_at, fullToken.completed_at);
+    const waitingTime = calcWaitingTime(
+        fullToken.created_at,
+        fullToken.served_at,
+        fullToken.status,
+        fullToken.skipped_at,
+        fullToken.deleted_at,
+        nowMs
+    );
+    const serviceTime = calcServiceTime(fullToken.served_at, fullToken.completed_at, nowMs);
+
+    const waitMinutes = (() => {
+        if (!fullToken.created_at) return 0;
+        const startMs = new Date(fullToken.created_at).getTime();
+        const endMs = fullToken.served_at
+            ? new Date(fullToken.served_at).getTime()
+            : (fullToken.skipped_at ? new Date(fullToken.skipped_at).getTime() : (fullToken.deleted_at ? new Date(fullToken.deleted_at).getTime() : nowMs));
+        return Math.max(0, Math.floor((endMs - startMs) / 60000));
+    })();
 
     const appointmentTime = fullToken.appointment_time || fullToken.custom_data?.appointment_time;
     const appointmentDate = fullToken.appointment_date || fullToken.custom_data?.appointment_date;
@@ -196,6 +280,12 @@ export default function TokenDetailModal({ token, onClose, onRecall, onRemove, o
                         {appointmentTime && (
                             <DetailItem label="Appointment Slot" value={appointmentTime} highlight="purple" />
                         )}
+                        {appointmentDate && (
+                            <DetailItem label="Appointment Date" value={appointmentDate} highlight="purple" />
+                        )}
+                        {appointmentRef && (
+                            <DetailItem label="Booking Reference" value={appointmentRef} highlight="purple" />
+                        )}
                         {(fullToken.pax_count && fullToken.pax_count > 1) && (
                             <DetailItem label="Number of Pax" value={String(fullToken.pax_count)} highlight="emerald" />
                         )}
@@ -204,7 +294,7 @@ export default function TokenDetailModal({ token, onClose, onRecall, onRemove, o
                         )}
 
                         <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />
-                        {fullToken.called_via_invite !== undefined && (
+                        {fullToken.status?.toLowerCase() !== "waiting" && fullToken.called_via_invite !== undefined && (
                             <DetailItem label="Call Method" value={fullToken.called_via_invite ? "Invited by No." : "Call Next"} highlight={fullToken.called_via_invite ? "amber" : undefined} />
                         )}
 
@@ -225,43 +315,54 @@ export default function TokenDetailModal({ token, onClose, onRecall, onRemove, o
                         <DetailItem
                             label="Waiting Time"
                             value={waitingTime}
-                            highlight={fullToken.served_at ? (parseInt(waitingTime) > 15 ? "amber" : "emerald") : undefined}
+                            highlight={waitingTime !== "—" ? (waitMinutes > 15 ? "amber" : "emerald") : undefined}
                         />
-                        {fullToken.completed_at && fullToken.served_at && (
+                        {fullToken.served_at && (
                             <DetailItem
-                                label="Service Time"
+                                label={fullToken.completed_at ? "Service Time" : "Current Service Time"}
                                 value={serviceTime}
                                 highlight="emerald"
                             />
                         )}
-                        {fullToken.custom_data && Object.keys(fullToken.custom_data).length > 0 && (
-                            <>
-                                {Object.entries(fullToken.custom_data).map(([key, value]) => {
-                                    // Skip mapping duplicated known keys handled in the header or dedicated cards
-                                    if (
-                                        key === 'name' || key === 'full_name' || 
-                                        key === 'phone' || key === 'phone_number' || 
-                                        key === 'pax' || key === 'group_size' ||
-                                        key === 'appointment_time' || key === 'appointment_date' ||
-                                        key === 'booking_reference' || key === 'appointment_booking_ref'
-                                    ) return null;
-                                    
-                                    // Check if field_schema snapshot contains the exact historical label
-                                    const schemaMatch = Array.isArray(fullToken.field_schema)
-                                        ? fullToken.field_schema.find((f: any) => f?.key === key)
-                                        : null;
-                                    const label = schemaMatch?.label || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                                    const displayVal = (value === null || value === undefined || value === "")
-                                        ? "—"
-                                        : typeof value === "boolean"
-                                            ? (value ? "Yes" : "No")
-                                            : String(value);
-
-                                    return <DetailItem key={key} label={label} value={displayVal} />;
-                                })}
-                            </>
-                        )}
                     </div>
+
+                    {/* Custom Details / Dynamic Form Fields */}
+                    {(() => {
+                        if (!fullToken.custom_data) return null;
+                        const customEntries = Object.entries(fullToken.custom_data).filter(([key, value]) => {
+                            if (
+                                key === 'name' || key === 'full_name' || 
+                                key === 'phone' || key === 'phone_number' || 
+                                key === 'pax' || key === 'group_size' ||
+                                key === 'appointment_time' || key === 'appointment_date' ||
+                                key === 'booking_reference' || key === 'appointment_booking_ref'
+                            ) return false;
+                            return value !== null && value !== undefined && value !== "";
+                        });
+                        if (customEntries.length === 0) return null;
+
+                        return (
+                            <div className="pt-3 border-t border-gray-100 dark:border-white/10">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-400 mb-2">Custom Details</p>
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    {customEntries.map(([key, value]) => {
+                                        const schemaMatch = Array.isArray(fullToken.field_schema)
+                                            ? fullToken.field_schema.find((f: any) => f?.key === key)
+                                            : null;
+                                        const label = schemaMatch?.label || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                        const displayVal = typeof value === "boolean" ? (value ? "Yes" : "No") : String(value);
+
+                                        return (
+                                            <div key={key} className="bg-gray-50 dark:bg-slate-800/60 rounded-xl px-3 py-2.5">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-400 mb-0.5 truncate" title={label}>{label}</p>
+                                                <p className="text-sm font-semibold text-gray-900 dark:text-white break-words">{displayVal}</p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {/* Full timestamps */}
                     {(fullToken.created_at || appointmentTime) && (

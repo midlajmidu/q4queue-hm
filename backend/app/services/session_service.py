@@ -28,6 +28,35 @@ logger = logging.getLogger(__name__)
 # Session CRUD
 # ─────────────────────────────────────────────────────────────────────────────
 
+async def _close_other_sessions(db: AsyncSession, *, queue_id: uuid.UUID, keep_session_id: uuid.UUID) -> None:
+    """Closes all other active sessions for this queue and marks unserved tokens as skipped."""
+    other_result = await db.execute(
+        select(Session.id).where(
+            Session.queue_id == queue_id,
+            Session.id != keep_session_id,
+            Session.is_active == True,
+        )
+    )
+    other_ids = list(other_result.scalars().all())
+    if other_ids:
+        await db.execute(
+            update(Session)
+            .where(Session.id.in_(other_ids))
+            .values(is_active=False, is_paused=False)
+        )
+        await db.execute(
+            update(Token)
+            .where(
+                Token.session_id.in_(other_ids),
+                Token.status.in_([TokenStatus.waiting, TokenStatus.serving]),
+            )
+            .values(
+                status=TokenStatus.skipped,
+                completed_at=func.now(),
+                removed_by="session_end",
+            )
+        )
+
 async def get_or_create_active_session(
     db: AsyncSession,
     *,
@@ -77,11 +106,7 @@ async def get_or_create_active_session(
         queue.token_session_id = session.id
         session.is_active = True
         session.is_paused = False
-        await db.execute(
-            update(Session)
-            .where(Session.queue_id == queue_id, Session.id != session.id, Session.is_active == True)
-            .values(is_active=False, is_paused=False)
-        )
+        await _close_other_sessions(db, queue_id=queue_id, keep_session_id=session.id)
         await db.commit()
         return session
 
@@ -105,11 +130,7 @@ async def get_or_create_active_session(
     db.add(session)
     await db.flush()
 
-    await db.execute(
-        update(Session)
-        .where(Session.queue_id == queue_id, Session.id != session.id, Session.is_active == True)
-        .values(is_active=False, is_paused=False)
-    )
+    await _close_other_sessions(db, queue_id=queue_id, keep_session_id=session.id)
     
     queue.token_session_id = session.id
     queue.current_token_number = queue.starting_sequence - 1
@@ -155,11 +176,7 @@ async def create_queue_session(
         existing.is_active = True
         existing.is_paused = False
         queue.token_session_id = existing.id
-        await db.execute(
-            update(Session)
-            .where(Session.queue_id == queue_id, Session.id != existing.id, Session.is_active == True)
-            .values(is_active=False, is_paused=False)
-        )
+        await _close_other_sessions(db, queue_id=queue_id, keep_session_id=existing.id)
         await db.commit()
         await db.refresh(existing)
         logger.info("Existing session re-activated | queue=%s date=%s title=%s", queue_id, data.session_date, session_title)
@@ -184,11 +201,7 @@ async def create_queue_session(
     db.add(session)
     await db.flush()
 
-    await db.execute(
-        update(Session)
-        .where(Session.queue_id == queue_id, Session.id != session.id, Session.is_active == True)
-        .values(is_active=False, is_paused=False)
-    )
+    await _close_other_sessions(db, queue_id=queue_id, keep_session_id=session.id)
     queue.token_session_id = session.id
     queue.current_token_number = queue.starting_sequence - 1
     queue.total_served = 0
@@ -360,11 +373,7 @@ async def set_session_active(
         if queue:
             queue.token_session_id = session.id
             queue.is_paused = False
-        await db.execute(
-            update(Session)
-            .where(Session.queue_id == session.queue_id, Session.id != session.id, Session.is_active == True)
-            .values(is_active=False, is_paused=False)
-        )
+        await _close_other_sessions(db, queue_id=session.queue_id, keep_session_id=session.id)
     else:
         session.is_active = False
         session.is_paused = False

@@ -301,19 +301,22 @@ export default function TrackingPage({ params }: PageProps) {
     const isSkipped = actualStatus === "skipped";
     const isDeleted = actualStatus === "deleted";
 
+    const isClosedSessionToken = isPastSession || joinData?.removed_by === "session_end";
     const alreadyServed = isDone || isSkipped || isDeleted || (myNumber !== null && myNumber < serving && actualStatus !== "waiting");
     let peopleAhead = 0;
     if (myNumber !== null && actualStatus === "waiting") {
         let rawAhead = 0;
-        if (live?.waiting_tokens) {
+        if (live?.waiting_tokens && live.waiting_tokens.length > 0) {
             const idx = live.waiting_tokens.findIndex((t) => t.token_number === myNumber);
             if (idx !== -1) {
                 rawAhead = idx;
             } else {
-                rawAhead = myNumber > serving ? myNumber - serving - 1 : 0;
+                rawAhead = joinData?.position ?? 0;
             }
+        } else if (live?.waiting_tokens && live.waiting_tokens.length === 0) {
+            rawAhead = 0;
         } else {
-            rawAhead = joinData?.position ?? (myNumber > serving ? myNumber - serving - 1 : 0);
+            rawAhead = joinData?.position ?? 0;
         }
         peopleAhead = Math.max(0, rawAhead);
     }
@@ -405,7 +408,7 @@ export default function TrackingPage({ params }: PageProps) {
     if (myNumber !== null) {
         if (isMyTurn) positionMessage = "It’s your turn! Please proceed.";
         else if (isDeleted) positionMessage = joinData?.removed_by === "session_end" ? "Queue session ended." : "Your token was removed.";
-        else if (isSkipped) positionMessage = "Your token was skipped.";
+        else if (isSkipped) positionMessage = isClosedSessionToken ? "Queue session ended." : "Your token was skipped.";
         else if (alreadyServed) positionMessage = "Your token has been served.";
         else if (isNext) positionMessage = "You are next!";
         else if (peopleAhead === 1) positionMessage = "1 person ahead of you";
@@ -632,7 +635,7 @@ export default function TrackingPage({ params }: PageProps) {
                                     </p>
                                 </div>
                             )}
-                            {isPastSession && !isDone && !isDeleted && (
+                            {isClosedSessionToken && !isDone && !isDeleted && actualStatus !== "waiting" && actualStatus !== "serving" && (
                                 <div className="mx-auto w-full max-w-sm mt-4 mb-6 text-center">
                                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-3 shadow-sm border border-slate-200">
                                         <Clock className="w-6 h-6 text-slate-500" />
@@ -644,7 +647,7 @@ export default function TrackingPage({ params }: PageProps) {
                                 </div>
                             )}
 
-                            {isSkipped && !isPastSession && !isDone && !isMyTurn && !isDeleted && (
+                            {isSkipped && !isClosedSessionToken && !isDone && !isMyTurn && !isDeleted && (
                                 <div className="mx-auto w-full max-w-sm mt-4 mb-6 text-center">
                                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-50 mb-3 shadow-sm border border-amber-100/50">
                                         <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -737,7 +740,9 @@ export default function TrackingPage({ params }: PageProps) {
                                         {alreadyServed 
                                             ? (isDineMode ? "Thank you for dining with us! Your visit is complete." : "Thank you for visiting! Your consultation is complete.")
                                             : isSkipped
-                                            ? "Your token was skipped because the queue session closed."
+                                            ? (isClosedSessionToken
+                                                ? "Your token was skipped because the queue session closed."
+                                                : "Your turn was skipped at the counter. Please see staff to be recalled.")
                                             : isMyTurn 
                                             ? (isDineMode 
                                                 ? (myAssignedTableName 

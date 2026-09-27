@@ -767,14 +767,6 @@ export default function StaffPage() {
                               >
                                 Clear Search
                               </button>
-                            ) : canEdit ? (
-                              <button
-                                onClick={() => setShowCreate(true)}
-                                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#fff", background: "#4f46e5", border: "none", borderRadius: 8, cursor: "pointer", boxShadow: "0 1px 3px rgba(79,70,229,.3)", transition: "background .15s" }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
-                                Add Staff Member
-                              </button>
                             ) : null}
                           </div>
                         </td>

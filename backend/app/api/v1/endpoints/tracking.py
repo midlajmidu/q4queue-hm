@@ -87,7 +87,8 @@ async def track_token(
             Organization.name,
             Organization.timezone,
             Organization.branch_type,
-            Queue.table_config
+            Queue.table_config,
+            Queue.token_session_id,
         )
         .join(Queue, Token.queue_id == Queue.id)
         .join(Organization, Token.org_id == Organization.id)
@@ -101,7 +102,7 @@ async def track_token(
             detail="Token not found",
         )
 
-    token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name, org_timezone, org_branch_type, queue_table_config = row
+    token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name, org_timezone, org_branch_type, queue_table_config, queue_token_session_id = row
 
     is_past_session = False
     session_is_active = True
@@ -114,8 +115,14 @@ async def track_token(
             session_date_str = sess.session_date.isoformat()
             tz_str = org_timezone if org_timezone else "Asia/Kolkata"
             today = datetime.now(ZoneInfo(tz_str)).date()
-            if sess.session_date < today:
+            if not sess.is_active:
                 is_past_session = True
+            elif queue_token_session_id and token.session_id != queue_token_session_id:
+                is_past_session = True
+            elif sess.session_date < today and not sess.is_active:
+                is_past_session = True
+            else:
+                is_past_session = False
 
     # Calculate current position
     if effective_status == TokenStatus.waiting:

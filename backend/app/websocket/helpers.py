@@ -66,7 +66,7 @@ async def build_queue_snapshot(
     )
     serving_rows = list(all_serving_result.scalars().all())
     serving_token = max(serving_rows, key=lambda token: token.token_number, default=None)
-    current_serving = serving_token.token_number if serving_token else (queue.starting_sequence - 1)
+    current_serving = serving_token.token_number if serving_token else 0
     serving_details = None
     if serving_token:
         serving_details = {
@@ -180,22 +180,19 @@ async def build_queue_snapshot(
             token_data["field_schema"] = getattr(t, "field_schema", None)
         recent_tokens.append(token_data)
 
-    # ── Waiting tokens (all of them, or limit 50 for large queues) ──
+    # ── Waiting tokens (all of them, or limit 200 for large queues) ──
     waiting_tokens = []
-    if is_admin:
-        waiting_tokens_result = await db.execute(
-            select(Token)
-            .where(
-                Token.queue_id == queue_id,
-                Token.session_id == queue.token_session_id,
-                Token.status == TokenStatus.waiting,
-            )
-            .order_by(Token.token_number.asc())
-            .limit(200)
+    waiting_tokens_result = await db.execute(
+        select(Token)
+        .where(
+            Token.queue_id == queue_id,
+            Token.session_id == queue.token_session_id,
+            Token.status == TokenStatus.waiting,
         )
-        waiting_rows = waiting_tokens_result.scalars().all()
-    else:
-        waiting_rows = []
+        .order_by(Token.token_number.asc())
+        .limit(200)
+    )
+    waiting_rows = waiting_tokens_result.scalars().all()
 
     for t in waiting_rows:
         token_data = {
@@ -392,7 +389,11 @@ async def build_queue_snapshot(
             }
             for item in recent_tokens
         ]
-        waiting_tokens = []
+        waiting_tokens = [
+            {"token_number": item["token_number"]}
+            for item in waiting_tokens
+            if "token_number" in item
+        ]
         skipped_tokens = []
         deleted_tokens = []
 
@@ -496,7 +497,11 @@ async def build_queue_snapshots_dual(
         for item in public_snapshot.get("recent_tokens", [])
     ]
 
-    public_snapshot["waiting_tokens"] = []
+    public_snapshot["waiting_tokens"] = [
+        {"token_number": item["token_number"]}
+        for item in admin_snapshot.get("waiting_tokens", [])
+        if "token_number" in item
+    ]
     public_snapshot["skipped_tokens"] = []
     public_snapshot["deleted_tokens"] = []
     public_snapshot["waiting_tokens_truncated"] = False

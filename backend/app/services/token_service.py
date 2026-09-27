@@ -392,6 +392,7 @@ async def join_queue(
     data: JoinRequest,
     bypass_duplicate_check: bool = False,
     bypass_operating_hours: bool = False,
+    raise_on_duplicate: bool = False,
 ) -> JoinResponse:
     """
     Atomically assign the next token number.
@@ -401,7 +402,9 @@ async def join_queue(
     DUPLICATE PREVENTION:
         Before creating a new token, checks if the same phone number already
         has an active (waiting/serving) token in this queue's current session.
-        If so, returns the existing token data — no new row is created.
+        If so:
+          - If raise_on_duplicate=True: raises ValueError with a clear user-friendly message.
+          - Otherwise (public QR flow): returns the existing token data.
     """
     queue = await _lock_queue_public(db, queue_id)
 
@@ -449,15 +452,28 @@ async def join_queue(
         raise ValueError("This queue session is temporarily on a break and not accepting walk-ins.")
 
     # ── Duplicate prevention: check for existing active token by phone ──
-    phone_cleaned = data.phone.strip()
-    if not bypass_duplicate_check:
+    phone_cleaned = data.phone.strip() if data.phone else ""
+    phone_digits = re.sub(r"\D", "", phone_cleaned)
+    is_real_phone = bool(phone_digits and set(phone_digits) != {"0"} and len(phone_digits) >= 7)
+
+    if not bypass_duplicate_check and is_real_phone:
+        from app.whatsapp.message_service import _normalize_phone
+        phone_norm = _normalize_phone(phone_cleaned)
+
+        phone_conditions = [
+            Token.customer_phone == phone_cleaned,
+            Token.customer_phone == phone_norm,
+        ]
+        if len(phone_digits) >= 10:
+            phone_conditions.append(Token.customer_phone.like(f"%{phone_digits[-10:]}"))
+
         existing_result = await db.execute(
             select(Token)
             .where(
                 Token.queue_id == queue_id,
-                Token.session_id == queue.token_session_id,
-                Token.customer_phone == phone_cleaned,
+                Token.session_id == target_session_id,
                 Token.status.in_([TokenStatus.waiting, TokenStatus.serving]),
+                or_(*phone_conditions),
             )
             .order_by(Token.created_at.desc())
             .limit(1)
@@ -469,17 +485,25 @@ async def join_queue(
                 "Duplicate join prevented: phone=%s already has active token #%d in queue %s",
                 phone_cleaned, existing_token.token_number, queue_id,
             )
+            if raise_on_duplicate:
+                token_tag = f"{queue.prefix or ''}{existing_token.token_number}"
+                if existing_token.status == TokenStatus.serving:
+                    msg = f"Token #{token_tag} is currently being served for this phone number."
+                else:
+                    msg = f"Token #{token_tag} is already waiting in the queue for this phone number."
+                raise ValueError(msg)
+
             position = await _count_waiting_ahead(
-                db, queue_id=queue_id, token_number=existing_token.token_number, session_id=queue.token_session_id
+                db, queue_id=queue_id, token_number=existing_token.token_number, session_id=target_session_id
             )
-            current_serving = await _current_serving_number(db, queue_id=queue_id, session_id=queue.token_session_id)
+            current_serving = await _current_serving_number(db, queue_id=queue_id, session_id=target_session_id)
             return JoinResponse(
                 id=existing_token.id,
                 token_number=existing_token.token_number,
                 position=position,
                 current_serving=current_serving,
                 queue_prefix=queue.prefix,
-                session_id=queue.token_session_id,
+                session_id=target_session_id,
                 tracking_id=existing_token.tracking_id,
                 pax_count=existing_token.pax_count if hasattr(existing_token, 'pax_count') else 1,
                 is_existing=True,
@@ -515,13 +539,19 @@ async def join_queue(
         customer_name=data.name.strip(),
         customer_age=data.age,
         customer_phone=phone_cleaned,
-        pax_count=(
-            data.pax_count
-            if (data.pax_count and data.pax_count > 1)
-            else (
-                int(str(data.custom_data.get("pax") or data.custom_data.get("pax_count") or data.custom_data.get("no_of_pax") or data.custom_data.get("number_of_pax")).strip())
-                if (data.custom_data and any(k in data.custom_data for k in ("pax", "pax_count", "no_of_pax", "number_of_pax")) and str(data.custom_data.get("pax") or data.custom_data.get("pax_count") or data.custom_data.get("no_of_pax") or data.custom_data.get("number_of_pax")).strip().isdigit())
-                else (data.pax_count or 1)
+        pax_count=min(
+            99,
+            max(
+                1,
+                (
+                    data.pax_count
+                    if (data.pax_count and data.pax_count > 1)
+                    else (
+                        int(str(data.custom_data.get("pax") or data.custom_data.get("pax_count") or data.custom_data.get("no_of_pax") or data.custom_data.get("number_of_pax")).strip())
+                        if (data.custom_data and any(k in data.custom_data for k in ("pax", "pax_count", "no_of_pax", "number_of_pax")) and str(data.custom_data.get("pax") or data.custom_data.get("pax_count") or data.custom_data.get("no_of_pax") or data.custom_data.get("number_of_pax")).strip().isdigit())
+                        else (data.pax_count or 1)
+                    )
+                )
             )
         ),
         called_via_invite=False,

@@ -88,6 +88,29 @@ export default function DineOperationsView({
     const [walkInPhone, setWalkInPhone] = useState("");
     const [walkInTargetTable, setWalkInTargetTable] = useState<number | null>(null);
     const [isSubmittingWalkIn, setIsSubmittingWalkIn] = useState(false);
+    const [walkInError, setWalkInError] = useState<string | null>(null);
+
+    // Real-time duplicate active token check for the entered phone number
+    const duplicateActiveToken = useMemo(() => {
+        const rawDigits = walkInPhone.replace(/\D/g, "");
+        if (!rawDigits || rawDigits.length < 7 || /^0+$/.test(rawDigits)) return null;
+
+        const allActive = [
+            ...(state?.waiting_tokens || []),
+            ...(state?.all_serving_tokens || []),
+        ];
+
+        return allActive.find(t => {
+            if (!t.customer_phone) return false;
+            const tDigits = t.customer_phone.replace(/\D/g, "");
+            if (!tDigits || tDigits.length < 7 || /^0+$/.test(tDigits)) return false;
+            if (rawDigits === tDigits) return true;
+            if (rawDigits.length >= 10 && tDigits.length >= 10) {
+                return rawDigits.slice(-10) === tDigits.slice(-10);
+            }
+            return false;
+        }) || null;
+    }, [walkInPhone, state?.waiting_tokens, state?.all_serving_tokens]);
 
     // Action loading states
     const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -339,6 +362,19 @@ export default function DineOperationsView({
     const handleWalkInSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (isReadOnly) return;
+        setWalkInError(null);
+
+        if (duplicateActiveToken) {
+            const isServing = ("assigned_line" in duplicateActiveToken) || ("status" in duplicateActiveToken && (duplicateActiveToken as { status?: string }).status === "serving");
+            const tokenTag = `${state?.prefix || ""}${duplicateActiveToken.token_number}`;
+            const msg = isServing
+                ? `Token #${tokenTag} is currently being served for this phone number.`
+                : `Token #${tokenTag} is already waiting in the queue for this phone number.`;
+            setWalkInError(msg);
+            toast.error(msg);
+            return;
+        }
+
         setIsSubmittingWalkIn(true);
         try {
             const res = await api.adminJoin(queueId, {
@@ -361,9 +397,11 @@ export default function DineOperationsView({
             setWalkInPhone("");
             setWalkInPax(2);
             setWalkInTargetTable(null);
+            setWalkInError(null);
             onRefresh();
         } catch (err: unknown) {
             const msg = err instanceof ApiError ? err.detail : "Failed to register walk-in guest";
+            setWalkInError(msg);
             toast.error(msg);
         } finally {
             setIsSubmittingWalkIn(false);
@@ -1088,12 +1126,28 @@ export default function DineOperationsView({
                                     <input
                                         type="tel"
                                         value={walkInPhone}
-                                        onChange={(e) => setWalkInPhone(e.target.value)}
+                                        onChange={(e) => {
+                                            setWalkInPhone(e.target.value);
+                                            setWalkInError(null);
+                                        }}
                                         placeholder="e.g. +91 98..."
-                                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-amber-500"
+                                        className={`w-full px-3 py-2 text-xs rounded-xl border ${duplicateActiveToken ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 dark:border-white/10'} bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-amber-500`}
                                     />
                                 </div>
                             </div>
+
+                            {/* Inline Duplicate / Error Notice */}
+                            {(walkInError || duplicateActiveToken) && (
+                                <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in duration-150">
+                                    <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                                    <span className="leading-snug">
+                                        {walkInError ||
+                                            (duplicateActiveToken && (("assigned_line" in duplicateActiveToken) || ("status" in duplicateActiveToken && (duplicateActiveToken as { status?: string }).status === "serving"))
+                                                ? `Token #${state?.prefix || ""}${duplicateActiveToken?.token_number} is currently being served for this phone number.`
+                                                : `Token #${state?.prefix || ""}${duplicateActiveToken?.token_number} is already waiting in the queue for this phone number.`)}
+                                    </span>
+                                </div>
+                            )}
 
                             {/* Seating Destination */}
                             {walkInTargetTable === null && (

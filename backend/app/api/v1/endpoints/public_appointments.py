@@ -394,6 +394,9 @@ async def public_get_branch_directory(
                 break
     today_local = business_date.isoformat()
 
+    logo_url = getattr(branch, "logo_url", None) if branch else (po.logo_url if po else None)
+    brand_color = getattr(branch, "brand_color", None) if branch else (getattr(po, "brand_color", None) if po else None)
+
     return {
         "org_name": display_org_name,
         "org_slug": display_slug,
@@ -403,6 +406,8 @@ async def public_get_branch_directory(
         "phone_number": phone_number,
         "timezone": tz_str,
         "today_date": today_local,
+        "logo_url": logo_url,
+        "brand_color": brand_color,
         "queues": [
             {
                 "id": str(q.id),

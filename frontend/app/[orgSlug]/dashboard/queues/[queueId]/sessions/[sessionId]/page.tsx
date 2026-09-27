@@ -1138,7 +1138,6 @@ export default function QueueDetailPage({ params }: PageProps) {
                 }
             }
             setAddFormError(null);
-            setShowWhatsappConfirm(true);
         } else {
             // Standard validation
             const phoneDigits = addPhone.replace(/\D/g, "");
@@ -1147,9 +1146,39 @@ export default function QueueDetailPage({ params }: PageProps) {
                 return;
             }
             setAddFormError(null);
-            setShowWhatsappConfirm(true);
         }
-    }, [isTodaySession, isActive, isPaused, addPhone, addName, hasAdminCustomFieldsConfigured, adminCustomFieldsList, addCustomData]);
+
+        // Duplicate active token check for the entered phone number
+        const rawPhone = addCustomData['phone'] || addCustomData['phone_number'] || addPhone;
+        const phoneDigits = rawPhone.replace(/\D/g, "");
+        if (phoneDigits.length >= 7 && !/^0+$/.test(phoneDigits)) {
+            const allActive = [
+                ...(state?.waiting_tokens || []),
+                ...(state?.all_serving_tokens || []),
+            ];
+            const duplicate = allActive.find(t => {
+                if (!t.customer_phone) return false;
+                const tDigits = t.customer_phone.replace(/\D/g, "");
+                if (!tDigits || tDigits.length < 7 || /^0+$/.test(tDigits)) return false;
+                if (phoneDigits === tDigits) return true;
+                if (phoneDigits.length >= 10 && tDigits.length >= 10) {
+                    return phoneDigits.slice(-10) === tDigits.slice(-10);
+                }
+                return false;
+            });
+            if (duplicate) {
+                const isServing = ("assigned_line" in duplicate) || ("status" in duplicate && (duplicate as { status?: string }).status === "serving");
+                const tokenTag = `${state?.prefix || ""}${duplicate.token_number}`;
+                const msg = isServing
+                    ? `Token #${tokenTag} is currently being served for this phone number.`
+                    : `Token #${tokenTag} is already waiting in the queue for this phone number.`;
+                setAddFormError(msg);
+                return;
+            }
+        }
+
+        setShowWhatsappConfirm(true);
+    }, [isTodaySession, isActive, isPaused, addPhone, addName, hasAdminCustomFieldsConfigured, adminCustomFieldsList, addCustomData, state?.waiting_tokens, state?.all_serving_tokens, state?.prefix]);
 
     const handleConfirmAddCustomer = useCallback(async (sendWhatsapp: boolean) => {
         setShowWhatsappConfirm(false);
@@ -1169,6 +1198,13 @@ export default function QueueDetailPage({ params }: PageProps) {
             const rawPhone = addCustomData['phone'] || addCustomData['phone_number'] || addPhone;
             const resolvedPhone = rawPhone ? `${addCountryCode}${rawPhone.replace(/\D/g, "")}` : '+910000000000';
             const resolvedPax = parseInt(addCustomData['pax'] || addCustomData['group_size'] || String(addPaxCount)) || 1;
+            if (resolvedPax < 1 || resolvedPax > 99) {
+                const errText = "Number of Pax must be between 1 and 99 (maximum 2 digits).";
+                setAddFormError(errText);
+                toast(errText, "error");
+                setActionLoading(null);
+                return;
+            }
 
             const res = await api.adminJoin(queueId, {
                 name: resolvedName,
@@ -1182,9 +1218,14 @@ export default function QueueDetailPage({ params }: PageProps) {
             toast(`Token ${state?.prefix || ""}${res.token_number} created`, "success");
             setShowAddForm(false);
             setAddName(""); setAddPhone(""); setAddPaxCount("1"); setAddCustomData({});
+            setAddFormError(null);
         } catch (err: unknown) {
-            if (err instanceof ApiError) toast(err.detail, "error");
-            else toast("Failed to add customer", "error");
+            let msg = err instanceof ApiError ? err.detail : "Failed to add customer";
+            if (msg.includes("pax_count") || msg.toLowerCase().includes("pax")) {
+                msg = "Number of Pax must be between 1 and 99 (maximum 2 digits).";
+            }
+            setAddFormError(msg);
+            toast(msg, "error");
         } finally { setActionLoading(null); }
     }, [isTodaySession, isActive, isPaused, queueId, sessionId, addName, addPhone, addPaxCount, addCountryCode, state?.prefix, hasAdminCustomFieldsConfigured, addCustomData, toast]);
 
@@ -2659,13 +2700,20 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 </div>
 
                                 <div className="w-full overflow-x-auto border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden flex-1 flex flex-col">
-                                    <div className="hidden md:grid gap-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest" style={{ gridTemplateColumns: ((state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0) ? '80px 110px 130px 70px 120px 1fr 120px 80px' : '80px 110px 130px 120px 1fr 120px 80px' }}>
+                                    <div
+                                        className="hidden md:grid gap-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest"
+                                        style={{
+                                            gridTemplateColumns: ((state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0)
+                                                ? (activeListTab === "waiting" ? '80px 110px 130px 70px 1fr 120px 80px' : '80px 110px 130px 70px 120px 1fr 120px 80px')
+                                                : (activeListTab === "waiting" ? '80px 110px 130px 1fr 120px 80px' : '80px 110px 130px 120px 1fr 120px 80px')
+                                        }}
+                                    >
                                         <div>Token</div>
                                         <div>Status</div>
                                         <div>Entry Method</div>
                                         {((state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0) && <div>Line</div>}
-                                        <div>Call Method</div>
-                                        <div style={{ paddingLeft: 38 }}>Customer</div>
+                                        {activeListTab !== "waiting" && <div>Call Method</div>}
+                                        <div>Customer</div>
                                         <div>{activeListTab === "recent" ? "Join Time" : activeListTab === "waiting" ? "Wait Time" : activeListTab === "skipped" ? "Skipped / Recalled" : "Removed At"}</div>
                                         <div className="text-right">Actions</div>
                                     </div>
@@ -2722,6 +2770,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         onCall={canManageQueue ? handleCall : undefined}
                                                         customTimeStr={customTimeStr || undefined}
                                                         hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
+                                                        showCallMethod={activeListTab !== "waiting"}
                                                         extraActions={
                                                             <>
                                                                 {isDineMode && canManageQueue && activeListTab === "waiting" && (
@@ -2915,9 +2964,22 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     </select>
                                                 ) : (
                                                     <input
-                                                        type={field.type === 'phone' ? 'tel' : field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : 'text'}
+                                                        type={field.type === 'phone' ? 'tel' : field.type === 'number' ? 'text' : field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : 'text'}
+                                                        inputMode={field.type === 'number' ? 'numeric' : undefined}
+                                                        pattern={field.type === 'number' ? '[0-9]*' : undefined}
+                                                        maxLength={field.key === 'pax' || field.key === 'pax_count' || field.key === 'group_size' || field.label.toLowerCase().includes('pax') ? 2 : undefined}
                                                         value={addCustomData[field.key] || ""}
-                                                        onChange={e => setAddCustomData({ ...addCustomData, [field.key]: e.target.value })}
+                                                        onChange={e => {
+                                                            let val = e.target.value;
+                                                            const isPaxField = field.key === 'pax' || field.key === 'pax_count' || field.key === 'group_size' || field.label.toLowerCase().includes('pax');
+                                                            if (isPaxField) {
+                                                                val = val.replace(/\D/g, "").slice(0, 2);
+                                                                if (parseInt(val) > 99) val = "99";
+                                                            } else if (field.type === 'number') {
+                                                                val = val.replace(/\D/g, "").slice(0, 5);
+                                                            }
+                                                            setAddCustomData({ ...addCustomData, [field.key]: val });
+                                                        }}
                                                         placeholder={field.required ? `Enter ${field.label}` : `Enter ${field.label} (optional)`}
                                                         className="w-full h-11 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                                                     />
@@ -2961,9 +3023,12 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             type="text"
                                             inputMode="numeric"
                                             pattern="[0-9]*"
+                                            maxLength={2}
                                             value={addPaxCount}
                                             onChange={e => {
-                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                let val = e.target.value.replace(/[^0-9]/g, '');
+                                                if (val.length > 2) val = val.slice(0, 2);
+                                                if (parseInt(val) > 99) val = "99";
                                                 setAddPaxCount(val);
                                             }}
                                             placeholder="1"
@@ -2973,32 +3038,33 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 </div>
                             </>
                         )}
+
+                                {/* Full-width Inline Error Banner */}
+                                {addFormError && (
+                                    <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in duration-150">
+                                        <svg className="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01" />
+                                        </svg>
+                                        <span className="leading-snug">{addFormError}</span>
+                                    </div>
+                                )}
                             </div>
-                            <div className="px-6 py-5 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-white/5 flex items-center gap-3 justify-between">
-                                <div className="flex-1">
-                                    {addFormError && (
-                                        <p className="text-xs text-red-500 font-medium flex items-center gap-1.5 leading-snug pr-4">
-                                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                            {addFormError}
-                                        </p>
+                            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-white/5 flex items-center gap-3 justify-end">
+                                <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddPaxCount("1"); setAddFormError(null); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handlePreAddCustomer}
+                                    disabled={!isAddFormValid || actionLoading === "add" || isPaused || (!isTodaySession && !isActive)}
+                                    className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {actionLoading === "add" ? (
+                                        <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Adding...</>
+                                    ) : (
+                                        "Add to Queue"
                                     )}
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <button onClick={() => { setShowAddForm(false); setAddName(""); setAddPhone(""); setAddPaxCount("1"); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handlePreAddCustomer}
-                                        disabled={!isAddFormValid || actionLoading === "add" || isPaused || (!isTodaySession && !isActive)}
-                                        className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                    >
-                                        {actionLoading === "add" ? (
-                                            <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Adding...</>
-                                        ) : (
-                                            "Add to Queue"
-                                        )}
-                                    </button>
-                                </div>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -3235,7 +3301,7 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
 };
 
 const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
-    token: t, prefix, queueName, isManual, onView, onCall, customTimeStr, extraActions, hasServiceLines = true
+    token: t, prefix, queueName, isManual, onView, onCall, customTimeStr, extraActions, hasServiceLines = true, showCallMethod = true
 }: {
     token: RecentToken | WaitingToken;
     prefix: string;
@@ -3246,6 +3312,7 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
     customTimeStr?: string;
     extraActions?: React.ReactNode;
     hasServiceLines?: boolean;
+    showCallMethod?: boolean;
 }) {
     const tz = useBranchTimezone();
     const st = STATUS_LABELS[t.status] ?? { label: t.status, cls: "bg-slate-50 text-slate-600 border-slate-200" };
@@ -3291,7 +3358,11 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
             {/* ── Desktop row ─────────────────────────────── */}
             <div
                 className="hidden md:grid px-4 py-3 items-center gap-3"
-                style={{ gridTemplateColumns: hasServiceLines ? '80px 110px 130px 70px 120px 1fr 120px 80px' : '80px 110px 130px 120px 1fr 120px 80px' }}
+                style={{
+                    gridTemplateColumns: hasServiceLines
+                        ? (showCallMethod ? '80px 110px 130px 70px 120px 1fr 120px 80px' : '80px 110px 130px 70px 1fr 120px 80px')
+                        : (showCallMethod ? '80px 110px 130px 120px 1fr 120px 80px' : '80px 110px 130px 1fr 120px 80px')
+                }}
             >
                 {/* Token # */}
                 <div className="flex items-center">
@@ -3343,12 +3414,14 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                 )}
 
                 {/* Call Method */}
-                <div>
-                    {t.called_via_invite
-                        ? <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-500/10 dark:text-fuchsia-400 dark:border-fuchsia-500/20"><Send size={12} />Invited</span>
-                        : <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"><Phone size={12} />Call Next</span>
-                    }
-                </div>
+                {showCallMethod && (
+                    <div>
+                        {t.called_via_invite
+                            ? <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-500/10 dark:text-fuchsia-400 dark:border-fuchsia-500/20"><Send size={12} />Invited</span>
+                            : <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"><Phone size={12} />Call Next</span>
+                        }
+                    </div>
+                )}
 
                 {/* Customer */}
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -3559,10 +3632,25 @@ function QueueHistory({
             .finally(() => setHistoryLoading(false));
     }, [queueId, sessionId, dateFilterMode, selectedDate, historyPage, historyPageSize, statusFilter, debouncedSearch, setQueueHistory, setHistoryTotal, setHistoryLoading]);
 
-    const calcWaitTime = (created: string | null, served: string | null) => {
-        if (!served || !created) return "—";
-        const mins = Math.floor((new Date(served).getTime() - new Date(created).getTime()) / 60000);
-        return mins < 0 ? "—" : mins === 0 ? "< 1 min" : `${mins} min${mins !== 1 ? "s" : ""}`;
+    const calcWaitTime = (created: string | null, served: string | null, status?: string) => {
+        if (!created) return "—";
+        const s = status?.toLowerCase();
+        if (s === "deleted" || s === "skipped") return "—";
+        const endMs = served ? new Date(served).getTime() : (s === "waiting" || s === "serving" ? Date.now() : null);
+        if (!endMs) return "—";
+        const mins = Math.floor((endMs - new Date(created).getTime()) / 60000);
+        if (mins < 0) return "< 1 min";
+        const hours = Math.floor(mins / 60);
+        if (hours >= 24) {
+            const days = Math.floor(hours / 24);
+            const remHours = hours % 24;
+            return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
+        }
+        if (hours > 0) {
+            const remMins = mins % 60;
+            return remMins > 0 ? `${hours}h ${remMins}m` : `${hours}h`;
+        }
+        return mins === 0 ? "< 1 min" : `${mins} min${mins !== 1 ? "s" : ""}`;
     };
 
     const totalPages = Math.ceil(historyTotal / historyPageSize) || 1;
@@ -3757,7 +3845,7 @@ function QueueHistory({
                                                 );
                                             })()}
                                         </td>
-                                        <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at)}</td>
+                                        <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at, item.status)}</td>
                                         <td className="text-emerald-600 dark:text-emerald-400 font-medium" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
                                             {calcSvcTime(item.served_at, item.completed_at)}
                                         </td>

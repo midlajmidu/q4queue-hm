@@ -196,13 +196,70 @@ async def create_appointment(
     if not queue:
         raise ValueError("Queue not found")
 
-    if not queue.appointment_enabled and booked_by == "customer_online":
+    if not queue.appointment_enabled:
         raise ValueError("Appointments are not enabled for this service")
 
     start_t = _parse_time_hhmm(data.start_time)
     slot_dur = queue.slot_duration or 15
     end_dt = datetime.combine(data.appointment_date, start_t) + timedelta(minutes=slot_dur)
     end_t = end_dt.time()
+
+    tz_str = await get_queue_timezone(db, queue.org_id)
+    local_now = datetime.now(ZoneInfo(tz_str))
+    today_date = local_now.date()
+
+    open_t_raw = _parse_time_hhmm(queue.open_time) if queue.open_time else time(9, 0)
+    close_t_raw = _parse_time_hhmm(queue.close_time) if queue.close_time else time(18, 0)
+    is_overnight = open_t_raw > close_t_raw
+
+    # Check if target_date is in the past
+    is_ongoing_yesterday_overnight = (
+        is_overnight
+        and data.appointment_date == today_date - timedelta(days=1)
+        and local_now.time() < close_t_raw
+    )
+    if data.appointment_date < today_date and not is_ongoing_yesterday_overnight:
+        raise ValueError("Cannot book an appointment for a past date.")
+
+    # Check operating hours
+    if not is_overnight:
+        if start_t < open_t_raw or start_t >= close_t_raw:
+            raise ValueError(f"Slot time {data.start_time} is outside queue operating hours ({queue.open_time or '09:00'} - {queue.close_time or '18:00'}).")
+    else:
+        if not (start_t >= open_t_raw or start_t < close_t_raw):
+            raise ValueError(f"Slot time {data.start_time} is outside queue operating hours ({queue.open_time or '09:00'} - {queue.close_time or '18:00'}).")
+
+    # Check if slot time on today has already passed
+    slot_calendar_date = (
+        data.appointment_date + timedelta(days=1)
+        if (is_overnight and start_t < close_t_raw)
+        else data.appointment_date
+    )
+    slot_dt = datetime.combine(slot_calendar_date, start_t).replace(tzinfo=ZoneInfo(tz_str))
+    if slot_dt < local_now:
+        raise ValueError("Cannot book an appointment for a time slot that has already passed.")
+
+    # Duplicate active appointment check for the same phone on this date
+    import re
+    norm_phone = re.sub(r'[\s\-\(\)\+]', '', data.customer_phone)
+    if norm_phone:
+        existing_dup = await db.execute(
+            select(Appointment.id).where(
+                Appointment.queue_id == queue_id,
+                Appointment.appointment_date == data.appointment_date,
+                Appointment.status.notin_([
+                    AppointmentStatus.cancelled,
+                    AppointmentStatus.rejected,
+                    AppointmentStatus.no_show,
+                ]),
+                or_(
+                    Appointment.customer_phone == data.customer_phone.strip(),
+                    func.replace(func.replace(func.replace(func.replace(Appointment.customer_phone, ' ', ''), '-', ''), '+', ''), '(', '') == norm_phone
+                )
+            )
+        )
+        if existing_dup.scalar_one_or_none():
+            raise ValueError("An active appointment for this phone number already exists on this date.")
 
     # Verify slot availability under lock
     existing_count_res = await db.execute(
@@ -221,19 +278,7 @@ async def create_appointment(
 
     # Re-validate lead time at booking submit time to prevent TOCTOU (only for online customers)
     if booked_by == "customer_online":
-        tz_str = await get_queue_timezone(db, queue.org_id)
-        local_now = datetime.now(ZoneInfo(tz_str))
         min_lead = queue.min_lead_time_mins if queue.min_lead_time_mins is not None else 60
-        open_t_raw = _parse_time_hhmm(queue.open_time) if queue.open_time else time(9, 0)
-        close_t_raw = _parse_time_hhmm(queue.close_time) if queue.close_time else time(18, 0)
-        is_overnight = open_t_raw > close_t_raw
-        # For post-midnight slots (is_next_day), the actual calendar date is business_date + 1
-        slot_calendar_date = (
-            data.appointment_date + timedelta(days=1)
-            if (is_overnight and start_t < close_t_raw)
-            else data.appointment_date
-        )
-        slot_dt = datetime.combine(slot_calendar_date, start_t).replace(tzinfo=ZoneInfo(tz_str))
         if slot_dt < local_now + timedelta(minutes=min_lead):
             raise ValueError("This time slot is no longer available for booking. Please choose another slot.")
 

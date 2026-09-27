@@ -28,6 +28,7 @@ import {
     Eye
 } from "lucide-react";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 import type { AppointmentResponse, QueueResponse, SessionResponse } from "@/types/api";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { localTodayStr, nowInTz, queueBusinessDate } from "@/lib/tzformat";
@@ -174,10 +175,152 @@ export default function AppointmentsDashboardPage({ params }: PageProps) {
     const [modalPhone, setModalPhone] = useState("");
     const [modalNotes, setModalNotes] = useState("");
     const [modalPax, setModalPax] = useState(1);
+    const [modalSlots, setModalSlots] = useState<{ start_time: string; end_time: string; capacity: number; booked_count: number; available: boolean }[]>([]);
+    const [loadingModalSlots, setLoadingModalSlots] = useState(false);
     const [bookingSubmitting, setBookingSubmitting] = useState(false);
+    const [formTouched, setFormTouched] = useState(false);
 
     // Action state
     const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+    // Eligible queues with appointments enabled
+    const eligibleQueues = useMemo(() => {
+        return queues.filter((q) => q.is_active && q.appointment_enabled && !q.is_deleted);
+    }, [queues]);
+
+    // Auto-select eligible queue for booking modal
+    useEffect(() => {
+        if (eligibleQueues.length > 0) {
+            if (!modalQueueId || !eligibleQueues.some((q) => q.id === modalQueueId)) {
+                const matchSelected = eligibleQueues.find((q) => q.id === selectedQueueId);
+                setModalQueueId(matchSelected ? matchSelected.id : eligibleQueues[0].id);
+            }
+        }
+    }, [eligibleQueues, selectedQueueId, modalQueueId]);
+
+    // Fetch available slots when queue or date changes in booking modal
+    useEffect(() => {
+        if (!isBookModalOpen || !modalQueueId || !modalDate) return;
+        setLoadingModalSlots(true);
+        api.getAvailableSlots(modalQueueId, modalDate)
+            .then((res) => {
+                const list = res.slots || [];
+                setModalSlots(list);
+                if (list.length > 0) {
+                    const currentSlot = list.find((s) => s.start_time === modalSlotTime);
+                    if (!currentSlot || !currentSlot.available) {
+                        const firstAvail = list.find((s) => s.available);
+                        if (firstAvail) {
+                            setModalSlotTime(firstAvail.start_time);
+                        }
+                    }
+                }
+            })
+            .catch(() => {
+                setModalSlots([]);
+            })
+            .finally(() => {
+                setLoadingModalSlots(false);
+            });
+    }, [isBookModalOpen, modalQueueId, modalDate]);
+
+    // Validation computations for booking modal
+    const selectedModalQueue = useMemo(() => {
+        return eligibleQueues.find((q) => q.id === modalQueueId);
+    }, [eligibleQueues, modalQueueId]);
+
+    const selectedSlotInfo = useMemo(() => {
+        return modalSlots.find((s) => s.start_time === modalSlotTime);
+    }, [modalSlots, modalSlotTime]);
+
+    const dateError = useMemo(() => {
+        if (!modalDate) return "Date is required";
+        if (modalDate < today) return "Appointment date cannot be in the past";
+        return null;
+    }, [modalDate, today]);
+
+    const timeError = useMemo(() => {
+        if (!modalSlotTime) return "Slot time is required";
+        if (modalDate === today) {
+            const currentNow = nowInTz(tz);
+            const currentHHMM = `${String(currentNow.getHours()).padStart(2, "0")}:${String(currentNow.getMinutes()).padStart(2, "0")}`;
+            if (modalSlotTime < currentHHMM) {
+                return "This time slot has already passed today";
+            }
+        }
+        if (selectedModalQueue?.open_time && selectedModalQueue?.close_time) {
+            const openT = selectedModalQueue.open_time;
+            const closeT = selectedModalQueue.close_time;
+            const isOvernight = openT > closeT;
+            if (!isOvernight) {
+                if (modalSlotTime < openT || modalSlotTime >= closeT) {
+                    return `Time must be within operating hours (${formatTime12(openT)} - ${formatTime12(closeT)})`;
+                }
+            } else {
+                if (!(modalSlotTime >= openT || modalSlotTime < closeT)) {
+                    return `Time must be within operating hours (${formatTime12(openT)} - ${formatTime12(closeT)})`;
+                }
+            }
+        }
+        if (selectedSlotInfo && !selectedSlotInfo.available) {
+            return `This time slot is fully booked (${selectedSlotInfo.capacity}/${selectedSlotInfo.capacity})`;
+        }
+        return null;
+    }, [modalSlotTime, modalDate, today, tz, selectedModalQueue, selectedSlotInfo]);
+
+    const nameError = useMemo(() => {
+        const trimmed = modalName.trim();
+        if (!trimmed) return "Customer name is required";
+        if (trimmed.length < 2) return "Name must be at least 2 characters";
+        if (trimmed.length > 60) return "Name cannot exceed 60 characters";
+        return null;
+    }, [modalName]);
+
+    const phoneError = useMemo(() => {
+        const trimmed = modalPhone.trim();
+        if (!trimmed) return "Customer phone number is required";
+        const digits = trimmed.replace(/\D/g, "");
+        if (digits.length < 7 || digits.length > 15) {
+            return "Enter a valid phone number (7-15 digits)";
+        }
+        return null;
+    }, [modalPhone]);
+
+    const duplicateError = useMemo(() => {
+        const trimmed = modalPhone.trim();
+        const digits = trimmed.replace(/\D/g, "");
+        if (digits.length < 7 || !modalDate || !modalQueueId) return null;
+        const dup = appointments.find((a) => {
+            if (a.queue_id !== modalQueueId || a.appointment_date !== modalDate) return false;
+            if (a.status === "cancelled" || a.status === "no_show" || (a.status as string) === "rejected") return false;
+            const exDigits = (a.customer_phone || "").replace(/\D/g, "");
+            return exDigits === digits || (digits.length >= 10 && exDigits.endsWith(digits)) || (exDigits.length >= 10 && digits.endsWith(exDigits));
+        });
+        if (dup) {
+            return `An active appointment already exists for this phone on this date (${formatTime12(dup.start_time)} • #${dup.booking_reference})`;
+        }
+        return null;
+    }, [appointments, modalPhone, modalDate, modalQueueId]);
+
+    const paxError = useMemo(() => {
+        if (!modalPax || modalPax < 1 || modalPax > 99) {
+            return "Number of pax must be between 1 and 99";
+        }
+        return null;
+    }, [modalPax]);
+
+    const isFormValid = useMemo(() => {
+        return Boolean(
+            eligibleQueues.length > 0 &&
+            modalQueueId &&
+            !dateError &&
+            !timeError &&
+            !nameError &&
+            !phoneError &&
+            !duplicateError &&
+            !paxError
+        );
+    }, [eligibleQueues, modalQueueId, dateError, timeError, nameError, phoneError, duplicateError, paxError]);
 
     // Sync slotDate & modalDate when today updates to overnight business date
     useEffect(() => {
@@ -267,15 +410,21 @@ export default function AppointmentsDashboardPage({ params }: PageProps) {
     };
 
     const handleBookIntoSlot = (slotStartTime: string, queueId?: string) => {
-        setModalDate(slotDate);
+        const targetDate = slotDate >= today ? slotDate : today;
+        setModalDate(targetDate);
         setModalSlotTime(slotStartTime);
-        if (queueId) {
-            setModalQueueId(queueId);
-        } else if (selectedQueueId) {
-            setModalQueueId(selectedQueueId);
-        } else if (queues.length > 0) {
-            setModalQueueId(queues[0].id);
+        const qId = queueId || selectedQueueId;
+        const validQ = eligibleQueues.find((q) => q.id === qId);
+        if (validQ) {
+            setModalQueueId(validQ.id);
+        } else if (eligibleQueues.length > 0) {
+            setModalQueueId(eligibleQueues[0].id);
         }
+        setModalName("");
+        setModalPhone("");
+        setModalNotes("");
+        setModalPax(1);
+        setFormTouched(false);
         setIsBookModalOpen(true);
     };
 
@@ -507,7 +656,29 @@ export default function AppointmentsDashboardPage({ params }: PageProps) {
     // Handle Permanent Deletion
     const handleDeleteAppointment = async (appointmentId: string, customerName: string) => {
         if (isReadOnly) return;
-        if (!confirm(`Permanently delete appointment for ${customerName}? This action cannot be undone.`)) return;
+        const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+        const res = await Swal.fire({
+            title: "Permanently Delete Appointment?",
+            text: `Are you sure you want to delete the appointment for ${customerName || "this customer"}? This action cannot be undone.`,
+            icon: "error",
+            showCancelButton: true,
+            confirmButtonColor: "#e11d48",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "Yes, delete permanently",
+            cancelButtonText: "Cancel",
+            reverseButtons: true,
+            background: isDark ? "#0f172a" : "#ffffff",
+            color: isDark ? "#f8fafc" : "#0f172a",
+            customClass: {
+                popup: "rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl",
+                title: "text-lg font-bold text-slate-900 dark:text-white",
+                htmlContainer: "text-sm text-slate-600 dark:text-slate-300",
+                confirmButton: "px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm cursor-pointer",
+                cancelButton: "px-4 py-2.5 rounded-xl font-bold text-sm cursor-pointer",
+            }
+        });
+        if (!res.isConfirmed) return;
+
         setActionLoadingId(appointmentId);
         try {
             await api.deleteAppointment(appointmentId);
@@ -523,7 +694,29 @@ export default function AppointmentsDashboardPage({ params }: PageProps) {
     // Handle Staff Cancellation
     const handleCancelAppointment = async (appointmentId: string, customerName: string) => {
         if (isReadOnly) return;
-        if (!confirm(`Cancel appointment for ${customerName}?`)) return;
+        const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+        const res = await Swal.fire({
+            title: "Cancel Appointment?",
+            text: `Are you sure you want to cancel the appointment for ${customerName || "this customer"}?`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#f43f5e",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "Yes, cancel appointment",
+            cancelButtonText: "Keep appointment",
+            reverseButtons: true,
+            background: isDark ? "#0f172a" : "#ffffff",
+            color: isDark ? "#f8fafc" : "#0f172a",
+            customClass: {
+                popup: "rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl",
+                title: "text-lg font-bold text-slate-900 dark:text-white",
+                htmlContainer: "text-sm text-slate-600 dark:text-slate-300",
+                confirmButton: "px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm cursor-pointer",
+                cancelButton: "px-4 py-2.5 rounded-xl font-bold text-sm cursor-pointer",
+            }
+        });
+        if (!res.isConfirmed) return;
+
         setActionLoadingId(appointmentId);
         try {
             await api.updateAppointment(appointmentId, { status: "cancelled" });
@@ -554,7 +747,29 @@ export default function AppointmentsDashboardPage({ params }: PageProps) {
     // Handle Staff Rejection
     const handleRejectAppointment = async (appointmentId: string, customerName: string) => {
         if (isReadOnly) return;
-        if (!confirm(`Reject appointment for ${customerName}?`)) return;
+        const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+        const res = await Swal.fire({
+            title: "Reject Appointment?",
+            text: `Are you sure you want to reject the appointment for ${customerName || "this customer"}?`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#f43f5e",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "Yes, reject appointment",
+            cancelButtonText: "Cancel",
+            reverseButtons: true,
+            background: isDark ? "#0f172a" : "#ffffff",
+            color: isDark ? "#f8fafc" : "#0f172a",
+            customClass: {
+                popup: "rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl",
+                title: "text-lg font-bold text-slate-900 dark:text-white",
+                htmlContainer: "text-sm text-slate-600 dark:text-slate-300",
+                confirmButton: "px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm cursor-pointer",
+                cancelButton: "px-4 py-2.5 rounded-xl font-bold text-sm cursor-pointer",
+            }
+        });
+        if (!res.isConfirmed) return;
+
         setActionLoadingId(appointmentId);
         try {
             await api.rejectAppointment(appointmentId);
@@ -570,8 +785,9 @@ export default function AppointmentsDashboardPage({ params }: PageProps) {
     // Handle Staff Manual Booking
     const handleCreateBooking = async (e: React.FormEvent) => {
         e.preventDefault();
+        setFormTouched(true);
         if (isReadOnly) return;
-        if (!modalQueueId || !modalName.trim() || !modalPhone.trim()) return;
+        if (!isFormValid || !modalQueueId) return;
 
         setBookingSubmitting(true);
         try {
@@ -589,6 +805,8 @@ export default function AppointmentsDashboardPage({ params }: PageProps) {
             setModalName("");
             setModalPhone("");
             setModalNotes("");
+            setModalPax(1);
+            setFormTouched(false);
             loadData();
         } catch (err: any) {
             toast.error(err?.detail || "Booking failed");
@@ -659,7 +877,20 @@ export default function AppointmentsDashboardPage({ params }: PageProps) {
                         </span>
                     ) : (
                         <button
-                            onClick={() => setIsBookModalOpen(true)}
+                            onClick={() => {
+                                const targetDate = slotDate >= today ? slotDate : today;
+                                setModalDate(targetDate);
+                                if (eligibleQueues.length > 0) {
+                                    const validQ = eligibleQueues.find((q) => q.id === (selectedQueueId || modalQueueId));
+                                    setModalQueueId(validQ ? validQ.id : eligibleQueues[0].id);
+                                }
+                                setModalName("");
+                                setModalPhone("");
+                                setModalNotes("");
+                                setModalPax(1);
+                                setFormTouched(false);
+                                setIsBookModalOpen(true);
+                            }}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
                         >
                             <UserPlus className="w-3.5 h-3.5" />
@@ -1461,7 +1692,10 @@ export default function AppointmentsDashboardPage({ params }: PageProps) {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
                         <div className="p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Book Appointment (Reception)</h2>
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Book Appointment (Reception)</h2>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Schedule an in-person or advance appointment for a customer</p>
+                            </div>
                             <button
                                 onClick={() => setIsBookModalOpen(false)}
                                 className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
@@ -1470,97 +1704,279 @@ export default function AppointmentsDashboardPage({ params }: PageProps) {
                             </button>
                         </div>
 
-                        <form onSubmit={handleCreateBooking} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Queue / Service Line *</label>
-                                <select
-                                    required
-                                    value={modalQueueId}
-                                    onChange={(e) => setModalQueueId(e.target.value)}
-                                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-sm font-semibold"
-                                >
-                                    {queues.map((q) => (
-                                        <option key={q.id} value={q.id}>{q.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Date *</label>
-                                    <input
-                                        type="date"
-                                        required
-                                        value={modalDate}
-                                        onChange={(e) => setModalDate(e.target.value)}
-                                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-sm font-semibold"
-                                    />
+                        {eligibleQueues.length === 0 ? (
+                            <div className="p-6">
+                                <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 rounded-2xl flex items-start gap-3 text-amber-800 dark:text-amber-200 text-xs">
+                                    <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                                    <div>
+                                        <p className="font-bold text-sm">No Appointment-Enabled Queues</p>
+                                        <p className="mt-1 text-slate-600 dark:text-slate-400">
+                                            There are currently no active queues with online/advance appointments enabled. Please enable appointment scheduling in Queue Settings.
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Slot Time (HH:MM) *</label>
-                                    <input
-                                        type="time"
-                                        required
-                                        value={modalSlotTime}
-                                        onChange={(e) => setModalSlotTime(e.target.value)}
-                                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-sm font-semibold"
-                                    />
+                                <div className="mt-6 flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsBookModalOpen(false)}
+                                        className="py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
+                                    >
+                                        Close
+                                    </button>
                                 </div>
                             </div>
-
-                            <div className="grid grid-cols-2 gap-3">
+                        ) : (
+                            <form onSubmit={handleCreateBooking} className="p-6 space-y-4">
+                                {/* Queue / Service Line */}
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Customer Name *</label>
-                                    <input
-                                        type="text"
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Queue / Service Line *</label>
+                                    <select
                                         required
-                                        value={modalName}
-                                        onChange={(e) => setModalName(e.target.value)}
-                                        placeholder="e.g. Rahul Sharma"
-                                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-sm font-semibold"
-                                    />
+                                        value={modalQueueId}
+                                        disabled={bookingSubmitting}
+                                        onChange={(e) => {
+                                            setModalQueueId(e.target.value);
+                                            setFormTouched(true);
+                                        }}
+                                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-sm font-semibold disabled:opacity-60"
+                                    >
+                                        {eligibleQueues.map((q) => (
+                                            <option key={q.id} value={q.id}>{q.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Customer Phone *</label>
-                                    <input
-                                        type="tel"
-                                        required
-                                        value={modalPhone}
-                                        onChange={(e) => setModalPhone(e.target.value)}
-                                        placeholder="e.g. 9876543210"
-                                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-sm font-semibold"
-                                    />
+
+                                {/* Date & Slot Time */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Date *</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            min={today}
+                                            value={modalDate}
+                                            disabled={bookingSubmitting}
+                                            onChange={(e) => {
+                                                setModalDate(e.target.value);
+                                                setFormTouched(true);
+                                            }}
+                                            className={`w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-sm font-semibold disabled:opacity-60 ${
+                                                dateError && formTouched
+                                                    ? "border-red-400 focus:ring-red-400 dark:border-red-500"
+                                                    : "border-slate-200 dark:border-white/10"
+                                            }`}
+                                        />
+                                        {dateError && formTouched && (
+                                            <p className="text-[11px] text-red-500 font-medium flex items-center gap-1 mt-1">
+                                                <AlertCircle size={12} className="shrink-0" />
+                                                <span>{dateError}</span>
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Slot Time *</label>
+                                            {loadingModalSlots ? (
+                                                <span className="text-[10px] font-semibold text-slate-400">Loading...</span>
+                                            ) : selectedSlotInfo ? (
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                                    selectedSlotInfo.available
+                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                                                        : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                                                }`}>
+                                                    {selectedSlotInfo.available
+                                                        ? `Available (${selectedSlotInfo.capacity - selectedSlotInfo.booked_count}/${selectedSlotInfo.capacity})`
+                                                        : `Slot Full (${selectedSlotInfo.capacity}/${selectedSlotInfo.capacity})`}
+                                                </span>
+                                            ) : null}
+                                        </div>
+
+                                        {modalSlots.length > 0 ? (
+                                            <select
+                                                required
+                                                value={modalSlotTime}
+                                                disabled={bookingSubmitting || loadingModalSlots}
+                                                onChange={(e) => {
+                                                    setModalSlotTime(e.target.value);
+                                                    setFormTouched(true);
+                                                }}
+                                                className={`w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-sm font-semibold disabled:opacity-60 ${
+                                                    timeError && formTouched
+                                                        ? "border-red-400 focus:ring-red-400 dark:border-red-500"
+                                                        : "border-slate-200 dark:border-white/10"
+                                                }`}
+                                            >
+                                                {modalSlots.map((s) => (
+                                                    <option
+                                                        key={s.start_time}
+                                                        value={s.start_time}
+                                                        disabled={!s.available}
+                                                    >
+                                                        {formatTime12(s.start_time)} – {formatTime12(s.end_time)} {s.available ? `(${s.capacity - s.booked_count} left)` : `(Full)`}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="time"
+                                                required
+                                                value={modalSlotTime}
+                                                disabled={bookingSubmitting}
+                                                onChange={(e) => {
+                                                    setModalSlotTime(e.target.value);
+                                                    setFormTouched(true);
+                                                }}
+                                                className={`w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-sm font-semibold disabled:opacity-60 ${
+                                                    timeError && formTouched
+                                                        ? "border-red-400 focus:ring-red-400 dark:border-red-500"
+                                                        : "border-slate-200 dark:border-white/10"
+                                                }`}
+                                            />
+                                        )}
+
+                                        {timeError && formTouched && (
+                                            <p className="text-[11px] text-red-500 font-medium flex items-center gap-1 mt-1">
+                                                <AlertCircle size={12} className="shrink-0" />
+                                                <span>{timeError}</span>
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Internal Notes (Optional)</label>
-                                <textarea
-                                    rows={2}
-                                    value={modalNotes}
-                                    onChange={(e) => setModalNotes(e.target.value)}
-                                    placeholder="Special requests, assistance, notes, etc."
-                                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-sm"
-                                />
-                            </div>
+                                {/* Customer Name & Customer Phone */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Customer Name *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            maxLength={60}
+                                            disabled={bookingSubmitting}
+                                            value={modalName}
+                                            onChange={(e) => {
+                                                setModalName(e.target.value);
+                                                setFormTouched(true);
+                                            }}
+                                            placeholder="e.g. Rahul Sharma"
+                                            className={`w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-sm font-semibold disabled:opacity-60 ${
+                                                nameError && formTouched
+                                                    ? "border-red-400 focus:ring-red-400 dark:border-red-500"
+                                                    : "border-slate-200 dark:border-white/10"
+                                            }`}
+                                        />
+                                        {nameError && formTouched && (
+                                            <p className="text-[11px] text-red-500 font-medium flex items-center gap-1 mt-1">
+                                                <AlertCircle size={12} className="shrink-0" />
+                                                <span>{nameError}</span>
+                                            </p>
+                                        )}
+                                    </div>
 
-                            <div className="pt-4 border-t border-slate-100 dark:border-white/10 flex justify-end gap-2.5">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsBookModalOpen(false)}
-                                    className="py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={bookingSubmitting}
-                                    className="py-2.5 px-5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/25 cursor-pointer"
-                                >
-                                    {bookingSubmitting ? "Saving..." : "Create Appointment"}
-                                </button>
-                            </div>
-                        </form>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Customer Phone *</label>
+                                        <input
+                                            type="tel"
+                                            required
+                                            maxLength={15}
+                                            disabled={bookingSubmitting}
+                                            value={modalPhone}
+                                            onChange={(e) => {
+                                                setModalPhone(e.target.value);
+                                                setFormTouched(true);
+                                            }}
+                                            placeholder="e.g. 9876543210"
+                                            className={`w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-sm font-semibold disabled:opacity-60 ${
+                                                (phoneError || duplicateError) && formTouched
+                                                    ? "border-red-400 focus:ring-red-400 dark:border-red-500"
+                                                    : "border-slate-200 dark:border-white/10"
+                                            }`}
+                                        />
+                                        {phoneError && formTouched && (
+                                            <p className="text-[11px] text-red-500 font-medium flex items-center gap-1 mt-1">
+                                                <AlertCircle size={12} className="shrink-0" />
+                                                <span>{phoneError}</span>
+                                            </p>
+                                        )}
+                                        {!phoneError && duplicateError && (
+                                            <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1 mt-1 leading-snug">
+                                                <AlertCircle size={12} className="shrink-0" />
+                                                <span>{duplicateError}</span>
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Number of Pax & Internal Notes */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Number of Pax *</label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            maxLength={2}
+                                            required
+                                            disabled={bookingSubmitting}
+                                            value={modalPax}
+                                            onChange={(e) => {
+                                                const sanitized = e.target.value.replace(/\D/g, "").slice(0, 2);
+                                                setModalPax(sanitized === "" ? 1 : Math.max(1, Math.min(99, parseInt(sanitized, 10))));
+                                                setFormTouched(true);
+                                            }}
+                                            className={`w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-sm font-semibold disabled:opacity-60 ${
+                                                paxError && formTouched
+                                                    ? "border-red-400 focus:ring-red-400 dark:border-red-500"
+                                                    : "border-slate-200 dark:border-white/10"
+                                            }`}
+                                        />
+                                        {paxError && formTouched && (
+                                            <p className="text-[11px] text-red-500 font-medium flex items-center gap-1 mt-1">
+                                                <AlertCircle size={12} className="shrink-0" />
+                                                <span>{paxError}</span>
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Internal Notes (Optional)</label>
+                                        <input
+                                            type="text"
+                                            disabled={bookingSubmitting}
+                                            value={modalNotes}
+                                            onChange={(e) => setModalNotes(e.target.value)}
+                                            placeholder="Special requests, notes, etc."
+                                            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-sm disabled:opacity-60"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Footer actions */}
+                                <div className="pt-4 border-t border-slate-100 dark:border-white/10 flex justify-end gap-2.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsBookModalOpen(false)}
+                                        disabled={bookingSubmitting}
+                                        className="py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={!isFormValid || bookingSubmitting || eligibleQueues.length === 0}
+                                        className="py-2.5 px-5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/25 cursor-pointer disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                        {bookingSubmitting ? (
+                                            <>
+                                                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <span>Booking...</span>
+                                            </>
+                                        ) : (
+                                            "Create Appointment"
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
                     </div>
                 </div>
             )}

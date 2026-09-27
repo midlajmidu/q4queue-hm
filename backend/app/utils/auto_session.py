@@ -80,6 +80,21 @@ async def rollover_queue_session(db, queue: Queue, org: Organization, force: boo
         active_session.is_active = False
         active_session.is_paused = False
 
+        # Mark unserved tokens in old session as skipped
+        await db.execute(
+            update(Token)
+            .where(
+                Token.queue_id == queue.id,
+                Token.session_id == active_session.id,
+                Token.status.in_([TokenStatus.waiting, TokenStatus.serving]),
+            )
+            .values(
+                status=TokenStatus.skipped,
+                completed_at=func.now(),
+                removed_by="session_end",
+            )
+        )
+
         # Check if session for today already exists
         existing_today_session = await db.scalar(
             select(Session).where(
@@ -106,10 +121,20 @@ async def rollover_queue_session(db, queue: Queue, org: Organization, force: boo
         queue.current_token_number = queue.starting_sequence - 1
         queue.total_served = 0
         await db.commit()
+
+        try:
+            from app.services import token_service
+            import asyncio
+            asyncio.create_task(token_service.notify_queue_update(queue.id, org.id))
+        except Exception:
+            pass
+
         return new_session
     else:
         # No active session exists, get or create session for today
         return await get_or_create_active_session(db, queue_id=queue.id, org_id=org.id)
+
+rollover_or_create_queue_session = rollover_queue_session
 
 async def check_and_rollover_sessions(target_org_id: Optional[uuid.UUID] = None, force: bool = False):
     """Create today's sessions at each enabled branch's local rollover time."""

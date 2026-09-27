@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import { useDashBase } from "@/hooks/useDashBase";
 import { useAuth } from "@/hooks/useAuth";
 import type { QueueResponse, SessionResponse, PaginatedSessionResponse } from "@/types/api";
-import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown, Plus, Loader2, Trash2, LayoutGrid, List, Pause, Play, Square } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown, Plus, Loader2, LayoutGrid, List, Pause, Play, Square, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { localTodayStr } from "@/lib/tzformat";
@@ -121,9 +121,10 @@ export default function QueueSessionListPage({ params }: PageProps) {
         }
     }, [isCreateModalOpen, tz]);
 
-    // Delete session modal state
-    const [sessionToDelete, setSessionToDelete] = useState<SessionResponse | null>(null);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
+    // Inline edit session title state
+    const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+    const [editingTitle, setEditingTitle] = useState("");
+    const [updatingTitle, setUpdatingTitle] = useState(false);
 
     // End session modal state & Action loading states
     const [sessionToEnd, setSessionToEnd] = useState<SessionResponse | null>(null);
@@ -244,18 +245,44 @@ export default function QueueSessionListPage({ params }: PageProps) {
         }
     };
 
-    const handleDeleteConfirm = async () => {
-        if (!sessionToDelete) return;
-        setDeletingId(sessionToDelete.id);
+    const handleStartEdit = (e: React.MouseEvent, session: SessionResponse) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditingSessionId(session.id);
+        setEditingTitle(session.title && session.title !== session.session_date ? session.title : "");
+    };
+
+    const handleCancelEdit = (e?: React.MouseEvent | React.KeyboardEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        setEditingSessionId(null);
+        setEditingTitle("");
+    };
+
+    const handleSaveEdit = async (e: React.MouseEvent | React.KeyboardEvent | React.FormEvent, session: SessionResponse) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const trimmed = editingTitle.trim();
+        if (!trimmed) {
+            toast.error("Session name cannot be empty");
+            return;
+        }
+        if (trimmed.length > 200) {
+            toast.error("Session name cannot exceed 200 characters");
+            return;
+        }
+        setUpdatingTitle(true);
         try {
-            await api.deleteSession(sessionToDelete.id);
-            toast.success("Session deleted successfully");
-            setSessionToDelete(null);
-            loadSessions(1, false, selectedDate);
+            const updated = await api.updateSession(session.id, { title: trimmed });
+            setSessions(prev => prev.map(s => s.id === session.id ? { ...s, title: updated.title } : s));
+            toast.success("Session name updated");
+            setEditingSessionId(null);
         } catch (err: any) {
-            toast.error(err?.message || "Failed to delete session");
+            toast.error(err?.detail || err?.message || "Failed to update session name");
         } finally {
-            setDeletingId(null);
+            setUpdatingTitle(false);
         }
     };
 
@@ -494,9 +521,61 @@ export default function QueueSessionListPage({ params }: PageProps) {
 
                                                                     <div className="flex-1 min-w-0">
                                                                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                                                                            <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                                                                                {session.title && session.title !== session.session_date ? session.title : weekday}
-                                                                            </span>
+                                                                            {editingSessionId === session.id ? (
+                                                                                <div
+                                                                                    className="flex items-center gap-1.5 z-20 py-0.5"
+                                                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                                                                >
+                                                                                    <input
+                                                                                        type="text"
+                                                                                        value={editingTitle}
+                                                                                        onChange={(e) => setEditingTitle(e.target.value)}
+                                                                                        onKeyDown={(e) => {
+                                                                                            if (e.key === "Enter") handleSaveEdit(e, session);
+                                                                                            if (e.key === "Escape") handleCancelEdit(e);
+                                                                                        }}
+                                                                                        autoFocus
+                                                                                        maxLength={200}
+                                                                                        placeholder="Session name..."
+                                                                                        className="h-7 px-2.5 text-xs font-semibold rounded-lg border border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 shadow-xs"
+                                                                                    />
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={(e) => handleSaveEdit(e, session)}
+                                                                                        disabled={updatingTitle}
+                                                                                        className="h-7 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-1 text-[11px] font-semibold transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
+                                                                                        title="Save (Enter)"
+                                                                                    >
+                                                                                        {updatingTitle ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                                                                        <span>Save</span>
+                                                                                    </button>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={handleCancelEdit}
+                                                                                        disabled={updatingTitle}
+                                                                                        className="h-7 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
+                                                                                        title="Cancel (Esc)"
+                                                                                    >
+                                                                                        <X className="w-3.5 h-3.5" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div className="flex items-center gap-1.5 group/edit min-w-0">
+                                                                                    <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                                                                                        {session.title && session.title !== session.session_date ? session.title : weekday}
+                                                                                    </span>
+                                                                                    {!isGlobalOrOrgAdmin && (
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={(e) => handleStartEdit(e, session)}
+                                                                                            className="opacity-70 sm:opacity-0 group-hover/edit:opacity-100 p-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                                                                                            title="Edit session name"
+                                                                                        >
+                                                                                            <Pencil className="w-3 h-3" />
+                                                                                        </button>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
                                                                             {isPaused ? (
                                                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] font-bold uppercase tracking-widest shrink-0">
                                                                                     ⏸ PAUSED
@@ -572,16 +651,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                         </div>
                                                                     )}
 
-                                                                    {!isGlobalOrOrgAdmin && (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSessionToDelete(session); }}
-                                                                            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 dark:hover:text-red-400 transition-all cursor-pointer z-10"
-                                                                            title="Delete session"
-                                                                        >
-                                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                                        </button>
-                                                                    )}
+
 
                                                                     <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors shrink-0 ml-1" strokeWidth={2.5} />
                                                                 </div>
@@ -612,10 +682,61 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                 </span>
                                                                 <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">({weekday})</span>
 
-                                                                {session.title && session.title !== session.session_date && (
-                                                                    <span className="text-xs text-slate-600 dark:text-slate-300 font-medium truncate ml-1">
-                                                                        {session.title}
-                                                                    </span>
+                                                                {editingSessionId === session.id ? (
+                                                                    <div
+                                                                        className="flex items-center gap-1.5 z-20 shrink-0 ml-1"
+                                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                                                    >
+                                                                        <input
+                                                                            type="text"
+                                                                            value={editingTitle}
+                                                                            onChange={(e) => setEditingTitle(e.target.value)}
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === "Enter") handleSaveEdit(e, session);
+                                                                                if (e.key === "Escape") handleCancelEdit(e);
+                                                                            }}
+                                                                            autoFocus
+                                                                            maxLength={200}
+                                                                            placeholder="Session name..."
+                                                                            className="h-6 px-2 text-xs font-medium rounded-md border border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 shadow-xs"
+                                                                        />
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => handleSaveEdit(e, session)}
+                                                                            disabled={updatingTitle}
+                                                                            className="w-6 h-6 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
+                                                                            title="Save (Enter)"
+                                                                        >
+                                                                            {updatingTitle ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Check className="w-3 h-3" />}
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={handleCancelEdit}
+                                                                            disabled={updatingTitle}
+                                                                            className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
+                                                                            title="Cancel (Esc)"
+                                                                        >
+                                                                            <X className="w-3 h-3" />
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center gap-1 group/edit min-w-0 ml-1">
+                                                                        {session.title && session.title !== session.session_date ? (
+                                                                            <span className="text-xs text-slate-600 dark:text-slate-300 font-medium truncate">
+                                                                                {session.title}
+                                                                            </span>
+                                                                        ) : null}
+                                                                        {!isGlobalOrOrgAdmin && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => handleStartEdit(e, session)}
+                                                                                className="opacity-70 sm:opacity-0 group-hover/edit:opacity-100 p-0.5 rounded text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shrink-0"
+                                                                                title="Edit session name"
+                                                                            >
+                                                                                <Pencil className="w-2.5 h-2.5" />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
                                                                 )}
 
                                                                 {isPaused ? (
@@ -671,16 +792,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                                                                     </div>
                                                                 )}
 
-                                                                {!isGlobalOrOrgAdmin && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSessionToDelete(session); }}
-                                                                        className="w-6 h-6 rounded flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all opacity-0 group-hover:opacity-100 cursor-pointer ml-1"
-                                                                        title="Delete session"
-                                                                    >
-                                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                )}
+
 
                                                                 <Link href={`${dashBase}/queues/${queueId}/sessions/${session.id}`} className="text-slate-300 dark:text-slate-600 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
                                                                     <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
@@ -789,44 +901,7 @@ export default function QueueSessionListPage({ params }: PageProps) {
                 </div>
             )}
 
-            {/* ── Delete Confirmation Modal ── */}
-            {sessionToDelete && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => !deletingId && setSessionToDelete(null)} />
-                    <div className="relative bg-white dark:bg-slate-900 w-full sm:rounded-2xl sm:max-w-sm rounded-t-2xl border-t sm:border border-slate-200 dark:border-white/10 shadow-2xl p-6 sm:p-7 animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 text-center">
-                        <div className="w-11 h-11 bg-red-50 dark:bg-red-950/40 rounded-xl flex items-center justify-center mx-auto mb-4 border border-red-100 dark:border-red-900/30">
-                            <Trash2 className="w-5 h-5 text-red-500" />
-                        </div>
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1.5">Delete Session?</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-                            Delete <span className="font-semibold text-slate-700 dark:text-slate-200">
-                                {sessionToDelete.title && sessionToDelete.title !== sessionToDelete.session_date
-                                    ? sessionToDelete.title
-                                    : formatShortDate(sessionToDelete.session_date)}
-                            </span>? This action cannot be undone.
-                        </p>
-                        <div className="flex items-center justify-center gap-2.5">
-                            <button
-                                type="button"
-                                onClick={() => setSessionToDelete(null)}
-                                disabled={!!deletingId}
-                                className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 disabled:opacity-50 transition-colors cursor-pointer"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleDeleteConfirm}
-                                disabled={!!deletingId}
-                                className="flex items-center gap-2 px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-sm shadow-red-600/20 disabled:opacity-50 transition-all cursor-pointer"
-                            >
-                                {deletingId && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                                {deletingId ? "Deleting…" : "Delete"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+
 
             {/* ── End Session Confirmation Modal ── */}
             <ConfirmModal

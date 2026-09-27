@@ -90,7 +90,7 @@ async def update_session(
     body: SessionUpdate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> SessionResponse:
     """Update a session title. State changes use the guarded endpoints below."""
     try:
@@ -120,7 +120,7 @@ async def toggle_session_active(
     is_active: bool,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> SessionResponse:
     """Activate or deactivate a specific session."""
     try:
@@ -159,7 +159,7 @@ async def toggle_session_paused(
     is_paused: bool,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> SessionResponse:
     """Pause or resume a specific session."""
     try:

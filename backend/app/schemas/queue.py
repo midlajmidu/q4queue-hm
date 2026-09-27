@@ -5,7 +5,7 @@ Pydantic schemas for Queue and Token request/response.
 import uuid
 import re
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -264,13 +264,26 @@ class JoinRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
     age: Optional[int] = Field(None, ge=0, le=150)
     phone: str = Field(..., min_length=10, max_length=15)
-    pax_count: int = Field(default=1, ge=1, le=100)
+    pax_count: int = Field(default=1, ge=1, le=99)
     send_whatsapp: bool = Field(default=False)
     entry_type: Optional[str] = Field(default="qr")
     qr_token: Optional[str] = Field(default=None, description="Single-use QR validation token")
     session_id: Optional[uuid.UUID] = Field(default=None, description="Optional target session ID to join")
     force_new: bool = Field(default=False, description="Explicitly request a new token, bypassing phone duplicate check")
     custom_data: Optional[dict] = None
+
+    @field_validator("pax_count", mode="before")
+    @classmethod
+    def validate_pax(cls, v: Any) -> int:
+        if v is None or v == "":
+            return 1
+        try:
+            val = int(v)
+        except (ValueError, TypeError):
+            raise ValueError("Party size (Pax) must be a number between 1 and 99")
+        if val < 1 or val > 99:
+            raise ValueError("Party size (Pax) must be between 1 and 99 (maximum 2 digits)")
+        return val
 
     @field_validator("name", mode="before")
     @classmethod

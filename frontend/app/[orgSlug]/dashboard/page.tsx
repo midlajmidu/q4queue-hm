@@ -694,6 +694,8 @@ export default function OverviewPage() {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
+  const isStaff = user?.role === "staff";
+  const canViewStaffPresence = Boolean(user && user.role !== "staff");
 
 
   const [queues, setQueues] = useState<QueueResponse[]>([]);
@@ -714,6 +716,15 @@ export default function OverviewPage() {
   const [feedFilter, setFeedFilter] = useState<"all" | "waiting" | "serving" | "done">("all");
   const [drawerAct, setDrawerAct] = useState<AnalyticsOverview["recent_activity"][number] | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  const totalRecentActivities = overview?.total_recent_activity ?? overview?.status_counts?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalRecentActivities / LIMIT));
+
+  useEffect(() => {
+    if (totalPages > 0 && recentPage > totalPages) {
+      setRecentPage(totalPages);
+    }
+  }, [recentPage, totalPages]);
 
 
 
@@ -804,8 +815,9 @@ export default function OverviewPage() {
   const [staff, setStaff] = useState<import("@/types/api").StaffMember[]>([]);
 
   useEffect(() => {
-    api.listStaff({ limit: 100, offset: 0 }).then(res => setStaff(res.items)).catch(console.error);
-  }, []);
+    if (!user || user.role === "staff") return;
+    api.listStaff({ limit: 100, offset: 0 }).then(res => setStaff(res.items)).catch(() => setStaff([]));
+  }, [user]);
   const updatedLabel = lastUpdated
     ? secondsAgo < 10 ? "Just now"
       : secondsAgo < 60 ? "moments ago"
@@ -948,7 +960,10 @@ export default function OverviewPage() {
             <div className="flex flex-col md:flex-row gap-4 md:gap-6 md:items-center mt-6 pt-6 border-t border-black/5">
               {[
                 {
-                  id: "filter-queue", lbl: "QUEUE", val: selectedQueue, set: setSelectedQueue, dis: false,
+                  id: "filter-queue", lbl: "QUEUE", val: selectedQueue, set: (val: string) => {
+                    setSelectedQueue(val);
+                    setRecentPage(1);
+                  }, dis: false,
                   opts: <>
                     <option value="">All Queues</option>
                     {queues.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
@@ -1042,15 +1057,48 @@ export default function OverviewPage() {
                 subtext={overview?.status_counts?.total ? `(${Math.round((overview.status_counts.cancelled / overview.status_counts.total) * 100)}% of visitors)` : undefined}
               />
               {(() => {
-                const crWarning = completionRate < 75;
+                const hasOutcomes = completedOutcomes > 0;
+                const crWarning = hasOutcomes && completionRate < 75;
+                const crCritical = hasOutcomes && completionRate < 50;
+
+                const color = !hasOutcomes
+                  ? "#64748b"
+                  : crCritical
+                  ? "#dc2626"
+                  : crWarning
+                  ? "#d97706"
+                  : "#059669";
+
+                const bg = !hasOutcomes
+                  ? "#f8fafc"
+                  : crCritical
+                  ? "#fef2f2"
+                  : crWarning
+                  ? "#fffbeb"
+                  : "#ecfdf5";
+
+                const border = !hasOutcomes
+                  ? "#e2e8f0"
+                  : crCritical
+                  ? "#fecaca"
+                  : crWarning
+                  ? "#fde68a"
+                  : "#a7f3d0";
+
                 return (
                   <MetricCard
-                    label="Completion Rate" value={completionRate} suffix="%"
-                    Icon={Icons.CheckSquare} trend={null}
-                    color={crWarning ? "#dc2626" : "#059669"} bg={crWarning ? "#fef2f2" : "#ecfdf5"} border={crWarning ? "#fecaca" : "#a7f3d0"}
-                    valueColor={crWarning ? "#dc2626" : "#059669"} isLoading={isLoading}
-                    subtext={crWarning ? "vs 75% target" : undefined}
-                    comparisonLabel="of completed outcomes"
+                    label="Completion Rate"
+                    value={hasOutcomes ? completionRate : "—"}
+                    suffix={hasOutcomes ? "%" : ""}
+                    Icon={Icons.CheckSquare}
+                    trend={null}
+                    color={color}
+                    bg={bg}
+                    border={border}
+                    valueColor={color}
+                    muted={!hasOutcomes}
+                    isLoading={isLoading}
+                    title="Percentage of finished visits successfully served rather than cancelled or marked as no-show."
                   />
                 );
               })()}
@@ -1060,46 +1108,48 @@ export default function OverviewPage() {
 
 
           {/* ══ STAFF PRESENCE ════════════════════════════════════ */}
-          <div>
-            <div className="section-label" style={{ marginBottom: 14 }}>Staff Presence</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-              {staff.length === 0 ? (
-                <div className="bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 p-4 rounded-xl flex justify-between items-center w-full">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                      <Icons.Users size={16} color="currentColor" />
+          {canViewStaffPresence && (
+            <div>
+              <div className="section-label" style={{ marginBottom: 14 }}>Staff Presence</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                {staff.length === 0 ? (
+                  <div className="bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 p-4 rounded-xl flex justify-between items-center w-full">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <Icons.Users size={16} color="currentColor" />
+                      </div>
+                      <span className="text-[14px] font-semibold text-blue-900 dark:text-blue-200">Track your team&apos;s live performance.</span>
                     </div>
-                    <span className="text-[14px] font-semibold text-blue-900 dark:text-blue-200">Track your team&apos;s live performance.</span>
+                    <Link href={`${dashBase}/staff`} className="qa-btn text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 shadow-sm">
+                      <Icons.UserPlus size={13} color="currentColor" /> Add Staff Member
+                    </Link>
                   </div>
-                  <Link href={`${dashBase}/staff`} className="qa-btn text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 shadow-sm">
-                    <Icons.UserPlus size={13} color="currentColor" /> Add Staff Member
-                  </Link>
-                </div>
-              ) : staff.map(s => {
-                const name = s.first_name ? `${s.first_name} ${s.last_name || ""}`.trim() : s.email.split('@')[0];
-                const isOnline = Boolean(s.last_active_at && Date.now() - new Date(s.last_active_at).getTime() < 120000);
-                return (
-                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 99, padding: "6px 16px 6px 6px", boxShadow: "0 1px 2px rgba(0,0,0,.02)" }}>
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.brandLight, color: C.brand, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>
-                      {name.substring(0, 2).toUpperCase()}
+                ) : staff.map(s => {
+                  const name = s.first_name ? `${s.first_name} ${s.last_name || ""}`.trim() : s.email.split('@')[0];
+                  const isOnline = Boolean(s.last_active_at && Date.now() - new Date(s.last_active_at).getTime() < 120000);
+                  return (
+                    <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 99, padding: "6px 16px 6px 6px", boxShadow: "0 1px 2px rgba(0,0,0,.02)" }}>
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.brandLight, color: C.brand, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>
+                        {name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <span className="capitalize" style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{name}</span>
+                      <span style={{
+                        marginLeft: 4,
+                        display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px",
+                        borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
+                        background: isOnline ? "var(--q-green-bg)" : "var(--q-slate-bg)",
+                        color: isOnline ? "var(--q-green)" : "var(--q-text-muted)",
+                        border: `1px solid ${isOnline ? "var(--q-green-border)" : "var(--q-border-light)"}`
+                      }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: isOnline ? "var(--q-green)" : "var(--q-text-muted)", flexShrink: 0 }} />
+                        {isOnline ? "Online" : "Offline"}
+                      </span>
                     </div>
-                    <span className="capitalize" style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{name}</span>
-                    <span style={{
-                      marginLeft: 4,
-                      display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px",
-                      borderRadius: 99, fontSize: 11, fontWeight: 600, letterSpacing: ".02em",
-                      background: isOnline ? "var(--q-green-bg)" : "var(--q-slate-bg)",
-                      color: isOnline ? "var(--q-green)" : "var(--q-text-muted)",
-                      border: `1px solid ${isOnline ? "var(--q-green-border)" : "var(--q-border-light)"}`
-                    }}>
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: isOnline ? "var(--q-green)" : "var(--q-text-muted)", flexShrink: 0 }} />
-                      {isOnline ? "Online" : "Offline"}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ══ QUEUE BREAKDOWN TABLE ═════════════════════════════ */}
           {queueStats.length > 0 && (() => {
@@ -1108,7 +1158,7 @@ export default function OverviewPage() {
             const grandTotal = queueStats.reduce((s, q) => s + q.total, 0);
             const overallPct = grandTotal > 0 ? Math.round((totalServed / grandTotal) * 100) : 0;
             return (
-              <div style={{ marginTop: 32 }}>
+              <div style={{ marginTop: canViewStaffPresence ? 16 : 0 }}>
                 <div className="section-label" style={{ marginBottom: 14 }}>Queue Summary</div>
                 <div className="card" style={{ overflow: "hidden" }}>
                   <div className="card-header" style={{ flexWrap: "wrap", gap: "10px" }}>
@@ -1292,16 +1342,29 @@ export default function OverviewPage() {
                   <div key={i} className="shimmer" style={{ height: 48, width: `${w}%`, borderRadius: 8 }} />
                 ))}
               </div>
-            ) : overview?.recent_activity?.length ? (
+            ) : totalRecentActivities === 0 && (!overview?.recent_activity || overview.recent_activity.length === 0) ? (
+              <div className="flex flex-col items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl m-5">
+                <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center mb-4">
+                  <Icons.Activity size={24} color="currentColor" />
+                </div>
+                <h3 className="text-[15px] font-bold text-slate-900 dark:text-white mb-1">No recent activity</h3>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 text-center max-w-sm mb-5">
+                  Activity will appear once your queue session begins.
+                </p>
+                <Link href={`${dashBase}/queues?action=create`} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-bold cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white border border-transparent transition-all shadow-sm hover:-translate-y-0.5 hover:shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
+                  <Icons.Play size={14} color="currentColor" /> Start Session
+                </Link>
+              </div>
+            ) : (
               <>
                 {/* Filter tabs */}
                 <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
                   <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
                     {[
-                      { id: "all", lbl: "All", count: overview.recent_activity.length },
-                      { id: "waiting", lbl: "Waiting", count: overview.recent_activity.filter(a => a.status === "waiting").length },
-                      { id: "serving", lbl: "Serving", count: overview.recent_activity.filter(a => a.status === "serving").length },
-                      { id: "done", lbl: "Done", count: overview.recent_activity.filter(a => a.status === "done").length },
+                      { id: "all", lbl: "All", count: overview?.recent_activity?.length || 0 },
+                      { id: "waiting", lbl: "Waiting", count: (overview?.recent_activity || []).filter(a => a.status === "waiting").length },
+                      { id: "serving", lbl: "Serving", count: (overview?.recent_activity || []).filter(a => a.status === "serving").length },
+                      { id: "done", lbl: "Done", count: (overview?.recent_activity || []).filter(a => a.status === "done").length },
                     ].map(t => {
                       const isActive = feedFilter === t.id;
                       
@@ -1326,12 +1389,11 @@ export default function OverviewPage() {
                         activeColors = "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900/40 text-indigo-700 dark:text-indigo-400 shadow-sm";
                       }
 
-
                       return (
                         <button
                           key={t.id}
                           onClick={() => setFeedFilter(t.id as typeof feedFilter)}
-                          className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold border transition-all ${isActive ? activeColors : baseColors}`}
+                          className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold border transition-all cursor-pointer ${isActive ? activeColors : baseColors}`}
                         >
                           {t.lbl}
                           <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums transition-colors ${isActive ? badgeActiveColors : badgeColors}`}>
@@ -1355,55 +1417,88 @@ export default function OverviewPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {overview.recent_activity.filter(a => feedFilter === "all" || a.status === feedFilter).map((act, idx) => {
-                        return (
-                          <tr
-                            key={idx}
-                            className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer fade-in"
-                            onClick={() => setDrawerAct(act)}
-                            style={{ animationDelay: `${idx * 15}ms` }}
-                          >
-                            <td className="py-4 px-5">
-                              <span className="text-[13px] font-bold text-slate-900 dark:text-white tabular-nums">
-                                {act.prefix}{act.number}
-                              </span>
-                            </td>
-                            <td className="py-4 px-5">
-                              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                <div style={{
-                                  width: 32, height: 32, borderRadius: "50%",
-                                  background: C.brandLight, color: C.brand,
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                  fontSize: 11, fontWeight: 700
-                                }}>
-                                  {statusLabel(act).substring(0, 2).toUpperCase()}
+                      {(() => {
+                        const filtered = (overview?.recent_activity || []).filter(a => feedFilter === "all" || a.status === feedFilter);
+                        if (filtered.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={5} className="py-12 text-center">
+                                <div className="flex flex-col items-center justify-center gap-2">
+                                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                                    {feedFilter !== "all"
+                                      ? `No ${feedFilter} activities found on page ${recentPage}`
+                                      : `No activity records found on page ${recentPage}`}
+                                  </p>
+                                  {recentPage > 1 ? (
+                                    <button
+                                      onClick={() => setRecentPage(1)}
+                                      className="mt-1 px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Icons.ArrowLeft size={12} /> Go back to Page 1
+                                    </button>
+                                  ) : feedFilter !== "all" ? (
+                                    <button
+                                      onClick={() => setFeedFilter("all")}
+                                      className="mt-1 px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                                    >
+                                      View all activities
+                                    </button>
+                                  ) : null}
                                 </div>
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                  <span className="capitalize text-slate-900 dark:text-white" style={{ fontSize: 13, fontWeight: 600, letterSpacing: "-.01em" }}>
-                                    {statusLabel(act)}
-                                  </span>
+                              </td>
+                            </tr>
+                          );
+                        }
+                        return filtered.map((act, idx) => {
+                          return (
+                            <tr
+                              key={idx}
+                              className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer fade-in"
+                              onClick={() => setDrawerAct(act)}
+                              style={{ animationDelay: `${idx * 15}ms` }}
+                            >
+                              <td className="py-4 px-5">
+                                <span className="text-[13px] font-bold text-slate-900 dark:text-white tabular-nums">
+                                  {act.prefix}{act.number}
+                                </span>
+                              </td>
+                              <td className="py-4 px-5">
+                                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                  <div style={{
+                                    width: 32, height: 32, borderRadius: "50%",
+                                    background: C.brandLight, color: C.brand,
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    fontSize: 11, fontWeight: 700
+                                  }}>
+                                    {statusLabel(act).substring(0, 2).toUpperCase()}
+                                  </div>
+                                  <div style={{ display: "flex", flexDirection: "column" }}>
+                                    <span className="capitalize text-slate-900 dark:text-white" style={{ fontSize: 13, fontWeight: 600, letterSpacing: "-.01em" }}>
+                                      {statusLabel(act)}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-5">
-                              <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 500 }}>{toTitleCase(act.queue)}</span>
-                            </td>
-                            <td className="py-4 px-5">
-                              <span style={{
-                                background: act.status === 'done' ? 'var(--q-green-bg)' : act.status === 'waiting' ? 'var(--q-amber-bg)' : act.status === 'serving' ? 'var(--q-blue-bg)' : 'var(--q-slate-bg)',
-                                color: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
-                              }} className="inline-flex items-center justify-center px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wider rounded-full border border-black/5 dark:border-white/5">
-                                {act.status}
-                              </span>
-                            </td>
-                            <td className="py-4 px-5 text-right">
-                              <span className="mono tnum text-[12px] font-medium text-slate-500">
-                                {act.time ? fmtTime(act.time, tz) : "Just now"}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              </td>
+                              <td className="py-4 px-5">
+                                <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 500 }}>{toTitleCase(act.queue)}</span>
+                              </td>
+                              <td className="py-4 px-5">
+                                <span style={{
+                                  background: act.status === 'done' ? 'var(--q-green-bg)' : act.status === 'waiting' ? 'var(--q-amber-bg)' : act.status === 'serving' ? 'var(--q-blue-bg)' : 'var(--q-slate-bg)',
+                                  color: act.status === 'done' ? 'var(--q-green)' : act.status === 'waiting' ? 'var(--q-amber)' : act.status === 'serving' ? 'var(--q-blue)' : 'var(--q-text-muted)'
+                                }} className="inline-flex items-center justify-center px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wider rounded-full border border-black/5 dark:border-white/5">
+                                  {act.status}
+                                </span>
+                              </td>
+                              <td className="py-4 px-5 text-right">
+                                <span className="mono tnum text-[12px] font-medium text-slate-500">
+                                  {act.time ? fmtTime(act.time, tz) : "Just now"}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
                     </tbody>
                   </table>
                 </div>
@@ -1411,36 +1506,30 @@ export default function OverviewPage() {
                 <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
                   <button 
                     onClick={() => setRecentPage(p => Math.max(1, p - 1))} 
-                    disabled={recentPage === 1 || isLoading} 
+                    disabled={recentPage <= 1 || isLoading} 
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Icons.ArrowLeft size={12} color="currentColor" /> Prev
                   </button>
-                  <span className="tabular-nums text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                    Page {recentPage}
-                  </span>
+                  <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                    <span>
+                      Page {recentPage} of {totalPages}
+                    </span>
+                    {totalRecentActivities > 0 && (
+                      <span className="hidden sm:inline text-slate-400 dark:text-slate-500">
+                        ({Math.min((recentPage - 1) * LIMIT + 1, totalRecentActivities)}–{Math.min(recentPage * LIMIT, totalRecentActivities)} of {totalRecentActivities})
+                      </span>
+                    )}
+                  </div>
                   <button 
                     onClick={() => setRecentPage(p => p + 1)} 
-                    disabled={(overview?.recent_activity?.length || 0) < LIMIT || isLoading} 
+                    disabled={recentPage >= totalPages || isLoading} 
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next <Icons.ArrowRight size={12} color="currentColor" />
                   </button>
                 </div>
               </>
-            ) : (
-              <div className="flex flex-col items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl m-5">
-                <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center mb-4">
-                  <Icons.Activity size={24} color="currentColor" />
-                </div>
-                <h3 className="text-[15px] font-bold text-slate-900 dark:text-white mb-1">No recent activity</h3>
-                <p className="text-[13px] text-slate-500 dark:text-slate-400 text-center max-w-sm mb-5">
-                  Activity will appear once your queue session begins.
-                </p>
-                <Link href={`${dashBase}/queues?action=create`} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-bold cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white border border-transparent transition-all shadow-sm hover:-translate-y-0.5 hover:shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
-                  <Icons.Play size={14} color="currentColor" /> Start Session
-                </Link>
-              </div>
             )}
           </div>
         </div>
@@ -1543,14 +1632,16 @@ export default function OverviewPage() {
 
 function MetricCard({
   label, value, Icon, trend, color, bg, border, valueColor,
-  pulse, muted, isLoading, suffix = "", subtext, comparisonLabel
+  pulse, muted, isLoading, suffix = "", subtext, comparisonLabel,
+  title
 }: {
-  label: string; value: number;
+  label: string; value: number | string;
   Icon: (p: IconProps) => React.ReactNode;
   trend: { up: boolean; pct: number } | null;
   color: string; bg: string; border: string; valueColor: string;
   pulse?: boolean; muted?: boolean; isLoading?: boolean; suffix?: string;
   subtext?: string; comparisonLabel?: string;
+  title?: string;
 }) {
   const gradientId = `wave-grad-${label.replace(/[^a-zA-Z0-9]/g, '')}`;
 
@@ -1571,17 +1662,20 @@ function MetricCard({
   const isBlue = color === "#2563eb" || color === "#3b82f6";
   const isGreen = color === "#059669" || color === "#10b981" || color === "#16a34a";
   const isRed = color === "#dc2626" || color === "#ef4444";
+  const isAmber = color === "#d97706" || color === "#eab308" || color === "#ca8a04";
 
   const containerDarkClass = isIndigo ? "dark:!bg-indigo-500/15 dark:!border-indigo-500/30"
     : isBlue ? "dark:!bg-blue-500/15 dark:!border-blue-500/30"
     : isGreen ? "dark:!bg-emerald-500/15 dark:!border-emerald-500/30"
     : isRed ? "dark:!bg-rose-500/15 dark:!border-rose-500/30"
+    : isAmber ? "dark:!bg-amber-500/15 dark:!border-amber-500/30"
     : "dark:!bg-white/10 dark:!border-white/15";
 
   const iconDarkClass = isIndigo ? "dark:!text-indigo-400"
     : isBlue ? "dark:!text-blue-400"
     : isGreen ? "dark:!text-emerald-400"
     : isRed ? "dark:!text-rose-400"
+    : isAmber ? "dark:!text-amber-400"
     : "dark:!text-slate-300";
 
   return (
@@ -1625,6 +1719,7 @@ function MetricCard({
       <div className="relative z-10 flex items-start justify-between gap-3 mb-4" style={{ minHeight: 44 }}>
         <span 
           className="font-semibold leading-tight text-slate-600 dark:text-slate-400 text-[13px] tracking-tight pt-[2px]" 
+          title={title}
         >
           {label}
         </span>
@@ -1645,7 +1740,7 @@ function MetricCard({
           className="mono tnum tracking-tight text-[36px] font-extrabold leading-none dark:text-white"
           style={{ color: valueColor }}
         >
-          {value.toLocaleString()}
+          {typeof value === "number" ? value.toLocaleString() : value}
         </span>
         {suffix && <span className="text-[18px] font-semibold text-slate-500 dark:text-slate-400">{suffix}</span>}
       </div>

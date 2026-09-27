@@ -164,14 +164,20 @@ from app.schemas.session import SessionResponse, PaginatedSessionResponse, Sessi
 async def create_queue_session(
     queue_id: uuid.UUID,
     body: SessionCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> SessionResponse:
     """Create a new session for a queue on a specified date. Limit 1 session per day per queue."""
     from app.services.session_service import create_queue_session as create_session_service
     try:
         session = await create_session_service(
             db, queue_id=queue_id, org_id=current_user.org_id, data=body
+        )
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=session.queue_id,
+            org_id=session.org_id,
         )
         return SessionResponse.model_validate(session)
     except ValueError as exc:
@@ -185,7 +191,7 @@ async def create_queue_session(
 async def get_active_session(
     queue_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> SessionResponse:
     """Return the queue's current session without mutating operational state."""
     queue = await queue_service.get_queue_or_404(
@@ -208,7 +214,7 @@ async def get_active_session(
 async def ensure_active_session(
     queue_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_branch_admin()),
+    current_user: User = Depends(require_branch_admin_or_staff()),
 ) -> SessionResponse:
     """Explicit command for creating today's session; never reopens an ended one."""
     from app.services.session_service import get_or_create_active_session
@@ -295,7 +301,7 @@ async def update_queue_details(
     data: QueueUpdate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_admin_queue_for_org),
+    queue: Queue = Depends(get_admin_or_staff_queue_for_org),
 ) -> QueueResponse:
     """
     Update queue details like name, prefix, and timings.
@@ -334,7 +340,7 @@ async def toggle_queue_active(
     is_active: bool,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_admin_queue_for_org),
+    queue: Queue = Depends(get_admin_or_staff_queue_for_org),
 ) -> QueueResponse:
     """
     Activate or deactivate a queue.
@@ -363,7 +369,7 @@ async def toggle_queue_paused(
     is_paused: bool,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_admin_queue_for_org),
+    queue: Queue = Depends(get_admin_or_staff_queue_for_org),
 ) -> QueueResponse:
     """
     Pause or resume a queue.
@@ -393,7 +399,7 @@ async def update_queue_announcement(
     body: AnnouncementUpdate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    queue: Queue = Depends(get_admin_queue_for_org),
+    queue: Queue = Depends(get_admin_or_staff_queue_for_org),
 ) -> QueueResponse:
     """
     Update the announcement for a queue.
@@ -793,7 +799,12 @@ async def admin_join(
     try:
         body = body.model_copy(update={"entry_type": "manual", "session_id": None})
         result = await token_service.join_queue(
-            db, queue_id=queue.id, data=body, bypass_duplicate_check=True, bypass_operating_hours=True
+            db,
+            queue_id=queue.id,
+            data=body,
+            bypass_duplicate_check=bool(body.force_new),
+            bypass_operating_hours=True,
+            raise_on_duplicate=True,
         )
         await db.commit()
         background_tasks.add_task(

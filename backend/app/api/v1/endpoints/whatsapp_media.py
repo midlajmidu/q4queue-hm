@@ -54,6 +54,7 @@ async def get_whatsapp_ticket_image(
         # Calculate people ahead
         ahead_stmt = select(func.count()).where(
             Token.queue_id == token.queue_id,
+            Token.session_id == token.session_id,
             Token.status == 'waiting',
             Token.token_number < token.token_number
         )

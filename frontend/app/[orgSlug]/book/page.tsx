@@ -23,8 +23,15 @@ import {
     ChevronLeft,
     CalendarCheck,
     X,
-    Copy
+    Copy,
+    CalendarX,
+    MapPin,
+    RotateCw,
+    Store,
+    Settings,
+    PhoneCall
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type {
     BranchDirectoryResponse,
@@ -65,10 +72,86 @@ function formatFullDate(dateStr: string): string {
     }
 }
 
+function formatPhoneNumber(phone?: string | null): string {
+    if (!phone) return "";
+    const cleaned = phone.trim();
+    const digits = cleaned.replace(/\D/g, "");
+    if (cleaned.startsWith("+91") && digits.length === 12) {
+        return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+    }
+    if (digits.length === 10) {
+        return `${digits.slice(0, 5)} ${digits.slice(5)}`;
+    }
+    return cleaned;
+}
+
+function validateField(field: CustomField, val: any): string | null {
+    const isName = field.key === "name" || field.key === "full_name" || field.label.toLowerCase().includes("name");
+    const isPhone = field.key === "phone" || field.key === "phone_number" || field.type === "phone" || field.label.toLowerCase().includes("phone");
+    const isEmail = field.key === "email" || field.type === "email" || field.label.toLowerCase().includes("email");
+    const isPax = field.key === "pax" || field.key === "pax_count" || field.key === "party_size" || field.key === "guest_count" || field.key === "group_size" || field.label.toLowerCase().includes("pax") || field.label.toLowerCase().includes("people") || field.label.toLowerCase().includes("guest") || field.label.toLowerCase().includes("party");
+
+    const strVal = val !== undefined && val !== null ? String(val).trim() : "";
+
+    if (isName) {
+        if (!strVal) return "Full name is required";
+        if (strVal.length < 2) return "Name must be at least 2 characters";
+        if (strVal.length > 60) return "Name cannot exceed 60 characters";
+        if (!/^[\p{L}\s\.\'\-]+$/u.test(strVal)) {
+            return "Name must contain only letters, spaces, and hyphens";
+        }
+        return null;
+    }
+
+    if (isPhone) {
+        if (!strVal) return "Phone number is required";
+        const digits = strVal.replace(/\D/g, "");
+        if (digits.length < 7 || digits.length > 15) {
+            return "Enter a valid phone number (7-15 digits)";
+        }
+        return null;
+    }
+
+    if (isPax) {
+        if (!strVal) return "Number of people is required";
+        const num = parseInt(strVal, 10);
+        if (isNaN(num) || num < 1 || num > 99) {
+            return "Number of people must be between 1 and 99";
+        }
+        return null;
+    }
+
+    if (isEmail) {
+        if (strVal) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(strVal)) {
+                return "Enter a valid email address";
+            }
+        } else if (field.required) {
+            return "Email address is required";
+        }
+        return null;
+    }
+
+    if (field.required && !strVal) {
+        return `${field.label} is required`;
+    }
+
+    if (field.type === "number" && strVal) {
+        const num = parseInt(strVal, 10);
+        if (isNaN(num) || num < 1) {
+            return `${field.label} must be a valid positive number`;
+        }
+    }
+
+    return null;
+}
+
 function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const queryQueueId = searchParams.get("queueId") || searchParams.get("queue");
+    const { user } = useAuth();
 
     const [branch, setBranch] = useState<BranchDirectoryResponse | null>(null);
     const [loadingBranch, setLoadingBranch] = useState(true);
@@ -84,8 +167,9 @@ function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
 
-    // Dynamic Form values map
-    const [formValues, setFormValues] = useState<Record<string, any>>({});
+    // Dynamic Form values map & validation state
+    const [formValues, setFormValues] = useState<Record<string, any>>({ pax: "1" });
+    const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [bookedAppointment, setBookedAppointment] = useState<AppointmentResponse | null>(null);
@@ -250,6 +334,19 @@ function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
 
     const hasMultipleBranches = useMemo(() => Object.keys(groupedQueues).length > 1, [groupedQueues]);
 
+    const fieldErrors = useMemo(() => {
+        const errs: Record<string, string | null> = {};
+        for (const f of effectiveFields) {
+            const isPax = f.key === "pax" || f.key === "pax_count" || f.key === "party_size" || f.key === "guest_count" || f.key === "group_size" || f.label.toLowerCase().includes("pax") || f.label.toLowerCase().includes("people") || f.label.toLowerCase().includes("guest") || f.label.toLowerCase().includes("party");
+            const val = formValues[f.key] ?? (isPax ? "1" : "");
+            const err = validateField(f, val);
+            if (err) errs[f.key] = err;
+        }
+        return errs;
+    }, [effectiveFields, formValues]);
+
+    const hasFormErrors = Object.keys(fieldErrors).length > 0;
+
     const handleSelectQueue = (queueId: string) => {
         const q = branch?.queues.find((item) => item.id === queueId);
         if (q) {
@@ -258,7 +355,10 @@ function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
             setFormValues((prev) => ({
                 name: prev.name || prev.full_name,
                 phone: prev.phone || prev.phone_number,
+                pax: prev.pax || "1",
             }));
+            setTouchedFields({});
+            setErrorMsg(null);
             const tz = branch?.timezone || "Asia/Kolkata";
             const qToday = queueBusinessDate(tz, q.open_time, q.close_time);
             setSelectedDate(qToday);
@@ -274,9 +374,40 @@ function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
 
     const handleBook = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedQueue || !selectedSlot) {
+        if (!selectedQueue) {
+            setErrorMsg("Please select a service before booking an appointment");
+            return;
+        }
+        if (!selectedSlot) {
             setErrorMsg("Please choose an available time slot for your appointment");
             return;
+        }
+        if (!selectedSlot.available) {
+            setErrorMsg("The selected time slot is no longer available. Please select another slot.");
+            return;
+        }
+
+        // Mark all fields touched
+        const allTouched: Record<string, boolean> = {};
+        for (const f of effectiveFields) {
+            allTouched[f.key] = true;
+        }
+        setTouchedFields(allTouched);
+
+        // Check for field errors
+        for (const f of effectiveFields) {
+            const isPax = f.key === "pax" || f.key === "pax_count" || f.key === "party_size" || f.key === "guest_count" || f.key === "group_size" || f.label.toLowerCase().includes("pax") || f.label.toLowerCase().includes("people") || f.label.toLowerCase().includes("guest") || f.label.toLowerCase().includes("party");
+            const val = formValues[f.key] ?? (isPax ? "1" : "");
+            const err = validateField(f, val);
+            if (err) {
+                setErrorMsg(err);
+                const el = document.getElementById(`field-${f.key}`);
+                if (el) {
+                    el.focus();
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+                return;
+            }
         }
 
         // Resolve Name
@@ -284,20 +415,12 @@ function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
             (f) => f.key === "name" || f.key === "full_name" || f.label.toLowerCase().includes("name")
         );
         const resolvedName = (nameField ? formValues[nameField.key] : "") || formValues["name"] || "";
-        if (!resolvedName || !String(resolvedName).trim()) {
-            setErrorMsg("Please enter your full name");
-            return;
-        }
 
         // Resolve Phone
         const phoneField = effectiveFields.find(
             (f) => f.key === "phone" || f.key === "phone_number" || f.type === "phone" || f.label.toLowerCase().includes("phone")
         );
         const resolvedPhone = (phoneField ? formValues[phoneField.key] : "") || formValues["phone"] || "";
-        if (!resolvedPhone || !String(resolvedPhone).trim()) {
-            setErrorMsg("Please enter your phone number");
-            return;
-        }
 
         // Resolve Email
         const emailField = effectiveFields.find(
@@ -307,20 +430,9 @@ function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
 
         // Resolve Pax
         const paxField = effectiveFields.find(
-            (f) => f.key === "pax" || f.key === "pax_count" || f.label.toLowerCase().includes("pax")
+            (f) => f.key === "pax" || f.key === "pax_count" || f.key === "party_size" || f.key === "guest_count" || f.key === "group_size" || f.label.toLowerCase().includes("pax") || f.label.toLowerCase().includes("people") || f.label.toLowerCase().includes("guest") || f.label.toLowerCase().includes("party")
         );
         const resolvedPax = paxField && formValues[paxField.key] ? parseInt(formValues[paxField.key], 10) || 1 : 1;
-
-        // Validate all required fields
-        for (const f of effectiveFields) {
-            if (f.required) {
-                const val = formValues[f.key];
-                if (val === undefined || val === null || String(val).trim() === "") {
-                    setErrorMsg(`Please fill in required field: ${f.label}`);
-                    return;
-                }
-            }
-        }
 
         const customData: Record<string, any> = {};
         for (const f of effectiveFields) {
@@ -367,15 +479,211 @@ function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
     }
 
     if (!branch || branch.queues.length === 0) {
+        const displayName = branch?.parent_org_name || branch?.branch_name || branch?.org_name || "This Location";
+        const branchSubtitle = branch?.branch_name && branch?.parent_org_name && branch.branch_name !== branch.parent_org_name
+            ? `${branch.branch_name} • ${branch.parent_org_name}`
+            : (branch?.branch_name || branch?.org_name || displayName);
+        const hasPhone = Boolean(branch?.phone_number);
+        const hasAddress = Boolean(branch?.address);
+        const isStaff = Boolean(user && (user.org_slug === orgSlug || user.role === "org_admin" || user.role === "super_admin"));
+
         return (
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
-                <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-white/10 text-center shadow-lg">
-                    <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Online Booking Unavailable</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                        There are currently no services available for online appointment bookings at this location.
+            <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between relative overflow-hidden">
+                {/* Subtle Ambient Background Gradients */}
+                <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-indigo-500/5 via-slate-50/0 to-transparent pointer-events-none" />
+                <div className="absolute -top-32 right-1/2 translate-x-1/2 w-[600px] h-[350px] bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                {/* Top Minimalist Brand Header */}
+                <header className="relative z-10 w-full border-b border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
+                    <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            {branch?.logo_url ? (
+                                <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 p-0.5 flex items-center justify-center shrink-0">
+                                    <Image
+                                        src={branch.logo_url}
+                                        alt={displayName}
+                                        width={36}
+                                        height={36}
+                                        className="w-full h-full object-contain rounded-lg"
+                                        unoptimized
+                                    />
+                                </div>
+                            ) : (
+                                <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0 text-sm shadow-xs">
+                                    {displayName.charAt(0).toUpperCase()}
+                                </div>
+                            )}
+                            <div>
+                                <h2 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                                    {displayName}
+                                </h2>
+                                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                    Appointment Booking Portal
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                Booking Offline
+                            </span>
+                        </div>
+                    </div>
+                </header>
+
+                {/* Main Card Content */}
+                <main className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-1 flex flex-col justify-center">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-none p-6 sm:p-10 text-center animate-in fade-in duration-300">
+                        {/* Hero Icon Badge */}
+                        <div className="flex justify-center mb-5">
+                            <div className="relative">
+                                <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-xs">
+                                    <CalendarX className="w-8 h-8" />
+                                </div>
+                                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-xs">
+                                    <Clock className="w-3.5 h-3.5" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Title & Subtitle */}
+                        <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                            Online Appointments Currently Unavailable
+                        </h1>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-2.5 max-w-lg mx-auto leading-relaxed">
+                            Online scheduling is temporarily closed or not configured for{" "}
+                            <span className="font-semibold text-slate-900 dark:text-slate-200">{branchSubtitle}</span>.
+                            You can still receive service through our in-person walk-in queue or direct phone booking.
+                        </p>
+
+                        {/* Service Channels (Clean 2-Column Cards) */}
+                        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                            {/* Card 1: In-Person Walk-in */}
+                            <div className="p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/5 flex flex-col justify-between transition-all hover:border-slate-300 dark:hover:border-white/10">
+                                <div>
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
+                                        <Store className="w-5 h-5" />
+                                    </div>
+                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                                        In-Person Walk-In
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                                        Visit the store directly during working hours to take a token at the entrance.
+                                    </p>
+                                    {hasAddress && (
+                                        <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-white/5 flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
+                                            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                                            <span className="leading-snug line-clamp-2">{branch?.address}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-4 pt-2">
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                        Walk-ins Welcome
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Card 2: Phone Booking & Inquiries */}
+                            <div className="p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/5 flex flex-col justify-between transition-all hover:border-slate-300 dark:hover:border-white/10">
+                                <div>
+                                    <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3">
+                                        <PhoneCall className="w-5 h-5" />
+                                    </div>
+                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                                        Direct Inquiries
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                                        Contact our customer desk to confirm availability or schedule over the phone.
+                                    </p>
+                                    {hasPhone && (
+                                        <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-white/5 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+                                            <Phone className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                            <span>{formatPhoneNumber(branch?.phone_number)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-4 pt-2">
+                                    {hasPhone ? (
+                                        <a
+                                            href={`tel:${branch?.phone_number}`}
+                                            className="w-full py-2.5 px-3.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                        >
+                                            <Phone className="w-3.5 h-3.5" />
+                                            Call Branch
+                                        </a>
+                                    ) : (
+                                        <span className="text-xs text-slate-400">Phone not listed</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Secondary Actions Row */}
+                        <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-center gap-3">
+                            <button
+                                onClick={() => {
+                                    setLoadingBranch(true);
+                                    api.getBranchDirectory(orgSlug)
+                                        .then(data => setBranch(data))
+                                        .catch(() => toast.error("Could not refresh status"))
+                                        .finally(() => setLoadingBranch(false));
+                                }}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            >
+                                <RotateCw className="w-3.5 h-3.5" />
+                                Check Availability Again
+                            </button>
+                        </div>
+
+                        {/* Staff / Administrator Note */}
+                        {isStaff ? (
+                            <div className="mt-6 p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/50 text-left flex items-start gap-3.5">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                    <Settings className="w-4 h-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                                        Staff Notice: Appointments Disabled
+                                    </h4>
+                                    <p className="text-xs text-indigo-700 dark:text-indigo-300/90 mt-0.5 leading-relaxed">
+                                        To start accepting bookings on this public link, enable <strong>&ldquo;Allow Online Appointments&rdquo;</strong> inside your queue settings.
+                                    </p>
+                                    <button
+                                        onClick={() => router.push(`/${orgSlug}/dashboard/queues`)}
+                                        className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+                                    >
+                                        Configure Queue Settings <ArrowRight className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mt-6 pt-4 text-center">
+                                <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                                    Are you a staff member?{" "}
+                                    <button
+                                        onClick={() => router.push("/login")}
+                                        className="text-slate-600 dark:text-slate-400 font-semibold underline hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        Sign in to dashboard
+                                    </button>
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </main>
+
+                {/* Minimalist Professional Footer */}
+                <footer className="relative z-10 w-full py-5 text-center text-xs text-slate-400 dark:text-slate-600 border-t border-slate-200/40 dark:border-white/5">
+                    <p className="flex items-center justify-center gap-1.5">
+                        <span>Powered by</span>
+                        <span className="font-bold text-slate-600 dark:text-slate-400">Q4Queue</span>
+                        <span>•</span>
+                        <span>Intelligent Waitlist & Appointment System</span>
                     </p>
-                </div>
+                </footer>
             </div>
         );
     }
@@ -721,46 +1029,73 @@ function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
                                     </h3>
                                 </div>
 
-                                <div className="space-y-3">
+                                <div className="space-y-3.5">
                                     {effectiveFields.map((field) => {
                                         const isName = field.key === "name" || field.key === "full_name" || field.label.toLowerCase().includes("name");
                                         const isPhone = field.key === "phone" || field.key === "phone_number" || field.type === "phone" || field.label.toLowerCase().includes("phone");
                                         const isEmail = field.key === "email" || field.type === "email" || field.label.toLowerCase().includes("email");
-                                        const isPax = field.key === "pax" || field.key === "pax_count" || field.label.toLowerCase().includes("pax");
+                                        const isPax = field.key === "pax" || field.key === "pax_count" || field.key === "party_size" || field.key === "guest_count" || field.key === "group_size" || field.label.toLowerCase().includes("pax") || field.label.toLowerCase().includes("people") || field.label.toLowerCase().includes("guest") || field.label.toLowerCase().includes("party");
 
-                                        const val = formValues[field.key] ?? (isPax ? 1 : "");
+                                        const val = formValues[field.key] ?? (isPax ? "1" : "");
+                                        const isTouched = Boolean(touchedFields[field.key]);
+                                        const error = isTouched ? fieldErrors[field.key] : null;
 
                                         return (
                                             <div key={field.id || field.key}>
-                                                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
-                                                    {field.label} {field.required && "*"}
-                                                </label>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <label htmlFor={`field-${field.key}`} className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                                        {field.label} {field.required && <span className="text-rose-500 font-bold">*</span>}
+                                                    </label>
+                                                    {isPax && (
+                                                        <span className="text-[10px] text-slate-400 font-medium">1 - 99 guests</span>
+                                                    )}
+                                                </div>
                                                 <div className="relative">
                                                     {isName ? (
-                                                        <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                                        <User className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors ${error ? "text-rose-400" : "text-slate-400"}`} />
                                                     ) : isPhone ? (
-                                                        <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                                        <Phone className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors ${error ? "text-rose-400" : "text-slate-400"}`} />
                                                     ) : isEmail ? (
-                                                        <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                                        <Mail className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors ${error ? "text-rose-400" : "text-slate-400"}`} />
                                                     ) : isPax ? (
-                                                        <Users className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                                        <Users className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors ${error ? "text-rose-400" : "text-slate-400"}`} />
                                                     ) : null}
 
                                                     {field.type === "textarea" ? (
                                                         <textarea
+                                                            id={`field-${field.key}`}
                                                             required={field.required}
                                                             value={val}
-                                                            onChange={(e) => setFormValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                                                            onBlur={() => setTouchedFields((prev) => ({ ...prev, [field.key]: true }))}
+                                                            onChange={(e) => {
+                                                                setFormValues((prev) => ({ ...prev, [field.key]: e.target.value }));
+                                                                setTouchedFields((prev) => ({ ...prev, [field.key]: true }));
+                                                                if (errorMsg) setErrorMsg(null);
+                                                            }}
                                                             placeholder={`Enter ${field.label.toLowerCase()}...`}
                                                             rows={2}
-                                                            className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/10 text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                                                            className={`w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border text-sm font-medium text-slate-900 dark:text-white focus:outline-none transition-all ${
+                                                                error
+                                                                    ? "border-rose-400 dark:border-rose-500 focus:ring-2 focus:ring-rose-500/20 bg-rose-50/20 dark:bg-rose-950/20"
+                                                                    : "border-slate-200/80 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800"
+                                                            }`}
                                                         />
                                                     ) : field.type === "select" && field.options ? (
                                                         <select
+                                                            id={`field-${field.key}`}
                                                             required={field.required}
                                                             value={val}
-                                                            onChange={(e) => setFormValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                                                            className="w-full px-3.5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/10 text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all cursor-pointer"
+                                                            onBlur={() => setTouchedFields((prev) => ({ ...prev, [field.key]: true }))}
+                                                            onChange={(e) => {
+                                                                setFormValues((prev) => ({ ...prev, [field.key]: e.target.value }));
+                                                                setTouchedFields((prev) => ({ ...prev, [field.key]: true }));
+                                                                if (errorMsg) setErrorMsg(null);
+                                                            }}
+                                                            className={`w-full px-3.5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border text-sm font-medium text-slate-900 dark:text-white focus:outline-none transition-all cursor-pointer ${
+                                                                error
+                                                                    ? "border-rose-400 dark:border-rose-500 focus:ring-2 focus:ring-rose-500/20 bg-rose-50/20 dark:bg-rose-950/20"
+                                                                    : "border-slate-200/80 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800"
+                                                            }`}
                                                         >
                                                             <option value="">Select {field.label}...</option>
                                                             {field.options.map((opt) => (
@@ -769,12 +1104,30 @@ function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
                                                         </select>
                                                     ) : (
                                                         <input
-                                                            type={field.type === "number" || isPax ? "number" : field.type === "date" ? "date" : field.type === "phone" || isPhone ? "tel" : field.type === "email" || isEmail ? "email" : "text"}
+                                                            id={`field-${field.key}`}
+                                                            type={isPax ? "text" : field.type === "date" ? "date" : field.type === "phone" || isPhone ? "tel" : field.type === "email" || isEmail ? "email" : field.type === "number" ? "number" : "text"}
+                                                            inputMode={isPax ? "numeric" : isPhone ? "tel" : isEmail ? "email" : field.type === "number" ? "numeric" : undefined}
+                                                            pattern={isPax ? "[0-9]*" : undefined}
+                                                            maxLength={isPax ? 2 : isPhone ? 18 : isName ? 60 : undefined}
                                                             required={field.required}
-                                                            min={field.type === "number" || isPax ? 1 : undefined}
-                                                            max={isPax ? 50 : undefined}
                                                             value={val}
-                                                            onChange={(e) => setFormValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                                                            onBlur={() => setTouchedFields((prev) => ({ ...prev, [field.key]: true }))}
+                                                            onChange={(e) => {
+                                                                let v = e.target.value;
+                                                                if (isPax) {
+                                                                    v = v.replace(/\D/g, "").slice(0, 2);
+                                                                    if (v && parseInt(v, 10) > 99) v = "99";
+                                                                } else if (isPhone) {
+                                                                    v = v.replace(/[^\d\+\s\-\(\)]/g, "").slice(0, 18);
+                                                                } else if (isName) {
+                                                                    v = v.slice(0, 60);
+                                                                } else if (field.type === "number") {
+                                                                    v = v.replace(/\D/g, "").slice(0, 6);
+                                                                }
+                                                                setFormValues((prev) => ({ ...prev, [field.key]: v }));
+                                                                setTouchedFields((prev) => ({ ...prev, [field.key]: true }));
+                                                                if (errorMsg) setErrorMsg(null);
+                                                            }}
                                                             placeholder={
                                                                 isName ? "Enter your full name" :
                                                                 isPhone ? "Enter your phone number" :
@@ -782,12 +1135,22 @@ function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
                                                                 isPax ? "1" :
                                                                 `Enter ${field.label.toLowerCase()}...`
                                                             }
-                                                            className={`w-full py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/10 text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800 transition-all ${
+                                                            className={`w-full py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border text-sm font-medium text-slate-900 dark:text-white focus:outline-none transition-all ${
                                                                 isName || isPhone || isEmail || isPax ? "pl-10 pr-3.5" : "px-3.5"
+                                                            } ${
+                                                                error
+                                                                    ? "border-rose-400 dark:border-rose-500 focus:ring-2 focus:ring-rose-500/20 bg-rose-50/20 dark:bg-rose-950/20"
+                                                                    : "border-slate-200/80 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-800"
                                                             }`}
                                                         />
                                                     )}
                                                 </div>
+                                                {error && (
+                                                    <p className="mt-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                        <span>{error}</span>
+                                                    </p>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -827,7 +1190,14 @@ function BranchBookingContent({ orgSlug }: { orgSlug: string }) {
                             )}
 
                             {/* ── Big CTA Button ── */}
-                            <div className="pt-2">
+                            <div className="pt-2 space-y-3">
+                                {errorMsg && (
+                                    <div className="p-3.5 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/40 rounded-2xl flex items-center gap-2.5 text-xs font-semibold text-rose-700 dark:text-rose-300 animate-in fade-in duration-150">
+                                        <AlertCircle className="w-4 h-4 shrink-0" />
+                                        <span>{errorMsg}</span>
+                                    </div>
+                                )}
+
                                 <button
                                     type="submit"
                                     disabled={submitting || !selectedSlot}

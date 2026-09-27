@@ -274,6 +274,7 @@ export interface AnalyticsOverview {
         skipped_at?: string | null;
         recalled_at?: string | null;
     }[];
+    total_recent_activity?: number;
     queue_summary?: {
         queue_id: string;
         queue: string;
@@ -1738,6 +1739,8 @@ export interface BranchDirectoryResponse {
     phone_number?: string | null;
     timezone: string;
     today_date?: string;
+    logo_url?: string | null;
+    brand_color?: string | null;
     queues: BranchDirectoryQueue[];
 }
 

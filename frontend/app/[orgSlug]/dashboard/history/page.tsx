@@ -465,7 +465,6 @@ export default function HistoryPage() {
                                     <th style={thStyle}>Wait Time</th>
                                     <th style={thStyle}>Service Time</th>
                                     <th style={thStyle}>Served By</th>
-                                    <th style={thStyle}>Custom Details</th>
                                     <th style={thStyle}></th>
                                 </tr>
                             </thead>
@@ -474,7 +473,7 @@ export default function HistoryPage() {
                                     Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
                                 ) : history.length === 0 ? (
                                     <tr>
-                                        <td colSpan={12} style={{ padding: "60px 24px", textAlign: "center" }}>
+                                        <td colSpan={11} style={{ padding: "60px 24px", textAlign: "center" }}>
                                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
                                                 <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--q-slate-bg)", border: "0.5px solid var(--q-border-light)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                     <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--q-text-muted)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
@@ -492,7 +491,11 @@ export default function HistoryPage() {
                                     </tr>
                                 ) : (
                                     history.map((h) => {
-                                        const waitSec = durationSeconds(h.created_at, h.served_at);
+                                        const waitSec = h.served_at
+                                            ? durationSeconds(h.created_at, h.served_at)
+                                            : ((h.status === "waiting" || h.status === "serving") && h.created_at
+                                                ? Math.max(0, Math.round((Date.now() - new Date(h.created_at).getTime()) / 1000))
+                                                : -1);
                                         return (
                                             <tr key={h.id} className="cl-row" style={{ transition: "background .1s" }}>
                                                 {/* Token */}
@@ -569,26 +572,6 @@ export default function HistoryPage() {
                                                 <td style={{ ...tdStyle, color: "var(--q-text-sub)", fontSize: 12, whiteSpace: "nowrap" }}>
                                                     {h.served_by_staff_name || <span style={{ color: "var(--q-text-muted)" }}>—</span>}
                                                 </td>
-                                                {/* Custom Details */}
-                                                <td style={{ ...tdStyle, fontSize: 12 }}>
-                                                    {h.custom_data && Object.keys(h.custom_data).some(k => !['name', 'full_name', 'phone', 'phone_number', 'pax', 'group_size'].includes(k)) ? (
-                                                        <div className="flex flex-wrap gap-1 max-w-xs">
-                                                            {Object.entries(h.custom_data).map(([k, v]) => {
-                                                                if (['name', 'full_name', 'phone', 'phone_number', 'pax', 'group_size'].includes(k) || v === null || v === "") return null;
-                                                                const schemaMatch = Array.isArray(h.field_schema) ? h.field_schema.find((f: any) => f?.key === k) : null;
-                                                                const label = schemaMatch?.label || k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                                                                const displayVal = typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v);
-                                                                return (
-                                                                    <span key={k} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-medium" title={`${label}: ${displayVal}`}>
-                                                                        <span className="font-semibold text-slate-500 dark:text-slate-400">{label}:</span> {displayVal}
-                                                                    </span>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    ) : (
-                                                        <span style={{ color: "var(--q-text-muted)" }}>—</span>
-                                                    )}
-                                                </td>
                                                 {/* View button */}
                                                 <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
                                                     <button
@@ -614,9 +597,12 @@ export default function HistoryPage() {
                                                             completed_by_staff_name: h.completed_by_staff_name,
                                                             custom_data: h.custom_data || null,
                                                             field_schema: h.field_schema || null,
+                                                            appointment_time: h.appointment_time || h.custom_data?.appointment_time || null,
+                                                            appointment_date: h.appointment_date || h.custom_data?.appointment_date || null,
+                                                            appointment_booking_ref: h.appointment_booking_ref || h.custom_data?.booking_reference || h.custom_data?.appointment_booking_ref || null,
                                                         })}
                                                         title="View full details"
-                                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-colors"
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:border-indigo-200 dark:border-indigo-800/50 transition-colors"
                                                     >
                                                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                         Details

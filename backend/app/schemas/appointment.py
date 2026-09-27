@@ -28,12 +28,12 @@ class AvailableSlotsResponse(BaseModel):
 
 class AppointmentCreate(BaseModel):
     """Customer-facing public booking request."""
-    customer_name: str = Field(..., min_length=1, max_length=120)
-    customer_phone: str = Field(..., min_length=10, max_length=20)
+    customer_name: str = Field(..., min_length=2, max_length=120)
+    customer_phone: str = Field(..., min_length=7, max_length=25)
     customer_email: Optional[str] = Field(None, max_length=120)
     appointment_date: date
     start_time: str = Field(..., pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
-    pax_count: int = Field(default=1, ge=1, le=50)
+    pax_count: int = Field(default=1, ge=1, le=99)
     custom_data: Optional[Dict[str, Any]] = None
     security_pin: Optional[str] = Field(None, max_length=10)
 
@@ -41,12 +41,12 @@ class AppointmentCreate(BaseModel):
 class StaffAppointmentCreate(BaseModel):
     """Staff/admin manual booking request."""
     queue_id: uuid.UUID
-    customer_name: str = Field(..., min_length=1, max_length=120)
-    customer_phone: str = Field(..., min_length=10, max_length=20)
+    customer_name: str = Field(..., min_length=2, max_length=120)
+    customer_phone: str = Field(..., min_length=7, max_length=25)
     customer_email: Optional[str] = Field(None, max_length=120)
     appointment_date: date
     start_time: str = Field(..., pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
-    pax_count: int = Field(default=1, ge=1, le=50)
+    pax_count: int = Field(default=1, ge=1, le=99)
     custom_data: Optional[Dict[str, Any]] = None
     notes: Optional[str] = None
 
