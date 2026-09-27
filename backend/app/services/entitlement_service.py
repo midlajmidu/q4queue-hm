@@ -120,9 +120,17 @@ async def assert_resource_capacity(db: AsyncSession, org_id: uuid.UUID, key: str
         return
     entitlement = await _entitlement(db, subscription, key)
     if entitlement and entitlement.limit_value is not None and used >= entitlement.limit_value:
-        limit_prefix = "Trial limit" if subscription.status == "trialing" else "Limit"
+        limit_prefix = "Trial limit" if subscription.status == "trialing" else "Plan limit"
+        if key == "queues.max":
+            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for queues in this branch. Please upgrade your plan or contact support to add more queues."
+        elif key == "staff_users.max":
+            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for staff members in this branch. Please upgrade your plan or contact support to add more staff."
+        elif key == "branches.max":
+            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for branches. Please upgrade your plan or contact support to add more branches."
+        else:
+            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for {key}."
         raise EntitlementError(
-            f"{limit_prefix} reached ({entitlement.limit_value}) for {key}.",
+            msg,
             code="entitlement_limit_reached",
             key=key,
             limit=entitlement.limit_value,

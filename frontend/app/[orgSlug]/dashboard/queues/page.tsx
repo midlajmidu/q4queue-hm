@@ -437,7 +437,7 @@ export default function QueuesPage({ params }: PageProps) {
                             </div>
                             {canManageQueues && (
                                 <button
-                                    onClick={() => setShowCreate(true)}
+                                    onClick={() => { setCreateError(null); setShowCreate(true); }}
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl h-9 px-4 shadow-sm shadow-indigo-500/10 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 flex-shrink-0 w-full sm:w-auto"
                                 >
                                     <Plus className="w-4 h-4" />
@@ -472,7 +472,7 @@ export default function QueuesPage({ params }: PageProps) {
                             </p>
                                 {canManageQueues && (
                                 <button
-                                    onClick={() => setShowCreate(true)}
+                                    onClick={() => { setCreateError(null); setShowCreate(true); }}
                                     className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors duration-200 shadow-sm shadow-indigo-500/10 text-sm"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -616,7 +616,13 @@ export default function QueuesPage({ params }: PageProps) {
 
                                 <form onSubmit={handleCreate} className="flex-1 flex flex-col min-h-0 overflow-hidden">
                                     <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
-                                <div>
+                                        {createError && (
+                                            <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-semibold px-4 py-3 rounded-xl border border-rose-200 dark:border-rose-900/50 leading-relaxed shadow-sm">
+                                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-rose-500" />
+                                                <span>{createError}</span>
+                                            </div>
+                                        )}
+                                        <div>
                                     <label className="block text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5">
                                         {branchType === "dine" ? "Floor / Section Name" : "Queue Name"}
                                     </label>

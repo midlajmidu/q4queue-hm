@@ -10,6 +10,7 @@ import logging
 import uuid
 from typing import Optional
 
+from fastapi import HTTPException, status
 from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,12 +36,21 @@ async def create_queue(
     current_count = await db.scalar(
         select(func.count(Queue.id)).where(Queue.org_id == org_id, Queue.is_deleted == False)
     ) or 0
+    await assert_resource_capacity(db, org_id, "queues.max", current_count)
+
+    from app.models.organization import Organization
+    org = await db.get(Organization, org_id)
+    if org and getattr(org, "max_queues_per_session", None) is not None:
+        if current_count >= org.max_queues_per_session:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Queue limit reached ({org.max_queues_per_session}) for this branch. Contact support to upgrade your plan."
+            )
+
     service_lines = data.service_lines
     if data.table_config and len(data.table_config) > 0:
         service_lines = len(data.table_config)
 
-    from app.models.organization import Organization
-    org = await db.get(Organization, org_id)
     is_dine = bool((org and getattr(org, "branch_type", "standard") == "dine") or (data.table_config and len(data.table_config) > 0))
 
     fields = list(data.custom_fields) if data.custom_fields else []
@@ -232,6 +242,15 @@ async def restore_queue(
         select(func.count(Queue.id)).where(Queue.org_id == org_id, Queue.is_deleted == False)
     ) or 0
     await assert_resource_capacity(db, org_id, "queues.max", current_count)
+
+    from app.models.organization import Organization
+    org = await db.get(Organization, org_id)
+    if org and getattr(org, "max_queues_per_session", None) is not None:
+        if current_count >= org.max_queues_per_session:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Queue limit reached ({org.max_queues_per_session}) for this branch. Contact support to upgrade your plan."
+            )
 
     queue.is_deleted = False
     queue.deleted_at = None

@@ -109,6 +109,8 @@ async def create_queue(
         queue = await queue_service.create_queue(
             db, org_id=current_user.org_id, data=body
         )
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return QueueResponse.model_validate(queue)
@@ -461,6 +463,8 @@ async def restore_queue(
         raise HTTPException(status_code=403, detail="Only Global Admins can restore queues.")
     try:
         updated = await queue_service.restore_queue(db, queue_id=queue_id, org_id=current_user.org_id)
+    except HTTPException:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return QueueResponse.model_validate(updated)
