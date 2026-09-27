@@ -2083,6 +2083,8 @@ export const getSystemTime = async (): Promise<{ server_time: number }> => {
     return response.json();
 };
 
-export const getQueueQrConfig = async (queueId: string): Promise<{ totp: string; interval: number; valid_for: number }> => {
-    return request<{ totp: string; interval: number; valid_for: number }>(`/queues/${queueId}/qr-config`);
+import type { QueueQrConfigResponse } from "@/types/api";
+
+export const getQueueQrConfig = async (queueId: string): Promise<QueueQrConfigResponse> => {
+    return request<QueueQrConfigResponse>(`/queues/${queueId}/qr-config`);
 };

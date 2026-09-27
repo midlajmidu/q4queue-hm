@@ -74,6 +74,7 @@ export interface ManagedCustomerLimits {
     queues_per_branch: number;
     staff_per_branch: number;
     sessions: number;
+    sessions_per_queue?: number;
     tokens_per_session: number;
 }
 
@@ -617,6 +618,18 @@ export interface QueuePublicStatus {
     within_operating_hours?: boolean;
     is_current_session?: boolean;
     branch_type?: "standard" | "dine" | string;
+    token_limit_reached?: boolean;
+    tokens_used?: number;
+    tokens_limit?: number | null;
+}
+
+export interface QueueQrConfigResponse {
+    totp: string;
+    interval: number;
+    valid_for: number;
+    token_limit_reached?: boolean;
+    tokens_used?: number;
+    tokens_limit?: number | null;
 }
 
 // ── Join ─────────────────────────────────────────────────────────

@@ -3,15 +3,17 @@
 import React, { useEffect, useState, useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { getQueueQrConfig } from "@/lib/api";
+import { Lock, AlertTriangle } from "lucide-react";
 
 interface QueueQRCodeProps {
     queueId: string;
     queueName: string;
     isCollapsible?: boolean;
     className?: string;
+    tokenLimitReached?: boolean;
 }
 
-export default function QueueQRCode({ queueId, queueName, isCollapsible = false, className = "" }: QueueQRCodeProps) {
+export default function QueueQRCode({ queueId, queueName, isCollapsible = false, className = "", tokenLimitReached = false }: QueueQRCodeProps) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
     const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
     const defaultJoinUrl = `${normalizedAppUrl}/join/${queueId}?new=true`;
@@ -20,7 +22,14 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
     const [isExpanded, setIsExpanded] = useState(!isCollapsible);
     const [timeLeft, setTimeLeft] = useState(15);
     const [isSessionInactive, setIsSessionInactive] = useState(false);
+    const [isTokenLimitReached, setIsTokenLimitReached] = useState(tokenLimitReached);
+    const [tokensUsed, setTokensUsed] = useState(0);
+    const [tokensLimit, setTokensLimit] = useState<number | null>(null);
     const qrRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        setIsTokenLimitReached(tokenLimitReached);
+    }, [tokenLimitReached]);
 
     useEffect(() => {
         if (!queueId) return;
@@ -33,10 +42,25 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
 
         const initAndStartTotp = async () => {
             try {
-                const { totp, valid_for } = await getQueueQrConfig(queueId);
+                const res = await getQueueQrConfig(queueId);
 
                 if (isCancelled) return;
                 setIsSessionInactive(false);
+
+                if (res.token_limit_reached) {
+                    setIsTokenLimitReached(true);
+                    setTokensUsed(res.tokens_used ?? 0);
+                    setTokensLimit(res.tokens_limit ?? null);
+                    if (countdownTimer) clearInterval(countdownTimer);
+                    refreshTimer = setTimeout(initAndStartTotp, 5000);
+                    return;
+                }
+
+                setIsTokenLimitReached(false);
+                setTokensUsed(res.tokens_used ?? 0);
+                setTokensLimit(res.tokens_limit ?? null);
+
+                const { totp, valid_for } = res;
 
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
                 const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
@@ -71,6 +95,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
 
 
     const generateWatermarkedQRUrl = (): string | null => {
+        if (isTokenLimitReached) return null;
         const qrCanvas = qrRef.current?.querySelector("canvas");
         if (!qrCanvas) return null;
 
@@ -128,6 +153,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
 
     const handleDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
+        if (isTokenLimitReached) return;
         const url = generateWatermarkedQRUrl();
         if (url) {
             const a = document.createElement("a");
@@ -141,6 +167,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
 
     const handleOpenQR = (e: React.MouseEvent) => {
         e.stopPropagation();
+        if (isTokenLimitReached) return;
         const url = generateWatermarkedQRUrl();
         if (url) {
             const win = window.open();
@@ -201,35 +228,70 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                     ) : (
                         <>
                             <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-white/10 mb-3 flex items-center justify-center w-full" ref={qrRef}>
-                                <div className="bg-white p-3.5 rounded-xl shadow-md flex items-center justify-center">
-                                    <QRCodeCanvas
-                                        value={joinUrl}
-                                        size={200}
-                                        level={"H"}
-                                        includeMargin={false}
-                                    />
+                                <div className="relative bg-white p-3.5 rounded-xl shadow-md flex items-center justify-center overflow-hidden">
+                                    <div className={isTokenLimitReached ? "filter blur-md opacity-25 select-none pointer-events-none" : ""}>
+                                        <QRCodeCanvas
+                                            value={joinUrl}
+                                            size={200}
+                                            level={"H"}
+                                            includeMargin={false}
+                                        />
+                                    </div>
+                                    {isTokenLimitReached && (
+                                        <div className="absolute inset-0 backdrop-blur-sm bg-white/80 dark:bg-slate-900/85 flex flex-col items-center justify-center p-3 text-center z-10 transition-all duration-300">
+                                            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-2 shadow-xs">
+                                                <Lock className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-1">
+                                                Token Limit Reached
+                                            </span>
+                                            <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-200/80 dark:border-amber-900/60">
+                                                Capacity: {tokensUsed}{tokensLimit !== null ? ` / ${tokensLimit}` : ""}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            <a href={joinUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline mb-3 truncate w-full max-w-[250px] text-center opacity-90 transition-colors" title={joinUrl}>
-                                {joinUrl}
-                            </a>
+                            {isTokenLimitReached ? (
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 text-amber-700 dark:text-amber-300 text-[11px] font-medium mb-3 text-center">
+                                    <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                                    <span>Customer join link disabled — token limit reached</span>
+                                </div>
+                            ) : (
+                                <a href={joinUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline mb-3 truncate w-full max-w-[250px] text-center opacity-90 transition-colors" title={joinUrl}>
+                                    {joinUrl}
+                                </a>
+                            )}
 
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 text-xs font-medium mb-4 shadow-xs transition-all duration-300">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
-                                </span>
-                                <span className="tracking-wide">QR Refreshes In</span>
-                                <span className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-200/80 dark:bg-slate-700/80 px-1.5 py-0.5 rounded-md">
-                                    {timeLeft}s
-                                </span>
-                            </div>
+                            {isTokenLimitReached ? (
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs font-medium mb-4 shadow-xs">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                    </span>
+                                    <span className="tracking-wide">Check-ins Closed</span>
+                                </div>
+                            ) : (
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 text-xs font-medium mb-4 shadow-xs transition-all duration-300">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
+                                    </span>
+                                    <span className="tracking-wide">QR Refreshes In</span>
+                                    <span className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-200/80 dark:bg-slate-700/80 px-1.5 py-0.5 rounded-md">
+                                        {timeLeft}s
+                                    </span>
+                                </div>
+                            )}
 
                             <div className="flex gap-3 w-full">
                                 <button
                                     onClick={handleOpenQR}
-                                    className="flex-1 py-2 px-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium text-sm rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                                    disabled={isTokenLimitReached}
+                                    title={isTokenLimitReached ? "Check-ins closed: Session token limit reached" : "Open QR Code"}
+                                    className={`flex-1 py-2 px-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium text-sm rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                                        isTokenLimitReached ? "opacity-40 cursor-not-allowed pointer-events-none" : "hover:bg-slate-200 dark:hover:bg-slate-700"
+                                    }`}
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
@@ -238,7 +300,11 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                                 </button>
                                 <button
                                     onClick={handleDownload}
-                                    className="flex-1 py-2 px-3 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-medium text-sm rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors flex items-center justify-center gap-2"
+                                    disabled={isTokenLimitReached}
+                                    title={isTokenLimitReached ? "Check-ins closed: Session token limit reached" : "Download QR Code"}
+                                    className={`flex-1 py-2 px-3 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-medium text-sm rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                                        isTokenLimitReached ? "opacity-40 cursor-not-allowed pointer-events-none" : "hover:bg-blue-100 dark:hover:bg-blue-900/60"
+                                    }`}
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
@@ -246,6 +312,15 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                                     Download
                                 </button>
                             </div>
+
+                            {isTokenLimitReached && (
+                                <div className="mt-4 p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 flex items-start gap-2.5 text-left w-full">
+                                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                    <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed font-normal">
+                                        This session has reached its token capacity limit. Upgrade your subscription or adjust customer limits in Super Admin to admit more customers.
+                                    </p>
+                                </div>
+                            )}
                         </>
                     )}
 

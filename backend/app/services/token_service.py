@@ -18,6 +18,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
+from fastapi import HTTPException, status
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -510,7 +511,16 @@ async def join_queue(
             )
 
     # ── No active token found — create a new one ──
-    from app.services.entitlement_service import consume
+    from app.services.entitlement_service import consume, is_session_token_limit_reached
+    limit_reached, used_cnt, limit_val = await is_session_token_limit_reached(
+        db, queue.org_id, target_session_id
+    )
+    if limit_reached:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This queue has reached its maximum token capacity for the current session. Admissions are closed."
+        )
+
     await consume(
         db,
         org_id=queue.org_id,

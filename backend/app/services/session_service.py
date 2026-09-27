@@ -130,8 +130,8 @@ async def get_or_create_active_session(
         db,
         org_id=org_id,
         key="sessions.created.max",
-        scope_type="subscription",
-        scope_id=org_id,
+        scope_type="queue",
+        scope_id=queue_id,
     )
     
     # 4. Create new active session
@@ -193,8 +193,8 @@ async def create_queue_session(
         db,
         org_id=org_id,
         key="sessions.created.max",
-        scope_type="subscription",
-        scope_id=org_id,
+        scope_type="queue",
+        scope_id=queue_id,
     )
 
     session = Session(

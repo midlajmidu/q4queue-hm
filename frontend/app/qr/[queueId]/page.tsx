@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { use } from "react";
 import { useQueueSocket } from "@/hooks/useQueueSocket";
 import { QRCodeCanvas } from "qrcode.react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import Image from "next/image";
 import { getQueueQrConfig } from "@/lib/api";
 
@@ -21,6 +21,9 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
     const [joinUrl, setJoinUrl] = useState(defaultJoinUrl);
     const [timeLeft, setTimeLeft] = useState(15);
     const [isSessionActive, setIsSessionActive] = useState<boolean | null>(null);
+    const [isTokenLimitReached, setIsTokenLimitReached] = useState(false);
+    const [tokensUsed, setTokensUsed] = useState(0);
+    const [tokensLimit, setTokensLimit] = useState<number | null>(null);
 
     useEffect(() => {
         if (!queueId) return;
@@ -33,10 +36,25 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
 
         const initAndStartTotp = async () => {
             try {
-                const { totp, valid_for } = await getQueueQrConfig(queueId);
+                const res = await getQueueQrConfig(queueId);
 
                 if (isCancelled) return;
                 setIsSessionActive(true);
+
+                if (res.token_limit_reached) {
+                    setIsTokenLimitReached(true);
+                    setTokensUsed(res.tokens_used ?? 0);
+                    setTokensLimit(res.tokens_limit ?? null);
+                    if (countdownTimer) clearInterval(countdownTimer);
+                    refreshTimer = setTimeout(initAndStartTotp, 4000);
+                    return;
+                }
+
+                setIsTokenLimitReached(false);
+                setTokensUsed(res.tokens_used ?? 0);
+                setTokensLimit(res.tokens_limit ?? null);
+
+                const { totp, valid_for } = res;
 
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
                 const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
@@ -403,7 +421,8 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
                 {(() => {
                     const isPaused = queueData.is_paused === true;
                     const isClosed = queueData.is_active === false || isSessionActive === false;
-                    const isOpen = !isClosed && !isPaused;
+                    const isLimitReached = isTokenLimitReached || (queueData as any)?.token_limit_reached === true;
+                    const isOpen = !isClosed && !isPaused && !isLimitReached;
 
                     return (
                         <div className="qr-showcase-content">
@@ -415,6 +434,8 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
                                         <span className="qr-showcase-badge qr-showcase-badge-closed">Closed</span>
                                     ) : isPaused ? (
                                         <span className="qr-showcase-badge qr-showcase-badge-paused">On Break</span>
+                                    ) : isLimitReached ? (
+                                        <span className="qr-showcase-badge qr-showcase-badge-closed" style={{ background: '#fef2f2', color: '#dc2626' }}>Capacity Full</span>
                                     ) : (
                                         <span className="qr-showcase-badge qr-showcase-badge-active">Active</span>
                                     )}
@@ -473,6 +494,72 @@ export default function QrShowcaseDisplayPage({ params }: { params: Promise<{ qu
                                     <p style={{ fontSize: 14, color: '#64748b', textAlign: 'center', maxWidth: 320, margin: 0, lineHeight: 1.5 }}>
                                         The queue is temporarily taking a break. Registration will resume shortly.
                                     </p>
+                                </div>
+                            ) : isLimitReached ? (
+                                <div className="qr-showcase-card">
+                                    <div className="qr-showcase-qr-frame" style={{ position: "relative", overflow: "hidden" }}>
+                                        <div className="qr-showcase-qr-inner" style={{ filter: "blur(12px)", opacity: 0.25, userSelect: "none", pointerEvents: "none" }}>
+                                            <QRCodeCanvas
+                                                value={joinUrl}
+                                                size={220}
+                                                level="H"
+                                                includeMargin={false}
+                                            />
+                                        </div>
+                                        <div style={{
+                                            position: "absolute",
+                                            inset: 0,
+                                            backdropFilter: "blur(4px)",
+                                            background: "rgba(255, 255, 255, 0.85)",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            padding: 24,
+                                            textAlign: "center",
+                                            zIndex: 5
+                                        }}>
+                                            <div style={{
+                                                width: 52,
+                                                height: 52,
+                                                borderRadius: "50%",
+                                                background: "#fef2f2",
+                                                border: "1.5px solid #fee2e2",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                color: "#ef4444",
+                                                marginBottom: 12
+                                            }}>
+                                                <Lock style={{ width: 26, height: 26 }} />
+                                            </div>
+                                            <span style={{ fontSize: 13, fontWeight: 700, color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                                Check-ins Closed
+                                            </span>
+                                            {tokensLimit !== null && (
+                                                <span style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginTop: 4 }}>
+                                                    Capacity: {tokensUsed} / {tokensLimit}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="qr-showcase-instruction">
+                                        <p className="qr-showcase-instruction-title" style={{ color: "#0f172a", fontSize: 18 }}>
+                                            Queue Full — Check-ins Temporarily Closed
+                                        </p>
+                                        <p className="qr-showcase-instruction-desc" style={{ fontSize: 14, color: "#64748b", maxWidth: 320, margin: "8px auto 0" }}>
+                                            Please see the front desk staff for assistance.
+                                        </p>
+                                        <div className="mt-4 flex justify-center">
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold shadow-xs">
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                                </span>
+                                                Admissions Suspended
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="qr-showcase-card">

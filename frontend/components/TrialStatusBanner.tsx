@@ -10,7 +10,7 @@ const labels: Record<string, string> = {
     "branches.max": "Branches",
     "queues.max": "Queues",
     "staff_users.max": "Staff",
-    "sessions.created.max": "Sessions",
+    "sessions.created.max": "Sessions per queue",
     "tokens.created.max_per_session": "Tokens / session",
 };
 

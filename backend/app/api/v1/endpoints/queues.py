@@ -550,6 +550,15 @@ async def get_queue_public_status(
     if hasattr(branch_type_val, "value"):
         branch_type_val = branch_type_val.value
 
+    is_limit_reached = False
+    used_tokens = 0
+    token_limit = None
+    if target_session_id:
+        from app.services.entitlement_service import is_session_token_limit_reached
+        is_limit_reached, used_tokens, token_limit = await is_session_token_limit_reached(
+            db, queue.org_id, target_session_id
+        )
+
     return {
         "queue_id": str(queue_id),
         "queue_name": queue.name,
@@ -561,6 +570,9 @@ async def get_queue_public_status(
         "has_session": queue.token_session_id is not None,
         "within_operating_hours": True,
         "branch_type": branch_type_val or "standard",
+        "token_limit_reached": is_limit_reached,
+        "tokens_used": used_tokens,
+        "tokens_limit": token_limit,
     }
 
 
@@ -590,14 +602,23 @@ async def get_queue_qr_config(
         or session.is_paused
     ):
         raise HTTPException(status_code=409, detail="The current queue session is not open.")
+
+    from app.services.entitlement_service import is_session_token_limit_reached
+    is_limit_reached, used_tokens, token_limit = await is_session_token_limit_reached(
+        db, queue.org_id, queue.token_session_id
+    )
+
     settings = get_settings()
     seed = get_qr_secret_seed(queue.id, settings.SECRET_KEY)
     interval = 15
     now_seconds = int(datetime.now(timezone.utc).timestamp())
     return {
-        "totp": pyotp.TOTP(seed, interval=interval).at(now_seconds),
+        "totp": pyotp.TOTP(seed, interval=interval).at(now_seconds) if not is_limit_reached else "",
         "interval": interval,
         "valid_for": interval - (now_seconds % interval),
+        "token_limit_reached": is_limit_reached,
+        "tokens_used": used_tokens,
+        "tokens_limit": token_limit,
     }
 
 
@@ -639,6 +660,14 @@ async def scan_queue_qr(
         or session.is_paused
     ):
         return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=inactive")
+
+    # Verify token limit is not reached
+    from app.services.entitlement_service import is_session_token_limit_reached
+    is_limit_reached, _, _ = await is_session_token_limit_reached(
+        db, queue.org_id, session.id
+    )
+    if is_limit_reached:
+        return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=token_limit_reached")
 
     # Validate TOTP if secret seed & totp validation is enforced
     seed = get_qr_secret_seed(queue_id, settings.SECRET_KEY)
@@ -749,6 +778,8 @@ async def create_token(
                     tracking_id=str(result.tracking_id) if hasattr(result, "tracking_id") else None,
                     session_id=queue.token_session_id,
                 )
+    except HTTPException:
+        raise
     except ValueError as exc:
         msg = str(exc)
         if "not found" in msg.lower():
@@ -836,6 +867,8 @@ async def admin_join(
                 tracking_id=str(result.tracking_id) if hasattr(result, "tracking_id") else None,
                 session_id=queue.token_session_id,
             )
+    except HTTPException:
+        raise
     except ValueError as exc:
         msg = str(exc)
         if "not found" in msg.lower():

@@ -138,6 +138,38 @@ async def assert_resource_capacity(db: AsyncSession, org_id: uuid.UUID, key: str
         )
 
 
+async def is_session_token_limit_reached(
+    db: AsyncSession, org_id: uuid.UUID, session_id: uuid.UUID
+) -> tuple[bool, int, int | None]:
+    """Evaluates whether the session has reached its tokens.created.max_per_session quota."""
+    subscription = await get_subscription_for_org(db, org_id)
+    if subscription is None:
+        return False, 0, None
+
+    entitlement = await _entitlement(db, subscription, "tokens.created.max_per_session")
+    if entitlement is None or entitlement.limit_value is None:
+        return False, 0, None
+
+    period_start = subscription.trial_started_at or subscription.started_at
+    usage = await db.scalar(
+        select(EntitlementUsage).where(
+            EntitlementUsage.subscription_id == subscription.id,
+            EntitlementUsage.entitlement_key == "tokens.created.max_per_session",
+            EntitlementUsage.scope_type == "session",
+            EntitlementUsage.scope_id == session_id,
+            EntitlementUsage.period_start == period_start,
+        )
+    )
+    used = usage.used if usage else 0
+    actual_count = await db.scalar(
+        select(func.count(Token.id)).where(Token.session_id == session_id)
+    ) or 0
+    used = max(used, actual_count)
+
+    is_reached = bool(used >= entitlement.limit_value)
+    return is_reached, used, entitlement.limit_value
+
+
 async def consume(
     db: AsyncSession,
     *,
@@ -171,9 +203,15 @@ async def consume(
     )
     used = usage.used if usage else 0
     if used + quantity > entitlement.limit_value:
-        limit_prefix = "Trial limit" if subscription.status == "trialing" else "Limit"
+        limit_prefix = "Trial limit" if subscription.status == "trialing" else "Plan limit"
+        if key == "sessions.created.max":
+            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for sessions in this queue. Please upgrade your plan or contact support to add more sessions."
+        elif key == "tokens.created.max_per_session":
+            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for tokens in this session. Admissions are closed."
+        else:
+            msg = f"{limit_prefix} reached ({entitlement.limit_value}) for {key}."
         raise EntitlementError(
-            f"{limit_prefix} reached ({entitlement.limit_value}) for {key}.",
+            msg,
             code="entitlement_limit_reached",
             key=key,
             limit=entitlement.limit_value,
@@ -235,7 +273,7 @@ async def subscription_summary(db: AsyncSession, org_id: uuid.UUID) -> dict:
     }
     cumulative = (await db.execute(select(EntitlementUsage).where(EntitlementUsage.subscription_id == subscription.id))).scalars().all()
     for row in cumulative:
-        if row.entitlement_key == "sessions.created.max":
+        if row.entitlement_key == "sessions.created.max" and row.scope_type == "subscription":
             usage_values[row.entitlement_key] = usage_values.get(row.entitlement_key, 0) + row.used
 
     result = {}

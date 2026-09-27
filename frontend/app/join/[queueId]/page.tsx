@@ -4,7 +4,7 @@ import React, { use, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useQueueSocket } from "@/hooks/useQueueSocket";
-import { Clock } from "lucide-react";
+import { Clock, Lock } from "lucide-react";
 import ConnectionBadge from "@/components/ConnectionBadge";
 import type { JoinResponse, TokenStatus, QueuePublicStatus } from "@/types/api";
 
@@ -295,6 +295,8 @@ export default function JoinQueuePage({ params }: PageProps) {
             setError("This queue is currently inactive or closed. Please ask staff for assistance.");
         } else if (errorParam === "backend_unreachable") {
             setError("Unable to reach the queue server. Please ensure you are connected to the network or try scanning again.");
+        } else if (errorParam === "token_limit_reached") {
+            setError("This queue has reached its maximum token capacity for the current session and cannot accept new registrations.");
         }
 
         const token = searchParams.get("qrToken");
@@ -374,8 +376,9 @@ export default function JoinQueuePage({ params }: PageProps) {
 
     // Use REST sessionStatus as primary source (immediate), WebSocket as fallback, plus query params & error flags
     const isPastSession = isQrExpired || isInactiveError || sessionStatus?.is_past_session === true || live?.is_past_session === true;
+    const isTokenLimitReached = errorParam === "token_limit_reached" || sessionStatus?.token_limit_reached === true || (live as any)?.token_limit_reached === true;
     const sessionDate = sessionStatus?.session_date || live?.session_date || querySessionDate;
-    const queueClosed = live?.is_active === false || isPastSession;
+    const queueClosed = live?.is_active === false || isPastSession || isTokenLimitReached;
     const queuePaused = live?.is_paused === true;
     const queueName = live?.queue_name || "Queue";
     const isDineQueue = live?.branch_type === "dine" || sessionStatus?.branch_type === "dine" || Boolean(live?.table_config && live.table_config.length > 0);
@@ -403,6 +406,10 @@ export default function JoinQueuePage({ params }: PageProps) {
         setShowWhatsAppModal(false);
         if (isPastSession) {
             setError("This QR code is expired. The session is closed. Please scan today's active QR code.");
+            return;
+        }
+        if (isTokenLimitReached) {
+            setError("This queue has reached its maximum token capacity for the current session. Admissions are closed.");
             return;
         }
         setIsJoining(true);
@@ -459,7 +466,7 @@ export default function JoinQueuePage({ params }: PageProps) {
             setError(msg);
             setIsJoining(false);
         }
-    }, [isPastSession, customerName, customerPhone, countryCode, paxCount, queueId, router, customData, hasCustomFieldsConfigured, qrToken, querySessionId, forceNew, isForceNewParam, prefix]);
+    }, [isPastSession, isTokenLimitReached, customerName, customerPhone, countryCode, paxCount, queueId, router, customData, hasCustomFieldsConfigured, qrToken, querySessionId, forceNew, isForceNewParam, prefix]);
 
     const handleConfirmForceNew = useCallback(async () => {
         if (!duplicatePrompt) return;
@@ -475,6 +482,10 @@ export default function JoinQueuePage({ params }: PageProps) {
         // Double-lock: check both REST status and WebSocket data
         if (isPastSession) {
             setError("This QR code is expired. The session is closed. Please scan today's active QR code.");
+            return;
+        }
+        if (isTokenLimitReached) {
+            setError("This queue has reached its maximum token capacity for the current session. Admissions are closed.");
             return;
         }
         if (hasCustomFieldsConfigured) {
@@ -493,7 +504,7 @@ export default function JoinQueuePage({ params }: PageProps) {
         }
         setError(null);
         setShowWhatsAppModal(true);
-    }, [isLegacyFormValid, isJoining, isPastSession, hasCustomFieldsConfigured, customFieldsList, customData]);
+    }, [isLegacyFormValid, isJoining, isPastSession, isTokenLimitReached, hasCustomFieldsConfigured, customFieldsList, customData]);
 
 
     // ── Restore from localStorage on mount (Direct visits only) ────
@@ -767,6 +778,36 @@ export default function JoinQueuePage({ params }: PageProps) {
                                     </p>
                                     <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-xs text-slate-600 font-medium text-center leading-relaxed">
                                         Please scan the active QR code on the lobby display or see the receptionist for assistance.
+                                    </div>
+                                </div>
+
+                                <div className="pt-2 flex justify-center">
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-600 hover:text-slate-900 font-semibold text-xs rounded-full border border-slate-200/90 shadow-sm transition-all"
+                                    >
+                                        <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>Refresh Page</span>
+                                    </button>
+                                </div>
+                            </div>
+                        ) : isTokenLimitReached ? (
+                            <div className="space-y-4">
+                                <div className="bg-white border border-rose-200/80 rounded-3xl p-6 sm:p-7 text-center my-2 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                                    <div className="relative w-12 h-12 rounded-full bg-rose-50 border border-rose-200/90 flex items-center justify-center mx-auto mb-4 text-rose-600 shadow-xs">
+                                        <Lock className="w-5 h-5 stroke-[1.8] text-rose-600" />
+                                        <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white shadow-xs" />
+                                    </div>
+                                    <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight mb-2">
+                                        Queue Capacity Reached
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-sm mx-auto mb-4">
+                                        This queue has reached its maximum token capacity for the current session and cannot accept new registrations.
+                                    </p>
+                                    <div className="bg-rose-50/70 rounded-2xl p-4 border border-rose-100 text-xs text-rose-700 font-medium text-center leading-relaxed">
+                                        Please speak with a staff member on-site or check back later.
                                     </div>
                                 </div>
 
@@ -1104,6 +1145,8 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                 </>
                                             ) : isPastSession ? (
                                                 "QR Code Expired / Invalid"
+                                            ) : isTokenLimitReached ? (
+                                                "Token Capacity Reached"
                                             ) : queueClosed ? (
                                                 isDineQueue ? "Waitlist is Closed" : "Queue is Closed"
                                             ) : queuePaused ? (
@@ -1120,7 +1163,11 @@ export default function JoinQueuePage({ params }: PageProps) {
                                     </button>
                                 </div>
 
-                                {queueClosed && (
+                                {isTokenLimitReached ? (
+                                    <p className="text-sm text-rose-600 font-medium text-center">
+                                        This queue has reached its token capacity for the current session.
+                                    </p>
+                                ) : queueClosed && (
                                     <p className="text-sm text-amber-600 font-medium text-center">
                                         This queue is currently not accepting new customers.
                                     </p>

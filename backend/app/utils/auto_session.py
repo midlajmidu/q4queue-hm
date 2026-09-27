@@ -120,6 +120,14 @@ async def rollover_queue_session(db, queue: Queue, org: Organization, force: boo
                 )
             )
         else:
+            from app.services.entitlement_service import consume
+            await consume(
+                db,
+                org_id=org.id,
+                key="sessions.created.max",
+                scope_type="queue",
+                scope_id=queue.id,
+            )
             new_session = Session(
                 org_id=org.id,
                 queue_id=queue.id,

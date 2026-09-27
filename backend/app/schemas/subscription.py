@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
 class TrialSignupRequest(BaseModel):
@@ -81,7 +81,16 @@ class ManagedCustomerLimits(BaseModel):
     queues_per_branch: int = Field(default=1, ge=1, le=10_000)
     staff_per_branch: int = Field(default=1, ge=1, le=100_000)
     sessions: int = Field(default=3, ge=1, le=10_000_000)
+    sessions_per_queue: int | None = Field(default=None, ge=1, le=10_000_000)
     tokens_per_session: int = Field(default=20, ge=1, le=10_000_000)
+
+    @model_validator(mode="after")
+    def sync_sessions(self) -> "ManagedCustomerLimits":
+        if self.sessions_per_queue is not None:
+            self.sessions = self.sessions_per_queue
+        else:
+            self.sessions_per_queue = self.sessions
+        return self
 
 
 class AdminCustomerCreate(BaseModel):

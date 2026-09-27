@@ -64,7 +64,7 @@ ENTITLEMENT_DEFINITIONS = {
     "branches.max": ("parent", "none", "branches"),
     "queues.max": ("branch", "none", "queues_per_branch"),
     "staff_users.max": ("branch", "none", "staff_per_branch"),
-    "sessions.created.max": ("subscription", "trial", "sessions"),
+    "sessions.created.max": ("queue", "trial", "sessions_per_queue"),
     "tokens.created.max_per_session": ("session", "session", "tokens_per_session"),
 }
 
@@ -458,7 +458,9 @@ async def retry_sales_notification(
 
 async def _set_overrides(db: AsyncSession, subscription: Subscription, limits) -> None:
     for key, (scope, reset_period, field_name) in ENTITLEMENT_DEFINITIONS.items():
-        value = getattr(limits, field_name)
+        value = getattr(limits, field_name, None)
+        if value is None and field_name == "sessions_per_queue":
+            value = getattr(limits, "sessions", 3)
         override = await db.scalar(select(SubscriptionEntitlementOverride).where(
             SubscriptionEntitlementOverride.subscription_id == subscription.id,
             SubscriptionEntitlementOverride.key == key,

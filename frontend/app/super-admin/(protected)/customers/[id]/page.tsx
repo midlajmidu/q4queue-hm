@@ -49,7 +49,7 @@ const LABELS: Record<string, string> = {
     "branches.max": "Branches",
     "queues.max": "Queues per branch",
     "staff_users.max": "Staff per branch",
-    "sessions.created.max": "Sessions",
+    "sessions.created.max": "Sessions per queue",
     "tokens.created.max_per_session": "Tokens per session",
 };
 
@@ -825,7 +825,7 @@ function LimitsModal({
                     {(Object.keys(limits) as Array<keyof ManagedCustomerLimits>).map((key) => (
                         <div key={key} className="rounded-xl border border-slate-800 bg-slate-950/50 p-3.5">
                             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                                {key.replaceAll("_", " ")}
+                                {key === "sessions" ? "Sessions per queue" : key.replaceAll("_", " ")}
                             </label>
                             <input
                                 type="number"
