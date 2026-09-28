@@ -4,87 +4,96 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import AnimatedSection from "./AnimatedSection";
-import { ArrowRight } from "lucide-react";
+import { Mail } from "lucide-react";
 
 const faqs = [
   {
-    question: "What is a digital queue management system?",
+    question: "What hardware is required to run Q4Queue?",
     answer:
-      "A digital queue management system replaces physical lines and paper tokens with a virtual waiting list. It allows customers to join your queue instantly via QR code and track their position in real time from their own phones.",
+      "None. Q4Queue runs entirely in modern web browsers. Your staff can operate the counter dashboard from any laptop, desktop, or tablet. Customers join the queue simply by scanning a printed QR code with their phone camera.",
   },
   {
-    question: "Is the Q4Queue token system free to try?",
+    question: "Do customers need to download an application or sign up?",
     answer:
-      "We offer a 2-week free trial for businesses to explore our platform. After the trial, we offer competitive B2B pricing tailored to your business needs. Contact us to learn more about our professional plans.",
+      "No. There are no app installs, logins, or app store downloads required. When a visitor scans your venue QR code, their digital ticket opens directly in Safari, Chrome, or any default mobile browser.",
   },
   {
-    question: "Do visitors need to install an app?",
+    question: "How does Q4Queue support multiple counters and service types?",
     answer:
-      "No. Everything works through the browser. Visitors just scan a QR code and they're in the queue.",
+      "You can configure unlimited service departments (e.g., General Consultation, Billing, Pharmacy, Diagnostics) and assign individual staff members to specific desks. When an operator calls the next ticket, the system routes the next visitor according to their requested service.",
   },
   {
-    question: "What do I need to get started?",
+    question: "Can we broadcast current queue numbers on lobby TV screens?",
     answer:
-      "Just a device with a browser. Create your queue, print the QR code, and you're ready to go. No special hardware needed.",
+      "Yes. Q4Queue includes a built-in Lobby Display URL. You can load this on any smart TV, monitor, or digital signage display to broadcast currently called tokens, counter assignments, and recently completed numbers.",
   },
   {
-    question: "How do customers receive queue notifications?",
+    question: "How are customers notified when their turn arrives?",
     answer:
-      "Customers stay updated through their live browser window. They get real-time position updates and proximity alerts when their turn is approaching in the digital line.",
+      "The visitor's mobile browser ticket updates in real time with dynamic wait time recalculations. When an operator calls their ticket, their phone screen flashes, rings an auditory chime, and displays their designated counter number.",
+  },
+  {
+    question: "Can we test Q4Queue at a single location before rolling it out branch-wide?",
+    answer:
+      "Yes. You can set up and run a pilot queue at a single counter or clinic in less than five minutes. Our support team is available to help configure multi-location routing and custom operational policies whenever you are ready.",
   },
 ];
 
-const FAQ = () => {
+export default function FAQ() {
   return (
-    <section id="faq" className="py-20 md:py-28 px-6 bg-secondary/40">
-      <div className="max-w-2xl mx-auto">
-        <AnimatedSection className="text-center mb-12">
-          <span className="inline-block text-primary font-semibold text-sm tracking-wide uppercase mb-3 px-3 py-1 rounded-full bg-primary/8 border border-primary/15">FAQ</span>
-          <h2 className="font-heading text-3xl md:text-4xl font-extrabold tracking-[-0.02em] text-foreground mt-4">
-            Common Questions
+    <section id="faq" className="py-20 md:py-28 bg-white border-b border-slate-200/80">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
+        <div className="text-center max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-700 mb-3">
+            Frequently Asked Questions
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B1220] tracking-[-0.03em] leading-tight">
+            Frequently answered questions.
           </h2>
-          <p className="mt-3 text-muted-foreground text-base max-w-md mx-auto">
-            Everything you need to know about getting started with Q4Q.
+          <p className="mt-3 text-base text-slate-600 leading-relaxed">
+            Everything operations managers and facility leads need to know about implementing Q4Queue.
           </p>
-        </AnimatedSection>
-        <AnimatedSection delay={0.1}>
-          <div className="glass-card rounded-2xl p-6 md:p-8">
-            <Accordion type="single" collapsible className="w-full">
-              {faqs.map((faq, i) => (
-                <AccordionItem key={i} value={`item-${i}`} className="border-gray-200/60">
-                  <AccordionTrigger className="font-heading text-left font-semibold text-foreground hover:no-underline text-base py-4 gap-4">
-                    <div className="flex items-center gap-3">
-                      <span className="w-7 h-7 rounded-lg bg-primary/8 flex items-center justify-center shrink-0 text-xs font-bold text-primary">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <span>{faq.question}</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground leading-relaxed text-sm pb-4 pl-10">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-        </AnimatedSection>
+        </div>
 
-        {/* Contact block */}
-        <AnimatedSection delay={0.2}>
-          <div className="mt-8 text-center glass-card rounded-2xl p-6">
-            <p className="text-foreground font-semibold">Still have questions?</p>
-            <p className="text-muted-foreground text-sm mt-1">
-              We&apos;re here to help. Reach out and we&apos;ll get back to you within 24 hours.
-            </p>
-            <a href="mailto:contact@q4queue.com" className="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-primary hover:underline">
-              Contact Support <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+        {/* Accordion */}
+        <div className="mt-12 rounded-xl border border-slate-200 divide-y divide-slate-200 bg-white shadow-xs">
+          <Accordion type="single" collapsible className="w-full">
+            {faqs.map((faq, i) => (
+              <AccordionItem key={i} value={`faq-${i}`} className="px-5 border-none">
+                <AccordionTrigger className="py-5 text-left text-sm sm:text-base font-bold text-slate-900 hover:text-blue-600 hover:no-underline transition-colors">
+                  <div className="flex items-center gap-3 pr-4">
+                    <span className="font-mono text-xs font-semibold text-slate-400 shrink-0">
+                      0{i + 1}
+                    </span>
+                    <span>{faq.question}</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 text-sm leading-relaxed pb-5 pl-7 pr-4">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+
+        {/* Contact Strip */}
+        <div className="mt-8 p-5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <div>
+            <div className="text-sm font-bold text-slate-900">Have specific technical or security requirements?</div>
+            <div className="text-xs text-slate-500 mt-0.5">
+              Our operations engineering team is here to answer architecture and integration questions.
+            </div>
           </div>
-        </AnimatedSection>
+          <a
+            href="mailto:contact@q4queue.com"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800 hover:bg-slate-50 hover:border-slate-300 transition-colors shrink-0 shadow-xs"
+          >
+            <Mail className="w-3.5 h-3.5 text-slate-500" />
+            Contact team
+          </a>
+        </div>
       </div>
     </section>
   );
-};
-
-export default FAQ;
+}

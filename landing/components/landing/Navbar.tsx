@@ -1,190 +1,361 @@
 "use client";
 
-import { ArrowRight, Menu, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { Menu, X, ArrowRight, ChevronDown, Building2, Stethoscope, Landmark, ShoppingBag, Gamepad2, Utensils } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
-import { motion, useScroll, useMotionValueEvent } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { config } from "@/lib/config";
 
-const navLinks = [
-  { href: "/#features", label: "Features", scroll: true },
-  { href: "/#how-it-works", label: "How It Works", scroll: true },
-  { href: "/#faq", label: "FAQ", scroll: true },
-  { href: "/about", label: "About", scroll: false },
+interface NavItem {
+  label: string;
+  href: string;
+  isHash?: boolean;
+}
+
+const navItems: NavItem[] = [
+  { label: "Features", href: "/features" },
+  { label: "How it works", href: "/#how-it-works", isHash: true },
+  { label: "Pricing", href: "/pricing" },
+  { label: "FAQ", href: "/#faq", isHash: true },
 ];
 
-const Navbar = () => {
+const industryLinks = [
+  { label: "Healthcare & Clinics", href: "/industries/healthcare", icon: Stethoscope, desc: "Patient triage & clinical waiting" },
+  { label: "Banking & Finance", href: "/industries/banking", icon: Landmark, desc: "Branch teller & wealth advisory" },
+  { label: "Retail & Flagships", href: "/industries/retail", icon: ShoppingBag, desc: "Fitting rooms & boutique service" },
+  { label: "Entertainment & Leisure", href: "/industries/entertainment", icon: Gamepad2, desc: "Bowling alleys, arcades & arenas" },
+  { label: "Civic & Government", href: "/industries/government", icon: Building2, desc: "Municipal halls & permit desks" },
+  { label: "Restaurants & Hospitality", href: "/industries/restaurants", icon: Utensils, desc: "Table waitlists & hostess stands" },
+];
+
+export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://app.q4queue.com").replace(/\/$/, "");
-  const [active, setActive] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [hidden, setHidden] = useState(false);
-  const { scrollY } = useScroll();
-
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    const previous = scrollY.getPrevious() ?? 0;
-    // Hide navbar if scrolling down and past the threshold
-    if (latest > previous && latest > 150) {
-      setHidden(true);
-      setMobileOpen(false); // Close mobile menu if open when scrolling down
-    } else {
-      setHidden(false);
-    }
-  });
+  const [industriesOpen, setIndustriesOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 12);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  useEffect(() => {
-    if (pathname !== "/") return;
-    const scrollLinks = navLinks.filter((l) => l.scroll);
-    const sections = scrollLinks.map((l) => document.querySelector(l.href.replace("/", "")));
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) setActive((entry.target as Element).id ? "#" + (entry.target as Element).id : "");
-        });
-      },
-      { rootMargin: "-40% 0px -55% 0px" }
-    );
-    sections.forEach((s) => s && observer.observe(s));
-    return () => observer.disconnect();
-  }, [pathname]);
+  const isLightNav = scrolled || pathname !== "/";
 
-  useEffect(() => {
-    if (pathname === "/about") setActive("/about");
-  }, [pathname]);
-
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, link: (typeof navLinks)[0]) => {
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    item: NavItem
+  ) => {
     setMobileOpen(false);
-    if (!link.scroll) return;
-    e.preventDefault();
-    const hash = link.href.split("#")[1];
-    if (hash && pathname === "/") document.querySelector("#" + hash)?.scrollIntoView({ behavior: "smooth" });
-    else router.push(link.href);
+    setIndustriesOpen(false);
+    if (item.isHash && pathname === "/") {
+      e.preventDefault();
+      const hash = item.href.replace("/", "");
+      const target = document.querySelector(hash);
+      if (target) {
+        const offset = 80;
+        const bodyRect = document.body.getBoundingClientRect().top;
+        const elementRect = target.getBoundingClientRect().top;
+        const elementPosition = elementRect - bodyRect;
+        const offsetPosition = elementPosition - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth",
+        });
+      }
+    } else if (item.isHash && pathname !== "/") {
+      e.preventDefault();
+      router.push(item.href);
+    }
   };
 
   return (
-    <motion.nav
-      variants={{
-        visible: { y: 0 },
-        hidden: { y: "-100%" },
-      }}
-      animate={hidden ? "hidden" : "visible"}
-      transition={{ duration: 0.35, ease: "easeInOut" }}
+    <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-colors duration-300",
-        scrolled
-          ? "bg-background/80 backdrop-blur-xl border-b border-border/40 shadow-sm"
-          : "bg-transparent"
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        isLightNav
+          ? "bg-white/92 backdrop-blur-lg border-b border-slate-200/60 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)]"
+          : "bg-transparent border-b border-transparent"
       )}
     >
-      <div className="max-w-6xl mx-auto px-6 h-16 md:h-20 flex items-center justify-between">
-        <a href="/">
-          <Logo size="lg" />
-        </a>
-        <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => {
-            const isActive = link.scroll ? active === "#" + link.href.split("#")[1] : active === link.href;
-            const content = (
-              <>
-                {link.label}
-                {isActive && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-full" />
-                )}
-              </>
-            );
-            return link.scroll ? (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={(e) => handleNavClick(e, link)}
-                className={cn(
-                  "text-sm font-heading font-medium transition-colors duration-200 relative tracking-wide",
-                  isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {content}
-              </a>
-            ) : (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "text-sm font-heading font-medium transition-colors duration-200 relative tracking-wide",
-                  isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {content}
-              </Link>
-            );
-          })}
-        </div>
-        <div className="flex items-center gap-4">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 h-[68px] flex items-center justify-between">
+        {/* Left: Brand Logo */}
+        <Link
+          href="/"
+          className="flex items-center gap-2 group outline-none shrink-0"
+        >
+          <Logo
+            size="md"
+            className={cn(
+              "transition-all duration-300",
+              !isLightNav && "[&_img]:brightness-0 [&_img]:invert"
+            )}
+          />
+        </Link>
+
+        {/* Center: Navigation Links */}
+        <nav
+          className="hidden md:flex items-center gap-7 lg:gap-9"
+          aria-label="Main Navigation"
+        >
+          <Link
+            href="/features"
+            className={cn(
+              "text-[14px] font-medium transition-colors",
+              isLightNav
+                ? "text-slate-600 hover:text-slate-900"
+                : "text-white/65 hover:text-white"
+            )}
+          >
+            Features
+          </Link>
+
+          {/* Minimal 2-Column Mega Dropdown: Industries */}
+          <div
+            className="relative"
+            onMouseEnter={() => setIndustriesOpen(true)}
+            onMouseLeave={() => setIndustriesOpen(false)}
+          >
+            <button
+              type="button"
+              className={cn(
+                "inline-flex items-center gap-1 text-[14px] font-medium transition-colors py-2 cursor-pointer",
+                isLightNav
+                  ? "text-slate-600 hover:text-slate-900"
+                  : "text-white/65 hover:text-white"
+              )}
+            >
+              <span>Industries</span>
+              <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" />
+            </button>
+
+            {/* Dropdown Menu Box */}
+            {industriesOpen && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 w-[520px] rounded-2xl bg-white/98 backdrop-blur-xl border border-slate-200/90 shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-3 py-2 border-b border-slate-100 mb-2 flex items-center justify-between">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
+                    Industries
+                  </span>
+                  <Link
+                    href="/industries"
+                    onClick={() => setIndustriesOpen(false)}
+                    className="text-[11.5px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    View All →
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  {industryLinks.map((ind) => {
+                    const Icon = ind.icon;
+                    return (
+                      <Link
+                        key={ind.href}
+                        href={ind.href}
+                        onClick={() => setIndustriesOpen(false)}
+                        className="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 transition-colors group"
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-blue-50/80 text-blue-600 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-bold text-[#0B1220] group-hover:text-blue-600 transition-colors truncate">
+                            {ind.label}
+                          </div>
+                          <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                            {ind.desc}
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
           <a
-            href={`${appUrl}/login`}
-            className="hidden md:inline-block text-sm font-heading font-medium text-muted-foreground hover:text-foreground transition-colors"
+            href="/#how-it-works"
+            onClick={(e) => handleNavClick(e, { label: "How it works", href: "/#how-it-works", isHash: true })}
+            className={cn(
+              "text-[14px] font-medium transition-colors",
+              isLightNav
+                ? "text-slate-600 hover:text-slate-900"
+                : "text-white/65 hover:text-white"
+            )}
+          >
+            How it works
+          </a>
+
+          <Link
+            href="/pricing"
+            className={cn(
+              "text-[14px] font-medium transition-colors",
+              isLightNav
+                ? "text-slate-600 hover:text-slate-900"
+                : "text-white/65 hover:text-white"
+            )}
+          >
+            Pricing
+          </Link>
+        </nav>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-5">
+          <Link
+            href={`${config.appUrl}/login`}
+            className={cn(
+              "hidden sm:inline-flex text-[14px] font-medium transition-colors",
+              isLightNav
+                ? "text-slate-600 hover:text-slate-900"
+                : "text-white/70 hover:text-white"
+            )}
           >
             Log in
-          </a>
+          </Link>
+
           <Button
-            size="default"
-            onClick={() => router.push('/get-started')}
-            className="hidden md:flex gap-2 rounded-full px-6 font-heading font-semibold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02] transition-all duration-300"
+            size="sm"
+            onClick={() => {
+              window.location.href = `${config.appUrl}/signup`;
+            }}
+            className={cn(
+              "hidden md:inline-flex h-[44px] px-5 text-[14px] font-semibold rounded-[9px] shadow-sm transition-all active:scale-[0.99] cursor-pointer",
+              isLightNav
+                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-white hover:bg-slate-100 text-[#0B1220]"
+            )}
           >
-            Get Started <ArrowRight className="w-4 h-4" />
+            Start 14-Day Free Trial
           </Button>
+
+          {/* Mobile hamburger */}
           <button
-            className="md:hidden text-foreground"
+            type="button"
+            className={cn(
+              "md:hidden p-2 focus:outline-none transition-colors",
+              isLightNav
+                ? "text-slate-700 hover:text-slate-900"
+                : "text-white/80 hover:text-white"
+            )}
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
           >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
           </button>
         </div>
       </div>
+
+      {/* Mobile Drawer - Full Screen White Overlay */}
       {mobileOpen && (
-        <div className="md:hidden bg-background/95 backdrop-blur-xl border-b border-border/40 px-6 pb-4 space-y-3">
-          {navLinks.map((link) =>
-            link.scroll ? (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={(e) => handleNavClick(e, link)}
-                className="block text-sm text-muted-foreground hover:text-foreground py-1.5 transition-colors"
-              >
-                {link.label}
-              </a>
-            ) : (
+        <div className="md:hidden fixed inset-0 z-[100] bg-white text-slate-900 flex flex-col h-[100dvh] w-full overflow-hidden">
+          {/* Top Bar with Logo and Close (X) Button */}
+          <div className="h-[68px] px-6 flex items-center justify-between border-b border-slate-100 shrink-0">
+            <Link
+              href="/"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2"
+            >
+              <Logo size="md" />
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="p-2.5 rounded-xl text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-colors focus:outline-none"
+              aria-label="Close menu"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Scrollable Navigation Body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <Link
+              href="/features"
+              onClick={() => setMobileOpen(false)}
+              className="block py-2 text-base font-semibold text-slate-900 hover:text-blue-600 transition-colors"
+            >
+              Features
+            </Link>
+
+            {/* Industries Group */}
+            <div className="py-3 border-y border-slate-100">
+              <div className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-2.5">
+                Industries
+              </div>
+              <div className="grid grid-cols-1 gap-2 pl-2">
+                {industryLinks.map((ind) => (
+                  <Link
+                    key={ind.href}
+                    href={ind.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="py-1 text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors"
+                  >
+                    {ind.label}
+                  </Link>
+                ))}
+                <Link
+                  href="/industries"
+                  onClick={() => setMobileOpen(false)}
+                  className="py-1 text-xs font-bold text-blue-600 hover:underline"
+                >
+                  View All Industries →
+                </Link>
+              </div>
+            </div>
+
+            <a
+              href="/#how-it-works"
+              onClick={(e) => handleNavClick(e, { label: "How it works", href: "/#how-it-works", isHash: true })}
+              className="block py-2 text-base font-semibold text-slate-900 hover:text-blue-600 transition-colors"
+            >
+              How it works
+            </a>
+
+            <Link
+              href="/pricing"
+              onClick={() => setMobileOpen(false)}
+              className="block py-2 text-base font-semibold text-slate-900 hover:text-blue-600 transition-colors"
+            >
+              Pricing
+            </Link>
+
+            {/* Bottom Actions */}
+            <div className="pt-5 border-t border-slate-100 flex flex-col gap-3">
               <Link
-                key={link.href}
-                href={link.href}
+                href={`${config.appUrl}/login`}
                 onClick={() => setMobileOpen(false)}
-                className="block text-sm text-muted-foreground hover:text-foreground py-1.5 transition-colors"
+                className="w-full text-center py-2.5 text-sm font-semibold text-slate-700 hover:text-slate-950 border border-slate-200 rounded-xl"
               >
-                {link.label}
+                Log in
               </Link>
-            )
-          )}
-          <Button
-            size="sm"
-            onClick={() => router.push('/get-started')}
-            className="w-full gap-1.5 rounded-full font-semibold"
-          >
-            Get Started <ArrowRight className="w-3.5 h-3.5" />
-          </Button>
+              <Button
+                size="default"
+                onClick={() => {
+                  setMobileOpen(false);
+                  window.location.href = `${config.appUrl}/signup`;
+                }}
+                className="w-full justify-center gap-2 h-11 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
+              >
+                Start 14-Day Free Trial <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
-    </motion.nav>
+    </header>
   );
-};
-
-export default Navbar;
+}
