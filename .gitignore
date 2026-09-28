@@ -30,3 +30,6 @@ production/.env.*
 administrator@*/
 
 backend/exports/
+
+# IDE internal files
+.antigravity/
