@@ -34,6 +34,15 @@ docker buildx build \
   ./frontend
 
 echo ""
+echo "Building and Pushing Landing Image (${VERSION} & latest)..."
+docker buildx build \
+  --platform linux/amd64 \
+  -t "q4queue/app:landing-${VERSION}" \
+  -t "q4queue/app:landing-latest" \
+  --push \
+  ./landing
+
+echo ""
 echo "✅ AMD64 production images (${VERSION} and latest) successfully built and pushed to Docker Hub!"
 echo "To deploy this version on production, set Q4QUEUE_VERSION=${VERSION} in .env and run 'docker compose pull && docker compose up -d'"
 echo ""

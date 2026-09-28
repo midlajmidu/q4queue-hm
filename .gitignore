@@ -16,10 +16,17 @@ venv/
 __pycache__/
 *.pyc
 
-# Ignore massive docker tarballs and offline deployment folders
+# Ignore massive docker tarballs and runtime folders
 *.tar
 *.tar.gz
-production/
+production/*.tar
+production/*.tar.gz
+production/backups/
+production/uploads/
+production/logs/
+production/.env
+production/.env.*
+!production/.env.example
 administrator@*/
 
 backend/exports/

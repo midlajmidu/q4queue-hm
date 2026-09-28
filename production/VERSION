@@ -1,0 +1,10 @@
+Version: 1.0.0
+Build Date: 2026-06-29
+Commit: 3e1984a4c6c3113ee21a121599077784165db94c
+
+Release Notes:
+- Fully converted to a production-ready, source-code-free Docker package
+- Integrated dynamic environment variables for PostgreSQL, Redis, and Webhooks
+- Resolved Next.js TypeScript strict errors in TokenDetailModal
+- Established secure Nginx reverse proxy configuration
+- Automated build, save, load, deploy, backup, and restore scripts
