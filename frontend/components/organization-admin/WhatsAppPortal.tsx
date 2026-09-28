@@ -727,7 +727,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
 
     // Active Preview Template
     const rawPreview = SAMPLE_MESSAGES[selectedPreviewEvent] || SAMPLE_MESSAGES["queue_joined_v4"];
-    const baseOrigin = typeof window !== "undefined" ? window.location.origin : "https://app.localhost:3000";
+    const baseOrigin = typeof window !== "undefined" ? window.location.origin : "https://app.q4queue.com";
     const activePreview = {
         ...rawPreview,
         body: rawPreview.body.replace(/https:\/\/q4queue\.com/g, baseOrigin)

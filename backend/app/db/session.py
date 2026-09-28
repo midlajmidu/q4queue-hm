@@ -54,10 +54,10 @@ async def connect_db() -> None:
             __import__("sqlalchemy").text("SELECT 1")
         )
         await conn.execute(
-            __import__("sqlalchemy").text("""
-                ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE;
-                ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-            """)
+            __import__("sqlalchemy").text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE;")
+        )
+        await conn.execute(
+            __import__("sqlalchemy").text("ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;")
         )
     logger.info("PostgreSQL connection pool ready | url=%s", settings.database_url_async.split("@")[-1])
 

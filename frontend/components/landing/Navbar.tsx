@@ -210,8 +210,8 @@ export default function Navbar() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-5">
-          <a
-            href={`${config.appUrl}/login`}
+          <Link
+            href="/login"
             className={cn(
               "hidden sm:inline-flex text-[14px] font-medium transition-colors",
               isLightNav
@@ -220,7 +220,7 @@ export default function Navbar() {
             )}
           >
             Log in
-          </a>
+          </Link>
 
           <Button
             size="sm"
@@ -333,13 +333,13 @@ export default function Navbar() {
 
             {/* Bottom Actions */}
             <div className="pt-5 border-t border-slate-100 flex flex-col gap-3">
-              <a
-                href={`${config.appUrl}/login`}
+              <Link
+                href="/login"
                 onClick={() => setMobileOpen(false)}
                 className="w-full text-center py-2.5 text-sm font-semibold text-slate-700 hover:text-slate-950 border border-slate-200 rounded-xl"
               >
                 Log in
-              </a>
+              </Link>
               <Button
                 size="default"
                 onClick={() => {

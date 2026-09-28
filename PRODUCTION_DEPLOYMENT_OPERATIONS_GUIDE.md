@@ -85,9 +85,9 @@ Gather the following information **before** starting any deployment:
 - [ ] Customer Domain / Branding requirements
 
 ### Infrastructure
-- [ ] Server IP (Static Public IP)
+- [ ] Server IP (Static Public IP / Elastic IP)
 - [ ] SSH Username & Key (Avoid password auth)
-- [ ] Subdomain Assignment (e.g., `ameoba.q4queue.com`)
+- [ ] SaaS Domain Assignment: `app.q4queue.com` (EC2) and Marketing `q4queue.com` (Vercel)
 - [ ] DNS Access (Cloudflare / Route53 / etc.)
 - [ ] SSL Administrator Email (for Let's Encrypt)
 
@@ -215,63 +215,63 @@ docker compose exec backend python app/scripts/seed_super_admin.py
 Never commit the `.env` file to version control. Below is the complete guide for `.env`.
 
 ### Core URLs
-- `FRONTEND_URL`: The URL customers visit (e.g., `https://ameoba.q4queue.com`). Required.
-- `BACKEND_URL`: The API URL (e.g., `https://api.ameoba.q4queue.com`). Required.
-- `API_BASE_URL`: Same as BACKEND_URL. Used by frontend SSR. Required.
-- `CORS_ORIGINS`: Comma separated list of allowed origins (e.g., `https://ameoba.q4queue.com`). Required.
+- `APP_URL`: The SaaS application URL (e.g., `https://app.q4queue.com`). Required.
+- `FRONTEND_URL`: Same as APP_URL for SaaS (`https://app.q4queue.com`). Required.
+- `LANDING_URL`: The public marketing website (`https://q4queue.com`). Required.
+- `PUBLIC_API_URL`: The public API URL for webhooks (`https://app.q4queue.com`). Required.
+- `CORS_ORIGINS`: Allowed origins (`https://app.q4queue.com,https://q4queue.com`). Required.
 
 ### Database & Cache
-- `DATABASE_URL`: `postgresql+asyncpg://postgres:securepassword@postgres:5432/qrq`. Secret. Required.
+- `DATABASE_URL`: `postgresql+asyncpg://postgres:securepassword@postgres:5432/queuedb`. Secret. Required.
 - `REDIS_URL`: `redis://redis:6379/0`. Required.
 
 ### Security
-- `SECRET_KEY`: A 64-character random string. Secret. Required. Changes invalidate all sessions.
-- `JWT_SECRET`: Same as SECRET_KEY. Used by JS/Frontend. Secret. Required.
+- `SECRET_KEY`: A 64-character random string (`openssl rand -hex 32`). Secret. Required. Changes invalidate all sessions.
 
 ### WhatsApp Integration
-- `WHATSAPP_PHONE_NUMBER_ID`: From Meta dashboard. Customer specific. Required for messaging.
-- `WHATSAPP_BUSINESS_ACCOUNT_ID`: From Meta dashboard. Customer specific.
-- `WHATSAPP_TOKEN`: Permanent access token. Secret. Required.
+- `WHATSAPP_PHONE_NUMBER_ID`: From Meta dashboard. Required for messaging.
+- `WHATSAPP_WABA_ID`: From Meta dashboard.
+- `WHATSAPP_ACCESS_TOKEN`: Permanent system user access token. Secret. Required.
 - `WHATSAPP_VERIFY_TOKEN`: Arbitrary secure string for webhook validation. Secret. Required.
 
 ✅ **Verification Checklist**
 - [ ] Securely backup the `.env` file offline or in a secure secret manager.
 
 ⚠ **Common Mistakes**
-- Using trailing slashes in URLs (e.g., `https://ameoba.q4queue.com/`). Remove trailing slashes!
+- Using trailing slashes in URLs (e.g., `https://app.q4queue.com/`). Remove trailing slashes!
 
 💡 **Best Practices**
 - If `.env` is lost, immediately rotate `SECRET_KEY` and WhatsApp tokens, as compromised keys can lead to complete system takeover.
 
 ---
 
-## Section 7: Customer Domain Configuration
+## Section 7: SaaS & Custom Domain Architecture
 
-We **DO NOT** use customer-owned domains directly. Every customer receives a subdomain of `q4queue.com`.
-Example: `ameoba.q4queue.com`
+The multi-tenant architecture uses a single origin on AWS EC2:
+- **SaaS Application**: `https://app.q4queue.com`
+- **Marketing Landing Website**: `https://q4queue.com` (deployed to Vercel)
+- **API Endpoints**: Routed transparently via NGINX at `https://app.q4queue.com/api/v1` (no standalone `api.q4queue.com` required)
+
+For on-premise customer deployments, the identical Docker images run on the customer's server using their domain in `.env` (e.g. `customer.example.com`).
 
 ### 1. DNS Configuration
-In Cloudflare or your DNS provider:
-- A Record for `ameoba.q4queue.com` pointing to the Server's Static IP.
-- A Record for `api.ameoba.q4queue.com` pointing to the Server's Static IP.
+In Cloudflare, Route53, or your DNS provider:
+- A Record for `app.q4queue.com` pointing to the EC2 Elastic IP.
+- (For Vercel marketing): CNAME for `q4queue.com` pointing to `cname.vercel-dns.com`.
 
-### 2. Reverse Proxy & SSL (Nginx / Caddy / Traefik)
-Using Nginx + Certbot:
+### 2. Reverse Proxy & SSL (Nginx + Certbot)
+Using Nginx inside Docker with Certbot:
 ```bash
-sudo apt install nginx python3-certbot-nginx
-```
-Create configurations for both the frontend (port 3000) and backend (port 8000). Ensure WebSocket upgrade headers are passed for the backend.
-
-```bash
-sudo certbot --nginx -d ameoba.q4queue.com -d api.ameoba.q4queue.com
+sudo certbot --nginx -d app.q4queue.com
 ```
 
 ✅ **Verification Checklist**
-- [ ] Visit `https://ameoba.q4queue.com` in a browser. It must load securely with a valid certificate.
-- [ ] Visit `https://api.ameoba.q4queue.com/api/v1/health` and verify it returns 200 OK.
+- [ ] Visit `https://app.q4queue.com` in a browser. It must load securely with a valid certificate.
+- [ ] Visit `https://app.q4queue.com/health` and verify it returns 200 OK.
+- [ ] Visit `https://app.q4queue.com/ready` and verify database and redis readiness checks pass.
 
 ⚠ **Common Mistakes**
-- Forgetting to configure WebSocket proxy headers for the backend, breaking the live display screens.
+- Forgetting to configure WebSocket proxy headers for `/api/v1/ws`, breaking the live display screens.
 
 💡 **Best Practices**
 - Enable automatic renewal for Let's Encrypt certificates via cron.
@@ -289,15 +289,15 @@ WhatsApp is critical for tracking.
 4. Bind the customer's Phone Number.
 
 ### 2. Webhook Setup
-Whenever the customer subdomain changes, you MUST update the webhook URL in Meta.
-- **Callback URL**: `https://api.ameoba.q4queue.com/api/v1/webhooks/whatsapp`
+Configure the webhook in Meta Developers Console:
+- **Callback URL**: `https://app.q4queue.com/api/v1/webhooks/whatsapp`
 - **Verify Token**: The exact string placed in `WHATSAPP_VERIFY_TOKEN` in the `.env` file.
 
 Subscribe to the `messages` field.
 
 ### 3. Link Verification
 Ensure that WhatsApp templates dynamically construct links using the `FRONTEND_URL` from the environment.
-Example of sent link: `https://ameoba.q4queue.com/track/tk_123abc`
+Example of sent link: `https://app.q4queue.com/track/tk_123abc`
 
 ✅ **Verification Checklist**
 - [ ] Webhook validation succeeds in the Meta Dashboard.
@@ -316,13 +316,13 @@ Example of sent link: `https://ameoba.q4queue.com/track/tk_123abc`
 QR Codes are the physical entry point for customers.
 
 - **Generation**: The system generates QR codes pointing to the Join Queue URL.
-- **URL Structure**: `https://ameoba.q4queue.com/join/<queueId>`
+- **URL Structure**: `https://app.q4queue.com/join/<queueId>`
 
 ✅ **Verification Checklist**
-- [ ] Scan the generated QR code on a mobile device on LTE/5G (not WiFi). It must open the customer's exact subdomain.
+- [ ] Scan the generated QR code on a mobile device on LTE/5G (not WiFi). It must open the SaaS application securely over HTTPS.
 
 ⚠ **Common Mistakes**
-- QR codes pointing to IP addresses instead of the configured subdomain.
+- QR codes pointing to IP addresses or localhost instead of the configured SaaS domain.
 
 💡 **Best Practices**
 - Print a test QR code and physically scan it to ensure the contrast and URL are valid before handing over to the client.
@@ -492,7 +492,7 @@ Before handing over credentials to the customer, perform a live demonstration.
 - [ ] Show how to create a Queue.
 - [ ] Show how to generate and print a QR code.
 - [ ] Demonstrate the WhatsApp flow on a mobile device.
-- [ ] Provide them with their dedicated URLs (`ameoba.q4queue.com`) and default temporary passwords (which they must change immediately).
+- [ ] Provide them with their dedicated organization login at `https://app.q4queue.com/login` and default temporary passwords (which they must change immediately).
 
 ---
 

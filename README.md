@@ -38,26 +38,61 @@ Q4Queue is a premium, multi-tenant SaaS application designed for clinics, retail
 
 ---
 
-## 🏗️ Project Architecture
+## 🏗️ Production SaaS Architecture
+
+```text
+                         INTERNET
+                            |
+             +--------------+--------------+
+             |                             |
+             v                             v
+      https://q4queue.com          https://app.q4queue.com
+          Vercel                         AWS EC2
+      Marketing site                SaaS Application
+             |                             |
+             |                             +-------------------+
+             |                             |                   |
+             |                         Next.js             FastAPI
+             |                         :3000                :8000
+             |                             |                   |
+             |                             +---------+---------+
+             |                                       |
+             |                              +--------+--------+
+             |                              |                 |
+             |                         PostgreSQL           Redis
+             |                            :5432              :6379
+             |
+             +---- Login/Signup links
+                         |
+                         v
+              https://app.q4queue.com/login
+              https://app.q4queue.com/signup
+```
+
+### URLs & Endpoints
+- **Marketing Website**: `https://q4queue.com` (Vercel)
+- **SaaS Application**: `https://app.q4queue.com` (AWS EC2)
+- **API Endpoints**: `https://app.q4queue.com/api/v1`
+- **WebSockets**: `wss://app.q4queue.com/api/v1/ws`
+- **Meta WhatsApp Webhook**: `https://app.q4queue.com/api/v1/webhooks/whatsapp`
+- **Plivo Voice Callbacks**: `https://app.q4queue.com/api/v1/plivo/answer` & `https://app.q4queue.com/api/v1/plivo/hangup`
+
+---
+
+## 🏗️ Repository Structure
 
 ```text
 q4queue/
-├── docker-compose.yml       # Orchestrates Postgres, Redis, Backend, Nginx
-├── backend/
-│   ├── app/                 # FastAPI application source
-│   │   ├── api/             # REST Endpoints (v1)
-│   │   ├── models/          # SQLAlchemy Database Models
-│   │   ├── services/        # Business logic layer
-│   │   └── websocket/       # Real-time message handlers
-│   ├── alembic/             # DB migration scripts
-│   ├── Dockerfile           # High-performance Python container
-│   └── requirements.txt     # Backend dependencies
-├── frontend/
-│   ├── app/                 # Next.js App Router (Dashboard, Join, Display)
-│   ├── components/          # Reusable UI components
-│   ├── lib/                 # API client and configuration utilities
-│   └── hooks/               # Custom hooks (WebSockets, Auth, Heartbeat)
-└── deploy/                  # Infrastructure configurations (Nginx, etc.)
+├── docker-compose.yml       # Development Docker Compose
+├── production/              # Production deployment (Docker Compose, NGINX, scripts)
+│   ├── docker-compose.yml   # Production Compose (no public DB/Redis ports)
+│   ├── nginx/               # NGINX reverse proxy for app.q4queue.com
+│   └── scripts/             # Backup, restore, and deploy scripts
+├── backend/                 # FastAPI application
+├── frontend/                # Next.js SaaS Application (app.q4queue.com)
+├── landing/                 # Next.js Marketing Website (q4queue.com)
+├── scripts/                 # Operational & audit scripts (production-audit.sh)
+└── deploy/                  # Production monitoring & deployment configs
 ```
 
 ---

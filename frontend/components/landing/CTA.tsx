@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { CirclePlay } from "lucide-react";
+import { config } from "@/lib/config";
 
 export default function CTA() {
   return (

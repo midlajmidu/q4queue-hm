@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;      /* #F8FAFC */
+    --foreground: 222 47% 11%;      /* #0B1220 */
+
+    --card: 0 0% 100%;              /* #FFFFFF */
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 221 83% 53%;         /* #2563EB - Q4Queue Blue */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;       /* #F1F5F9 */
+    --secondary-foreground: 215 25% 27%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;/* #64748B */
+
+    --accent: 221 83% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;          /* #E2E8F0 */
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    --radius: 0.625rem;             /* 10px */
+
+    --navy-surface: 222 47% 11%;    /* #0F172A */
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Geist", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Accessible focus indicators */
+  :focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Monospace and tabular numbers for financial & operational dashboards */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* Subtle operational card elevation */
+  .b2b-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 6px 20px -4px rgba(15, 23, 42, 0.04);
+  }
+
+  .b2b-card-hover {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .b2b-card-hover:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px 0 rgba(15, 23, 42, 0.06), 0 12px 28px -4px rgba(15, 23, 42, 0.06);
+    transform: translateY(-1px);
+  }
+
+  /* Dashboard active item highlight */
+  .b2b-active-row {
+    background-color: #eff6ff;
+    border-left: 3px solid #2563eb;
+  }
+
+  /* Subtle hairline dividers */
+  .hairline-b {
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .hairline-t {
+    border-top: 1px solid #e2e8f0;
+  }
+
+  /* Infinite Marquee for Mobile/Tablet Trust Bar */
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee 25s linear infinite;
+  }
+
+  .animate-marquee:hover {
+    animation-play-state: paused;
+  }
+}

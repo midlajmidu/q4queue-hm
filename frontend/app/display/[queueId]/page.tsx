@@ -102,7 +102,7 @@ export default function DisplayQueuePage({ params }: PageProps) {
     const customerName = state?.serving_details?.customer_name;
     const allServingTokens = state?.all_serving_tokens || [];
     const rawLogoUrl = state?.org_logo_url;
-    const logoUrl = rawLogoUrl ? (rawLogoUrl.startsWith('http') ? rawLogoUrl : `${(process.env.NEXT_PUBLIC_API_URL || 'https://amoebaq.com/api/v1').replace('/api/v1', '')}${rawLogoUrl}`) : null;
+    const logoUrl = rawLogoUrl ? (rawLogoUrl.startsWith('http') ? rawLogoUrl : `${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/v1\/?$/, '')}${rawLogoUrl}`) : null;
     const isConnected = status === "connected";
 
     return (

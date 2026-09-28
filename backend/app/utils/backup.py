@@ -9,7 +9,7 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-BACKUP_DIR = "/app/backups"
+BACKUP_DIR = getattr(get_settings(), "BACKUP_DIR", "/app/backups")
 
 def _get_db_creds():
     settings = get_settings()

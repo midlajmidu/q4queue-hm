@@ -22,6 +22,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { config } from "@/lib/config";
 
 /* ─── Shared easing ───────────────────────────────────────────────── */
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];

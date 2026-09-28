@@ -93,10 +93,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Start pool monitor
     await start_pool_monitor()
 
-    # Start backup scheduler
+    # Start background schedulers (protected by Redis distributed locks)
     from app.utils.backup import backup_task
+    from app.utils.auto_session import auto_session_task
     import asyncio
     app.state.backup_task = asyncio.create_task(backup_task())
+    app.state.auto_session_task = asyncio.create_task(auto_session_task())
 
     # Init metrics
     from app.monitoring.metrics import init_app_info
@@ -110,6 +112,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     background_tasks = [
         task for task in (
             getattr(app.state, "backup_task", None),
+            getattr(app.state, "auto_session_task", None),
         ) if task is not None
     ]
     for task in background_tasks:
@@ -223,8 +226,9 @@ app.include_router(health_ep.router, prefix="", tags=["Health"])
 
 # ── Static Files ──────────────────────────────────────────────────
 # Ensure uploads directory exists
-os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+upload_directory = settings.UPLOAD_DIR if os.path.isabs(settings.UPLOAD_DIR) else os.path.abspath(settings.UPLOAD_DIR)
+os.makedirs(upload_directory, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=upload_directory), name="uploads")
 
 # ── WebSocket routes ──────────────────────────────────────────────
 app.include_router(ws_router, prefix="/api/v1/ws")

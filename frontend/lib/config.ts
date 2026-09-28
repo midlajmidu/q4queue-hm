@@ -38,23 +38,32 @@ export const config = {
   appUrl: (() => {
     if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
     if (typeof window !== 'undefined') {
+      const host = window.location.host;
+      if (host.includes('localhost') || host.includes('127.0.0.1')) {
+        return `${window.location.protocol}//${host}`;
+      }
       const isApp = window.location.hostname.startsWith('app.');
       if (isApp) return window.location.origin;
-      return `${window.location.protocol}//app.${window.location.host}`;
+      const cleanHost = host.replace(/^www\./, '');
+      return `${window.location.protocol}//app.${cleanHost}`;
     }
-    return "http://app.localhost:3000";
+    return process.env.NODE_ENV === "production" ? "https://app.q4queue.com" : "http://localhost:3000";
   })(),
   isProduction: process.env.NODE_ENV === "production",
   landingUrl: (() => {
     if (process.env.NEXT_PUBLIC_LANDING_URL) return process.env.NEXT_PUBLIC_LANDING_URL;
     if (typeof window !== 'undefined') {
+      const host = window.location.host;
+      if (host.includes('localhost') || host.includes('127.0.0.1')) {
+        return `${window.location.protocol}//${host}`;
+      }
       const isApp = window.location.hostname.startsWith('app.');
       if (isApp) {
-        const rootHost = window.location.host.replace(/^app\./, '');
+        const rootHost = window.location.host.replace(/^app\./, '').replace(/^www\./, '');
         return `${window.location.protocol}//${rootHost}`;
       }
       return window.location.origin;
     }
-    return "http://localhost:3000";
+    return process.env.NODE_ENV === "production" ? "https://q4queue.com" : "http://localhost:3000";
   })(),
 } as const;

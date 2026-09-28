@@ -120,9 +120,7 @@ export default function PricingSection() {
 
             <div className="mt-10">
               <Button
-                onClick={() => {
-                  window.location.href = `${config.appUrl}/signup`;
-                }}
+                onClick={() => router.push("/signup")}
                 className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
                 <span>Start 14-Day Free Trial</span>

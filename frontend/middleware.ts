@@ -16,8 +16,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Bypass for tunnel services (ngrok, localtunnel, etc.) or raw IP addresses
+  // Bypass for local development, tunnel services, or raw IP addresses
   if (
+    host.includes('localhost') ||
+    host.includes('127.0.0.1') ||
     host.includes('ngrok') || 
     host.includes('loca.lt') || 
     host.includes('trycloudflare.com') ||
@@ -32,12 +34,13 @@ export function middleware(request: NextRequest) {
   const appHost = isAppSubdomain ? normalizedHost : `app.${normalizedHost}`;
   const rootHost = baseDomain;
 
-  let proto = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+  let proto = request.headers.get('x-forwarded-proto') || 'https';
   if (proto.endsWith(':')) {
     proto = proto.slice(0, -1);
   }
   const appOrigin = `${proto}://${appHost}`;
-  const rootOrigin = `${proto}://${rootHost}`;
+  const envLandingUrl = process.env.NEXT_PUBLIC_LANDING_URL ? process.env.NEXT_PUBLIC_LANDING_URL.replace(/\/$/, '') : null;
+  const rootOrigin = envLandingUrl || `${proto}://${rootHost}`;
 
   const pathname = url.pathname;
 
@@ -48,13 +51,16 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/track') ||
     pathname.startsWith('/display') ||
     pathname.startsWith('/d/') ||
-    pathname.startsWith('/qr');
+    pathname.startsWith('/qr') ||
+    pathname.startsWith('/appointments') ||
+    pathname.startsWith('/book') ||
+    pathname.startsWith('/public');
 
   if (isPublicQueueRoute) {
     return NextResponse.next();
   }
 
-  // 2. Marketing routes (strictly belong on root domain: localhost:3000 / q4queue.com)
+  // 2. Marketing and Auth routes (accessible on root domain: q4queue.com)
   const isMarketingRoute =
     pathname === '/' ||
     pathname.startsWith('/features') ||
@@ -65,47 +71,40 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/product') ||
     pathname.startsWith('/get-started');
 
+  const isAuthRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/organization-login') ||
+    pathname.startsWith('/forgot-password');
+
   // Helper for cross-domain redirects
   const crossRedirect = (targetOrigin: string, path: string) => {
-    const fullUrl = `${targetOrigin}${path}${url.search}`;
-    // In local development, Next.js's internal dev-server relativizes redirects targeting localhost,
-    // which causes a redirect loop when switching from app.localhost:3000 back to localhost:3000.
-    // Serving a standard HTTP 200 HTML/Refresh meta redirect guarantees the browser switches origin.
-    if (host.includes('localhost') && !targetOrigin.includes('app.')) {
-      const html = `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${fullUrl}"></head><body><script>window.location.replace("${fullUrl}");</script></body></html>`;
-      return new NextResponse(html, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Refresh': `0; url=${fullUrl}`,
-        },
-      });
-    }
     return NextResponse.redirect(new URL(`${path}${url.search}`, targetOrigin));
   };
 
-  // Case A: User is on APP subdomain (app.localhost:3000 / app.q4queue.com)
+  // Case A: User is on APP subdomain (app.q4queue.com)
   if (isAppSubdomain) {
     // Root of app subdomain -> redirect directly to login
     if (pathname === '/') {
       return crossRedirect(appOrigin, '/login');
     }
-    // Marketing page accessed on app subdomain -> redirect to root domain
+    // Marketing page accessed on app subdomain -> redirect to root marketing domain
     if (isMarketingRoute) {
       return crossRedirect(rootOrigin, pathname);
     }
-    // App route on app subdomain -> allow
+    // Auth and App routes on app subdomain -> allow
     return NextResponse.next();
   }
 
-  // Case B: User is on ROOT domain (localhost:3000 / q4queue.com)
+  // Case B: User is on ROOT domain (q4queue.com)
   if (!isAppSubdomain) {
-    // App route (login, signup, dashboards, super-admin) accessed on root domain -> redirect to app subdomain
-    if (!isMarketingRoute) {
-      return crossRedirect(appOrigin, pathname);
+    // Marketing and Auth routes stay on root domain -> allow
+    if (isMarketingRoute || isAuthRoute) {
+      return NextResponse.next();
     }
-    // Marketing page on root domain -> allow
-    return NextResponse.next();
+    // Internal portal/dashboard routes (e.g. /[branchSlug]/dashboard, /organization-admin, /super-admin)
+    // accessed on root domain -> redirect to app subdomain
+    return crossRedirect(appOrigin, pathname);
   }
 
   return NextResponse.next();

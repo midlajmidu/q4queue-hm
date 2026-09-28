@@ -13,8 +13,13 @@ class Settings(BaseSettings):
     APP_NAME: str = "q4queue"
     VERSION: str = "0.5.0"
     ENVIRONMENT: str = "development"
-    FRONTEND_URL: str = "https://q4queue.com"
-    PUBLIC_API_URL: str = "https://your-ngrok-url.ngrok-free.app"
+    APP_URL: str = "https://app.q4queue.com"
+    FRONTEND_URL: str = "https://app.q4queue.com"
+    LANDING_URL: str = "https://q4queue.com"
+    PUBLIC_API_URL: str = "https://app.q4queue.com"
+    BACKEND_INTERNAL_URL: str = "http://backend:8000"
+    UPLOAD_DIR: str = "/app/uploads"
+    BACKUP_DIR: str = "/app/backups"
 
     # ── Security ──────────────────────────────────────────────────
     SECRET_KEY: str
@@ -114,9 +119,18 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         if not self.CORS_ORIGINS or self.CORS_ORIGINS == "*":
-            # Wildcard origins cannot be combined with allow_credentials=True
-            # Safe default fallback for local dev
-            return ["http://localhost:3000", "https://q4queue.com"]
+            if self.is_production:
+                return list(dict.fromkeys([self.APP_URL.rstrip("/"), self.FRONTEND_URL.rstrip("/"), self.LANDING_URL.rstrip("/")]))
+            return [
+                "http://localhost:3000",
+                "http://app.localhost:3000",
+                "http://localhost:3002",
+                "http://app.localhost:3002",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:3002",
+                "https://app.q4queue.com",
+                "https://q4queue.com",
+            ]
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
 

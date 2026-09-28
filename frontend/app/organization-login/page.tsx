@@ -53,7 +53,11 @@ export default function LoginPage() {
                 targetPath = `/${user.org_slug}/dashboard`;
             }
 
-            router.replace(targetPath);
+            if (typeof window !== "undefined" && !window.location.host.includes("localhost") && !window.location.host.includes("127.0.0.1") && !window.location.hostname.startsWith("app.")) {
+                window.location.href = `https://app.q4queue.com${targetPath}`;
+            } else {
+                router.replace(targetPath);
+            }
         }
     }, [isHydrated, isAuthenticated, user, router]);
 

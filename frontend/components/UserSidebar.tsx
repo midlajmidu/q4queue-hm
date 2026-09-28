@@ -274,7 +274,7 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                                         } overflow-hidden shrink-0`}>
                                             {displayUser?.org_logo_url ? (
                                                 <img
-                                                    src={displayUser.org_logo_url.startsWith('http') ? displayUser.org_logo_url : `${(process.env.NEXT_PUBLIC_API_URL || 'https://amoebaq.com/api/v1').replace('/api/v1', '')}${displayUser.org_logo_url}`}
+                                                    src={displayUser.org_logo_url.startsWith('http') ? displayUser.org_logo_url : `${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/v1\/?$/, '')}${displayUser.org_logo_url}`}
                                                     alt="Org Logo"
                                                     className="w-full h-full object-contain p-1"
                                                 />

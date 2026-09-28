@@ -56,7 +56,12 @@ export default function SignupPage() {
         try {
             const response = await api.startTrial({ ...form, email: form.email.trim().toLowerCase(), otp });
             setToken(response.access_token, "staff");
-            router.replace(`/${response.organization_slug}/dashboard`);
+            const targetPath = `/${response.organization_slug}/dashboard`;
+            if (typeof window !== "undefined" && !window.location.host.includes("localhost") && !window.location.host.includes("127.0.0.1") && !window.location.hostname.startsWith("app.")) {
+                window.location.href = `https://app.q4queue.com${targetPath}`;
+            } else {
+                router.replace(targetPath);
+            }
         } catch (err) {
             setError(errorMessage(err, "We couldn't verify your email. Please try again."));
         } finally { setLoading(false); }

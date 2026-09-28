@@ -236,7 +236,7 @@ async def send_whatsapp_message(
             template_name = "ticket_confirmed_v1"
             template_language = "en"
             custom_msg = variables[0] if variables else "Test notification"
-            frontend_url = getattr(settings, "FRONTEND_URL", "http://app.localhost:3000").rstrip("/")
+            frontend_url = getattr(settings, "FRONTEND_URL", "https://app.q4queue.com").rstrip("/")
             variables = [
                 "Super Admin",
                 "TEST-01",

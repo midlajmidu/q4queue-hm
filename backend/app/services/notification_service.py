@@ -213,7 +213,7 @@ async def notify_queue_event(
             # joined template uses variables for ticket_confirmed_v1
             from app.core.config import get_settings
             settings = get_settings()
-            frontend_url = getattr(settings, "FRONTEND_URL", "http://app.localhost:3000").rstrip("/")
+            frontend_url = getattr(settings, "FRONTEND_URL", "https://app.q4queue.com").rstrip("/")
             track_target = tracking_id or token_id or queue_id
             track_url = f"{frontend_url}/track/{track_target}" if track_target else f"{frontend_url}/track"
             display_url = f"{frontend_url}/display/{queue_id}" if queue_id else f"{frontend_url}/display"
@@ -232,7 +232,7 @@ async def notify_queue_event(
         elif event_type == "appointment_booked_v1":
             from app.core.config import get_settings
             settings = get_settings()
-            frontend_url = getattr(settings, "FRONTEND_URL", "http://app.localhost:3000").rstrip("/")
+            frontend_url = getattr(settings, "FRONTEND_URL", "https://app.q4queue.com").rstrip("/")
             pass_url = f"{frontend_url}/appointments/{booking_reference}" if booking_reference else frontend_url
 
             # Variables for appointment_confirmed_v1:
@@ -320,7 +320,7 @@ async def notify_queue_event(
                 
                 from app.core.config import get_settings
                 settings = get_settings()
-                frontend_url = getattr(settings, "FRONTEND_URL", "http://app.localhost:3000").rstrip("/")
+                frontend_url = getattr(settings, "FRONTEND_URL", "https://app.q4queue.com").rstrip("/")
                 track_url = f"{frontend_url}/track/{tracking_id}" if tracking_id else ""
 
                 if event_type == "queue_nearby_5_v3":

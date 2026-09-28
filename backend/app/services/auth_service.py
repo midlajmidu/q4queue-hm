@@ -19,6 +19,7 @@ from app.models.user import User
 logger = logging.getLogger(__name__)
 
 # Generic message — prevent enumeration attacks
+_INVALID_CREDENTIALS = "Invalid credentials"
 ACCOUNT_SUSPENDED_MESSAGE = "This account has been suspended by an administrator. Please contact support at contact@q4queue.com to restore access."
 TRIAL_EXPIRED_MESSAGE = "Your free trial has ended. Contact our sales team to continue using Q4Queue. Your data is safe."
 SUBSCRIPTION_CANCELLED_MESSAGE = "This subscription has been cancelled. Please contact support at contact@q4queue.com to reactivate your account."

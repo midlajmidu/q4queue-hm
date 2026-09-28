@@ -30,10 +30,10 @@ export async function GET(
     // Check if backend returned a redirect (FastAPI returns 307 Temporary Redirect)
     const location = backendRes.headers.get("location");
     if (location) {
-        const locationUrl = new URL(location, "http://localhost:3000");
-        const host = request.headers.get("host") || request.nextUrl.host;
-        const proto = request.headers.get("x-forwarded-proto") || "http";
+        const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || request.nextUrl.host;
+        const proto = request.headers.get("x-forwarded-proto") || (process.env.NODE_ENV === "production" ? "https" : "http");
         const clientOrigin = `${proto}://${host}`;
+        const locationUrl = new URL(location, clientOrigin);
 
         const finalRedirectUrl = new URL(
           `${locationUrl.pathname}${locationUrl.search}${locationUrl.hash}`,

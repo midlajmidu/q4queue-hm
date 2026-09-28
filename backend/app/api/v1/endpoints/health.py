@@ -69,3 +69,42 @@ async def health_check() -> JSONResponse:
         else status.HTTP_503_SERVICE_UNAVAILABLE
     )
     return JSONResponse(status_code=http_status, content=health)
+
+
+@router.get(
+    "/ready",
+    tags=["Health"],
+    summary="Readiness Probe",
+    response_description="Returns 200 when ready to receive traffic, 503 otherwise",
+)
+async def readiness_check() -> JSONResponse:
+    """
+    Readiness probe verifying DB query execution and Redis availability.
+    Used by orchestrators, AWS Target Groups, and load balancers.
+    """
+    ready = True
+    details = {"status": "ready"}
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("SELECT 1"))
+    except Exception as exc:
+        ready = False
+        details["database"] = "unavailable"
+        logger.error("Readiness check: database failed: %s", exc)
+
+    try:
+        redis = get_redis()
+        pong = await redis.ping()
+        if not pong:
+            ready = False
+            details["redis"] = "no-pong"
+    except Exception as exc:
+        ready = False
+        details["redis"] = "unavailable"
+        logger.error("Readiness check: redis failed: %s", exc)
+
+    if not ready:
+        details["status"] = "not_ready"
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=details)
+
+    return JSONResponse(status_code=status.HTTP_200_OK, content=details)

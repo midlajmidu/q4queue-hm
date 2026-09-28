@@ -45,24 +45,24 @@ def _get_public_base_url(request: Request) -> str:
     """
     Returns the publicly reachable base URL for Plivo callbacks.
     Prioritizes PUBLIC_API_URL if configured, otherwise inspects reverse-proxy headers.
-    Always ensures HTTPS for public domains (like amoebaq.com) to avoid 301 redirect drops.
+    Ensures HTTPS for public domains to avoid 301 redirect drops.
     """
     settings = get_settings()
-    if settings.PUBLIC_API_URL and "your-ngrok" not in settings.PUBLIC_API_URL and "localhost" not in settings.PUBLIC_API_URL:
+    if settings.PUBLIC_API_URL and not settings.PUBLIC_API_URL.startswith("http://localhost"):
         base = settings.PUBLIC_API_URL.rstrip("/")
-        if "amoebaq.com" in base and base.startswith("http://"):
+        if settings.is_production and base.startswith("http://"):
             base = base.replace("http://", "https://", 1)
         return base
 
     proto = request.headers.get("x-forwarded-proto") or request.url.scheme
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     if host:
-        if "amoebaq.com" in host or (proto == "http" and "localhost" not in host and "127.0.0.1" not in host):
+        if settings.is_production or (proto == "http" and "localhost" not in host and "127.0.0.1" not in host):
             proto = "https"
         return f"{proto}://{host}"
 
     base = str(request.base_url).rstrip("/")
-    if "amoebaq.com" in base and base.startswith("http://"):
+    if settings.is_production and base.startswith("http://"):
         base = base.replace("http://", "https://", 1)
     return base
 
@@ -117,9 +117,6 @@ async def webrtc_forward(request: Request):
     token_id = form_data.get("X-PH-TokenId", "")
 
     base_url = _get_public_base_url(request)
-    if "amoebaq.com" in base_url and base_url.startswith("http://"):
-        base_url = base_url.replace("http://", "https://", 1)
-
     action_url = f"{base_url}/api/v1/plivo/webrtc/hangup?org_id={org_id}&queue_id={queue_id}&session_id={session_id}&token_id={token_id}"
     action_url_xml = action_url.replace("&", "&amp;")
 
