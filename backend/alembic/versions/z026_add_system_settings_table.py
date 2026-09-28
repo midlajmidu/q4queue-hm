@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = "z026_add_system_settings_table"
-down_revision: Union[str, Sequence[str], None] = "z025_scope_session_entitlement_to_queue"
+down_revision: Union[str, Sequence[str], None] = "z025_scope_session_entitlement"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

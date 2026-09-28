@@ -1,6 +1,6 @@
 """scope session entitlement to queue
 
-Revision ID: z025_scope_session_entitlement_to_queue
+Revision ID: z025_scope_session_entitlement
 Revises: z024_add_user_soft_delete
 Create Date: 2026-09-27 22:50:00.000000
 """
@@ -8,7 +8,7 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-revision: str = "z025_scope_session_entitlement_to_queue"
+revision: str = "z025_scope_session_entitlement"
 down_revision: Union[str, Sequence[str], None] = "z024_add_user_soft_delete"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

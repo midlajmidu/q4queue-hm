@@ -6,14 +6,14 @@ These columns power the midnight-spanning auto-close engine:
   - scheduled_close_at — UTC time the background task will auto-close the session
 
 Revision ID: z020_session_timestamps
-Revises: wa_notify_skip_recall_remove
+Revises: z020_branch_type_table_config
 """
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
 revision: str = "z020_session_timestamps"
-down_revision: Union[str, None] = "wa_notify_skip_recall_remove"
+down_revision: Union[str, None] = "z020_branch_type_table_config"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

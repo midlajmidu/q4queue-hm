@@ -1,6 +1,6 @@
 """Add appointment_id to call_logs.
 
-Revision ID: z022_add_appointment_id_to_call_logs
+Revision ID: z022_appointment_call_logs
 Revises: z021_add_appointments
 """
 from typing import Sequence, Union
@@ -8,7 +8,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision: str = "z022_add_appointment_id_to_call_logs"
+revision: str = "z022_appointment_call_logs"
 down_revision: Union[str, None] = "z021_add_appointments"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
