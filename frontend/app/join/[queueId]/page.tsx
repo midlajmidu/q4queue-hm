@@ -155,115 +155,7 @@ function WhatsAppConsentModal({ brandColor, onConfirm, onClose }: WhatsAppConsen
     );
 }
 
-// ── Duplicate Token Modal ────────────────────────────────────────────────────
-interface DuplicateTokenModalProps {
-    brandColor: string;
-    tokenNumber: number;
-    prefix?: string;
-    onViewActive: () => void;
-    onIssueNew: () => void;
-    onClose: () => void;
-    isJoining: boolean;
-}
 
-function DuplicateTokenModal({
-    brandColor,
-    tokenNumber,
-    prefix = "",
-    onViewActive,
-    onIssueNew,
-    onClose,
-    isJoining
-}: DuplicateTokenModalProps) {
-    const formattedToken = `${prefix}${tokenNumber}`;
-    return (
-        <>
-            <div
-                onClick={onClose}
-                style={{
-                    position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-                    zIndex: 45, backdropFilter: "blur(4px)",
-                    animation: "fadeIn 0.15s ease"
-                }}
-            />
-            <div style={{
-                position: "fixed", bottom: 0, left: 0, right: 0,
-                background: "#fff", borderRadius: "24px 24px 0 0",
-                padding: "28px 24px 36px",
-                zIndex: 50, maxWidth: 480, margin: "0 auto",
-                animation: "slideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
-                boxShadow: "0 -10px 40px rgba(0,0,0,0.12)"
-            }}>
-                <div style={{
-                    width: 40, height: 4, background: "#e2e8f0",
-                    borderRadius: 4, margin: "0 auto 20px"
-                }} />
-
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12, marginBottom: 24 }}>
-                    <div style={{
-                        width: 58, height: 58, borderRadius: "50%",
-                        background: "#eff6ff", border: "2px solid #bfdbfe",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        color: "#2563eb"
-                    }}>
-                        <span style={{ fontSize: 22, fontWeight: 900 }}>#{formattedToken}</span>
-                    </div>
-                    <div>
-                        <h3 style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                            Active Token Found
-                        </h3>
-                        <p style={{ fontSize: 13.5, color: "#64748b", marginTop: 8, lineHeight: 1.5, maxWidth: 360, margin: "8px auto 0" }}>
-                            An active token <strong style={{ color: "#0f172a" }}>#{formattedToken}</strong> already exists for this phone number.
-                        </p>
-                    </div>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <button
-                        onClick={onIssueNew}
-                        disabled={isJoining}
-                        style={{
-                            width: "100%", padding: "14px 0",
-                            backgroundColor: brandColor,
-                            color: "#fff", fontWeight: 700, fontSize: 14.5,
-                            border: "none", borderRadius: 14, cursor: "pointer",
-                            boxShadow: "0 4px 14px rgba(37,99,235,0.25)",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                            opacity: isJoining ? 0.7 : 1
-                        }}
-                    >
-                        <span>Issue Another Token Anyway</span>
-                    </button>
-
-                    <button
-                        onClick={onViewActive}
-                        style={{
-                            width: "100%", padding: "14px 0",
-                            background: "#f8fafc", color: "#334155",
-                            fontWeight: 700, fontSize: 14,
-                            border: "1.5px solid #cbd5e1", borderRadius: 14,
-                            cursor: "pointer"
-                        }}
-                    >
-                        View Active Token (#{formattedToken})
-                    </button>
-
-                    <button
-                        onClick={onClose}
-                        style={{
-                            width: "100%", padding: "10px 0",
-                            background: "transparent", color: "#94a3b8",
-                            fontWeight: 600, fontSize: 13,
-                            border: "none", cursor: "pointer"
-                        }}
-                    >
-                        Cancel & Edit Form
-                    </button>
-                </div>
-            </div>
-        </>
-    );
-}
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function JoinQueuePage({ params }: PageProps) {
@@ -345,13 +237,7 @@ export default function JoinQueuePage({ params }: PageProps) {
     const [error, setError] = useState<string | null>(null);
     const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
 
-    // Prompt shown when phone number already has an active ticket
-    const [duplicatePrompt, setDuplicatePrompt] = useState<{
-        trackingId: string;
-        tokenNumber: number;
-        prefix?: string;
-        sendWhatsApp: boolean;
-    } | null>(null);
+
 
     // Banner shown when user directly visits join page while having an active token in localStorage
     const [activeTicketBanner, setActiveTicketBanner] = useState<{
@@ -441,17 +327,6 @@ export default function JoinQueuePage({ params }: PageProps) {
 
             const data = await api.joinQueue(queueId, payload);
 
-            if (data.is_existing && data.tracking_id) {
-                setIsJoining(false);
-                setDuplicatePrompt({
-                    trackingId: data.tracking_id,
-                    tokenNumber: data.token_number,
-                    prefix: data.queue_prefix || prefix,
-                    sendWhatsApp: sendWhatsApp,
-                });
-                return;
-            }
-
             saveTokenToStorage(queueId, data.id);
             if (data.tracking_id) {
                 router.push(`/track/${data.tracking_id}`);
@@ -467,14 +342,6 @@ export default function JoinQueuePage({ params }: PageProps) {
             setIsJoining(false);
         }
     }, [isPastSession, isTokenLimitReached, customerName, customerPhone, countryCode, paxCount, queueId, router, customData, hasCustomFieldsConfigured, qrToken, querySessionId, forceNew, isForceNewParam, prefix]);
-
-    const handleConfirmForceNew = useCallback(async () => {
-        if (!duplicatePrompt) return;
-        const sendWhatsApp = duplicatePrompt.sendWhatsApp;
-        setDuplicatePrompt(null);
-        setForceNew(true);
-        await doJoin(sendWhatsApp, true);
-    }, [duplicatePrompt, doJoin]);
 
     // Clicking the button → show modal first
     const handleJoin = useCallback(() => {
@@ -507,12 +374,10 @@ export default function JoinQueuePage({ params }: PageProps) {
     }, [isLegacyFormValid, isJoining, isPastSession, isTokenLimitReached, hasCustomFieldsConfigured, customFieldsList, customData]);
 
 
-    // ── Restore from localStorage on mount (Direct visits only) ────
+    // ── Restore from localStorage on mount ────
     useEffect(() => {
-        // If arriving via fresh QR scan or explicit new session request, NEVER auto-redirect
-        const hasQrInUrl = Boolean(searchParams.get("qrToken"));
-        const hasSavedQr = typeof window !== "undefined" && Boolean(sessionStorage.getItem(`qr_token_${queueId}`));
-        if (isForceNewParam || forceNew || hasQrInUrl || hasSavedQr) {
+        // If explicitly requesting a new ticket via ?new=true, do not auto-redirect
+        if (isForceNewParam || forceNew) {
             return;
         }
 
@@ -531,17 +396,14 @@ export default function JoinQueuePage({ params }: PageProps) {
                     return;
                 }
 
-                if (restored.status === "waiting" || restored.status === "serving") {
+                // If token is still active (waiting, serving, or skipped), show already joined token
+                if (restored.status === "waiting" || restored.status === "serving" || restored.status === "skipped") {
                     if (restored.tracking_id) {
-                        // Display informative banner instead of auto-redirecting
-                        setActiveTicketBanner({
-                            trackingId: restored.tracking_id,
-                            tokenNumber: restored.token_number,
-                            prefix: restored.queue_prefix || prefix,
-                        });
+                        router.replace(`/track/${restored.tracking_id}`);
+                        return;
                     }
                 } else {
-                    // Token finished or skipped — clear it
+                    // Token completed ("done") or cancelled ("deleted") — clear it so customer can join again
                     clearTokenFromStorage(queueId);
                 }
             } catch (err) {
@@ -554,7 +416,7 @@ export default function JoinQueuePage({ params }: PageProps) {
 
         attemptRestore();
         return () => { mounted = false; };
-    }, [queueId, isForceNewParam, forceNew, searchParams, prefix]);
+    }, [queueId, isForceNewParam, forceNew, router]);
 
     // ── Marquee auto-scroll logic ────────────────────────────────────────────────
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -621,18 +483,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                 />
             )}
 
-            {/* Duplicate / Existing Token Modal */}
-            {duplicatePrompt && (
-                <DuplicateTokenModal
-                    brandColor={brandColor}
-                    tokenNumber={duplicatePrompt.tokenNumber}
-                    prefix={duplicatePrompt.prefix}
-                    isJoining={isJoining}
-                    onViewActive={() => router.push(`/track/${duplicatePrompt.trackingId}`)}
-                    onIssueNew={handleConfirmForceNew}
-                    onClose={() => setDuplicatePrompt(null)}
-                />
-            )}
+
 
             <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
                 <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">

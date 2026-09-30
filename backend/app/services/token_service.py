@@ -473,7 +473,7 @@ async def join_queue(
             .where(
                 Token.queue_id == queue_id,
                 Token.session_id == target_session_id,
-                Token.status.in_([TokenStatus.waiting, TokenStatus.serving]),
+                Token.status.in_([TokenStatus.waiting, TokenStatus.serving, TokenStatus.skipped]),
                 or_(*phone_conditions),
             )
             .order_by(Token.created_at.desc())
@@ -483,13 +483,15 @@ async def join_queue(
 
         if existing_token is not None:
             logger.info(
-                "Duplicate join prevented: phone=%s already has active token #%d in queue %s",
-                phone_cleaned, existing_token.token_number, queue_id,
+                "Duplicate join prevented: phone=%s already has active token #%d in queue %s (status=%s)",
+                phone_cleaned, existing_token.token_number, queue_id, existing_token.status.value,
             )
             if raise_on_duplicate:
                 token_tag = f"{queue.prefix or ''}{existing_token.token_number}"
                 if existing_token.status == TokenStatus.serving:
                     msg = f"Token #{token_tag} is currently being served for this phone number."
+                elif existing_token.status == TokenStatus.skipped:
+                    msg = f"Token #{token_tag} was skipped for this phone number."
                 else:
                     msg = f"Token #{token_tag} is already waiting in the queue for this phone number."
                 raise ValueError(msg)

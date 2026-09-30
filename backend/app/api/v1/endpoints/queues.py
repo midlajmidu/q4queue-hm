@@ -737,7 +737,7 @@ async def create_token(
         # Atomic token generation via queue service uses _lock_queue_public which does NOT expose
         # any other org's data; it just joins whatever public queue is at that ID.
         result = await token_service.join_queue(
-            db, queue_id=queue_id, data=body, bypass_duplicate_check=bool(body.force_new)
+            db, queue_id=queue_id, data=body, bypass_duplicate_check=False
         )
         # If a new token was successfully issued (not an existing duplicate), consume the single-use QR token
         if not getattr(result, "is_existing", False):
@@ -750,20 +750,21 @@ async def create_token(
         q_res = await db.execute(sa_select(QueueModel).where(QueueModel.id == queue_id))
         queue = q_res.scalar_one_or_none()
         if queue:
-            background_tasks.add_task(
-                token_service.notify_queue_update,
-                queue_id=queue_id,
-                org_id=queue.org_id,
-            )
-            from datetime import datetime, timezone
-            background_tasks.add_task(
-                token_service.notify_new_customer,
-                queue_id=queue_id,
-                org_id=queue.org_id,
-                token=f"{queue.prefix or ''}{result.token_number}",
-                name=body.name,
-                time_str=datetime.now(timezone.utc).isoformat()
-            )
+            if not getattr(result, "is_existing", False):
+                background_tasks.add_task(
+                    token_service.notify_queue_update,
+                    queue_id=queue_id,
+                    org_id=queue.org_id,
+                )
+                from datetime import datetime, timezone
+                background_tasks.add_task(
+                    token_service.notify_new_customer,
+                    queue_id=queue_id,
+                    org_id=queue.org_id,
+                    token=f"{queue.prefix or ''}{result.token_number}",
+                    name=body.name,
+                    time_str=datetime.now(timezone.utc).isoformat()
+                )
             # WhatsApp notification: customer joined via QR — only if they consented
             if body.send_whatsapp:
                 background_tasks.add_task(
