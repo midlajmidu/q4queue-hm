@@ -102,8 +102,23 @@ export default function TrafficChart() {
     useEffect(() => {
         setLoading(true);
         loadTrafficData();
-        const interval = setInterval(loadTrafficData, 60_000); // refresh every 60 s
-        return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            if (!document.hidden) {
+                loadTrafficData();
+            }
+        }, 60_000); // refresh every 60 s
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                loadTrafficData();
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [loadTrafficData]);
 
     const isEmpty = !loading && data.length === 0;

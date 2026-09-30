@@ -49,8 +49,23 @@ export default function LiveQueuesMonitoringPage() {
     useEffect(() => {
         setLoading(true);
         loadData();
-        const interval = setInterval(() => loadData(false), 12000);
-        return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            if (!document.hidden) {
+                loadData(false);
+            }
+        }, 20000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                loadData(false);
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [loadData]);
 
     useEffect(() => {

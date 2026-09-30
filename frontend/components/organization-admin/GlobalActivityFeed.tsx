@@ -24,8 +24,23 @@ export default function GlobalActivityFeed() {
 
     useEffect(() => {
         loadLogs();
-        const interval = setInterval(loadLogs, 15000); // 15s polling
-        return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            if (!document.hidden) {
+                loadLogs();
+            }
+        }, 30000); // 30s background polling
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                loadLogs();
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [loadLogs]);
 
     const getActionStyle = (event_type: string) => {

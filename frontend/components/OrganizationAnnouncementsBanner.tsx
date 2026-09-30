@@ -280,9 +280,11 @@ export function OrganizationAnnouncementsBanner() {
             .catch(console.error);
             
         const intervalId = setInterval(() => {
-            api.getActiveOrgAnnouncements?.()
-                .then(data => setAnnouncements(data || []))
-                .catch(console.error);
+            if (!document.hidden) {
+                api.getActiveOrgAnnouncements?.()
+                    .then(data => setAnnouncements(data || []))
+                    .catch(console.error);
+            }
         }, 1000 * 60 * 5);
         
         return () => clearInterval(intervalId);

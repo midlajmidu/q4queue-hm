@@ -55,16 +55,33 @@ export default function OrgAdminDashboard() {
         };
 
         loadData();
-        const interval = setInterval(loadData, 15000);
-        return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            if (!document.hidden) {
+                loadData();
+            }
+        }, 30000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                loadData();
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [selectedBranchId]);
 
     useEffect(() => {
         const interval = setInterval(() => {
-            const seconds = Math.floor((new Date().getTime() - lastUpdated.getTime()) / 1000);
-            if (seconds < 10) setTimeAgo("just now");
-            else if (seconds < 60) setTimeAgo(`${seconds}s ago`);
-            else setTimeAgo(`${Math.floor(seconds/60)}m ago`);
+            if (!document.hidden) {
+                const seconds = Math.floor((new Date().getTime() - lastUpdated.getTime()) / 1000);
+                if (seconds < 10) setTimeAgo("just now");
+                else if (seconds < 60) setTimeAgo(`${seconds}s ago`);
+                else setTimeAgo(`${Math.floor(seconds/60)}m ago`);
+            }
         }, 5000);
         return () => clearInterval(interval);
     }, [lastUpdated]);

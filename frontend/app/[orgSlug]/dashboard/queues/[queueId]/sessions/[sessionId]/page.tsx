@@ -585,7 +585,7 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            if (lastUpdated) {
+            if (!document.hidden && lastUpdated) {
                 setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
             }
         }, 1000);

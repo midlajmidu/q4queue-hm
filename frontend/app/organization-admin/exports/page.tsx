@@ -37,9 +37,23 @@ export default function ExportsPage() {
 
     useEffect(() => {
         fetchJobs();
-        // Poll every 10 seconds to update statuses
-        const interval = setInterval(fetchJobs, 10000);
-        return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            if (!document.hidden) {
+                fetchJobs();
+            }
+        }, 15000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                fetchJobs();
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [token]);
 
     const handleDownload = async (job: any) => {

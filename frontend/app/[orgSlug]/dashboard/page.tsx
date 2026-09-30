@@ -614,14 +614,32 @@ export default function OverviewPage() {
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (!autoRefresh) return;
-    intervalRef.current = setInterval(() => loadData(true), REFRESH_SECS * 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+
+    intervalRef.current = setInterval(() => {
+      if (!document.hidden) {
+        loadData(true);
+      }
+    }, REFRESH_SECS * 1000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && autoRefresh) {
+        loadData(true);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [autoRefresh, loadData]);
 
   // ── "Updated Ns ago" ticker ───────────────────────────────────
   useEffect(() => {
     const tick = setInterval(() => {
-      if (lastUpdated) setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+      if (!document.hidden && lastUpdated) {
+        setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+      }
     }, 1000);
     return () => clearInterval(tick);
   }, [lastUpdated]);

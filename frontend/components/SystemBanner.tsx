@@ -66,9 +66,11 @@ export default function SystemBanner() {
             .catch(console.error);
             
         const intervalId = setInterval(() => {
-            api.getActiveSystemAnnouncements()
-                .then(data => setAnnouncements(data || []))
-                .catch(console.error);
+            if (!document.hidden) {
+                api.getActiveSystemAnnouncements()
+                    .then(data => setAnnouncements(data || []))
+                    .catch(console.error);
+            }
         }, 1000 * 60 * 5); // 5 minutes
         
         return () => clearInterval(intervalId);

@@ -124,8 +124,23 @@ export default function AuditLogsPage() {
                 });
         };
         loadData();
-        const interval = setInterval(loadData, 15000);
-        return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            if (!document.hidden) {
+                loadData();
+            }
+        }, 30000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                loadData();
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [selectedBranchId]);
 
     const dateFilteredLogs = useMemo(() => {

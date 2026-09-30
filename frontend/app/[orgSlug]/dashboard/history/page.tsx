@@ -270,9 +270,22 @@ export default function HistoryPage() {
     useEffect(() => {
         loadHistory().catch(err => console.error("Unhandled loadHistory error:", err));
         const timer = setInterval(() => {
-            loadHistory(true).catch(err => console.error("Unhandled silent loadHistory error:", err));
+            if (!document.hidden) {
+                loadHistory(true).catch(err => console.error("Unhandled silent loadHistory error:", err));
+            }
         }, 60000);
-        return () => clearInterval(timer);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                loadHistory(true).catch(err => console.error("Unhandled silent loadHistory error:", err));
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            clearInterval(timer);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [loadHistory]);
 
     const thStyle: React.CSSProperties = {

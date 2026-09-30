@@ -41,9 +41,23 @@ export default function QueueMonitoringPage() {
 
     useEffect(() => {
         fetchQueues();
-        // Optional: refresh every 15 seconds
-        const interval = setInterval(fetchQueues, 15000);
-        return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            if (!document.hidden) {
+                fetchQueues();
+            }
+        }, 30000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                fetchQueues();
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [fetchQueues]);
 
     const handleAction = async (queueId: string, actionName: "pause" | "resume" | "clear") => {
