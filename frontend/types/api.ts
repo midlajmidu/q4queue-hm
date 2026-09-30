@@ -325,6 +325,7 @@ export interface ParentOrganization {
     id: string;
     name: string;
     enable_shared_tokens?: boolean;
+    appointment_feature_enabled?: boolean;
     slug: string;
     contact_email?: string;
     contact_phone?: string;
@@ -349,11 +350,13 @@ export interface ParentOrganizationCreate {
     is_active?: boolean;
     max_branches?: number | null;
     enable_shared_tokens?: boolean;
+    appointment_feature_enabled?: boolean;
 }
 
 export interface ParentOrganizationUpdate {
     name?: string;
     enable_shared_tokens?: boolean;
+    appointment_feature_enabled?: boolean;
     slug?: string;
     contact_email?: string;
     contact_phone?: string;
@@ -379,6 +382,7 @@ export interface BranchStatItem {
     is_active: boolean;
     created_at: string;
     branch_type?: "standard" | "dine";
+    appointment_feature_enabled?: boolean;
 }
 
 export interface OrgAdminDashboardResponse {
@@ -933,6 +937,7 @@ export interface OrgDetail {
     name: string;
     slug: string;
     branch_type?: "standard" | "dine";
+    appointment_feature_enabled?: boolean;
     is_active: boolean;
     created_at: string;
     max_sessions: number;
@@ -964,6 +969,7 @@ export interface OrgCreateRequest {
     org_name: string;
     org_slug: string;
     branch_type?: "standard" | "dine";
+    appointment_feature_enabled?: boolean;
     parent_organization_id: string;
     admin_email: string;
     admin_password: string;
@@ -976,6 +982,7 @@ export interface OrgUpdateRequest {
     org_name: string;
     org_slug: string;
     branch_type?: "standard" | "dine";
+    appointment_feature_enabled?: boolean;
     is_active: boolean;
     max_sessions?: number;
     max_queues_per_session?: number;
@@ -1152,6 +1159,7 @@ export interface OrganizationSettingsResponse {
     name: string;
     slug: string;
     branch_type?: "standard" | "dine";
+    appointment_feature_enabled?: boolean;
     email: string;
     address: string | null;
     phone_number?: string;

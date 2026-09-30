@@ -105,8 +105,12 @@ async def notify_queue_event(
         # 1. Check org has WhatsApp enabled and the specific event is enabled
         cfg = await get_org_notification_config(org_id)
         if not (cfg["global_enabled"] and cfg["is_enabled"]):
-            logger.debug(
-                "WhatsApp disabled for org %s, skipping event=%s", org_id, event_type
+            logger.info(
+                "WhatsApp notifications skipped for org %s (global_enabled=%s, org_enabled=%s), event=%s",
+                org_id,
+                cfg.get("global_enabled"),
+                cfg.get("is_enabled"),
+                event_type,
             )
             return
 
@@ -183,7 +187,7 @@ async def notify_queue_event(
                     session_id = sess
 
         if db_token and not db_token.is_whatsapp_enabled:
-            logger.debug("WhatsApp disabled for token %s, skipping event=%s", token_id, event_type)
+            logger.info("WhatsApp disabled for token %s (is_whatsapp_enabled=False), skipping event=%s", token_id, event_type)
             return
 
         # 4. Handle Hybrid Logic & Dining vs Clinic terminology

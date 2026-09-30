@@ -62,6 +62,29 @@ async def upsert_global_config(db: AsyncSession, data: dict) -> WhatsAppConfig:
     return config
 
 
+async def init_global_whatsapp_config(db: AsyncSession) -> Optional[WhatsAppConfig]:
+    """
+    Startup initialization:
+    If required environment credentials exist:
+    - If global config row does not exist in DB: create it with is_enabled=True.
+    - If global config row already exists: preserve existing is_enabled and re-sync connection status.
+    """
+    has_env_credentials = bool(
+        settings.WHATSAPP_ACCESS_TOKEN
+        and settings.WHATSAPP_PHONE_NUMBER_ID
+        and settings.WHATSAPP_WABA_ID
+    )
+    if not has_env_credentials:
+        return None
+
+    config = await get_global_config(db)
+    if config is None:
+        return await upsert_global_config(db, {"is_enabled": True})
+    else:
+        # Pass empty dict to preserve existing is_enabled, while re-syncing connection status
+        return await upsert_global_config(db, {})
+
+
 async def get_global_config_dict(org_id: Optional[uuid.UUID] = None) -> dict:
     """
     Return the current effective WhatsApp config as a plain dict.
@@ -82,7 +105,8 @@ async def get_global_config_dict(org_id: Optional[uuid.UUID] = None) -> dict:
     webhook_url = (global_config.webhook_url if global_config else "") or ""
     webhook_verify_token = (org_config.webhook_verify_token if (org_config and org_config.webhook_verify_token) else (global_config.webhook_verify_token if global_config and global_config.webhook_verify_token else settings.WHATSAPP_VERIFY_TOKEN)) or "qrq-whatsapp-webhook-secret"
 
-    is_enabled = org_config.is_enabled if org_config else (global_config.is_enabled if global_config else False)
+    global_is_enabled = global_config.is_enabled if global_config is not None else True
+    is_enabled = org_config.is_enabled if org_config else global_is_enabled
 
     return {
         "access_token": access_token,
@@ -308,7 +332,8 @@ async def get_org_notification_config(org_id: uuid.UUID) -> dict:
             (org_cfg.phone_number_id if org_cfg and org_cfg.phone_number_id else (global_cfg.phone_number_id if global_cfg else "")) or settings.WHATSAPP_PHONE_NUMBER_ID
         )
         
-        global_enabled = bool(global_cfg and global_cfg.is_enabled and has_credentials)
+        global_is_enabled = global_cfg.is_enabled if global_cfg is not None else True
+        global_enabled = bool(global_is_enabled and has_credentials)
         if not has_credentials:
             return {
                 "global_enabled": False,

@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Logo } from "@/components/ui/Logo";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useNotifications } from "@/context/NotificationContext";
+import { useBranch } from "@/context/BranchContext";
 import { api } from "@/lib/api";
 
 interface SidebarProps {
@@ -32,6 +33,7 @@ function Tip({ label, show, children }: { label: string; show: boolean; children
 
 export default function UserSidebar({ isOpen, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
     const { user, logout, impersonatorUser, isImpersonating } = useAuth();
+    const { hasAppointmentFeature } = useBranch();
     const displayUser = isImpersonating && impersonatorUser ? impersonatorUser : user;
     const pathname = usePathname();
     const params = useParams();
@@ -120,9 +122,11 @@ export default function UserSidebar({ isOpen, onClose, collapsed = false, onTogg
                 <NavLink href={`${dashBase}/queues`} label="Queues" icon={
                     <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h7" /></svg>
                 } />
-                <NavLink href={`${dashBase}/appointments`} label="Appointments" icon={
-                    <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                } />
+                {hasAppointmentFeature && (
+                    <NavLink href={`${dashBase}/appointments`} label="Appointments" icon={
+                        <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    } />
+                )}
 
                 <NavLink href={`${dashBase}/notifications`} label="Notifications" icon={
                     <svg className={iconCls} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>

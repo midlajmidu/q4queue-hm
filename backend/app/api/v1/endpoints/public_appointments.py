@@ -52,6 +52,10 @@ async def public_get_queue_booking_info(
     if not org or not org.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
 
+    po = await db.get(ParentOrganization, org.parent_organization_id) if org.parent_organization_id else None
+    if not (bool(getattr(org, "appointment_feature_enabled", False)) or (bool(getattr(po, "appointment_feature_enabled", False)) if po else False)):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointments are not enabled for this branch.")
+
     tz_str = org.timezone if (org and org.timezone) else "Asia/Kolkata"
     now_local = datetime.now(ZoneInfo(tz_str))
     business_date = queue_business_date(now_local, queue.open_time, queue.close_time)
@@ -87,6 +91,18 @@ async def public_get_available_slots(
     db: AsyncSession = Depends(get_db),
 ):
     """Retrieve time slots and remaining capacity for a queue on a specific date."""
+    queue = await db.get(Queue, queue_id)
+    if not queue or not queue.is_active or queue.is_deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Queue not found")
+
+    org = await db.get(Organization, queue.org_id)
+    if not org or not org.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
+
+    po = await db.get(ParentOrganization, org.parent_organization_id) if org.parent_organization_id else None
+    if not (bool(getattr(org, "appointment_feature_enabled", False)) or (bool(getattr(po, "appointment_feature_enabled", False)) if po else False)):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointments are not enabled for this branch.")
+
     try:
         return await get_available_slots(db, queue_id=queue_id, target_date=date_param)
     except ValueError as e:
@@ -292,6 +308,12 @@ async def public_get_branch_directory(
     branch = org_res.scalar_one_or_none()
 
     if branch:
+        # Check if appointment feature is enabled for branch or its parent org
+        po = await db.get(ParentOrganization, branch.parent_organization_id) if branch.parent_organization_id else None
+        is_feature_enabled = bool(getattr(branch, "appointment_feature_enabled", False)) or (bool(getattr(po, "appointment_feature_enabled", False)) if po else False)
+        if not is_feature_enabled:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointments are not enabled for this branch.")
+
         # Check if this branch belongs to a ParentOrganization
         if branch.parent_organization_id:
             po = await db.get(ParentOrganization, branch.parent_organization_id)
@@ -353,6 +375,9 @@ async def public_get_branch_directory(
         po = po_res.scalar_one_or_none()
         if not po:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Branch or organization not found")
+
+        if not bool(getattr(po, "appointment_feature_enabled", False)):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointments are not enabled for this organization.")
 
         branches_res = await db.execute(
             select(Organization).where(

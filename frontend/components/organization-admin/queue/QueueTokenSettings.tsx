@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { useBranch } from "@/context/BranchContext";
 
 import { toast } from "sonner";
 import {
@@ -182,10 +183,17 @@ const ensureMandatoryFields = (fieldsList: CustomField[] | null): CustomField[] 
 };
 
 export default function QueueTokenSettings({ queueId, initialFields, readOnly = false, readOnlyReason, onUpdate }: QueueTokenSettingsProps) {
+    const { hasAppointmentFeature } = useBranch();
     const [activeTab, setActiveTab] = useState<"fields" | "appointments">("fields");
     const [fields, setFields] = useState<CustomField[]>(() => ensureMandatoryFields(initialFields));
     const [isSaving, setIsSaving] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
+
+    useEffect(() => {
+        if (!hasAppointmentFeature && activeTab === "appointments") {
+            setActiveTab("fields");
+        }
+    }, [hasAppointmentFeature, activeTab]);
 
     // Appointment settings state
     const [appointmentEnabled, setAppointmentEnabled] = useState<boolean>(true);
@@ -393,34 +401,38 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
                         Queue Configuration
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Customize registration inputs and manage early appointment booking rules.
+                        {hasAppointmentFeature
+                            ? "Customize registration inputs and manage early appointment booking rules."
+                            : "Customize registration inputs asked to customers joining on-site."}
                     </p>
                 </div>
 
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <button
-                        onClick={() => setActiveTab("fields")}
-                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                            activeTab === "fields"
-                                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
-                                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                        }`}
-                    >
-                        <Sliders size={14} />
-                        <span>Form Fields</span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("appointments")}
-                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                            activeTab === "appointments"
-                                ? "bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm"
-                                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                        }`}
-                    >
-                        <CalendarDays size={14} />
-                        <span>Appointments</span>
-                    </button>
-                </div>
+                {hasAppointmentFeature && (
+                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <button
+                            onClick={() => setActiveTab("fields")}
+                            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                                activeTab === "fields"
+                                    ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
+                                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                            }`}
+                        >
+                            <Sliders size={14} />
+                            <span>Form Fields</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("appointments")}
+                            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                                activeTab === "appointments"
+                                    ? "bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                            }`}
+                        >
+                            <CalendarDays size={14} />
+                            <span>Appointments</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* TAB 1: FORM FIELDS */}
@@ -608,7 +620,7 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
             )}
 
             {/* TAB 2: APPOINTMENT SETTINGS */}
-            {activeTab === "appointments" && (
+            {hasAppointmentFeature && activeTab === "appointments" && (
                 <div className="p-6 space-y-6">
                     {/* Shareable Booking Link Banner */}
                     <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-transparent p-5 rounded-2xl border border-purple-200/60 dark:border-purple-800/40 flex flex-col md:flex-row md:items-center justify-between gap-4">

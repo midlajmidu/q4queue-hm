@@ -71,9 +71,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         
         from app.db.session import AsyncSessionLocal
         from app.whatsapp.template_service import seed_default_templates
+        from app.whatsapp.config_service import init_global_whatsapp_config
         async with AsyncSessionLocal() as db:
             await seed_default_templates(db)
-        logger.info("✓ WhatsApp templates seeded")
+            await init_global_whatsapp_config(db)
+        logger.info("✓ WhatsApp templates & global configuration initialized")
     except Exception as exc:
         logger.warning("Audit / system settings table creation skipped: %s", exc)
 

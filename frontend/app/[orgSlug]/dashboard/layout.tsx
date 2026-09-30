@@ -18,6 +18,7 @@ import SystemBanner from "@/components/SystemBanner";
 import { OrganizationAnnouncementsBanner } from "@/components/OrganizationAnnouncementsBanner";
 import { useHeartbeat } from "@/hooks/useHeartbeat";
 import { BranchTimezoneContext } from "@/context/BranchTimezoneContext";
+import { BranchProvider } from "@/context/BranchContext";
 import { TrialStatusBanner } from "@/components/TrialStatusBanner";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -53,6 +54,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     return (
         <ProtectedRoute>
+            <BranchProvider>
             <NotificationProvider>
                 <BranchTimezoneContext.Provider value={branchTimezone}>
                 <div className="flex h-screen overflow-hidden bg-slate-50/60 dark:bg-slate-950">
@@ -136,6 +138,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             />
             </BranchTimezoneContext.Provider>
             </NotificationProvider>
+            </BranchProvider>
         </ProtectedRoute>
     );
 }

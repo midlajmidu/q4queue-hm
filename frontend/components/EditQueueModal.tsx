@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { QueueResponse, TableConfig } from "@/types/api";
+import { useBranch } from "@/context/BranchContext";
 import { Clock, CheckCircle2, AlertCircle, Utensils, Trash2, PlusCircle, X } from "lucide-react";
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Props) {
+    const { hasAppointmentFeature } = useBranch();
     const [name, setName] = useState("");
     const [prefix, setPrefix] = useState("A");
     const [startingSequence, setStartingSequence] = useState<number>(1);
@@ -102,7 +104,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                 starting_sequence: startingSequence || 1,
                 open_time: openTime || undefined,
                 close_time: closeTime || undefined,
-                appointment_enabled: appointmentEnabled,
+                appointment_enabled: hasAppointmentFeature ? appointmentEnabled : false,
             };
 
             if (isDineQueue) {
@@ -374,25 +376,27 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                     )}
 
                     {/* Appointment Booking Checkbox */}
-                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
-                        <label className="flex items-start gap-3 cursor-pointer select-none">
-                            <input
-                                type="checkbox"
-                                checked={appointmentEnabled}
-                                onChange={(e) => setAppointmentEnabled(e.target.checked)}
-                                disabled={isLoading}
-                                className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600 cursor-pointer"
-                            />
-                            <div>
-                                <span className="text-xs font-bold text-slate-800 dark:text-white block">
-                                    Add this into appointment booking
-                                </span>
-                                <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-snug">
-                                    When checked, this queue will be available for customers to choose and book online on the public booking portal.
-                                </span>
-                            </div>
-                        </label>
-                    </div>
+                    {hasAppointmentFeature && (
+                        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800">
+                            <label className="flex items-start gap-3 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={appointmentEnabled}
+                                    onChange={(e) => setAppointmentEnabled(e.target.checked)}
+                                    disabled={isLoading}
+                                    className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600 cursor-pointer"
+                                />
+                                <div>
+                                    <span className="text-xs font-bold text-slate-800 dark:text-white block">
+                                        Add this into appointment booking
+                                    </span>
+                                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-snug">
+                                        When checked, this queue will be available for customers to choose and book online on the public booking portal.
+                                    </span>
+                                </div>
+                            </label>
+                        </div>
+                    )}
 
                     {error && (
                         <div className="bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-sm font-medium p-3 rounded-xl border border-rose-200 dark:border-rose-900/40 flex items-center gap-2">

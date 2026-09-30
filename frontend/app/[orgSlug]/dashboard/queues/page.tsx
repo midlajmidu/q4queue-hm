@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Bookmark } from "lucide-react";
 import type { QueueTemplate, TableConfig } from "@/types/api";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { useBranch } from "@/context/BranchContext";
 import { nowInTz, localTodayStr, fmtDate } from "@/lib/tzformat";
 import { EntitlementLimitNotice } from "@/components/EntitlementLimitNotice";
 import { ContactSalesModal } from "@/components/ContactSalesModal";
@@ -97,6 +98,7 @@ function generateDefaultTables(count: number): TableConfig[] {
 export default function QueuesPage({ params }: PageProps) {
     const { orgSlug } = use(params);
     const { user, isReadOnly } = useAuth();
+    const { hasAppointmentFeature } = useBranch();
     const router = useRouter();
     const searchParams = useSearchParams();
     const dashBase = useDashBase();
@@ -308,7 +310,7 @@ export default function QueuesPage({ params }: PageProps) {
                     })),
                     open_time: newOpenTime || undefined,
                     close_time: newCloseTime || undefined,
-                    appointment_enabled: newAppointmentEnabled,
+                    appointment_enabled: hasAppointmentFeature ? newAppointmentEnabled : false,
                 });
             } else {
                 await api.createQueue({
@@ -318,7 +320,7 @@ export default function QueuesPage({ params }: PageProps) {
                     service_lines: newQueueType === "service_lines" ? newServiceLines : 0,
                     open_time: newOpenTime || undefined,
                     close_time: newCloseTime || undefined,
-                    appointment_enabled: newAppointmentEnabled,
+                    appointment_enabled: hasAppointmentFeature ? newAppointmentEnabled : false,
                 });
             }
             setShowCreate(false);
@@ -898,24 +900,26 @@ export default function QueuesPage({ params }: PageProps) {
                                 )}
 
                                 {/* Appointment Booking Checkbox */}
-                                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10">
-                                    <label className="flex items-start gap-3 cursor-pointer select-none">
-                                        <input
-                                            type="checkbox"
-                                            checked={newAppointmentEnabled}
-                                            onChange={(e) => setNewAppointmentEnabled(e.target.checked)}
-                                            className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600 cursor-pointer"
-                                        />
-                                        <div>
-                                            <span className="text-xs font-bold text-slate-800 dark:text-white block">
-                                                Add this into appointment booking
-                                            </span>
-                                            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-snug">
-                                                When enabled, this queue will be available for online appointment booking on your public booking link.
-                                            </span>
-                                        </div>
-                                    </label>
-                                </div>
+                                {hasAppointmentFeature && (
+                                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10">
+                                        <label className="flex items-start gap-3 cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={newAppointmentEnabled}
+                                                onChange={(e) => setNewAppointmentEnabled(e.target.checked)}
+                                                className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600 cursor-pointer"
+                                            />
+                                            <div>
+                                                <span className="text-xs font-bold text-slate-800 dark:text-white block">
+                                                    Add this into appointment booking
+                                                </span>
+                                                <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-snug">
+                                                    When enabled, this queue will be available for online appointment booking on your public booking link.
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                )}
                                     </div>
 
                                     {/* Sticky Drawer Footer */}

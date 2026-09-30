@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, use, useMemo } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api";
+import { useBranch } from "@/context/BranchContext";
 import {
     Calendar,
     Clock,
@@ -25,7 +27,8 @@ import {
     Plus,
     Users,
     UserCheck,
-    Eye
+    Eye,
+    Lock
 } from "lucide-react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
@@ -86,6 +89,7 @@ function formatFullDateDisplay(dateStr: string): string {
 export default function AppointmentsDashboardPage({ params }: PageProps) {
     const resolvedParams = use(params);
     const orgSlug = resolvedParams.orgSlug;
+    const { hasAppointmentFeature, loading: branchLoading } = useBranch();
     const tz = useBranchTimezone();
     const { user, isReadOnly: authReadOnly } = useAuth();
     const isReadOnly = !!authReadOnly || user?.role === "super_admin" || user?.role === "organization_admin";
@@ -814,6 +818,28 @@ export default function AppointmentsDashboardPage({ params }: PageProps) {
             setBookingSubmitting(false);
         }
     };
+
+    if (!branchLoading && !hasAppointmentFeature) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 mt-6">
+                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
+                    <Lock className="w-8 h-8 text-slate-400" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                    Appointment System Disabled
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed">
+                    The appointment scheduling feature is not enabled for this branch. Please contact your Super Administrator to activate the appointment feature.
+                </p>
+                <Link
+                    href={`/${orgSlug}/dashboard/queues`}
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+                >
+                    Back to Queues
+                </Link>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 pb-12">

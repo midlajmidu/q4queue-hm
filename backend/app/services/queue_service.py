@@ -12,6 +12,7 @@ from typing import Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy import select, update, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.queue import Queue
@@ -32,6 +33,32 @@ async def create_queue(
     data: QueueCreate,
 ) -> Queue:
     """Create a new persistent queue under the given org."""
+    target_name = (data.name or "").strip()
+    if not target_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Queue name cannot be empty."
+        )
+
+    # Check for name uniqueness within this organization (including soft-deleted)
+    existing_queue = await db.scalar(
+        select(Queue).where(
+            Queue.org_id == org_id,
+            func.lower(Queue.name) == func.lower(target_name)
+        )
+    )
+    if existing_queue:
+        if existing_queue.is_deleted:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A queue named '{target_name}' is currently in the Trash. Please restore it from Trash or choose a different name."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A queue named '{target_name}' already exists. Please choose a different name."
+            )
+
     from app.services.entitlement_service import assert_resource_capacity
     current_count = await db.scalar(
         select(func.count(Queue.id)).where(Queue.org_id == org_id, Queue.is_deleted == False)
@@ -83,9 +110,35 @@ async def create_queue(
         slot_capacity=data.slot_capacity or 1,
         advance_booking_days=data.advance_booking_days or 14,
     )
-    db.add(queue)
-    await db.commit()
-    await db.refresh(queue)
+    try:
+        db.add(queue)
+        await db.commit()
+        await db.refresh(queue)
+    except IntegrityError as exc:
+        await db.rollback()
+        err_msg = str(exc.orig) if hasattr(exc, "orig") else str(exc)
+        if "uq_queue_name" in err_msg or "unique constraint" in err_msg.lower():
+            trash_check = await db.scalar(
+                select(Queue).where(
+                    Queue.org_id == org_id,
+                    func.lower(Queue.name) == func.lower(target_name),
+                    Queue.is_deleted == True
+                )
+            )
+            if trash_check:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"A queue named '{target_name}' is currently in the Trash. Please restore it from Trash or choose a different name."
+                )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A queue named '{target_name}' already exists. Please choose a different name."
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Database integrity error while creating queue."
+        )
+
     logger.info("Queue created | id=%s org=%s name=%r", queue.id, org_id, queue.name)
     return queue
 
@@ -151,6 +204,33 @@ async def update_queue(
 ) -> Queue:
     """Update arbitrary fields on a queue, adhering to DRY principles."""
     queue = await get_queue_or_404(db, queue_id=queue_id, org_id=org_id)
+    if "name" in kwargs and kwargs["name"]:
+        target_name = str(kwargs["name"]).strip()
+        if not target_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Queue name cannot be empty."
+            )
+        existing = await db.scalar(
+            select(Queue).where(
+                Queue.org_id == org_id,
+                Queue.id != queue_id,
+                func.lower(Queue.name) == func.lower(target_name)
+            )
+        )
+        if existing:
+            if existing.is_deleted:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"A queue named '{target_name}' is currently in the Trash. Please restore it from Trash or choose a different name."
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"A queue named '{target_name}' already exists. Please choose a different name."
+                )
+        kwargs["name"] = target_name
+
     for key, value in kwargs.items():
         if hasattr(queue, key):
             if key == "custom_fields" and value is not None:
@@ -164,8 +244,36 @@ async def update_queue(
                 if len(value) > 0:
                     queue.service_lines = len(value)
             setattr(queue, key, value)
-    await db.commit()
-    await db.refresh(queue)
+    try:
+        await db.commit()
+        await db.refresh(queue)
+    except IntegrityError as exc:
+        await db.rollback()
+        err_msg = str(exc.orig) if hasattr(exc, "orig") else str(exc)
+        if "uq_queue_name" in err_msg or "unique constraint" in err_msg.lower():
+            target_name = kwargs.get("name", queue.name)
+            trash_check = await db.scalar(
+                select(Queue).where(
+                    Queue.org_id == org_id,
+                    Queue.id != queue_id,
+                    func.lower(Queue.name) == func.lower(target_name),
+                    Queue.is_deleted == True
+                )
+            )
+            if trash_check:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"A queue named '{target_name}' is currently in the Trash. Please restore it from Trash or choose a different name."
+                )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A queue named '{target_name}' already exists. Please choose a different name."
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Database integrity error while updating queue."
+        )
+
     await check_and_auto_close_queue_session(db, queue)
     return queue
 

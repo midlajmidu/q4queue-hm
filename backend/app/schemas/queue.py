@@ -250,9 +250,14 @@ class QueueResponse(BaseModel):
     checkin_window_before: int = 30
     checkin_window_after: int = 15
     auto_noshow_mins: int = 30
-    industry_template: str = "general"
+    industry_template: Optional[str] = "general"
     token_session_id: Optional[uuid.UUID] = None
     created_at: datetime
+
+    @field_validator("industry_template", mode="before")
+    @classmethod
+    def ensure_industry_template(cls, v: Any) -> str:
+        return v or "general"
 
     model_config = {"from_attributes": True}
 

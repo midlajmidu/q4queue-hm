@@ -50,6 +50,7 @@ class OrganizationSettingsResponse(BaseModel):
     auto_session_enabled: bool = False
     auto_session_time: Optional[str] = None
     timezone: str = "Asia/Kolkata"
+    appointment_feature_enabled: bool = False
     access_token: Optional[str] = None
     parent_org: Optional[ParentOrgSummary] = None
 
@@ -141,6 +142,8 @@ async def get_organization_settings(
             except Exception as exc:
                 logger.error("Failed to fetch parent org for settings: %s", exc)
 
+        is_appt_enabled = bool(getattr(org, "appointment_feature_enabled", False)) or (bool(getattr(po, "appointment_feature_enabled", False)) if po else False)
+
         return OrganizationSettingsResponse(
             name=org.name or "",
             slug=org.slug or "",
@@ -152,6 +155,7 @@ async def get_organization_settings(
             auto_session_enabled=bool(org.auto_session_enabled),
             auto_session_time=org.auto_session_time,
             timezone=org.timezone or "Asia/Kolkata",
+            appointment_feature_enabled=is_appt_enabled,
             parent_org=parent_org_summary,
         )
     except HTTPException:
@@ -282,6 +286,7 @@ async def update_organization_settings(
         auto_session_enabled=org.auto_session_enabled,
         auto_session_time=org.auto_session_time,
         timezone=org.timezone or "Asia/Kolkata",
+        appointment_feature_enabled=bool(getattr(org, "appointment_feature_enabled", False)),
         access_token=token,
     )
 

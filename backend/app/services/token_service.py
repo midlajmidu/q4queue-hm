@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.queue import Queue

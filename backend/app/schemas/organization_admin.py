@@ -9,6 +9,7 @@ class BranchStatItem(BaseModel):
     is_active: bool
     created_at: datetime
     branch_type: str = "standard"
+    appointment_feature_enabled: bool = False
 
 class OrgAdminDashboardResponse(BaseModel):
     organization_name: str
@@ -24,6 +25,7 @@ class BranchCreateRequest(BaseModel):
     name: str
     slug: str
     branch_type: str = "standard"
+    appointment_feature_enabled: bool = False
     address: str | None = None
     phone_number: str | None = None
     timezone: str = "Asia/Kolkata"
@@ -37,6 +39,7 @@ class BranchCreateRequest(BaseModel):
 class BranchUpdateRequest(BaseModel):
     name: str | None = None
     branch_type: str | None = None
+    appointment_feature_enabled: bool | None = None
     address: str | None = None
     phone_number: str | None = None
 

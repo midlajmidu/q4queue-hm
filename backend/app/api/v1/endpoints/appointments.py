@@ -29,7 +29,26 @@ from app.services.appointment_service import (
     _is_next_day_slot,
 )
 
-router = APIRouter()
+async def check_appointment_feature_enabled(
+    current_user: User = Depends(require_branch_admin_or_staff()),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    if not current_user.org_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User does not belong to an organization")
+    from app.models.organization import Organization
+    from app.models.parent_organization import ParentOrganization
+    org = await db.get(Organization, current_user.org_id)
+    if not org:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
+    po = await db.get(ParentOrganization, org.parent_organization_id) if org.parent_organization_id else None
+    if not (bool(getattr(org, "appointment_feature_enabled", False)) or (bool(getattr(po, "appointment_feature_enabled", False)) if po else False)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Appointment feature is not enabled for this branch. Please contact Super Admin to enable it.",
+        )
+    return current_user
+
+router = APIRouter(dependencies=[Depends(check_appointment_feature_enabled)])
 
 
 @router.get("", response_model=List[AppointmentResponse])
