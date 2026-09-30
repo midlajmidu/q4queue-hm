@@ -812,13 +812,13 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
 
     return (
         <div className="space-y-6 w-full pb-16 min-h-screen">
-            {(sub?.status === "trialing" || sub?.whatsapp_allowed === false) && (
+            {sub?.whatsapp_allowed === false && (
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3.5 text-amber-900 dark:text-amber-200">
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                        <h4 className="font-semibold text-sm">WhatsApp Notifications & Voice Calling Disabled in Free Trial</h4>
+                        <h4 className="font-semibold text-sm">WhatsApp Notifications Disabled</h4>
                         <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                            Outbound WhatsApp queue notifications and WebRTC voice calls are disabled during your Free Trial. Upgrade to a commercial subscription plan to enable automated messaging and voice calling for your customers.
+                            Outbound WhatsApp queue notifications are disabled for your account. Please contact support or upgrade your subscription to enable automated messaging.
                         </p>
                     </div>
                 </div>

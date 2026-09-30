@@ -158,16 +158,8 @@ async def assert_calling_allowed(db: AsyncSession, org_id: uuid.UUID) -> None:
 
 
 async def assert_whatsapp_allowed(db: AsyncSession, org_id: uuid.UUID) -> None:
-    subscription = await assert_operational(db, org_id)
-    if subscription is None:
-        return
-    status = effective_status(subscription)
-    if status == "trialing":
-        raise EntitlementError(
-            "WhatsApp notification service is disabled during the Free Trial. Upgrade to a commercial plan to enable WhatsApp notifications.",
-            code="feature_disabled_in_trial",
-            key="whatsapp_notifications",
-        )
+    # Subscriptions in trialing or active status are operational and permitted to use WhatsApp
+    await assert_operational(db, org_id)
 
 
 
@@ -363,7 +355,7 @@ async def subscription_summary(db: AsyncSession, org_id: uuid.UUID) -> dict:
         "days_remaining": days_remaining,
         "is_operational": status in {"trialing", "active"},
         "calling_allowed": status != "trialing",
-        "whatsapp_allowed": status != "trialing",
+        "whatsapp_allowed": status in {"trialing", "active"},
         "entitlements": result,
     }
 

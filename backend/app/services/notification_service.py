@@ -94,12 +94,12 @@ async def notify_queue_event(
         # have been disabled to keep the notification tray exclusively for high wait time alerts.
         pass
 
-        # 0. Check Free Trial entitlement (WhatsApp disabled during free trial)
+        # 0. Check account operational status (suspended, expired, or cancelled accounts are skipped)
         async with AsyncSessionLocal() as trial_db:
             from app.services.entitlement_service import get_subscription_for_org, effective_status
             sub = await get_subscription_for_org(trial_db, org_id)
-            if sub is not None and effective_status(sub) == "trialing":
-                logger.info("WhatsApp notifications disabled during Free Trial for org %s, skipping event=%s", org_id, event_type)
+            if sub is not None and effective_status(sub) not in {"trialing", "active"}:
+                logger.info("WhatsApp notifications skipped: non-operational subscription status '%s' for org %s, skipping event=%s", effective_status(sub), org_id, event_type)
                 return
 
         # 1. Check org has WhatsApp enabled and the specific event is enabled
