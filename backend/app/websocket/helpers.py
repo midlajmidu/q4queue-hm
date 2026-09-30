@@ -478,36 +478,34 @@ async def build_queue_snapshots_dual(
     if admin_snapshot.get("type") == "error":
         return {"public": admin_snapshot, "admin": admin_snapshot}
 
-    import copy
-    public_snapshot = copy.deepcopy(admin_snapshot)
-
-    # Redact PII for public broadcast view
-    if public_snapshot.get("serving_details"):
-        public_snapshot["serving_details"] = {
-            k: public_snapshot["serving_details"].get(k)
+    # Redact PII for public broadcast view without deepcopying the full admin snapshot
+    public_serving_details = None
+    if admin_snapshot.get("serving_details"):
+        public_serving_details = {
+            k: admin_snapshot["serving_details"].get(k)
             for k in ("token_number", "session_id", "assigned_line", "called_via_invite", "entry_type", "pax_count")
-            if k in public_snapshot["serving_details"]
+            if k in admin_snapshot["serving_details"]
         }
 
-    public_snapshot["all_serving_tokens"] = [
+    public_all_serving_tokens = [
         {
-            k: item.get(k)
+            k: list(item[k]) if isinstance(item.get(k), list) else item.get(k)
             for k in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count", "shared_lines", "completed_lines", "session_id")
             if k in item
         }
-        for item in public_snapshot.get("all_serving_tokens", [])
+        for item in admin_snapshot.get("all_serving_tokens", [])
     ]
 
-    public_snapshot["recent_tokens"] = [
+    public_recent_tokens = [
         {
             k: item.get(k)
             for k in ("token_number", "status", "assigned_line", "called_via_invite", "session_id")
             if k in item
         }
-        for item in public_snapshot.get("recent_tokens", [])
+        for item in admin_snapshot.get("recent_tokens", [])
     ]
 
-    public_snapshot["waiting_tokens"] = [
+    public_waiting_tokens = [
         {
             k: item.get(k)
             for k in ("token_number", "session_id")
@@ -516,11 +514,25 @@ async def build_queue_snapshots_dual(
         for item in admin_snapshot.get("waiting_tokens", [])
         if "token_number" in item
     ]
-    public_snapshot["skipped_tokens"] = []
-    public_snapshot["deleted_tokens"] = []
-    public_snapshot["waiting_tokens_truncated"] = False
-    public_snapshot["skipped_tokens_truncated"] = False
-    public_snapshot["deleted_tokens_truncated"] = False
+
+    public_snapshot = {
+        **admin_snapshot,
+        "serving_details": public_serving_details,
+        "all_serving_tokens": public_all_serving_tokens,
+        "recent_tokens": public_recent_tokens,
+        "waiting_tokens": public_waiting_tokens,
+        "skipped_tokens": [],
+        "deleted_tokens": [],
+        "waiting_tokens_truncated": False,
+        "skipped_tokens_truncated": False,
+        "deleted_tokens_truncated": False,
+    }
+    if isinstance(admin_snapshot.get("table_config"), list):
+        public_snapshot["table_config"] = list(admin_snapshot["table_config"])
+    if isinstance(admin_snapshot.get("custom_fields"), list):
+        public_snapshot["custom_fields"] = list(admin_snapshot["custom_fields"])
+    elif isinstance(admin_snapshot.get("custom_fields"), dict):
+        public_snapshot["custom_fields"] = dict(admin_snapshot["custom_fields"])
 
     return {
         "public": public_snapshot,

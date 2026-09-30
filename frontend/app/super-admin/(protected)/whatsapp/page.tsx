@@ -2,13 +2,13 @@
 
 import WhatsAppManagementPanel from "@/components/super-admin/WhatsAppManagementPanel";
 import Link from "next/link";
-import { MessageSquare, Sliders, Receipt } from "lucide-react";
+import { MessageSquare, Sliders, Receipt, Layers } from "lucide-react";
 
 export default function WhatsAppPage() {
     return (
         <div className="space-y-6">
             {/* Top Sub-Navigation Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2 border-b border-slate-800 pb-3 flex-wrap">
                 <div
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
                 >
@@ -16,18 +16,32 @@ export default function WhatsAppPage() {
                     WhatsApp & Meta
                 </div>
                 <Link
+                    href="/super-admin/whatsapp/pricing"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/60 transition-all cursor-pointer"
+                >
+                    <Receipt size={16} />
+                    Branch Pricing & Usage
+                </Link>
+                <Link
+                    href="/super-admin/whatsapp/templates"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/60 transition-all cursor-pointer"
+                >
+                    <Layers size={16} />
+                    Manage Templates
+                </Link>
+                <Link
                     href="/super-admin/calling-config"
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/60 transition-all cursor-pointer"
                 >
                     <Sliders size={16} />
-                    Rate Configuration
+                    Calling Config
                 </Link>
                 <Link
                     href="/super-admin/calling-config/pricing"
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/60 transition-all cursor-pointer"
                 >
                     <Receipt size={16} />
-                    Branch Pricing & Telephony Usage
+                    Calling Pricing
                 </Link>
             </div>
 

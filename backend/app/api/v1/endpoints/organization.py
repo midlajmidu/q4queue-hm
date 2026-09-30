@@ -125,6 +125,7 @@ async def get_organization_settings(
 
         # Fetch parent org details if linked
         parent_org_summary = None
+        po = None
         if org.parent_organization_id:
             try:
                 from app.models.parent_organization import ParentOrganization

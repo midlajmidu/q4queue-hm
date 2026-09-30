@@ -192,33 +192,33 @@ async def test_org_whatsapp_connection(
             "error": "Missing Access Token or Phone Number ID for this organization.",
         }
 
-    import httpx
+    from app.core.http_client import get_http_client
     url = f"https://graph.facebook.com/{api_ver}/{phone_id}"
     headers = {"Authorization": f"Bearer {token}"}
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(url, headers=headers)
-            if resp.status_code == 200:
-                data = resp.json()
-                return {
-                    "success": True,
-                    "message": "Connection successful! Meta Cloud API is connected for this organization.",
-                    "details": {
-                        "verified_name": data.get("verified_name"),
-                        "display_phone_number": data.get("display_phone_number"),
-                        "quality_rating": data.get("quality_rating"),
-                        "code_verification_status": data.get("code_verification_status"),
-                        "id": data.get("id"),
-                    }
+        client = await get_http_client()
+        resp = await client.get(url, headers=headers, timeout=10.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            return {
+                "success": True,
+                "message": "Connection successful! Meta Cloud API is connected for this organization.",
+                "details": {
+                    "verified_name": data.get("verified_name"),
+                    "display_phone_number": data.get("display_phone_number"),
+                    "quality_rating": data.get("quality_rating"),
+                    "code_verification_status": data.get("code_verification_status"),
+                    "id": data.get("id"),
                 }
-            else:
-                err_data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
-                err_msg = err_data.get("error", {}).get("message") or f"HTTP {resp.status_code}"
-                return {
-                    "success": False,
-                    "error": f"Meta API Error ({resp.status_code}): {err_msg}",
-                    "details": err_data,
-                }
+            }
+        else:
+            err_data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+            err_msg = err_data.get("error", {}).get("message") or f"HTTP {resp.status_code}"
+            return {
+                "success": False,
+                "error": f"Meta API Error ({resp.status_code}): {err_msg}",
+                "details": err_data,
+            }
     except Exception as exc:
         return {
             "success": False,
@@ -247,33 +247,33 @@ async def test_whatsapp_connection(
             "error": "Missing Access Token or Phone Number ID. Please configure both fields first.",
         }
 
-    import httpx
+    from app.core.http_client import get_http_client
     url = f"https://graph.facebook.com/{api_ver}/{phone_id}"
     headers = {"Authorization": f"Bearer {token}"}
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(url, headers=headers)
-            if resp.status_code == 200:
-                data = resp.json()
-                return {
-                    "success": True,
-                    "message": "Connection successful! Meta WhatsApp Cloud API is connected.",
-                    "details": {
-                        "verified_name": data.get("verified_name"),
-                        "display_phone_number": data.get("display_phone_number"),
-                        "quality_rating": data.get("quality_rating"),
-                        "code_verification_status": data.get("code_verification_status"),
-                        "id": data.get("id"),
-                    }
+        client = await get_http_client()
+        resp = await client.get(url, headers=headers, timeout=10.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            return {
+                "success": True,
+                "message": "Connection successful! Meta WhatsApp Cloud API is connected.",
+                "details": {
+                    "verified_name": data.get("verified_name"),
+                    "display_phone_number": data.get("display_phone_number"),
+                    "quality_rating": data.get("quality_rating"),
+                    "code_verification_status": data.get("code_verification_status"),
+                    "id": data.get("id"),
                 }
-            else:
-                err_data = resp.json().get("error", {})
-                err_msg = err_data.get("message", f"HTTP {resp.status_code}")
-                return {
-                    "success": False,
-                    "error": f"Meta API Error ({resp.status_code}): {err_msg}",
-                    "details": err_data,
-                }
+            }
+        else:
+            err_data = resp.json().get("error", {})
+            err_msg = err_data.get("message", f"HTTP {resp.status_code}")
+            return {
+                "success": False,
+                "error": f"Meta API Error ({resp.status_code}): {err_msg}",
+                "details": err_data,
+            }
     except Exception as exc:
         return {
             "success": False,

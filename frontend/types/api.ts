@@ -588,7 +588,43 @@ export interface PaginatedQueueResponse {
     offset: number;
 }
 
+export interface BranchWhatsAppUsage {
+    id: string;
+    name: string;
+    slug: string;
+    parent_org_name?: string | null;
+    parent_org_slug?: string | null;
+    delivery_mode?: "button_reply_only" | "always_send";
+    effective_rate: number;
+    currency: string;
+    total_messages: number;
+    delivered_messages: number;
+    billable_messages: number;
+    free_session_messages: number;
+    read_messages: number;
+    failed_messages: number;
+    total_amount: number;
+    last_sent_at?: string | null;
+}
 
+export interface WhatsAppUsageResponse {
+    global_rate_per_message: number;
+    currency: string;
+    total_messages: number;
+    total_delivered: number;
+    total_billable: number;
+    total_free_session: number;
+    total_read: number;
+    total_failed: number;
+    total_amount: number;
+    active_branches_count: number;
+    branches: BranchWhatsAppUsage[];
+}
+
+export interface WhatsAppRateUpdate {
+    global_rate_per_message: number;
+    currency: string;
+}
 
 // ── Token ────────────────────────────────────────────────────────
 export type TokenStatus = "waiting" | "serving" | "done" | "skipped" | "deleted";

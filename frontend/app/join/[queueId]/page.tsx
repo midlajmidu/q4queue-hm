@@ -157,6 +157,112 @@ function WhatsAppConsentModal({ brandColor, onConfirm, onClose }: WhatsAppConsen
 
 
 
+// ── Duplicate Token Modal ────────────────────────────────────────────────────
+interface DuplicateTokenModalProps {
+    brandColor: string;
+    tokenNumber: number;
+    prefix?: string;
+    onViewActive: () => void;
+    onClose: () => void;
+}
+
+function DuplicateTokenModal({
+    brandColor,
+    tokenNumber,
+    prefix = "",
+    onViewActive,
+    onClose,
+}: DuplicateTokenModalProps) {
+    const formattedToken = `${prefix}${tokenNumber}`;
+    return (
+        <>
+            <div
+                onClick={onClose}
+                style={{
+                    position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+                    zIndex: 45, backdropFilter: "blur(4px)",
+                    animation: "fadeIn 0.15s ease"
+                }}
+            />
+            <div style={{
+                position: "fixed", bottom: 0, left: 0, right: 0,
+                background: "#fff", borderRadius: "24px 24px 0 0",
+                padding: "28px 24px 36px",
+                zIndex: 50, maxWidth: 480, margin: "0 auto",
+                animation: "slideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
+                boxShadow: "0 -10px 40px rgba(0,0,0,0.12)"
+            }}>
+                <div style={{
+                    width: 40, height: 4, background: "#e2e8f0",
+                    borderRadius: 4, margin: "0 auto 20px"
+                }} />
+
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12, marginBottom: 24 }}>
+                    <div style={{
+                        width: 58, height: 58, borderRadius: "50%",
+                        background: "#eff6ff", border: "2px solid #bfdbfe",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#2563eb"
+                    }}>
+                        <span style={{ fontSize: 22, fontWeight: 900 }}>#{formattedToken}</span>
+                    </div>
+                    <div>
+                        <h3 style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                            Active Token Found
+                        </h3>
+                        <p style={{ fontSize: 13.5, color: "#64748b", marginTop: 8, lineHeight: 1.5, maxWidth: 360, margin: "8px auto 0" }}>
+                            An active token <strong style={{ color: "#0f172a" }}>#{formattedToken}</strong> already exists for this phone number.
+                        </p>
+                        <div style={{
+                            marginTop: 14,
+                            padding: "10px 16px",
+                            backgroundColor: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 12,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            color: "#475569",
+                            fontSize: 13,
+                            fontWeight: 600,
+                        }}>
+                            <span>Please see staff if you need another token.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <button
+                        onClick={onViewActive}
+                        style={{
+                            width: "100%", padding: "14px 0",
+                            backgroundColor: brandColor,
+                            color: "#fff", fontWeight: 700, fontSize: 14.5,
+                            border: "none", borderRadius: 14, cursor: "pointer",
+                            boxShadow: "0 4px 14px rgba(37,99,235,0.25)",
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                        }}
+                    >
+                        <span>View Active Token (#{formattedToken})</span>
+                    </button>
+
+                    <button
+                        onClick={onClose}
+                        style={{
+                            width: "100%", padding: "10px 0",
+                            background: "transparent", color: "#94a3b8",
+                            fontWeight: 600, fontSize: 13,
+                            border: "none", cursor: "pointer"
+                        }}
+                    >
+                        Cancel & Edit Form
+                    </button>
+                </div>
+            </div>
+        </>
+    );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function JoinQueuePage({ params }: PageProps) {
     const rawQueueId = use(params).queueId;
@@ -236,6 +342,14 @@ export default function JoinQueuePage({ params }: PageProps) {
     const [isJoining, setIsJoining] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+
+    // Prompt shown when phone number already has an active ticket
+    const [duplicatePrompt, setDuplicatePrompt] = useState<{
+        tokenId: string;
+        trackingId: string;
+        tokenNumber: number;
+        prefix?: string;
+    } | null>(null);
 
 
 
@@ -326,6 +440,18 @@ export default function JoinQueuePage({ params }: PageProps) {
             };
 
             const data = await api.joinQueue(queueId, payload);
+
+            if (data.is_existing && data.tracking_id) {
+                setIsJoining(false);
+                saveTokenToStorage(queueId, data.id);
+                setDuplicatePrompt({
+                    tokenId: data.id,
+                    trackingId: data.tracking_id,
+                    tokenNumber: data.token_number,
+                    prefix: data.queue_prefix || prefix,
+                });
+                return;
+            }
 
             saveTokenToStorage(queueId, data.id);
             if (data.tracking_id) {
@@ -483,13 +609,27 @@ export default function JoinQueuePage({ params }: PageProps) {
                 />
             )}
 
+            {/* Duplicate / Existing Token Modal */}
+            {duplicatePrompt && (
+                <DuplicateTokenModal
+                    brandColor={brandColor}
+                    tokenNumber={duplicatePrompt.tokenNumber}
+                    prefix={duplicatePrompt.prefix}
+                    onViewActive={() => {
+                        saveTokenToStorage(queueId, duplicatePrompt.tokenId);
+                        router.push(`/track/${duplicatePrompt.trackingId}`);
+                    }}
+                    onClose={() => setDuplicatePrompt(null)}
+                />
+            )}
+
 
 
             <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
                 <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
                     {/* Header */}
                     <div
-                        className="px-4 sm:px-6 py-6 sm:py-8 text-center text-white relative overflow-hidden transition-colors duration-500"
+                        className="px-4 sm:px-6 py-5 sm:py-6 text-center text-white relative overflow-hidden transition-colors duration-500"
                         style={{ backgroundColor: brandColor }}
                     >
                         {/* Decorative subtle lighting effect */}
@@ -501,76 +641,69 @@ export default function JoinQueuePage({ params }: PageProps) {
                             </div>
 
                             {fullLogoUrl && (
-                                <div className="flex justify-center mb-3 mt-1">
-                                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-2xl shadow-xl">
-                                        <img src={fullLogoUrl} alt="Organization Logo" className="h-10 object-contain" />
+                                <div className="flex justify-center mb-2.5 mt-0.5">
+                                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-1.5 rounded-xl shadow-md">
+                                        <img src={fullLogoUrl} alt="Organization Logo" className="h-8 object-contain" />
                                     </div>
                                 </div>
                             )}
 
-                            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-1 drop-shadow-md">{queueName}</h1>
-                            <p className="text-[10px] sm:text-xs font-semibold tracking-[0.25em] uppercase text-white/70 mb-4">
+                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white mb-0.5 drop-shadow-sm">{queueName}</h1>
+                            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/70 mb-3">
                                 {queueClosed ? "Currently Closed" : isDineQueue ? "Table Waitlist / Now Seating" : "Now Serving"}
                             </p>
 
-                            <div className="relative mx-auto w-full mt-3">
+                            <div className="relative mx-auto w-full mt-2">
                                 {activeServingTokens.length === 0 ? (
-                                    <div className="text-5xl sm:text-6xl font-black tabular-nums tracking-tighter py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg flex items-center justify-center min-h-[80px] text-white/60">
+                                    <div className="inline-flex items-center justify-center px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-sm text-white/50 text-xl font-bold">
                                         —
                                     </div>
                                 ) : activeServingTokens.length === 1 ? (
-                                    <div className="max-w-[200px] mx-auto py-3.5 bg-white/15 backdrop-blur-md rounded-2xl border border-white/25 shadow-lg flex flex-col items-center justify-center" aria-live="polite" aria-atomic="true">
-                                        <span className="text-4xl sm:text-5xl font-black tabular-nums tracking-tight text-white leading-none">
+                                    <div className="inline-flex flex-col items-center justify-center px-4 py-2 bg-white/15 backdrop-blur-md rounded-xl border border-white/25 shadow-sm transition-all" aria-live="polite" aria-atomic="true">
+                                        <span className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight text-white leading-none">
                                             {prefix}{activeServingTokens[0].token_number}
                                         </span>
                                         {activeServingTokens[0].assigned_line !== null && (
-                                            <span className="text-[10px] font-bold text-white/90 mt-2 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full">
+                                            <span className="text-[9px] font-bold text-white/95 mt-1 uppercase tracking-wider bg-white/20 border border-white/20 px-2 py-0.5 rounded-full whitespace-nowrap">
                                                 {isDineQueue
                                                     ? (live?.table_config?.find(tbl => tbl.id === activeServingTokens[0].assigned_line)?.name || `Table ${activeServingTokens[0].assigned_line}`)
                                                     : `Lane ${activeServingTokens[0].assigned_line}`}
                                             </span>
                                         )}
                                     </div>
-                                ) : activeServingTokens.length <= 3 ? (
-                                    <div className="py-2" aria-live="polite" aria-atomic="true">
-                                        <div className="flex flex-wrap items-center justify-center gap-3">
-                                            {activeServingTokens.map((t: any) => (
-                                                <div key={t.id || t.token_number} className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 sm:py-3 flex flex-col items-center min-w-[88px] shrink-0 border border-white/20 shadow-sm transition-all">
-                                                    <span className="text-2xl sm:text-[26px] font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
-                                                    {t.assigned_line !== null && (
-                                                        <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                                                            {isDineQueue
-                                                                ? (live?.table_config?.find(tbl => tbl.id === t.assigned_line)?.name || `Table ${t.assigned_line}`)
-                                                                : `Lane ${t.assigned_line}`}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
                                 ) : (
-                                    <div className="overflow-hidden w-full relative py-1" aria-live="polite" aria-atomic="true">
+                                    <div className="w-full relative py-0.5" aria-live="polite" aria-atomic="true">
                                         <style>{`
                                             .hide-scroll::-webkit-scrollbar { display: none; }
                                         `}</style>
-                                        {/* Soft edge fade masks */}
-                                        <div className="pointer-events-none absolute left-0 inset-y-0 w-6 bg-gradient-to-r from-blue-600/80 to-transparent z-10"></div>
-                                        <div className="pointer-events-none absolute right-0 inset-y-0 w-6 bg-gradient-to-l from-blue-600/80 to-transparent z-10"></div>
+                                        {activeServingTokens.length > 3 && (
+                                            <>
+                                                <div className="pointer-events-none absolute left-0 inset-y-0 w-4 z-10 rounded-l-xl" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.2), transparent)' }}></div>
+                                                <div className="pointer-events-none absolute right-0 inset-y-0 w-4 z-10 rounded-r-xl" style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.2), transparent)' }}></div>
+                                            </>
+                                        )}
                                         <div
-                                            ref={scrollContainerRef}
-                                            className="flex flex-nowrap items-center gap-3 px-3 overflow-x-auto whitespace-nowrap hide-scroll cursor-grab active:cursor-grabbing select-none"
+                                            ref={activeServingTokens.length > 3 ? scrollContainerRef : undefined}
+                                            className={`flex items-center gap-2 overflow-x-auto whitespace-nowrap hide-scroll py-1 px-1 ${
+                                                activeServingTokens.length <= 3 ? "justify-center" : "justify-start cursor-grab active:cursor-grabbing select-none"
+                                            }`}
                                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                            onMouseDown={handleMouseDown}
-                                            onMouseUp={handleMouseUpOrLeave}
-                                            onMouseLeave={handleMouseUpOrLeave}
-                                            onMouseMove={handleMouseMove}
-                                            onTouchStart={handleInteraction}
+                                            onMouseDown={activeServingTokens.length > 3 ? handleMouseDown : undefined}
+                                            onMouseUp={activeServingTokens.length > 3 ? handleMouseUpOrLeave : undefined}
+                                            onMouseLeave={activeServingTokens.length > 3 ? handleMouseUpOrLeave : undefined}
+                                            onMouseMove={activeServingTokens.length > 3 ? handleMouseMove : undefined}
+                                            onTouchStart={activeServingTokens.length > 3 ? handleInteraction : undefined}
                                         >
                                             {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t: any, i: number) => (
-                                                <div key={`${t.id || t.token_number}-${i}`} className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 sm:py-3 flex flex-col items-center min-w-[88px] shrink-0 border border-white/20 shadow-sm transition-all">
-                                                    <span className="text-2xl sm:text-[26px] font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                                <div
+                                                    key={`${t.id || t.token_number}-${i}`}
+                                                    className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-xl px-2.5 py-1.5 flex flex-col items-center shrink-0 border border-white/25 shadow-sm transition-all min-w-[70px]"
+                                                >
+                                                    <span className="text-base sm:text-lg font-black tabular-nums tracking-tight leading-none text-white whitespace-nowrap">
+                                                        {prefix}{t.token_number}
+                                                    </span>
                                                     {t.assigned_line !== null && (
-                                                        <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                                                        <span className="text-[8.5px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-white/20 border border-white/15 px-1.5 py-0.5 rounded-full whitespace-nowrap leading-none">
                                                             {isDineQueue
                                                                 ? (live?.table_config?.find(tbl => tbl.id === t.assigned_line)?.name || `Table ${t.assigned_line}`)
                                                                 : `Lane ${t.assigned_line}`}

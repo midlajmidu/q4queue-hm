@@ -123,6 +123,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await asyncio.gather(*background_tasks, return_exceptions=True)
     await stop_pool_monitor()
     await stop_subscriber()
+    from app.core.http_client import close_http_client
+    await close_http_client()
     await disconnect_db()
     await disconnect_redis()
     logger.info("✓ Shutdown complete.")

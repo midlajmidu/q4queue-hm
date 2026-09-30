@@ -13,10 +13,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-import httpx
-
 from app.whatsapp.models import WhatsAppMessage, WhatsAppDeliveryStatus
-from app.whatsapp.template_service import get_rendered_template, render_template, get_template_by_name
+from app.whatsapp.template_service import get_rendered_template
 from app.whatsapp.config_service import get_global_config_dict
 from app.db.session import AsyncSessionLocal
 from app.core.config import get_settings
@@ -61,6 +59,7 @@ async def _store_message(
     template_variables: Optional[list],
     rendered_body: Optional[str],
     session_id: Optional[uuid.UUID] = None,
+    message_type: str = "template",
 ) -> WhatsAppMessage:
     """Insert a new WhatsApp message row (status=pending)."""
     async with AsyncSessionLocal() as db:
@@ -72,6 +71,7 @@ async def _store_message(
             token_id=token_id,
             customer_phone=phone,
             customer_name=customer_name,
+            message_type=message_type,
             event_type=event_type,
             template_name=template_name,
             template_variables={"vars": template_variables} if template_variables else None,
@@ -185,14 +185,15 @@ async def _upload_ticket_image_to_meta(
             "messaging_product": "whatsapp",
             "type": "image/png"
         }
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(url, headers=headers, files=files, data=data)
-            if resp.status_code == 200:
-                media_id = resp.json().get("id")
-                logger.info("Dynamic ticket image uploaded to Meta | media_id=%s token=%s", media_id, token_number)
-                return media_id
-            else:
-                logger.warning("Failed to upload dynamic ticket image to Meta: %s", resp.text)
+        from app.core.http_client import get_http_client
+        client = await get_http_client()
+        resp = await client.post(url, headers=headers, files=files, data=data, timeout=15.0)
+        if resp.status_code == 200:
+            media_id = resp.json().get("id")
+            logger.info("Dynamic ticket image uploaded to Meta | media_id=%s token=%s", media_id, token_number)
+            return media_id
+        else:
+            logger.warning("Failed to upload dynamic ticket image to Meta: %s", resp.text)
     except Exception as exc:
         logger.error("Error generating/uploading dynamic ticket image: %s", exc)
     return None
@@ -258,6 +259,8 @@ async def send_whatsapp_message(
                 template_name = template_obj.template_name
                 template_language = template_obj.language
 
+        msg_type = "session" if (is_raw_text and raw_body) else "template"
+
         # Store message record (status=pending)
         msg = await _store_message(
             org_id=org_id,
@@ -270,6 +273,7 @@ async def send_whatsapp_message(
             template_variables=variables,
             rendered_body=rendered_body,
             session_id=session_id,
+            message_type=msg_type,
         )
 
         # Get credentials (resolving per-org custom phone_number_id if configured, else global default)
@@ -368,8 +372,9 @@ async def send_whatsapp_message(
             "Content-Type": "application/json",
         }
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(url, json=payload, headers=headers)
+        from app.core.http_client import get_http_client
+        client = await get_http_client()
+        response = await client.post(url, json=payload, headers=headers, timeout=10.0)
 
         if response.status_code == 200:
             data = response.json()

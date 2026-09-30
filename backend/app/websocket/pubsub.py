@@ -134,7 +134,9 @@ async def _subscriber_loop() -> None:
                     # Give the public snapshot a type as well
                     payload["public"]["type"] = "queue_update"
                     payload["admin"]["type"] = "queue_update"
-                    await manager.broadcast_differentiated(channel, payload["public"], payload["admin"])
+                    public_text = json.dumps(payload["public"])
+                    admin_text = json.dumps(payload["admin"])
+                    await manager.broadcast_differentiated(channel, public_text, admin_text)
                 else:
                     await manager.broadcast(channel, payload)
 

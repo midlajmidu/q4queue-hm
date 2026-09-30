@@ -115,7 +115,17 @@ async def user_heartbeat(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from datetime import datetime, timezone, timedelta
     from sqlalchemy import func
-    current_user.last_active_at = func.now()
-    await db.commit()
+
+    now_utc = datetime.now(timezone.utc)
+    last_active = current_user.last_active_at
+    if last_active is not None and last_active.tzinfo is None:
+        last_active = last_active.replace(tzinfo=timezone.utc)
+
+    # 50-second dirty check: skip UPDATE and COMMIT if recently active
+    if last_active is None or (now_utc - last_active) >= timedelta(seconds=50):
+        current_user.last_active_at = func.now()
+        await db.commit()
+
     return {"status": "ok"}

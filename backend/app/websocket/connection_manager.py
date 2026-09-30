@@ -7,9 +7,10 @@ Thread-safe via asyncio locks.
 Designed for horizontal scaling with Redis Pub/Sub (this handles LOCAL broadcast only).
 """
 import asyncio
+import json
 import logging
 from collections import defaultdict
-from typing import Any
+from typing import Any, Union
 
 from fastapi import WebSocket
 
@@ -91,8 +92,17 @@ class ConnectionManager:
             except Exception:
                 await self.disconnect(channel, ws)
 
-    async def broadcast_differentiated(self, channel: str, public_message: dict, admin_message: dict) -> None:
-        """Send admin JSON to admin clients, public JSON to public clients."""
+    async def broadcast_differentiated(
+        self,
+        channel: str,
+        public_message: Union[dict[str, Any], str],
+        admin_message: Union[dict[str, Any], str],
+    ) -> None:
+        """Send admin JSON to admin clients, public JSON to public clients.
+
+        Pre-serializes payloads once to avoid repeating json.dumps() per client.
+        Sends via send_text() preserving the ASGI wire format.
+        """
         if channel not in self._connections:
             return
 
@@ -100,12 +110,15 @@ class ConnectionManager:
             sockets = list(self._connections[channel])
             admin_sockets = set(self._admin_connections.get(channel, set()))
 
+        public_text = public_message if isinstance(public_message, str) else json.dumps(public_message)
+        admin_text = admin_message if isinstance(admin_message, str) else json.dumps(admin_message)
+
         for ws in sockets:
             try:
                 if ws in admin_sockets:
-                    await ws.send_json(admin_message)
+                    await ws.send_text(admin_text)
                 else:
-                    await ws.send_json(public_message)
+                    await ws.send_text(public_text)
             except Exception:
                 await self.disconnect(channel, ws)
 

@@ -16,6 +16,15 @@ venv/
 __pycache__/
 *.pyc
 
+# Database dumps and backup archives
+*.dump
+*.q4backup
+*.q4branchbackup
+
+# Local logs and temporary artifacts
+logs.txt
+*.log
+
 # Ignore massive docker tarballs and runtime folders
 *.tar
 *.tar.gz

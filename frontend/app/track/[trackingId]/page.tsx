@@ -453,9 +453,8 @@ export default function TrackingPage({ params }: PageProps) {
         <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col items-center justify-center p-4">
             <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
                 {/* Header */}
-                {/* Header */}
                 <div
-                    className="px-5 sm:px-6 py-6 sm:py-8 text-center text-white relative overflow-hidden transition-colors duration-500"
+                    className="px-4 sm:px-6 py-5 sm:py-6 text-center text-white relative overflow-hidden transition-colors duration-500"
                     style={{
                         backgroundColor: brandColor
                     }}
@@ -491,71 +490,64 @@ export default function TrackingPage({ params }: PageProps) {
                         </button>
 
 
-                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1 text-white/95 px-10 leading-tight" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{queueName}</h1>
-                        <p className="text-white/60 text-[10px] font-bold uppercase tracking-[0.25em] mb-4">
+                        <h1 className="text-lg sm:text-xl font-bold tracking-tight mb-0.5 text-white/95 px-10 leading-tight" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{queueName}</h1>
+                        <p className="text-white/70 text-[10px] font-semibold uppercase tracking-[0.2em] mb-3">
                             {queueClosed ? "Currently Closed" : isDineMode ? "Table Waitlist / Now Seating" : "Now Serving"}
                         </p>
 
-                        <div className="relative mx-auto w-full mt-3">
+                        <div className="relative mx-auto w-full mt-2">
                             {activeServingTokens.length === 0 ? (
-                                <div className="text-5xl sm:text-6xl font-black tabular-nums tracking-tighter py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg flex items-center justify-center min-h-[90px] text-white/60">
+                                <div className="inline-flex items-center justify-center px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-sm text-white/50 text-xl font-bold">
                                     —
                                 </div>
                             ) : activeServingTokens.length === 1 ? (
-                                <div className="max-w-[200px] mx-auto py-3.5 bg-white/15 backdrop-blur-md rounded-2xl border border-white/25 shadow-lg flex flex-col items-center justify-center" aria-live="polite" aria-atomic="true">
-                                    <span className="text-4xl sm:text-5xl font-black tabular-nums tracking-tight text-white leading-none">
+                                <div className="inline-flex flex-col items-center justify-center px-4 py-2 bg-white/15 backdrop-blur-md rounded-xl border border-white/25 shadow-sm transition-all" aria-live="polite" aria-atomic="true">
+                                    <span className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight text-white leading-none">
                                         {prefix}{activeServingTokens[0].token_number}
                                     </span>
                                     {activeServingTokens[0].assigned_line !== null && (
-                                        <span className="text-[10px] font-bold text-white/90 mt-2 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full">
+                                        <span className="text-[9px] font-bold text-white/95 mt-1 uppercase tracking-wider bg-white/20 border border-white/20 px-2 py-0.5 rounded-full whitespace-nowrap">
                                             {isDineMode
                                                 ? (effectiveTableConfig?.find(tbl => tbl.id === activeServingTokens[0].assigned_line)?.name || `Table ${activeServingTokens[0].assigned_line}`)
                                                 : `Lane ${activeServingTokens[0].assigned_line}`}
                                         </span>
                                     )}
                                 </div>
-                            ) : activeServingTokens.length <= 3 ? (
-                                <div className="py-2" aria-live="polite" aria-atomic="true">
-                                    <div className="flex flex-wrap items-center justify-center gap-3">
-                                        {activeServingTokens.map((t: any) => (
-                                            <div key={t.id || t.token_number} className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 sm:py-3 flex flex-col items-center min-w-[88px] shrink-0 border border-white/20 shadow-sm transition-all">
-                                                <span className="text-2xl sm:text-[26px] font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
-                                                {t.assigned_line !== null && (
-                                                    <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                                                        {isDineMode
-                                                            ? (effectiveTableConfig?.find(tbl => tbl.id === t.assigned_line)?.name || `Table ${t.assigned_line}`)
-                                                            : `Lane ${t.assigned_line}`}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
                             ) : (
-                                <div className="overflow-hidden w-full relative py-1" aria-live="polite" aria-atomic="true">
+                                <div className="w-full relative py-0.5" aria-live="polite" aria-atomic="true">
                                     <style>{`
                                         .hide-scroll::-webkit-scrollbar { display: none; }
                                     `}</style>
-                                    {/* Soft edge fade masks */}
-                                    <div className="pointer-events-none absolute left-0 inset-y-0 w-6 bg-gradient-to-r from-blue-600/80 to-transparent z-10"></div>
-                                    <div className="pointer-events-none absolute right-0 inset-y-0 w-6 bg-gradient-to-l from-blue-600/80 to-transparent z-10"></div>
+                                    {activeServingTokens.length > 3 && (
+                                        <>
+                                            <div className="pointer-events-none absolute left-0 inset-y-0 w-4 z-10 rounded-l-xl" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.2), transparent)' }}></div>
+                                            <div className="pointer-events-none absolute right-0 inset-y-0 w-4 z-10 rounded-r-xl" style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.2), transparent)' }}></div>
+                                        </>
+                                    )}
                                     <div
-                                        ref={scrollContainerRef}
-                                        className="flex flex-nowrap items-center gap-3 px-3 overflow-x-auto whitespace-nowrap hide-scroll cursor-grab active:cursor-grabbing select-none"
+                                        ref={activeServingTokens.length > 3 ? scrollContainerRef : undefined}
+                                        className={`flex items-center gap-2 overflow-x-auto whitespace-nowrap hide-scroll py-1 px-1 ${
+                                            activeServingTokens.length <= 3 ? "justify-center" : "justify-start cursor-grab active:cursor-grabbing select-none"
+                                        }`}
                                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                                         onTouchStart={handleInteraction}
                                         onTouchMove={handleInteraction}
                                         onWheel={handleInteraction}
-                                        onMouseDown={handleMouseDown}
-                                        onMouseMove={handleMouseMove}
-                                        onMouseUp={handleMouseUpOrLeave}
-                                        onMouseLeave={handleMouseUpOrLeave}
+                                        onMouseDown={activeServingTokens.length > 3 ? handleMouseDown : undefined}
+                                        onMouseMove={activeServingTokens.length > 3 ? handleMouseMove : undefined}
+                                        onMouseUp={activeServingTokens.length > 3 ? handleMouseUpOrLeave : undefined}
+                                        onMouseLeave={activeServingTokens.length > 3 ? handleMouseUpOrLeave : undefined}
                                     >
                                         {(activeServingTokens.length > 3 ? [...activeServingTokens, ...activeServingTokens] : activeServingTokens).map((t: any, i: number) => (
-                                            <div key={`${t.id || t.token_number}-${i}`} className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 sm:py-3 flex flex-col items-center min-w-[88px] shrink-0 border border-white/20 shadow-sm transition-all">
-                                                <span className="text-2xl sm:text-[26px] font-black tabular-nums tracking-tight leading-none text-white">{prefix}{t.token_number}</span>
+                                            <div
+                                                key={`${t.id || t.token_number}-${i}`}
+                                                className="bg-white/15 hover:bg-white/20 backdrop-blur-md rounded-xl px-2.5 py-1.5 flex flex-col items-center shrink-0 border border-white/25 shadow-sm transition-all min-w-[70px]"
+                                            >
+                                                <span className="text-base sm:text-lg font-black tabular-nums tracking-tight leading-none text-white whitespace-nowrap">
+                                                    {prefix}{t.token_number}
+                                                </span>
                                                 {t.assigned_line !== null && (
-                                                    <span className="text-[9.5px] font-bold text-white/90 mt-1.5 uppercase tracking-wider bg-white/20 border border-white/15 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                                                    <span className="text-[8.5px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-white/20 border border-white/15 px-1.5 py-0.5 rounded-full whitespace-nowrap leading-none">
                                                         {isDineMode
                                                             ? (effectiveTableConfig?.find(tbl => tbl.id === t.assigned_line)?.name || `Table ${t.assigned_line}`)
                                                             : `Lane ${t.assigned_line}`}
@@ -854,14 +846,6 @@ export default function TrackingPage({ params }: PageProps) {
                                         )}
                                     </button>
 
-                                    {/* Take Another Token / Register New */}
-                                    <button
-                                        onClick={handleTakeNewToken}
-                                        className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200/80 active:bg-slate-200 text-slate-700 font-bold uppercase tracking-wider text-[11px] rounded-xl transition-all duration-200 shadow-xs"
-                                    >
-                                        <PlusCircle className="w-3.5 h-3.5 text-slate-500" />
-                                        <span>Take Another Token / Register New</span>
-                                    </button>
 
                                     {/* Leave Queue Action Button */}
                                     {!isMyTurn && (

@@ -166,15 +166,17 @@ async def backup_task():
             now_time = datetime.now().strftime("%H:%M")
             async with AsyncSessionLocal() as db:
                 # 1. Trigger backup for every Parent Org matching current time
-                pos = await db.scalars(
+                pos = (await db.scalars(
                     select(ParentOrganization.id).where(
                         ParentOrganization.is_active == True,
                         ParentOrganization.backup_time == now_time
                     )
-                )
+                )).all()
+
                 for po_id in pos:
                     try:
-                        await create_org_backup(po_id, db)
+                        async with AsyncSessionLocal() as tenant_db:
+                            await create_org_backup(po_id, tenant_db)
                     except Exception as e:
                         logger.error(f"Scheduled backup failed for ParentOrg {po_id}: {e}")
                 

@@ -844,9 +844,9 @@ async def admin_join(
             db,
             queue_id=queue.id,
             data=body,
-            bypass_duplicate_check=bool(body.force_new),
+            bypass_duplicate_check=True,
             bypass_operating_hours=True,
-            raise_on_duplicate=True,
+            raise_on_duplicate=False,
         )
         await db.commit()
         background_tasks.add_task(

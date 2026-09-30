@@ -417,12 +417,6 @@ async def undo_remove_token(
                 "customer_name": token.customer_name,
             }
         )
-
-        background_tasks.add_task(
-            token_service.notify_queue_update,
-            queue_id=token.queue_id,
-            org_id=token.org_id,
-        )
     except ValueError as exc:
         msg = str(exc)
         code = 404 if "not found" in msg.lower() else 400

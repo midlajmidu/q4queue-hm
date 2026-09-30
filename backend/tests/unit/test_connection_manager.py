@@ -12,6 +12,7 @@ from app.websocket.connection_manager import ConnectionManager
 def _mock_ws(accept=True) -> AsyncMock:
     ws = AsyncMock()
     ws.send_json = AsyncMock()
+    ws.send_text = AsyncMock()
     ws.accept = AsyncMock()
     return ws
 

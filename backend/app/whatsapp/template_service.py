@@ -350,7 +350,6 @@ async def delete_template(
 async def delete_template_from_meta(db: AsyncSession, template_name: str) -> dict:
     """Delete a single template from Meta WABA."""
     from app.whatsapp.config_service import get_global_config_dict
-    import httpx
 
     cfg = await get_global_config_dict()
     waba_id = cfg.get("waba_id")
@@ -362,11 +361,12 @@ async def delete_template_from_meta(db: AsyncSession, template_name: str) -> dic
 
     url = f"https://graph.facebook.com/{api_version}/{waba_id}/message_templates"
     headers = {"Authorization": f"Bearer {access_token}"}
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.delete(url, headers=headers, params={"name": template_name})
-        if resp.status_code in (200, 204):
-            return {"success": True, "message": f"Template {template_name} deleted from Meta WABA."}
-        return {"success": False, "message": f"Meta error ({resp.status_code}): {resp.text}"}
+    from app.core.http_client import get_http_client
+    client = await get_http_client()
+    resp = await client.delete(url, headers=headers, params={"name": template_name}, timeout=15.0)
+    if resp.status_code in (200, 204):
+        return {"success": True, "message": f"Template {template_name} deleted from Meta WABA."}
+    return {"success": False, "message": f"Meta error ({resp.status_code}): {resp.text}"}
 
 
 async def purge_deprecated_templates_from_meta(db: AsyncSession) -> dict:
@@ -376,7 +376,6 @@ async def purge_deprecated_templates_from_meta(db: AsyncSession) -> dict:
     3. Deletes all templates from Meta WABA whose names are NOT in APPROVED_TEMPLATE_NAMES.
     """
     from app.whatsapp.config_service import get_global_config_dict
-    import httpx
 
     # 1. Purge from local DB
     await seed_default_templates(db)
@@ -404,38 +403,39 @@ async def purge_deprecated_templates_from_meta(db: AsyncSession) -> dict:
         url = f"https://graph.facebook.com/{api_version}/{waba_id}/message_templates"
         headers = {"Authorization": f"Bearer {access_token}"}
         
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get(url, headers=headers, params={"limit": 100})
-            if resp.status_code != 200:
-                return {
-                    "success": False,
-                    "message": f"Meta Graph API error ({resp.status_code}): {resp.text}",
-                    "meta_connected": False,
-                    "purged_from_meta": [],
-                    "active_approved": list(APPROVED_TEMPLATE_NAMES),
-                }
-            
-            data = resp.json()
-            meta_templates = data.get("data", [])
-            
-            for tpl in meta_templates:
-                name = tpl.get("name")
-                if not name:
-                    continue
-                if name not in APPROVED_TEMPLATE_NAMES:
-                    # Send delete request to Meta
-                    del_resp = await client.delete(
-                        url,
-                        headers=headers,
-                        params={"name": name}
-                    )
-                    if del_resp.status_code in (200, 204):
-                        meta_purged.append(name)
-                        logger.info("Deleted deprecated template from Meta WABA: %s", name)
-                    else:
-                        errors.append(f"Failed to delete {name} from Meta: {del_resp.text}")
+        from app.core.http_client import get_http_client
+        client = await get_http_client()
+        resp = await client.get(url, headers=headers, params={"limit": 100}, timeout=15.0)
+        if resp.status_code != 200:
+            return {
+                "success": False,
+                "message": f"Meta Graph API error ({resp.status_code}): {resp.text}",
+                "meta_connected": False,
+                "purged_from_meta": [],
+                "active_approved": list(APPROVED_TEMPLATE_NAMES),
+            }
+
+        data = resp.json()
+        meta_templates = data.get("data", [])
+
+        for tpl in meta_templates:
+            name = tpl.get("name")
+            if not name:
+                continue
+            if name not in APPROVED_TEMPLATE_NAMES:
+                # Send delete request to Meta
+                del_resp = await client.delete(
+                    url,
+                    headers=headers,
+                    params={"name": name}
+                )
+                if del_resp.status_code in (200, 204):
+                    meta_purged.append(name)
+                    logger.info("Deleted deprecated template from Meta WABA: %s", name)
                 else:
-                    meta_active.append(name)
+                    errors.append(f"Failed to delete {name} from Meta: {del_resp.text}")
+            else:
+                meta_active.append(name)
 
         return {
             "success": True,
