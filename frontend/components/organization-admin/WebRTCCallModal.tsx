@@ -110,7 +110,7 @@ export default function WebRTCCallModal({
                 token_id: tokenId || undefined,
                 appointment_id: appointmentId || undefined,
                 customer_name: customerName || undefined,
-                customer_phone: customerPhone,
+                customer_phone: normalizePhoneE164(customerPhone),
                 duration_seconds: duration,
                 ring_duration_seconds: ringDuration,
                 call_status,
@@ -282,15 +282,14 @@ const normalizePhoneE164 = (phone: string): string => {
         callStartTimeRef.current = Date.now();
         isCalleeAnsweredRef.current = false;
         calleeAnswerTimeRef.current = 0;
+        const extraHeaders = {
+            'X-PH-OrgId': organizationId || queueId || "00000000-0000-0000-0000-000000000000",
+            'X-PH-QueueId': queueId || "",
+            'X-PH-SessionId': sessionId || "",
+            'X-PH-TokenId': tokenId || ""
+        };
         try {
-            client.call(dialedNumber, {
-                extraHeaders: {
-                    'X-PH-OrgId': organizationId || queueId || "00000000-0000-0000-0000-000000000000",
-                    'X-PH-QueueId': queueId || "",
-                    'X-PH-SessionId': sessionId || "",
-                    'X-PH-TokenId': tokenId || ""
-                }
-            });
+            client.call(dialedNumber, extraHeaders);
         } catch (err: any) {
             console.error("Failed to execute client.call:", err);
             isCallingRef.current = false;

@@ -6,8 +6,10 @@ import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { QueueTemplate } from "@/types/api";
+import { useAuth } from "@/hooks/useAuth";
 
 export function OperationsTab() {
+    const { isReadOnly } = useAuth();
     const [templates, setTemplates] = useState<QueueTemplate[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
@@ -36,6 +38,10 @@ export function OperationsTab() {
     const [isSavingAutoSession, setIsSavingAutoSession] = useState(false);
 
     const saveAutoSessionSettings = async (enabled: boolean, time: string) => {
+        if (isReadOnly) {
+            toast.info("View mode: modifying settings is disabled.");
+            return;
+        }
         setIsSavingAutoSession(true);
         try {
             const currentSettings = await api.getOrganizationSettings();
@@ -70,6 +76,7 @@ export function OperationsTab() {
     const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
 
     const handleToggleTemplateActive = async (templateId: string, isActive: boolean) => {
+        if (isReadOnly) return;
         try {
             const currentSettings = await api.getOrganizationSettings();
             const updatedTemplates = (currentSettings.queue_templates || []).map(t => 
@@ -93,6 +100,7 @@ export function OperationsTab() {
 
     const handleConfirmCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isReadOnly) return;
         try {
             const currentSettings = await api.getOrganizationSettings();
             
@@ -204,20 +212,20 @@ export function OperationsTab() {
                         {autoSessionEnabled && (
                             <input 
                                 type="time"
-                                disabled={isSavingAutoSession}
+                                disabled={isSavingAutoSession || isReadOnly}
                                 value={autoSessionTime}
                                 onChange={(e) => {
                                     setAutoSessionTime(e.target.value);
                                     saveAutoSessionSettings(autoSessionEnabled, e.target.value);
                                 }}
-                                className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[14px] font-medium text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none shadow-sm"
+                                className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[14px] font-medium text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                         )}
-                        <label className="relative inline-flex items-center cursor-pointer select-none">
+                        <label className={`relative inline-flex items-center select-none ${isReadOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
                             <input 
                                 type="checkbox" 
                                 className="sr-only peer"
-                                disabled={isSavingAutoSession}
+                                disabled={isSavingAutoSession || isReadOnly}
                                 checked={autoSessionEnabled}
                                 onChange={(e) => {
                                     const enabled = e.target.checked;
@@ -246,7 +254,8 @@ export function OperationsTab() {
                 </div>
                 <button 
                     onClick={() => setIsCreating(true)}
-                    className="group inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[14px] font-medium rounded-lg transition-all shadow-sm shadow-indigo-600/20 active:scale-95"
+                    disabled={isReadOnly}
+                    className="group inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[14px] font-medium rounded-lg transition-all shadow-sm shadow-indigo-600/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Plus size={16} className="transition-transform group-hover:rotate-90" />
                     Create Template

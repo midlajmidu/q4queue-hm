@@ -21,3 +21,6 @@ production/
 administrator@*/
 
 backend/exports/
+.next/
+*.tsbuildinfo
+landing/

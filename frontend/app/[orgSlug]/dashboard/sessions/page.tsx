@@ -128,8 +128,8 @@ export default function SessionsPage() {
     const isStaff = user?.role === "staff";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin" || isImpersonating;
     const canCreateSession = !isGlobalOrOrgAdmin && !isReadOnly;
-    const canDeleteSession = isGlobalOrOrgAdmin;
-    const canEditSession = isGlobalOrOrgAdmin || (!isStaff && !isReadOnly);
+    const canDeleteSession = isGlobalOrOrgAdmin && !isReadOnly;
+    const canEditSession = !isReadOnly && (isGlobalOrOrgAdmin || !isStaff);
 
     const [showEarlier, setShowEarlier] = useState(false);
     const [sessions, setSessions] = useState<SessionResponse[]>([]);

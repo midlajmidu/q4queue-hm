@@ -172,7 +172,7 @@ export default function SettingsPage() {
     const [pendingTab, setPendingTab] = useState<'profile' | 'security' | 'operations' | null>(null);
     const params = useParams();
     const orgSlug = params?.orgSlug as string;
-    const { user } = useAuth();
+    const { user, isReadOnly } = useAuth();
     const isAdmin = user?.role === "admin" || user?.role === "branch_admin";
 
     // Clinic Info State
@@ -346,6 +346,10 @@ export default function SettingsPage() {
 
     const handleSaveInfo = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isReadOnly) {
+            toast.info("View mode: modifying settings is disabled.");
+            return;
+        }
         setInfoSuccess(null);
         setInfoError(null);
         setIsSavingInfo(true);
@@ -385,6 +389,10 @@ export default function SettingsPage() {
 
     const handleRequestOtp = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isReadOnly) {
+            toast.info("View mode: password changes are disabled.");
+            return;
+        }
         setPwdSuccess(null);
         setPwdError(null);
         setIsSavingPassword(true);
@@ -419,6 +427,10 @@ export default function SettingsPage() {
 
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isReadOnly) {
+            toast.info("View mode: password changes are disabled.");
+            return;
+        }
         setPwdSuccess(null);
         setPwdError(null);
 
@@ -499,6 +511,24 @@ export default function SettingsPage() {
 
                         {/* Content Area */}
                         <div style={{ flex: 1, minWidth: '300px' }}>
+                            {isReadOnly && (
+                                <div style={{
+                                    background: 'rgba(245, 158, 11, 0.1)',
+                                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                                    color: '#b45309',
+                                    padding: '14px 18px',
+                                    borderRadius: 10,
+                                    fontSize: '13px',
+                                    fontWeight: 500,
+                                    marginBottom: 20,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10
+                                }}>
+                                    <Eye size={18} />
+                                    <span><strong>View Mode:</strong> You are viewing branch settings in read-only mode. Saving settings and credential modifications are disabled.</span>
+                                </div>
+                            )}
                             {activeTab === 'profile' && (
                                 <div className="card">
                                     <div className="card-header">
@@ -629,7 +659,7 @@ export default function SettingsPage() {
                                                     Discard Changes
                                                 </button>
                                             )}
-                                            <button type="submit" disabled={isSavingInfo || !hasProfileChanges || (isAdmin ? !name.trim() : (!firstName.trim() || !lastName.trim()))} className="qa-btn">
+                                            <button type="submit" disabled={isSavingInfo || isReadOnly || !hasProfileChanges || (isAdmin ? !name.trim() : (!firstName.trim() || !lastName.trim()))} className="qa-btn">
                                                 {isSavingInfo ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Saving...</> : "Save Details"}
                                             </button>
                                         </div>
@@ -874,7 +904,7 @@ export default function SettingsPage() {
 
                                         <div style={{ display: 'flex', justifyContent: pwdStep === 1 ? 'flex-end' : 'space-between', alignItems: 'center', marginTop: 32, paddingTop: 24, borderTop: `1px solid ${C.borderLight}` }}>
                                             {pwdStep === 1 ? (
-                                                <button type="submit" disabled={isSavingPassword || !currentPassword} className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-[14px] font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg cursor-pointer shadow-sm shadow-blue-600/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <button type="submit" disabled={isSavingPassword || isReadOnly || !currentPassword} className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-[14px] font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg cursor-pointer shadow-sm shadow-blue-600/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
                                                     {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Sending OTP...</> : "Send OTP"}
                                                 </button>
                                             ) : (
@@ -882,7 +912,7 @@ export default function SettingsPage() {
                                                     <button type="button" onClick={() => setPwdStep(1)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-transparent hover:bg-slate-100 border border-transparent rounded-lg transition-colors cursor-pointer">
                                                         Cancel
                                                     </button>
-                                                    <button type="submit" disabled={isSavingPassword || !otp || otp.length !== 6 || !newPassword || !confirmPassword || newPassword !== confirmPassword} className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-[14px] font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg cursor-pointer shadow-sm shadow-blue-600/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    <button type="submit" disabled={isSavingPassword || isReadOnly || !otp || otp.length !== 6 || !newPassword || !confirmPassword || newPassword !== confirmPassword} className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-[14px] font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg cursor-pointer shadow-sm shadow-blue-600/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
                                                         {isSavingPassword ? <><svg width={16} height={16} className="animate-spin" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>Updating...</> : "Verify & Update Password"}
                                                     </button>
                                                 </>

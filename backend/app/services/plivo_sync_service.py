@@ -82,15 +82,8 @@ async def sync_plivo_calls(db: AsyncSession, org_id: Optional[uuid.UUID] = None,
         if c.get("call_direction") == "outbound" and not str(c.get("to_number", "")).startswith("sip:")
     ]
 
-    # Resolve target organization if not provided
+    # Target organization if explicitly requested (e.g. branch-specific sync)
     target_org_id = org_id
-    if not target_org_id:
-        res = await db.execute(select(Organization.id).where(Organization.is_active == True).limit(1))
-        target_org_id = res.scalars().first()
-
-    if not target_org_id:
-        logger.warning("No active organization found to attach synced calls.")
-        return 0
 
     # Find a default caller user for this org (branch admin or staff)
     user_res = await db.execute(
@@ -123,91 +116,63 @@ async def sync_plivo_calls(db: AsyncSession, org_id: Optional[uuid.UUID] = None,
         if init_str:
             try:
                 created_at = datetime.fromisoformat(init_str)
+                if created_at.tzinfo is None:
+                    created_at = created_at.replace(tzinfo=timezone.utc)
             except Exception:
                 created_at = now
         else:
             created_at = now
 
-        # Check if record already exists within +/- 20 seconds window for this phone
-        time_margin = timedelta(seconds=20)
-        
+        # Calls end after they initiate, so CallLog.created_at is typically initiation_time + ring + talk
+        time_margin_before = timedelta(minutes=5)
+        time_margin_after = timedelta(hours=2)
+
         phone_variants = list(set([phone, phone.lstrip("+"), f"+{phone.lstrip('+')}"]))
 
-        # If org_id is not specified, check if any branch already has this call logged
+        # First try matching by target_org_id if specified, or across all orgs if global sync
         existing_log = None
-        if not org_id:
-            existing_res = await db.execute(
-                select(CallLog).where(
-                    and_(
-                        CallLog.customer_phone.in_(phone_variants),
-                        CallLog.created_at >= created_at - time_margin,
-                        CallLog.created_at <= created_at + time_margin,
-                    )
-                ).limit(1)
-            )
-            existing_log = existing_res.scalars().first()
+        conditions = [
+            CallLog.customer_phone.in_(phone_variants),
+            CallLog.created_at >= created_at - time_margin_before,
+            CallLog.created_at <= created_at + time_margin_after,
+        ]
+        if org_id:
+            conditions.append(CallLog.organization_id == target_org_id)
 
-        if not existing_log:
-            existing_res = await db.execute(
+        existing_res = await db.execute(
+            select(CallLog).where(and_(*conditions)).order_by(CallLog.created_at.desc()).limit(1)
+        )
+        existing_log = existing_res.scalars().first()
+
+        # Fallback for phone matching if duration is 0
+        if not existing_log and target_org_id:
+            fallback_res = await db.execute(
                 select(CallLog).where(
                     and_(
                         CallLog.organization_id == target_org_id,
                         CallLog.customer_phone.in_(phone_variants),
-                        CallLog.created_at >= created_at - time_margin,
-                        CallLog.created_at <= created_at + time_margin,
+                        CallLog.duration_seconds == 0,
+                        CallLog.created_at >= created_at - timedelta(hours=12),
+                        CallLog.created_at <= created_at + timedelta(hours=12),
                     )
-                ).limit(1)
+                ).order_by(CallLog.created_at.desc()).limit(1)
             )
-            existing_log = existing_res.scalars().first()
+            existing_log = fallback_res.scalars().first()
 
         if existing_log:
             # Update duration and status if it was incomplete
             updated = False
-            if existing_log.duration_seconds == 0 and dur > 0:
+            if dur > 0 and (existing_log.duration_seconds == 0 or dur > existing_log.duration_seconds):
                 existing_log.duration_seconds = dur
-                existing_log.call_status = call_status
+                existing_log.call_status = "completed"
                 updated = True
-            if existing_log.ring_duration_seconds == 0 and ring > 0:
+            if ring > 0 and (existing_log.ring_duration_seconds == 0 or ring > existing_log.ring_duration_seconds):
                 existing_log.ring_duration_seconds = ring
                 updated = True
             if updated:
                 synced_count += 1
-        else:
-            # Try to resolve true branch, queue, and customer details via recent tokens
-            digits_tail = "".join(filter(str.isdigit, raw_to))[-10:] if len(raw_to) >= 10 else raw_to
-            t_query = select(Token).where(
-                Token.customer_phone.like(f"%{digits_tail}")
-            ).order_by(desc(Token.created_at)).limit(1)
-            if org_id:
-                t_query = select(Token).where(
-                    and_(Token.org_id == org_id, Token.customer_phone.like(f"%{digits_tail}"))
-                ).order_by(desc(Token.created_at)).limit(1)
-
-            t_res = await db.execute(t_query)
-            matched_token = t_res.scalars().first()
-
-            actual_org_id = matched_token.org_id if matched_token else target_org_id
-            actual_queue_id = matched_token.queue_id if matched_token else None
-            actual_session_id = None
-            actual_token_id = matched_token.id if matched_token else None
-            actual_cust_name = matched_token.customer_name if (matched_token and matched_token.customer_name) else "Customer"
-            actual_caller_id = matched_token.served_by_id if (matched_token and matched_token.served_by_id) else default_user_id
-
-            new_log = CallLog(
-                organization_id=actual_org_id,
-                queue_id=actual_queue_id,
-                session_id=actual_session_id,
-                token_id=actual_token_id,
-                called_by_id=actual_caller_id,
-                customer_phone=phone,
-                customer_name=actual_cust_name,
-                duration_seconds=dur,
-                ring_duration_seconds=ring,
-                call_status=call_status,
-                created_at=created_at,
-            )
-            db.add(new_log)
-            synced_count += 1
+        # Never insert an unmatched or phantom call from the shared Plivo account into a branch!
+        # Every branch call must be originated by that branch's user/webhook.
 
     if synced_count > 0:
         await db.commit()

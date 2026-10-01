@@ -11,7 +11,7 @@ import { toast } from "sonner";
 export default function TrashPage() {
     const tz = useBranchTimezone();
     const { user, isReadOnly, isImpersonating } = useAuth();
-    const canRestore = user?.role === "super_admin" || user?.role === "organization_admin" || isImpersonating;
+    const canRestore = (user?.role === "super_admin" || user?.role === "organization_admin" || isImpersonating) && !isReadOnly;
 
     const [queues, setQueues] = useState<QueueResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useNotifications, DashboardNotification } from "@/context/NotificationContext";
 import { PageWrapper } from "@/components/PageWrapper";
+import { useDashBase } from "@/hooks/useDashBase";
+import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -47,9 +49,8 @@ function NotifIcon({ type }: { type: NotifType }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function NotificationsPage() {
-  const params = useParams();
-  const orgSlug = params?.orgSlug as string;
-  const dashBase = `/${orgSlug}/dashboard`;
+  const dashBase = useDashBase();
+  const { isReadOnly } = useAuth();
 
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
@@ -172,7 +173,7 @@ export default function NotificationsPage() {
           breadcrumbs={[{ label: "Activity Center", href: dashBase }, { label: "Notifications" }]}
           action={
             <div style={{ display: "flex", gap: 8 }}>
-            {unreadCount > 0 && (
+            {unreadCount > 0 && !isReadOnly && (
               <button className="btn-primary" onClick={markAllAsRead} style={{
                 height: 38, padding: "0 14px", background: "#4f46e5", color: "#fff",
                 border: "none", borderRadius: 9, fontSize: 13, fontWeight: 600,
@@ -183,7 +184,7 @@ export default function NotificationsPage() {
                 Mark all as read
               </button>
             )}
-            {notifications.length > 0 && (
+            {notifications.length > 0 && !isReadOnly && (
               <button className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer flex items-center gap-2 h-[38px] px-3.5 bg-transparent border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-semibold" onClick={clearAll}>
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
                 Clear all
@@ -234,7 +235,7 @@ export default function NotificationsPage() {
                   <div
                     key={n.id}
                     className={`notif-row flex justify-between items-start p-5 sm:px-6 cursor-pointer transition-colors border-b border-slate-100 dark:border-white/5 last:border-none group ${n.isRead ? "hover:bg-slate-50 dark:hover:bg-slate-800/50" : "bg-indigo-50/30 dark:bg-indigo-500/10 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/20"}`}
-                    onClick={() => handleMarkAsRead(n.id)}
+                    onClick={() => !isReadOnly && handleMarkAsRead(n.id)}
                   >
                     <div className="flex items-start gap-4 flex-1 min-w-0">
                       <NotifIcon type={n.type} />

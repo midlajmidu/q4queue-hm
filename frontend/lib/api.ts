@@ -310,14 +310,20 @@ export const api = {
         });
     },
 
-    syncCalls(): Promise<{ status: string; synced: number }> {
-        return request("/calls/sync", {
+    syncCalls(params?: { org_id?: string; org_slug?: string }): Promise<{ status: string; synced: number }> {
+        const queryParams = new URLSearchParams();
+        if (params?.org_id) queryParams.append("org_id", params.org_id);
+        if (params?.org_slug) queryParams.append("org_slug", params.org_slug);
+        const q = queryParams.toString();
+        return request(`/calls/sync${q ? `?${q}` : ""}`, {
             method: "POST",
         });
     },
 
-    getCallLogs(params?: { queue_id?: string; staff_id?: string; search?: string; page?: number; limit?: number; startDate?: string; endDate?: string; start_date?: string; end_date?: string }): Promise<PaginatedCallLogsResponse> {
+    getCallLogs(params?: { org_id?: string; org_slug?: string; queue_id?: string; staff_id?: string; search?: string; page?: number; limit?: number; startDate?: string; endDate?: string; start_date?: string; end_date?: string }): Promise<PaginatedCallLogsResponse> {
         const queryParams = new URLSearchParams();
+        if (params?.org_id) queryParams.append("org_id", params.org_id);
+        if (params?.org_slug) queryParams.append("org_slug", params.org_slug);
         if (params?.queue_id) queryParams.append("queue_id", params.queue_id);
         if (params?.staff_id) queryParams.append("staff_id", params.staff_id);
         if (params?.search) queryParams.append("search", params.search);
@@ -331,17 +337,27 @@ export const api = {
         return request<PaginatedCallLogsResponse>(`/calls/logs${q ? `?${q}` : ""}`);
     },
 
-    getCallLogsOverview(queue_id?: string, startDate?: string, endDate?: string): Promise<CallLogsOverviewResponse> {
+    getCallLogsOverview(params?: { queue_id?: string; startDate?: string; endDate?: string; org_id?: string; org_slug?: string } | string, startDate?: string, endDate?: string): Promise<CallLogsOverviewResponse> {
         const queryParams = new URLSearchParams();
-        if (queue_id) queryParams.append("queue_id", queue_id);
-        if (startDate) queryParams.append("start_date", startDate);
-        if (endDate) queryParams.append("end_date", endDate);
+        if (typeof params === "object") {
+            if (params.queue_id) queryParams.append("queue_id", params.queue_id);
+            if (params.startDate) queryParams.append("start_date", params.startDate);
+            if (params.endDate) queryParams.append("end_date", params.endDate);
+            if (params.org_id) queryParams.append("org_id", params.org_id);
+            if (params.org_slug) queryParams.append("org_slug", params.org_slug);
+        } else {
+            if (params) queryParams.append("queue_id", params);
+            if (startDate) queryParams.append("start_date", startDate);
+            if (endDate) queryParams.append("end_date", endDate);
+        }
         const q = queryParams.toString();
         return request<CallLogsOverviewResponse>(`/calls/overview${q ? `?${q}` : ""}`);
     },
 
-    async exportCallLogsCSV(params?: { queue_id?: string; search?: string; start_date?: string; end_date?: string }): Promise<Blob> {
+    async exportCallLogsCSV(params?: { org_id?: string; org_slug?: string; queue_id?: string; search?: string; start_date?: string; end_date?: string }): Promise<Blob> {
         const qs = new URLSearchParams();
+        if (params?.org_id) qs.append("org_id", params.org_id);
+        if (params?.org_slug) qs.append("org_slug", params.org_slug);
         if (params?.queue_id) qs.append("queue_id", params.queue_id);
         if (params?.search) qs.append("search", params.search);
         if (params?.start_date) qs.append("start_date", params.start_date);

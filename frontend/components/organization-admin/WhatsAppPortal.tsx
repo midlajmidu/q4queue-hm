@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import type { 
     WhatsAppOrgConfig, 
     WhatsAppOrgStats, 
@@ -123,6 +124,7 @@ interface WhatsAppPortalProps {
 }
 
 export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsAppPortalProps = {}) {
+    const { isReadOnly } = useAuth();
     const [activeTab, setActiveTab] = useState<"overview" | "history" | "settings">("overview");
 
     const [config, setConfig] = useState<WhatsAppOrgConfig | null>(null);
@@ -258,7 +260,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
     }, [loadFilteredData]);
 
     const handleSettingChange = async (key: keyof WhatsAppOrgConfig, value: boolean) => {
-        if (!config) return;
+        if (!config || isReadOnly) return;
         const previousConfig = { ...config };
         setConfig({ ...config, [key]: value });
         try {
@@ -270,7 +272,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
     };
 
     const handleEnableAll = async (enabled: boolean) => {
-        if (!config) return;
+        if (!config || isReadOnly) return;
         const updated = {
             notify_queue_joined: enabled,
             notify_position_5: enabled,
@@ -292,6 +294,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
     };
 
     const sendTest = async () => {
+        if (isReadOnly) return;
         if (!testPhone.trim() || !testPhone.startsWith("+")) {
             setTestMsg("Please enter a valid E.164 number (e.g. +1234567890)");
             return;
@@ -680,6 +683,13 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
 
                 {activeTab === "settings" && (
                     <div className="max-w-4xl space-y-8">
+                        {isReadOnly && (
+                            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 p-4 rounded-2xl flex items-center gap-3 text-sm">
+                                <Eye size={18} className="shrink-0" />
+                                <span><strong>View Mode:</strong> You are viewing WhatsApp settings in read-only mode. Toggling and modifying configuration are disabled.</span>
+                            </div>
+                        )}
+
                         {/* Global Enable */}
                         <div className="bg-white dark:bg-slate-900/60 dark:backdrop-blur-xl rounded-[24px] border border-[#E9EDF5] dark:border-white/10 p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                             <div>
@@ -688,9 +698,9 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                                     Toggle all WhatsApp notifications globally. If paused, NO messages will be sent to any customer.
                                 </p>
                             </div>
-                            <label className="flex items-center gap-3 cursor-pointer shrink-0">
+                            <label className={`flex items-center gap-3 shrink-0 ${isReadOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
                                 <div className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 ${config?.is_enabled ? "bg-[#10B981]" : "bg-[#E9EDF5] dark:bg-slate-800"}`}>
-                                    <input type="checkbox" className="sr-only" checked={config?.is_enabled ?? true} onChange={(e) => handleSettingChange("is_enabled", e.target.checked)} />
+                                    <input type="checkbox" disabled={isReadOnly} className="sr-only" checked={config?.is_enabled ?? true} onChange={(e) => handleSettingChange("is_enabled", e.target.checked)} />
                                     <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${config?.is_enabled ? "translate-x-7" : "translate-x-1"}`} />
                                 </div>
                             </label>
@@ -707,13 +717,15 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                                     <div className="flex gap-3">
                                         <button
                                             onClick={() => handleEnableAll(true)}
-                                            className="h-9 px-4 text-[13px] font-semibold text-[#10B981] dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 rounded-xl transition-colors"
+                                            disabled={isReadOnly}
+                                            className="h-9 px-4 text-[13px] font-semibold text-[#10B981] dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             Enable All
                                         </button>
                                         <button
                                             onClick={() => handleEnableAll(false)}
-                                            className="h-9 px-4 text-[13px] font-semibold text-[#6B7280] dark:text-slate-300 bg-[#F7F9FC] dark:bg-slate-800 hover:bg-[#E9EDF5] dark:hover:bg-slate-700 rounded-xl transition-colors border border-[#E9EDF5] dark:border-white/10"
+                                            disabled={isReadOnly}
+                                            className="h-9 px-4 text-[13px] font-semibold text-[#6B7280] dark:text-slate-300 bg-[#F7F9FC] dark:bg-slate-800 hover:bg-[#E9EDF5] dark:hover:bg-slate-700 rounded-xl transition-colors border border-[#E9EDF5] dark:border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             Disable All
                                         </button>
@@ -789,7 +801,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                                                         <div className="text-[13px] text-[#6B7280] dark:text-slate-400 mt-1 leading-relaxed max-w-xl">{setting.desc}</div>
                                                     </div>
                                                 </div>
-                                                <div className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer duration-300 mt-2 ${config?.[setting.key as keyof WhatsAppOrgConfig] ? "bg-[#10B981]" : "bg-[#E9EDF5] dark:bg-slate-800"}`} onClick={() => handleSettingChange(setting.key as keyof WhatsAppOrgConfig, !(config?.[setting.key as keyof WhatsAppOrgConfig] ?? true))}>
+                                                <div className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-300 mt-2 ${isReadOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${config?.[setting.key as keyof WhatsAppOrgConfig] ? "bg-[#10B981]" : "bg-[#E9EDF5] dark:bg-slate-800"}`} onClick={() => !isReadOnly && handleSettingChange(setting.key as keyof WhatsAppOrgConfig, !(config?.[setting.key as keyof WhatsAppOrgConfig] ?? true))}>
                                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 shadow-sm ${config?.[setting.key as keyof WhatsAppOrgConfig] ? "translate-x-6" : "translate-x-1"}`} />
                                                 </div>
                                             </div>

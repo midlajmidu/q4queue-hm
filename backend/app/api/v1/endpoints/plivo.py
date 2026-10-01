@@ -11,6 +11,7 @@ from app.db.deps import get_db
 from app.models.user import User
 from app.models.call_log import CallLog
 from app.models.queue import Queue
+from app.models.session import Session
 from app.models.organization import Organization
 from app.models.token import Token
 
@@ -103,12 +104,21 @@ async def webrtc_forward(request: Request):
     to_number = normalize_phone_number(raw_to_number)
     caller_id = settings.PLIVO_SOURCE_PHONE or "+918035017361"
 
-    # Extract custom headers passed from frontend Plivo SDK case-insensitively
-    form_ci = {str(k).lower().replace("-", "").replace("_", ""): str(v) for k, v in form_data.items()}
-    org_id = form_ci.get("xphorgid") or form_ci.get("orgid") or form_data.get("X-PH-OrgId") or request.query_params.get("org_id", "")
-    queue_id = form_ci.get("xphqueueid") or form_ci.get("queueid") or form_data.get("X-PH-QueueId") or request.query_params.get("queue_id", "")
-    session_id = form_ci.get("xphsessionid") or form_ci.get("sessionid") or form_data.get("X-PH-SessionId") or request.query_params.get("session_id", "")
-    token_id = form_ci.get("xphtokenid") or form_ci.get("tokenid") or form_data.get("X-PH-TokenId") or request.query_params.get("token_id", "")
+    # Extract custom headers passed from frontend Plivo SDK case-insensitively (handling SIP-H- prefix)
+    def _extract_header(targets):
+        for k, v in form_data.items():
+            clean = str(k).lower().replace("-", "").replace("_", "")
+            for target in targets:
+                if clean == target or clean.endswith(target):
+                    val = str(v).strip()
+                    if val and val != "00000000-0000-0000-0000-000000000000":
+                        return val
+        return ""
+
+    org_id = _extract_header(["orgid", "xphorgid"]) or request.query_params.get("org_id", "")
+    queue_id = _extract_header(["queueid", "xphqueueid"]) or request.query_params.get("queue_id", "")
+    session_id = _extract_header(["sessionid", "xphsessionid"]) or request.query_params.get("session_id", "")
+    token_id = _extract_header(["tokenid", "xphtokenid"]) or request.query_params.get("token_id", "")
 
     base_url = _get_public_base_url(request)
     if "amoebaq.com" in base_url and base_url.startswith("http://"):
@@ -238,15 +248,24 @@ async def webrtc_hangup(
     to_number = form_data.get("To", "").replace(" ", "+")
     
     try:
-        form_ci = {str(k).lower().replace("-", "").replace("_", ""): str(v) for k, v in form_data.items()}
-        if not org_id:
-            org_id = form_ci.get("xphorgid") or form_ci.get("orgid") or ""
+        def _extract_hangup_param(targets):
+            for k, v in form_data.items():
+                clean = str(k).lower().replace("-", "").replace("_", "")
+                for target in targets:
+                    if clean == target or clean.endswith(target):
+                        val = str(v).strip()
+                        if val and val != "00000000-0000-0000-0000-000000000000":
+                            return val
+            return ""
+
+        if not org_id or org_id == "00000000-0000-0000-0000-000000000000":
+            org_id = _extract_hangup_param(["orgid", "xphorgid"]) or request.query_params.get("org_id", "")
         if not queue_id:
-            queue_id = form_ci.get("xphqueueid") or form_ci.get("queueid") or ""
+            queue_id = _extract_hangup_param(["queueid", "xphqueueid"]) or request.query_params.get("queue_id", "")
         if not token_id:
-            token_id = form_ci.get("xphtokenid") or form_ci.get("tokenid") or ""
+            token_id = _extract_hangup_param(["tokenid", "xphtokenid"]) or request.query_params.get("token_id", "")
         if not session_id:
-            session_id = form_ci.get("xphsessionid") or form_ci.get("sessionid") or ""
+            session_id = _extract_hangup_param(["sessionid", "xphsessionid"]) or request.query_params.get("session_id", "")
 
         q_id = uuid.UUID(queue_id) if queue_id else None
         
@@ -274,21 +293,32 @@ async def webrtc_hangup(
             if queue:
                 o_id = queue.org_id
                 
-        if not o_id:
-            res = await db.execute(select(Organization).where(Organization.is_active == True).limit(1))
-            first_org = res.scalar_one_or_none()
-            if first_org:
-                o_id = first_org.id
+        # Fallback: resolve organization strictly from customer token history if phone number is known
+        if not o_id and to_number:
+            digits_tail = "".join(filter(str.isdigit, to_number))[-10:] if len(to_number) >= 10 else to_number
+            if digits_tail:
+                t_res = await db.execute(
+                    select(Token.org_id, Token.queue_id).where(
+                        Token.customer_phone.like(f"%{digits_tail}")
+                    ).order_by(desc(Token.created_at)).limit(1)
+                )
+                t_row = t_res.first()
+                if t_row and t_row[0]:
+                    o_id = t_row[0]
+                    if not q_id and t_row[1]:
+                        q_id = t_row[1]
 
         if not o_id:
-            print(f"Warning: Plivo webhook could not determine valid organization_id. Skipping log.")
+            print(f"Warning: Plivo webhook could not determine valid organization_id for to_number={to_number}. Skipping log to preserve tenant isolation.")
             return Response(content="ok")
 
         # Reconcile: Search for an existing recent CallLog created in last 3 minutes
         recent_cutoff = datetime.now(timezone.utc) - timedelta(minutes=3)
+        raw_to = (to_number or "").strip()
+        to_variants = list(set([raw_to, raw_to.lstrip("+"), f"+{raw_to.lstrip('+')}"]))
         conditions = [
             CallLog.organization_id == o_id,
-            CallLog.customer_phone == (to_number or "Unknown"),
+            CallLog.customer_phone.in_(to_variants),
             CallLog.created_at >= recent_cutoff,
         ]
         if token_id:
@@ -303,25 +333,85 @@ async def webrtc_hangup(
         existing_log = res.scalar_one_or_none()
 
         if existing_log:
-            existing_log.duration_seconds = duration_seconds
-            existing_log.ring_duration_seconds = ring_duration_seconds
-            existing_log.call_status = call_status
+            # Only update duration if incoming duration > 0, or if existing_log has 0 duration
+            if duration_seconds > 0:
+                existing_log.duration_seconds = max(existing_log.duration_seconds or 0, duration_seconds)
+            if ring_duration_seconds > 0:
+                existing_log.ring_duration_seconds = max(existing_log.ring_duration_seconds or 0, ring_duration_seconds)
+
+            # Never overwrite a completed status with 0s/no_answer
+            if (existing_log.duration_seconds or 0) > 0:
+                existing_log.call_status = "completed"
+            elif call_status and call_status != "completed":
+                existing_log.call_status = call_status
+
             await db.commit()
-            print(f"Reconciled CallLog {existing_log.id}: status={call_status}, duration={duration_seconds}s, ring={ring_duration_seconds}s")
+            print(f"Reconciled CallLog {existing_log.id}: status={existing_log.call_status}, duration={existing_log.duration_seconds}s, ring={existing_log.ring_duration_seconds}s")
         else:
+            # Verify foreign keys before insertion
+            valid_qid = None
+            if q_id:
+                q_chk = await db.execute(select(Queue.id).where(Queue.id == q_id))
+                if q_chk.scalar_one_or_none():
+                    valid_qid = q_id
+
+            valid_sid = None
+            if session_id:
+                try:
+                    p_sid = uuid.UUID(session_id)
+                    s_chk = await db.execute(select(Session.id).where(Session.id == p_sid))
+                    if s_chk.scalar_one_or_none():
+                        valid_sid = p_sid
+                except Exception:
+                    pass
+
+            valid_tid = None
+            if token_id:
+                try:
+                    p_tid = uuid.UUID(token_id)
+                    t_chk = await db.execute(select(Token.id).where(Token.id == p_tid))
+                    if t_chk.scalar_one_or_none():
+                        valid_tid = p_tid
+                except Exception:
+                    pass
+
+            resolved_status = call_status
+            if duration_seconds > 0:
+                resolved_status = "completed"
+            elif resolved_status == "completed":
+                resolved_status = "no_answer"
+
+            normalized_to = f"+{raw_to.lstrip('+')}" if raw_to else "Unknown"
+
             call_log = CallLog(
                 organization_id=o_id,
-                queue_id=q_id,
-                session_id=uuid.UUID(session_id) if session_id else None,
-                token_id=uuid.UUID(token_id) if token_id else None,
-                customer_phone=to_number or "Unknown",
+                queue_id=valid_qid,
+                session_id=valid_sid,
+                token_id=valid_tid,
+                customer_phone=normalized_to,
                 duration_seconds=duration_seconds,
-                call_status=call_status,
+                call_status=resolved_status,
                 ring_duration_seconds=ring_duration_seconds,
             )
             db.add(call_log)
-            await db.commit()
-            print(f"Created new CallLog from Plivo webhook: status={call_status}, duration={duration_seconds}s, ring={ring_duration_seconds}s")
+            try:
+                await db.commit()
+            except Exception as e:
+                await db.rollback()
+                print(f"Integrity check failed in Plivo webhook: {e}. Retrying without optional foreign keys.")
+                call_log = CallLog(
+                    organization_id=o_id,
+                    queue_id=None,
+                    session_id=None,
+                    token_id=None,
+                    customer_phone=normalized_to,
+                    duration_seconds=duration_seconds,
+                    call_status=resolved_status,
+                    ring_duration_seconds=ring_duration_seconds,
+                )
+                db.add(call_log)
+                await db.commit()
+            print(f"Created new CallLog from Plivo webhook: status={resolved_status}, duration={duration_seconds}s, ring={ring_duration_seconds}s")
 
         # Notify the frontend that the call has ended
         try:

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { fmtDateTime, fmtDate, fmtTime, nowInTz } from "@/lib/tzformat";
@@ -35,6 +36,7 @@ import { toast } from "sonner";
 
 interface CallLogsSectionProps {
     queueId?: string;
+    orgSlug?: string;
     isDark?: boolean;
     channel?: "whatsapp" | "calls";
     onChannelChange?: (channel: "whatsapp" | "calls") => void;
@@ -141,8 +143,10 @@ function Skeleton({ className = "" }: { className?: string }) {
     return <div className={`bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl ${className}`} />;
 }
 
-export function CallLogsSection({ queueId, channel = "calls", onChannelChange }: CallLogsSectionProps) {
+export function CallLogsSection({ queueId, orgSlug, channel = "calls", onChannelChange }: CallLogsSectionProps) {
     const tz = useBranchTimezone();
+    const routeParams = useParams();
+    const resolvedOrgSlug = orgSlug || (typeof routeParams?.orgSlug === "string" ? routeParams.orgSlug : undefined);
     const [subTab, setSubTab] = useState<"overview" | "history">("overview");
 
     // Overview State
@@ -203,24 +207,28 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
         setPage(1);
     }, [startDate, endDate, search, limit]);
 
-
-
     const fetchOverview = useCallback(async () => {
         setOverviewLoading(true);
         try {
-            const res = await api.getCallLogsOverview(queueId, startDate || undefined, endDate || undefined);
+            const res = await api.getCallLogsOverview({
+                queue_id: queueId,
+                startDate: startDate || undefined,
+                endDate: endDate || undefined,
+                org_slug: resolvedOrgSlug,
+            });
             setOverview(res);
         } catch {
             toast.error("Failed to load call logs overview");
         } finally {
             setOverviewLoading(false);
         }
-    }, [queueId, startDate, endDate]);
+    }, [queueId, startDate, endDate, resolvedOrgSlug]);
 
     const fetchHistory = useCallback(async () => {
         setHistoryLoading(true);
         try {
             const res = await api.getCallLogs({
+                org_slug: resolvedOrgSlug,
                 queue_id: queueId,
                 search: search ? search.trim() : undefined,
                 startDate: startDate || undefined,
@@ -236,7 +244,7 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
         } finally {
             setHistoryLoading(false);
         }
-    }, [queueId, search, startDate, endDate, page, limit]);
+    }, [queueId, search, startDate, endDate, page, limit, resolvedOrgSlug]);
 
     useEffect(() => {
         setPage(1);
@@ -244,7 +252,7 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
 
     const handleManualRefresh = useCallback(async () => {
         try {
-            await api.syncCalls();
+            await api.syncCalls({ org_slug: resolvedOrgSlug });
         } catch {
             // benign
         }
@@ -253,7 +261,7 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
         } else {
             fetchHistory();
         }
-    }, [subTab, fetchOverview, fetchHistory]);
+    }, [subTab, fetchOverview, fetchHistory, resolvedOrgSlug]);
 
     useEffect(() => {
         if (subTab === "overview") {
@@ -291,6 +299,7 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
         setExporting(true);
         try {
             const blob = await api.exportCallLogsCSV({
+                org_slug: resolvedOrgSlug,
                 queue_id: queueId,
                 search: search || undefined,
                 start_date: startDate || undefined,
