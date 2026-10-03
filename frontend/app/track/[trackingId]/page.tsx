@@ -14,6 +14,7 @@ import {
 } from "@/utils/queueNotifications";
 import ConnectionBadge from "@/components/ConnectionBadge";
 import ConfirmModal from "@/components/ConfirmModal";
+import AIQueueOverviewCard from "@/components/AIQueueOverviewCard";
 import type { JoinResponse, TokenStatus, TableConfig } from "@/types/api";
 
 interface PageProps {
@@ -680,6 +681,14 @@ export default function TrackingPage({ params }: PageProps) {
                                     </p>
                                 </div>
                             )}
+
+                            {/* AI Queue Overview Card */}
+                            <AIQueueOverviewCard
+                                trackingId={trackingId}
+                                peopleAhead={peopleAhead}
+                                isWaiting={actualStatus === "waiting" && !isClosedSessionToken}
+                                brandColor={brandColor}
+                            />
 
                             {/* Premium Ticket Card */}
                             <div className={`bg-white border rounded-3xl text-center shadow-[0_8px_30px_rgb(0,0,0,0.06)] relative transition-all duration-300 ${

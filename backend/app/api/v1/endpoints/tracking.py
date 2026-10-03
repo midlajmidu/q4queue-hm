@@ -13,7 +13,7 @@ import uuid
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from typing import Optional
@@ -24,6 +24,8 @@ from app.models.token import Token, TokenStatus
 from app.models.queue import Queue
 from app.services import token_service
 from app.services.notification_service import notify_queue_event
+from app.schemas.queue import AIOverviewResponse
+from app.services.ai_overview_service import compute_ai_queue_overview
 from app.middleware.rate_limiter import join_rate_limit
 
 logger = logging.getLogger(__name__)
@@ -167,6 +169,102 @@ async def track_token(
         table_config=queue_table_config or [],
         pax_count=getattr(token, "pax_count", 1) or 1,
     )
+
+
+@router.get(
+    "/{tracking_id}/ai-overview",
+    response_model=AIOverviewResponse,
+    summary="AI Queue Overview (Public)",
+    description="Returns data-driven wait time predictions and insights for a token.",
+    dependencies=[Depends(join_rate_limit)],
+)
+async def get_ai_overview(
+    tracking_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> AIOverviewResponse:
+    """
+    Public AI Overview endpoint.
+    Isolated so failures never degrade the core tracking experience.
+    """
+    from app.models.organization import Organization
+    from app.models.session import Session as SessionModel
+    from zoneinfo import ZoneInfo
+
+    result = await db.execute(
+        select(Token, Queue, Organization)
+        .join(Queue, Token.queue_id == Queue.id)
+        .join(Organization, Token.org_id == Organization.id)
+        .where(Token.tracking_id == tracking_id)
+    )
+    row = result.first()
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Token not found",
+        )
+
+    token, queue, org = row
+
+    is_past_session = False
+    sess = None
+    if token.session_id:
+        sess = await db.get(SessionModel, token.session_id)
+        if sess:
+            tz_str = org.timezone if org.timezone else "Asia/Kolkata"
+            try:
+                today = datetime.now(ZoneInfo(tz_str)).date()
+            except Exception:
+                today = datetime.now(timezone.utc).date()
+            if not sess.is_active:
+                is_past_session = True
+            elif queue.token_session_id and token.session_id != queue.token_session_id:
+                is_past_session = True
+            elif sess.session_date < today and not sess.is_active:
+                is_past_session = True
+
+    # Calculate position using verified source of truth
+    if token.status == TokenStatus.waiting:
+        pos_result = await db.execute(
+            select(func.count())
+            .select_from(Token)
+            .where(
+                Token.queue_id == token.queue_id,
+                Token.session_id == token.session_id,
+                Token.status == TokenStatus.waiting,
+                Token.token_number < token.token_number,
+            )
+        )
+        people_ahead = pos_result.scalar_one() or 0
+    else:
+        people_ahead = 0
+
+    # Failure isolation: wrap in try/except so endpoint always provides a safe payload
+    try:
+        overview_dict = await compute_ai_queue_overview(
+            db=db,
+            token=token,
+            queue=queue,
+            session=sess,
+            people_ahead=people_ahead,
+            is_past_session=is_past_session,
+        )
+        return AIOverviewResponse(**overview_dict)
+    except Exception as exc:
+        logger.error("AI Overview computation error for tracking_id %s: %s", tracking_id, exc, exc_info=True)
+        return AIOverviewResponse(
+            estimated_min_minutes=None,
+            estimated_max_minutes=None,
+            trend_title="Queue in progress",
+            summary_message=f"There are {people_ahead} people ahead in line.",
+            action_advice="Please keep an eye on your queue position.",
+            badge_type="normal",
+            confidence_level="learning",
+            people_ahead=people_ahead,
+            active_counters=0,
+            pace_ratio=1.0,
+            is_paused=bool(queue.is_paused),
+            is_active=bool(queue.is_active),
+        )
 
 
 @router.delete(

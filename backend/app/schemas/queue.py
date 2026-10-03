@@ -406,3 +406,20 @@ class PaginatedQueueResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class AIOverviewResponse(BaseModel):
+    estimated_min_minutes: Optional[int] = None
+    estimated_max_minutes: Optional[int] = None
+    trend_title: str
+    summary_message: str
+    action_advice: str
+    badge_type: str = "normal"  # "fast" | "normal" | "slow" | "almost_turn" | "paused" | "closed"
+    confidence_level: str = "moderate"  # "high" | "moderate" | "learning" | "paused"
+    people_ahead: int = 0
+    active_counters: int = 0
+    pace_ratio: Optional[float] = 1.0
+    day_of_week: Optional[str] = None
+    is_paused: bool = False
+    is_active: bool = True
+

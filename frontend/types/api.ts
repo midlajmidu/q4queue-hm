@@ -1531,6 +1531,22 @@ export interface TrackingResponse {
     pax_count?: number;
 }
 
+export interface AIOverviewData {
+    estimated_min_minutes: number | null;
+    estimated_max_minutes: number | null;
+    trend_title: string;
+    summary_message: string;
+    action_advice: string;
+    badge_type: "fast" | "normal" | "slow" | "almost_turn" | "paused" | "closed" | string;
+    confidence_level: "high" | "moderate" | "learning" | "paused" | string;
+    people_ahead: number;
+    active_counters: number;
+    pace_ratio?: number | null;
+    day_of_week?: string | null;
+    is_paused: boolean;
+    is_active: boolean;
+}
+
 // ── Super Admin Branch User Management ──────────────────────────────────────────────────────────
 
 export interface OrgUserCreate {

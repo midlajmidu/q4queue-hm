@@ -14,6 +14,7 @@ import type {
     TokenResponse,
     TokenRestoreResponse,
     TrackingResponse,
+    AIOverviewData,
 } from "@/types/api";
 
 export const tokenApi = {
@@ -95,6 +96,10 @@ export const tokenApi = {
 
     getTrackingInfo(trackingId: string): Promise<TrackingResponse> {
         return request<TrackingResponse>(`/track/${trackingId}`);
+    },
+
+    getAIOverview(trackingId: string): Promise<AIOverviewData> {
+        return request<AIOverviewData>(`/track/${trackingId}/ai-overview`);
     },
 
     leaveQueue(trackingId: string): Promise<{ status: string; token_number: number }> {
