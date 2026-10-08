@@ -111,15 +111,15 @@ export default function QueueMonitoringPage() {
 
                 {/* Table */}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
+                    <table className="w-full text-sm text-left whitespace-nowrap">
                         <thead className="bg-slate-800/50 text-xs text-slate-400 font-semibold uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4">Queue Details</th>
-                                <th className="px-6 py-4 text-center">Current Pos</th>
-                                <th className="px-6 py-4 text-center">Waiting</th>
-                                <th className="px-6 py-4 text-center">Avg Wait</th>
-                                <th className="px-6 py-4 text-center">Staff</th>
-                                <th className="px-6 py-4 text-right">Emergency Actions</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4">Queue Details</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-center">Current Pos</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-center">Waiting</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-center">Avg Wait</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-center">Staff</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right">Emergency Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/40">
@@ -222,7 +222,7 @@ export default function QueueMonitoringPage() {
                 
                 {/* Pagination Controls */}
                 {!isLoading && totalPages > 1 && (
-                    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-900/50">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-4 border-t border-slate-800 bg-slate-900/50">
                         <span className="text-sm text-slate-400">
                             Page {page} of {totalPages}
                         </span>

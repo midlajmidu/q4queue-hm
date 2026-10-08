@@ -420,7 +420,7 @@ export default function SuperAdminWhatsAppPricingPage() {
 
             {/* Branch Breakdown Table */}
             <div className="rounded-2xl bg-slate-900 border border-slate-800 shadow-md overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div className="px-5 py-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <h2 className="text-base font-bold text-white flex items-center gap-2">
                             <Building2 className="w-4 h-4 text-indigo-400" />

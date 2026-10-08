@@ -106,7 +106,7 @@ export default function CustomersPage() {
                 {loading ? <div className="flex h-56 items-center justify-center"><LoadingSpinner /></div> : items.length === 0 ? (
                     <div className="py-16 text-center"><Users className="mx-auto text-slate-600" /><p className="mt-3 text-sm text-slate-400">No customer accounts match this view.</p></div>
                 ) : (
-                    <div className="overflow-x-auto"><table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-slate-950/50 text-xs uppercase tracking-wider text-slate-500"><tr><th className="px-5 py-4">Customer</th><th className="px-5 py-4">Commercial status</th><th className="px-5 py-4">Branches & users</th><th className="px-5 py-4">Trial / plan</th><th className="px-5 py-4 text-right">Action</th></tr></thead>
                         <tbody className="divide-y divide-slate-800">{items.map((item) => (
                             <tr key={item.parent_organization_id} className="transition hover:bg-white/[0.025]">

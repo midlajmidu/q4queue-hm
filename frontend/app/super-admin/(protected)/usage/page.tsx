@@ -99,20 +99,20 @@ function Pagination({ total, limit, offset, onChange }: { total: number; limit: 
     if (totalPages <= 1) return null;
 
     return (
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700/50">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-4 border-t border-slate-700/50 text-xs">
             <p className="text-xs text-slate-500">
                 Showing <span className="text-slate-300 font-medium">{offset + 1}–{Math.min(offset + limit, total)}</span> of <span className="text-slate-300 font-medium">{total}</span>
             </p>
-            <div className="flex items-center gap-1">
-                <button onClick={() => onChange(offset - limit)} disabled={offset === 0} className="px-2.5 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">← Prev</button>
+            <div className="flex flex-wrap items-center justify-center gap-1">
+                <button onClick={() => onChange(offset - limit)} disabled={offset === 0} className="px-2.5 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">← Prev</button>
                 {pages.map((p, i) =>
                     p === "…" ? (
-                        <span key={`ellipsis-${i}`} className="px-2 text-slate-600">…</span>
+                        <span key={`ellipsis-${i}`} className="px-1.5 text-slate-600">…</span>
                     ) : (
-                        <button key={p} onClick={() => onChange((p - 1) * limit)} className={`w-8 h-8 text-sm rounded-lg transition-colors ${p === currentPage ? "bg-cyan-600 text-white font-semibold" : "text-slate-400 hover:text-white hover:bg-slate-700"}`}>{p}</button>
+                        <button key={p} onClick={() => onChange((p - 1) * limit)} className={`w-7 h-7 sm:w-8 sm:h-8 text-xs sm:text-sm rounded-lg transition-colors ${p === currentPage ? "bg-cyan-600 text-white font-semibold" : "text-slate-400 hover:text-white hover:bg-slate-700"}`}>{p}</button>
                     )
                 )}
-                <button onClick={() => onChange(offset + limit)} disabled={offset + limit >= total} className="px-2.5 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Next →</button>
+                <button onClick={() => onChange(offset + limit)} disabled={offset + limit >= total} className="px-2.5 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Next →</button>
             </div>
         </div>
     );
@@ -165,7 +165,7 @@ export default function UsageMonitoringPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white flex items-center gap-2">
                         <svg className="w-6 h-6 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
@@ -176,7 +176,7 @@ export default function UsageMonitoringPage() {
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-800 space-y-4">
+                <div className="px-4 sm:px-6 py-4 border-b border-slate-800 space-y-4">
                     <div className="flex bg-slate-950 p-1 rounded-xl w-fit border border-slate-800">
                         <button
                             onClick={() => { setActiveTab("active"); setOffset(0); }}
@@ -210,7 +210,7 @@ export default function UsageMonitoringPage() {
                 )}
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm whitespace-nowrap">
                         <thead className="bg-slate-800/50">
                             <tr className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                 <th className="px-6 py-3">Organization</th>

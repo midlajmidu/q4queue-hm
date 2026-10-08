@@ -90,13 +90,13 @@ export default function SupportToolsPage() {
 
                 {/* Table */}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
+                    <table className="w-full text-sm text-left whitespace-nowrap">
                         <thead className="bg-slate-800/50 text-xs text-slate-400 font-semibold uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4">Organization Name</th>
-                                <th className="px-6 py-4">URL Slug</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Support Action</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4">Organization Name</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4">URL Slug</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4">Status</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right">Support Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/40">

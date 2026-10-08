@@ -192,7 +192,7 @@ export default function SuperAdminAnalyticsPage() {
 
             {/* Summary Cards */}
             {!loading && data.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {[
                         { label: "Branches Shown", value: sortedFiltered.length, color: "indigo" },
                         { label: "Total Tokens Used", value: totals.tokens_used.toLocaleString(), color: "emerald" },
@@ -209,7 +209,7 @@ export default function SuperAdminAnalyticsPage() {
 
             {/* Table */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div className="px-4 sm:px-6 py-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <span className="text-sm text-slate-400">
                         {loading ? "Fetching data…" : `Showing ${sortedFiltered.length} of ${data.length} branch(es) · ${startDate} to ${endDate}`}
                     </span>
@@ -328,8 +328,8 @@ export default function SuperAdminAnalyticsPage() {
                                     </tr>
                                     {expandedRow === row.branch_id && (
                                         <tr key={`${row.branch_id}-expanded`} className="bg-slate-950/50">
-                                            <td colSpan={11} className="px-8 py-5">
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <td colSpan={11} className="px-4 sm:px-8 py-5">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                                                     {[
                                                         { label: "Branch Status", value: row.branch_is_active ? "Active" : "Inactive", color: row.branch_is_active ? "text-emerald-400" : "text-red-400" },
                                                         { label: "Branch Slug", value: row.branch_slug, color: "text-slate-300" },
@@ -341,7 +341,7 @@ export default function SuperAdminAnalyticsPage() {
                                                         { label: "Peak Busy Hour", value: fmtHour(row.peak_hour), color: "text-amber-300" },
                                                     ].map(item => (
                                                         <div key={item.label} className="bg-slate-900 rounded-xl p-3 border border-slate-800">
-                                                            <p className="text-xs text-slate-500 mb-1">{item.label}</p>
+                                                             <p className="text-xs text-slate-500 mb-1">{item.label}</p>
                                                             <p className={`text-sm font-semibold ${item.color}`}>{item.value}</p>
                                                         </div>
                                                     ))}
@@ -356,7 +356,7 @@ export default function SuperAdminAnalyticsPage() {
                 </div>
 
                 {!loading && sortedFiltered.length > 0 && (
-                    <div className="px-6 py-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
+                    <div className="px-4 sm:px-6 py-3 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500">
                         <span>{sortedFiltered.length} branch(es) shown</span>
                         <span className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>

@@ -211,7 +211,7 @@ export default function BranchCallingPricingPage() {
             ) : (
                 <div className="space-y-6 animate-in fade-in duration-200">
                     {/* Platform Total Summary Metric Cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                         <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-4.5 flex items-center justify-between">
                             <div className="min-w-0">
                                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">

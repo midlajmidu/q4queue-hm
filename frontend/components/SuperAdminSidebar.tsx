@@ -102,17 +102,29 @@ export default function SuperAdminSidebar({ isOpen, onClose, collapsed = false, 
                             <Logo size={"md"} className={"brightness-0 invert opacity-90 scale-[0.85] origin-left"} />
                         </Link>
                     )}
-                    {/* Toggle button */}
+                    {/* Close button on mobile */}
                     <button
-                        onClick={onToggleCollapse}
-                        className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 focus:outline-none text-slate-500 hover:text-slate-300 hover:bg-slate-800`}
-                        aria-label={c ? "Expand sidebar" : "Collapse sidebar"}
+                        onClick={onClose}
+                        className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                        aria-label="Close sidebar"
                     >
-                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                            className={`transition-transform duration-300 ${c ? "rotate-180" : ""}`}>
-                            <path d="M11 19V5" /><path d="m5 12 6-6" /><path d="m5 12 6 6" /><path d="M19 5v14" />
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
+                    {/* Toggle button on desktop */}
+                    {onToggleCollapse && (
+                        <button
+                            onClick={onToggleCollapse}
+                            className={`hidden lg:flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 focus:outline-none text-slate-500 hover:text-slate-300 hover:bg-slate-800`}
+                            aria-label={c ? "Expand sidebar" : "Collapse sidebar"}
+                        >
+                            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                className={`transition-transform duration-300 ${c ? "rotate-180" : ""}`}>
+                                <path d="M11 19V5" /><path d="m5 12 6-6" /><path d="m5 12 6 6" /><path d="M19 5v14" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
 
                 {/* ── Navigation ── */}

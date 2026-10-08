@@ -25,7 +25,7 @@ export default function BillingManagementPage() {
     }, [items, search]);
 
     return (
-        <div className="space-y-6 p-6 lg:p-8">
+        <div className="space-y-6">
             <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-400">Commercial foundation</p>
                 <h1 className="mt-2 text-2xl font-bold text-white">Trials &amp; subscriptions</h1>
@@ -45,7 +45,7 @@ export default function BillingManagementPage() {
             ) : (
                 <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="border-b border-white/10 bg-white/[0.03] text-xs uppercase tracking-wider text-slate-500">
                                 <tr><th className="px-5 py-3">Organisation</th><th className="px-5 py-3">Plan</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Branches</th><th className="px-5 py-3">Trial ends</th><th className="px-5 py-3">Source</th></tr>
                             </thead>

@@ -24,7 +24,7 @@ function Stat({ label, value, icon }: { label: string; value: string | number; i
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
-        <div className="py-3 flex items-start gap-4 border-b border-slate-700/40 last:border-0">
+        <div className="py-3 flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 border-b border-slate-700/40 last:border-0">
             <span className="text-sm text-slate-500 w-36 flex-shrink-0 pt-0.5">{label}</span>
             <span className="text-sm text-white font-medium break-all">{children}</span>
         </div>

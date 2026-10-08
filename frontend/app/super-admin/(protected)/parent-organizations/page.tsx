@@ -99,7 +99,7 @@ export default function ParentOrganizationsPage() {
                         />
                     </form>
 
-                    <div className="flex gap-3 w-full sm:w-auto">
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                         <div className="relative w-full sm:w-auto">
                             <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                             <select
@@ -130,34 +130,36 @@ export default function ParentOrganizationsPage() {
                 </div>
 
                 <div className="bg-slate-900/80 backdrop-blur-2xl rounded-xl shadow-2xl border border-slate-700/50 overflow-hidden">
-                    <table className="min-w-full divide-y divide-slate-700/50">
-                        <thead className="bg-slate-800/80">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">Metrics</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-700/50">
-                            {parents.length === 0 ? (
+                    <div className="overflow-x-auto w-full">
+                        <table className="min-w-full divide-y divide-slate-700/50">
+                            <thead className="bg-slate-800/80">
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-slate-400 text-sm">
-                                        No parent organizations found
-                                    </td>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">Name</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">Metrics</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">Actions</th>
                                 </tr>
-                            ) : (
-                                parents.map((parent) => (
-                                    <ParentOrgRow key={parent.id} parent={parent} onRefresh={fetchParents} />
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700/50">
+                                {parents.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-12 text-center text-slate-400 text-sm">
+                                            No parent organizations found
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    parents.map((parent) => (
+                                        <ParentOrgRow key={parent.id} parent={parent} onRefresh={fetchParents} />
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
 
                     {/* Pagination */}
                     {total > 0 && (
-                        <div className="px-6 py-4 border-t border-slate-700/50 flex items-center justify-between bg-slate-800/30">
-                            <div className="text-sm text-slate-400">
+                        <div className="px-4 sm:px-6 py-4 border-t border-slate-700/50 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-800/30">
+                            <div className="text-xs sm:text-sm text-slate-400 text-center sm:text-left">
                                 Showing <span className="font-medium text-slate-200">{(page - 1) * limit + 1}</span> to{" "}
                                 <span className="font-medium text-slate-200">{Math.min(page * limit, total)}</span> of{" "}
                                 <span className="font-medium text-slate-200">{total}</span> results

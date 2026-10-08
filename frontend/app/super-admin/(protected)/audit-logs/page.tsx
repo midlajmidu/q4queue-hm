@@ -204,7 +204,7 @@ export default function SuperAdminAuditLogsPage() {
 
                 {/* Pagination */}
                 {total > 0 && (
-                    <div className="px-6 py-4 border-t border-slate-800/50 flex items-center justify-between text-sm">
+                    <div className="px-4 sm:px-6 py-4 border-t border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm text-center sm:text-left">
                         <span className="text-slate-500">
                             Showing <span className="font-semibold text-slate-300">{Math.min(offset + 1, total)}</span> to <span className="font-semibold text-slate-300">{Math.min(offset + limit, total)}</span> of <span className="font-semibold text-slate-300">{total}</span> logs
                         </span>

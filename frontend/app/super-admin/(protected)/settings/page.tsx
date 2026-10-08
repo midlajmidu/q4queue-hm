@@ -180,17 +180,17 @@ export default function SuperAdminSettingsPage() {
             </div>
 
             {/* Floating Save Action */}
-            <div className="fixed bottom-0 right-0 left-0 lg:left-64 p-4 pointer-events-none z-10 flex justify-end max-w-7xl mx-auto">
-                <div className="pointer-events-auto flex items-center gap-4 bg-slate-900/80 backdrop-blur-md border border-slate-800 p-3 rounded-2xl shadow-2xl">
+            <div className="fixed bottom-0 right-0 left-0 lg:left-64 p-3 sm:p-4 pointer-events-none z-20 flex justify-end">
+                <div className="pointer-events-auto flex items-center justify-between sm:justify-end gap-3 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-2.5 sm:p-3 rounded-2xl shadow-2xl w-full sm:w-auto">
                     {successMessage && (
-                        <span className="text-sm font-medium text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded-lg animate-in fade-in">
+                        <span className="text-xs sm:text-sm font-medium text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded-lg animate-in fade-in truncate">
                             {successMessage}
                         </span>
                     )}
                     <button 
                         type="submit" 
                         disabled={saving}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl font-semibold transition-all disabled:opacity-70 shadow-lg shadow-indigo-500/20"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 sm:px-6 py-2.5 rounded-xl font-semibold transition-all disabled:opacity-70 shadow-lg shadow-indigo-500/20 text-sm whitespace-nowrap"
                     >
                         {saving ? (
                             <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">

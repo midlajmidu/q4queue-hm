@@ -199,7 +199,7 @@ function ConfigForm({ config, onSaved }: { config: WhatsAppConfig | null; onSave
                     </div>
                 )}
 
-                <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
                     {/* Phone Number ID */}
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                         <label style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
@@ -231,7 +231,7 @@ function ConfigForm({ config, onSaved }: { config: WhatsAppConfig | null; onSave
                     </div>
 
                     {/* Permanent Access Token */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: "span 2" }}>
+                    <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <label style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
                                 Permanent System User Access Token <span style={{ color: "#ef4444" }}>*</span>
@@ -383,7 +383,7 @@ function ConfigForm({ config, onSaved }: { config: WhatsAppConfig | null; onSave
                     <p style={{ marginBottom: 12 }}>
                         Meta needs to send message status updates (sent, delivered, read) to your server endpoint:
                     </p>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                         <div style={{ background: "#0f172a", padding: 12, borderRadius: 8, border: "1px solid #1e293b" }}>
                             <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", marginBottom: 4 }}>Callback URL</div>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>

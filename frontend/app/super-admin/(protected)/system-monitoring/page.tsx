@@ -110,16 +110,16 @@ export default function SystemMonitoringPage() {
             </div>
 
             {/* Uptime */}
-            <div className="bg-gradient-to-r from-indigo-900/50 to-slate-900 border border-indigo-500/20 rounded-2xl p-6 shadow-xl flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                        <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-gradient-to-r from-indigo-900/50 to-slate-900 border border-indigo-500/20 rounded-2xl p-4 sm:p-6 shadow-xl flex items-center justify-between">
+                <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-indigo-300/80 mb-0.5">System Uptime</p>
-                        <p className="text-2xl font-bold text-white tracking-tight">
+                        <p className="text-xs sm:text-sm font-medium text-indigo-300/80 mb-0.5">System Uptime</p>
+                        <p className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                             {data ? formatUptime(data.uptime_seconds) : "..."}
                         </p>
                     </div>
@@ -128,8 +128,8 @@ export default function SystemMonitoringPage() {
 
             {/* Error Logs */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-                <div className="px-6 py-5 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
-                    <h2 className="text-base font-semibold text-white flex items-center gap-2">
+                <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+                    <h2 className="text-sm sm:text-base font-semibold text-white flex items-center gap-2">
                         <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
@@ -141,10 +141,10 @@ export default function SystemMonitoringPage() {
                     <table className="w-full text-sm text-left">
                         <thead className="bg-slate-800/50 text-xs text-slate-400 font-semibold uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4">Timestamp</th>
-                                <th className="px-6 py-4">Severity</th>
-                                <th className="px-6 py-4">Component</th>
-                                <th className="px-6 py-4">Message</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4">Timestamp</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4">Severity</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4">Component</th>
+                                <th className="px-4 sm:px-6 py-3 sm:py-4">Message</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/40">

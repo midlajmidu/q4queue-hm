@@ -68,7 +68,7 @@ export default function BackupsPage() {
     return (
         <div className="max-w-6xl mx-auto space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
                         <DatabaseBackup className="w-7 h-7 text-indigo-500" />
@@ -79,7 +79,7 @@ export default function BackupsPage() {
                 <button
                     onClick={fetchBackups}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50 text-sm font-medium shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50 text-sm font-medium shadow-sm w-fit"
                 >
                     <RefreshCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                     Refresh List
@@ -152,7 +152,7 @@ export default function BackupsPage() {
                                         <td className="px-6 py-4 whitespace-nowrap text-right">
                                             <button
                                                 onClick={() => setSelectedBackup(backup.filename)}
-                                                className="text-indigo-400 font-medium hover:text-indigo-300 hover:bg-indigo-500/10 px-3 py-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                className="text-indigo-400 font-medium hover:text-indigo-300 hover:bg-indigo-500/10 px-3 py-1.5 rounded-lg transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
                                             >
                                                 Restore System
                                             </button>
@@ -169,7 +169,7 @@ export default function BackupsPage() {
             {selectedBackup && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => !isRestoring && setSelectedBackup(null)} />
-                    <div className="relative bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-8 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="relative bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
                         
                         <div className="w-14 h-14 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mb-5 border-4 border-red-500/10">
                             <AlertTriangle className="w-7 h-7" />

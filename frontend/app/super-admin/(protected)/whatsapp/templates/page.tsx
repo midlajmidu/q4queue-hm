@@ -159,6 +159,10 @@ export default function WhatsAppTemplatesPage() {
                 .tpl-row { display: flex; align-items: flex-start; gap: 16px; padding: 18px 0; border-bottom: 1px solid #1e293b; }
                 .tpl-row:last-child { border-bottom: none; }
                 .label-sm { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; font-weight: 600; }
+                @media (max-width: 640px) {
+                    .tpl-row { flex-direction: column; gap: 12px; }
+                    .tpl-row-actions { width: 100%; justify-content: flex-start; }
+                }
             `}</style>
 
             <div className="space-y-6">
@@ -310,7 +314,7 @@ export default function WhatsAppTemplatesPage() {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                                    <div className="tpl-row-actions" style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
                                         <button onClick={() => setPreview(t)} className="tpl-btn-ghost" style={{ fontSize: 12, padding: "6px 14px" }}>
                                             👁 Preview
                                         </button>
@@ -334,7 +338,7 @@ export default function WhatsAppTemplatesPage() {
                             <h3 style={{ color: "#f8fafc", fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
                                 {editTarget ? `Edit Template: ${editTarget.template_name}` : "New Template"}
                             </h3>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                                 <div>
                                     <div className="label-sm">Template Name *</div>
                                     <input className="tpl-input" value={form.template_name} onChange={e => setForm(f => ({ ...f, template_name: e.target.value }))} placeholder="ticket_confirmed_v1" disabled={!!editTarget} />
