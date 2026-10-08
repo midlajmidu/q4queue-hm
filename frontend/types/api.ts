@@ -1196,6 +1196,7 @@ export interface OrganizationSettingsResponse {
     slug: string;
     branch_type?: "standard" | "dine";
     appointment_feature_enabled?: boolean;
+    enable_shared_tokens?: boolean;
     email: string;
     address: string | null;
     phone_number?: string;
@@ -1214,6 +1215,7 @@ export interface OrganizationSettingsUpdate {
     auto_session_enabled?: boolean;
     auto_session_time?: string | null;
     timezone?: string;
+    enable_shared_tokens?: boolean;
 }
 
 export interface QueueTemplate {

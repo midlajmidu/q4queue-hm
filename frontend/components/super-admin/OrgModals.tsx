@@ -80,9 +80,9 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
                                 }`}
                             >
                                 <div className="text-xs font-semibold text-white flex items-center gap-1.5">
-                                    <span>🏥</span> Hospitals & Queues
+                                    <span>🎮</span> Gaming & Arcades
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-0.5">Counters & tokens</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">Tokens & stations</p>
                             </button>
 
                             <button
@@ -95,7 +95,7 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
                                 }`}
                             >
                                 <div className="text-xs font-semibold text-white flex items-center gap-1.5">
-                                    <span>🍽️</span> Hotels & Dine
+                                    <span>🍽️</span> Hotel & Dine
                                 </div>
                                 <p className="text-[10px] text-slate-400 mt-0.5">Tables & pax seating</p>
                             </button>
@@ -327,9 +327,9 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                                 }`}
                             >
                                 <div className="text-xs font-semibold text-white flex items-center gap-1.5">
-                                    <span>🏥</span> Hospitals & Queues
+                                    <span>🎮</span> Gaming & Arcades
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-0.5">Counters & tokens</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">Tokens & stations</p>
                             </button>
 
                             <button
@@ -342,7 +342,7 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                                 }`}
                             >
                                 <div className="text-xs font-semibold text-white flex items-center gap-1.5">
-                                    <span>🍽️</span> Hotels & Dine
+                                    <span>🍽️</span> Hotel & Dine
                                 </div>
                                 <p className="text-[10px] text-slate-400 mt-0.5">Tables & pax seating</p>
                             </button>

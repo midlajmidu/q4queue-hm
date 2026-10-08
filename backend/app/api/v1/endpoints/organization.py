@@ -51,6 +51,7 @@ class OrganizationSettingsResponse(BaseModel):
     auto_session_time: Optional[str] = None
     timezone: str = "Asia/Kolkata"
     appointment_feature_enabled: bool = False
+    enable_shared_tokens: bool = False
     access_token: Optional[str] = None
     parent_org: Optional[ParentOrgSummary] = None
 
@@ -64,6 +65,7 @@ class OrganizationSettingsUpdate(BaseModel):
     auto_session_enabled: Optional[bool] = None
     auto_session_time: Optional[str] = None
     timezone: Optional[str] = Field(None, max_length=64)
+    enable_shared_tokens: Optional[bool] = None
 
 class ChangePasswordRequest(BaseModel):
     otp: str = Field(..., min_length=6, max_length=6)
@@ -157,6 +159,7 @@ async def get_organization_settings(
             auto_session_time=org.auto_session_time,
             timezone=org.timezone or "Asia/Kolkata",
             appointment_feature_enabled=is_appt_enabled,
+            enable_shared_tokens=bool(getattr(org, "enable_shared_tokens", False)),
             parent_org=parent_org_summary,
         )
     except HTTPException:
@@ -218,6 +221,8 @@ async def update_organization_settings(
         org.auto_session_enabled = data.auto_session_enabled
     if data.auto_session_time is not None:
         org.auto_session_time = data.auto_session_time
+    if data.enable_shared_tokens is not None:
+        org.enable_shared_tokens = data.enable_shared_tokens
     
     await db.flush()
 
@@ -288,6 +293,7 @@ async def update_organization_settings(
         auto_session_time=org.auto_session_time,
         timezone=org.timezone or "Asia/Kolkata",
         appointment_feature_enabled=bool(getattr(org, "appointment_feature_enabled", False)),
+        enable_shared_tokens=bool(getattr(org, "enable_shared_tokens", False)),
         access_token=token,
     )
 

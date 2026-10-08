@@ -306,7 +306,34 @@ export default function TrackingPage({ params }: PageProps) {
     const isDifferentSession = Boolean(
         live?.session_id && joinData?.session_id && live.session_id !== joinData.session_id
     );
-    const activeServingTokens = (!isDifferentSession && live?.all_serving_tokens) ? live.all_serving_tokens : [];
+    const effectiveBranchType = live?.branch_type || branchType;
+    const effectiveTableConfig = (live?.table_config && live.table_config.length > 0) ? live.table_config : tableConfig;
+    const isDineMode = effectiveBranchType === "dine" || Boolean(effectiveTableConfig && effectiveTableConfig.length > 0);
+
+    const rawServingTokens = (!isDifferentSession && live?.all_serving_tokens) ? (live.all_serving_tokens as any[]) : [];
+    const activeServingTokens = React.useMemo(() => {
+        return rawServingTokens.map(t => {
+            const rawLines = [t.assigned_line, ...(t.shared_lines || [])];
+            const completed = t.completed_lines || [];
+            const activeLines = rawLines.filter((l: any): l is number => l !== null && l !== undefined && !completed.includes(l));
+            let label: string | null = null;
+            if (activeLines.length > 0) {
+                if (isDineMode) {
+                    label = activeLines.map((l: number) => effectiveTableConfig?.find(tbl => tbl.id === l)?.name || `Table ${l}`).join(" & ");
+                } else if (activeLines.length === 1) {
+                    label = `Lane ${activeLines[0]}`;
+                } else {
+                    label = `Lanes ${activeLines.join(" & ")}`;
+                }
+            }
+            return {
+                ...t,
+                active_lines: activeLines,
+                lanes_label: label,
+            };
+        });
+    }, [rawServingTokens, isDineMode, effectiveTableConfig]);
+
     const serving = (!isDifferentSession && live?.current_serving) ? live.current_serving : 0;
 
     const actualStatus = tokenStatus || "waiting";
@@ -427,24 +454,39 @@ export default function TrackingPage({ params }: PageProps) {
         else positionMessage = `${peopleAhead} people ahead of you`;
     }
 
-    const effectiveBranchType = live?.branch_type || branchType;
-    const effectiveTableConfig = (live?.table_config && live.table_config.length > 0) ? live.table_config : tableConfig;
-    const isDineMode = effectiveBranchType === "dine" || Boolean(effectiveTableConfig && effectiveTableConfig.length > 0);
+    // Derive the assigned service lines for this customer (multi-lane queues / tables)
+    const myActiveLines = React.useMemo(() => {
+        if (!myNumber || !isMyTurn) return [];
+        const mine = (rawServingTokens as any[]).find(t => t.token_number === myNumber);
+        if (!mine) return [];
+        const rawLines = [mine.assigned_line, ...(mine.shared_lines || [])];
+        const completed = mine.completed_lines || [];
+        return rawLines.filter((l): l is number => l !== null && l !== undefined && !completed.includes(l));
+    }, [myNumber, isMyTurn, rawServingTokens]);
 
-    // Derive the assigned service line for this customer (multi-lane queues / tables)
-    const myAssignedLine = React.useMemo(() => {
-        if (!myNumber || !isMyTurn) return null;
-        const allServing = (live?.all_serving_tokens ?? []) as { token_number: number; assigned_line: number | null }[];
-        const mine = allServing.find(t => t.token_number === myNumber);
-        return mine?.assigned_line ?? null;
-    }, [myNumber, isMyTurn, live?.all_serving_tokens]);
+    const myAssignedLine = myActiveLines.length > 0 ? myActiveLines[0] : null;
+
+    // Formatted line text: "Lane 1 & 2" or "Lanes 1, 2, 3" or "Table 1 & Table 2"
+    const myLanesLabel = React.useMemo(() => {
+        if (myActiveLines.length === 0) return null;
+        if (isDineMode) {
+            const names = myActiveLines.map(line => {
+                const tbl = effectiveTableConfig?.find(t => t.id === line);
+                return tbl?.name || `Table ${line}`;
+            });
+            return names.join(" & ");
+        }
+        if (myActiveLines.length === 1) {
+            return `Lane ${myActiveLines[0]}`;
+        }
+        return `Lanes ${myActiveLines.join(" & ")}`;
+    }, [myActiveLines, isDineMode, effectiveTableConfig]);
 
     // Derive assigned table name in dine mode
     const myAssignedTableName = React.useMemo(() => {
-        if (!isDineMode || myAssignedLine === null) return null;
-        const table = effectiveTableConfig?.find(t => t.id === myAssignedLine);
-        return table?.name || `Table ${myAssignedLine}`;
-    }, [isDineMode, myAssignedLine, effectiveTableConfig]);
+        if (!isDineMode || myLanesLabel === null) return null;
+        return myLanesLabel;
+    }, [isDineMode, myLanesLabel]);
 
     const brandColor = live?.org_brand_color || '#2563eb';
     const logoUrl = live?.org_logo_url;
@@ -506,11 +548,9 @@ export default function TrackingPage({ params }: PageProps) {
                                     <span className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight text-white leading-none">
                                         {prefix}{activeServingTokens[0].token_number}
                                     </span>
-                                    {activeServingTokens[0].assigned_line !== null && (
+                                    {activeServingTokens[0].lanes_label && (
                                         <span className="text-[9px] font-bold text-white/95 mt-1 uppercase tracking-wider bg-white/20 border border-white/20 px-2 py-0.5 rounded-full whitespace-nowrap">
-                                            {isDineMode
-                                                ? (effectiveTableConfig?.find(tbl => tbl.id === activeServingTokens[0].assigned_line)?.name || `Table ${activeServingTokens[0].assigned_line}`)
-                                                : `Lane ${activeServingTokens[0].assigned_line}`}
+                                            {activeServingTokens[0].lanes_label}
                                         </span>
                                     )}
                                 </div>
@@ -547,11 +587,9 @@ export default function TrackingPage({ params }: PageProps) {
                                                 <span className="text-base sm:text-lg font-black tabular-nums tracking-tight leading-none text-white whitespace-nowrap">
                                                     {prefix}{t.token_number}
                                                 </span>
-                                                {t.assigned_line !== null && (
+                                                {t.lanes_label && (
                                                     <span className="text-[8.5px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-white/20 border border-white/15 px-1.5 py-0.5 rounded-full whitespace-nowrap leading-none">
-                                                        {isDineMode
-                                                            ? (effectiveTableConfig?.find(tbl => tbl.id === t.assigned_line)?.name || `Table ${t.assigned_line}`)
-                                                            : `Lane ${t.assigned_line}`}
+                                                        {t.lanes_label}
                                                     </span>
                                                 )}
                                             </div>
@@ -719,8 +757,8 @@ export default function TrackingPage({ params }: PageProps) {
                                             </span>
                                             <span className="text-[11px] font-extrabold text-emerald-700 uppercase tracking-wider">
                                                 {isDineMode
-                                                    ? "Your Table is Ready!"
-                                                    : (myAssignedLine != null ? `It’s Your Turn • Lane ${myAssignedLine}` : "It’s Your Turn • Ready")}
+                                                    ? (myLanesLabel ? `Your Table is Ready! • ${myLanesLabel}` : "Your Table is Ready!")
+                                                    : (myLanesLabel ? `It’s Your Turn • ${myLanesLabel}` : "It’s Your Turn • Ready")}
                                             </span>
                                         </div>
                                     ) : isSkipped ? (
@@ -760,7 +798,7 @@ export default function TrackingPage({ params }: PageProps) {
                                                 ? (myAssignedTableName 
                                                     ? `Your table (${myAssignedTableName}) is ready! Please proceed to your table or the Host Stand.` 
                                                     : "Your table is ready! Please proceed to the Host Stand.") 
-                                                : (myAssignedLine != null ? `Please proceed to Lane ${myAssignedLine} now` : "Please proceed to the counter now")) 
+                                                : (myLanesLabel ? `Please proceed to ${myLanesLabel} now` : "Please proceed to the counter now")) 
                                             : (isDineMode && (joinData?.pax_count || 1) > 0
                                                 ? `${positionMessage} (Party of ${joinData?.pax_count})`
                                                 : positionMessage)}
@@ -797,11 +835,11 @@ export default function TrackingPage({ params }: PageProps) {
                                                         : "—"}
                                                 </p>
                                             </div>
-                                        ) : (isMyTurn && (myAssignedLine != null || isDineMode)) ? (
+                                        ) : (isMyTurn && (myLanesLabel != null || isDineMode)) ? (
                                             <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
                                                 <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">Assigned</p>
                                                 <p className="text-[17px] sm:text-[19px] font-extrabold text-emerald-600 tracking-tight leading-none">
-                                                    {isDineMode ? (myAssignedTableName || "Host Stand") : `Lane ${myAssignedLine}`}
+                                                    {isDineMode ? (myAssignedTableName || "Host Stand") : myLanesLabel}
                                                 </p>
                                             </div>
                                         ) : null}

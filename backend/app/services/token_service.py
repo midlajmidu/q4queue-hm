@@ -963,13 +963,6 @@ async def share_token(
         if (other.assigned_line == line_number or line_number in (getattr(other, "shared_lines", []) or [])) and line_number not in other_comps:
             raise ValueError(f"Table/Lane {line_number} is currently occupied by Token #{other.token_number}")
 
-    # Limit total serving lanes to pax_count (only applies to standard counter queues, not dining table merges)
-    is_dine = bool(queue.table_config and len(queue.table_config) > 0)
-    pax_count = getattr(token, "pax_count", 1) or 1
-    current_lanes = 1 + len(shared)
-    if not is_dine and current_lanes >= pax_count:
-        raise ValueError(f"Token cannot be shared to more than {pax_count} lane(s) based on Pax count ({pax_count})")
-
     # Add the lane to shared_lines
     shared.append(line_number)
     token.shared_lines = shared

@@ -248,9 +248,9 @@ export default function CreateBranchModal({ isOpen, onClose, onCreated }: Create
                                             }`}
                                         >
                                             <div className="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
-                                                <span>🏥</span> Hospitals & Queues
+                                                <span>🎮</span> Gaming & Arcades
                                             </div>
-                                            <p className="text-[11px] text-gray-500 mt-0.5">Counters & FIFO tokens</p>
+                                            <p className="text-[11px] text-gray-500 mt-0.5">Tokens & stations</p>
                                         </button>
 
                                         <button
@@ -263,7 +263,7 @@ export default function CreateBranchModal({ isOpen, onClose, onCreated }: Create
                                             }`}
                                         >
                                             <div className="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
-                                                <span>🍽️</span> Hotels & Dine
+                                                <span>🍽️</span> Hotel & Dine
                                             </div>
                                             <p className="text-[11px] text-gray-500 mt-0.5">Tables & pax seating</p>
                                         </button>

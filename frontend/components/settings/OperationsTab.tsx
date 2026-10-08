@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Clock, Settings2, Plus, ArrowRight, CheckCircle2, Layers, CalendarRange } from "lucide-react";
+import { Clock, Settings2, Plus, ArrowRight, CheckCircle2, Layers, CalendarRange, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
 import { api } from "@/lib/api";
@@ -22,6 +22,10 @@ export function OperationsTab() {
     const [isSavingAutoSession, setIsSavingAutoSession] = useState(false);
     const [isTriggeringNow, setIsTriggeringNow] = useState(false);
 
+    // Multi-Lane Token Sharing State
+    const [enableSharedTokens, setEnableSharedTokens] = useState(false);
+    const [isSavingSharedTokens, setIsSavingSharedTokens] = useState(false);
+
     useEffect(() => {
         loadData();
     }, []);
@@ -34,6 +38,7 @@ export function OperationsTab() {
             ]);
             setAutoSessionEnabled(settings.auto_session_enabled || false);
             setAutoSessionTime(settings.auto_session_time || "09:00");
+            setEnableSharedTokens(settings.enable_shared_tokens || false);
             setExistingQueues((branchQueues || []).filter(q => !q.is_deleted));
         } catch (err) {
             toast.error("Failed to load operations settings");
@@ -72,6 +77,28 @@ export function OperationsTab() {
             toast.error(err?.detail || "Failed to trigger daily session rollover");
         } finally {
             setIsTriggeringNow(false);
+        }
+    };
+
+    const handleToggleSharedTokens = async (enabled: boolean) => {
+        setIsSavingSharedTokens(true);
+        try {
+            const currentSettings = await api.getOrganizationSettings();
+            await api.updateOrganizationSettings({
+                name: currentSettings.name,
+                address: currentSettings.address || undefined,
+                phone_number: currentSettings.phone_number || undefined,
+                auto_session_enabled: currentSettings.auto_session_enabled,
+                auto_session_time: currentSettings.auto_session_time || null,
+                queue_templates: currentSettings.queue_templates,
+                enable_shared_tokens: enabled
+            });
+            setEnableSharedTokens(enabled);
+            toast.success(enabled ? "Multi-lane token sharing enabled" : "Multi-lane token sharing disabled");
+        } catch (err: any) {
+            toast.error(err?.detail || "Failed to update token sharing setting");
+        } finally {
+            setIsSavingSharedTokens(false);
         }
     };
 
@@ -185,6 +212,55 @@ export function OperationsTab() {
                     <span className="text-[12px] font-semibold text-slate-500">
                         {existingQueues.length} Active Queue(s)
                     </span>
+                </div>
+            </div>
+
+            {/* Multi-Lane Token Sharing Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all overflow-hidden">
+                <div className="p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex gap-4 items-start">
+                        <div className="mt-0.5 w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/60 border border-violet-100 dark:border-violet-800/50 flex items-center justify-center shrink-0">
+                            <Share2 className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-[17px] font-bold text-slate-900 dark:text-white">
+                                    Multi-Lane Token Sharing
+                                </h2>
+                                {enableSharedTokens ? (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold tracking-wider uppercase flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        Active
+                                    </span>
+                                ) : (
+                                    <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[11px] font-bold tracking-wider uppercase">
+                                        Disabled
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-1.5 max-w-xl leading-relaxed">
+                                Allow tokens to be shared and served across multiple service lines or counters concurrently without resetting token sequence.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 shrink-0 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex flex-col items-center">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                                {enableSharedTokens ? "Enabled" : "Disabled"}
+                            </span>
+                            <label className="relative inline-flex items-center cursor-pointer select-none">
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer"
+                                    disabled={isSavingSharedTokens}
+                                    checked={enableSharedTokens}
+                                    onChange={(e) => handleToggleSharedTokens(e.target.checked)}
+                                />
+                                <div className={`w-[48px] h-[26px] rounded-full transition-colors duration-200 relative after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${enableSharedTokens ? 'bg-violet-600 after:translate-x-5.5' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
 

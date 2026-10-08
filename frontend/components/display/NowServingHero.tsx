@@ -132,10 +132,16 @@ export function NowServingHero({
                 <div className={`grid ${cols} gap-2 lg:gap-3 flex-1 overflow-hidden auto-rows-fr`}>
                     {counters.map((counterNum) => {
                         const activeToken = activeTokens.find(
-                            (t: any) => t.assigned_line === counterNum || t.shared_lines?.includes(counterNum)
+                            (t: any) =>
+                                (t.assigned_line === counterNum || t.shared_lines?.includes(counterNum)) &&
+                                !t.completed_lines?.includes(counterNum)
                         );
                         const hasToken = !!activeToken;
                         const isRecentlyCalled = hasToken && recentlyCalled.has(activeToken.token_number);
+                        const isShared = hasToken && (
+                            (activeToken.shared_lines && activeToken.shared_lines.length > 0) ||
+                            (activeToken.assigned_line !== counterNum)
+                        );
 
                         return (
                             <motion.div
@@ -150,11 +156,15 @@ export function NowServingHero({
                                         : theme === "dark" ? "bg-white/[0.02] border-white/[0.04] opacity-40" : "bg-slate-50/50 border-slate-100 opacity-40"
                                 }`}
                             >
-                                {isRecentlyCalled && (
+                                {isRecentlyCalled ? (
                                     <div className="absolute -top-3 px-2 py-0.5 bg-green-500 text-white text-[9px] font-bold uppercase rounded-full shadow-lg animate-bounce">
                                         Newly Called
                                     </div>
-                                )}
+                                ) : isShared ? (
+                                    <div className="absolute -top-2.5 px-2 py-0.5 bg-indigo-500/90 text-white text-[8px] font-bold uppercase tracking-wider rounded-full shadow-sm">
+                                        Shared
+                                    </div>
+                                ) : null}
                                 <span
                                     className={`text-[10px] lg:text-[11px] font-semibold tracking-[0.15em] uppercase mb-3 whitespace-nowrap ${
                                         hasToken ? secondaryText(theme) : mutedText(theme)
@@ -230,11 +240,20 @@ export function NowServingHero({
                                 <span className={`font-black tracking-tight leading-none tabular-nums w-full text-center px-2 whitespace-nowrap ${tokenSize} ${primaryText(theme)} ${recentlyCalled.has(token.token_number) ? "text-green-600 drop-shadow-md" : ""}`}>
                                     {prefix}{token.token_number}
                                 </span>
-                                {token.assigned_line && (
-                                    <span className={`text-[11px] font-semibold uppercase tracking-wider mt-3 ${mutedText(theme)}`}>
-                                        Lane {String(token.assigned_line).padStart(2, "0")}
-                                    </span>
-                                )}
+                                {(() => {
+                                    const lines = [token.assigned_line, ...(token.shared_lines || [])].filter(
+                                        (l): l is number => l !== null && l !== undefined && !token.completed_lines?.includes(l)
+                                    );
+                                    if (lines.length === 0) return null;
+                                    const label = lines.length > 1
+                                        ? `Lanes ${lines.map(l => String(l).padStart(2, "0")).join(", ")}`
+                                        : `Lane ${String(lines[0]).padStart(2, "0")}`;
+                                    return (
+                                        <span className={`text-[11px] font-semibold uppercase tracking-wider mt-3 ${mutedText(theme)}`}>
+                                            {label}
+                                        </span>
+                                    );
+                                })()}
                             </motion.div>
                         ))}
                     </AnimatePresence>

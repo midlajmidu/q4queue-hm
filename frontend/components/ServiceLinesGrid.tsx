@@ -558,10 +558,6 @@ function ShareTokenModal({
         const completed = (t as any).completed_lines || [];
         if (completed.includes(lineNum)) return false;
 
-        const currentLanes = 1 + (t.shared_lines || []).length;
-        const paxCount = (t as any).pax_count || 1;
-        if (currentLanes >= paxCount) return false;
-
         return true;
     });
     
