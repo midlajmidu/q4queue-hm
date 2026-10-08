@@ -56,6 +56,9 @@ class TrackingResponse(BaseModel):
     branch_type: str = "standard"
     table_config: Optional[list] = None
     pax_count: int = 1
+    queue_type: Optional[str] = "normal"
+    max_capacity: Optional[int] = None
+    zone_duration_mins: Optional[int] = None
 
 
 @router.get(
@@ -91,6 +94,9 @@ async def track_token(
             Organization.branch_type,
             Queue.table_config,
             Queue.token_session_id,
+            Queue.queue_type,
+            Queue.max_capacity,
+            Queue.zone_duration_mins,
         )
         .join(Queue, Token.queue_id == Queue.id)
         .join(Organization, Token.org_id == Organization.id)
@@ -104,7 +110,7 @@ async def track_token(
             detail="Token not found",
         )
 
-    token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name, org_timezone, org_branch_type, queue_table_config, queue_token_session_id = row
+    token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name, org_timezone, org_branch_type, queue_table_config, queue_token_session_id, queue_type_val, queue_max_cap, queue_zone_dur = row
 
     is_past_session = False
     session_is_active = True
@@ -168,6 +174,9 @@ async def track_token(
         branch_type=getattr(org_branch_type, "value", org_branch_type) or "standard",
         table_config=queue_table_config or [],
         pax_count=getattr(token, "pax_count", 1) or 1,
+        queue_type=getattr(queue_type_val, "value", queue_type_val) or "normal",
+        max_capacity=queue_max_cap,
+        zone_duration_mins=queue_zone_dur,
     )
 
 

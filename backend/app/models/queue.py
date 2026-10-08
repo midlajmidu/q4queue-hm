@@ -70,6 +70,15 @@ class Queue(Base):
     service_lines: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
     )
+    queue_type: Mapped[str] = mapped_column(
+        String(20), default="normal", server_default="normal", nullable=False
+    )
+    max_capacity: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    zone_duration_mins: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True, default=None
+    )
     open_time: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
     close_time: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")

@@ -531,6 +531,9 @@ export interface QueueCreate {
     open_time?: string;
     close_time?: string;
     service_lines?: number;
+    queue_type?: "normal" | "service_lines" | "zone";
+    max_capacity?: number;
+    zone_duration_mins?: number | null;
     custom_fields?: CustomField[] | null;
     table_config?: TableConfig[];
     appointment_enabled?: boolean;
@@ -561,6 +564,9 @@ export interface QueueResponse {
     is_deleted?: boolean;
     deleted_at?: string | null;
     service_lines: number;          // 0 = single counter, >0 = multi-lane
+    queue_type?: "normal" | "service_lines" | "zone";
+    max_capacity?: number;
+    zone_duration_mins?: number | null;
     open_time?: string;
     close_time?: string;
     created_at: string;
@@ -818,6 +824,9 @@ export interface QueueSnapshot {
     is_current_session?: boolean;
     within_operating_hours?: boolean;
     service_lines: number;           // 0 = single counter, >0 = multi-lane
+    queue_type?: "normal" | "service_lines" | "zone";
+    max_capacity?: number;
+    zone_duration_mins?: number | null;
     table_config?: TableConfig[];
     branch_type?: "standard" | "dine";
     open_time?: string;
@@ -1531,6 +1540,9 @@ export interface TrackingResponse {
     branch_type?: "standard" | "dine";
     table_config?: TableConfig[];
     pax_count?: number;
+    queue_type?: "normal" | "service_lines" | "zone";
+    max_capacity?: number;
+    zone_duration_mins?: number | null;
 }
 
 export interface AIOverviewData {

@@ -660,111 +660,126 @@ async def call_next(
     else:
         target_status = TokenStatus.skipped
 
-    # ── Handle currently serving token(s) ──
-    if line_number is not None:
-        # Find token assigned or shared to this line
-        serving_query = select(Token).where(
-            Token.queue_id == queue_id,
-            Token.org_id == org_id,
-            Token.session_id == queue.token_session_id,
-            Token.status == TokenStatus.serving
-        )
-        serving_result = await db.execute(serving_query)
-        all_serving = serving_result.scalars().all()
-        
-        currently_serving_tokens = []
-        for t in all_serving:
-            if t.assigned_line == line_number or line_number in getattr(t, "shared_lines", []):
-                currently_serving_tokens.append(t)
-    else:
-        serving_query = select(Token).where(
-            Token.queue_id == queue_id,
-            Token.org_id == org_id,
-            Token.session_id == queue.token_session_id,
-            Token.status == TokenStatus.serving
-        )
-        serving_result = await db.execute(serving_query)
-        currently_serving_tokens = serving_result.scalars().all()
-    
-    for currently_serving in currently_serving_tokens:
-        is_fully_done = True
-        
-        if line_number is not None and action == "done":
-            is_fully_done = _mark_line_completed(currently_serving, line_number)
-            if is_fully_done:
-                currently_serving.status = target_status
-                currently_serving.completed_at = now
-                currently_serving.completed_by_id = user_id
-                queue.total_served += 1
-        else:
-            currently_serving.status = target_status
-            if target_status == TokenStatus.done:
-                currently_serving.completed_at = now
-                currently_serving.completed_by_id = user_id
-                queue.total_served += 1
-                if getattr(currently_serving, "entry_type", None) == "appointment":
-                    await db.execute(
-                        update(Appointment)
-                        .where(Appointment.token_id == currently_serving.id)
-                        .values(status=AppointmentStatus.completed)
-                    )
-            elif target_status == TokenStatus.deleted:
-                currently_serving.deleted_at = now
-            else:
-                from sqlalchemy.orm.attributes import flag_modified
-                currently_serving.skipped_at = now
-                currently_serving.completed_at = None
-                currently_serving.completed_by_id = None
-                currently_serving.shared_lines = []
-                currently_serving.completed_lines = []
-                flag_modified(currently_serving, "shared_lines")
-                flag_modified(currently_serving, "completed_lines")
-                
-        # Audit log token status transition
-        if is_fully_done:
-            audit_tag = "COMPLETE_TOKEN" if action == "done" else "SKIP_TOKEN" if action == "skipped" else "REMOVE_TOKEN"
-            await _log_audit(
-                db,
-                event_type=audit_tag,
-                org_id=org_id,
-                user_id=user_id,
-                resource_type="token",
-                resource_id=str(currently_serving.id),
-                details={"token_number": currently_serving.token_number, "customer_name": currently_serving.customer_name}
+    # ── Zone capacity check / Non-zone currently serving token(s) ──
+    active_pax = 0
+    if getattr(queue, "queue_type", "normal") == "zone":
+        if queue.max_capacity > 0:
+            active_pax_result = await db.scalar(
+                select(func.coalesce(func.sum(func.coalesce(Token.pax_count, 1)), 0)).where(
+                    Token.queue_id == queue_id,
+                    Token.session_id == queue.token_session_id,
+                    Token.status == TokenStatus.serving,
+                )
             )
-
-        # If the action was 'done' and token is fully done, trigger notification
-        if is_fully_done and action in ["done", "skipped", "deleted"]:
-            try:
-                from app.services.notification_service import notify_queue_event
-                # Need the queue info for the notification
-                q_result = await db.execute(select(Queue).where(Queue.id == queue_id))
-                q_row = q_result.scalar_one_or_none()
-                if q_row:
-                    import asyncio
-                    event_map = {
-                        "done": "queue_completed_v3",
-                        "skipped": "queue_skipped_v3",
-                        "deleted": "queue_removed_v3"
-                    }
-                    # Dispatch fire-and-forget task
-                    asyncio.create_task(
-                        notify_queue_event(
-                            event_type=event_map[action],
-                            org_id=org_id,
-                            token_id=currently_serving.id,
-                            queue_id=queue_id,
-                            customer_name=currently_serving.customer_name,
-                            customer_phone=currently_serving.customer_phone,
-                            token_number=currently_serving.token_number,
-                            token_prefix=q_row.prefix,
-                            queue_name=q_row.name,
-                            tracking_id=str(getattr(currently_serving, "tracking_id", "")),
-                            session_id=q_row.token_session_id,
+            active_pax = int(active_pax_result or 0)
+            if active_pax >= queue.max_capacity:
+                raise ValueError(f"Zone is at maximum capacity ({active_pax}/{queue.max_capacity} players inside). Please complete an active session before admitting more.")
+    else:
+        # ── Handle currently serving token(s) ──
+        if line_number is not None:
+            # Find token assigned or shared to this line
+            serving_query = select(Token).where(
+                Token.queue_id == queue_id,
+                Token.org_id == org_id,
+                Token.session_id == queue.token_session_id,
+                Token.status == TokenStatus.serving
+            )
+            serving_result = await db.execute(serving_query)
+            all_serving = serving_result.scalars().all()
+            
+            currently_serving_tokens = []
+            for t in all_serving:
+                if t.assigned_line == line_number or line_number in getattr(t, "shared_lines", []):
+                    currently_serving_tokens.append(t)
+        else:
+            serving_query = select(Token).where(
+                Token.queue_id == queue_id,
+                Token.org_id == org_id,
+                Token.session_id == queue.token_session_id,
+                Token.status == TokenStatus.serving
+            )
+            serving_result = await db.execute(serving_query)
+            currently_serving_tokens = serving_result.scalars().all()
+        
+        for currently_serving in currently_serving_tokens:
+            is_fully_done = True
+            
+            if line_number is not None and action == "done":
+                is_fully_done = _mark_line_completed(currently_serving, line_number)
+                if is_fully_done:
+                    currently_serving.status = target_status
+                    currently_serving.completed_at = now
+                    currently_serving.completed_by_id = user_id
+                    queue.total_served += 1
+            else:
+                currently_serving.status = target_status
+                if target_status == TokenStatus.done:
+                    currently_serving.completed_at = now
+                    currently_serving.completed_by_id = user_id
+                    queue.total_served += 1
+                    if getattr(currently_serving, "entry_type", None) == "appointment":
+                        await db.execute(
+                            update(Appointment)
+                            .where(Appointment.token_id == currently_serving.id)
+                            .values(status=AppointmentStatus.completed)
                         )
-                    )
-            except Exception as e:
-                logger.error("Failed to dispatch completion notification: %s", e)
+                elif target_status == TokenStatus.deleted:
+                    currently_serving.deleted_at = now
+                else:
+                    from sqlalchemy.orm.attributes import flag_modified
+                    currently_serving.skipped_at = now
+                    currently_serving.completed_at = None
+                    currently_serving.completed_by_id = None
+                    currently_serving.shared_lines = []
+                    currently_serving.completed_lines = []
+                    flag_modified(currently_serving, "shared_lines")
+                    flag_modified(currently_serving, "completed_lines")
+                    
+            # Audit log token status transition
+            if is_fully_done:
+                audit_tag = "COMPLETE_TOKEN" if action == "done" else "SKIP_TOKEN" if action == "skipped" else "REMOVE_TOKEN"
+                await _log_audit(
+                    db,
+                    event_type=audit_tag,
+                    org_id=org_id,
+                    user_id=user_id,
+                    resource_type="token",
+                    resource_id=str(currently_serving.id),
+                    details={"token_number": currently_serving.token_number, "customer_name": currently_serving.customer_name}
+                )
+
+            # If the action was 'done' and token is fully done, trigger notification
+            if is_fully_done and action in ["done", "skipped", "deleted"]:
+                try:
+                    from app.services.notification_service import notify_queue_event
+                    # Need the queue info for the notification
+                    q_result = await db.execute(select(Queue).where(Queue.id == queue_id))
+                    q_row = q_result.scalar_one_or_none()
+                    if q_row:
+                        import asyncio
+                        event_map = {
+                            "done": "queue_completed_v3",
+                            "skipped": "queue_skipped_v3",
+                            "deleted": "queue_removed_v3"
+                        }
+                        # Dispatch fire-and-forget task
+                        asyncio.create_task(
+                            notify_queue_event(
+                                event_type=event_map[action],
+                                org_id=org_id,
+                                token_id=currently_serving.id,
+                                queue_id=queue_id,
+                                customer_name=currently_serving.customer_name,
+                                customer_phone=currently_serving.customer_phone,
+                                token_number=currently_serving.token_number,
+                                token_prefix=q_row.prefix,
+                                queue_name=q_row.name,
+                                tracking_id=str(getattr(currently_serving, "tracking_id", "")),
+                                session_id=q_row.token_session_id,
+                            )
+                        )
+                except Exception as e:
+                    logger.error("Failed to dispatch completion notification: %s", e)
 
     # If in multi-lane, check if there's any shared token left in this lane
     if line_number is not None:
@@ -798,6 +813,15 @@ async def call_next(
     next_token = next_result.scalar_one_or_none()
 
     if next_token:
+        if getattr(queue, "queue_type", "normal") == "zone" and queue.max_capacity > 0:
+            next_pax = getattr(next_token, "pax_count", 1) or 1
+            if active_pax + next_pax > queue.max_capacity:
+                remaining_spots = max(0, queue.max_capacity - active_pax)
+                prefix_str = queue.prefix or ""
+                raise ValueError(
+                    f"Cannot admit #{prefix_str}{next_token.token_number}: Party has {next_pax} players, but only {remaining_spots} spots are remaining ({active_pax}/{queue.max_capacity})."
+                )
+
         next_token.status = TokenStatus.serving
         next_token.served_at = now
         next_token.served_by_id = user_id
@@ -1216,26 +1240,44 @@ async def serve_specific_token(
     if specific_token.status not in (TokenStatus.waiting, TokenStatus.skipped):
         raise ValueError("Token is not waiting or skipped")
 
-    # Mark currently-serving token as skipped on the target line (or all if single-counter)
-    where_clause = [
-        Token.queue_id == queue_id,
-        Token.org_id == org_id,
-        Token.session_id == queue.token_session_id,
-        Token.status == TokenStatus.serving,
-    ]
-    if line_number is not None:
-        where_clause.append(Token.assigned_line == line_number)
-        
-    await db.execute(
-        update(Token)
-        .where(*where_clause)
-        .values(
-            status=TokenStatus.skipped,
-            skipped_at=now,
-            completed_at=None,
-            completed_by_id=None,
+    if getattr(queue, "queue_type", "normal") == "zone":
+        if queue.max_capacity > 0:
+            active_pax_result = await db.scalar(
+                select(func.coalesce(func.sum(func.coalesce(Token.pax_count, 1)), 0)).where(
+                    Token.queue_id == queue_id,
+                    Token.session_id == queue.token_session_id,
+                    Token.status == TokenStatus.serving,
+                )
+            )
+            active_pax = int(active_pax_result or 0)
+            token_pax = getattr(specific_token, "pax_count", 1) or 1
+            if active_pax + token_pax > queue.max_capacity:
+                remaining_spots = max(0, queue.max_capacity - active_pax)
+                prefix_str = queue.prefix or ""
+                raise ValueError(
+                    f"Cannot admit #{prefix_str}{specific_token.token_number}: Party has {token_pax} players, but only {remaining_spots} spots remaining ({active_pax}/{queue.max_capacity})."
+                )
+    else:
+        # Mark currently-serving token as skipped on the target line (or all if single-counter)
+        where_clause = [
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,
+            Token.session_id == queue.token_session_id,
+            Token.status == TokenStatus.serving,
+        ]
+        if line_number is not None:
+            where_clause.append(Token.assigned_line == line_number)
+            
+        await db.execute(
+            update(Token)
+            .where(*where_clause)
+            .values(
+                status=TokenStatus.skipped,
+                skipped_at=now,
+                completed_at=None,
+                completed_by_id=None,
+            )
         )
-    )
 
     from sqlalchemy.orm.attributes import flag_modified
     specific_token.status = TokenStatus.serving
@@ -1404,3 +1446,63 @@ async def send_called_and_reminder_notifications(
 
     except Exception as exc:
         logger.error("send_called_and_reminder_notifications error: %s", exc)
+
+
+async def admit_batch(
+    db: AsyncSession,
+    *,
+    queue_id: uuid.UUID,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    token_numbers: list[int],
+) -> list[int]:
+    """Admit multiple tokens at once into a Zone / Arena queue."""
+    if not token_numbers:
+        return []
+
+    now = datetime.now(timezone.utc)
+    queue = await _lock_queue_for_org(db, queue_id, org_id)
+    await _require_current_operational_session(db, queue, enforce_hours=True)
+
+    tokens_result = await db.execute(
+        select(Token)
+        .where(
+            Token.queue_id == queue_id,
+            Token.org_id == org_id,
+            Token.session_id == queue.token_session_id,
+            Token.token_number.in_(token_numbers),
+            Token.status.in_([TokenStatus.waiting, TokenStatus.skipped]),
+        )
+        .with_for_update(skip_locked=False)
+    )
+    tokens = tokens_result.scalars().all()
+    if not tokens:
+        return []
+
+    if queue.max_capacity > 0:
+        active_pax_result = await db.scalar(
+            select(func.coalesce(func.sum(func.coalesce(Token.pax_count, 1)), 0)).where(
+                Token.queue_id == queue_id,
+                Token.session_id == queue.token_session_id,
+                Token.status == TokenStatus.serving,
+            )
+        )
+        active_pax = int(active_pax_result or 0)
+        incoming_pax = sum(getattr(t, "pax_count", 1) or 1 for t in tokens)
+        if active_pax + incoming_pax > queue.max_capacity:
+            remaining_spots = max(0, queue.max_capacity - active_pax)
+            raise ValueError(
+                f"Cannot admit selected tokens: Total {incoming_pax} players exceeds remaining arena capacity ({remaining_spots} spots free, currently {active_pax}/{queue.max_capacity})."
+            )
+    admitted = []
+    for t in tokens:
+        t.status = TokenStatus.serving
+        t.served_at = now
+        t.served_by_id = user_id
+        t.called_via_invite = True
+        t.completed_at = None
+        t.completed_by_id = None
+        admitted.append(t.token_number)
+
+    await db.flush()
+    return admitted

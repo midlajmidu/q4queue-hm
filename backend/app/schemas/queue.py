@@ -145,6 +145,9 @@ class QueueCreate(BaseModel):
     open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     service_lines: int = Field(default=0, ge=0, le=50, description="0=single counter, >0=multi-lane / tables mode")
+    queue_type: str = Field(default="normal", pattern=r"^(normal|service_lines|zone)$")
+    max_capacity: int = Field(default=0, ge=0, le=5000)
+    zone_duration_mins: Optional[int] = Field(None, ge=1, le=1440)
     custom_fields: Optional[list[dict]] = None
     table_config: Optional[list[dict]] = None
     appointment_enabled: bool = False
@@ -185,6 +188,9 @@ class QueueUpdate(BaseModel):
     open_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     close_time: Optional[str] = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     service_lines: Optional[int] = Field(None, ge=0, le=50)
+    queue_type: Optional[str] = Field(None, pattern=r"^(normal|service_lines|zone)$")
+    max_capacity: Optional[int] = Field(None, ge=0, le=5000)
+    zone_duration_mins: Optional[int] = Field(None, ge=1, le=1440)
     custom_fields: Optional[list[dict]] = None
     table_config: Optional[list[dict]] = None
     appointment_enabled: Optional[bool] = None
@@ -235,6 +241,9 @@ class QueueResponse(BaseModel):
     is_deleted: bool = False
     deleted_at: Optional[datetime] = None
     service_lines: int = 0
+    queue_type: str = "normal"
+    max_capacity: int = 0
+    zone_duration_mins: Optional[int] = None
     open_time: Optional[str] = None
     close_time: Optional[str] = None
     custom_fields: Optional[list] = None
@@ -259,7 +268,16 @@ class QueueResponse(BaseModel):
     def ensure_industry_template(cls, v: Any) -> str:
         return v or "general"
 
+    @field_validator("queue_type", mode="before")
+    @classmethod
+    def ensure_queue_type(cls, v: Any) -> str:
+        return v or "normal"
+
     model_config = {"from_attributes": True}
+
+
+class AdmitBatchRequest(BaseModel):
+    token_numbers: list[int] = Field(..., min_length=1, description="List of token numbers to admit together")
 
 
 # ── Token join ────────────────────────────────────────────────────────────────

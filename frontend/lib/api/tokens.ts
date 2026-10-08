@@ -85,6 +85,19 @@ export const tokenApi = {
         });
     },
 
+    completeToken(tokenId: string): Promise<TokenResponse> {
+        return request<TokenResponse>(`/tokens/${tokenId}/done`, {
+            method: "PATCH",
+        });
+    },
+
+    admitBatch(queueId: string, tokenNumbers: number[]): Promise<{ admitted: number[] }> {
+        return request<{ admitted: number[] }>(`/queues/${queueId}/admit-batch`, {
+            method: "POST",
+            body: JSON.stringify({ token_numbers: tokenNumbers }),
+        });
+    },
+
     undoRemoveToken(tokenId: string): Promise<TokenDetail> {
         return request<TokenDetail>(`/tokens/${tokenId}/undo_remove`, {
             method: "PATCH",

@@ -62,6 +62,7 @@ from app.schemas.queue import (
     QueueResponse,
     TokenResponse,
     AnnouncementUpdate,
+    AdmitBatchRequest,
 )
 from app.services import queue_service, token_service
 from app.middleware.rate_limiter import api_rate_limit, join_rate_limit
@@ -190,6 +191,14 @@ async def create_queue_session(
         if "already exists" in msg.lower():
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    except Exception as exc:
+        from sqlalchemy.exc import IntegrityError
+        if isinstance(exc, IntegrityError) or "unique constraint" in str(exc).lower():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A session already exists for this date in this queue."
+            )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 @router.get(
     "/{queue_id}/active-session",
@@ -967,6 +976,44 @@ async def serve_specific_token(
             _raise_400(exc)
         raise HTTPException(status_code=400, detail=msg)
     return result
+
+
+@router.post(
+    "/{queue_id}/admit-batch",
+    summary="Admit Multiple Tokens (Zone Mode)",
+    description="Admit a batch of waiting tokens at once into the Arena / Zone.",
+)
+async def admit_batch_tokens(
+    body: AdmitBatchRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_branch_admin_or_staff()),
+    queue: Queue = Depends(get_queue_for_org),
+):
+    try:
+        admitted = await token_service.admit_batch(
+            db,
+            queue_id=queue.id,
+            org_id=current_user.org_id,
+            user_id=current_user.id,
+            token_numbers=body.token_numbers,
+        )
+        await db.commit()
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=queue.id,
+            org_id=queue.org_id,
+        )
+        for num in admitted:
+            background_tasks.add_task(
+                token_service.send_called_and_reminder_notifications,
+                queue_id=queue.id,
+                org_id=queue.org_id,
+                serving_token_number=num,
+            )
+        return {"admitted": admitted}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 # ─────────────────────────────────────────────────────────────────────────────

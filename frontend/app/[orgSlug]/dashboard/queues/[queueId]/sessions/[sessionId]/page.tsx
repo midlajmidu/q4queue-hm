@@ -20,6 +20,7 @@ import { Pause, Play, Square, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVert
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 import DineTableGrid from "@/components/dine/DineTableGrid";
+import ZoneArenaGrid from "@/components/zone/ZoneArenaGrid";
 import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
@@ -487,6 +488,13 @@ export default function QueueDetailPage({ params }: PageProps) {
         enabled: autoLive && isTodaySession,
         onNewCustomer: isTodaySession ? handleNewCustomer : undefined
     });
+
+    const isZoneMode = Boolean(
+        (state?.queue_type === "zone" || initialQueue?.queue_type === "zone") ||
+        ((state?.max_capacity || initialQueue?.max_capacity || 0) > 0 && (state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && !isDineMode)
+    );
+    const zoneMaxCapacity = (state?.max_capacity || initialQueue?.max_capacity || 15);
+    const zoneDurationMins = (state?.zone_duration_mins ?? initialQueue?.zone_duration_mins ?? null);
 
     const [staticSessionTokens, setStaticSessionTokens] = useState<TokenHistoryItem[]>([]);
     const [staticSessionLoading, setStaticSessionLoading] = useState(false);
@@ -1787,6 +1795,22 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 );
                                             }
 
+                                            if (isZoneMode) {
+                                                return (
+                                                    <ZoneArenaGrid
+                                                        queueId={queueId}
+                                                        maxCapacity={zoneMaxCapacity}
+                                                        zoneDurationMins={zoneDurationMins}
+                                                        allServingTokens={(state?.all_serving_tokens ?? []) as ServingToken[]}
+                                                        prefix={state?.prefix ?? initialQueue?.prefix ?? "Z"}
+                                                        onUpdate={refresh}
+                                                        isPaused={(state?.is_paused ?? initialQueue?.is_paused) === true}
+                                                        isReadOnly={isReadOnly}
+                                                        waitingTokens={effectiveWaitingTokens}
+                                                    />
+                                                );
+                                            }
+
                                             if (numLines > 0) {
                                                 return (
                                                     <ServiceLinesGrid
@@ -1806,8 +1830,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             return null;
                                         })()}
 
-                                        {/* Original single-counter serving hero (only when queue metadata is loaded and service_lines === 0 and not dine mode) */}
-                                        {!!(state !== null || initialQueue !== null) && !isDineMode && (state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && (
+                                        {/* Original single-counter serving hero (only when queue metadata is loaded and service_lines === 0 and not dine or zone mode) */}
+                                        {!!(state !== null || initialQueue !== null) && !isDineMode && !isZoneMode && (state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && (
                                             <>
                                                 <div className="pt-4 pb-1 px-4 sm:px-6 lg:px-8 w-full flex justify-center">
                                                     <div className="relative w-full max-w-2xl flex flex-col filter drop-shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
@@ -2182,6 +2206,22 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                                 className="px-2.5 h-7 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm ml-1 disabled:opacity-50"
                                                                             >
                                                                                 {actionLoading === `seat_${t.id}` ? "..." : "Seat"}
+                                                                            </button>
+                                                                        )}
+                                                                        {isZoneMode && canManageQueue && activeListTab === "waiting" && (
+                                                                            <button
+                                                                                onClick={async (e) => {
+                                                                                    e.stopPropagation();
+                                                                                    await performAction(`admit_${t.id}`, async () => {
+                                                                                        await api.serveSpecificToken(queueId, t.token_number);
+                                                                                        toast(`Admitted #${state?.prefix || ""}${t.token_number} into Arena`, "success");
+                                                                                        refresh();
+                                                                                    });
+                                                                                }}
+                                                                                disabled={actionLoading === `admit_${t.id}`}
+                                                                                className="px-2.5 h-7 text-[11px] font-bold text-purple-600 dark:text-purple-400 bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-500/30 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-500/10 transition-colors shadow-sm ml-1 disabled:opacity-50"
+                                                                            >
+                                                                                {actionLoading === `admit_${t.id}` ? "..." : "Admit"}
                                                                             </button>
                                                                         )}
                                                                         {canManageQueue && activeListTab === "waiting" ? (
@@ -2780,6 +2820,21 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                                         className="px-2.5 h-8 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
                                                                     >
                                                                         {actionLoading === `seat_${t.id}` ? "..." : "Seat"}
+                                                                    </button>
+                                                                )}
+                                                                {isZoneMode && canManageQueue && activeListTab === "waiting" && (
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            await performAction(`admit_${t.id}`, async () => {
+                                                                                await api.serveSpecificToken(queueId, t.token_number);
+                                                                                toast(`Admitted #${state?.prefix || ""}${t.token_number} into Arena`, "success");
+                                                                                refresh();
+                                                                            });
+                                                                        }}
+                                                                        disabled={actionLoading === `admit_${t.id}`}
+                                                                        className="px-2.5 h-8 text-[11px] font-bold text-purple-600 dark:text-purple-400 bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-500/30 rounded-md hover:bg-purple-50 dark:hover:bg-purple-500/10 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
+                                                                    >
+                                                                        {actionLoading === `admit_${t.id}` ? "..." : "Admit"}
                                                                     </button>
                                                                 )}
                                                                 {canManageQueue && activeListTab === "waiting" ? (

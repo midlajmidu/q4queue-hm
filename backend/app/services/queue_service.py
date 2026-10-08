@@ -94,6 +94,10 @@ async def create_queue(
             "order": len(fields),
         })
 
+    queue_type = data.queue_type or "normal"
+    if queue_type != "zone" and service_lines > 0:
+        queue_type = "service_lines"
+
     queue = Queue(
         org_id=org_id,
         name=data.name,
@@ -101,6 +105,9 @@ async def create_queue(
         starting_sequence=data.starting_sequence,
         current_token_number=data.starting_sequence - 1,
         service_lines=service_lines,
+        queue_type=queue_type,
+        max_capacity=data.max_capacity if queue_type == "zone" else 0,
+        zone_duration_mins=data.zone_duration_mins if queue_type == "zone" else None,
         table_config=data.table_config or [],
         custom_fields=fields if fields else None,
         open_time=data.open_time,

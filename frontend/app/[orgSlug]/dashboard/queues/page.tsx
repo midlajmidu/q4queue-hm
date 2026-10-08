@@ -125,7 +125,9 @@ export default function QueuesPage({ params }: PageProps) {
     const [newName, setNewName] = useState("");
     const [newPrefix, setNewPrefix] = useState("A");
     const [newStartingSequence, setNewStartingSequence] = useState<number>(1);
-    const [newQueueType, setNewQueueType] = useState<"normal" | "service_lines">("normal");
+    const [newQueueType, setNewQueueType] = useState<"normal" | "service_lines" | "zone">("normal");
+    const [newMaxCapacity, setNewMaxCapacity] = useState<number>(15);
+    const [newZoneDurationMins, setNewZoneDurationMins] = useState<number>(30);
     const [newServiceLines, setNewServiceLines] = useState<number>(2);
     const [newTables, setNewTables] = useState<TableConfig[]>(DEFAULT_CAFE_TABLES);
     const [selectedPreset, setSelectedPreset] = useState<"cafe" | "restaurant" | "family" | "grand" | "custom">("cafe");
@@ -315,9 +317,12 @@ export default function QueuesPage({ params }: PageProps) {
             } else {
                 await api.createQueue({
                     name: newName.trim(),
-                    prefix: newPrefix.trim() || "A",
+                    prefix: newPrefix.trim() || (newQueueType === "zone" ? "Z" : "A"),
                     starting_sequence: newStartingSequence || 1,
+                    queue_type: newQueueType,
                     service_lines: newQueueType === "service_lines" ? newServiceLines : 0,
+                    max_capacity: newQueueType === "zone" ? newMaxCapacity : 0,
+                    zone_duration_mins: newQueueType === "zone" && newZoneDurationMins ? newZoneDurationMins : undefined,
                     open_time: newOpenTime || undefined,
                     close_time: newCloseTime || undefined,
                     appointment_enabled: hasAppointmentFeature ? newAppointmentEnabled : false,
@@ -855,11 +860,11 @@ export default function QueuesPage({ params }: PageProps) {
                                     <>
                                         <div>
                                             <label className="block text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5">Queue Type</label>
-                                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                                            <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                                                 <button
                                                     type="button"
-                                                    onClick={() => setNewQueueType("normal")}
-                                                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+                                                    onClick={() => { setNewQueueType("normal"); setNewPrefix("A"); }}
+                                                    className={`py-2 px-2 text-xs font-semibold rounded-lg transition-all text-center ${
                                                         newQueueType === "normal"
                                                             ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
                                                             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -870,13 +875,25 @@ export default function QueuesPage({ params }: PageProps) {
                                                 <button
                                                     type="button"
                                                     onClick={() => setNewQueueType("service_lines")}
-                                                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+                                                    className={`py-2 px-2 text-xs font-semibold rounded-lg transition-all text-center ${
                                                         newQueueType === "service_lines"
                                                             ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
                                                             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                                                     }`}
                                                 >
                                                     Service Lanes
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setNewQueueType("zone"); setNewPrefix("Z"); }}
+                                                    className={`py-2 px-2 text-xs font-semibold rounded-lg transition-all text-center flex items-center justify-center gap-1 ${
+                                                        newQueueType === "zone"
+                                                            ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                                                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                                    }`}
+                                                >
+                                                    <Users className="w-3.5 h-3.5" />
+                                                    <span>Zone / Capacity</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -894,6 +911,56 @@ export default function QueuesPage({ params }: PageProps) {
                                                     required={newQueueType === "service_lines"}
                                                     disabled={createLoading}
                                                 />
+                                            </div>
+                                        )}
+
+                                        {newQueueType === "zone" && (
+                                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4">
+                                                <div className="flex items-start gap-2.5">
+                                                    <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/40 shrink-0">
+                                                        <Users className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-slate-900 dark:text-white">Zone Occupancy Model</p>
+                                                        <p className="text-[11px] text-purple-700/80 dark:text-purple-400/80 mt-0.5 leading-snug">
+                                                            Concurrent capacity model. Staff admits parties up to maximum capacity without binding them to a specific counter.
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-1">
+                                                            Max Capacity (Inside)
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            min={1}
+                                                            max={500}
+                                                            value={newMaxCapacity}
+                                                            onChange={(e) => setNewMaxCapacity(Math.max(1, parseInt(e.target.value) || 1))}
+                                                            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all"
+                                                            placeholder="e.g. 15 players"
+                                                            required={newQueueType === "zone"}
+                                                            disabled={createLoading}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-1">
+                                                            Session Duration (Mins)
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            min={5}
+                                                            max={360}
+                                                            value={newZoneDurationMins}
+                                                            onChange={(e) => setNewZoneDurationMins(Math.max(5, parseInt(e.target.value) || 30))}
+                                                            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all"
+                                                            placeholder="e.g. 30 mins"
+                                                            disabled={createLoading}
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </>

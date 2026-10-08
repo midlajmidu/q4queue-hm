@@ -199,12 +199,7 @@ async def notify_queue_event(
         is_dine = bool(
             (db_org and getattr(db_org, "branch_type", None) == "dine")
             or (db_queue and getattr(db_queue, "table_config", None) and len(db_queue.table_config) > 0)
-            or (db_token and getattr(db_token, "pax_count", None) and db_token.pax_count > 1)
         )
-
-        pax_count = getattr(db_token, "pax_count", None) if db_token else None
-        pax_str = f"\n👥 Party Size: {pax_count}" if pax_count and pax_count > 0 else ""
-        pax_suffix = f" (Party of {pax_count})" if pax_count and pax_count > 1 else ""
 
         # Upgrade any v2 events emitted by the system to v3
         if event_type == "queue_called_v2": event_type = "queue_called_v3"
@@ -222,7 +217,7 @@ async def notify_queue_event(
             track_url = f"{frontend_url}/track/{track_target}" if track_target else f"{frontend_url}/track"
             display_url = f"{frontend_url}/display/{queue_id}" if queue_id else f"{frontend_url}/display"
             
-            queue_label = f"{queue_name or org_name_to_use or ('Table Waitlist' if is_dine else 'General Queue')}{pax_suffix}"
+            queue_label = queue_name or org_name_to_use or ("Table Waitlist" if is_dine else "General Queue")
 
             variables = [
                 c_name or "Customer",
@@ -301,12 +296,12 @@ async def notify_queue_event(
                             f"{header}\n\n"
                             f"Hello {c_name}! Your table at {org_name_to_use} is ready.\n"
                             f"Please proceed to {dest}.{recall_text}\n"
-                            f"🎫 Ticket Number: {token_str}{pax_str}\n"
+                            f"🎫 Ticket Number: {token_str}\n"
                             f"📋 Waitlist: {queue_name or org_name_to_use}\n\n"
                             f"Our team is ready to welcome you!"
                         )
                 else:
-                    dest = f"Service Lane {assigned_line}" if assigned_line else "the counter"
+                    dest = "the counter"
                     variables = [token_str, queue_name or org_name_to_use, dest]
                     if is_raw_text:
                         action = "ready to assist you" if event_type == "queue_called_v3" else "waiting to assist you"
@@ -361,7 +356,7 @@ async def notify_queue_event(
                         f"Thank you for choosing {org_name_to_use}."
                     )
             elif event_type == "queue_skipped_v3":
-                dest = f"Service Lane {assigned_line}" if assigned_line else "the counter"
+                dest = "the counter"
                 variables = [token_str, queue_name or org_name_to_use, dest]
                 if is_raw_text:
                     raw_body = (

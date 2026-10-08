@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users } from "lucide-react";
+import { Users, Sparkles } from "lucide-react";
 import { ServingToken, TableConfig } from "@/types/api";
 import type { DisplayTheme } from "./displayTheme";
 import { cardBg, cardBorder, cardShadow, iconBg, iconColor, labelText, primaryText, secondaryText, mutedText, gradientText, counterPillBg, counterPillStrong } from "./displayTheme";
@@ -18,6 +18,9 @@ interface NowServingHeroProps {
     isActive?: boolean;
     theme?: DisplayTheme;
     tableConfig?: TableConfig[];
+    queueType?: string;
+    maxCapacity?: number;
+    zoneDurationMins?: number | null;
 }
 
 export function NowServingHero({
@@ -31,6 +34,9 @@ export function NowServingHero({
     isActive,
     theme = "light",
     tableConfig,
+    queueType,
+    maxCapacity,
+    zoneDurationMins,
 }: NowServingHeroProps) {
     const [prevServing, setPrevServing] = useState(serving);
     const [recentlyCalled, setRecentlyCalled] = useState<Set<number>>(new Set());
@@ -79,7 +85,135 @@ export function NowServingHero({
         }
     }, [allServingTokens]);
 
-    const isMultiCounterMode = serviceLines > 1;
+    const isZoneMode = queueType === "zone" || ((maxCapacity ?? 0) > 0 && serviceLines === 0);
+    const isMultiCounterMode = !isZoneMode && serviceLines > 1;
+
+    // ─── Zone / Arena Occupancy Display ──────────────────────────────
+    if (isZoneMode) {
+        const capacity = maxCapacity || 15;
+        const currentPax = activeTokens.reduce((sum: number, t: any) => sum + (Number(t.pax_count) || 1), 0);
+        const spotsLeft = Math.max(0, capacity - currentPax);
+        const occupancyPercent = Math.min(100, Math.round((currentPax / capacity) * 100));
+
+        return (
+            <div className={`flex-1 ${cardBg(theme)} border ${cardBorder(theme)} ${cardShadow(theme)} rounded-2xl p-4 lg:p-6 flex flex-col overflow-hidden`}>
+                {/* Header with Occupancy Gauge */}
+                <div className="flex flex-col items-center gap-2 mb-4 shrink-0">
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>Zone Occupancy</span>
+                    </div>
+
+                    {queueName && (
+                        <h1 className={`text-2xl lg:text-3xl font-black ${primaryText(theme)} text-center tracking-tight capitalize leading-none`}>
+                            {queueName}
+                            {isActive === false && (
+                                <span className="ml-3 text-[10px] font-semibold tracking-widest uppercase text-red-400 bg-red-500/10 px-2.5 py-0.5 rounded-full border border-red-500/20">
+                                    Closed
+                                </span>
+                            )}
+                        </h1>
+                    )}
+
+                    {/* Live Occupancy Gauge & Progress Bar */}
+                    <div className="w-full max-w-md mt-1 flex flex-col items-center">
+                        <div className="flex items-center justify-between w-full text-xs font-bold mb-1.5 px-1">
+                            <span className={primaryText(theme)}>
+                                {currentPax} / {capacity} Players Inside
+                            </span>
+                            <span className={spotsLeft === 0 ? "text-rose-500 font-extrabold uppercase tracking-wide" : "text-emerald-500 font-semibold"}>
+                                {spotsLeft === 0 ? "Zone Full" : `${spotsLeft} Spots Free`}
+                            </span>
+                        </div>
+                        <div className="w-full h-2.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden border border-slate-200/50 dark:border-white/10">
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${occupancyPercent}%` }}
+                                transition={{ duration: 0.5, ease: "easeOut" }}
+                                className={`h-full rounded-full ${
+                                    occupancyPercent >= 100
+                                        ? "bg-rose-500"
+                                        : occupancyPercent >= 80
+                                        ? "bg-amber-500"
+                                        : "bg-indigo-600 dark:bg-indigo-500"
+                                }`}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Grid of Players Inside */}
+                {activeTokens.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center border-2 border-dashed rounded-xl border-slate-200 dark:border-white/10 my-2">
+                        <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center mb-3 text-indigo-600 dark:text-indigo-400">
+                            <Users className="w-8 h-8" />
+                        </div>
+                        <h3 className={`text-xl font-black ${primaryText(theme)} mb-1`}>Zone Open & Ready</h3>
+                        <p className={`text-sm ${mutedText(theme)} max-w-sm`}>
+                            No customers are currently inside. Admitting waiting guests shortly!
+                        </p>
+                    </div>
+                ) : (
+                    <div className="flex-1 overflow-y-auto hide-scrollbar">
+                        <div className={`grid ${
+                            activeTokens.length > 12
+                                ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6"
+                                : activeTokens.length > 6
+                                ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+                                : "grid-cols-2 sm:grid-cols-3"
+                        } gap-3 p-1 auto-rows-fr`}>
+                            <AnimatePresence>
+                                {activeTokens.map((token: any) => {
+                                    const isRecent = recentlyCalled.has(token.token_number);
+                                    return (
+                                        <motion.div
+                                            key={token.id || token.token_number}
+                                            layout
+                                            initial={{ opacity: 0, scale: 0.85 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.85 }}
+                                            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                                            className={`flex flex-col items-center justify-center p-3.5 rounded-xl border relative ${
+                                                isRecent
+                                                    ? "bg-emerald-500/10 border-emerald-500/40 shadow-sm"
+                                                    : theme === "dark"
+                                                    ? "bg-white/[0.06] border-white/[0.1]"
+                                                    : "bg-white border-slate-200 shadow-sm"
+                                            }`}
+                                        >
+                                            {isRecent && (
+                                                <div className="absolute -top-2.5 px-2 py-0.5 bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wider rounded-full shadow-md animate-bounce">
+                                                    Just Entered
+                                                </div>
+                                            )}
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1 flex items-center gap-1">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                                Inside
+                                            </span>
+                                            <span className={`text-2xl sm:text-3xl font-black tracking-tight leading-none tabular-nums ${primaryText(theme)} ${isRecent ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
+                                                {prefix}{token.token_number}
+                                            </span>
+                                            {token.customer_name && (
+                                                <span className={`text-xs font-semibold truncate max-w-full mt-1.5 ${mutedText(theme)}`}>
+                                                    {token.customer_name}
+                                                </span>
+                                            )}
+                                            {token.pax_count && token.pax_count > 1 && (
+                                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                                                    <Users className="w-3 h-3 text-slate-400" />
+                                                    {token.pax_count} Players
+                                                </span>
+                                            )}
+                                        </motion.div>
+                                    );
+                                })}
+                            </AnimatePresence>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     // ─── Multi-counter grid ──────────────────────────────────────────
     if (isMultiCounterMode) {

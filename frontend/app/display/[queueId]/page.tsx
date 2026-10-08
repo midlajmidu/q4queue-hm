@@ -169,6 +169,8 @@ export default function DisplayQueuePage({ params }: PageProps) {
                             queueName={queueName}
                             isActive={state?.is_active ?? false}
                             isDark={isDark}
+                            queueType={state?.queue_type}
+                            maxCapacity={state?.max_capacity}
                         />
 
                         {/* Upcoming */}
@@ -209,6 +211,9 @@ export default function DisplayQueuePage({ params }: PageProps) {
                             isActive={state?.is_active ?? false}
                             theme={theme}
                             tableConfig={state?.table_config}
+                            queueType={state?.queue_type}
+                            maxCapacity={state?.max_capacity}
+                            zoneDurationMins={state?.zone_duration_mins}
                         />
                     </div>
                     <div className="w-[32%] flex flex-col gap-4 min-h-0">
@@ -265,7 +270,7 @@ function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDa
 // ─────────────────────────────────────────────────────────────────────────────
 // Mobile: Now Serving grid
 // ─────────────────────────────────────────────────────────────────────────────
-function MobileNowServing({ serving, prefix, serviceLines, allServingTokens, queueName, isActive, isDark }: {
+function MobileNowServing({ serving, prefix, serviceLines, allServingTokens, queueName, isActive, isDark, queueType, maxCapacity }: {
     serving: number;
     prefix: string;
     serviceLines: number;
@@ -273,13 +278,17 @@ function MobileNowServing({ serving, prefix, serviceLines, allServingTokens, que
     queueName: string;
     isActive: boolean;
     isDark: boolean;
+    queueType?: string;
+    maxCapacity?: number;
 }) {
     const activeTokens = allServingTokens.length > 0
         ? allServingTokens
         : serving !== 0 ? [{ id: "single", token_number: serving, assigned_line: null } as any] : [];
 
-    const isMulti = serviceLines > 1;
+    const isZoneMode = queueType === "zone" || ((maxCapacity ?? 0) > 0 && serviceLines === 0);
+    const isMulti = !isZoneMode && serviceLines > 1;
     const counters = isMulti ? Array.from({ length: serviceLines }, (_, i) => i + 1) : [];
+    const currentPax = activeTokens.reduce((sum: number, t: any) => sum + (Number(t.pax_count) || 1), 0);
 
     return (
         <div className={`rounded-xl border overflow-hidden ${isDark ? "bg-white/[0.04] border-white/[0.06]" : "bg-white border-slate-200 shadow-sm"}`}>
@@ -291,14 +300,55 @@ function MobileNowServing({ serving, prefix, serviceLines, allServingTokens, que
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                 </div>
-                <h2 className="text-xs font-semibold tracking-[0.15em] text-slate-500 uppercase">Now Serving</h2>
+                <h2 className="text-xs font-semibold tracking-[0.15em] text-slate-500 uppercase">
+                    {isZoneMode ? "Zone Occupancy" : "Now Serving"}
+                </h2>
+                {isZoneMode && (
+                    <span className="ml-auto text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                        {currentPax} / {maxCapacity || 15} Inside
+                    </span>
+                )}
                 {!isActive && (
-                    <span className="ml-auto text-[10px] font-semibold tracking-widest uppercase text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">Closed</span>
+                    <span className={`${isZoneMode ? "ml-2" : "ml-auto"} text-[10px] font-semibold tracking-widest uppercase text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20`}>Closed</span>
                 )}
             </div>
 
-            {/* Counter grid */}
-            {isMulti ? (
+            {/* Content */}
+            {isZoneMode ? (
+                activeTokens.length > 0 ? (
+                    <div className="p-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {activeTokens.map((token: any, idx: number) => (
+                            <div
+                                key={token.id || token.token_number || idx}
+                                className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-lg border ${
+                                    isDark ? "bg-white/[0.08] border-white/[0.12]" : "bg-slate-50 border-slate-200"
+                                }`}
+                            >
+                                <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-0.5">
+                                    Inside
+                                </span>
+                                <span className={`text-base font-black tabular-nums ${isDark ? "text-white" : "text-slate-900"}`}>
+                                    {prefix}{token.token_number}
+                                </span>
+                                {token.pax_count && token.pax_count > 1 && (
+                                    <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
+                                        {token.pax_count}p
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="p-6 flex flex-col items-center justify-center text-center">
+                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">
+                            Zone Open
+                        </span>
+                        <div className={`text-2xl font-light ${isDark ? "text-slate-600" : "text-slate-400"}`}>
+                            0 / {maxCapacity || 15} Inside
+                        </div>
+                    </div>
+                )
+            ) : isMulti ? (
                 <div className="px-3 pb-4 pt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                     {counters.map(counterNum => {
                         const activeToken = activeTokens.find((t: any) => t.assigned_line === counterNum || t.shared_lines?.includes(counterNum));

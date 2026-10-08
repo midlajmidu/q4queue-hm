@@ -126,6 +126,9 @@ export default function TrackingPage({ params }: PageProps) {
     const [isCopied, setIsCopied] = useState(false);
     const [branchType, setBranchType] = useState<"standard" | "dine">("standard");
     const [tableConfig, setTableConfig] = useState<TableConfig[]>([]);
+    const [queueType, setQueueType] = useState<string>("normal");
+    const [maxCapacity, setMaxCapacity] = useState<number | null>(null);
+    const [zoneDurationMins, setZoneDurationMins] = useState<number | null>(null);
 
     // ── Fetch Tracking Info on Mount ────────────────────────
     useEffect(() => {
@@ -139,6 +142,9 @@ export default function TrackingPage({ params }: PageProps) {
                     setSessionDate(info.session_date || null);
                     if (info.branch_type) setBranchType(info.branch_type);
                     if (info.table_config) setTableConfig(info.table_config);
+                    if (info.queue_type) setQueueType(info.queue_type);
+                    if (info.max_capacity) setMaxCapacity(info.max_capacity);
+                    if (info.zone_duration_mins) setZoneDurationMins(info.zone_duration_mins);
                     setJoinData({
                         id: info.token_id,
                         token_number: info.token_number,
@@ -309,6 +315,9 @@ export default function TrackingPage({ params }: PageProps) {
     const effectiveBranchType = live?.branch_type || branchType;
     const effectiveTableConfig = (live?.table_config && live.table_config.length > 0) ? live.table_config : tableConfig;
     const isDineMode = effectiveBranchType === "dine" || Boolean(effectiveTableConfig && effectiveTableConfig.length > 0);
+    const isZoneMode = live?.queue_type === "zone" || queueType === "zone" || ((live?.max_capacity || maxCapacity || 0) > 0 && (live?.service_lines || 0) === 0);
+    const effectiveMaxCapacity = live?.max_capacity || maxCapacity || 15;
+    const effectiveZoneDuration = live?.zone_duration_mins ?? zoneDurationMins;
 
     const rawServingTokens = (!isDifferentSession && live?.all_serving_tokens) ? (live.all_serving_tokens as any[]) : [];
     const activeServingTokens = React.useMemo(() => {
@@ -333,6 +342,10 @@ export default function TrackingPage({ params }: PageProps) {
             };
         });
     }, [rawServingTokens, isDineMode, effectiveTableConfig]);
+
+    const currentPaxInside = React.useMemo(() => {
+        return activeServingTokens.reduce((sum, t) => sum + (Number((t as any).pax_count) || 1), 0);
+    }, [activeServingTokens]);
 
     const serving = (!isDifferentSession && live?.current_serving) ? live.current_serving : 0;
 
@@ -532,10 +545,9 @@ export default function TrackingPage({ params }: PageProps) {
                             )}
                         </button>
 
-
                         <h1 className="text-lg sm:text-xl font-bold tracking-tight mb-0.5 text-white/95 px-10 leading-tight" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{queueName}</h1>
                         <p className="text-white/70 text-[10px] font-semibold uppercase tracking-[0.2em] mb-3">
-                            {queueClosed ? "Currently Closed" : isDineMode ? "Table Waitlist / Now Seating" : "Now Serving"}
+                            {queueClosed ? "Currently Closed" : isZoneMode ? `Zone Occupancy • ${currentPaxInside}/${effectiveMaxCapacity} Inside` : isDineMode ? "Table Waitlist / Now Seating" : "Now Serving"}
                         </p>
 
                         <div className="relative mx-auto w-full mt-2">
@@ -549,8 +561,13 @@ export default function TrackingPage({ params }: PageProps) {
                                         {prefix}{activeServingTokens[0].token_number}
                                     </span>
                                     {activeServingTokens[0].lanes_label && (
-                                        <span className="text-[9px] font-bold text-white/95 mt-1 uppercase tracking-wider bg-white/20 border border-white/20 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                        <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-white/20 border border-white/15 px-2 py-0.5 rounded-full whitespace-nowrap">
                                             {activeServingTokens[0].lanes_label}
+                                        </span>
+                                    )}
+                                    {isZoneMode && activeServingTokens[0].pax_count && activeServingTokens[0].pax_count > 1 && (
+                                        <span className="text-[10px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-white/20 border border-white/15 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                            {activeServingTokens[0].pax_count} players
                                         </span>
                                     )}
                                 </div>
@@ -590,6 +607,11 @@ export default function TrackingPage({ params }: PageProps) {
                                                 {t.lanes_label && (
                                                     <span className="text-[8.5px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-white/20 border border-white/15 px-1.5 py-0.5 rounded-full whitespace-nowrap leading-none">
                                                         {t.lanes_label}
+                                                    </span>
+                                                )}
+                                                {isZoneMode && t.pax_count && t.pax_count > 1 && (
+                                                    <span className="text-[8.5px] font-bold text-white/90 mt-1 uppercase tracking-wider bg-white/20 border border-white/15 px-1.5 py-0.5 rounded-full whitespace-nowrap leading-none">
+                                                        {t.pax_count}p
                                                     </span>
                                                 )}
                                             </div>
@@ -673,7 +695,9 @@ export default function TrackingPage({ params }: PageProps) {
                                     </div>
 
                                     <p className="text-[13px] font-medium text-slate-500 leading-relaxed px-6">
-                                        Please come to the counter area right now so you are ready when called.
+                                        {isZoneMode
+                                            ? "Please proceed to the Arena entrance right now so you are ready to enter!"
+                                            : "Please come to the counter area right now so you are ready when called."}
                                     </p>
                                 </div>
                             )}
@@ -750,13 +774,15 @@ export default function TrackingPage({ params }: PageProps) {
                                             <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Completed • Served</span>
                                         </div>
                                     ) : isMyTurn ? (
-                                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50/90 border border-emerald-200/60 rounded-full mb-3 shadow-xs animate-in fade-in zoom-in-95 duration-200">
+                                        <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 ${isZoneMode ? "bg-indigo-50/90 border-indigo-200/60" : "bg-emerald-50/90 border-emerald-200/60"} border rounded-full mb-3 shadow-xs animate-in fade-in zoom-in-95 duration-200`}>
                                             <span className="relative flex h-2 w-2">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isZoneMode ? "bg-indigo-400" : "bg-emerald-400"} opacity-75`}></span>
+                                                <span className={`relative inline-flex rounded-full h-2 w-2 ${isZoneMode ? "bg-indigo-500" : "bg-emerald-500"}`}></span>
                                             </span>
-                                            <span className="text-[11px] font-extrabold text-emerald-700 uppercase tracking-wider">
-                                                {isDineMode
+                                            <span className={`text-[11px] font-extrabold ${isZoneMode ? "text-indigo-700" : "text-emerald-700"} uppercase tracking-wider`}>
+                                                {isZoneMode
+                                                    ? "You're Inside Zone • Active"
+                                                    : isDineMode
                                                     ? (myLanesLabel ? `Your Table is Ready! • ${myLanesLabel}` : "Your Table is Ready!")
                                                     : (myLanesLabel ? `It’s Your Turn • ${myLanesLabel}` : "It’s Your Turn • Ready")}
                                             </span>
@@ -772,7 +798,7 @@ export default function TrackingPage({ params }: PageProps) {
                                         <div className="flex items-center justify-center gap-2 mb-3">
                                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
                                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                                {isDineMode ? "Table Waitlist Ticket" : "Your Ticket"}
+                                                {isZoneMode ? "Zone Access Ticket" : isDineMode ? "Table Waitlist Ticket" : "Your Ticket"}
                                             </span>
                                             {isDineMode && (joinData?.pax_count || 1) > 0 && (
                                                 <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10.5px] font-extrabold tracking-wide border border-slate-200/60">
@@ -782,24 +808,30 @@ export default function TrackingPage({ params }: PageProps) {
                                         </div>
                                     )}
 
-                                    <div className={`text-[5rem] sm:text-[5.5rem] leading-none font-black tabular-nums tracking-tighter mb-2 ${isMyTurn ? "text-emerald-600" : alreadyServed ? "text-slate-300" : isSkipped ? "text-amber-500/80" : ""}`} style={(!isMyTurn && !alreadyServed && !isSkipped) ? { color: brandColor } : {}}>
+                                    <div className={`text-[5rem] sm:text-[5.5rem] leading-none font-black tabular-nums tracking-tighter mb-2 ${isMyTurn ? (isZoneMode ? "text-indigo-600" : "text-emerald-600") : alreadyServed ? "text-slate-300" : isSkipped ? "text-amber-500/80" : ""}`} style={(!isMyTurn && !alreadyServed && !isSkipped) ? { color: brandColor } : {}}>
                                         {prefix}{myNumber}
                                     </div>
 
-                                    <p aria-live="polite" className={`text-xs sm:text-sm font-semibold tracking-wide ${isMyTurn ? "text-emerald-700" : alreadyServed ? "text-slate-500" : isSkipped ? "text-amber-700" : (!isNext ? "text-slate-500" : "")}`} style={(!isMyTurn && !alreadyServed && !isSkipped && isNext) ? { color: brandColor } : {}}>
+                                    <p aria-live="polite" className={`text-xs sm:text-sm font-semibold tracking-wide ${isMyTurn ? (isZoneMode ? "text-indigo-700" : "text-emerald-700") : alreadyServed ? "text-slate-500" : isSkipped ? "text-amber-700" : (!isNext ? "text-slate-500" : "")}`} style={(!isMyTurn && !alreadyServed && !isSkipped && isNext) ? { color: brandColor } : {}}>
                                         {alreadyServed 
-                                            ? (isDineMode ? "Thank you for dining with us! Your visit is complete." : "Thank you for visiting! Your consultation is complete.")
+                                            ? (isZoneMode ? "Your session in the zone is complete. Thank you!" : isDineMode ? "Thank you for dining with us! Your visit is complete." : "Thank you for visiting! Your consultation is complete.")
                                             : isSkipped
                                             ? (isClosedSessionToken
                                                 ? "Your token was skipped because the queue session closed."
                                                 : "Your turn was skipped at the counter. Please see staff to be recalled.")
                                             : isMyTurn 
-                                            ? (isDineMode 
+                                            ? (isZoneMode
+                                                ? (effectiveZoneDuration
+                                                    ? `You are inside the zone! Session duration: ${effectiveZoneDuration} mins.`
+                                                    : "You are inside the zone! Your session is active.")
+                                                : isDineMode 
                                                 ? (myAssignedTableName 
                                                     ? `Your table (${myAssignedTableName}) is ready! Please proceed to your table or the Host Stand.` 
                                                     : "Your table is ready! Please proceed to the Host Stand.") 
                                                 : (myLanesLabel ? `Please proceed to ${myLanesLabel} now` : "Please proceed to the counter now")) 
-                                            : (isDineMode && (joinData?.pax_count || 1) > 0
+                                            : (isZoneMode
+                                                ? (isNext ? "You are next to enter the zone!" : `${positionMessage} • ${currentPaxInside}/${effectiveMaxCapacity} players inside`)
+                                                : isDineMode && (joinData?.pax_count || 1) > 0
                                                 ? `${positionMessage} (Party of ${joinData?.pax_count})`
                                                 : positionMessage)}
                                     </p>
@@ -812,7 +844,7 @@ export default function TrackingPage({ params }: PageProps) {
                                     <div className="flex bg-slate-50/50 rounded-2xl border border-slate-100 divide-x divide-slate-100 overflow-hidden text-sm">
                                         <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
                                             <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">
-                                                {isDineMode ? "Ahead" : "Ahead"}
+                                                Ahead
                                             </p>
                                             <p className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
                                                 {alreadyServed ? "—" : isMyTurn ? "0" : peopleAhead}
@@ -820,19 +852,28 @@ export default function TrackingPage({ params }: PageProps) {
                                         </div>
                                         <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
                                             <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">Status</p>
-                                            <p className={`text-[17px] sm:text-[19px] font-extrabold tracking-tight leading-none ${isMyTurn ? "text-slate-900" : isSkipped ? "text-amber-500" : alreadyServed ? "text-slate-400" : (!isNext ? "text-slate-800" : "")}`} style={isNext ? { color: brandColor } : {}}>
-                                                {isMyTurn ? (isDineMode ? "Ready" : "Serving") : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "Next" : "Waiting"}
+                                            <p className={`text-[17px] sm:text-[19px] font-extrabold tracking-tight leading-none ${isMyTurn ? (isZoneMode ? "text-indigo-600" : "text-slate-900") : isSkipped ? "text-amber-500" : alreadyServed ? "text-slate-400" : (!isNext ? "text-slate-800" : "")}`} style={isNext ? { color: brandColor } : {}}>
+                                                {isMyTurn ? (isZoneMode ? "Inside" : isDineMode ? "Ready" : "Serving") : isSkipped ? "Skipped" : alreadyServed ? "Served" : isNext ? "Next" : "Waiting"}
                                             </p>
                                         </div>
                                         {(!isMyTurn && !alreadyServed) ? (
                                             <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
                                                 <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">
-                                                    {isDineMode ? "Now Seated" : "Serving"}
+                                                    {isZoneMode ? "Inside" : isDineMode ? "Now Seated" : "Serving"}
                                                 </p>
                                                 <p className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
-                                                    {(!isDifferentSession && activeServingTokens.length > 0)
+                                                    {isZoneMode
+                                                        ? `${currentPaxInside}/${effectiveMaxCapacity}`
+                                                        : (!isDifferentSession && activeServingTokens.length > 0)
                                                         ? `${prefix}${activeServingTokens[0].token_number}`
                                                         : "—"}
+                                                </p>
+                                            </div>
+                                        ) : (isMyTurn && isZoneMode) ? (
+                                            <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
+                                                <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">Occupancy</p>
+                                                <p className="text-[17px] sm:text-[19px] font-extrabold text-indigo-600 tracking-tight leading-none">
+                                                    {currentPaxInside}/{effectiveMaxCapacity}
                                                 </p>
                                             </div>
                                         ) : (isMyTurn && (myLanesLabel != null || isDineMode)) ? (

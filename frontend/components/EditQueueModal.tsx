@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { QueueResponse, TableConfig } from "@/types/api";
 import { useBranch } from "@/context/BranchContext";
-import { Clock, CheckCircle2, AlertCircle, Utensils, Trash2, PlusCircle, X } from "lucide-react";
+import { Clock, CheckCircle2, AlertCircle, Utensils, Trash2, PlusCircle, X, Users } from "lucide-react";
 
 interface Props {
     isOpen: boolean;
@@ -20,7 +20,9 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
     const [startingSequence, setStartingSequence] = useState<number>(1);
     const [openTime, setOpenTime] = useState("");
     const [closeTime, setCloseTime] = useState("");
-    const [queueType, setQueueType] = useState<"normal" | "service_lines">("normal");
+    const [queueType, setQueueType] = useState<"normal" | "service_lines" | "zone">("normal");
+    const [maxCapacity, setMaxCapacity] = useState<number>(15);
+    const [zoneDurationMins, setZoneDurationMins] = useState<number>(30);
     const [serviceLines, setServiceLines] = useState(2);
     const [appointmentEnabled, setAppointmentEnabled] = useState(false);
     const [tables, setTables] = useState<TableConfig[]>([]);
@@ -41,6 +43,10 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
             setAppointmentEnabled(!!queue.appointment_enabled);
             if (queue.table_config && queue.table_config.length > 0) {
                 setTables(queue.table_config);
+            } else if (queue.queue_type === "zone" || (queue.max_capacity && queue.max_capacity > 0)) {
+                setQueueType("zone");
+                setMaxCapacity(queue.max_capacity || 15);
+                setZoneDurationMins(queue.zone_duration_mins || 30);
             } else if ((queue.service_lines || 0) > 0) {
                 setQueueType("service_lines");
                 setServiceLines(queue.service_lines || 2);
@@ -115,7 +121,10 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                 }));
                 payload.service_lines = tables.length;
             } else {
+                payload.queue_type = queueType;
                 payload.service_lines = queueType === "service_lines" ? serviceLines : 0;
+                payload.max_capacity = queueType === "zone" ? maxCapacity : 0;
+                payload.zone_duration_mins = queueType === "zone" && zoneDurationMins ? zoneDurationMins : null;
             }
 
             await api.updateQueue(queue.id, payload);
@@ -323,21 +332,21 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                     ) : (
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Queue Mode</label>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                 {/* Normal */}
                                 <button
                                     type="button"
                                     onClick={() => setQueueType("normal")}
-                                    className={`flex flex-col items-start gap-2 p-3 rounded-xl border-2 text-left transition-all ${queueType === "normal"
+                                    className={`flex flex-col items-start gap-1 p-2.5 rounded-xl border-2 text-left transition-all ${queueType === "normal"
                                         ? "border-blue-500 dark:border-blue-500 bg-blue-50 dark:bg-blue-950/60"
                                         : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800"
                                         }`}
                                 >
                                     <div>
-                                        <div className={`text-sm font-semibold ${queueType === "normal" ? "text-blue-700 dark:text-blue-300" : "text-slate-700 dark:text-slate-300"}`}>
+                                        <div className={`text-xs font-bold ${queueType === "normal" ? "text-blue-700 dark:text-blue-300" : "text-slate-700 dark:text-slate-300"}`}>
                                             Single Counter
                                         </div>
-                                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">One serving station</div>
+                                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">1 serving station</div>
                                     </div>
                                 </button>
 
@@ -345,31 +354,84 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                 <button
                                     type="button"
                                     onClick={() => setQueueType("service_lines")}
-                                    className={`flex flex-col items-start gap-2 p-3 rounded-xl border-2 text-left transition-all ${queueType === "service_lines"
-                                        ? "border-purple-500 dark:border-purple-500 bg-purple-50 dark:bg-purple-950/60"
+                                    className={`flex flex-col items-start gap-1 p-2.5 rounded-xl border-2 text-left transition-all ${queueType === "service_lines"
+                                        ? "border-indigo-500 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950/60"
                                         : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800"
                                         }`}
                                 >
                                     <div>
-                                        <div className={`text-sm font-semibold ${queueType === "service_lines" ? "text-purple-700 dark:text-purple-300" : "text-slate-700 dark:text-slate-300"}`}>
+                                        <div className={`text-xs font-bold ${queueType === "service_lines" ? "text-indigo-700 dark:text-indigo-300" : "text-slate-700 dark:text-slate-300"}`}>
                                             Service Lanes
                                         </div>
-                                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Multiple lanes / counters</div>
+                                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Multiple lanes</div>
+                                    </div>
+                                </button>
+
+                                {/* Zone / Capacity */}
+                                <button
+                                    type="button"
+                                    onClick={() => setQueueType("zone")}
+                                    className={`flex flex-col items-start gap-1 p-2.5 rounded-xl border-2 text-left transition-all ${queueType === "zone"
+                                        ? "border-indigo-600 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950/60"
+                                        : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800"
+                                        }`}
+                                >
+                                    <div>
+                                        <div className={`text-xs font-bold flex items-center gap-1.5 ${queueType === "zone" ? "text-indigo-700 dark:text-indigo-300" : "text-slate-700 dark:text-slate-300"}`}>
+                                            <Users className="w-3.5 h-3.5" />
+                                            <span>Zone / Capacity</span>
+                                        </div>
+                                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Capacity pool</div>
                                     </div>
                                 </button>
                             </div>
+
                             {queueType === "service_lines" && (
-                                <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-950/60 rounded-xl border border-purple-100 dark:border-purple-900/40 animate-in fade-in slide-in-from-top-2">
-                                    <label className="block text-sm font-semibold text-purple-900 dark:text-purple-300 mb-1.5">Number of Service Lanes</label>
+                                <div className="mt-3 p-3.5 bg-indigo-50/70 dark:bg-indigo-950/60 rounded-xl border border-indigo-100 dark:border-indigo-900/40 animate-in fade-in slide-in-from-top-2">
+                                    <label className="block text-xs font-semibold text-indigo-900 dark:text-indigo-300 mb-1.5">Number of Service Lanes</label>
                                     <input
                                         type="number"
                                         min="2"
                                         max="20"
                                         value={serviceLines}
                                         onChange={(e) => setServiceLines(parseInt(e.target.value) || 2)}
-                                        className="w-full rounded-xl border border-purple-200 dark:border-purple-900/60 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm text-purple-900 dark:text-purple-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                        className="w-full rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-indigo-900 dark:text-indigo-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                                         disabled={isLoading}
                                     />
+                                </div>
+                            )}
+
+                            {queueType === "zone" && (
+                                <div className="mt-3 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-800 animate-in fade-in slide-in-from-top-2 space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-1">Max Capacity</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="500"
+                                                value={maxCapacity}
+                                                onChange={(e) => setMaxCapacity(Math.max(1, parseInt(e.target.value) || 1))}
+                                                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-bold text-slate-900 dark:text-white focus:border-indigo-500 focus:outline-none"
+                                                disabled={isLoading}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-1">Duration (Mins)</label>
+                                            <input
+                                                type="number"
+                                                min="5"
+                                                max="360"
+                                                value={zoneDurationMins}
+                                                onChange={(e) => setZoneDurationMins(Math.max(5, parseInt(e.target.value) || 30))}
+                                                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-bold text-slate-900 dark:text-white focus:border-indigo-500 focus:outline-none"
+                                                disabled={isLoading}
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                                        Controls maximum concurrent occupancy for the zone.
+                                    </p>
                                 </div>
                             )}
                         </div>

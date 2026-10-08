@@ -10,7 +10,7 @@ import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { fmtTime, nowInTz } from "@/lib/tzformat";
 import ConfirmModal from "@/components/ConfirmModal";
 import EditQueueModal from "@/components/EditQueueModal";
-import { UserCheck, Trash2, Clock, CalendarDays, Ticket, Pencil } from "lucide-react";
+import { UserCheck, Trash2, Clock, CalendarDays, Ticket, Pencil, Users } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -100,7 +100,20 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
             {/* Foreground Content */}
             <div className="relative z-10 flex flex-col flex-1">
                 <div className="flex items-start justify-between mb-1 gap-2">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate capitalize flex-1">{queue.name}</h3>
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate capitalize">{queue.name}</h3>
+                        {(queue.queue_type === "zone" || (queue.max_capacity && queue.max_capacity > 0)) && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 shrink-0">
+                                <Users className="w-2.5 h-2.5" />
+                                Zone • Cap {queue.max_capacity || 0}
+                            </span>
+                        )}
+                        {queue.queue_type === "service_lines" && (queue.service_lines || 0) > 0 && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 shrink-0">
+                                {queue.service_lines} Lanes
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-center gap-1 shrink-0">
                         {!isGlobalOrOrgAdmin && (
                             <button
