@@ -399,7 +399,7 @@ export default function TokenDetailModal({ token, onClose, onRecall, onRemove, o
                                         <span className="font-medium text-gray-700 dark:text-slate-200">{fmtDateTime(fullToken.recalled_at, tz)}</span>
                                     </div>
                                 )}
-                                {fullToken.completed_at && (
+                                {fullToken.completed_at && fullToken.status === "done" && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-400 dark:text-slate-400">Completed</span>
                                         <span className="font-medium text-gray-700 dark:text-slate-200">{fmtDateTime(fullToken.completed_at, tz)}</span>

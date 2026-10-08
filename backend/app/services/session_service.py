@@ -54,7 +54,9 @@ async def _close_other_sessions(db: AsyncSession, *, queue_id: uuid.UUID, keep_s
         )
         .values(
             status=TokenStatus.skipped,
-            completed_at=func.now(),
+            skipped_at=func.now(),
+            completed_at=None,
+            completed_by_id=None,
             removed_by="session_end",
         )
     )
@@ -118,7 +120,9 @@ async def get_or_create_active_session(
             )
             .values(
                 status=TokenStatus.skipped,
-                completed_at=func.now(),
+                skipped_at=func.now(),
+                completed_at=None,
+                completed_by_id=None,
                 removed_by="session_end",
             )
         )
@@ -397,7 +401,9 @@ async def set_session_active(
             )
             .values(
                 status=TokenStatus.skipped,
-                completed_at=func.now(),
+                skipped_at=func.now(),
+                completed_at=None,
+                completed_by_id=None,
                 removed_by="session_end",
             )
         )
@@ -415,7 +421,9 @@ async def set_session_active(
             )
             .values(
                 status=TokenStatus.skipped,
-                completed_at=func.now(),
+                skipped_at=func.now(),
+                completed_at=None,
+                completed_by_id=None,
                 removed_by="session_end"
             )
         )

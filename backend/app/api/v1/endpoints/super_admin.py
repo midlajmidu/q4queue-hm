@@ -617,7 +617,7 @@ async def get_tenant_analytics(
                 func.avg(
                     func.extract("epoch", Token.completed_at - Token.served_at)
                 )
-            ).where(token_base, Token.served_at.isnot(None), Token.completed_at.isnot(None))
+            ).where(token_base, Token.status == "done", Token.served_at.isnot(None), Token.completed_at.isnot(None))
         )
 
         # ── Peak Hour ────────────────────────────────────────────────

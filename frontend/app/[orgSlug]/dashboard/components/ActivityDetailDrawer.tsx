@@ -60,7 +60,7 @@ export function ActivityDetailDrawer({ activity, onClose, tz }: ActivityDetailDr
             <div>
               <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 6, fontWeight: 500 }}>Current Status</div>
               <span className="chip" style={{ background: "#fff", border: `1px solid ${C.border}`, fontSize: 13, padding: "5px 12px", borderRadius: 10 }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: activity.status === "serving" ? C.blue : (activity.status === "waiting" ? C.amber : C.green), display: "inline-block" }} />
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: activity.status === "serving" ? C.blue : (activity.status === "waiting" ? C.amber : (activity.status === "skipped" || activity.status === "deleted" ? "#dc2626" : C.green)), display: "inline-block" }} />
                 <span style={{ textTransform: "capitalize" }}>{activity.status}</span>
               </span>
             </div>
@@ -74,28 +74,38 @@ export function ActivityDetailDrawer({ activity, onClose, tz }: ActivityDetailDr
             <div style={{ position: "absolute", left: 18, top: 14, bottom: 14, width: 2, background: `linear-gradient(180deg, ${C.brand}33, ${C.border})`, borderRadius: 99 }} />
 
             {(() => {
-              const steps = [];
+              const steps: { lbl: string; time?: string | null; active: boolean }[] = [];
               steps.push({ lbl: "Token Issued", time: activity.time, active: true });
-              
-              const isWaiting = ["waiting", "serving", "done"].includes(activity.status);
-              steps.push({ lbl: "Waiting in Queue", time: activity.time, active: isWaiting });
-              
+              steps.push({ lbl: "Waiting in Queue", time: activity.time, active: true });
+
+              const wasCalledBeforeSkip = activity.served_at && (!activity.skipped_at || (activity.skipped_at && new Date(activity.served_at) <= new Date(activity.skipped_at)));
+
+              if (wasCalledBeforeSkip) {
+                steps.push({
+                  lbl: activity.status === "serving" ? "Currently Serving" : "Called to Counter",
+                  time: activity.served_at || null,
+                  active: true
+                });
+              }
+
               if (activity.skipped_at) {
                 steps.push({ lbl: "Skipped", time: activity.skipped_at, active: true });
               }
+
               if (activity.recalled_at) {
                 steps.push({ lbl: "Recalled to Queue", time: activity.recalled_at, active: true });
+                if (activity.status === "serving") {
+                  steps.push({ lbl: "Currently Serving", time: activity.served_at || activity.recalled_at, active: true });
+                }
               }
-              
-              const hasServed = !!activity.served_at || ["serving", "done"].includes(activity.status);
-              steps.push({ lbl: "Currently Serving", time: activity.served_at || (hasServed ? activity.time : null), active: hasServed });
-              
-              const isDone = ["done", "deleted"].includes(activity.status) || (activity.status === "skipped" && !activity.recalled_at);
-              let finalLbl = "Service Completed";
-              if (activity.status === "deleted") finalLbl = "Cancelled";
-              else if (activity.status === "skipped" && !activity.recalled_at) finalLbl = "Skipped";
-              
-              steps.push({ lbl: finalLbl, time: activity.completed_at || (isDone ? (activity.skipped_at || activity.time) : null), active: isDone });
+
+              if (activity.status === "done") {
+                steps.push({ lbl: "Service Completed", time: activity.completed_at || activity.time, active: true });
+              } else if (activity.status === "deleted") {
+                steps.push({ lbl: "Cancelled", time: activity.time, active: true });
+              } else if (activity.status === "serving" && !wasCalledBeforeSkip && !activity.recalled_at) {
+                steps.push({ lbl: "Currently Serving", time: activity.served_at || activity.time, active: true });
+              }
               
               return steps;
             })().map((step, i) => (

@@ -713,6 +713,8 @@ async def call_next(
             else:
                 from sqlalchemy.orm.attributes import flag_modified
                 currently_serving.skipped_at = now
+                currently_serving.completed_at = None
+                currently_serving.completed_by_id = None
                 currently_serving.shared_lines = []
                 currently_serving.completed_lines = []
                 flag_modified(currently_serving, "shared_lines")
@@ -1227,7 +1229,12 @@ async def serve_specific_token(
     await db.execute(
         update(Token)
         .where(*where_clause)
-        .values(status=TokenStatus.skipped, skipped_at=now)
+        .values(
+            status=TokenStatus.skipped,
+            skipped_at=now,
+            completed_at=None,
+            completed_by_id=None,
+        )
     )
 
     from sqlalchemy.orm.attributes import flag_modified

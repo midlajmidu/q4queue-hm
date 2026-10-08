@@ -860,11 +860,10 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
                 
         # Calculate Service Time
         serve_mins = None
-        if r.completed_at and r.served_at:
+        if r.status == "done" and r.completed_at and r.served_at:
             s_secs = (r.completed_at - r.served_at).total_seconds()
             serve_mins = round(s_secs / 60, 2)
-            if r.status == "done":
-                total_serve_secs += s_secs
+            total_serve_secs += s_secs
                 
         if r.status == "done":
             served_count += 1
@@ -931,9 +930,9 @@ async def _generate_customer_detailed_report(job: ExportJob, db: AsyncSession, f
             "Recalled At": recalled_time,
             "Removed At": removed_time,
             "Wait Time (mins)": wait_mins,
-            "Serve Time (mins)": serve_mins,
-            "Served By": staff_name,
-            "Completed By": completed_by_name,
+            "Serve Time (mins)": serve_mins if r.status == "done" else "",
+            "Served By": staff_name if r.status == "done" else "",
+            "Completed By": completed_by_name if r.status == "done" else "",
             "Removed By": removed_by_label,
             "Call Method": "Skipped" if status_str == "skipped" else "Normal",
             "Entry Type": entry_type_label,

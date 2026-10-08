@@ -162,8 +162,8 @@ async def get_overview_metrics(
         timing_query = select(
             func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
             func.max(func.extract('epoch', Token.served_at - Token.created_at)).label('max_wait_sec'),
-            func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
-            func.max(func.extract('epoch', Token.completed_at - Token.served_at)).label('max_serve_sec'),
+            func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label('avg_serve_sec'),
+            func.max(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label('max_serve_sec'),
         )
         if join_queue:
             timing_query = timing_query.join(Queue, Token.queue_id == Queue.id)
@@ -226,7 +226,7 @@ async def get_overview_metrics(
         daily_timings_query = select(
             dt_expr,
             func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait'),
-            func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve'),
+            func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label('avg_serve'),
         )
         if join_queue:
             daily_timings_query = daily_timings_query.join(Queue, Token.queue_id == Queue.id)
@@ -708,20 +708,22 @@ async def get_analytics_csv_data(
             wait_time_mins = round((token.served_at - token.created_at).total_seconds() / 60.0, 1)
             
         serve_time_mins = ""
-        if token.completed_at and token.served_at:
+        if token.status == TokenStatus.done and token.completed_at and token.served_at:
             serve_time_mins = round((token.completed_at - token.served_at).total_seconds() / 60.0, 1)
 
         served_by = ""
-        if served_first or served_last:
-            served_by = f"{served_first or ''} {served_last or ''}".strip()
-        elif served_email:
-            served_by = served_email.split('@')[0]
+        if token.status == TokenStatus.done:
+            if served_first or served_last:
+                served_by = f"{served_first or ''} {served_last or ''}".strip()
+            elif served_email:
+                served_by = served_email.split('@')[0]
             
         completed_by = ""
-        if completed_first or completed_last:
-            completed_by = f"{completed_first or ''} {completed_last or ''}".strip()
-        elif completed_email:
-            completed_by = completed_email.split('@')[0]
+        if token.status == TokenStatus.done:
+            if completed_first or completed_last:
+                completed_by = f"{completed_first or ''} {completed_last or ''}".strip()
+            elif completed_email:
+                completed_by = completed_email.split('@')[0]
 
         pax_count_str = str(token.pax_count) if hasattr(token, 'pax_count') else "1"
         service_line = str(getattr(token, 'assigned_line', "")) if getattr(token, 'assigned_line', None) is not None else ""
@@ -856,7 +858,7 @@ async def get_cross_branch_analytics(
         func.sum(case((Token.status == TokenStatus.waiting, 1), else_=0)).label("waiting"),
         func.sum(case((Token.status.in_([TokenStatus.skipped, TokenStatus.deleted]), 1), else_=0)).label("abandoned"),
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
-        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
+        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label('avg_serve_sec'),
     ).where(and_(*token_conditions))
     
     m_res = await db.execute(metrics_q)
@@ -916,7 +918,7 @@ async def get_cross_branch_analytics(
         func.count(Token.id).label("total"),
         func.sum(case((Token.status == TokenStatus.done, 1), else_=0)).label("served"),
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
-        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
+        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label('avg_serve_sec'),
     ).where(and_(*token_conditions)).group_by(Token.org_id)
     
     branch_res = await db.execute(branch_q)
@@ -1065,7 +1067,7 @@ async def get_cross_branch_analytics(
         func.count(Token.id).label('token_count'),
         func.sum(Token.pax_count).label('total_pax'),
         func.avg(func.extract('epoch', Token.served_at - Token.created_at)).label('avg_wait_sec'),
-        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).label('avg_serve_sec'),
+        func.avg(func.extract('epoch', Token.completed_at - Token.served_at)).filter(Token.status == TokenStatus.done).label('avg_serve_sec'),
     ).where(and_(*token_conditions)).group_by(Token.pax_count).order_by(Token.pax_count)
 
     pax_res = await db.execute(pax_q)
@@ -1280,20 +1282,22 @@ async def get_cross_branch_excel_data(
             wait_time_mins = round((token.served_at - token.created_at).total_seconds() / 60.0, 1)
             
         serve_time_mins = ""
-        if token.completed_at and token.served_at:
+        if token.status == TokenStatus.done and token.completed_at and token.served_at:
             serve_time_mins = round((token.completed_at - token.served_at).total_seconds() / 60.0, 1)
 
         served_by = ""
-        if served_first or served_last:
-            served_by = f"{served_first or ''} {served_last or ''}".strip()
-        elif served_email:
-            served_by = served_email.split('@')[0]
+        if token.status == TokenStatus.done:
+            if served_first or served_last:
+                served_by = f"{served_first or ''} {served_last or ''}".strip()
+            elif served_email:
+                served_by = served_email.split('@')[0]
 
         completed_by = ""
-        if completed_first or completed_last:
-            completed_by = f"{completed_first or ''} {completed_last or ''}".strip()
-        elif completed_email:
-            completed_by = completed_email.split('@')[0]
+        if token.status == TokenStatus.done:
+            if completed_first or completed_last:
+                completed_by = f"{completed_first or ''} {completed_last or ''}".strip()
+            elif completed_email:
+                completed_by = completed_email.split('@')[0]
 
         removed_by_label = ""
         if token.removed_by == "customer":
@@ -1449,14 +1453,15 @@ async def get_cross_branch_csv_data(
             wait_time_mins = round((token.served_at - token.created_at).total_seconds() / 60.0, 1)
 
         serve_time_mins = ""
-        if token.completed_at and token.served_at:
+        if token.status == TokenStatus.done and token.completed_at and token.served_at:
             serve_time_mins = round((token.completed_at - token.served_at).total_seconds() / 60.0, 1)
 
         served_by = ""
-        if f_name or l_name:
-            served_by = f"{f_name or ''} {l_name or ''}".strip()
-        elif u_email:
-            served_by = u_email.split("@")[0]
+        if token.status == TokenStatus.done:
+            if f_name or l_name:
+                served_by = f"{f_name or ''} {l_name or ''}".strip()
+            elif u_email:
+                served_by = u_email.split("@")[0]
 
         writer.writerow([
             token.created_at.strftime("%Y-%m-%d"),

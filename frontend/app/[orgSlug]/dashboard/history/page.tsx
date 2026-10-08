@@ -569,21 +569,34 @@ export default function HistoryPage() {
                                                 </td>
                                                 {/* Called */}
                                                 <td className="tabular-nums" style={{ ...tdStyle, color: "var(--q-text-muted)", fontSize: 12, whiteSpace: "nowrap" }}>
-                                                    {h.skipped_at && !h.served_at ? (
-                                                        <span title={`Skipped at ${formatFullTime(h.skipped_at, tz)}`} className="text-purple-600 dark:text-purple-400">Skipped {formatTime(h.skipped_at, tz)}</span>
-                                                    ) : h.recalled_at ? (
+                                                    {h.recalled_at ? (
                                                         <span title={`Recalled at ${formatFullTime(h.recalled_at, tz)}`}>{formatTime(h.served_at, tz)} <span className="text-sky-500 dark:text-sky-400 text-[10px] font-semibold">(recalled)</span></span>
+                                                    ) : h.status === "skipped" ? (
+                                                        h.skipped_at ? (
+                                                            <span title={`Skipped at ${formatFullTime(h.skipped_at, tz)}`} className="text-purple-600 dark:text-purple-400">
+                                                                Skipped {formatTime(h.skipped_at, tz)}
+                                                                {h.served_at && <span className="text-[10px] text-slate-400 ml-1">({formatTime(h.served_at, tz)})</span>}
+                                                            </span>
+                                                        ) : (
+                                                            h.served_at ? formatTime(h.served_at, tz) : "—"
+                                                        )
                                                     ) : formatTime(h.served_at, tz)}
                                                 </td>
                                                 {/* Wait Time */}
                                                 <td style={tdStyle}><WaitTimeBadge seconds={waitSec} /></td>
                                                 {/* Service Time */}
                                                 <td className="tabular-nums" style={{ ...tdStyle, color: "var(--q-text-sub)", fontSize: 12 }}>
-                                                    {durationBetween(h.served_at, h.completed_at)}
+                                                    {h.status === "done" ? durationBetween(h.served_at, h.completed_at) : "—"}
                                                 </td>
                                                 {/* Served By */}
                                                 <td style={{ ...tdStyle, color: "var(--q-text-sub)", fontSize: 12, whiteSpace: "nowrap" }}>
-                                                    {h.served_by_staff_name || <span style={{ color: "var(--q-text-muted)" }}>—</span>}
+                                                    {h.status === "done" ? (
+                                                        h.served_by_staff_name || <span style={{ color: "var(--q-text-muted)" }}>—</span>
+                                                    ) : h.status === "skipped" && h.served_by_staff_name ? (
+                                                        <span className="text-[11px] text-slate-400" title="Called by staff">Called: {h.served_by_staff_name}</span>
+                                                    ) : (
+                                                        <span style={{ color: "var(--q-text-muted)" }}>—</span>
+                                                    )}
                                                 </td>
                                                 {/* View button */}
                                                 <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>

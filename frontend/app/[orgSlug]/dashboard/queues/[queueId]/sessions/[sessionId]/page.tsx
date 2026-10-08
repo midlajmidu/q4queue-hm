@@ -872,7 +872,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     const handleNext = useCallback(async () => {
         const prefix = state?.prefix ?? "";
         await performAction("next", async () => {
-            const res = await api.callNext(queueId, "skipped");
+            const res = await api.callNext(queueId, "done");
             if ("message" in res) toast(res.message, "info");
             else toast(`${prefix}${res.serving} is now serving`, "success");
         });
@@ -3532,7 +3532,8 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
 });
 
 // ── Queue History Section ──────────────────────────────────────────
-function calcSvcTime(served?: string | null, completed?: string | null): string {
+function calcSvcTime(served?: string | null, completed?: string | null, status?: string): string {
+    if (status && status !== "done") return "—";
     if (!served || !completed) return "—";
     const diffMs = new Date(completed).getTime() - new Date(served).getTime();
     if (diffMs < 0) return "—";
@@ -3847,18 +3848,22 @@ function QueueHistory({
                                         </td>
                                         <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{calcWaitTime(item.created_at, item.served_at, item.status)}</td>
                                         <td className="text-emerald-600 dark:text-emerald-400 font-medium" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
-                                            {calcSvcTime(item.served_at, item.completed_at)}
+                                            {calcSvcTime(item.served_at, item.completed_at, item.status)}
                                         </td>
                                         <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap", fontSize: 12.5 }}>
-                                            {(item.completed_by_staff_name || item.served_by_staff_name) ? (
-                                                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                                    {item.completed_by_staff_name && (
-                                                        <span className="text-slate-800 dark:text-slate-200" title="Completed By">C: {item.completed_by_staff_name}</span>
-                                                    )}
-                                                    {(item.served_by_staff_name && item.served_by_staff_name !== item.completed_by_staff_name) && (
-                                                        <span className="text-slate-500 dark:text-slate-400 text-[11px]" title="Served By">S: {item.served_by_staff_name}</span>
-                                                    )}
-                                                </div>
+                                            {item.status === "done" ? (
+                                                (item.completed_by_staff_name || item.served_by_staff_name) ? (
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                                        {item.completed_by_staff_name && (
+                                                            <span className="text-slate-800 dark:text-slate-200" title="Completed By">C: {item.completed_by_staff_name}</span>
+                                                        )}
+                                                        {(item.served_by_staff_name && item.served_by_staff_name !== item.completed_by_staff_name) && (
+                                                            <span className="text-slate-500 dark:text-slate-400 text-[11px]" title="Served By">S: {item.served_by_staff_name}</span>
+                                                        )}
+                                                    </div>
+                                                ) : <span className="text-slate-400 dark:text-slate-500">—</span>
+                                            ) : item.status === "skipped" && item.served_by_staff_name ? (
+                                                <span className="text-slate-400 dark:text-slate-500 text-[11px]" title="Called by">Called: {item.served_by_staff_name}</span>
                                             ) : <span className="text-slate-400 dark:text-slate-500">—</span>}
                                         </td>
                                         {hasServiceLines && (
