@@ -83,16 +83,22 @@ async def create_queue(
 
     is_dine = bool((org and getattr(org, "branch_type", "standard") == "dine") or (data.table_config and len(data.table_config) > 0))
 
-    fields = list(data.custom_fields) if data.custom_fields else []
-    if is_dine and not any(f.get("key") in ("pax", "pax_count", "no_of_pax") for f in fields):
-        fields.append({
-            "id": "default_pax",
-            "key": "pax",
-            "label": "Number of Pax",
-            "type": "number",
-            "required": True,
-            "order": len(fields),
-        })
+    default_fields = [
+        {"id": "default_name", "key": "name", "label": "Full Name", "type": "text", "required": True, "order": 0},
+        {"id": "default_phone", "key": "phone", "label": "Phone Number", "type": "phone", "required": True, "order": 1},
+        {"id": "default_pax", "key": "pax", "label": "Number of Pax", "type": "number", "required": True, "order": 2},
+    ]
+
+    if data.custom_fields:
+        fields = list(data.custom_fields)
+        if not any(f.get("key") in ("name", "full_name") for f in fields):
+            fields.insert(0, default_fields[0])
+        if not any(f.get("key") in ("phone", "phone_number") for f in fields):
+            fields.insert(1, default_fields[1])
+        if is_dine and not any(f.get("key") in ("pax", "pax_count", "no_of_pax", "number_of_pax") for f in fields):
+            fields.append(default_fields[2])
+    else:
+        fields = list(default_fields)
 
     queue_type = data.queue_type or "normal"
     if queue_type != "zone" and service_lines > 0:

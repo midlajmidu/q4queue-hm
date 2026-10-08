@@ -1288,6 +1288,10 @@ async def update_organization(
             queues_res = await db.execute(select(Queue).where(Queue.org_id == org.id, Queue.is_deleted == False))
             for q in queues_res.scalars().all():
                 fields = list(q.custom_fields or [])
+                if not any(f.get("key") in ("name", "full_name") for f in fields):
+                    fields.insert(0, {"id": f"field_name_default_{q.id}", "key": "name", "label": "Full Name", "type": "text", "required": True, "order": 0})
+                if not any(f.get("key") in ("phone", "phone_number") for f in fields):
+                    fields.insert(1, {"id": f"field_phone_default_{q.id}", "key": "phone", "label": "Phone Number", "type": "phone", "required": True, "order": 1})
                 if not any(f.get("key") in ("pax", "pax_count", "no_of_pax", "number_of_pax") for f in fields):
                     fields.append({
                         "id": f"field_pax_default_{q.id}",
@@ -1297,8 +1301,8 @@ async def update_organization(
                         "required": True,
                         "order": len(fields),
                     })
-                    q.custom_fields = fields
-                    flag_modified(q, "custom_fields")
+                q.custom_fields = fields
+                flag_modified(q, "custom_fields")
     
     if body.max_sessions is not None:
         org.max_sessions = body.max_sessions

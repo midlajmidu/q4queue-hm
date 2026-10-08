@@ -1095,8 +1095,19 @@ export default function QueueDetailPage({ params }: PageProps) {
         if (!showAddForm) setAddFormError(null);
     }, [showAddForm]);
 
-    const hasAdminCustomFieldsConfigured = Array.isArray(state?.custom_fields);
-    const adminCustomFieldsList = state?.custom_fields || [];
+    const adminCustomFieldsList = React.useMemo(() => {
+        if (!Array.isArray(state?.custom_fields)) return [];
+        const result = [...state.custom_fields];
+        if (!result.some(f => f.key === 'name' || f.key === 'full_name')) {
+            result.unshift({ id: "default_name", key: "name", label: "Full Name", type: "text", required: true, order: 0 });
+        }
+        if (!result.some(f => f.key === 'phone' || f.key === 'phone_number')) {
+            const nameIdx = result.findIndex(f => f.key === 'name' || f.key === 'full_name');
+            result.splice(nameIdx + 1, 0, { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 });
+        }
+        return result;
+    }, [state?.custom_fields]);
+    const hasAdminCustomFieldsConfigured = adminCustomFieldsList.length > 0;
 
     const isAddFormValid = React.useMemo(() => {
         if (hasAdminCustomFieldsConfigured) {

@@ -395,11 +395,45 @@ export default function JoinQueuePage({ params }: PageProps) {
     const isPhoneValid = /^\d{10}$/.test(customerPhone);
     const isPaxValid = paxCount >= 1 && paxCount <= 99;
     const isLegacyFormValid = isNameValid && isPhoneValid && companionInput.trim() !== "" && isPaxValid;
-    const hasCustomFieldsConfigured = Array.isArray(live?.custom_fields);
-    const customFieldsList = live?.custom_fields || [];
-    const isFormValid = hasCustomFieldsConfigured
-        ? (customFieldsList.length > 0 && !customFieldsList.some(f => f.required && !customData[f.key]))
-        : isLegacyFormValid;
+    const customFieldsList = React.useMemo(() => {
+        if (!Array.isArray(live?.custom_fields)) return [];
+        const result = [...live.custom_fields];
+        if (!result.some(f => f.key === 'name' || f.key === 'full_name')) {
+            result.unshift({ id: "default_name", key: "name", label: "Full Name", type: "text", required: true, order: 0 });
+        }
+        if (!result.some(f => f.key === 'phone' || f.key === 'phone_number')) {
+            const nameIdx = result.findIndex(f => f.key === 'name' || f.key === 'full_name');
+            result.splice(nameIdx + 1, 0, { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 });
+        }
+        if (isDineQueue && !result.some(f => f.key === 'pax' || f.key === 'pax_count' || f.key === 'group_size' || f.label?.toLowerCase().includes('pax'))) {
+            result.push({ id: "default_pax", key: "pax", label: "Number of Pax", type: "number", required: true, order: result.length });
+        }
+        return result;
+    }, [live?.custom_fields, isDineQueue]);
+    const hasCustomFieldsConfigured = customFieldsList.length > 0;
+
+    const isCustomFormValid = React.useMemo(() => {
+        if (!hasCustomFieldsConfigured) return false;
+        return customFieldsList.every(f => {
+            if (!f.required) return true;
+            const val = customData[f.key];
+            if (val === undefined || val === null || String(val).trim() === "") return false;
+            if (f.type === "phone") {
+                const digits = String(val).replace(/\D/g, "");
+                return digits.length === 10;
+            }
+            if (f.key === "name" || f.label?.toLowerCase().includes("name")) {
+                return /^[A-Za-z\s'-]{2,50}$/.test(String(val).trim());
+            }
+            if (f.key === "pax" || f.label?.toLowerCase().includes("pax")) {
+                const num = parseInt(String(val));
+                return num >= 1 && num <= 99;
+            }
+            return true;
+        });
+    }, [hasCustomFieldsConfigured, customFieldsList, customData]);
+
+    const isFormValid = hasCustomFieldsConfigured ? isCustomFormValid : isLegacyFormValid;
 
     // Called after WhatsApp consent answer (or re-called when user confirms force_new)
     const doJoin = useCallback(async (sendWhatsApp: boolean, forceNewOverride = false) => {
