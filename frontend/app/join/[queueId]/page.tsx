@@ -4,7 +4,7 @@ import React, { use, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useQueueSocket } from "@/hooks/useQueueSocket";
-import { Clock, Lock, Ticket, ArrowRight, X } from "lucide-react";
+import { Clock, Lock } from "lucide-react";
 import ConnectionBadge from "@/components/ConnectionBadge";
 import type { JoinResponse, TokenStatus, QueuePublicStatus } from "@/types/api";
 
@@ -174,97 +174,92 @@ function DuplicateTokenModal({
     onClose,
 }: DuplicateTokenModalProps) {
     const formattedToken = `${prefix}${tokenNumber}`;
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Escape") onClose();
-        };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [onClose]);
-
     return (
-        <div 
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="duplicate-modal-title"
-        >
-            {/* Backdrop */}
+        <>
             <div
                 onClick={onClose}
-                className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-200"
-                aria-hidden="true"
+                style={{
+                    position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+                    zIndex: 45, backdropFilter: "blur(4px)",
+                    animation: "fadeIn 0.15s ease"
+                }}
             />
+            <div style={{
+                position: "fixed", bottom: 0, left: 0, right: 0,
+                background: "#fff", borderRadius: "24px 24px 0 0",
+                padding: "28px 24px 36px",
+                zIndex: 50, maxWidth: 480, margin: "0 auto",
+                animation: "slideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
+                boxShadow: "0 -10px 40px rgba(0,0,0,0.12)"
+            }}>
+                <div style={{
+                    width: 40, height: 4, background: "#e2e8f0",
+                    borderRadius: 4, margin: "0 auto 20px"
+                }} />
 
-            {/* Modal Card / Bottom Sheet */}
-            <div 
-                className="relative w-full max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-6 z-10 border border-slate-200 transition-all text-center"
-            >
-                {/* Close Button */}
-                <button
-                    onClick={onClose}
-                    aria-label="Close"
-                    className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-                >
-                    <X className="w-4 h-4" />
-                </button>
-
-                {/* Mobile Drag Indicator */}
-                <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4 sm:hidden" />
-
-                {/* Minimal Icon Badge */}
-                <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mx-auto mb-3">
-                    <Ticket className="w-5 h-5 stroke-[1.75]" />
-                </div>
-
-                {/* Typography Header */}
-                <h2 id="duplicate-modal-title" className="text-base font-semibold text-slate-900 tracking-tight">
-                    Active Ticket Found
-                </h2>
-                <p className="text-xs text-slate-500 mt-1 max-w-[260px] mx-auto">
-                    A ticket is already linked to this phone number.
-                </p>
-
-                {/* Minimal Token Display Box */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-xl py-3.5 px-4 my-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">
-                        Token Number
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900 tracking-tight tabular-nums font-mono">
-                        #{formattedToken}
-                    </p>
-                    <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500 mt-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span>Live in Queue</span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12, marginBottom: 24 }}>
+                    <div style={{
+                        width: 58, height: 58, borderRadius: "50%",
+                        background: "#eff6ff", border: "2px solid #bfdbfe",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#2563eb"
+                    }}>
+                        <span style={{ fontSize: 22, fontWeight: 900 }}>#{formattedToken}</span>
+                    </div>
+                    <div>
+                        <h3 style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                            Active Token Found
+                        </h3>
+                        <p style={{ fontSize: 13.5, color: "#64748b", marginTop: 8, lineHeight: 1.5, maxWidth: 360, margin: "8px auto 0" }}>
+                            An active token <strong style={{ color: "#0f172a" }}>#{formattedToken}</strong> already exists for this phone number.
+                        </p>
+                        <div style={{
+                            marginTop: 14,
+                            padding: "10px 16px",
+                            backgroundColor: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 12,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            color: "#475569",
+                            fontSize: 13,
+                            fontWeight: 600,
+                        }}>
+                            <span>Please see staff if you need another token.</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Subtle Helper Note */}
-                <p className="text-[11.5px] text-slate-400 leading-relaxed mb-5">
-                    Need a separate token for another party? Please speak with our host on-site.
-                </p>
-
-                {/* Actions */}
-                <div className="space-y-2">
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     <button
                         onClick={onViewActive}
-                        className="w-full py-3 px-4 rounded-xl text-white font-medium text-sm transition-opacity hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2 shadow-xs"
-                        style={{ backgroundColor: brandColor || "#4f46e5" }}
+                        style={{
+                            width: "100%", padding: "14px 0",
+                            backgroundColor: brandColor,
+                            color: "#fff", fontWeight: 700, fontSize: 14.5,
+                            border: "none", borderRadius: 14, cursor: "pointer",
+                            boxShadow: "0 4px 14px rgba(37,99,235,0.25)",
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                        }}
                     >
-                        <span>View Active Ticket</span>
-                        <ArrowRight className="w-4 h-4" />
+                        <span>View Active Token (#{formattedToken})</span>
                     </button>
 
                     <button
                         onClick={onClose}
-                        className="w-full py-2.5 px-4 rounded-xl text-slate-500 hover:text-slate-800 text-xs font-medium transition-colors text-center"
+                        style={{
+                            width: "100%", padding: "10px 0",
+                            background: "transparent", color: "#94a3b8",
+                            fontWeight: 600, fontSize: 13,
+                            border: "none", cursor: "pointer"
+                        }}
                     >
-                        Cancel & Edit Phone
+                        Cancel & Edit Form
                     </button>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
 
@@ -723,9 +718,8 @@ export default function JoinQueuePage({ params }: PageProps) {
                                         )}
                                         <div
                                             ref={activeServingTokens.length > 3 ? scrollContainerRef : undefined}
-                                            className={`flex items-center gap-2 overflow-x-auto whitespace-nowrap hide-scroll py-1 px-1 ${
-                                                activeServingTokens.length <= 3 ? "justify-center" : "justify-start cursor-grab active:cursor-grabbing select-none"
-                                            }`}
+                                            className={`flex items-center gap-2 overflow-x-auto whitespace-nowrap hide-scroll py-1 px-1 ${activeServingTokens.length <= 3 ? "justify-center" : "justify-start cursor-grab active:cursor-grabbing select-none"
+                                                }`}
                                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                                             onMouseDown={activeServingTokens.length > 3 ? handleMouseDown : undefined}
                                             onMouseUp={activeServingTokens.length > 3 ? handleMouseUpOrLeave : undefined}
@@ -860,7 +854,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                     {isDineQueue ? "Active Table Waitlist Ticket" : "Active Ticket in this Queue"}
                                                 </p>
                                                 <p className="text-[11px] text-slate-600 mt-0.5">
-                                                    {isDineQueue 
+                                                    {isDineQueue
                                                         ? `You already have active waitlist Token #${activeTicketBanner.prefix || ""}{activeTicketBanner.tokenNumber}.`
                                                         : `You already have Token #${activeTicketBanner.prefix || ""}{activeTicketBanner.tokenNumber} active.`}
                                                 </p>
@@ -1085,11 +1079,10 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                                         type="button"
                                                                         onClick={() => setCompanionInput(String(paxNum))}
                                                                         disabled={isJoining || queueClosed}
-                                                                        className={`py-2.5 rounded-xl font-bold text-xs transition-all ${
-                                                                            isSelected
+                                                                        className={`py-2.5 rounded-xl font-bold text-xs transition-all ${isSelected
                                                                                 ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900/20"
                                                                                 : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
-                                                                        }`}
+                                                                            }`}
                                                                     >
                                                                         {paxNum}
                                                                     </button>
@@ -1220,3 +1213,4 @@ export default function JoinQueuePage({ params }: PageProps) {
         </>
     );
 }
+
