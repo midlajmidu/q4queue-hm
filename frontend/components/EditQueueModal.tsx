@@ -362,7 +362,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                     {/* Sticky Drawer Header */}
                     <div className="px-4 py-4 sm:px-6 sm:py-5 border-b border-slate-100 dark:border-white/5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex items-start justify-between gap-4 shrink-0">
                         <div className="flex items-center gap-3 min-w-0">
-                            <div className={`w-10 h-10 rounded-xl ${isDineQueue ? "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400" : "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400"} flex items-center justify-center shrink-0`}>
+                            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                                 {isDineQueue ? (
                                     <Utensils className="w-5 h-5" />
                                 ) : (
@@ -475,10 +475,10 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                             <div>
                                 <div className="flex items-center justify-between mb-2">
                                     <label className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                                        <Utensils className="w-3.5 h-3.5 text-amber-500" />
+                                        <Utensils className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                                         Table Floor & Area Setup
                                     </label>
-                                    <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-900/40">
+                                    <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-200/60 dark:border-indigo-900/40">
                                         {floorsSetup.length} {floorsSetup.length === 1 ? "Floor" : "Floors"} · {tables.length} Tables · {tables.reduce((acc, t) => acc + (Number(t.capacity) || 0), 0)} Seats
                                     </span>
                                 </div>
@@ -494,13 +494,13 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                                 onClick={() => setActiveSetupFloorId(fl.id)}
                                                 className={`p-2.5 rounded-xl border transition-all cursor-pointer relative ${
                                                     isActive
-                                                        ? "border-amber-500 bg-amber-500/10 dark:bg-amber-950/40 text-amber-950 dark:text-amber-200 ring-1 ring-amber-500/30"
+                                                        ? "border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-200 ring-1 ring-indigo-500/30"
                                                         : "border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-white/20 text-slate-700 dark:text-slate-300"
                                                 }`}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs font-bold truncate flex items-center gap-1.5">
-                                                        <Layers className="w-3.5 h-3.5 text-amber-500" />
+                                                        <Layers className="w-3.5 h-3.5 text-indigo-500" />
                                                         {fl.name}
                                                     </span>
                                                     {floorsSetup.length > 1 && (
@@ -520,7 +520,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                                 <div className="flex items-center justify-between mt-1 text-[11px]">
                                                     <span className="text-slate-500 dark:text-slate-400 font-medium">{count} tables</span>
                                                     {isActive && (
-                                                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
                                                             ● Active
                                                         </span>
                                                     )}
@@ -531,10 +531,10 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                 </div>
 
                                 {/* Quick Split Action Buttons */}
-                                <div className="p-3 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent dark:from-amber-950/40 rounded-xl border border-amber-200/60 dark:border-amber-900/40 mb-3 space-y-2">
+                                <div className="p-3 bg-gradient-to-r from-indigo-500/10 via-indigo-500/5 to-transparent dark:from-indigo-950/40 rounded-xl border border-indigo-200/60 dark:border-indigo-900/40 mb-3 space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[11px] font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
-                                            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                        <span className="text-[11px] font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+                                            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
                                             Quick Table Split Presets
                                         </span>
                                         <span className="text-[10px] text-slate-500 dark:text-slate-400">Instant distribution</span>
@@ -543,14 +543,14 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                         <button
                                             type="button"
                                             onClick={() => quickSplitFloors([8, 12])}
-                                            className="px-2.5 py-1 text-xs font-black rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-xs cursor-pointer flex items-center gap-1"
                                         >
                                             <span>⚡ 8 Down / 12 Up (20 Tables)</span>
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => quickSplitFloors([10, 10])}
-                                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:border-amber-400 transition-all cursor-pointer"
+                                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:border-indigo-400 transition-all cursor-pointer"
                                         >
                                             10 / 10 Even Split
                                         </button>
@@ -560,7 +560,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                                 const half = Math.ceil(tables.length / 2);
                                                 quickSplitFloors([half, Math.max(0, tables.length - half)]);
                                             }}
-                                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:border-amber-400 transition-all cursor-pointer"
+                                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:border-indigo-400 transition-all cursor-pointer"
                                         >
                                             Split Current 50/50
                                         </button>
@@ -576,7 +576,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                                 value={newFloorInputName}
                                                 onChange={(e) => setNewFloorInputName(e.target.value)}
                                                 placeholder="e.g. First Floor (Up), Terrace, VIP Room"
-                                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amber-500"
+                                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
                                                 autoFocus
                                                 onKeyDown={(e) => {
                                                     if (e.key === "Enter") {
@@ -588,7 +588,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                             <button
                                                 type="button"
                                                 onClick={() => addFloorSetup()}
-                                                className="px-3 py-1 bg-amber-500 text-slate-950 font-bold text-xs rounded-lg hover:bg-amber-400 transition-colors"
+                                                className="px-3 py-1 bg-indigo-600 text-white font-bold text-xs rounded-lg hover:bg-indigo-700 transition-colors"
                                             >
                                                 Add
                                             </button>
@@ -608,7 +608,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                             type="button"
                                             onClick={() => setIsAddingFloor(true)}
                                             disabled={floorsSetup.length >= 5}
-                                            className="w-full py-1.5 px-3 rounded-xl border border-dashed border-amber-300 dark:border-amber-900/60 text-amber-700 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                                            className="w-full py-1.5 px-3 rounded-xl border border-dashed border-indigo-300 dark:border-indigo-900/60 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
                                         >
                                             <PlusCircle className="w-3.5 h-3.5" />
                                             + Add New Floor / Area (Max 5)
@@ -640,12 +640,12 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                             onClick={() => setActiveSetupFloorId(fl.id)}
                                             className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 ${
                                                 isSel
-                                                    ? "bg-amber-500 text-slate-950 font-black shadow-xs"
+                                                    ? "bg-indigo-600 text-white font-black shadow-xs"
                                                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                                             }`}
                                         >
                                             <span>{fl.name}</span>
-                                            <span className={`text-[10px] px-1 rounded-full ${isSel ? "bg-black/20 text-slate-950" : "bg-slate-200 dark:bg-slate-700"}`}>
+                                            <span className={`text-[10px] px-1 rounded-full ${isSel ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700"}`}>
                                                 {count}
                                             </span>
                                         </button>
@@ -661,7 +661,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                     .map(({ tbl, originalIdx }) => (
                                         <div key={originalIdx} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-white dark:bg-slate-800 p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-white/10">
                                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                <div className="w-6 h-6 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[11px] font-black shrink-0">
+                                                <div className="w-6 h-6 rounded bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 flex items-center justify-center text-[11px] font-black shrink-0">
                                                     T{originalIdx + 1}
                                                 </div>
                                                 <input
@@ -669,7 +669,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                                     value={tbl.name}
                                                     onChange={(e) => updateTable(originalIdx, { name: e.target.value })}
                                                     placeholder={`Table ${originalIdx + 1}`}
-                                                    className="flex-1 min-w-[70px] px-2 py-1 text-xs font-semibold rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-800 dark:text-white focus:outline-none focus:border-amber-500"
+                                                    className="flex-1 min-w-[70px] px-2 py-1 text-xs font-semibold rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
                                                 />
 
                                                 {/* Floor Assignment Dropdown */}
@@ -677,7 +677,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                                     <select
                                                         value={tbl.section || "ground"}
                                                         onChange={(e) => moveTableToFloor(originalIdx, e.target.value)}
-                                                        className="text-[11px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded px-1.5 py-1 border border-transparent hover:border-amber-400 focus:outline-none cursor-pointer max-w-[120px] truncate"
+                                                        className="text-[11px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded px-1.5 py-1 border border-transparent hover:border-indigo-400 focus:outline-none cursor-pointer max-w-[120px] truncate"
                                                         title="Assign to Floor"
                                                     >
                                                         {floorsSetup.map(fl => (
@@ -700,7 +700,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                                                 onClick={() => updateTable(originalIdx, { capacity: cap })}
                                                                 className={`px-1.5 py-0.5 text-[11px] font-bold rounded transition-colors ${
                                                                     tbl.capacity === cap
-                                                                        ? "bg-amber-500 text-white font-black"
+                                                                        ? "bg-indigo-600 text-white font-black"
                                                                         : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
                                                                 }`}
                                                             >
@@ -726,7 +726,7 @@ export default function EditQueueModal({ isOpen, onClose, onUpdated, queue }: Pr
                                 type="button"
                                 onClick={addTable}
                                 disabled={tables.length >= 50}
-                                className="w-full py-2 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 rounded-lg border border-amber-200 dark:border-amber-900/40 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full py-2 text-xs font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 rounded-lg border border-indigo-200 dark:border-indigo-900/40 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <PlusCircle className="w-3.5 h-3.5" />
                                 {tables.length >= 50
