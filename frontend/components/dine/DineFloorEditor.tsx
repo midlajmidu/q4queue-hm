@@ -349,10 +349,10 @@ export default function DineFloorEditor({
         <button
           type="button"
           onClick={() => setIsMinimized(false)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-2xl border border-amber-300 cursor-pointer"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xl shadow-indigo-600/25 border border-indigo-400/30 cursor-pointer transition-all"
         >
           <Sparkles size={13} />
-          <span>Editor ({floor.name})</span>
+          <span>Layout Builder ({floor.name})</span>
           <ChevronUp size={14} />
         </button>
       </div>
@@ -362,14 +362,14 @@ export default function DineFloorEditor({
   return (
     <div className="absolute right-0 top-9 sm:top-10 bottom-0 w-full sm:w-72 md:w-80 max-w-[92vw] sm:max-w-none z-30 bg-slate-950/95 backdrop-blur-xl border-l border-white/10 flex flex-col overflow-hidden shadow-2xl transition-all">
       {/* Header */}
-      <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-white/5 bg-gradient-to-r from-amber-500/10 to-transparent">
+      <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-white/10 bg-slate-900/90">
         <div className="flex items-center justify-between">
-          <div className="text-[11px] sm:text-[12px] font-black text-amber-400 tracking-wider uppercase flex items-center gap-1.5">
-            <Sparkles size={13} />
+          <div className="text-[11px] sm:text-[12px] font-black text-white tracking-wider uppercase flex items-center gap-1.5">
+            <Sparkles size={13} className="text-indigo-400" />
             <span>Layout Builder</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
               0.5m Snap
             </span>
             <button
@@ -394,8 +394,8 @@ export default function DineFloorEditor({
             onClick={() => setActiveTab(tab)}
             className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center ${
               activeTab === tab
-                ? "text-amber-400 border-b-2 border-amber-400 bg-amber-500/5"
-                : "text-slate-500 hover:text-slate-300"
+                ? "text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/10"
+                : "text-slate-400 hover:text-slate-200"
             }`}
           >
             {tab === "walls" ? "Walls & Doors" : tab}
@@ -418,25 +418,25 @@ export default function DineFloorEditor({
               <button
                 type="button"
                 onClick={() => setIsAddingTable((v) => !v)}
-                className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/10 hover:from-amber-500/30 hover:to-amber-600/20 border border-amber-500/30 text-amber-300 font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                className="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-indigo-600/20 transition-all"
               >
                 {isAddingTable ? (
                   <>
-                    <X size={13} className="text-amber-400" />
+                    <X size={13} />
                     <span>Cancel Add Table</span>
                   </>
                 ) : (
                   <>
-                    <Plus size={13} className="text-amber-400" />
+                    <Plus size={13} />
                     <span>+ Add Table to Floor</span>
                   </>
                 )}
               </button>
 
               {isAddingTable && (
-                <div className="bg-black/50 border border-amber-500/30 rounded-2xl p-3 flex flex-col gap-2.5 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+                <div className="bg-black/50 border border-indigo-500/30 rounded-2xl p-3 flex flex-col gap-2.5 shadow-xl animate-in fade-in zoom-in-95 duration-150">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                    <span className="text-[11px] font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1">
                       <Sparkles size={12} />
                       <span>New Table Setup</span>
                     </span>
@@ -458,7 +458,7 @@ export default function DineFloorEditor({
                       <select
                         value={newTableFloorId}
                         onChange={(e) => setNewTableFloorId(e.target.value)}
-                        className="w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+                        className="w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         {allFloors.map((fl) => (
                           <option key={fl.id} value={fl.id}>
@@ -479,7 +479,7 @@ export default function DineFloorEditor({
                       placeholder={`e.g. T-${floor.tables.length + 1}`}
                       value={newTableName}
                       onChange={(e) => setNewTableName(e.target.value)}
-                      className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                      className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                     />
                   </div>
 
@@ -496,7 +496,7 @@ export default function DineFloorEditor({
                           onClick={() => setNewTableCapacity(cap)}
                           className={`flex-1 py-1 rounded-lg text-xs font-black cursor-pointer transition-all ${
                             newTableCapacity === cap
-                              ? "bg-amber-500 text-slate-950 font-black shadow"
+                              ? "bg-indigo-600 text-white font-black shadow-xs"
                               : "bg-white/10 hover:bg-white/15 text-slate-300"
                           }`}
                         >
@@ -519,7 +519,7 @@ export default function DineFloorEditor({
                           onClick={() => setNewTableShape(shape)}
                           className={`flex items-center justify-center gap-1 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                             newTableShape === shape
-                              ? "bg-amber-500 text-slate-950 font-black shadow-sm"
+                              ? "bg-indigo-600 text-white font-black shadow-xs"
                               : "bg-white/10 hover:bg-white/15 text-slate-300"
                           }`}
                         >
@@ -533,7 +533,7 @@ export default function DineFloorEditor({
                   <button
                     type="button"
                     onClick={handleAddNewTable}
-                    className="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-lg mt-1 transition-colors"
+                    className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-lg mt-1 transition-colors"
                   >
                     <Plus size={14} />
                     <span>Place Table on Floor</span>
@@ -542,98 +542,7 @@ export default function DineFloorEditor({
               )}
             </div>
 
-            {/* ── Multi-Floor Split & Table Transfers ── */}
-            {allFloors && allFloors.length > 1 && (
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-2.5 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Split size={12} className="text-amber-400" />
-                    <span>Split Tables Between Floors</span>
-                  </span>
-                  <span className="text-[9px] text-slate-400 font-bold truncate max-w-[120px]">
-                    {allFloors.map((f) => `${f.name.replace(/\s*\(.*\)/, "")}: ${f.tables.length}`).join(" · ")}
-                  </span>
-                </div>
 
-                {otherFloors.length > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-400 shrink-0">Target:</span>
-                    <select
-                      value={splitTargetFloorId}
-                      onChange={(e) => setSplitTargetFloorId(e.target.value)}
-                      className="flex-1 bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-amber-400 cursor-pointer"
-                    >
-                      {otherFloors.map((of) => (
-                        <option key={of.id} value={of.id}>
-                          {of.name} ({of.tables.length} tables)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-1 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onSplitTables && splitTargetFloorId) {
-                        onSplitTables(floor.id, splitTargetFloorId, 1);
-                        const tgtName = otherFloors.find((f) => f.id === splitTargetFloorId)?.name || "Target Floor";
-                        toast.success(`Moved 1 table to ${tgtName}`);
-                      }
-                    }}
-                    disabled={floor.tables.length === 0}
-                    className="py-1 px-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-slate-200 text-[10px] font-bold text-center transition-all cursor-pointer disabled:opacity-40"
-                  >
-                    Move 1 Table →
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onSplitTables && splitTargetFloorId) {
-                        const count = Math.min(4, floor.tables.length);
-                        onSplitTables(floor.id, splitTargetFloorId, count);
-                        const tgtName = otherFloors.find((f) => f.id === splitTargetFloorId)?.name || "Target Floor";
-                        toast.success(`Moved ${count} tables to ${tgtName}`);
-                      }
-                    }}
-                    disabled={floor.tables.length === 0}
-                    className="py-1 px-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-slate-200 text-[10px] font-bold text-center transition-all cursor-pointer disabled:opacity-40"
-                  >
-                    Move 4 Tables →
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onSplitTables && splitTargetFloorId) {
-                        const total = floor.tables.length + (otherFloors.find((f) => f.id === splitTargetFloorId)?.tables.length || 0);
-                        if (total === 20) {
-                          const diff = floor.tables.length - 8;
-                          if (diff > 0) {
-                            onSplitTables(floor.id, splitTargetFloorId, diff);
-                          } else if (diff < 0) {
-                            onSplitTables(splitTargetFloorId, floor.id, -diff);
-                          }
-                          toast.success("Enforced 8 Down / 12 Up table split!");
-                        } else {
-                          const half = Math.floor(floor.tables.length / 2);
-                          if (half > 0) {
-                            onSplitTables(floor.id, splitTargetFloorId, half);
-                            toast.success(`Split ${half} tables to ${otherFloors.find((f) => f.id === splitTargetFloorId)?.name}`);
-                          }
-                        }
-                      }
-                    }}
-                    className="flex-1 py-1 px-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-[10px] font-bold text-center transition-all cursor-pointer"
-                  >
-                    ⚡ 8 Down / 12 Up Split
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Table selection list */}
             <div className="flex flex-col gap-1.5">
@@ -648,14 +557,14 @@ export default function DineFloorEditor({
                       onAutoFitRoom();
                       toast.success("Room fitted tightly to placed tables!");
                     }}
-                    className="text-[9px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+                    className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
                   >
                     <Sparkles size={10} />
                     <span>Auto-Fit Room</span>
                   </button>
                 )}
               </div>
-              <div className="flex flex-col gap-1 max-h-44 overflow-y-auto pr-1">
+              <div className="flex flex-col gap-1 max-h-56 overflow-y-auto pr-1">
                 {floor.tables.map((tbl) => {
                   const dims = getTableDimensions(tbl.capacity, tbl.shape, tbl.width, tbl.depth);
                   const isSel = selectedTableId === tbl.id;
@@ -667,7 +576,7 @@ export default function DineFloorEditor({
                       onClick={() => setSelectedTableId(isSel ? null : tbl.id)}
                       className={`p-2 rounded-xl border cursor-pointer transition-all ${
                         isSel
-                          ? "bg-amber-500/15 border-amber-500/40 text-white shadow-sm"
+                          ? "bg-indigo-500/20 border-indigo-500/40 text-white shadow-sm"
                           : "bg-white/5 border-white/5 text-slate-300 hover:bg-white/10"
                       }`}
                     >
@@ -679,7 +588,7 @@ export default function DineFloorEditor({
                               {tbl.capacity} Pax
                             </span>
                             {isCustom && (
-                              <span className="text-[8px] px-1 rounded bg-amber-500/20 text-amber-300 font-bold shrink-0">
+                              <span className="text-[8px] px-1 rounded bg-indigo-500/20 text-indigo-300 font-bold shrink-0">
                                 Extended
                               </span>
                             )}
@@ -697,7 +606,7 @@ export default function DineFloorEditor({
                                 handleMoveToFloor(tbl.id, e.target.value);
                               }}
                               onClick={(e) => e.stopPropagation()}
-                              className="text-[9px] bg-slate-900 border border-white/10 rounded px-1.5 py-0.5 text-slate-300 font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
+                              className="text-[9px] bg-slate-900 border border-white/10 rounded px-1.5 py-0.5 text-slate-300 font-bold focus:outline-none focus:border-indigo-500 cursor-pointer"
                               title="Assign table to floor"
                             >
                               {allFloors.map((fl) => (
@@ -707,7 +616,7 @@ export default function DineFloorEditor({
                               ))}
                             </select>
                           )}
-                          <span className="text-[10px] font-mono text-amber-300/80">
+                          <span className="text-[10px] font-mono text-slate-400">
                             ({tbl.x.toFixed(1)}, {tbl.z.toFixed(1)})
                           </span>
                           <button
@@ -733,9 +642,9 @@ export default function DineFloorEditor({
 
             {/* Selected table deep controls */}
             {selectedTable && (
-              <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-3 flex flex-col gap-2.5">
+              <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-3 flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
-                  <div className="text-[12px] font-black text-amber-400">
+                  <div className="text-[12px] font-black text-indigo-400">
                     ✏️ {selectedTable.name} Settings
                   </div>
                   <span className="text-[10px] text-slate-400">
@@ -752,7 +661,7 @@ export default function DineFloorEditor({
                     type="text"
                     value={selectedTable.name}
                     onChange={(e) => onUpdateTable(selectedTable.id, { name: e.target.value })}
-                    className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-indigo-500"
                   />
                 </div>
 
@@ -761,14 +670,14 @@ export default function DineFloorEditor({
                   <div className="bg-black/30 rounded-xl p-2.5 border border-white/5">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                        <Layers size={11} className="text-amber-400" />
+                        <Layers size={11} className="text-indigo-400" />
                         <span>Move to Floor / Section</span>
                       </span>
                     </div>
                     <select
                       value={floor.id}
                       onChange={(e) => handleMoveToFloor(selectedTable.id, e.target.value)}
-                      className="w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-amber-300 font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
+                      className="w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-indigo-500 cursor-pointer"
                     >
                       {allFloors.map((fl) => (
                         <option key={fl.id} value={fl.id}>
@@ -820,7 +729,7 @@ export default function DineFloorEditor({
                   return (
                     <div className="bg-black/30 rounded-xl p-2.5 border border-white/5 flex flex-col gap-2.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1">
                           <Sliders size={12} />
                           <span>Extend Table Sides</span>
                         </span>
@@ -832,7 +741,7 @@ export default function DineFloorEditor({
                             <button
                               type="button"
                               onClick={() => handleResetDimensions(selectedTable.id)}
-                              className="text-[9px] text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                              className="text-[9px] text-indigo-400 hover:text-indigo-300 underline cursor-pointer"
                             >
                               Reset
                             </button>
@@ -858,7 +767,7 @@ export default function DineFloorEditor({
                                   parseFloat(e.target.value) || baseDims.tableW
                                 )
                               }
-                              className="w-14 bg-slate-900 border border-white/10 rounded px-1.5 py-0.5 text-[10px] font-mono text-white text-right focus:outline-none focus:border-amber-400"
+                              className="w-14 bg-slate-900 border border-white/10 rounded px-1.5 py-0.5 text-[10px] font-mono text-white text-right focus:outline-none focus:border-indigo-500"
                             />
                             <span className="text-slate-400 text-[10px]">m</span>
                           </div>
@@ -873,7 +782,7 @@ export default function DineFloorEditor({
                           onChange={(e) =>
                             handleSetDimension(selectedTable.id, "width", parseFloat(e.target.value))
                           }
-                          className="w-full accent-amber-400 cursor-pointer h-1.5 rounded-lg bg-slate-800"
+                          className="w-full accent-indigo-500 cursor-pointer h-1.5 rounded-lg bg-slate-800"
                         />
                         {/* Stepper buttons */}
                         <div className="flex items-center justify-between gap-1 pt-0.5">
@@ -931,7 +840,7 @@ export default function DineFloorEditor({
                                     parseFloat(e.target.value) || baseDims.tableD
                                   )
                                 }
-                                className="w-14 bg-slate-900 border border-white/10 rounded px-1.5 py-0.5 text-[10px] font-mono text-white text-right focus:outline-none focus:border-amber-400"
+                                className="w-14 bg-slate-900 border border-white/10 rounded px-1.5 py-0.5 text-[10px] font-mono text-white text-right focus:outline-none focus:border-indigo-500"
                               />
                               <span className="text-slate-400 text-[10px]">m</span>
                             </div>
@@ -946,7 +855,7 @@ export default function DineFloorEditor({
                             onChange={(e) =>
                               handleSetDimension(selectedTable.id, "depth", parseFloat(e.target.value))
                             }
-                            className="w-full accent-amber-400 cursor-pointer h-1.5 rounded-lg bg-slate-800"
+                            className="w-full accent-indigo-500 cursor-pointer h-1.5 rounded-lg bg-slate-800"
                           />
                           {/* Stepper buttons */}
                           <div className="flex items-center justify-between gap-1 pt-0.5">
@@ -1037,7 +946,7 @@ export default function DineFloorEditor({
                         onClick={() => handleShapeChange(selectedTable.id, shape)}
                         className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                           selectedTable.shape === shape
-                            ? "bg-amber-500 text-slate-950 font-black shadow-sm"
+                            ? "bg-indigo-600 text-white font-black shadow-xs"
                             : "bg-white/10 hover:bg-white/15 text-slate-300"
                         }`}
                       >
@@ -1071,7 +980,7 @@ export default function DineFloorEditor({
                     <button
                       type="button"
                       onClick={() => handleRotateTable(selectedTable.id, selectedTable.rotation)}
-                      className="py-1.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-[9px] font-bold text-center cursor-pointer flex items-center justify-center gap-1"
+                      className="py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 text-[9px] font-bold text-center cursor-pointer flex items-center justify-center gap-1"
                     >
                       <RotateCw size={10} />
                       {selectedTable.rotation}°
@@ -1141,7 +1050,7 @@ export default function DineFloorEditor({
                   onClick={() => handleAddWallPreset("doorway")}
                   className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-300 text-[10px] font-bold transition-all cursor-pointer"
                 >
-                  <DoorOpen size={16} className="text-amber-400" />
+                  <DoorOpen size={16} className="text-indigo-400" />
                   <span>Doorway Wall</span>
                 </button>
                 <button
@@ -1182,7 +1091,7 @@ export default function DineFloorEditor({
                         onClick={() => setSelectedWallIndex(isSel ? null : i)}
                         className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
                           isSel
-                            ? "bg-amber-500/15 border-amber-500/40 text-white shadow-sm"
+                            ? "bg-indigo-500/20 border-indigo-500/40 text-white shadow-sm"
                             : "bg-white/5 border-white/5 text-slate-300 hover:bg-white/10"
                         }`}
                       >
@@ -1219,9 +1128,9 @@ export default function DineFloorEditor({
 
             {/* Selected Wall Controls */}
             {selectedWall && selectedWallIndex !== null && (
-              <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-3 flex flex-col gap-2.5">
+              <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-3 flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black text-amber-400">
+                  <span className="text-[11px] font-black text-indigo-400">
                     Wall #{selectedWallIndex + 1} Controls
                   </span>
                   <button
@@ -1290,7 +1199,7 @@ export default function DineFloorEditor({
                       }}
                       className={`text-[9px] font-bold px-2 py-0.5 rounded-full transition-colors cursor-pointer ${
                         selectedWall.door
-                          ? "bg-amber-500 text-black font-black"
+                          ? "bg-indigo-600 text-white font-bold"
                           : "bg-white/10 text-slate-400"
                       }`}
                     >
@@ -1361,13 +1270,13 @@ export default function DineFloorEditor({
         {activeTab === "room" && (
           <div className="p-3 flex flex-col gap-3">
             {/* ── Building Floors & Areas Management ── */}
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 flex flex-col gap-2.5">
+            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-3 flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
-                <div className="text-[10px] font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Layers size={13} className="text-amber-400" />
+                <div className="text-[10px] font-black text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers size={13} className="text-indigo-400" />
                   <span>Building Floors & Areas ({(allFloors || [floor]).length})</span>
                 </div>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">
                   {(allFloors || [floor]).reduce((a, b) => a + b.tables.length, 0)} Tables Total
                 </span>
               </div>
@@ -1382,12 +1291,12 @@ export default function DineFloorEditor({
                       onClick={() => !isCurrent && onSwitchFloor?.(fl.id)}
                       className={`p-2 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
                         isCurrent
-                          ? "bg-amber-500/20 border-amber-500/40 text-amber-200 shadow-sm"
+                          ? "bg-indigo-500/20 border-indigo-500/40 text-white shadow-sm"
                           : "bg-white/5 border-white/5 text-slate-300 hover:bg-white/10"
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className={`w-2 h-2 rounded-full ${isCurrent ? "bg-amber-400 shadow-xs" : "bg-slate-500"}`} />
+                        <span className={`w-2 h-2 rounded-full ${isCurrent ? "bg-indigo-400 shadow-xs" : "bg-slate-500"}`} />
                         <span className="text-xs font-bold truncate">{fl.name}</span>
                         <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/10 text-slate-300 font-mono">
                           {fl.tables.length} tables
@@ -1395,7 +1304,7 @@ export default function DineFloorEditor({
                       </div>
                       <div className="flex items-center gap-1">
                         {isCurrent ? (
-                          <span className="text-[9px] font-black text-amber-400 uppercase tracking-wider px-1">
+                          <span className="text-[9px] font-black text-indigo-400 uppercase tracking-wider px-1">
                             Editing
                           </span>
                         ) : (
@@ -1436,13 +1345,13 @@ export default function DineFloorEditor({
               {onAddFloor && (
                 <div>
                   {isEditorAddingFloor ? (
-                    <div className="flex items-center gap-1.5 p-1.5 bg-black/40 border border-amber-500/30 rounded-xl">
+                    <div className="flex items-center gap-1.5 p-1.5 bg-black/40 border border-indigo-500/30 rounded-xl">
                       <input
                         type="text"
                         placeholder="e.g. First Floor (Up), Terrace"
                         value={editorNewFloorName}
                         onChange={(e) => setEditorNewFloorName(e.target.value)}
-                        className="flex-1 bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="flex-1 bg-slate-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
@@ -1462,7 +1371,7 @@ export default function DineFloorEditor({
                           setEditorNewFloorName("");
                           setIsEditorAddingFloor(false);
                         }}
-                        className="px-2 py-1 bg-amber-500 text-slate-950 font-bold text-xs rounded-lg hover:bg-amber-400 cursor-pointer"
+                        className="px-2 py-1 bg-indigo-600 text-white font-bold text-xs rounded-lg hover:bg-indigo-500 cursor-pointer"
                       >
                         Add
                       </button>
@@ -1481,7 +1390,7 @@ export default function DineFloorEditor({
                     <button
                       type="button"
                       onClick={() => setIsEditorAddingFloor(true)}
-                      className="w-full py-1.5 px-3 rounded-xl border border-dashed border-amber-400/40 text-amber-300 hover:bg-amber-500/10 text-[10px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                      className="w-full py-1.5 px-3 rounded-xl border border-dashed border-indigo-400/40 text-indigo-300 hover:bg-indigo-500/10 text-[10px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                     >
                       <Plus size={12} />
                       <span>+ Add New Floor / Area</span>
@@ -1503,7 +1412,7 @@ export default function DineFloorEditor({
                     onClick={() => onUpdateFloorMeta({ theme: value as any })}
                     className={`px-3 py-2 rounded-xl text-[11px] font-semibold text-left transition-all cursor-pointer ${
                       floor.theme === value
-                        ? "bg-amber-500/20 border border-amber-500/30 text-amber-300 shadow-sm"
+                        ? "bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 shadow-sm"
                         : "bg-white/5 border border-white/5 text-slate-300 hover:bg-white/10"
                     }`}
                   >
@@ -1514,13 +1423,13 @@ export default function DineFloorEditor({
             </div>
 
             {/* ── Square Plot Builder (1:1 Ratio) ──────────────── */}
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 flex flex-col gap-2">
-              <div className="text-[10px] font-bold text-amber-300 uppercase tracking-wider flex items-center justify-between">
+            <div className="bg-slate-800/40 border border-white/5 rounded-2xl p-3 flex flex-col gap-2">
+              <div className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <Move size={12} className="text-amber-400" />
+                  <Move size={12} className="text-indigo-400" />
                   <span>Square Plot Builder</span>
                 </div>
-                <span className="font-mono text-amber-400 text-[10px]">
+                <span className="font-mono text-indigo-400 text-[10px]">
                   {floor.room_width === floor.room_depth ? "✓ Square (1:1)" : `${floor.room_width}m × ${floor.room_depth}m`}
                 </span>
               </div>
@@ -1546,7 +1455,7 @@ export default function DineFloorEditor({
                       }}
                       className={`py-1.5 px-1 rounded-lg text-[10px] font-bold text-center transition-all cursor-pointer ${
                         isCurrent
-                          ? "bg-amber-500 text-slate-950 font-black shadow-sm"
+                          ? "bg-indigo-600 text-white font-black shadow-sm"
                           : "bg-white/10 hover:bg-white/15 text-slate-300 hover:text-white"
                       }`}
                     >
@@ -1568,9 +1477,9 @@ export default function DineFloorEditor({
                   }
                   toast.success("Enforced spacious 1:1 symmetrical square plot with all tables contained!");
                 }}
-                className="w-full py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 mt-1"
+                className="w-full py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 mt-1"
               >
-                <Sparkles size={12} className="text-amber-400" />
+                <Sparkles size={12} className="text-indigo-400" />
                 <span>Format as Symmetrical Square Plot</span>
               </button>
 
@@ -1582,9 +1491,9 @@ export default function DineFloorEditor({
                     onPackTablesInside();
                     toast.success("All tables centered neatly inside square plot!");
                   }}
-                  className="w-full py-2 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 mt-1"
+                  className="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 mt-1"
                 >
-                  <Sparkles size={12} className="text-amber-400" />
+                  <Sparkles size={12} className="text-indigo-400" />
                   <span>Pack & Center All Tables Inside Square</span>
                 </button>
               )}
@@ -1650,7 +1559,7 @@ export default function DineFloorEditor({
             {/* Auto-Fit Room & Organization */}
             <div className="bg-slate-800/40 border border-white/5 rounded-2xl p-3 flex flex-col gap-2">
               <div className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles size={12} className="text-amber-400" />
+                <Sparkles size={12} className="text-indigo-400" />
                 <span>Smart Auto-Arrange</span>
               </div>
               <div className="text-[10px] text-slate-400 leading-relaxed">
@@ -1692,7 +1601,7 @@ export default function DineFloorEditor({
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Room Dimensions (Scale)
                 </label>
-                <span className="text-[10px] font-mono text-amber-400 font-bold">
+                <span className="text-[10px] font-mono text-indigo-400 font-bold">
                   {floor.room_width}m × {floor.room_depth}m
                 </span>
               </div>
@@ -1773,7 +1682,7 @@ export default function DineFloorEditor({
                 type="text"
                 value={floor.name}
                 onChange={(e) => onUpdateFloorMeta({ name: e.target.value })}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-amber-500/50"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-indigo-500"
                 placeholder="e.g. Ground Floor, Rooftop"
               />
             </div>
