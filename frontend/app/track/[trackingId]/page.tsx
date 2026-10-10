@@ -129,6 +129,7 @@ export default function TrackingPage({ params }: PageProps) {
     const [queueType, setQueueType] = useState<string>("normal");
     const [maxCapacity, setMaxCapacity] = useState<number | null>(null);
     const [zoneDurationMins, setZoneDurationMins] = useState<number | null>(null);
+    const [aiOverviewEnabled, setAiOverviewEnabled] = useState(false);
 
     // ── Fetch Tracking Info on Mount ────────────────────────
     useEffect(() => {
@@ -145,6 +146,7 @@ export default function TrackingPage({ params }: PageProps) {
                     if (info.queue_type) setQueueType(info.queue_type);
                     if (info.max_capacity) setMaxCapacity(info.max_capacity);
                     if (info.zone_duration_mins) setZoneDurationMins(info.zone_duration_mins);
+                    setAiOverviewEnabled(info.ai_overview_enabled === true);
                     setJoinData({
                         id: info.token_id,
                         token_number: info.token_number,
@@ -745,12 +747,14 @@ export default function TrackingPage({ params }: PageProps) {
                             )}
 
                             {/* AI Queue Overview Card */}
-                            <AIQueueOverviewCard
-                                trackingId={trackingId}
-                                peopleAhead={peopleAhead}
-                                isWaiting={actualStatus === "waiting" && !isClosedSessionToken}
-                                brandColor={brandColor}
-                            />
+                            {aiOverviewEnabled && actualStatus === "waiting" && !isClosedSessionToken && (
+                                <AIQueueOverviewCard
+                                    trackingId={trackingId}
+                                    peopleAhead={peopleAhead}
+                                    isWaiting={actualStatus === "waiting" && !isClosedSessionToken}
+                                    brandColor={brandColor}
+                                />
+                            )}
 
                             {/* Premium Ticket Card */}
                             <div className={`bg-white border rounded-3xl text-center shadow-[0_8px_30px_rgb(0,0,0,0.06)] relative transition-all duration-300 ${

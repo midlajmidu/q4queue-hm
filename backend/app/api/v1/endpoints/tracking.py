@@ -54,6 +54,7 @@ class TrackingResponse(BaseModel):
     completed_at: Optional[datetime] = None
     removed_by: Optional[str] = None
     branch_type: str = "standard"
+    ai_overview_enabled: bool = False
     table_config: Optional[list] = None
     pax_count: int = 1
     queue_type: Optional[str] = "normal"
@@ -92,6 +93,7 @@ async def track_token(
             Organization.name,
             Organization.timezone,
             Organization.branch_type,
+            Organization.ai_overview_enabled,
             Queue.table_config,
             Queue.token_session_id,
             Queue.queue_type,
@@ -110,7 +112,7 @@ async def track_token(
             detail="Token not found",
         )
 
-    token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name, org_timezone, org_branch_type, queue_table_config, queue_token_session_id, queue_type_val, queue_max_cap, queue_zone_dur = row
+    token, queue_name, queue_prefix, queue_is_active, queue_is_paused, open_time, close_time, org_name, org_timezone, org_branch_type, org_ai_overview_enabled, queue_table_config, queue_token_session_id, queue_type_val, queue_max_cap, queue_zone_dur = row
 
     is_past_session = False
     session_is_active = True
@@ -172,6 +174,7 @@ async def track_token(
         completed_at=token.completed_at,
         removed_by=token.removed_by,
         branch_type=getattr(org_branch_type, "value", org_branch_type) or "standard",
+        ai_overview_enabled=bool(org_ai_overview_enabled),
         table_config=queue_table_config or [],
         pax_count=getattr(token, "pax_count", 1) or 1,
         queue_type=getattr(queue_type_val, "value", queue_type_val) or "normal",
@@ -213,6 +216,12 @@ async def get_ai_overview(
         )
 
     token, queue, org = row
+
+    if not bool(getattr(org, "ai_overview_enabled", False)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="AI Overview is not enabled for this branch",
+        )
 
     is_past_session = False
     sess = None

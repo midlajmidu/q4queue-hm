@@ -21,6 +21,7 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
         org_slug: org.slug,
         branch_type: org.branch_type || "standard",
         appointment_feature_enabled: org.appointment_feature_enabled || false,
+        ai_overview_enabled: org.ai_overview_enabled ?? false,
         is_active: org.is_active,
         max_sessions: org.max_sessions ?? 10,
         max_queues_per_session: org.max_queues_per_session ?? 20,
@@ -148,6 +149,22 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.appointment_feature_enabled ? "translate-x-6" : "translate-x-1"}`} />
                         </button>
                     </div>
+                    <div className="flex items-center justify-between p-3.5 bg-slate-950/70 border border-slate-700/80 rounded-xl">
+                        <div>
+                            <span className="text-sm font-medium text-white block">AI Queue Overview</span>
+                            <p className="text-xs text-slate-400 mt-0.5">Enable predictive wait times and AI queue pacing insights for customers tracking tokens at this branch.</p>
+                        </div>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={form.ai_overview_enabled}
+                            onClick={() => setForm(f => ({ ...f, ai_overview_enabled: !f.ai_overview_enabled }))}
+                            disabled={isSaving}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${form.ai_overview_enabled ? "bg-violet-600" : "bg-slate-700"}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.ai_overview_enabled ? "translate-x-6" : "translate-x-1"}`} />
+                        </button>
+                    </div>
                     <div className="flex gap-3 pt-1">
                         <button type="button" onClick={onClose} disabled={isSaving} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl transition-colors">Cancel</button>
                         <button type="submit" disabled={isSaving || !form.org_name || !form.org_slug} className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -254,7 +271,7 @@ export function ConfirmStatusModal({ org, onClose, onConfirm, isUpdating }: { or
 
 // ── Create Modal ────────────────────────────────────────────────────────────────
 export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void; }) {
-    const [form, setForm] = useState<OrgCreateRequest>({ org_name: "", org_slug: "", branch_type: "standard", appointment_feature_enabled: false, admin_email: "", admin_password: "", parent_organization_id: "", max_sessions: 10, max_queues_per_session: 20, max_staff: 5 });
+    const [form, setForm] = useState<OrgCreateRequest>({ org_name: "", org_slug: "", branch_type: "standard", appointment_feature_enabled: false, ai_overview_enabled: false, admin_email: "", admin_password: "", parent_organization_id: "", max_sessions: 10, max_queues_per_session: 20, max_staff: 5 });
     const [showAdminPassword, setShowAdminPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
@@ -396,6 +413,22 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${form.appointment_feature_enabled ? "bg-violet-600" : "bg-slate-700"}`}
                         >
                             <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${form.appointment_feature_enabled ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                        </button>
+                    </div>
+                    <div className="flex items-center justify-between p-3.5 bg-slate-950/70 border border-slate-700/80 rounded-xl">
+                        <div>
+                            <span className="text-xs font-semibold text-white block">AI Queue Overview</span>
+                            <p className="text-[11px] text-slate-400 mt-0.5">Enable predictive wait times and AI queue pacing insights for customers tracking tokens at this branch.</p>
+                        </div>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={form.ai_overview_enabled}
+                            onClick={() => setForm(f => ({ ...f, ai_overview_enabled: !f.ai_overview_enabled }))}
+                            disabled={isSubmitting}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${form.ai_overview_enabled ? "bg-violet-600" : "bg-slate-700"}`}
+                        >
+                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${form.ai_overview_enabled ? "translate-x-4.5" : "translate-x-0.5"}`} />
                         </button>
                     </div>
                     <hr className="border-slate-700" />

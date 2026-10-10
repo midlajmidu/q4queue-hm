@@ -983,6 +983,7 @@ export interface OrgDetail {
     slug: string;
     branch_type?: "standard" | "dine";
     appointment_feature_enabled?: boolean;
+    ai_overview_enabled?: boolean;
     is_active: boolean;
     created_at: string;
     max_sessions: number;
@@ -1015,6 +1016,7 @@ export interface OrgCreateRequest {
     org_slug: string;
     branch_type?: "standard" | "dine";
     appointment_feature_enabled?: boolean;
+    ai_overview_enabled?: boolean;
     parent_organization_id: string;
     admin_email: string;
     admin_password: string;
@@ -1028,6 +1030,7 @@ export interface OrgUpdateRequest {
     org_slug: string;
     branch_type?: "standard" | "dine";
     appointment_feature_enabled?: boolean;
+    ai_overview_enabled?: boolean;
     is_active: boolean;
     max_sessions?: number;
     max_queues_per_session?: number;
@@ -1538,6 +1541,7 @@ export interface TrackingResponse {
     completed_at?: string | null;
     removed_by?: string | null;
     branch_type?: "standard" | "dine";
+    ai_overview_enabled?: boolean;
     table_config?: TableConfig[];
     pax_count?: number;
     queue_type?: "normal" | "service_lines" | "zone";

@@ -73,6 +73,7 @@ class OrgCreateRequest(BaseModel):
     org_slug: str
     branch_type: str = "standard"
     appointment_feature_enabled: bool = False
+    ai_overview_enabled: bool = False
     parent_organization_id: _uuid.UUID
     admin_email: str | None = None
     admin_password: str | None = None
@@ -91,6 +92,7 @@ class OrgUpdateRequest(BaseModel):
     org_slug: str = Field(..., min_length=2)
     branch_type: str | None = None
     appointment_feature_enabled: bool | None = None
+    ai_overview_enabled: bool | None = None
     is_active: bool
     admin_email: str | None = None
     max_sessions: int | None = Field(None, ge=1)
@@ -109,6 +111,7 @@ class OrgDetail(BaseModel):
     slug: str
     branch_type: str = "standard"
     appointment_feature_enabled: bool = False
+    ai_overview_enabled: bool = False
     is_active: bool
     created_at: str
     max_sessions: int
@@ -121,6 +124,12 @@ class OrgDetail(BaseModel):
     parent_organization_id: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+# Type aliases for schema naming compatibility
+OrgCreateBody = OrgCreateRequest
+OrgUpdateBody = OrgUpdateRequest
+OrgDetailResponse = OrgDetail
 
 
 class OrgDetailExtended(OrgDetail):
@@ -352,6 +361,7 @@ def _org_to_detail(o: Organization, admin_user: User | None = None) -> OrgDetail
         slug=o.slug,
         branch_type=getattr(o, "branch_type", "standard") or "standard",
         appointment_feature_enabled=bool(getattr(o, "appointment_feature_enabled", False)),
+        ai_overview_enabled=bool(getattr(o, "ai_overview_enabled", False)),
         is_active=o.is_active,
         created_at=o.created_at.isoformat(),
         max_sessions=o.max_sessions,
@@ -1075,6 +1085,7 @@ async def create_organization(
         slug=body.org_slug,
         branch_type=body.branch_type if body.branch_type in ("standard", "dine") else "standard",
         appointment_feature_enabled=body.appointment_feature_enabled,
+        ai_overview_enabled=body.ai_overview_enabled,
         max_sessions=body.max_sessions if body.max_sessions is not None else IN_MEMORY_SETTINGS.get("default_session_limit", 10),
         max_queues_per_session=body.max_queues_per_session if body.max_queues_per_session is not None else IN_MEMORY_SETTINGS.get("default_queue_limit", 20),
         max_staff=body.max_staff if body.max_staff is not None else 5,
@@ -1171,6 +1182,7 @@ async def get_organization_detail(
         slug=org.slug,
         branch_type=getattr(org, "branch_type", "standard") or "standard",
         appointment_feature_enabled=bool(getattr(org, "appointment_feature_enabled", False)),
+        ai_overview_enabled=bool(getattr(org, "ai_overview_enabled", False)),
         is_active=org.is_active,
         created_at=org.created_at.isoformat(),
         max_sessions=org.max_sessions,
@@ -1312,6 +1324,8 @@ async def update_organization(
         org.max_staff = body.max_staff
     if body.appointment_feature_enabled is not None:
         org.appointment_feature_enabled = body.appointment_feature_enabled
+    if body.ai_overview_enabled is not None:
+        org.ai_overview_enabled = body.ai_overview_enabled
 
     # Handle admin email update
     admin_user = await db.scalar(
