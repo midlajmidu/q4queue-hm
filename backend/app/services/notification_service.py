@@ -207,6 +207,12 @@ async def notify_queue_event(
         elif event_type in ("queue_nearby_3_v2", "queue_nearby_3_v3"): event_type = "queue_nearby_3_v3"
         elif event_type in ("queue_nearby_5_v2", "queue_nearby_5_v3"): event_type = "queue_nearby_5_v3"
 
+        # For restaurant/hotel dining, position 5 and 3 countdown alerts are disabled
+        # because seating is manually matched to available table capacity and party size.
+        if is_dine and event_type in ("queue_nearby_5_v3", "queue_nearby_3_v3"):
+            logger.info("Skipping position reminder %s for restaurant queue (token=%s, org=%s)", event_type, token_id, org_id)
+            return
+
         org_name_to_use = organization_name if organization_name else queue_name
         c_name = customer_name or "Customer"
 
@@ -262,34 +268,40 @@ async def notify_queue_event(
                 logger.warning("Token %s not found in DB for event %s, skipping", token_id, event_type)
                 return
                 
-            delivery_mode = cfg.get("delivery_mode", "button_reply_only")
-
-            if delivery_mode == "button_reply_only":
-                if not db_token.whatsapp_alerts_active:
-                    logger.info(
-                        "Delivery mode 'button_reply_only': Customer %s did not click 'Get Live Queue Updates' for token %s, skipping follow-up event %s",
-                        customer_phone, token_id, event_type
-                    )
-                    return
-                # User clicked button -> active 24h window -> send as free session text message
-                is_raw_text = True
-            else: # "always_send"
-                if db_token.whatsapp_alerts_active:
+            if is_dine:
+                # Restaurants/Hotels always dispatch official Meta-approved utility templates
+                # (token_called_v1, service_completed_v1, token_skipped_v1, token_recalled_v1)
+                # without requiring customers to reply or interact via WhatsApp buttons first.
+                is_raw_text = False
+            else:
+                delivery_mode = cfg.get("delivery_mode", "button_reply_only")
+                if delivery_mode == "button_reply_only":
+                    if not db_token.whatsapp_alerts_active:
+                        logger.info(
+                            "Delivery mode 'button_reply_only': Customer %s did not click 'Get Live Queue Updates' for token %s, skipping follow-up event %s",
+                            customer_phone, token_id, event_type
+                        )
+                        return
+                    # User clicked button -> active 24h window -> send as free session text message
                     is_raw_text = True
-                else:
-                    is_raw_text = False
+                else: # "always_send"
+                    if db_token.whatsapp_alerts_active:
+                        is_raw_text = True
+                    else:
+                        is_raw_text = False
 
             raw_body = None
 
             if event_type in ("queue_called_v3", "queue_recalled_v2"):
                 if is_dine:
                     table_name = None
-                    if assigned_line and db_queue and getattr(db_queue, "table_config", None):
+                    eff_assigned_line = assigned_line if assigned_line is not None else (getattr(db_token, "assigned_line", None) if db_token else None)
+                    if eff_assigned_line and db_queue and getattr(db_queue, "table_config", None):
                         for tbl in db_queue.table_config:
-                            if tbl.get("id") == assigned_line:
+                            if tbl.get("id") == eff_assigned_line:
                                 table_name = tbl.get("name")
                                 break
-                    dest = table_name or (f"Table {assigned_line}" if assigned_line else "the Host Stand")
+                    dest = table_name or (f"Table {eff_assigned_line}" if eff_assigned_line else "the Host Stand")
                     variables = [token_str, queue_name or org_name_to_use, dest]
                     if is_raw_text:
                         header = "🍽️ *Your Table is Ready!*" if event_type == "queue_called_v3" else "🔄 *Table Recalled*"
@@ -358,7 +370,17 @@ async def notify_queue_event(
                         f"Thank you for choosing {org_name_to_use}."
                     )
             elif event_type == "queue_skipped_v3":
-                dest = "the counter"
+                if is_dine:
+                    table_name = None
+                    eff_assigned_line = assigned_line if assigned_line is not None else (getattr(db_token, "assigned_line", None) if db_token else None)
+                    if eff_assigned_line and db_queue and getattr(db_queue, "table_config", None):
+                        for tbl in db_queue.table_config:
+                            if tbl.get("id") == eff_assigned_line:
+                                table_name = tbl.get("name")
+                                break
+                    dest = table_name or (f"Table {eff_assigned_line}" if eff_assigned_line else "the Host Stand")
+                else:
+                    dest = "the counter"
                 variables = [token_str, queue_name or org_name_to_use, dest]
                 if is_raw_text:
                     raw_body = (
@@ -406,11 +428,12 @@ async def notify_queue_event(
 
         # 3.8 Pacing & Timing:
         # High-priority operational events (Joined, Called, Skipped, Recalled, Appointment Booked): Immediate (0 delay / ~1-2s delivery)
-        # Background status events (5 ahead, 3 ahead, Completed, Removed): 8-10s pacing delay
+        # Background status events (5 ahead, 3 ahead, Completed, Removed): 8-10s pacing delay (2s for dining completion)
         if event_type in ("queue_nearby_5_v3", "queue_nearby_3_v3", "queue_completed_v3", "queue_removed_v3"):
             import asyncio
-            logger.info("Applying 8s pacing delay for background event %s (token=%s)", event_type, token_id)
-            await asyncio.sleep(8)
+            pacing_delay = 2 if (is_dine and event_type == "queue_completed_v3") else 8
+            logger.info("Applying %ss pacing delay for background event %s (token=%s)", pacing_delay, event_type, token_id)
+            await asyncio.sleep(pacing_delay)
 
         # 4. Send
         await send_whatsapp_message(
