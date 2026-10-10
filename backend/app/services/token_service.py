@@ -876,11 +876,11 @@ async def clear_line(
     org_id: uuid.UUID,
     line_number: int,
     user_id: uuid.UUID,
-) -> bool:
+) -> Optional[Token]:
     """
     Mark the currently-serving token on a specific service line as 'done',
     WITHOUT automatically calling the next customer. Frees the lane.
-    Returns True if a token was cleared, False if the line was already empty.
+    Returns the cleared Token if found and completed, None if the line was empty.
     """
     now = datetime.now(timezone.utc)
     queue = await _lock_queue_for_org(db, queue_id, org_id)
@@ -910,7 +910,7 @@ async def clear_line(
             last_cleared_token = t
             
     if not cleared_any or last_cleared_token is None:
-        return False
+        return None
         
     await db.flush()
     await _log_audit(
@@ -926,7 +926,7 @@ async def clear_line(
             "cleared_line": True,
         },
     )
-    return True
+    return last_cleared_token
 
 
 async def share_token(
@@ -1397,7 +1397,7 @@ async def send_called_and_reminder_notifications(
             serving_token = tok_res.scalar_one_or_none()
 
             if serving_token:
-                event_name = "queue_recalled_v2" if getattr(serving_token, "called_via_invite", False) else "queue_called_v3"
+                event_name = "queue_called_v3"
                 await notify_queue_event(
                     event_type=event_name,
                     org_id=org_id,
@@ -1431,7 +1431,7 @@ async def send_called_and_reminder_notifications(
                 position = i + 1  # 1-indexed position
                 if position == 3 and not wt.whatsapp_reminder_sent:
                     await notify_queue_event(
-                        event_type="queue_nearby_3_v2",
+                        event_type="queue_nearby_3_v3",
                         org_id=org_id,
                         token_id=wt.id,
                         queue_id=queue_id,
@@ -1453,14 +1453,14 @@ async def send_called_and_reminder_notifications(
                     msg_check = await db.execute(
                         select(WhatsAppMessage).where(
                             WhatsAppMessage.token_id == wt.id,
-                            WhatsAppMessage.event_type == "queue_nearby_5_v2"
+                            WhatsAppMessage.event_type.in_(["queue_nearby_5_v2", "queue_nearby_5_v3"])
                         )
                     )
                     already_sent_5 = msg_check.scalars().first() is not None
                     
                     if not already_sent_5:
                         await notify_queue_event(
-                            event_type="queue_nearby_5_v2",
+                            event_type="queue_nearby_5_v3",
                             org_id=org_id,
                             token_id=wt.id,
                             queue_id=queue_id,

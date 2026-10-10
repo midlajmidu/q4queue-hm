@@ -197,13 +197,15 @@ async def notify_queue_event(
         variables = []
 
         is_dine = bool(
-            (db_org and getattr(db_org, "branch_type", None) == "dine")
+            (db_org and getattr(db_org, "branch_type", None) in ("dine", "hotel", "restaurant"))
             or (db_queue and getattr(db_queue, "table_config", None) and len(db_queue.table_config) > 0)
         )
 
-        # Upgrade any v2 events emitted by the system to v3
-        if event_type == "queue_called_v2": event_type = "queue_called_v3"
-        elif event_type == "queue_skipped_v2": event_type = "queue_skipped_v3"
+        # Upgrade any legacy v2 events emitted by the system to v3
+        if event_type in ("queue_called_v2", "queue_called_v3"): event_type = "queue_called_v3"
+        elif event_type in ("queue_skipped_v2", "queue_skipped_v3"): event_type = "queue_skipped_v3"
+        elif event_type in ("queue_nearby_3_v2", "queue_nearby_3_v3"): event_type = "queue_nearby_3_v3"
+        elif event_type in ("queue_nearby_5_v2", "queue_nearby_5_v3"): event_type = "queue_nearby_5_v3"
 
         org_name_to_use = organization_name if organization_name else queue_name
         c_name = customer_name or "Customer"

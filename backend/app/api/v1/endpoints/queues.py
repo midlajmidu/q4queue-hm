@@ -51,6 +51,7 @@ from app.core.deps import (
 )
 from app.db.deps import get_db
 from app.models.queue import Queue
+from app.models.token import TokenStatus
 from app.models.user import User
 from app.schemas.queue import (
     JoinRequest,
@@ -1130,7 +1131,7 @@ async def clear_line(
     Used in multi-lane mode when a lane finishes and staff wants to manually clear it.
     """
     try:
-        await token_service.clear_line(
+        cleared_token = await token_service.clear_line(
             db,
             queue_id=queue.id,
             org_id=current_user.org_id,
@@ -1143,6 +1144,21 @@ async def clear_line(
             queue_id=queue.id,
             org_id=queue.org_id,
         )
+        if cleared_token and getattr(cleared_token, "status", None) == TokenStatus.done:
+            background_tasks.add_task(
+                notify_queue_event,
+                event_type="queue_completed_v3",
+                org_id=queue.org_id,
+                token_id=cleared_token.id,
+                queue_id=queue.id,
+                customer_name=cleared_token.customer_name,
+                customer_phone=cleared_token.customer_phone,
+                token_number=cleared_token.token_number,
+                token_prefix=queue.prefix,
+                queue_name=queue.name,
+                tracking_id=str(getattr(cleared_token, "tracking_id", "")),
+                session_id=queue.token_session_id,
+            )
     except ValueError as exc:
         _raise_400(exc)
 
