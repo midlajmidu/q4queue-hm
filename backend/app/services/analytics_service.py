@@ -602,6 +602,12 @@ async def get_analytics_csv_data(
     from app.core.tz_helpers import safe_zoneinfo, to_org_local, to_org_local_date, get_org_timezone
 
     org_tz_str = await get_org_timezone(db, org_id)
+    org_obj = await db.get(Organization, org_id)
+    is_dine_org = getattr(org_obj, "branch_type", None) in ("dine", "hotel", "restaurant")
+    if not is_dine_org and queue_id:
+        queue_obj = await db.get(Queue, queue_id)
+        if queue_obj and getattr(queue_obj, "table_config", None) and len(queue_obj.table_config) > 0:
+            is_dine_org = True
 
     conditions = [Token.org_id == org_id]
     if queue_id:
@@ -694,8 +700,9 @@ async def get_analytics_csv_data(
             return "'" + text
         return text
 
+    line_col_name = "Table" if is_dine_org else "Service Line"
     writer.writerow([
-        "Date", "Token Number", "Queue", "Service Line", "Customer Name", "Customer Phone", "Age", "Pax",
+        "Date", "Token Number", "Queue", line_col_name, "Customer Name", "Customer Phone", "Age", "Pax",
         "Status", "Created At", "Served At", "Completed At", "Skipped At", "Recalled At", "Removed At",
         "Wait Time (mins)", "Serve Time (mins)", "Served By", "Completed By", "Removed By", "Call Method", "Entry Type", "Custom Details", "Custom Data (JSON)", "Timezone"
     ])
@@ -726,7 +733,11 @@ async def get_analytics_csv_data(
                 completed_by = completed_email.split('@')[0]
 
         pax_count_str = str(token.pax_count) if hasattr(token, 'pax_count') else "1"
-        service_line = str(getattr(token, 'assigned_line', "")) if getattr(token, 'assigned_line', None) is not None else ""
+        assigned_val = getattr(token, 'assigned_line', None)
+        if assigned_val is not None:
+            service_line = f"Table {assigned_val}" if is_dine_org else str(assigned_val)
+        else:
+            service_line = ""
 
         entry_type = getattr(token, "entry_type", "qr")
         entry_method = "Manual Entry" if entry_type == "manual" else ("Auto Assigned" if entry_type == "auto" else "QR Code")

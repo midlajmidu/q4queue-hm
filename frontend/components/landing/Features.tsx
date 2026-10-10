@@ -141,7 +141,7 @@ export default function Features() {
         {/* Minimal 4-Column Feature Grid (No heavy cards, no card borders) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 lg:gap-y-14">
           {features.map((item) => {
-            const Icon = item.icon;
+            const Icon = item.icon as any;
             return (
               <div key={item.id} className="flex flex-col items-start group">
                 {/* Soft Round Icon Circle */}

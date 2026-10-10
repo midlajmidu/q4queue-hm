@@ -40,6 +40,8 @@ interface TokenDetailModalProps {
     onRecall?: () => void;
     onRemove?: () => void;
     onUndo?: () => void;
+    isDineMode?: boolean;
+    tables?: Array<{ id: number; name: string }>;
 }
 
 
@@ -135,7 +137,7 @@ const ENTRY_STYLES: Record<string, string> = {
     appointment: "bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800",
 };
 
-export default function TokenDetailModal({ token, onClose, onRecall, onRemove, onUndo }: TokenDetailModalProps) {
+export default function TokenDetailModal({ token, onClose, onRecall, onRemove, onUndo, isDineMode, tables }: TokenDetailModalProps) {
     const [fullToken, setFullToken] = useState<TokenDetailData | null>(token);
     const [nowMs, setNowMs] = useState<number>(() => Date.now());
     const tz = useBranchTimezone();
@@ -290,7 +292,20 @@ export default function TokenDetailModal({ token, onClose, onRecall, onRemove, o
                             <DetailItem label="Number of Pax" value={String(fullToken.pax_count)} highlight="emerald" />
                         )}
                         {fullToken.assigned_line != null && (
-                            <DetailItem label="Lane Number" value={String(fullToken.assigned_line)} highlight="emerald" />
+                            <DetailItem
+                                label={isDineMode ? "Table" : "Lane Number"}
+                                value={(() => {
+                                    if (!isDineMode) return String(fullToken.assigned_line);
+                                    if (fullToken.custom_data?.table_name) return String(fullToken.custom_data.table_name);
+                                    const tbl = Array.isArray(tables) ? tables.find(t => String(t.id) === String(fullToken.assigned_line)) : undefined;
+                                    if (tbl && tbl.name != null) {
+                                        const strName = String(tbl.name).trim();
+                                        return /^\d+$/.test(strName) ? `Table ${strName}` : strName;
+                                    }
+                                    return `Table ${fullToken.assigned_line}`;
+                                })()}
+                                highlight="emerald"
+                            />
                         )}
 
                         <DetailItem label="Entry Type" value={entryType.charAt(0).toUpperCase() + entryType.slice(1)} />

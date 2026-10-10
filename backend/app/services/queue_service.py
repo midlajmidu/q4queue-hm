@@ -83,22 +83,14 @@ async def create_queue(
 
     is_dine = bool((org and getattr(org, "branch_type", "standard") == "dine") or (data.table_config and len(data.table_config) > 0))
 
-    default_fields = [
-        {"id": "default_name", "key": "name", "label": "Full Name", "type": "text", "required": True, "order": 0},
-        {"id": "default_phone", "key": "phone", "label": "Phone Number", "type": "phone", "required": True, "order": 1},
-        {"id": "default_pax", "key": "pax", "label": "Number of Pax", "type": "number", "required": True, "order": 2},
-    ]
-
-    if data.custom_fields:
-        fields = list(data.custom_fields)
-        if not any(f.get("key") in ("name", "full_name") for f in fields):
-            fields.insert(0, default_fields[0])
-        if not any(f.get("key") in ("phone", "phone_number") for f in fields):
-            fields.insert(1, default_fields[1])
-        if is_dine and not any(f.get("key") in ("pax", "pax_count", "no_of_pax", "number_of_pax") for f in fields):
-            fields.append(default_fields[2])
-    else:
-        fields = list(default_fields)
+    from app.schemas.queue import DEFAULT_CUSTOM_FIELDS
+    fields = list(data.custom_fields) if data.custom_fields else [dict(f) for f in DEFAULT_CUSTOM_FIELDS]
+    if not any(f.get("key") in ("name", "full_name") for f in fields):
+        fields.insert(0, dict(DEFAULT_CUSTOM_FIELDS[0]))
+    if not any(f.get("key") in ("phone", "phone_number") for f in fields):
+        fields.insert(1, dict(DEFAULT_CUSTOM_FIELDS[1]))
+    if is_dine and not any(f.get("key") in ("pax", "pax_count", "no_of_pax") for f in fields):
+        fields.append(dict(DEFAULT_CUSTOM_FIELDS[2]))
 
     queue_type = data.queue_type or "normal"
     if queue_type != "zone" and service_lines > 0:

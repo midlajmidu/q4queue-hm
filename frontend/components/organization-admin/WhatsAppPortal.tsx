@@ -887,7 +887,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
             <div className="border-b border-slate-200/80 dark:border-white/10">
                 <div className="flex items-center gap-6 overflow-x-auto">
                     {tabs.map((tab) => {
-                        const Icon = tab.icon;
+                        const Icon = tab.icon as any;
                         const isActive = activeTab === tab.id;
                         return (
                             <button
@@ -1107,7 +1107,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                                 {filteredEvents.map((s) => {
                                     const isSelected = selectedPreviewEvent === s.event_type;
                                     const theme = EVENT_THEME[s.event_type] || EVENT_THEME["queue_joined_v4"];
-                                    const EventIcon = EVENT_ICON[s.event_type] || BellRing;
+                                    const EventIcon = (EVENT_ICON[s.event_type] || BellRing) as any;
                                     const configKey = EVENT_TO_CONFIG_KEY[s.event_type];
                                     const isTriggerEnabled = configKey && config ? (config[configKey] ?? true) : true;
 

@@ -346,7 +346,7 @@ export function CallLogsSection({ queueId, channel = "calls", onChannelChange }:
             <div className="border-b border-slate-200/80 dark:border-white/10">
                 <div className="flex items-center gap-6 overflow-x-auto">
                     {tabs.map((tab) => {
-                        const Icon = tab.icon;
+                        const Icon = tab.icon as any;
                         const isActive = subTab === tab.id;
                         return (
                             <button

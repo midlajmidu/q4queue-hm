@@ -16,7 +16,7 @@ import QueueQRCode from "@/components/QueueQRCode";
 import TokenDetailModal from "@/components/TokenDetailModal";
 import type { TokenDetailData } from "@/components/TokenDetailModal";
 import type { RecentToken, WaitingToken, QueueResponse, TokenHistoryItem, ServingToken, TableConfig } from "@/types/api";
-import { Pause, Play, Square, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, PhoneCall, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck, Settings2, Calendar, Utensils } from "lucide-react";
+import { Pause, Play, Square, Clock, QrCode, UserPlus, RefreshCw, Menu, MoreVertical, X, Users, List, Phone, PhoneCall, CheckCircle2, MinusCircle, Hourglass, Send, User, Filter, Tv, ArrowRight, ShieldCheck, Settings2, Calendar, Utensils, Printer, Sparkles, Copy, Check } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 import DineTableGrid from "@/components/dine/DineTableGrid";
@@ -462,8 +462,6 @@ export default function QueueDetailPage({ params }: PageProps) {
         }).catch(() => { });
     }, [queueId, sessionId]);
 
-    const isDineMode = branchType === "dine" || Boolean(initialQueue?.table_config && initialQueue.table_config.length > 0);
-
     const isTodaySession = React.useMemo(() => {
         return sessionInfo?.is_active !== false;
     }, [sessionInfo?.is_active]);
@@ -488,6 +486,16 @@ export default function QueueDetailPage({ params }: PageProps) {
         enabled: autoLive && isTodaySession,
         onNewCustomer: isTodaySession ? handleNewCustomer : undefined
     });
+
+    const isDineMode = (
+        branchType === "dine" ||
+        (branchType as string) === "hotel" ||
+        (branchType as string) === "restaurant" ||
+        Boolean(
+            (Array.isArray(state?.table_config) && state.table_config.length > 0) ||
+            (Array.isArray(initialQueue?.table_config) && initialQueue.table_config.length > 0)
+        )
+    );
 
     const isZoneMode = Boolean(
         (state?.queue_type === "zone" || initialQueue?.queue_type === "zone") ||
@@ -525,6 +533,8 @@ export default function QueueDetailPage({ params }: PageProps) {
 
     const [qrPairingCodeInput, setQrPairingCodeInput] = useState("");
     const [isQrPairing, setIsQrPairing] = useState(false);
+    const [qrDisplayMode, setQrDisplayMode] = useState<"dynamic" | "static">("dynamic");
+    const [copiedLink, setCopiedLink] = useState(false);
 
     const handleConnectTV = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -748,7 +758,10 @@ export default function QueueDetailPage({ params }: PageProps) {
     }, [isTodaySession, state?.recent_tokens, staticSessionTokens]);
 
     const dineTables: TableConfig[] = React.useMemo(() => {
-        if (initialQueue?.table_config && initialQueue.table_config.length > 0) {
+        if (Array.isArray(state?.table_config) && state.table_config.length > 0) {
+            return state.table_config;
+        }
+        if (Array.isArray(initialQueue?.table_config) && initialQueue.table_config.length > 0) {
             return initialQueue.table_config;
         }
         const count = Math.max(initialQueue?.service_lines || state?.service_lines || 1, 1);
@@ -758,7 +771,7 @@ export default function QueueDetailPage({ params }: PageProps) {
             capacity: 4,
             section: "Main Dining",
         }));
-    }, [initialQueue?.table_config, initialQueue?.service_lines, state?.service_lines]);
+    }, [state?.table_config, initialQueue?.table_config, initialQueue?.service_lines, state?.service_lines]);
 
     const filteredWaiting = React.useMemo(() => {
         if (!effectiveWaitingTokens) return [];
@@ -849,6 +862,154 @@ export default function QueueDetailPage({ params }: PageProps) {
     const queueName = state?.queue_name || initialQueue?.name || "Queue";
     const isActive = (sessionInfo?.is_active ?? state?.is_active ?? initialQueue?.is_active) !== false;
     const isPaused = (sessionInfo?.is_paused ?? state?.is_paused ?? initialQueue?.is_paused) === true;
+
+    const getStaticQrScanUrl = useCallback(() => {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
+        const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
+        const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
+        let fullApiUrl = normalizedApiUrl;
+        if (!normalizedApiUrl.startsWith("http")) {
+            fullApiUrl = normalizedAppUrl + normalizedApiUrl;
+        }
+        return `${fullApiUrl}/queues/${queueId}/scan?mode=static&totp=static&new=true`;
+    }, [queueId]);
+
+    const handleCopyStaticLink = useCallback(() => {
+        const url = getStaticQrScanUrl();
+        navigator.clipboard.writeText(url);
+        setCopiedLink(true);
+        sonnerToast.success("Permanent QR scan link copied to clipboard!");
+        setTimeout(() => setCopiedLink(false), 2000);
+    }, [getStaticQrScanUrl]);
+
+    const handlePrintStandee = useCallback(() => {
+        const scanUrl = getStaticQrScanUrl();
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) {
+            sonnerToast.error("Pop-up blocked. Please allow pop-ups to print.");
+            return;
+        }
+        printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+    <title>Standee - ${queueName}</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        @page { size: A5 portrait; margin: 12mm; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            text-align: center;
+            background: #ffffff;
+            color: #0f172a;
+            padding: 24px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 95vh;
+        }
+        .card {
+            border: 2.5px solid #0f172a;
+            border-radius: 28px;
+            padding: 44px 32px;
+            max-width: 420px;
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.07);
+        }
+        .badge {
+            display: inline-block;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 7px 18px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        h1 { margin: 0 0 10px 0; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; color: #0f172a; }
+        p.sub { margin: 0 0 26px 0; color: #475569; font-size: 15px; line-height: 1.5; font-weight: 500; }
+        .qr-wrapper {
+            background: #ffffff;
+            padding: 16px;
+            display: inline-block;
+            border-radius: 20px;
+            border: 1.5px solid #e2e8f0;
+            margin-bottom: 26px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+        .steps {
+            text-align: left;
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin: 0 0 22px 0;
+            border: 1px solid #f1f5f9;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13.5px;
+            color: #1e293b;
+            margin: 8px 0;
+            font-weight: 600;
+        }
+        .step-num {
+            background: #4f46e5;
+            color: white;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .footer {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="card">
+        <div class="badge">Join Waitlist</div>
+        <h1>${queueName}</h1>
+        <p class="sub">Scan this QR code with your phone camera to join the queue and receive real-time table updates.</p>
+        <div class="qr-wrapper">
+            <canvas id="qrCanvas"></canvas>
+        </div>
+        <div class="steps">
+            <div class="step"><div class="step-num">1</div> Open camera and scan QR code</div>
+            <div class="step"><div class="step-num">2</div> Enter your name and party size</div>
+            <div class="step"><div class="step-num">3</div> Track your turn live on your phone</div>
+        </div>
+        <div class="footer">Powered by Q4QUEUE</div>
+    </div>
+    <script>
+        QRCode.toCanvas(document.getElementById('qrCanvas'), '${scanUrl}', { width: 230, margin: 1, errorCorrectionLevel: 'H' }, function(err) {
+            if (!err) {
+                setTimeout(() => { window.print(); }, 400);
+            }
+        });
+    </script>
+</body>
+</html>`);
+        printWindow.document.close();
+    }, [getStaticQrScanUrl, queueName]);
 
     const setErrorWithTimer = useCallback((msg: string) => {
         setActionError(msg);
@@ -1095,19 +1256,8 @@ export default function QueueDetailPage({ params }: PageProps) {
         if (!showAddForm) setAddFormError(null);
     }, [showAddForm]);
 
-    const adminCustomFieldsList = React.useMemo(() => {
-        if (!Array.isArray(state?.custom_fields)) return [];
-        const result = [...state.custom_fields];
-        if (!result.some(f => f.key === 'name' || f.key === 'full_name')) {
-            result.unshift({ id: "default_name", key: "name", label: "Full Name", type: "text", required: true, order: 0 });
-        }
-        if (!result.some(f => f.key === 'phone' || f.key === 'phone_number')) {
-            const nameIdx = result.findIndex(f => f.key === 'name' || f.key === 'full_name');
-            result.splice(nameIdx + 1, 0, { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 });
-        }
-        return result;
-    }, [state?.custom_fields]);
-    const hasAdminCustomFieldsConfigured = adminCustomFieldsList.length > 0;
+    const hasAdminCustomFieldsConfigured = Array.isArray(state?.custom_fields);
+    const adminCustomFieldsList = state?.custom_fields || [];
 
     const isAddFormValid = React.useMemo(() => {
         if (hasAdminCustomFieldsConfigured) {
@@ -2322,13 +2472,43 @@ export default function QueueDetailPage({ params }: PageProps) {
                     ════════════════════════════════════════════ */}
                         {activeSection === "qrcode" && (
                             <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-                                <div className="flex items-start gap-3">
-                                    <button className="md:hidden mt-0.5 p-1.5 -ml-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
-                                        <Menu size={22} />
-                                    </button>
-                                    <div className="flex-1">
-                                        <h1 className="qd-section-title text-xl md:text-2xl font-bold break-words text-gray-900 dark:text-white">QR Code Showcase</h1>
-                                        <p className="qd-section-sub">Share this QR code or link so customers can join the queue from their phones.</p>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="flex items-start gap-3">
+                                        <button className="md:hidden mt-0.5 p-1.5 -ml-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
+                                            <Menu size={22} />
+                                        </button>
+                                        <div className="flex-1">
+                                            <h1 className="qd-section-title text-xl md:text-2xl font-bold break-words text-gray-900 dark:text-white">QR Code Showcase</h1>
+                                            <p className="qd-section-sub">Share this QR code or link so customers can join the queue from their phones.</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Mode Toggle Switch: Dynamic Screen vs Static Printable Standee */}
+                                    <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-white/10 shrink-0 self-start sm:self-auto shadow-inner">
+                                        <button
+                                            type="button"
+                                            onClick={() => setQrDisplayMode("dynamic")}
+                                            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-[13px] font-semibold transition-all ${
+                                                qrDisplayMode === "dynamic"
+                                                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                                                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                                            }`}
+                                        >
+                                            <Sparkles size={15} />
+                                            <span>Dynamic (Live Screen)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setQrDisplayMode("static")}
+                                            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-[13px] font-semibold transition-all ${
+                                                qrDisplayMode === "static"
+                                                    ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                                                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                                            }`}
+                                        >
+                                            <Printer size={15} />
+                                            <span>Static (Printable Standee)</span>
+                                        </button>
                                     </div>
                                 </div>
                                 
@@ -2344,96 +2524,171 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch mt-4">
-                                        {/* Left side: Static QR Code */}
+                                        {/* Left side: QR Code Box */}
                                         <div className="md:col-span-5 flex flex-col h-full">
-                                            <QueueQRCode queueId={queueId} queueName={queueName} isCollapsible={false} className="h-full flex-1 rounded-3xl" />
+                                            <QueueQRCode queueId={queueId} queueName={queueName} qrMode={qrDisplayMode} isCollapsible={false} className="h-full flex-1 rounded-3xl" />
                                         </div>
 
-                                        {/* Right side: Pair Showcase Device */}
-                                        <div className="md:col-span-7 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-white/10 p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
-                                            <div className="space-y-8">
-                                                {/* Header */}
-                                                <div className="flex items-start gap-5 pb-6 border-b border-slate-100 dark:border-white/5">
-                                                    <div className="w-12 h-12 rounded-xl bg-indigo-50/50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                                                        <QrCode size={24} strokeWidth={1.5} />
-                                                    </div>
-                                                    <div>
-                                                        <h2 className="text-xl font-medium tracking-tight text-slate-900 dark:text-white">Pair Showcase Device</h2>
-                                                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                                                            Open <span className="font-mono text-indigo-700 dark:text-indigo-300 font-medium bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">/qr</span> on your tablet or phone, then enter the 6-digit code below to cast your queue.
-                                                        </p>
-                                                        <div className="flex items-center gap-2 sm:gap-3 mt-6">
-                                                            {[0, 1, 2, 3, 4, 5].map((index) => (
-                                                                <input
-                                                                    key={index}
-                                                                    id={`pin-${index}`}
-                                                                    type="text"
-                                                                    autoCapitalize="characters"
-                                                                    autoComplete="off"
-                                                                    autoCorrect="off"
-                                                                    spellCheck={false}
-                                                                    maxLength={6}
-                                                                    value={qrPairingCodeInput[index] || ""}
-                                                                    onChange={(e) => {
-                                                                        const rawVal = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                                                                        if (!rawVal) {
-                                                                            const newPin = qrPairingCodeInput.split('');
-                                                                            newPin[index] = '';
-                                                                            setQrPairingCodeInput(newPin.join(''));
-                                                                            return;
-                                                                        }
-                                                                        if (rawVal.length > 1) {
-                                                                            const pasted = rawVal.slice(0, 6);
-                                                                            setQrPairingCodeInput(pasted);
-                                                                            const nextIdx = Math.min(pasted.length, 5);
-                                                                            document.getElementById(`pin-${nextIdx}`)?.focus();
-                                                                            return;
-                                                                        }
-                                                                        const charArr = Array.from({ length: 6 }, (_, i) => qrPairingCodeInput[i] || '');
-                                                                        charArr[index] = rawVal;
-                                                                        const updated = charArr.join('');
-                                                                        setQrPairingCodeInput(updated);
-                                                                        if (index < 5 && rawVal) {
-                                                                            const next = document.getElementById(`pin-${index + 1}`);
-                                                                            next?.focus();
-                                                                        }
-                                                                    }}
-                                                                    onPaste={(e) => {
-                                                                        e.preventDefault();
-                                                                        const pastedText = e.clipboardData.getData('text').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-                                                                        if (pastedText) {
-                                                                            setQrPairingCodeInput(pastedText);
-                                                                            const nextIdx = Math.min(pastedText.length, 5);
-                                                                            document.getElementById(`pin-${nextIdx}`)?.focus();
-                                                                        }
-                                                                    }}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Backspace') {
-                                                                            if (!qrPairingCodeInput[index] && index > 0) {
-                                                                                const prev = document.getElementById(`pin-${index - 1}`);
-                                                                                prev?.focus();
-                                                                            }
-                                                                        }
-                                                                    }}
-                                                                    className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl font-bold font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none uppercase"
-                                                                />
-                                                            ))}
+                                        {/* Right side: Mode-specific Controls */}
+                                        {qrDisplayMode === "dynamic" ? (
+                                            /* Pair Showcase Device for Live Screens */
+                                            <div className="md:col-span-7 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-white/10 p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
+                                                <div className="space-y-8">
+                                                    {/* Header */}
+                                                    <div className="flex items-start gap-5 pb-6 border-b border-slate-100 dark:border-white/5">
+                                                        <div className="w-12 h-12 rounded-xl bg-indigo-50/50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                            <QrCode size={24} strokeWidth={1.5} />
                                                         </div>
+                                                        <div>
+                                                            <h2 className="text-xl font-medium tracking-tight text-slate-900 dark:text-white">Pair Showcase Device</h2>
+                                                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                                                                Open <span className="font-mono text-indigo-700 dark:text-indigo-300 font-medium bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">/qr</span> on your tablet or phone, then enter the 6-digit code below to cast your queue.
+                                                            </p>
+                                                            <div className="flex items-center gap-2 sm:gap-3 mt-6">
+                                                                {[0, 1, 2, 3, 4, 5].map((index) => (
+                                                                    <input
+                                                                        key={index}
+                                                                        id={`pin-${index}`}
+                                                                        type="text"
+                                                                        autoCapitalize="characters"
+                                                                        autoComplete="off"
+                                                                        autoCorrect="off"
+                                                                        spellCheck={false}
+                                                                        maxLength={6}
+                                                                        value={qrPairingCodeInput[index] || ""}
+                                                                        onChange={(e) => {
+                                                                            const rawVal = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                                                            if (!rawVal) {
+                                                                                const newPin = qrPairingCodeInput.split('');
+                                                                                newPin[index] = '';
+                                                                                setQrPairingCodeInput(newPin.join(''));
+                                                                                return;
+                                                                            }
+                                                                            if (rawVal.length > 1) {
+                                                                                const pasted = rawVal.slice(0, 6);
+                                                                                setQrPairingCodeInput(pasted);
+                                                                                const nextIdx = Math.min(pasted.length, 5);
+                                                                                document.getElementById(`pin-${nextIdx}`)?.focus();
+                                                                                return;
+                                                                            }
+                                                                            const charArr = Array.from({ length: 6 }, (_, i) => qrPairingCodeInput[i] || '');
+                                                                            charArr[index] = rawVal;
+                                                                            const updated = charArr.join('');
+                                                                            setQrPairingCodeInput(updated);
+                                                                            if (index < 5 && rawVal) {
+                                                                                const next = document.getElementById(`pin-${index + 1}`);
+                                                                                next?.focus();
+                                                                            }
+                                                                        }}
+                                                                        onPaste={(e) => {
+                                                                            e.preventDefault();
+                                                                            const pastedText = e.clipboardData.getData('text').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+                                                                            if (pastedText) {
+                                                                                setQrPairingCodeInput(pastedText);
+                                                                                const nextIdx = Math.min(pastedText.length, 5);
+                                                                                document.getElementById(`pin-${nextIdx}`)?.focus();
+                                                                            }
+                                                                        }}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Backspace') {
+                                                                                if (!qrPairingCodeInput[index] && index > 0) {
+                                                                                    const prev = document.getElementById(`pin-${index - 1}`);
+                                                                                    prev?.focus();
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                        className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl font-bold font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none uppercase"
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <form onSubmit={handleConnectQrShowcase} className="space-y-8">
+                                                        <button
+                                                            type="submit"
+                                                            disabled={qrPairingCodeInput.length !== 6 || isQrPairing}
+                                                            className="w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                        >
+                                                            {isQrPairing ? "Connecting..." : "Connect Device"}
+                                                            {!isQrPairing && <ArrowRight size={16} className={`transition-transform duration-300 ${qrPairingCodeInput.length === 6 ? 'translate-x-1' : ''}`} />}
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            /* Printable Standee & Table Tents Station */
+                                            <div className="md:col-span-7 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-white/10 p-6 sm:p-10 flex flex-col justify-between relative overflow-hidden">
+                                                <div className="space-y-6">
+                                                    {/* Header */}
+                                                    <div className="flex items-start gap-4 pb-6 border-b border-slate-100 dark:border-white/5">
+                                                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-sm">
+                                                            <Printer size={24} strokeWidth={1.75} />
+                                                        </div>
+                                                        <div>
+                                                            <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Printable Standee & Table Tents</h2>
+                                                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                                                                Designed for printed acrylic desk stands, table tents, and entrance posters. Print once and use permanently across all sessions.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Feature Highlights */}
+                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                                                        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5">
+                                                            <div className="text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center gap-1.5 mb-1">
+                                                                <CheckCircle2 size={14} /> Print Once
+                                                            </div>
+                                                            <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">
+                                                                Permanent static code that does not rotate every 15s. Ready for print.
+                                                            </p>
+                                                        </div>
+                                                        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5">
+                                                            <div className="text-indigo-600 dark:text-indigo-400 font-bold text-xs flex items-center gap-1.5 mb-1">
+                                                                <Clock size={14} /> Session-Bound
+                                                            </div>
+                                                            <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">
+                                                                Auto-binds to today's active session. Closes when queue is paused or ended.
+                                                            </p>
+                                                        </div>
+                                                        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5">
+                                                            <div className="text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center gap-1.5 mb-1">
+                                                                <RefreshCw size={14} /> Auto Tomorrow
+                                                            </div>
+                                                            <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">
+                                                                Tomorrow's new session automatically links to the same printed QR code.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Quick Actions */}
+                                                    <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                                                        <button
+                                                            type="button"
+                                                            onClick={handlePrintStandee}
+                                                            className="flex-1 py-3.5 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                                        >
+                                                            <Printer size={16} />
+                                                            <span>Print Standee Card</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleCopyStaticLink}
+                                                            className="py-3.5 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                                        >
+                                                            {copiedLink ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+                                                            <span>{copiedLink ? "Copied!" : "Copy Permanent URL"}</span>
+                                                        </button>
                                                     </div>
                                                 </div>
 
-                                                <form onSubmit={handleConnectQrShowcase} className="space-y-8">
-                                                    <button
-                                                        type="submit"
-                                                        disabled={qrPairingCodeInput.length !== 6 || isQrPairing}
-                                                        className="w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                                    >
-                                                        {isQrPairing ? "Connecting..." : "Connect Device"}
-                                                        {!isQrPairing && <ArrowRight size={16} className={`transition-transform duration-300 ${qrPairingCodeInput.length === 6 ? 'translate-x-1' : ''}`} />}
-                                                    </button>
-                                                </form>
+                                                {/* Notice Footer */}
+                                                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center gap-2 text-xs text-slate-400">
+                                                    <ShieldCheck size={15} className="text-emerald-500 shrink-0" />
+                                                    <span>Customers scanning this code receive a single-use 10-minute session token upon arrival.</span>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -2537,7 +2792,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                 performAction={performAction}
                                 toast={toast}
                                 onOpenMobileMenu={() => setMobileMenuOpen(true)}
-                                hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
+                                hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0 || (isDineMode && dineTables.length > 0)}
+                                isDineMode={isDineMode}
+                                tables={dineTables}
                             />
                         )}
 
@@ -2754,7 +3011,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     <div
                                         className="hidden md:grid gap-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest"
                                         style={{
-                                            gridTemplateColumns: ((state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0)
+                                            gridTemplateColumns: (((state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0) || (isDineMode && dineTables.length > 0))
                                                 ? (activeListTab === "waiting" ? '80px 110px 130px 70px 1fr 120px 80px' : '80px 110px 130px 70px 120px 1fr 120px 80px')
                                                 : (activeListTab === "waiting" ? '80px 110px 130px 1fr 120px 80px' : '80px 110px 130px 120px 1fr 120px 80px')
                                         }}
@@ -2762,7 +3019,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         <div>Token</div>
                                         <div>Status</div>
                                         <div>Entry Method</div>
-                                        {((state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0) && <div>Line</div>}
+                                        {(((state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0) || (isDineMode && dineTables.length > 0)) && <div>{isDineMode ? "Table" : "Line"}</div>}
                                         {activeListTab !== "waiting" && <div>Call Method</div>}
                                         <div>Customer</div>
                                         <div>{activeListTab === "recent" ? "Join Time" : activeListTab === "waiting" ? "Wait Time" : activeListTab === "skipped" ? "Skipped / Recalled" : "Removed At"}</div>
@@ -2780,7 +3037,9 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     isManual={t.entry_type === "manual"}
                                                     onView={setSelectedToken}
                                                     onCall={canManageQueue ? handleCall : undefined}
-                                                    hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
+                                                    hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0 || (isDineMode && dineTables.length > 0)}
+                                                    isDineMode={isDineMode}
+                                                    tables={dineTables}
                                                 />
                                             )) : (
                                                 <div className="h-full flex flex-col items-center justify-center p-8 text-center">
@@ -2820,19 +3079,13 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         onView={setSelectedToken}
                                                         onCall={canManageQueue ? handleCall : undefined}
                                                         customTimeStr={customTimeStr || undefined}
-                                                        hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0}
+                                                        hasServiceLines={(state?.service_lines ?? initialQueue?.service_lines ?? 0) > 0 || (isDineMode && dineTables.length > 0)}
+                                                        isDineMode={isDineMode}
+                                                        tables={dineTables}
                                                         showCallMethod={activeListTab !== "waiting"}
                                                         extraActions={
                                                             <>
-                                                                {isDineMode && canManageQueue && activeListTab === "waiting" && (
-                                                                    <button
-                                                                        onClick={() => handleSeatParty(t)}
-                                                                        disabled={actionLoading === `seat_${t.id}`}
-                                                                        className="px-2.5 h-8 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
-                                                                    >
-                                                                        {actionLoading === `seat_${t.id}` ? "..." : "Seat"}
-                                                                    </button>
-                                                                )}
+
                                                                 {isZoneMode && canManageQueue && activeListTab === "waiting" && (
                                                                     <button
                                                                         onClick={async () => {
@@ -3186,6 +3439,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                             });
                         }
                     } : undefined}
+                    isDineMode={isDineMode}
+                    tables={dineTables}
                 />
             </div>
 
@@ -3367,7 +3622,7 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
 };
 
 const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
-    token: t, prefix, queueName, isManual, onView, onCall, customTimeStr, extraActions, hasServiceLines = true, showCallMethod = true
+    token: t, prefix, queueName, isManual, onView, onCall, customTimeStr, extraActions, hasServiceLines = true, showCallMethod = true, isDineMode = false, tables
 }: {
     token: RecentToken | WaitingToken;
     prefix: string;
@@ -3379,6 +3634,8 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
     extraActions?: React.ReactNode;
     hasServiceLines?: boolean;
     showCallMethod?: boolean;
+    isDineMode?: boolean;
+    tables?: TableConfig[];
 }) {
     const tz = useBranchTimezone();
     const st = STATUS_LABELS[t.status] ?? { label: t.status, cls: "bg-slate-50 text-slate-600 border-slate-200" };
@@ -3469,11 +3726,20 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                     )}
                 </div>
 
-                {/* Line */}
+                {/* Line / Table */}
                 {hasServiceLines && (
                     <div>
                         {t.assigned_line != null
-                            ? <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">L {t.assigned_line}</span>
+                            ? <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
+                                {isDineMode ? (() => {
+                                    const tbl = Array.isArray(tables) ? tables.find(x => String(x.id) === String(t.assigned_line)) : undefined;
+                                    if (tbl && tbl.name != null) {
+                                        const strName = String(tbl.name).trim();
+                                        return /^\d+$/.test(strName) ? `Table ${strName}` : strName;
+                                    }
+                                    return `Table ${t.assigned_line}`;
+                                })() : `L ${t.assigned_line}`}
+                              </span>
                             : <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
                         }
                     </div>
@@ -3556,7 +3822,16 @@ const FullRecentTokenRow = React.memo(function FullRecentTokenRow({
                             <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200">QR</span>
                         )}
                         {hasServiceLines && t.assigned_line != null && (
-                            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">L{t.assigned_line}</span>
+                            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {isDineMode ? (() => {
+                                    const tbl = Array.isArray(tables) ? tables.find(x => String(x.id) === String(t.assigned_line)) : undefined;
+                                    if (tbl && tbl.name != null) {
+                                        const strName = String(tbl.name).trim();
+                                        return /^\d+$/.test(strName) ? `T${strName}` : strName;
+                                    }
+                                    return `T${t.assigned_line}`;
+                                })() : `L${t.assigned_line}`}
+                            </span>
                         )}
                     </div>
                     <span className="text-[11px] font-medium text-slate-400 tabular-nums">{timeStr}</span>
@@ -3615,7 +3890,7 @@ function QueueHistory({
     historyPage, setHistoryPage,
     historyLoading, setHistoryLoading,
     historyPageSize, onViewToken, onRecallToken, performAction, toast,
-    onOpenMobileMenu, hasServiceLines
+    onOpenMobileMenu, hasServiceLines, isDineMode, tables
 }: {
     queueId: string; sessionId?: string; sessionDate?: string; queueName: string; prefix: string;
     queueHistory: TokenHistoryItem[]; setQueueHistory: (d: TokenHistoryItem[]) => void;
@@ -3629,7 +3904,19 @@ function QueueHistory({
     toast: (msg: string, type: "success" | "error" | "info" | "warning") => void;
     onOpenMobileMenu: () => void;
     hasServiceLines?: boolean;
+    isDineMode?: boolean;
+    tables?: TableConfig[];
 }) {
+    const getTableDisplayName = (line: number | string | null | undefined, item?: any) => {
+        if (line == null) return "—";
+        if (item?.custom_data?.table_name) return String(item.custom_data.table_name);
+        const tbl = Array.isArray(tables) ? tables.find(t => String(t.id) === String(line)) : undefined;
+        if (tbl && tbl.name != null) {
+            const strName = String(tbl.name).trim();
+            return /^\d+$/.test(strName) ? `Table ${strName}` : strName;
+        }
+        return `Table ${line}`;
+    };
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
@@ -3828,7 +4115,7 @@ function QueueHistory({
                     <table style={{ width: "100%", textAlign: "left", fontSize: 13.5, borderCollapse: "collapse", minWidth: 800 }}>
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-white/10">
-                                {["Token", "Customer", "Status", "Type", "Wait Time", "Service Time", "Staff", ...(hasServiceLines ? ["Line"] : []), "Actions"].map(h => (
+                                {["Token", "Customer", "Status", "Type", "Wait Time", "Service Time", "Staff", ...(hasServiceLines ? [isDineMode ? "Table" : "Line"] : []), "Actions"].map(h => (
                                     <th key={h} className="text-slate-500 dark:text-slate-400" style={{ padding: "11px 18px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".09em", whiteSpace: "nowrap" }}>{h}</th>
                                 ))}
                             </tr>
@@ -3936,7 +4223,7 @@ function QueueHistory({
                                             <td className="text-slate-600 dark:text-slate-300" style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
                                                 {(item as any).assigned_line != null ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
-                                                        Lane {(item as any).assigned_line}
+                                                        {isDineMode ? getTableDisplayName((item as any).assigned_line, item) : `Lane ${(item as any).assigned_line}`}
                                                     </span>
                                                 ) : <span className="text-slate-400 dark:text-slate-500">—</span>}
                                             </td>

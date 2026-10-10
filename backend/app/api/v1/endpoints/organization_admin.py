@@ -213,13 +213,14 @@ async def update_branch(
         branch.branch_type = request.branch_type
         if request.branch_type == "dine":
             from sqlalchemy.orm.attributes import flag_modified
+            from app.schemas.queue import DEFAULT_CUSTOM_FIELDS
             queues_res = await db.execute(select(Queue).where(Queue.org_id == branch.id, Queue.is_deleted == False))
             for q in queues_res.scalars().all():
-                fields = list(q.custom_fields or [])
+                fields = list(q.custom_fields) if q.custom_fields else [dict(f) for f in DEFAULT_CUSTOM_FIELDS]
                 if not any(f.get("key") in ("name", "full_name") for f in fields):
-                    fields.insert(0, {"id": f"field_name_default_{q.id}", "key": "name", "label": "Full Name", "type": "text", "required": True, "order": 0})
+                    fields.insert(0, dict(DEFAULT_CUSTOM_FIELDS[0]))
                 if not any(f.get("key") in ("phone", "phone_number") for f in fields):
-                    fields.insert(1, {"id": f"field_phone_default_{q.id}", "key": "phone", "label": "Phone Number", "type": "phone", "required": True, "order": 1})
+                    fields.insert(1, dict(DEFAULT_CUSTOM_FIELDS[1]))
                 if not any(f.get("key") in ("pax", "pax_count", "no_of_pax", "number_of_pax") for f in fields):
                     fields.append({
                         "id": f"field_pax_default_{q.id}",

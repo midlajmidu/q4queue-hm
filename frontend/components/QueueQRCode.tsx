@@ -11,9 +11,10 @@ interface QueueQRCodeProps {
     isCollapsible?: boolean;
     className?: string;
     tokenLimitReached?: boolean;
+    qrMode?: "dynamic" | "static";
 }
 
-export default function QueueQRCode({ queueId, queueName, isCollapsible = false, className = "", tokenLimitReached = false }: QueueQRCodeProps) {
+export default function QueueQRCode({ queueId, queueName, isCollapsible = false, className = "", tokenLimitReached = false, qrMode = "dynamic" }: QueueQRCodeProps) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
     const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
     const defaultJoinUrl = `${normalizedAppUrl}/join/${queueId}?new=true`;
@@ -33,6 +34,35 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
 
     useEffect(() => {
         if (!queueId) return;
+
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
+        const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
+        let fullApiUrl = normalizedApiUrl;
+        if (!normalizedApiUrl.startsWith("http")) {
+            fullApiUrl = normalizedAppUrl + normalizedApiUrl;
+        }
+
+        if (qrMode === "static") {
+            setJoinUrl(`${fullApiUrl}/queues/${queueId}/scan?mode=static&totp=static&new=true`);
+            let isCancelled = false;
+            // Check status once
+            getQueueQrConfig(queueId).then((res) => {
+                if (isCancelled) return;
+                setIsSessionInactive(false);
+                if (res.token_limit_reached) {
+                    setIsTokenLimitReached(true);
+                    setTokensUsed(res.tokens_used ?? 0);
+                    setTokensLimit(res.tokens_limit ?? null);
+                } else {
+                    setIsTokenLimitReached(false);
+                    setTokensUsed(res.tokens_used ?? 0);
+                    setTokensLimit(res.tokens_limit ?? null);
+                }
+            }).catch(() => {
+                if (!isCancelled) setIsSessionInactive(true);
+            });
+            return () => { isCancelled = true; };
+        }
 
         setJoinUrl(defaultJoinUrl);
 
@@ -62,14 +92,6 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
 
                 const { totp, valid_for } = res;
 
-                const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
-                const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
-                
-                let fullApiUrl = normalizedApiUrl;
-                if (!normalizedApiUrl.startsWith("http")) {
-                    fullApiUrl = normalizedAppUrl + normalizedApiUrl;
-                }
-
                 setJoinUrl(`${fullApiUrl}/queues/${queueId}/scan?totp=${encodeURIComponent(totp)}&new=true`);
                 setTimeLeft(valid_for);
                 if (countdownTimer) clearInterval(countdownTimer);
@@ -91,7 +113,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
             if (refreshTimer) clearTimeout(refreshTimer);
             if (countdownTimer) clearInterval(countdownTimer);
         };
-    }, [queueId, defaultJoinUrl]);
+    }, [queueId, defaultJoinUrl, qrMode, normalizedAppUrl]);
 
 
     const generateWatermarkedQRUrl = (): string | null => {
@@ -158,7 +180,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
         if (url) {
             const a = document.createElement("a");
             a.href = url;
-            a.download = `Queue_${queueName}_QR.png`;
+            a.download = qrMode === "static" ? `Queue_${queueName}_Static_Standee_QR.png` : `Queue_${queueName}_QR.png`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -193,7 +215,9 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                             </svg>
                         </div>
-                        <span className="font-semibold text-slate-900 dark:text-white text-sm">Join Queue QR Code</span>
+                        <span className="font-semibold text-slate-900 dark:text-white text-sm">
+                            {qrMode === "static" ? "Printable Standee QR Code" : "Join Queue QR Code"}
+                        </span>
                     </div>
                     <svg
                         className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
@@ -206,8 +230,14 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                 </button>
             ) : (
                 <div className="px-6 py-4 border-b border-slate-100 dark:border-white/10">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Queue QR Code</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Scan to join the {queueName} queue</p>
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                        {qrMode === "static" ? "Static Standee QR Code" : "Queue QR Code"}
+                    </h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {qrMode === "static"
+                            ? `Permanent QR code for ${queueName} • Ready to print`
+                            : `Scan to join the ${queueName} queue`}
+                    </p>
                 </div>
             )}
 
@@ -270,6 +300,13 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                                     </span>
                                     <span className="tracking-wide">Check-ins Closed</span>
+                                </div>
+                            ) : qrMode === "static" ? (
+                                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs font-semibold mb-4 shadow-xs">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </span>
+                                    <span className="tracking-wide">Permanent Printable Standee QR</span>
                                 </div>
                             ) : (
                                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 text-xs font-medium mb-4 shadow-xs transition-all duration-300">

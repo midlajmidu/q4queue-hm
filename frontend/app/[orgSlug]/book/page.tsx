@@ -97,7 +97,7 @@ function validateField(field: CustomField, val: any): string | null {
         if (!strVal) return "Full name is required";
         if (strVal.length < 2) return "Name must be at least 2 characters";
         if (strVal.length > 60) return "Name cannot exceed 60 characters";
-        if (!/^[\p{L}\s\.\'\-]+$/u.test(strVal)) {
+        if (!/^[\p{L}\s.'-]+$/u.test(strVal)) {
             return "Name must contain only letters, spaces, and hyphens";
         }
         return null;

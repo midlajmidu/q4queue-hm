@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ queueId: string }> | { queueId: string } }
+  context: { params: Promise<{ queueId: string }> }
 ) {
-  const params = await Promise.resolve(context.params);
+  const params = await context.params;
   const queueId = params.queueId;
 
   // Resolve backend URL

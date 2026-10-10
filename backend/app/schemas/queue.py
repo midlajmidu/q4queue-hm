@@ -71,7 +71,11 @@ class CustomFieldSchema(BaseModel):
                 continue
             seen.add(s_lower)
             sanitized.append(s)
-        return sanitized
+DEFAULT_CUSTOM_FIELDS = [
+    {"id": "default_name", "key": "name", "label": "Full Name", "type": "text", "required": True, "order": 0},
+    {"id": "default_phone", "key": "phone", "label": "Phone Number", "type": "phone", "required": True, "order": 1},
+    {"id": "default_pax", "key": "pax", "label": "Number of Pax", "type": "number", "required": True, "order": 2},
+]
 
 
 def validate_custom_fields_list(v: Optional[list]) -> Optional[list[dict]]:

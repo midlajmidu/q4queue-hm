@@ -102,6 +102,7 @@ async def build_queue_snapshot(
                 "called_via_invite": serving_token.called_via_invite,
                 "entry_type": getattr(serving_token, "entry_type", "qr"),
                 "pax_count": getattr(serving_token, "pax_count", 1),
+                "served_at": serving_token.served_at.isoformat() if serving_token.served_at else None,
             }
             if is_admin:
                 serving_details["customer_age"] = serving_token.customer_age
@@ -383,19 +384,19 @@ async def build_queue_snapshot(
         if serving_details:
             serving_details = {
                 key: serving_details.get(key)
-                for key in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count")
+                for key in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count", "served_at")
             }
         all_serving_tokens = [
             {
                 key: item.get(key)
-                for key in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count", "shared_lines", "completed_lines")
+                for key in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count", "shared_lines", "completed_lines", "served_at")
             }
             for item in all_serving_tokens
         ]
         recent_tokens = [
             {
                 key: item.get(key)
-                for key in ("token_number", "status", "assigned_line", "called_via_invite")
+                for key in ("token_number", "status", "assigned_line", "called_via_invite", "served_at")
             }
             for item in recent_tokens
         ]
@@ -456,7 +457,11 @@ async def build_queue_snapshot(
         "deleted_tokens_truncated": bool(is_admin and deleted_count > len(deleted_tokens)),
         "org_logo_url": None,
         "org_brand_color": None,
-        "custom_fields": getattr(queue, "custom_fields", None),
+        "custom_fields": getattr(queue, "custom_fields", None) or [
+            {"id": "default_name", "key": "name", "label": "Full Name", "type": "text", "required": True, "order": 0},
+            {"id": "default_phone", "key": "phone", "label": "Phone Number", "type": "phone", "required": True, "order": 1},
+            {"id": "default_pax", "key": "pax", "label": "Number of Pax", "type": "number", "required": True, "order": 2},
+        ],
         "enable_shared_tokens": getattr(org, "enable_shared_tokens", False) or getattr(parent_org, "enable_shared_tokens", False),
     }
 
@@ -486,14 +491,14 @@ async def build_queue_snapshots_dual(
     if admin_snapshot.get("serving_details"):
         public_serving_details = {
             k: admin_snapshot["serving_details"].get(k)
-            for k in ("token_number", "session_id", "assigned_line", "called_via_invite", "entry_type", "pax_count")
+            for k in ("token_number", "session_id", "assigned_line", "called_via_invite", "entry_type", "pax_count", "served_at", "customer_name")
             if k in admin_snapshot["serving_details"]
         }
 
     public_all_serving_tokens = [
         {
             k: list(item[k]) if isinstance(item.get(k), list) else item.get(k)
-            for k in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count", "shared_lines", "completed_lines", "session_id")
+            for k in ("token_number", "assigned_line", "called_via_invite", "entry_type", "pax_count", "shared_lines", "completed_lines", "session_id", "served_at", "customer_name")
             if k in item
         }
         for item in admin_snapshot.get("all_serving_tokens", [])
@@ -502,7 +507,7 @@ async def build_queue_snapshots_dual(
     public_recent_tokens = [
         {
             k: item.get(k)
-            for k in ("token_number", "status", "assigned_line", "called_via_invite", "session_id")
+            for k in ("token_number", "status", "assigned_line", "called_via_invite", "session_id", "pax_count", "served_at", "completed_at", "created_at", "customer_name")
             if k in item
         }
         for item in admin_snapshot.get("recent_tokens", [])
@@ -511,7 +516,7 @@ async def build_queue_snapshots_dual(
     public_waiting_tokens = [
         {
             k: item.get(k)
-            for k in ("token_number", "session_id")
+            for k in ("token_number", "session_id", "pax_count", "created_at", "assigned_line")
             if k in item
         }
         for item in admin_snapshot.get("waiting_tokens", [])

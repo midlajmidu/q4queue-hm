@@ -128,7 +128,7 @@ const CustomDropdown = ({ value, onChange, options }: { value: string, onChange:
                 className="w-full flex items-center justify-between bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white hover:border-slate-300 focus:outline-none focus:border-indigo-500 transition-colors"
             >
                 <span className="flex items-center gap-2 truncate">
-                    {selectedOption.icon && <selectedOption.icon className="w-4 h-4 text-slate-400" />}
+                    {selectedOption.icon && (() => { const SelectedIcon = selectedOption.icon as any; return <SelectedIcon className="w-4 h-4 text-slate-400" />; })()}
                     {selectedOption.label}
                 </span>
                 <svg className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,7 +139,7 @@ const CustomDropdown = ({ value, onChange, options }: { value: string, onChange:
             {isOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 py-1 overflow-hidden">
                     {options.map((option) => {
-                        const Icon = option.icon;
+                        const Icon = option.icon as any;
                         const isSelected = option.value === value;
                         return (
                             <button

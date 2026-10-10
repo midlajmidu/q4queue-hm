@@ -55,6 +55,40 @@ const formatTime12 = (time24?: string | null) => {
     return `${hours.toString().padStart(2, "0")}:${m} ${ampm}`;
 };
 
+export interface CustomFieldItem {
+    id: string;
+    key: string;
+    label: string;
+    type: string;
+    required: boolean;
+    order: number;
+    options?: string[];
+}
+
+const DEFAULT_JOIN_FIELDS: CustomFieldItem[] = [
+    { id: "default_name", key: "name", label: "Full Name", type: "text", required: true, order: 0 },
+    { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 },
+    { id: "default_pax", key: "pax", label: "Number of Pax", type: "number", required: true, order: 2 },
+];
+
+function ensureMandatoryJoinFields(fieldsList: any[] | null | undefined): CustomFieldItem[] {
+    if (!fieldsList || fieldsList.length === 0) {
+        return DEFAULT_JOIN_FIELDS;
+    }
+    const result: CustomFieldItem[] = [...fieldsList];
+    const hasName = result.some(f => f.key === 'name' || f.key === 'full_name');
+    const hasPhone = result.some(f => f.key === 'phone' || f.key === 'phone_number');
+
+    if (!hasName) {
+        result.unshift({ id: "default_name", key: "name", label: "Full Name", type: "text", required: true, order: 0 });
+    }
+    if (!hasPhone) {
+        const nameIdx = result.findIndex(f => f.key === 'name' || f.key === 'full_name');
+        result.splice(nameIdx + 1, 0, { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 });
+    }
+    return result.map((f, idx) => ({ ...f, order: f.order ?? idx }));
+}
+
 // ── WhatsApp Consent Modal ────────────────────────────────────────────────────
 interface WhatsAppConsentModalProps {
     brandColor: string;
@@ -372,7 +406,7 @@ export default function JoinQueuePage({ params }: PageProps) {
     const [showCompanions, setShowCompanions] = useState<boolean>(false);
     const [companionInput, setCompanionInput] = useState<string>("1");
     const paxCount = parseInt(companionInput) || 0;
-    const [customData, setCustomData] = useState<Record<string, any>>({});
+    const [customData, setCustomData] = useState<Record<string, any>>({ pax: "1" });
 
     // Use REST sessionStatus as primary source (immediate), WebSocket as fallback, plus query params & error flags
     const isPastSession = isQrExpired || isInactiveError || sessionStatus?.is_past_session === true || live?.is_past_session === true;
@@ -395,45 +429,20 @@ export default function JoinQueuePage({ params }: PageProps) {
     const isPhoneValid = /^\d{10}$/.test(customerPhone);
     const isPaxValid = paxCount >= 1 && paxCount <= 99;
     const isLegacyFormValid = isNameValid && isPhoneValid && companionInput.trim() !== "" && isPaxValid;
-    const customFieldsList = React.useMemo(() => {
-        if (!Array.isArray(live?.custom_fields)) return [];
-        const result = [...live.custom_fields];
-        if (!result.some(f => f.key === 'name' || f.key === 'full_name')) {
-            result.unshift({ id: "default_name", key: "name", label: "Full Name", type: "text", required: true, order: 0 });
+    const rawFields = live?.custom_fields || sessionStatus?.custom_fields;
+    const customFieldsList = ensureMandatoryJoinFields(rawFields);
+    const hasCustomFieldsConfigured = true;
+    const isFormValid = customFieldsList.length > 0 && !customFieldsList.some(f => {
+        if (!f.required) return false;
+        const val = customData[f.key];
+        if (!val || String(val).trim() === "") return true;
+        if (f.type === "phone" && String(val).replace(/\D/g, "").length < 7) return true;
+        if (f.key === "pax" || f.key === "pax_count" || f.key === "group_size") {
+            const paxNum = parseInt(String(val));
+            if (isNaN(paxNum) || paxNum < 1 || paxNum > 99) return true;
         }
-        if (!result.some(f => f.key === 'phone' || f.key === 'phone_number')) {
-            const nameIdx = result.findIndex(f => f.key === 'name' || f.key === 'full_name');
-            result.splice(nameIdx + 1, 0, { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 });
-        }
-        if (isDineQueue && !result.some(f => f.key === 'pax' || f.key === 'pax_count' || f.key === 'group_size' || f.label?.toLowerCase().includes('pax'))) {
-            result.push({ id: "default_pax", key: "pax", label: "Number of Pax", type: "number", required: true, order: result.length });
-        }
-        return result;
-    }, [live?.custom_fields, isDineQueue]);
-    const hasCustomFieldsConfigured = customFieldsList.length > 0;
-
-    const isCustomFormValid = React.useMemo(() => {
-        if (!hasCustomFieldsConfigured) return false;
-        return customFieldsList.every(f => {
-            if (!f.required) return true;
-            const val = customData[f.key];
-            if (val === undefined || val === null || String(val).trim() === "") return false;
-            if (f.type === "phone") {
-                const digits = String(val).replace(/\D/g, "");
-                return digits.length === 10;
-            }
-            if (f.key === "name" || f.label?.toLowerCase().includes("name")) {
-                return /^[A-Za-z\s'-]{2,50}$/.test(String(val).trim());
-            }
-            if (f.key === "pax" || f.label?.toLowerCase().includes("pax")) {
-                const num = parseInt(String(val));
-                return num >= 1 && num <= 99;
-            }
-            return true;
-        });
-    }, [hasCustomFieldsConfigured, customFieldsList, customData]);
-
-    const isFormValid = hasCustomFieldsConfigured ? isCustomFormValid : isLegacyFormValid;
+        return false;
+    });
 
     // Called after WhatsApp consent answer (or re-called when user confirms force_new)
     const doJoin = useCallback(async (sendWhatsApp: boolean, forceNewOverride = false) => {
@@ -684,7 +693,7 @@ export default function JoinQueuePage({ params }: PageProps) {
 
                             <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white mb-0.5 drop-shadow-sm">{queueName}</h1>
                             <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/70 mb-3">
-                                {queueClosed ? "Currently Closed" : isDineQueue ? "Table Waitlist / Now Seating" : "Now Serving"}
+                                {queueClosed ? "Currently Closed" : "Now Serving"}
                             </p>
 
                             <div className="relative mx-auto w-full mt-2">
@@ -851,7 +860,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                             </div>
                                             <div>
                                                 <p className="font-bold text-xs sm:text-sm text-slate-900 leading-tight">
-                                                    {isDineQueue ? "Active Table Waitlist Ticket" : "Active Ticket in this Queue"}
+                                                    Active Ticket in this Queue
                                                 </p>
                                                 <p className="text-[11px] text-slate-600 mt-0.5">
                                                     {isDineQueue
@@ -877,7 +886,7 @@ export default function JoinQueuePage({ params }: PageProps) {
                                                 }}
                                                 className="flex-1 sm:flex-none px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold rounded-xl transition whitespace-nowrap"
                                             >
-                                                {isDineQueue ? "Register Another Party" : "Register Another Customer"}
+                                                Register Another Customer
                                             </button>
                                         </div>
                                     </div>
@@ -886,12 +895,10 @@ export default function JoinQueuePage({ params }: PageProps) {
                                 {/* Info text */}
                                 <div className="text-center px-2">
                                     <h2 className="text-lg font-black text-slate-900 tracking-tight mb-1">
-                                        {isDineQueue ? "Join Table Waitlist" : "Welcome"}
+                                        Welcome
                                     </h2>
                                     <p className="text-slate-500 text-xs leading-relaxed">
-                                        {isDineQueue
-                                            ? "Enter your party details below. We'll alert you on WhatsApp the moment your table is ready."
-                                            : "Please enter your details below to secure your position."}
+                                        Please enter your details below to secure your position.
                                     </p>
                                 </div>
 
@@ -1066,7 +1073,7 @@ export default function JoinQueuePage({ params }: PageProps) {
 
                                             <div>
                                                 <label htmlFor="customer-pax" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                                                    {isDineQueue ? "Party Size (Number of Guests)" : "No of Pax"} <span className="text-emerald-500 ml-0.5">*</span>
+                                                    Number of Pax <span className="text-emerald-500 ml-0.5">*</span>
                                                 </label>
                                                 {isDineQueue ? (
                                                     <div className="space-y-2">
@@ -1157,19 +1164,19 @@ export default function JoinQueuePage({ params }: PageProps) {
                                             {isJoining ? (
                                                 <>
                                                     <span className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
-                                                    {isDineQueue ? "Securing Table Spot..." : "Getting Ticket..."}
+                                                    Getting Ticket...
                                                 </>
                                             ) : isPastSession ? (
                                                 "QR Code Expired / Invalid"
                                             ) : isTokenLimitReached ? (
                                                 "Token Capacity Reached"
                                             ) : queueClosed ? (
-                                                isDineQueue ? "Waitlist is Closed" : "Queue is Closed"
+                                                "Queue is Closed"
                                             ) : queuePaused ? (
                                                 "Operator on Break"
                                             ) : (
                                                 <>
-                                                    {isDineQueue ? "Join Table Waitlist" : "Take a Token"}
+                                                    Take a Token
                                                     <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                                     </svg>

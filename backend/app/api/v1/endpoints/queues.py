@@ -585,6 +585,11 @@ async def get_queue_public_status(
         "token_limit_reached": is_limit_reached,
         "tokens_used": used_tokens,
         "tokens_limit": token_limit,
+        "custom_fields": getattr(queue, "custom_fields", None) or [
+            {"id": "default_name", "key": "name", "label": "Full Name", "type": "text", "required": True, "order": 0},
+            {"id": "default_phone", "key": "phone", "label": "Phone Number", "type": "phone", "required": True, "order": 1},
+            {"id": "default_pax", "key": "pax", "label": "Number of Pax", "type": "number", "required": True, "order": 2},
+        ],
     }
 
 
@@ -637,12 +642,13 @@ async def get_queue_qr_config(
 @router.get(
     "/{queue_id}/scan",
     summary="QR Code Scan Redirect",
-    description="Validates dynamic TOTP, generates a single-use QR token, and redirects to the join page.",
+    description="Validates dynamic TOTP or static mode, generates a single-use QR token, and redirects to the join page.",
 )
 async def scan_queue_qr(
     queue_id: uuid.UUID,
     request: Request,
     totp: Union[str, None] = Query(None),
+    mode: Union[str, None] = Query(None),
     db: AsyncSession = Depends(get_db),
     _rate_limit: None = Depends(join_rate_limit),
 ):
@@ -681,12 +687,22 @@ async def scan_queue_qr(
     if is_limit_reached:
         return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=token_limit_reached")
 
-    # Validate TOTP if secret seed & totp validation is enforced
-    seed = get_qr_secret_seed(queue_id, settings.SECRET_KEY)
-    totp_verifier = pyotp.TOTP(seed, interval=15)
-    
-    if not totp or not totp_verifier.verify(totp, valid_window=1):
-        return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=expired_qr")
+    # Dynamic vs Static verification:
+    # If mode is static, TOTP rotation is bypassed while still enforcing active session & capacity limits.
+    is_static = (
+        mode == "static"
+        or totp == "static"
+        or request.query_params.get("mode") == "static"
+        or request.query_params.get("static") == "true"
+        or "mode=static" in str(request.url.query)
+        or "totp=static" in str(request.url.query)
+    )
+    if not is_static:
+        seed = get_qr_secret_seed(queue_id, settings.SECRET_KEY)
+        totp_verifier = pyotp.TOTP(seed, interval=15)
+        
+        if not totp or not totp_verifier.verify(totp, valid_window=1):
+            return RedirectResponse(url=f"{frontend_base}/join/{queue_id}?error=expired_qr")
 
     # Generate single-use token and store in Redis for 600 seconds (10 minutes)
     redis = get_redis()

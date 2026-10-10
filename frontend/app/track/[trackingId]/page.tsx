@@ -156,7 +156,8 @@ export default function TrackingPage({ params }: PageProps) {
                         session_id: info.session_id || "",
                         tracking_id: info.tracking_id,
                         removed_by: info.removed_by,
-                        pax_count: info.pax_count
+                        pax_count: info.pax_count,
+                        ai_overview_enabled: info.ai_overview_enabled
                     });
                     setTokenStatus(info.status as TokenStatus);
                     setIsLoading(false);
@@ -833,11 +834,11 @@ export default function TrackingPage({ params }: PageProps) {
                                                     ? `Your table (${myAssignedTableName}) is ready! Please proceed to your table or the Host Stand.` 
                                                     : "Your table is ready! Please proceed to the Host Stand.") 
                                                 : (myLanesLabel ? `Please proceed to ${myLanesLabel} now` : "Please proceed to the counter now")) 
-                                            : (isZoneMode
-                                                ? (isNext ? "You are next to enter the zone!" : `${positionMessage} • ${currentPaxInside}/${effectiveMaxCapacity} players inside`)
-                                                : isDineMode && (joinData?.pax_count || 1) > 0
-                                                ? `${positionMessage} (Party of ${joinData?.pax_count})`
-                                                : positionMessage)}
+                                            : isDineMode
+                                            ? (alreadyServed ? "Hope you enjoyed your meal!" : isMyTurn ? "Your table is ready!" : `Table Waitlist • Party of ${joinData?.pax_count || 1}`)
+                                            : isZoneMode
+                                            ? (isNext ? "You are next to enter the zone!" : `${positionMessage} • ${currentPaxInside}/${effectiveMaxCapacity} players inside`)
+                                            : positionMessage}
                                     </p>
                                 </div>
 
@@ -846,14 +847,26 @@ export default function TrackingPage({ params }: PageProps) {
 
                                 <div className="p-4 pt-5">
                                     <div className="flex bg-slate-50/50 rounded-2xl border border-slate-100 divide-x divide-slate-100 overflow-hidden text-sm">
-                                        <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
-                                            <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">
-                                                Ahead
-                                            </p>
-                                            <p className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
-                                                {alreadyServed ? "—" : isMyTurn ? "0" : peopleAhead}
-                                            </p>
-                                        </div>
+                                        {!isDineMode && (
+                                            <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
+                                                <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">
+                                                    Ahead
+                                                </p>
+                                                <p className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
+                                                    {alreadyServed ? "—" : isMyTurn ? "0" : peopleAhead}
+                                                </p>
+                                            </div>
+                                        )}
+                                        {isDineMode && (
+                                            <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
+                                                <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">
+                                                    Party Size
+                                                </p>
+                                                <p className="text-xl sm:text-2xl font-black text-slate-800 tabular-nums leading-none">
+                                                    {joinData?.pax_count ?? 1} Pax
+                                                </p>
+                                            </div>
+                                        )}
                                         <div className="flex-1 py-3.5 flex flex-col items-center justify-center">
                                             <p className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider mb-1.5">Status</p>
                                             <p className={`text-[17px] sm:text-[19px] font-extrabold tracking-tight leading-none ${isMyTurn ? (isZoneMode ? "text-indigo-600" : "text-slate-900") : isSkipped ? "text-amber-500" : alreadyServed ? "text-slate-400" : (!isNext ? "text-slate-800" : "")}`} style={isNext ? { color: brandColor } : {}}>

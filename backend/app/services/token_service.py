@@ -896,21 +896,22 @@ async def clear_line(
         )
     )
     tokens = result.scalars().all()
-    token = None
+    cleared_any = False
+    last_cleared_token = None
     for t in tokens:
         if t.assigned_line == line_number or line_number in getattr(t, "shared_lines", []):
-            token = t
-            break
+            is_fully_done = _mark_line_completed(t, line_number)
+            if is_fully_done:
+                t.status = TokenStatus.done
+                t.completed_at = now
+                t.completed_by_id = user_id
+                queue.total_served += 1
+            cleared_any = True
+            last_cleared_token = t
             
-    if token is None:
+    if not cleared_any or last_cleared_token is None:
         return False
         
-    is_fully_done = _mark_line_completed(token, line_number)
-    if is_fully_done:
-        token.status = TokenStatus.done
-        token.completed_at = now
-        token.completed_by_id = user_id
-        queue.total_served += 1
     await db.flush()
     await _log_audit(
         db,
@@ -918,11 +919,11 @@ async def clear_line(
         org_id=org_id,
         user_id=user_id,
         resource_type="token",
-        resource_id=str(token.id),
+        resource_id=str(last_cleared_token.id),
         details={
-            "token_number": token.token_number,
+            "token_number": last_cleared_token.token_number,
             "line_number": line_number,
-            "fully_completed": is_fully_done,
+            "cleared_line": True,
         },
     )
     return True
@@ -1258,26 +1259,58 @@ async def serve_specific_token(
                     f"Cannot admit #{prefix_str}{specific_token.token_number}: Party has {token_pax} players, but only {remaining_spots} spots remaining ({active_pax}/{queue.max_capacity})."
                 )
     else:
-        # Mark currently-serving token as skipped on the target line (or all if single-counter)
-        where_clause = [
-            Token.queue_id == queue_id,
-            Token.org_id == org_id,
-            Token.session_id == queue.token_session_id,
-            Token.status == TokenStatus.serving,
-        ]
-        if line_number is not None:
-            where_clause.append(Token.assigned_line == line_number)
-            
-        await db.execute(
-            update(Token)
-            .where(*where_clause)
-            .values(
-                status=TokenStatus.skipped,
-                skipped_at=now,
-                completed_at=None,
-                completed_by_id=None,
+        # Check if dine queue (tables configured):
+        # In a dine/table queue, tables can be shared (e.g. 4-person table occupied by 3 can take 1 more),
+        # and seating a party at a table must NOT evict or skip the other diners on that table!
+        is_dine_queue = bool(getattr(queue, "table_config", None) and len(queue.table_config) > 0)
+        if not is_dine_queue:
+            # Mark currently-serving token as skipped on the target line (or all if single-counter)
+            where_clause = [
+                Token.queue_id == queue_id,
+                Token.org_id == org_id,
+                Token.session_id == queue.token_session_id,
+                Token.status == TokenStatus.serving,
+            ]
+            if line_number is not None:
+                where_clause.append(Token.assigned_line == line_number)
+                
+            await db.execute(
+                update(Token)
+                .where(*where_clause)
+                .values(
+                    status=TokenStatus.skipped,
+                    skipped_at=now,
+                    completed_at=None,
+                    completed_by_id=None,
+                )
             )
-        )
+        elif line_number is not None and queue.table_config:
+            # Validate shared table capacity if other guests are already dining at this table
+            target_table = next((t for t in queue.table_config if t.get("id") == line_number), None)
+            if target_table:
+                table_capacity = target_table.get("capacity", 0)
+                occ_result = await db.execute(
+                    select(Token).where(
+                        Token.queue_id == queue_id,
+                        Token.org_id == org_id,
+                        Token.session_id == queue.token_session_id,
+                        Token.status == TokenStatus.serving,
+                    )
+                )
+                active_on_table = [
+                    t for t in occ_result.scalars().all()
+                    if (t.assigned_line == line_number or line_number in (getattr(t, "shared_lines", []) or []))
+                    and line_number not in (getattr(t, "completed_lines", []) or [])
+                ]
+                current_pax = sum(getattr(t, "pax_count", 1) or 1 for t in active_on_table)
+                token_pax = getattr(specific_token, "pax_count", 1) or 1
+                if current_pax > 0 and table_capacity > 0 and (current_pax + token_pax > table_capacity):
+                    table_name = target_table.get("name") or f"Table {line_number}"
+                    remaining = max(0, table_capacity - current_pax)
+                    raise ValueError(
+                        f"{table_name} has {table_capacity} chairs with {current_pax} guests already seated. "
+                        f"Only {remaining} chair(s) available for party of {token_pax}."
+                    )
 
     from sqlalchemy.orm.attributes import flag_modified
     specific_token.status = TokenStatus.serving

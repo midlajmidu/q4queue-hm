@@ -522,6 +522,12 @@ export interface TableConfig {
     name: string;
     capacity: number;
     section?: string;
+    x?: number;
+    z?: number;
+    rotation?: number;
+    shape?: "square" | "round" | "booth" | "banquet";
+    width?: number;
+    depth?: number;
 }
 
 export interface QueueCreate {
@@ -668,6 +674,7 @@ export interface QueuePublicStatus {
     token_limit_reached?: boolean;
     tokens_used?: number;
     tokens_limit?: number | null;
+    custom_fields?: CustomField[] | null;
 }
 
 export interface QueueQrConfigResponse {
@@ -704,6 +711,7 @@ export interface JoinResponse {
     tracking_id?: string;
     removed_by?: string | null;
     pax_count?: number;
+    ai_overview_enabled?: boolean;
 }
 
 export interface TokenRestoreResponse {

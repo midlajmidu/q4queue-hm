@@ -95,9 +95,9 @@ export function UpcomingQueueCard({ waitingTokens, prefix, theme = "light" }: Up
                                             <span className={`text-xl lg:text-2xl font-black ${secondaryText(theme)} tabular-nums shrink-0`}>
                                                 {prefix}{token.token_number}
                                             </span>
-                                            {globalIndex === 0 && (
-                                                <span className="px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider bg-blue-500/10 text-blue-600 border border-blue-500/20 shrink-0 whitespace-nowrap">
-                                                    You are Next
+                                            {token.pax_count && token.pax_count > 1 && (
+                                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-white/10 shrink-0 whitespace-nowrap">
+                                                    {token.pax_count} Pax
                                                 </span>
                                             )}
                                         </div>

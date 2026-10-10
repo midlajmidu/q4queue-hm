@@ -19,7 +19,7 @@ import secrets
 import string
 import uuid as _uuid
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, field_validator, EmailStr
@@ -354,7 +354,37 @@ class ResetPasswordRequest(BaseModel):
 
 # ── Internal helpers ────────────────────────────────────────────────────────────
 
-def _org_to_detail(o: Organization, admin_user: User | None = None) -> OrgDetail:
+async def _get_branch_ai_overview(db: AsyncSession, org_id: Any) -> bool:
+    from app.models.system_setting import SystemSetting
+    s = await db.get(SystemSetting, f"branch_ai_overview_{org_id}")
+    return s.value != "false" if s else True
+
+
+async def _set_branch_ai_overview(db: AsyncSession, org_id: Any, enabled: bool) -> None:
+    from app.models.system_setting import SystemSetting
+    key = f"branch_ai_overview_{org_id}"
+    s = await db.get(SystemSetting, key)
+    val_str = "true" if enabled else "false"
+    if s:
+        s.value = val_str
+    else:
+        db.add(SystemSetting(key=key, value=val_str, description=f"AI overview enabled flag for branch {org_id}"))
+
+
+async def _get_branch_ai_overview_map(db: AsyncSession, org_ids: list[Any]) -> dict[Any, bool]:
+    if not org_ids:
+        return {}
+    from app.models.system_setting import SystemSetting
+    keys = [f"branch_ai_overview_{oid}" for oid in org_ids]
+    stmt = select(SystemSetting).where(SystemSetting.key.in_(keys))
+    res = await db.execute(stmt)
+    m = {}
+    for row in res.scalars().all():
+        m[row.key] = (row.value != "false")
+    return {oid: m.get(f"branch_ai_overview_{oid}", True) for oid in org_ids}
+
+
+def _org_to_detail(o: Organization, admin_user: User | None = None, ai_overview_enabled: bool = True) -> OrgDetail:
     return OrgDetail(
         id=str(o.id),
         name=o.name,
@@ -1028,15 +1058,17 @@ async def list_organizations(
 
     org_ids = [o.id for o in orgs]
     admins = {}
+    ai_map = {}
     if org_ids:
         # Fetch first admin for each retrieved organization
         admin_result = await db.execute(select(User).where(User.org_id.in_(org_ids), User.role == "admin"))
         for u in admin_result.scalars().all():
             if u.org_id not in admins:
                 admins[u.org_id] = u
+        ai_map = await _get_branch_ai_overview_map(db, org_ids)
 
     return PaginatedOrgsResponse(
-        items=[_org_to_detail(o, admins.get(o.id)) for o in orgs],
+        items=[_org_to_detail(o, admins.get(o.id), ai_map.get(o.id, True)) for o in orgs],
         total=total,
         limit=limit,
         offset=offset,
@@ -1134,11 +1166,16 @@ async def create_organization(
             details={"slug": body.org_slug, "admin_email": None},
         )
 
+    ai_enabled = True
+    if body.ai_overview_enabled is not None:
+        await _set_branch_ai_overview(db, org.id, body.ai_overview_enabled)
+        ai_enabled = body.ai_overview_enabled
+
     await db.commit()
 
     logger.info("Super admin created org | org=%s admin=%s", org.slug, body.admin_email)
     return OrgCreateResponse(
-        organization=_org_to_detail(org, admin),
+        organization=_org_to_detail(org, admin, ai_enabled),
         admin_email=body.admin_email if body.admin_email else None,
         message=f"Organization '{org.name}' created" + (f" with admin '{body.admin_email}'." if body.admin_email else "."),
     )
@@ -1175,6 +1212,7 @@ async def get_organization_detail(
 
     admin_result = await db.execute(select(User).where(and_(User.org_id == org_uuid, User.role == "admin")).limit(1))
     admin_user = admin_result.scalar_one_or_none()
+    ai_overview_enabled = await _get_branch_ai_overview(db, org_uuid)
 
     return OrgDetailExtended(
         id=str(org.id),
@@ -1297,13 +1335,14 @@ async def update_organization(
         org.branch_type = body.branch_type
         if body.branch_type == "dine":
             from sqlalchemy.orm.attributes import flag_modified
+            from app.schemas.queue import DEFAULT_CUSTOM_FIELDS
             queues_res = await db.execute(select(Queue).where(Queue.org_id == org.id, Queue.is_deleted == False))
             for q in queues_res.scalars().all():
-                fields = list(q.custom_fields or [])
+                fields = list(q.custom_fields) if q.custom_fields else [dict(f) for f in DEFAULT_CUSTOM_FIELDS]
                 if not any(f.get("key") in ("name", "full_name") for f in fields):
-                    fields.insert(0, {"id": f"field_name_default_{q.id}", "key": "name", "label": "Full Name", "type": "text", "required": True, "order": 0})
+                    fields.insert(0, dict(DEFAULT_CUSTOM_FIELDS[0]))
                 if not any(f.get("key") in ("phone", "phone_number") for f in fields):
-                    fields.insert(1, {"id": f"field_phone_default_{q.id}", "key": "phone", "label": "Phone Number", "type": "phone", "required": True, "order": 1})
+                    fields.insert(1, dict(DEFAULT_CUSTOM_FIELDS[1]))
                 if not any(f.get("key") in ("pax", "pax_count", "no_of_pax", "number_of_pax") for f in fields):
                     fields.append({
                         "id": f"field_pax_default_{q.id}",
@@ -1340,13 +1379,17 @@ async def update_organization(
             )
         admin_user.email = body.admin_email
 
+    if body.ai_overview_enabled is not None:
+        await _set_branch_ai_overview(db, org.id, body.ai_overview_enabled)
+
     await db.commit()
     await db.refresh(org)
     if admin_user:
         await db.refresh(admin_user)
 
+    ai_enabled = await _get_branch_ai_overview(db, org.id)
     logger.info("Super admin updated org | org=%s active=%s", org.slug, org.is_active)
-    return _org_to_detail(org, admin_user)
+    return _org_to_detail(org, admin_user, ai_enabled)
 
 
 @router.delete(

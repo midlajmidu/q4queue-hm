@@ -7,6 +7,8 @@ import { ServingToken, TableConfig } from "@/types/api";
 import type { DisplayTheme } from "./displayTheme";
 import { cardBg, cardBorder, cardShadow, iconBg, iconColor, labelText, primaryText, secondaryText, mutedText, gradientText, counterPillBg, counterPillStrong } from "./displayTheme";
 
+import { NowServingDineTable } from "./NowServingDineTable";
+
 interface NowServingHeroProps {
     serving: number;
     prefix: string;
@@ -21,6 +23,8 @@ interface NowServingHeroProps {
     queueType?: string;
     maxCapacity?: number;
     zoneDurationMins?: number | null;
+    branchType?: "standard" | "dine";
+    recentTokens?: any[];
 }
 
 export function NowServingHero({
@@ -37,6 +41,8 @@ export function NowServingHero({
     queueType,
     maxCapacity,
     zoneDurationMins,
+    branchType,
+    recentTokens,
 }: NowServingHeroProps) {
     const [prevServing, setPrevServing] = useState(serving);
     const [recentlyCalled, setRecentlyCalled] = useState<Set<number>>(new Set());
@@ -84,6 +90,26 @@ export function NowServingHero({
             prevServingTokensRef.current = currentTokenNumbers;
         }
     }, [allServingTokens]);
+
+    const isDineMode = Boolean((tableConfig && tableConfig.length > 0) || branchType === "dine");
+
+    // ─── Hotel / Restaurant Dine Table Format Display ─────────────────
+    if (isDineMode) {
+        return (
+            <NowServingDineTable
+                prefix={prefix}
+                queueName={queueName}
+                isActive={isActive}
+                theme={theme}
+                tableConfig={tableConfig}
+                allServingTokens={allServingTokens}
+                serving={serving}
+                assignedLine={assignedLine}
+                customerName={customerName}
+                recentTokens={recentTokens}
+            />
+        );
+    }
 
     const isZoneMode = queueType === "zone" || ((maxCapacity ?? 0) > 0 && serviceLines === 0);
     const isMultiCounterMode = !isZoneMode && serviceLines > 1;

@@ -51,13 +51,13 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 function renderIcon(name?: string) {
-  const IconComponent = name && iconMap[name] ? iconMap[name] : Sliders;
+  const IconComponent = (name && iconMap[name] ? iconMap[name] : Sliders) as any;
   if (!IconComponent) return <Sliders className="w-6 h-6" />;
   return <IconComponent className="w-6 h-6" />;
 }
 
 function renderSmallIcon(name?: string) {
-  const IconComponent = name && iconMap[name] ? iconMap[name] : Sliders;
+  const IconComponent = (name && iconMap[name] ? iconMap[name] : Sliders) as any;
   if (!IconComponent) return <Sliders className="w-5 h-5" />;
   return <IconComponent className="w-5 h-5" />;
 }

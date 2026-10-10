@@ -9,8 +9,9 @@ import { FooterTicker } from "@/components/display/FooterTicker";
 import { useTheme } from "next-themes";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
-import { ServingToken } from "@/types/api";
+import { ServingToken, TableConfig } from "@/types/api";
 import type { DisplayTheme } from "@/components/display/displayTheme";
+import { NowServingDineTable } from "@/components/display/NowServingDineTable";
 import { Sun, Moon, Volume2, VolumeX, Maximize, ExternalLink } from "lucide-react";
 
 interface PageProps {
@@ -171,6 +172,9 @@ export default function DisplayQueuePage({ params }: PageProps) {
                             isDark={isDark}
                             queueType={state?.queue_type}
                             maxCapacity={state?.max_capacity}
+                            tableConfig={state?.table_config}
+                            branchType={state?.branch_type}
+                            recentTokens={state?.recent_tokens}
                         />
 
                         {/* Upcoming */}
@@ -214,6 +218,8 @@ export default function DisplayQueuePage({ params }: PageProps) {
                             queueType={state?.queue_type}
                             maxCapacity={state?.max_capacity}
                             zoneDurationMins={state?.zone_duration_mins}
+                            branchType={state?.branch_type}
+                            recentTokens={state?.recent_tokens}
                         />
                     </div>
                     <div className="w-[32%] flex flex-col gap-4 min-h-0">
@@ -270,7 +276,7 @@ function DesktopHeader({ logoUrl, status, isActive, timeString, dateString, isDa
 // ─────────────────────────────────────────────────────────────────────────────
 // Mobile: Now Serving grid
 // ─────────────────────────────────────────────────────────────────────────────
-function MobileNowServing({ serving, prefix, serviceLines, allServingTokens, queueName, isActive, isDark, queueType, maxCapacity }: {
+function MobileNowServing({ serving, prefix, serviceLines, allServingTokens, queueName, isActive, isDark, queueType, maxCapacity, tableConfig, branchType, recentTokens }: {
     serving: number;
     prefix: string;
     serviceLines: number;
@@ -280,7 +286,29 @@ function MobileNowServing({ serving, prefix, serviceLines, allServingTokens, que
     isDark: boolean;
     queueType?: string;
     maxCapacity?: number;
+    tableConfig?: TableConfig[];
+    branchType?: "standard" | "dine";
+    recentTokens?: any[];
 }) {
+    const isDineMode = Boolean((tableConfig && tableConfig.length > 0) || branchType === "dine");
+
+    if (isDineMode) {
+        return (
+            <NowServingDineTable
+                prefix={prefix}
+                queueName={queueName}
+                isActive={isActive}
+                theme={isDark ? "dark" : "light"}
+                tableConfig={tableConfig}
+                allServingTokens={allServingTokens}
+                serving={serving}
+                assignedLine={null}
+                recentTokens={recentTokens}
+                isMobile={true}
+            />
+        );
+    }
+
     const activeTokens = allServingTokens.length > 0
         ? allServingTokens
         : serving !== 0 ? [{ id: "single", token_number: serving, assigned_line: null } as any] : [];
@@ -461,6 +489,11 @@ function MobileUpcoming({ waitingTokens, prefix, isDark }: { waitingTokens: any[
                     return (
                         <div key={`${token.token_number}-${i}`} className="flex items-center px-4 py-3">
                             <span className={`text-base font-bold tabular-nums w-14 ${isDark ? "text-white" : "text-slate-900"}`}>{prefix}{token.token_number}</span>
+                            {token.pax_count && token.pax_count > 1 && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-white/10 mr-2 shrink-0">
+                                    {token.pax_count} Pax
+                                </span>
+                            )}
                             <span className="flex-1 text-[11px] text-slate-500 font-medium">
                                 {token.assigned_line ? `Counter ${String(token.assigned_line).padStart(2, "0")}` : ""}
                             </span>
