@@ -12,6 +12,8 @@ interface Props {
   activeFloorId?: string;
   onSwitchFloor?: (id: string) => void;
   viewMode?: "single_block" | "avenue";
+  cameraPreset?: "isometric" | "top_down" | "front";
+  cameraResetKey?: number;
   floor: FloorLayout;
   getOccupancy: (tableId: number, capacity: number) => TableOccupancy;
   prefix: string;
@@ -36,6 +38,8 @@ function CameraController({
   viewMode,
   roomWidth,
   roomDepth,
+  cameraPreset,
+  cameraResetKey,
 }: {
   target: [number, number, number];
   camPos: [number, number, number];
@@ -43,13 +47,17 @@ function CameraController({
   viewMode?: string;
   roomWidth: number;
   roomDepth: number;
+  cameraPreset?: string;
+  cameraResetKey?: number;
 }) {
-  const { camera, size } = useThree();
+  const { camera, size, controls } = useThree();
   const prevRef = useRef({
     floorId: activeFloorId,
     viewMode,
     roomWidth,
     roomDepth,
+    preset: cameraPreset,
+    resetKey: cameraResetKey,
     width: size.width,
     height: size.height,
   });
@@ -64,6 +72,8 @@ function CameraController({
       prevRef.current.viewMode !== viewMode ||
       prevRef.current.roomWidth !== roomWidth ||
       prevRef.current.roomDepth !== roomDepth ||
+      prevRef.current.preset !== cameraPreset ||
+      prevRef.current.resetKey !== cameraResetKey ||
       sizeChanged
     ) {
       prevRef.current = {
@@ -71,13 +81,13 @@ function CameraController({
         viewMode,
         roomWidth,
         roomDepth,
+        preset: cameraPreset,
+        resetKey: cameraResetKey,
         width: size.width,
         height: size.height,
       };
 
-      // Aspect ratio compensation: On mobile phones and portrait tablets (aspect < 1.25),
-      // vertical FOV stays constant while horizontal visible width shrinks.
-      // Scale camera distance so the entire floor layout remains framed in view.
+      // Aspect ratio compensation for mobile/tablet screens
       const aspect = size.width / Math.max(1, size.height);
       const responsiveScale =
         aspect < 1.25 ? Math.min(1.75, 1.25 / Math.max(0.65, aspect)) : 1.0;
@@ -88,8 +98,26 @@ function CameraController({
 
       camera.position.set(target[0] + relX, target[1] + relY, target[2] + relZ);
       camera.lookAt(target[0], target[1], target[2]);
+
+      if (controls && (controls as any).target) {
+        (controls as any).target.set(target[0], target[1], target[2]);
+        (controls as any).update?.();
+      }
     }
-  }, [activeFloorId, viewMode, roomWidth, roomDepth, camPos, target, camera, size.width, size.height]);
+  }, [
+    activeFloorId,
+    viewMode,
+    roomWidth,
+    roomDepth,
+    cameraPreset,
+    cameraResetKey,
+    camPos,
+    target,
+    camera,
+    controls,
+    size.width,
+    size.height,
+  ]);
 
   return null;
 }
@@ -99,6 +127,8 @@ export default function DineFloorCanvas({
   activeFloorId,
   onSwitchFloor,
   viewMode = "single_block",
+  cameraPreset = "isometric",
+  cameraResetKey = 0,
   floor,
   getOccupancy,
   prefix,
@@ -144,18 +174,28 @@ export default function DineFloorCanvas({
   const targetX = activeOffsetX + activeFloor.room_width * 0.5;
   const targetZ = activeFloor.room_depth * 0.5;
 
-  // Elevated isometric viewpoint looking down into square room from front-right
-  const camX = targetX + maxDim * 0.22;
-  const camY = Math.max(16, maxDim * 1.05);
-  const camZ = targetZ + maxDim * 1.08;
+  // Hero framing: frames the restaurant occupying ~75-85% of viewport
+  let camX = targetX + maxDim * 0.36;
+  let camY = Math.max(9.5, maxDim * 0.62);
+  let camZ = targetZ + maxDim * 0.68;
+
+  if (cameraPreset === "top_down") {
+    camX = targetX;
+    camY = Math.max(14, maxDim * 1.15);
+    camZ = targetZ + 0.001;
+  } else if (cameraPreset === "front") {
+    camX = targetX;
+    camY = Math.max(6, maxDim * 0.36);
+    camZ = targetZ + maxDim * 0.86;
+  }
 
   return (
     <Canvas
       camera={{
         position: [camX, camY, camZ],
-        fov: 38,
+        fov: 34,
         near: 0.2,
-        far: 600,
+        far: 500,
       }}
       shadows="basic"
       dpr={[1, Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 1.25)]}
@@ -170,7 +210,7 @@ export default function DineFloorCanvas({
       style={{
         width: "100%",
         height: "100%",
-        background: "#dbe3ed",
+        background: "radial-gradient(ellipse at 50% 30%, #172236 0%, #0c1220 70%, #060911 100%)",
         touchAction: "none",
         cursor: isDragging ? "grabbing" : isEditorMode ? "crosshair" : "default",
       }}
@@ -183,6 +223,8 @@ export default function DineFloorCanvas({
           viewMode={viewMode}
           roomWidth={activeFloor.room_width}
           roomDepth={activeFloor.room_depth}
+          cameraPreset={cameraPreset}
+          cameraResetKey={cameraResetKey}
         />
         <DineFloorScene
           floors={allFloors}
@@ -211,12 +253,12 @@ export default function DineFloorCanvas({
           makeDefault
           enabled={!isDragging}
           target={[targetX, 0, targetZ]}
-          minPolarAngle={Math.PI / 12}
-          maxPolarAngle={Math.PI / 2.22}
+          minPolarAngle={Math.PI / 16}
+          maxPolarAngle={Math.PI / 2.15}
           enableDamping
           dampingFactor={0.08}
-          minDistance={5}
-          maxDistance={140}
+          minDistance={4}
+          maxDistance={70}
         />
       </Suspense>
     </Canvas>

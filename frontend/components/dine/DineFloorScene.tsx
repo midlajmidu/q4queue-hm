@@ -826,31 +826,29 @@ const DineTable3D = React.memo(function DineTable3D({
                   className={`
                     flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold
                     bg-slate-950/92 border shadow-xl whitespace-nowrap
-                    ${
-                      isVacant
-                        ? "border-emerald-500/50 text-emerald-300"
-                        : isLingering
-                          ? "border-red-500/60 text-red-300 animate-pulse"
-                          : isShared
-                            ? "border-teal-500/50 text-teal-200"
-                            : isExtended
-                              ? "border-amber-500/50 text-amber-200"
-                              : "border-indigo-500/50 text-white"
+                    ${isVacant
+                      ? "border-emerald-500/50 text-emerald-300"
+                      : isLingering
+                        ? "border-red-500/60 text-red-300 animate-pulse"
+                        : isShared
+                          ? "border-teal-500/50 text-teal-200"
+                          : isExtended
+                            ? "border-amber-500/50 text-amber-200"
+                            : "border-indigo-500/50 text-white"
                     }
                   `}
                 >
                   <span
-                    className={`w-2 h-2 rounded-full ${
-                      isVacant
-                        ? "bg-emerald-400"
-                        : isLingering
-                          ? "bg-red-400 animate-ping"
-                          : isShared
-                            ? "bg-teal-400"
-                            : isExtended
-                              ? "bg-amber-400"
-                              : "bg-indigo-400"
-                    }`}
+                    className={`w-2 h-2 rounded-full ${isVacant
+                      ? "bg-emerald-400"
+                      : isLingering
+                        ? "bg-red-400 animate-ping"
+                        : isShared
+                          ? "bg-teal-400"
+                          : isExtended
+                            ? "bg-amber-400"
+                            : "bg-indigo-400"
+                      }`}
                   />
                   {isVacant ? (
                     <span>{table.name} • {table.capacity}p</span>
@@ -2644,58 +2642,58 @@ export default function DineFloorScene({
             {/* Tables (Strictly contained inside the building perimeter) */}
             {isActive
               ? floorItem.tables.map((tbl) => {
-                  const occ = getOccupancy(tbl.id, tbl.capacity);
-                  const isDraggingThisTable = isDragging && draggingTableId === tbl.id;
+                const occ = getOccupancy(tbl.id, tbl.capacity);
+                const isDraggingThisTable = isDragging && draggingTableId === tbl.id;
 
-                  // Defensive boundary clamp: ensure NO table is ever rendered outside the room boundaries!
-                  const safeX = Math.max(3.2, Math.min(W - 3.2, tbl.x));
-                  const safeZ = Math.max(3.2, Math.min(D - 5.0, tbl.z));
-                  const safeTable = tbl.x !== safeX || tbl.z !== safeZ ? { ...tbl, x: safeX, z: safeZ } : tbl;
+                // Defensive boundary clamp: ensure NO table is ever rendered outside the room boundaries!
+                const safeX = Math.max(3.2, Math.min(W - 3.2, tbl.x));
+                const safeZ = Math.max(3.2, Math.min(D - 5.0, tbl.z));
+                const safeTable = tbl.x !== safeX || tbl.z !== safeZ ? { ...tbl, x: safeX, z: safeZ } : tbl;
 
-                  return (
-                    <DineTable3D
-                      key={tbl.id}
-                      table={safeTable}
-                      occupancy={occ}
-                      prefix={prefix}
-                      isHovered={hoveredTableId === tbl.id}
-                      isSelected={selectedTableId === tbl.id}
-                      isDraggingThis={isDraggingThisTable}
-                      isEditorMode={isEditorMode}
-                      onTableClick={onTableClick}
-                      onTableHover={onTableHover}
-                      onStartDrag={handleStartDrag}
-                      onUpdateTable={onUpdateTable}
-                      onDeleteTable={onDeleteTable}
-                    />
-                  );
-                })
+                return (
+                  <DineTable3D
+                    key={tbl.id}
+                    table={safeTable}
+                    occupancy={occ}
+                    prefix={prefix}
+                    isHovered={hoveredTableId === tbl.id}
+                    isSelected={selectedTableId === tbl.id}
+                    isDraggingThis={isDraggingThisTable}
+                    isEditorMode={isEditorMode}
+                    onTableClick={onTableClick}
+                    onTableHover={onTableHover}
+                    onStartDrag={handleStartDrag}
+                    onUpdateTable={onUpdateTable}
+                    onDeleteTable={onDeleteTable}
+                  />
+                );
+              })
               : floorItem.tables.map((tbl) => {
-                  const { tableW, tableD, isRound } = getTableDimensions(
-                    tbl.capacity,
-                    tbl.shape,
-                    tbl.width,
-                    tbl.depth
-                  );
-                  const safeX = Math.max(3.2, Math.min(W - 3.2, tbl.x));
-                  const safeZ = Math.max(3.2, Math.min(D - 5.0, tbl.z));
-                  return (
-                    <group key={tbl.id} position={[safeX, 0, safeZ]}>
-                      <mesh position={[0, 0.76, 0]} castShadow>
-                        {isRound ? (
-                          <cylinderGeometry args={[tableW / 2, tableW / 2, 0.08, 16]} />
-                        ) : (
-                          <boxGeometry args={[tableW, 0.08, tableD]} />
-                        )}
-                        <meshStandardMaterial color="#b88654" roughness={0.7} />
-                      </mesh>
-                      <mesh position={[0, 0.38, 0]}>
-                        <cylinderGeometry args={[0.07, 0.09, 0.76, 8]} />
-                        <meshStandardMaterial color="#334155" />
-                      </mesh>
-                    </group>
-                  );
-                })}
+                const { tableW, tableD, isRound } = getTableDimensions(
+                  tbl.capacity,
+                  tbl.shape,
+                  tbl.width,
+                  tbl.depth
+                );
+                const safeX = Math.max(3.2, Math.min(W - 3.2, tbl.x));
+                const safeZ = Math.max(3.2, Math.min(D - 5.0, tbl.z));
+                return (
+                  <group key={tbl.id} position={[safeX, 0, safeZ]}>
+                    <mesh position={[0, 0.76, 0]} castShadow>
+                      {isRound ? (
+                        <cylinderGeometry args={[tableW / 2, tableW / 2, 0.08, 16]} />
+                      ) : (
+                        <boxGeometry args={[tableW, 0.08, tableD]} />
+                      )}
+                      <meshStandardMaterial color="#b88654" roughness={0.7} />
+                    </mesh>
+                    <mesh position={[0, 0.38, 0]}>
+                      <cylinderGeometry args={[0.07, 0.09, 0.76, 8]} />
+                      <meshStandardMaterial color="#334155" />
+                    </mesh>
+                  </group>
+                );
+              })}
           </group>
         );
       })}

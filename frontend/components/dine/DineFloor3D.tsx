@@ -292,11 +292,10 @@ export default function DineFloor3D({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full overflow-hidden transition-all duration-300 ${
-        isFullscreen
+      className={`relative w-full overflow-hidden transition-all duration-300 ${isFullscreen
           ? "fixed inset-0 z-[100] w-screen h-screen rounded-none border-none bg-slate-950 shadow-none"
           : "rounded-2xl border border-slate-700/60 bg-slate-900 shadow-2xl h-[460px] sm:h-[540px] md:h-[620px] lg:h-[680px]"
-      }`}
+        }`}
       style={
         isFullscreen
           ? { height: "100vh", width: "100vw", minHeight: "100vh" }

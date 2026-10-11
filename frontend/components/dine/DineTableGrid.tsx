@@ -5,14 +5,14 @@ import { api, ApiError } from "@/lib/api";
 import { ServingToken, WaitingToken, TableConfig } from "@/types/api";
 import dynamic from "next/dynamic";
 const DineFloor3D = dynamic(() => import("./DineFloor3D"), { ssr: false });
-import { 
-    PhoneCall, 
-    FastForward, 
-    Check, 
-    Users, 
-    Utensils, 
-    Sparkles, 
-    Clock, 
+import {
+    PhoneCall,
+    FastForward,
+    Check,
+    Users,
+    Utensils,
+    Sparkles,
+    Clock,
     AlertTriangle,
     List,
     LayoutGrid,
@@ -220,7 +220,7 @@ export default function DineTableGrid({
     const filteredWaitingTokens = useMemo(() => {
         return waitingTokens.filter(t => {
             const pax = getTokenPax(t);
-            
+
             // Pax filter
             if (paxFilter === "1-4" && (pax < 1 || pax > 4)) return false;
             if (paxFilter === "5-6" && (pax < 5 || pax > 6)) return false;
@@ -448,7 +448,7 @@ export default function DineTableGrid({
 
         setIsSavingCapacity(true);
         try {
-            const updatedTables = tables.map(t => 
+            const updatedTables = tables.map(t =>
                 t.id === editingCapacityTable.id ? { ...t, capacity: capacityVal } : t
             );
             await api.updateQueue(queueId, { table_config: updatedTables });
@@ -503,11 +503,10 @@ export default function DineTableGrid({
                         <button
                             type="button"
                             onClick={() => setViewMode("floor")}
-                            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                                viewMode === "floor"
-                                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                            }`}
+                            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${viewMode === "floor"
+                                ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold"
+                                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                                }`}
                         >
                             <LayoutGrid size={14} />
                             <span>Floor View</span>
@@ -515,20 +514,18 @@ export default function DineTableGrid({
                         <button
                             type="button"
                             onClick={() => setViewMode("paper")}
-                            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                                viewMode === "paper"
-                                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                            }`}
+                            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${viewMode === "paper"
+                                ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold"
+                                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                                }`}
                         >
                             <ClipboardList size={14} />
                             <span>Paper View</span>
                             {waitingTokens.length > 0 && (
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${
-                                    viewMode === "paper"
-                                        ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/50"
-                                        : "bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-                                }`}>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${viewMode === "paper"
+                                    ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/50"
+                                    : "bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                                    }`}>
                                     {waitingTokens.length}
                                 </span>
                             )}
@@ -596,24 +593,22 @@ export default function DineTableGrid({
                             return (
                                 <div
                                     key={tbl.id}
-                                    className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl p-4 transition-all duration-200 min-h-[160px] ${
-                                        isOccupied
-                                            ? isLingering
-                                                ? "bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-900/60 shadow-[0_4px_20px_rgba(244,63,94,0.08)]"
-                                                : isShared
-                                                    ? "bg-white dark:bg-slate-900 border border-teal-300 dark:border-teal-800 shadow-xs"
-                                                    : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:border-slate-300 dark:hover:border-slate-700"
-                                            : "bg-white dark:bg-slate-900/50 border border-slate-200/90 dark:border-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs"
-                                    }`}
+                                    className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl p-4 transition-all duration-200 min-h-[160px] ${isOccupied
+                                        ? isLingering
+                                            ? "bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-900/60 shadow-[0_4px_20px_rgba(244,63,94,0.08)]"
+                                            : isShared
+                                                ? "bg-white dark:bg-slate-900 border border-teal-300 dark:border-teal-800 shadow-xs"
+                                                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:border-slate-300 dark:hover:border-slate-700"
+                                        : "bg-white dark:bg-slate-900/50 border border-slate-200/90 dark:border-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs"
+                                        }`}
                                 >
                                     {/* Header: Table Name & Capacity Badge & Status Pill */}
                                     <div className="flex items-center justify-between mb-2 relative z-10">
                                         <div className="flex items-center gap-1.5 min-w-0">
-                                            <span className={`text-[11.5px] font-black uppercase tracking-[0.06em] truncate ${
-                                                isOccupied
-                                                    ? isLingering ? "text-rose-600 dark:text-rose-400" : isShared ? "text-teal-700 dark:text-teal-300" : "text-slate-900 dark:text-white"
-                                                    : "text-slate-700 dark:text-slate-300"
-                                            }`}>
+                                            <span className={`text-[11.5px] font-black uppercase tracking-[0.06em] truncate ${isOccupied
+                                                ? isLingering ? "text-rose-600 dark:text-rose-400" : isShared ? "text-teal-700 dark:text-teal-300" : "text-slate-900 dark:text-white"
+                                                : "text-slate-700 dark:text-slate-300"
+                                                }`}>
                                                 {tbl.name || `Table ${tbl.id}`}
                                             </span>
                                             {isMerged && (
@@ -640,15 +635,14 @@ export default function DineTableGrid({
                                                 <Edit3 size={8.5} className="opacity-0 group-hover/cap:opacity-100 transition-opacity" />
                                             </button>
 
-                                            <span className={`text-[9.5px] font-semibold px-1.5 py-0.5 rounded-md border flex items-center gap-1 ${
-                                                isOccupied
-                                                    ? isLingering
-                                                        ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20 animate-pulse"
-                                                        : isShared
-                                                            ? "bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800"
-                                                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-                                                    : "bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 shadow-2xs"
-                                            }`}>
+                                            <span className={`text-[9.5px] font-semibold px-1.5 py-0.5 rounded-md border flex items-center gap-1 ${isOccupied
+                                                ? isLingering
+                                                    ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20 animate-pulse"
+                                                    : isShared
+                                                        ? "bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800"
+                                                        : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                                                : "bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 shadow-2xs"
+                                                }`}>
                                                 {isOccupied ? (
                                                     <>
                                                         <Clock size={10} className="text-slate-400" />
@@ -837,13 +831,12 @@ export default function DineTableGrid({
                             return (
                                 <div key={tbl.id} className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300">
                                     <div
-                                        className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${
-                                            isOccupied
-                                                ? isShared
-                                                    ? "bg-white dark:bg-slate-900 border-l-4 border-l-teal-500"
-                                                    : "bg-white dark:bg-slate-900 border-l-4 border-l-indigo-500"
-                                                : "bg-slate-50 dark:bg-slate-800/50"
-                                        }`}
+                                        className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${isOccupied
+                                            ? isShared
+                                                ? "bg-white dark:bg-slate-900 border-l-4 border-l-teal-500"
+                                                : "bg-white dark:bg-slate-900 border-l-4 border-l-indigo-500"
+                                            : "bg-slate-50 dark:bg-slate-800/50"
+                                            }`}
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs shadow-xs border border-slate-200 dark:border-slate-700">
@@ -972,77 +965,70 @@ export default function DineTableGrid({
                                 <button
                                     type="button"
                                     onClick={() => setPaxFilter("all")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${
-                                        paxFilter === "all"
-                                            ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                    }`}
+                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "all"
+                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
+                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
+                                        }`}
                                 >
                                     All ({waitingTokens.length})
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setPaxFilter("1-4")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${
-                                        paxFilter === "1-4"
-                                            ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                    }`}
+                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "1-4"
+                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
+                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
+                                        }`}
                                 >
                                     1-4p ({paxStats.p1_4})
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setPaxFilter("5-6")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${
-                                        paxFilter === "5-6"
-                                            ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                    }`}
+                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "5-6"
+                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
+                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
+                                        }`}
                                 >
                                     5-6p ({paxStats.p5_6})
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setPaxFilter("7-9")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${
-                                        paxFilter === "7-9"
-                                            ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                    }`}
+                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "7-9"
+                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
+                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
+                                        }`}
                                 >
                                     7-9p ({paxStats.p7_9})
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setPaxFilter("10-12")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${
-                                        paxFilter === "10-12"
-                                            ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                    }`}
+                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "10-12"
+                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
+                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
+                                        }`}
                                 >
                                     10-12p ({paxStats.p10_12})
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setPaxFilter("12-15")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${
-                                        paxFilter === "12-15"
-                                            ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                    }`}
+                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "12-15"
+                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
+                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
+                                        }`}
                                 >
                                     12-15p ({paxStats.p12_15})
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setPaxFilter("15+")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${
-                                        paxFilter === "15+"
-                                            ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                    }`}
+                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "15+"
+                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
+                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
+                                        }`}
                                 >
                                     15+p ({paxStats.p15plus})
                                 </button>
@@ -1212,11 +1198,10 @@ export default function DineTableGrid({
                                         key={preset}
                                         type="button"
                                         onClick={() => setNewCapacityInput(preset)}
-                                        className={`py-1.5 text-xs font-bold rounded-lg border transition-all ${
-                                            newCapacityInput === preset
-                                                ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
-                                                : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300"
-                                        }`}
+                                        className={`py-1.5 text-xs font-bold rounded-lg border transition-all ${newCapacityInput === preset
+                                            ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                                            : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300"
+                                            }`}
                                     >
                                         {preset}p
                                     </button>
@@ -1318,11 +1303,10 @@ export default function DineTableGrid({
                                         key={vt.id}
                                         type="button"
                                         onClick={() => setSelectedJoinTableId(vt.id)}
-                                        className={`p-2.5 rounded-xl border text-left transition-all ${
-                                            selectedJoinTableId === vt.id
-                                                ? "bg-indigo-50 dark:bg-indigo-950/50 border-indigo-500 ring-2 ring-indigo-500/20 shadow-xs"
-                                                : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300"
-                                        }`}
+                                        className={`p-2.5 rounded-xl border text-left transition-all ${selectedJoinTableId === vt.id
+                                            ? "bg-indigo-50 dark:bg-indigo-950/50 border-indigo-500 ring-2 ring-indigo-500/20 shadow-xs"
+                                            : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                                            }`}
                                     >
                                         <div className="text-xs font-bold text-slate-900 dark:text-white">
                                             {vt.name || `Table ${vt.id}`}
@@ -1492,7 +1476,7 @@ export default function DineTableGrid({
                 }).length;
 
                 return (
-                    <div 
+                    <div
                         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
                         onClick={(e) => {
                             if (e.target === e.currentTarget) {
@@ -1544,11 +1528,10 @@ export default function DineTableGrid({
                                     <button
                                         type="button"
                                         onClick={() => setModalTableFilter("vacant")}
-                                        className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                                            modalTableFilter === "vacant"
-                                                ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-2xs font-bold"
-                                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                                        }`}
+                                        className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${modalTableFilter === "vacant"
+                                            ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-2xs font-bold"
+                                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                            }`}
                                     >
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                         Available ({availableForPartyCount})
@@ -1556,22 +1539,20 @@ export default function DineTableGrid({
                                     <button
                                         type="button"
                                         onClick={() => setModalTableFilter("all")}
-                                        className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                                            modalTableFilter === "all"
-                                                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-bold"
-                                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                                        }`}
+                                        className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${modalTableFilter === "all"
+                                            ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-bold"
+                                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                            }`}
                                     >
                                         All ({tables.length})
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setModalTableFilter("occupied")}
-                                        className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                                            modalTableFilter === "occupied"
-                                                ? "bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-2xs font-bold"
-                                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                                        }`}
+                                        className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${modalTableFilter === "occupied"
+                                            ? "bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-2xs font-bold"
+                                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                            }`}
                                     >
                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                         Occupied ({occupiedCount})
@@ -1723,19 +1704,17 @@ export default function DineTableGrid({
                                                                 setModalSelectedTableIds([]);
                                                                 await handleSeatWaitingToken(assignTableToken, tbl.id);
                                                             }}
-                                                            className={`grid grid-cols-12 gap-3 px-4 py-3 items-center transition-colors cursor-pointer group ${
-                                                                isSelected
-                                                                    ? "bg-teal-50/90 dark:bg-teal-950/60 border-l-4 border-l-teal-600"
-                                                                    : "hover:bg-teal-50/40 dark:hover:bg-teal-950/20"
-                                                            }`}
+                                                            className={`grid grid-cols-12 gap-3 px-4 py-3 items-center transition-colors cursor-pointer group ${isSelected
+                                                                ? "bg-teal-50/90 dark:bg-teal-950/60 border-l-4 border-l-teal-600"
+                                                                : "hover:bg-teal-50/40 dark:hover:bg-teal-950/20"
+                                                                }`}
                                                         >
                                                             {/* Table Name */}
                                                             <div className="col-span-5 sm:col-span-4 flex items-center gap-3 min-w-0">
-                                                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
-                                                                    isSelected
-                                                                        ? "bg-teal-600 border-teal-600 text-white"
-                                                                        : "border-teal-300 dark:border-teal-700 bg-white dark:bg-slate-800"
-                                                                }`}>
+                                                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${isSelected
+                                                                    ? "bg-teal-600 border-teal-600 text-white"
+                                                                    : "border-teal-300 dark:border-teal-700 bg-white dark:bg-slate-800"
+                                                                    }`}>
                                                                     {isSelected && <Check size={12} strokeWidth={3} />}
                                                                 </div>
                                                                 <div className="w-7 h-7 rounded-lg bg-teal-100/80 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold text-xs shrink-0">
@@ -1762,11 +1741,10 @@ export default function DineTableGrid({
 
                                                             {/* Fit Badge */}
                                                             <div className="col-span-4 sm:col-span-4 flex items-center gap-1.5 flex-wrap">
-                                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                                                    isExactSharedFit
-                                                                        ? "bg-teal-100 dark:bg-teal-900/80 text-teal-800 dark:text-teal-200 border border-teal-300 dark:border-teal-700"
-                                                                        : "bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800"
-                                                                }`}>
+                                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isExactSharedFit
+                                                                    ? "bg-teal-100 dark:bg-teal-900/80 text-teal-800 dark:text-teal-200 border border-teal-300 dark:border-teal-700"
+                                                                    : "bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800"
+                                                                    }`}>
                                                                     {isExactSharedFit
                                                                         ? `★ Exact Shared Fit (${partyPax}p)`
                                                                         : `🤝 Fits ${partyPax}p (${occ.spareSeats} left)`}
@@ -1810,19 +1788,17 @@ export default function DineTableGrid({
                                                             setModalSelectedTableIds([]);
                                                             await handleSeatWaitingToken(assignTableToken, tbl.id);
                                                         }}
-                                                        className={`grid grid-cols-12 gap-3 px-4 py-3 items-center transition-colors cursor-pointer group ${
-                                                            isSelected
-                                                                ? "bg-indigo-50/90 dark:bg-indigo-950/60 border-l-4 border-l-indigo-600"
-                                                                : "hover:bg-slate-50/90 dark:hover:bg-slate-800/50"
-                                                        }`}
+                                                        className={`grid grid-cols-12 gap-3 px-4 py-3 items-center transition-colors cursor-pointer group ${isSelected
+                                                            ? "bg-indigo-50/90 dark:bg-indigo-950/60 border-l-4 border-l-indigo-600"
+                                                            : "hover:bg-slate-50/90 dark:hover:bg-slate-800/50"
+                                                            }`}
                                                     >
                                                         {/* Table Name */}
                                                         <div className="col-span-5 sm:col-span-4 flex items-center gap-3 min-w-0">
-                                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
-                                                                isSelected
-                                                                    ? "bg-indigo-600 border-indigo-600 text-white"
-                                                                    : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                                                            }`}>
+                                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${isSelected
+                                                                ? "bg-indigo-600 border-indigo-600 text-white"
+                                                                : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                                                                }`}>
                                                                 {isSelected && <Check size={12} strokeWidth={3} />}
                                                             </div>
                                                             <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shrink-0">
@@ -1846,13 +1822,12 @@ export default function DineTableGrid({
 
                                                         {/* Fit Badge */}
                                                         <div className="col-span-4 sm:col-span-4 flex items-center gap-1.5 flex-wrap">
-                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                                                isExactFit
-                                                                    ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                                                                    : isOverFit
-                                                                        ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900"
-                                                                        : "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/60"
-                                                            }`}>
+                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isExactFit
+                                                                ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                                                : isOverFit
+                                                                    ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900"
+                                                                    : "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/60"
+                                                                }`}>
                                                                 {isExactFit
                                                                     ? "★ Exact Fit"
                                                                     : isOverFit
@@ -1891,13 +1866,12 @@ export default function DineTableGrid({
                                 const fitsParty = effectiveAvailableSeats >= partyPax;
 
                                 return (
-                                    <div className={`mt-2.5 p-3 rounded-2xl border flex items-center justify-between gap-3 flex-wrap ${
-                                        fitsParty
-                                            ? isSharedOption
-                                                ? "bg-teal-50/80 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800/70"
-                                                : "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/70"
-                                            : "bg-amber-50/80 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/70"
-                                    }`}>
+                                    <div className={`mt-2.5 p-3 rounded-2xl border flex items-center justify-between gap-3 flex-wrap ${fitsParty
+                                        ? isSharedOption
+                                            ? "bg-teal-50/80 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800/70"
+                                            : "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/70"
+                                        : "bg-amber-50/80 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/70"
+                                        }`}>
                                         <div className="flex items-center gap-2 flex-wrap">
                                             {isSharedOption ? (
                                                 <div className="flex items-center gap-2 flex-wrap">
@@ -1921,8 +1895,8 @@ export default function DineTableGrid({
                                                             {isMerged ? `Combined (${selectedTables.length} Tables):` : "Selected Table:"}
                                                         </span>
                                                         {selectedTables.map(t => (
-                                                            <span 
-                                                                key={t.id} 
+                                                            <span
+                                                                key={t.id}
                                                                 className="inline-flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs"
                                                             >
                                                                 <span>{t.name || `Table ${t.id}`}</span>

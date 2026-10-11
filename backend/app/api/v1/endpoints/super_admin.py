@@ -1331,29 +1331,12 @@ async def update_organization(
     org.name = body.org_name
     org.slug = body.org_slug
     org.is_active = body.is_active
-    if body.branch_type is not None and body.branch_type in ("standard", "dine"):
-        org.branch_type = body.branch_type
-        if body.branch_type == "dine":
-            from sqlalchemy.orm.attributes import flag_modified
-            from app.schemas.queue import DEFAULT_CUSTOM_FIELDS
-            queues_res = await db.execute(select(Queue).where(Queue.org_id == org.id, Queue.is_deleted == False))
-            for q in queues_res.scalars().all():
-                fields = list(q.custom_fields) if q.custom_fields else [dict(f) for f in DEFAULT_CUSTOM_FIELDS]
-                if not any(f.get("key") in ("name", "full_name") for f in fields):
-                    fields.insert(0, dict(DEFAULT_CUSTOM_FIELDS[0]))
-                if not any(f.get("key") in ("phone", "phone_number") for f in fields):
-                    fields.insert(1, dict(DEFAULT_CUSTOM_FIELDS[1]))
-                if not any(f.get("key") in ("pax", "pax_count", "no_of_pax", "number_of_pax") for f in fields):
-                    fields.append({
-                        "id": f"field_pax_default_{q.id}",
-                        "key": "pax",
-                        "label": "Number of Pax",
-                        "type": "number",
-                        "required": True,
-                        "order": len(fields),
-                    })
-                q.custom_fields = fields
-                flag_modified(q, "custom_fields")
+
+    if body.branch_type is not None and body.branch_type != org.branch_type:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Branch type is permanently set during creation and cannot be changed.",
+        )
     
     if body.max_sessions is not None:
         org.max_sessions = body.max_sessions

@@ -4,12 +4,10 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, Mail, Lock, KeyRound, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
-import { config } from "@/lib/config";
 import { ContactSalesModal } from "@/components/ContactSalesModal";
 
 export default function LoginPage() {
@@ -192,13 +190,6 @@ export default function LoginPage() {
                     className="w-full sm:max-w-[440px] md:max-w-[460px] min-h-[100dvh] sm:min-h-0 bg-white sm:rounded-3xl flex flex-col justify-center px-6 sm:px-10 py-8 sm:py-10 relative sm:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.35)] sm:border sm:border-slate-100 sm:my-auto"
                 >
                     <div className="w-full flex flex-col justify-center">
-                        {/* Logo */}
-                        <div className="mb-6">
-                            <a href={config.landingUrl} className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg overflow-visible" aria-label="Go to home page">
-                                <Image src="/logo-main-trimmed.png" alt="Q4Queue Logo" width={240} height={50} className="h-8 sm:h-9 w-auto object-contain" priority />
-                            </a>
-                        </div>
-
                         {/* MODE 1: Standard Login Form */}
                         {viewMode === "login" && (
                             <>
