@@ -163,7 +163,7 @@ export default function DineFloorTabs({
             onClick={onToggleEditor}
             className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-[11px] font-semibold transition-all cursor-pointer ${
               isEditorMode
-                ? "bg-amber-500 text-white shadow-md shadow-amber-500/30 font-bold"
+                ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/30 font-bold"
                 : "bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white"
             }`}
           >

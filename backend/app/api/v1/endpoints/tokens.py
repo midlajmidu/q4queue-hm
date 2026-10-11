@@ -191,7 +191,7 @@ async def skip_token(
             queue_name, queue_prefix = q_row
             background_tasks.add_task(
                 notify_queue_event,
-                event_type="queue_skipped_v2",
+                event_type="queue_skipped_v3",
                 org_id=token.org_id,
                 token_id=token.id,
                 queue_id=token.queue_id,
@@ -201,6 +201,8 @@ async def skip_token(
                 token_prefix=queue_prefix,
                 queue_name=queue_name,
                 tracking_id=str(getattr(token, "tracking_id", "")),
+                session_id=token.session_id,
+                assigned_line=token.assigned_line,
             )
 
         await record_event(
@@ -275,6 +277,8 @@ async def complete_token(
                 token_prefix=queue_prefix,
                 queue_name=queue_name,
                 tracking_id=str(getattr(token, "tracking_id", "")),
+                session_id=token.session_id,
+                assigned_line=token.assigned_line,
             )
 
         await record_event(

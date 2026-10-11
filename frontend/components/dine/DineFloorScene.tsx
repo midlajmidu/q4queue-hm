@@ -716,12 +716,12 @@ const DineTable3D = React.memo(function DineTable3D({
       {isEditorMode && isSelected ? (
         <Html position={[0, 2.3, 0]} center distanceFactor={14} style={{ pointerEvents: "auto" }}>
           <div
-            className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-slate-950/95 border border-amber-500/50 shadow-2xl backdrop-blur-md select-none text-white min-w-[210px]"
+            className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-slate-950/95 border border-indigo-500/50 shadow-2xl backdrop-blur-md select-none text-white min-w-[210px]"
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between w-full border-b border-white/10 pb-1 text-[11px] font-bold">
-              <span className="text-amber-400">✏️ {table.name}</span>
+              <span className="text-indigo-400">✏️ {table.name}</span>
               <span className="text-emerald-400 font-mono text-[10px]">
                 {tableW.toFixed(1)}m × {tableD.toFixed(1)}m
               </span>
@@ -816,9 +816,9 @@ const DineTable3D = React.memo(function DineTable3D({
           <div className="flex flex-col items-center select-none pointer-events-none">
             {/* Active drag coordinate badge */}
             {isDraggingThis ? (
-              <div className="px-3 py-1 rounded-full bg-amber-500 text-slate-950 font-black text-[11px] shadow-xl flex items-center gap-1.5 animate-bounce">
+              <div className="px-3 py-1 rounded-full bg-indigo-600 text-white font-bold text-[11px] shadow-xl flex items-center gap-1.5 animate-bounce">
                 <span>📍 {table.name} ({table.x.toFixed(1)}m, {table.z.toFixed(1)}m)</span>
-                <span className="text-[9px] font-bold text-amber-950/70">(Snap 0.5m)</span>
+                <span className="text-[9px] font-bold text-white/70">(Snap 0.5m)</span>
               </div>
             ) : (
               <>
@@ -1737,7 +1737,7 @@ const CityRoadsEnvironment3D = React.memo(function CityRoadsEnvironment3D({
   );
 });
 
-// ─── Back Wall Branding Sign (Matching reference image "■ BASE BANK") ────────
+// ─── Back Wall Branding Sign ─────────────────────────────────────────────────
 
 function BackWallBranding3D({
   width,
@@ -1748,143 +1748,18 @@ function BackWallBranding3D({
   prefix: string;
   floorName: string;
 }) {
-  const brandTitle = prefix ? `${prefix.toUpperCase()} BRANCH` : floorName.toUpperCase();
+  const brandTitle = floorName ? floorName.toUpperCase() : (prefix ? `${prefix.toUpperCase()} DINING` : "DINING FLOOR");
 
   return (
     <group position={[width / 2, 2.05, 0.08]}>
-      {/* 3D Blue Logo Box */}
-      <mesh position={[-Math.min(3.5, brandTitle.length * 0.12) - 0.35, 0, 0]} castShadow>
-        <boxGeometry args={[0.42, 0.42, 0.08]} />
-        <meshStandardMaterial color="#2563eb" roughness={0.3} metalness={0.2} />
-      </mesh>
-
       {/* HTML crisp typography on wall */}
       <Html position={[0, 0, 0.06]} center distanceFactor={14} style={{ pointerEvents: "none" }}>
         <div className="flex items-center gap-2 select-none whitespace-nowrap">
-          <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center text-white font-black text-[11px] shadow-sm">
-            ■
-          </div>
-          <span className="font-extrabold text-[15px] tracking-wide text-slate-800 uppercase font-sans">
+          <span className="font-extrabold text-[13px] tracking-widest text-slate-700/80 uppercase font-sans">
             {brandTitle}
           </span>
         </div>
       </Html>
-    </group>
-  );
-}
-
-// ─── Self-Service Order Kiosks (Matching the 2 kiosks on the right in screenshot) ──
-
-function InteriorKiosks3D({
-  width,
-  depth,
-}: {
-  width: number;
-  depth: number;
-}) {
-  return (
-    <group>
-      {[depth * 0.38, depth * 0.55].map((kz, i) => (
-        <group key={i} position={[width - 1.25, 0, kz]} rotation={[0, -Math.PI / 2, 0]}>
-          {/* Base Pedestal */}
-          <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
-            <boxGeometry args={[0.65, 0.9, 0.45]} />
-            <meshStandardMaterial color="#475569" roughness={0.5} metalness={0.4} />
-          </mesh>
-          {/* Upper Console Body */}
-          <mesh position={[0, 1.15, 0.05]} castShadow>
-            <boxGeometry args={[0.55, 0.55, 0.28]} />
-            <meshStandardMaterial color="#e2e8f0" roughness={0.3} />
-          </mesh>
-          {/* Curved/Angled Cyan Screen */}
-          <mesh position={[0, 1.18, 0.2]} rotation={[-0.15, 0, 0]}>
-            <boxGeometry args={[0.48, 0.44, 0.04]} />
-            <meshStandardMaterial color="#0284c7" emissive="#0284c7" emissiveIntensity={0.6} roughness={0.1} />
-          </mesh>
-          {/* Glow Badge */}
-          <Html position={[0, 1.55, 0]} center distanceFactor={12} style={{ pointerEvents: "none" }}>
-            <div className="px-1.5 py-0.5 rounded bg-sky-950/80 border border-sky-400/40 text-sky-200 text-[8px] font-bold shadow whitespace-nowrap">
-              Kiosk {i + 1}
-            </div>
-          </Html>
-        </group>
-      ))}
-    </group>
-  );
-}
-
-// ─── Interior Waiting Lounge Armchairs (Matching sofa on the left in screenshot) ───
-
-function InteriorWaitingLounge3D({
-  depth,
-}: {
-  depth: number;
-}) {
-  return (
-    <group position={[1.4, 0, depth * 0.4]}>
-      {/* Dark Slate Teal Armchair */}
-      <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.95, 0.45, 0.95]} />
-        <meshStandardMaterial color="#0f766e" roughness={0.8} />
-      </mesh>
-      {/* Armchair Backrest */}
-      <mesh position={[-0.35, 0.72, 0]} castShadow>
-        <boxGeometry args={[0.25, 0.55, 0.95]} />
-        <meshStandardMaterial color="#0f766e" roughness={0.8} />
-      </mesh>
-      {/* Armrests */}
-      {[-0.4, 0.4].map((az, ai) => (
-        <mesh key={ai} position={[0, 0.55, az]} castShadow>
-          <boxGeometry args={[0.9, 0.25, 0.16]} />
-          <meshStandardMaterial color="#115e59" roughness={0.8} />
-        </mesh>
-      ))}
-      {/* Little Coffee Table */}
-      <mesh position={[0.95, 0.26, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.6, 0.35, 0.6]} />
-        <meshStandardMaterial color="#d97706" roughness={0.7} />
-      </mesh>
-    </group>
-  );
-}
-
-// ─── Interior Standing Visitors / Customers (Colorful shirts matching screenshot) ──
-
-function InteriorAvatars3D({
-  width,
-  depth,
-}: {
-  width: number;
-  depth: number;
-}) {
-  const visitors = [
-    { x: width * 0.46, z: depth * 0.52, shirt: "#2563eb", rot: 0.3 }, // blue shirt
-    { x: width * 0.36, z: depth * 0.65, shirt: "#dc2626", rot: -0.6 }, // red shirt
-    { x: width * 0.62, z: depth * 0.46, shirt: "#16a34a", rot: -1.2 }, // green shirt
-    { x: width * 0.72, z: depth * 0.68, shirt: "#ea580c", rot: 1.5 }, // orange shirt
-  ];
-
-  return (
-    <group>
-      {visitors.map((v, vi) => (
-        <group key={vi} position={[v.x, 0, v.z]} rotation={[0, v.rot, 0]}>
-          {/* Pants / Legs */}
-          <mesh position={[0, 0.45, 0]} castShadow>
-            <cylinderGeometry args={[0.13, 0.13, 0.9, 8]} />
-            <meshStandardMaterial color="#1e293b" roughness={0.8} />
-          </mesh>
-          {/* Shirt / Torso */}
-          <mesh position={[0, 1.05, 0]} castShadow>
-            <cylinderGeometry args={[0.18, 0.16, 0.6, 8]} />
-            <meshStandardMaterial color={v.shirt} roughness={0.7} />
-          </mesh>
-          {/* Head */}
-          <mesh position={[0, 1.5, 0]} castShadow>
-            <sphereGeometry args={[0.14, 8, 8]} />
-            <meshStandardMaterial color="#fcd34d" roughness={0.6} />
-          </mesh>
-        </group>
-      ))}
     </group>
   );
 }
@@ -2302,8 +2177,8 @@ export default function DineFloorScene({
                 style={{ pointerEvents: isActive ? "none" : "auto" }}
               >
                 {isActive ? (
-                  <div className="px-3 py-1 rounded-full bg-slate-950/90 border border-amber-500/60 text-amber-300 font-bold text-[10px] shadow-2xl backdrop-blur-md select-none flex items-center gap-1.5 whitespace-nowrap">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                  <div className="px-3 py-1 rounded-full bg-slate-950/90 border border-indigo-500/60 text-indigo-200 font-bold text-[10px] shadow-2xl backdrop-blur-md select-none flex items-center gap-1.5 whitespace-nowrap">
+                    <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
                     <span>📍 {floorItem.name} (Active Floor)</span>
                   </div>
                 ) : (
@@ -2353,21 +2228,12 @@ export default function DineFloorScene({
               baseColor={theme.wallBase || "#beb5a2"}
             />
 
-            {/* Back Wall Branding Sign (Matching reference image "■ BASE BANK") */}
+            {/* Back Wall Branding Sign */}
             <BackWallBranding3D
               width={W}
               prefix={prefix}
               floorName={floorItem.name}
             />
-
-            {/* Self-Service Order Kiosks (2 modern kiosks on East wall matching screenshot) */}
-            <InteriorKiosks3D width={W} depth={D} />
-
-            {/* Interior Waiting Lounge Armchairs (Teal armchairs on West wall matching screenshot) */}
-            <InteriorWaitingLounge3D depth={D} />
-
-            {/* Interior Standing Visitors / Customers (Colorful shirts matching screenshot) */}
-            <InteriorAvatars3D width={W} depth={D} />
 
             {/* Front Entrance Portal (Welcome Mat, Glass Doors, Canopy) */}
             <EntrancePortal3D
@@ -2496,7 +2362,7 @@ export default function DineFloorScene({
                       {/* Dragging Position Pill */}
                       {isDraggingThisWall && (
                         <Html position={[cx, wallH + 0.7, cz]} center distanceFactor={14}>
-                          <div className="px-2.5 py-1 rounded-full bg-amber-500 text-black font-black text-[11px] shadow-2xl flex items-center gap-1.5 whitespace-nowrap select-none">
+                          <div className="px-2.5 py-1 rounded-full bg-indigo-600 text-white font-bold text-[11px] shadow-2xl flex items-center gap-1.5 whitespace-nowrap select-none">
                             <span>🧱 Partition #{wi + 1}</span>
                             <span>({cx.toFixed(1)}m, {cz.toFixed(1)}m)</span>
                           </div>
@@ -2553,7 +2419,7 @@ export default function DineFloorScene({
                             </div>
 
                             <div className="text-[9px] text-slate-400 text-center w-full pt-0.5 border-t border-white/10">
-                              <span className="text-amber-400 font-medium">🖐️ Drag in 3D</span> to reposition
+                              <span className="text-indigo-400 font-medium">🖐️ Drag in 3D</span> to reposition
                             </div>
                           </div>
                         </Html>
@@ -2619,7 +2485,7 @@ export default function DineFloorScene({
                   )}
                   {isDraggingThisDecor && (
                     <Html position={[0, 1.6, 0]} center>
-                      <div className="px-2 py-0.5 rounded-full bg-amber-500 text-black font-black text-[10px] shadow">
+                      <div className="px-2 py-0.5 rounded-full bg-indigo-600 text-white font-bold text-[10px] shadow">
                         📍 {d.x.toFixed(1)}m, {d.z.toFixed(1)}m
                       </div>
                     </Html>

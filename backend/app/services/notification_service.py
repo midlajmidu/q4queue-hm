@@ -197,13 +197,21 @@ async def notify_queue_event(
         variables = []
 
         is_dine = bool(
-            (db_org and getattr(db_org, "branch_type", None) == "dine")
+            (db_org and getattr(db_org, "branch_type", None) in ("dine", "hotel", "restaurant"))
             or (db_queue and getattr(db_queue, "table_config", None) and len(db_queue.table_config) > 0)
         )
 
-        # Upgrade any v2 events emitted by the system to v3
-        if event_type == "queue_called_v2": event_type = "queue_called_v3"
-        elif event_type == "queue_skipped_v2": event_type = "queue_skipped_v3"
+        # Upgrade any legacy v2 events emitted by the system to v3
+        if event_type in ("queue_called_v2", "queue_called_v3"): event_type = "queue_called_v3"
+        elif event_type in ("queue_skipped_v2", "queue_skipped_v3"): event_type = "queue_skipped_v3"
+        elif event_type in ("queue_nearby_3_v2", "queue_nearby_3_v3"): event_type = "queue_nearby_3_v3"
+        elif event_type in ("queue_nearby_5_v2", "queue_nearby_5_v3"): event_type = "queue_nearby_5_v3"
+
+        # For restaurant/hotel dining, position 5 and 3 countdown alerts are disabled
+        # because seating is manually matched to available table capacity and party size.
+        if is_dine and event_type in ("queue_nearby_5_v3", "queue_nearby_3_v3"):
+            logger.info("Skipping position reminder %s for restaurant queue (token=%s, org=%s)", event_type, token_id, org_id)
+            return
 
         org_name_to_use = organization_name if organization_name else queue_name
         c_name = customer_name or "Customer"
@@ -262,19 +270,32 @@ async def notify_queue_event(
                 
             delivery_mode = cfg.get("delivery_mode", "button_reply_only")
 
+            # Check if 24h customer session window is active (customer clicked button or replied)
+            from datetime import datetime, timezone
+            now_utc = datetime.now(timezone.utc)
+            exp = getattr(db_token, "whatsapp_window_expires_at", None)
+            if exp is not None and exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            is_window_active = bool(
+                db_token.whatsapp_alerts_active
+                and (exp is None or exp > now_utc)
+            )
+
             if delivery_mode == "button_reply_only":
-                if not db_token.whatsapp_alerts_active:
+                if not is_window_active:
                     logger.info(
-                        "Delivery mode 'button_reply_only': Customer %s did not click 'Get Live Queue Updates' for token %s, skipping follow-up event %s",
+                        "Delivery mode 'button_reply_only': Customer %s did not click button / reply for token %s, skipping follow-up event %s (free-only session mode)",
                         customer_phone, token_id, event_type
                     )
                     return
-                # User clicked button -> active 24h window -> send as free session text message
+                # User replied -> active 24h window -> send as ₹0 free session text message from our server!
                 is_raw_text = True
             else: # "always_send"
-                if db_token.whatsapp_alerts_active:
+                if is_window_active:
+                    # User replied -> active 24h window -> deliver as ₹0 free session text message from our server!
                     is_raw_text = True
                 else:
+                    # User did not reply -> dispatch official Meta-approved paid template!
                     is_raw_text = False
 
             raw_body = None
@@ -282,12 +303,13 @@ async def notify_queue_event(
             if event_type in ("queue_called_v3", "queue_recalled_v2"):
                 if is_dine:
                     table_name = None
-                    if assigned_line and db_queue and getattr(db_queue, "table_config", None):
+                    eff_assigned_line = assigned_line if assigned_line is not None else (getattr(db_token, "assigned_line", None) if db_token else None)
+                    if eff_assigned_line and db_queue and getattr(db_queue, "table_config", None):
                         for tbl in db_queue.table_config:
-                            if tbl.get("id") == assigned_line:
+                            if tbl.get("id") == eff_assigned_line:
                                 table_name = tbl.get("name")
                                 break
-                    dest = table_name or (f"Table {assigned_line}" if assigned_line else "the Host Stand")
+                    dest = table_name or (f"Table {eff_assigned_line}" if eff_assigned_line else "the Host Stand")
                     variables = [token_str, queue_name or org_name_to_use, dest]
                     if is_raw_text:
                         header = "🍽️ *Your Table is Ready!*" if event_type == "queue_called_v3" else "🔄 *Table Recalled*"
@@ -348,24 +370,52 @@ async def notify_queue_event(
                 # Meta template service_completed_v1 only expects 2 parameters (Ticket, Queue)
                 variables = [token_str, queue_name or org_name_to_use]
                 if is_raw_text:
-                    raw_body = (
-                        "✅ *Service Completed*\n\n"
-                        "Your visit has been completed successfully.\n\n"
-                        f"🎫 Ticket Number: {token_str}\n"
-                        f"📋 Queue: {queue_name or org_name_to_use}\n\n"
-                        f"Thank you for choosing {org_name_to_use}."
-                    )
+                    if is_dine:
+                        raw_body = (
+                            "🍽️ *Dining Completed*\n\n"
+                            f"Thank you for dining with us at {org_name_to_use}!\n\n"
+                            f"🎫 Ticket Number: {token_str}\n"
+                            f"📋 Waitlist: {queue_name or org_name_to_use}\n\n"
+                            "We hope you had a wonderful time and look forward to welcoming you back!"
+                        )
+                    else:
+                        raw_body = (
+                            "✅ *Service Completed*\n\n"
+                            "Your visit has been completed successfully.\n\n"
+                            f"🎫 Ticket Number: {token_str}\n"
+                            f"📋 Queue: {queue_name or org_name_to_use}\n\n"
+                            f"Thank you for choosing {org_name_to_use}."
+                        )
             elif event_type == "queue_skipped_v3":
-                dest = "the counter"
+                if is_dine:
+                    table_name = None
+                    eff_assigned_line = assigned_line if assigned_line is not None else (getattr(db_token, "assigned_line", None) if db_token else None)
+                    if eff_assigned_line and db_queue and getattr(db_queue, "table_config", None):
+                        for tbl in db_queue.table_config:
+                            if tbl.get("id") == eff_assigned_line:
+                                table_name = tbl.get("name")
+                                break
+                    dest = table_name or (f"Table {eff_assigned_line}" if eff_assigned_line else "the Host Stand")
+                else:
+                    dest = "the counter"
                 variables = [token_str, queue_name or org_name_to_use, dest]
                 if is_raw_text:
-                    raw_body = (
-                        "⚠️ *Token Skipped*\n\n"
-                        f"Your ticket was skipped at {dest}.\n\n"
-                        f"🎫 Ticket Number: {token_str}\n"
-                        f"📋 Queue: {queue_name or org_name_to_use}\n\n"
-                        "Please contact our staff if you are still available."
-                    )
+                    if is_dine:
+                        raw_body = (
+                            "⚠️ *Table Waitlist Notice*\n\n"
+                            f"Your party was skipped at {dest}.\n\n"
+                            f"🎫 Ticket Number: {token_str}\n"
+                            f"📋 Waitlist: {queue_name or org_name_to_use}\n\n"
+                            "Please speak with our host at the reception desk if you have arrived."
+                        )
+                    else:
+                        raw_body = (
+                            "⚠️ *Token Skipped*\n\n"
+                            f"Your ticket was skipped at {dest}.\n\n"
+                            f"🎫 Ticket Number: {token_str}\n"
+                            f"📋 Queue: {queue_name or org_name_to_use}\n\n"
+                            "Please contact our staff if you are still available."
+                        )
             elif event_type == "queue_removed_v3":
                 variables = [token_str, queue_name or org_name_to_use]
                 if is_raw_text:
@@ -404,11 +454,12 @@ async def notify_queue_event(
 
         # 3.8 Pacing & Timing:
         # High-priority operational events (Joined, Called, Skipped, Recalled, Appointment Booked): Immediate (0 delay / ~1-2s delivery)
-        # Background status events (5 ahead, 3 ahead, Completed, Removed): 8-10s pacing delay
+        # Background status events (5 ahead, 3 ahead, Completed, Removed): 8-10s pacing delay (2s for dining completion)
         if event_type in ("queue_nearby_5_v3", "queue_nearby_3_v3", "queue_completed_v3", "queue_removed_v3"):
             import asyncio
-            logger.info("Applying 8s pacing delay for background event %s (token=%s)", event_type, token_id)
-            await asyncio.sleep(8)
+            pacing_delay = 2 if (is_dine and event_type == "queue_completed_v3") else 8
+            logger.info("Applying %ss pacing delay for background event %s (token=%s)", pacing_delay, event_type, token_id)
+            await asyncio.sleep(pacing_delay)
 
         # 4. Send
         await send_whatsapp_message(

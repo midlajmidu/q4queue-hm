@@ -776,6 +776,7 @@ async def call_next(
                                 queue_name=q_row.name,
                                 tracking_id=str(getattr(currently_serving, "tracking_id", "")),
                                 session_id=q_row.token_session_id,
+                                assigned_line=currently_serving.assigned_line,
                             )
                         )
                 except Exception as e:
@@ -876,11 +877,11 @@ async def clear_line(
     org_id: uuid.UUID,
     line_number: int,
     user_id: uuid.UUID,
-) -> bool:
+) -> list[Token]:
     """
     Mark the currently-serving token on a specific service line as 'done',
     WITHOUT automatically calling the next customer. Frees the lane.
-    Returns True if a token was cleared, False if the line was already empty.
+    Returns the list of cleared Tokens that were completed.
     """
     now = datetime.now(timezone.utc)
     queue = await _lock_queue_for_org(db, queue_id, org_id)
@@ -897,7 +898,7 @@ async def clear_line(
     )
     tokens = result.scalars().all()
     cleared_any = False
-    last_cleared_token = None
+    cleared_tokens: list[Token] = []
     for t in tokens:
         if t.assigned_line == line_number or line_number in getattr(t, "shared_lines", []):
             is_fully_done = _mark_line_completed(t, line_number)
@@ -906,11 +907,11 @@ async def clear_line(
                 t.completed_at = now
                 t.completed_by_id = user_id
                 queue.total_served += 1
+                cleared_tokens.append(t)
             cleared_any = True
-            last_cleared_token = t
             
-    if not cleared_any or last_cleared_token is None:
-        return False
+    if not cleared_any:
+        return []
         
     await db.flush()
     await _log_audit(
@@ -918,15 +919,16 @@ async def clear_line(
         event_type="CLEAR_SERVICE_LINE",
         org_id=org_id,
         user_id=user_id,
-        resource_type="token",
-        resource_id=str(last_cleared_token.id),
+        resource_type="queue",
+        resource_id=str(queue.id),
         details={
-            "token_number": last_cleared_token.token_number,
             "line_number": line_number,
+            "cleared_token_count": len(cleared_tokens),
+            "token_numbers": [t.token_number for t in cleared_tokens],
             "cleared_line": True,
         },
     )
-    return True
+    return cleared_tokens
 
 
 async def share_token(
@@ -1397,7 +1399,7 @@ async def send_called_and_reminder_notifications(
             serving_token = tok_res.scalar_one_or_none()
 
             if serving_token:
-                event_name = "queue_recalled_v2" if getattr(serving_token, "called_via_invite", False) else "queue_called_v3"
+                event_name = "queue_called_v3"
                 await notify_queue_event(
                     event_type=event_name,
                     org_id=org_id,
@@ -1414,53 +1416,35 @@ async def send_called_and_reminder_notifications(
                 )
 
             # ── 2. Check for tokens now at position == 5 or == 3 ──────────────
-            waiting_res = await db.execute(
-                select(Token)
-                .where(
-                    Token.queue_id == queue_id,
-                    Token.org_id == org_id,
-                    Token.session_id == queue.token_session_id,
-                    Token.status == TokenStatus.waiting,
-                )
-                .order_by(Token.token_number.asc())
-                .limit(5)
-            )
-            waiting_tokens = waiting_res.scalars().all()
+            # For restaurant/hotel dining, position 5 and 3 countdown reminders are disabled
+            # because seating is manually matched to available table capacity and party size.
+            is_dine_queue = bool(getattr(queue, "table_config", None) and len(queue.table_config) > 0)
+            if not is_dine_queue:
+                from app.models.organization import Organization
+                org_btype_res = await db.execute(select(Organization.branch_type).where(Organization.id == org_id))
+                org_btype = org_btype_res.scalar_one_or_none()
+                if org_btype in ("dine", "hotel", "restaurant"):
+                    is_dine_queue = True
 
-            for i, wt in enumerate(waiting_tokens):
-                position = i + 1  # 1-indexed position
-                if position == 3 and not wt.whatsapp_reminder_sent:
-                    await notify_queue_event(
-                        event_type="queue_nearby_3_v2",
-                        org_id=org_id,
-                        token_id=wt.id,
-                        queue_id=queue_id,
-                        customer_name=wt.customer_name,
-                        customer_phone=wt.customer_phone,
-                        token_number=wt.token_number,
-                        token_prefix=queue.prefix,
-                        queue_name=queue.name,
-                        position=position,
-                        tracking_id=str(getattr(wt, "tracking_id", "")),
-                        session_id=queue.token_session_id,
+            if not is_dine_queue:
+                waiting_res = await db.execute(
+                    select(Token)
+                    .where(
+                        Token.queue_id == queue_id,
+                        Token.org_id == org_id,
+                        Token.session_id == queue.token_session_id,
+                        Token.status == TokenStatus.waiting,
                     )
-                    # Mark reminder as sent so we don't re-send
-                    wt.whatsapp_reminder_sent = True
-                
-                elif position == 5:
-                    # Check if we already sent a position 5 reminder for this token
-                    from app.whatsapp.models import WhatsAppMessage
-                    msg_check = await db.execute(
-                        select(WhatsAppMessage).where(
-                            WhatsAppMessage.token_id == wt.id,
-                            WhatsAppMessage.event_type == "queue_nearby_5_v2"
-                        )
-                    )
-                    already_sent_5 = msg_check.scalars().first() is not None
-                    
-                    if not already_sent_5:
+                    .order_by(Token.token_number.asc())
+                    .limit(5)
+                )
+                waiting_tokens = waiting_res.scalars().all()
+
+                for i, wt in enumerate(waiting_tokens):
+                    position = i + 1  # 1-indexed position
+                    if position == 3 and not wt.whatsapp_reminder_sent:
                         await notify_queue_event(
-                            event_type="queue_nearby_5_v2",
+                            event_type="queue_nearby_3_v3",
                             org_id=org_id,
                             token_id=wt.id,
                             queue_id=queue_id,
@@ -1473,9 +1457,38 @@ async def send_called_and_reminder_notifications(
                             tracking_id=str(getattr(wt, "tracking_id", "")),
                             session_id=queue.token_session_id,
                         )
+                        # Mark reminder as sent so we don't re-send
+                        wt.whatsapp_reminder_sent = True
+                    
+                    elif position == 5:
+                        # Check if we already sent a position 5 reminder for this token
+                        from app.whatsapp.models import WhatsAppMessage
+                        msg_check = await db.execute(
+                            select(WhatsAppMessage).where(
+                                WhatsAppMessage.token_id == wt.id,
+                                WhatsAppMessage.event_type.in_(["queue_nearby_5_v2", "queue_nearby_5_v3"])
+                            )
+                        )
+                        already_sent_5 = msg_check.scalars().first() is not None
+                        
+                        if not already_sent_5:
+                            await notify_queue_event(
+                                event_type="queue_nearby_5_v3",
+                                org_id=org_id,
+                                token_id=wt.id,
+                                queue_id=queue_id,
+                                customer_name=wt.customer_name,
+                                customer_phone=wt.customer_phone,
+                                token_number=wt.token_number,
+                                token_prefix=queue.prefix,
+                                queue_name=queue.name,
+                                position=position,
+                                tracking_id=str(getattr(wt, "tracking_id", "")),
+                                session_id=queue.token_session_id,
+                            )
 
-            if waiting_tokens:
-                await db.commit()
+                if waiting_tokens:
+                    await db.commit()
 
     except Exception as exc:
         logger.error("send_called_and_reminder_notifications error: %s", exc)

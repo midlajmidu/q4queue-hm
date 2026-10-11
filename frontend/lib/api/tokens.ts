@@ -91,6 +91,12 @@ export const tokenApi = {
         });
     },
 
+    skipToken(tokenId: string): Promise<TokenResponse> {
+        return request<TokenResponse>(`/tokens/${tokenId}/skip`, {
+            method: "PATCH",
+        });
+    },
+
     admitBatch(queueId: string, tokenNumbers: number[]): Promise<{ admitted: number[] }> {
         return request<{ admitted: number[] }>(`/queues/${queueId}/admit-batch`, {
             method: "POST",
