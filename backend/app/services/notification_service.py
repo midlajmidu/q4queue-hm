@@ -268,27 +268,35 @@ async def notify_queue_event(
                 logger.warning("Token %s not found in DB for event %s, skipping", token_id, event_type)
                 return
                 
-            if is_dine:
-                # Restaurants/Hotels always dispatch official Meta-approved utility templates
-                # (token_called_v1, service_completed_v1, token_skipped_v1, token_recalled_v1)
-                # without requiring customers to reply or interact via WhatsApp buttons first.
-                is_raw_text = False
-            else:
-                delivery_mode = cfg.get("delivery_mode", "button_reply_only")
-                if delivery_mode == "button_reply_only":
-                    if not db_token.whatsapp_alerts_active:
-                        logger.info(
-                            "Delivery mode 'button_reply_only': Customer %s did not click 'Get Live Queue Updates' for token %s, skipping follow-up event %s",
-                            customer_phone, token_id, event_type
-                        )
-                        return
-                    # User clicked button -> active 24h window -> send as free session text message
+            delivery_mode = cfg.get("delivery_mode", "button_reply_only")
+
+            # Check if 24h customer session window is active (customer clicked button or replied)
+            from datetime import datetime, timezone
+            now_utc = datetime.now(timezone.utc)
+            exp = getattr(db_token, "whatsapp_window_expires_at", None)
+            if exp is not None and exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            is_window_active = bool(
+                db_token.whatsapp_alerts_active
+                and (exp is None or exp > now_utc)
+            )
+
+            if delivery_mode == "button_reply_only":
+                if not is_window_active:
+                    logger.info(
+                        "Delivery mode 'button_reply_only': Customer %s did not click button / reply for token %s, skipping follow-up event %s (free-only session mode)",
+                        customer_phone, token_id, event_type
+                    )
+                    return
+                # User replied -> active 24h window -> send as ₹0 free session text message from our server!
+                is_raw_text = True
+            else: # "always_send"
+                if is_window_active:
+                    # User replied -> active 24h window -> deliver as ₹0 free session text message from our server!
                     is_raw_text = True
-                else: # "always_send"
-                    if db_token.whatsapp_alerts_active:
-                        is_raw_text = True
-                    else:
-                        is_raw_text = False
+                else:
+                    # User did not reply -> dispatch official Meta-approved paid template!
+                    is_raw_text = False
 
             raw_body = None
 
@@ -362,13 +370,22 @@ async def notify_queue_event(
                 # Meta template service_completed_v1 only expects 2 parameters (Ticket, Queue)
                 variables = [token_str, queue_name or org_name_to_use]
                 if is_raw_text:
-                    raw_body = (
-                        "✅ *Service Completed*\n\n"
-                        "Your visit has been completed successfully.\n\n"
-                        f"🎫 Ticket Number: {token_str}\n"
-                        f"📋 Queue: {queue_name or org_name_to_use}\n\n"
-                        f"Thank you for choosing {org_name_to_use}."
-                    )
+                    if is_dine:
+                        raw_body = (
+                            "🍽️ *Dining Completed*\n\n"
+                            f"Thank you for dining with us at {org_name_to_use}!\n\n"
+                            f"🎫 Ticket Number: {token_str}\n"
+                            f"📋 Waitlist: {queue_name or org_name_to_use}\n\n"
+                            "We hope you had a wonderful time and look forward to welcoming you back!"
+                        )
+                    else:
+                        raw_body = (
+                            "✅ *Service Completed*\n\n"
+                            "Your visit has been completed successfully.\n\n"
+                            f"🎫 Ticket Number: {token_str}\n"
+                            f"📋 Queue: {queue_name or org_name_to_use}\n\n"
+                            f"Thank you for choosing {org_name_to_use}."
+                        )
             elif event_type == "queue_skipped_v3":
                 if is_dine:
                     table_name = None
@@ -383,13 +400,22 @@ async def notify_queue_event(
                     dest = "the counter"
                 variables = [token_str, queue_name or org_name_to_use, dest]
                 if is_raw_text:
-                    raw_body = (
-                        "⚠️ *Token Skipped*\n\n"
-                        f"Your ticket was skipped at {dest}.\n\n"
-                        f"🎫 Ticket Number: {token_str}\n"
-                        f"📋 Queue: {queue_name or org_name_to_use}\n\n"
-                        "Please contact our staff if you are still available."
-                    )
+                    if is_dine:
+                        raw_body = (
+                            "⚠️ *Table Waitlist Notice*\n\n"
+                            f"Your party was skipped at {dest}.\n\n"
+                            f"🎫 Ticket Number: {token_str}\n"
+                            f"📋 Waitlist: {queue_name or org_name_to_use}\n\n"
+                            "Please speak with our host at the reception desk if you have arrived."
+                        )
+                    else:
+                        raw_body = (
+                            "⚠️ *Token Skipped*\n\n"
+                            f"Your ticket was skipped at {dest}.\n\n"
+                            f"🎫 Ticket Number: {token_str}\n"
+                            f"📋 Queue: {queue_name or org_name_to_use}\n\n"
+                            "Please contact our staff if you are still available."
+                        )
             elif event_type == "queue_removed_v3":
                 variables = [token_str, queue_name or org_name_to_use]
                 if is_raw_text:

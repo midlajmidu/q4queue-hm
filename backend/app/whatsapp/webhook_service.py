@@ -189,11 +189,44 @@ async def _activate_whatsapp_alerts(phone: str, current_time: datetime) -> None:
                 logger.info("No active waiting/serving token found for phone %s to activate alerts", phone)
                 return
 
+            was_inactive = not token.whatsapp_alerts_active
             # Activate alerts & open 24h window
             token.whatsapp_alerts_active = True
             token.whatsapp_window_expires_at = current_time + timedelta(hours=24)
             await db.commit()
             logger.info("Activated WhatsApp alerts for Token %s (phone=%s, token_number=%s)", token.id, phone, token.token_number)
+
+            if was_inactive:
+                try:
+                    from app.whatsapp.message_service import send_whatsapp_message
+                    from app.models.organization import Organization
+                    from app.models.queue import Queue
+
+                    org_name_res = await db.scalar(select(Organization.name).where(Organization.id == token.org_id))
+                    org_label = org_name_res or "us"
+
+                    prefix_res = await db.scalar(select(Queue.prefix).where(Queue.id == token.queue_id))
+                    prefix_str = prefix_res or ""
+                    token_display = f"{prefix_str}-{token.token_number}" if prefix_str else f"#{token.token_number}"
+
+                    await send_whatsapp_message(
+                        phone=phone,
+                        event_type="alerts_activated",
+                        variables=[],
+                        org_id=token.org_id,
+                        token_id=token.id,
+                        queue_id=token.queue_id,
+                        customer_name=token.customer_name,
+                        session_id=token.session_id,
+                        is_raw_text=True,
+                        raw_body=(
+                            "✅ *Live Queue Updates Activated!*\n\n"
+                            f"Hello {token.customer_name or 'there'}! You are now connected to live updates for ticket *{token_display}* at {org_label}.\n\n"
+                            "We'll notify you right here as soon as your turn is ready. Thank you!"
+                        ),
+                    )
+                except Exception as notify_err:
+                    logger.warning("Could not send alerts activation confirmation: %s", notify_err)
     except Exception as exc:
         logger.error("Failed to activate whatsapp alerts for %s: %s", phone, exc, exc_info=True)
 
