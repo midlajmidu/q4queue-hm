@@ -153,10 +153,6 @@ async def track_token(
     else:
         position = 0
 
-    from app.models.system_setting import SystemSetting
-    ai_setting = await db.get(SystemSetting, f"branch_ai_overview_{token.org_id}")
-    ai_overview_enabled = (ai_setting.value != "false") if ai_setting else True
-
     return TrackingResponse(
         token_id=str(token.id),
         tracking_id=str(token.tracking_id),
@@ -185,7 +181,6 @@ async def track_token(
         queue_type=getattr(queue_type_val, "value", queue_type_val) or "normal",
         max_capacity=queue_max_cap,
         zone_duration_mins=queue_zone_dur,
-        ai_overview_enabled=ai_overview_enabled,
     )
 
 
