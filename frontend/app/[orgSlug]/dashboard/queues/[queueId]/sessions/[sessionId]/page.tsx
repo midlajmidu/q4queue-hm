@@ -25,6 +25,7 @@ import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
+import { useBranch } from "@/context/BranchContext";
 import { fmtTime, fmtDateTime, nowInTz, localTodayStr } from "@/lib/tzformat";
 import QueueTokenSettings from "@/components/organization-admin/queue/QueueTokenSettings";
 
@@ -376,6 +377,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     const canConfigureQueue = canManageQueue && !isStaff;
     const { toast } = useToast();
     const tz = useBranchTimezone();
+    const { branchType: ctxBranchType, loading: ctxBranchLoading } = useBranch();
 
     const handleNewCustomer = useCallback((data: import("@/lib/websocket").NewCustomerEvent) => {
         sonnerToast.custom((t) => (
@@ -445,7 +447,48 @@ export default function QueueDetailPage({ params }: PageProps) {
     });
     const [sessionInfo, setSessionInfo] = useState<{ session_date: string; title: string; is_active?: boolean; is_paused?: boolean } | null>(null);
     const [todaySessionId, setTodaySessionId] = useState<string | null>(null);
-    const [branchType, setBranchType] = useState<"standard" | "dine">("standard");
+    const [branchType, setBranchType] = useState<"standard" | "dine">(() => {
+        if (typeof window !== "undefined" && orgSlug) {
+            try {
+                const cached = sessionStorage.getItem(`org_branch_type_${orgSlug}`);
+                if (cached === "dine" || cached === "standard") return cached;
+                const cachedSettings = sessionStorage.getItem(`org_settings_${orgSlug}`);
+                if (cachedSettings) {
+                    const parsed = JSON.parse(cachedSettings);
+                    if (parsed.branch_type === "dine" || parsed.branch_type === "standard") return parsed.branch_type;
+                }
+            } catch { }
+        }
+        return "standard";
+    });
+
+    const [isBranchTypeResolved, setIsBranchTypeResolved] = useState<boolean>(() => {
+        if (typeof window !== "undefined" && orgSlug) {
+            try {
+                const cached = sessionStorage.getItem(`org_branch_type_${orgSlug}`);
+                if (cached === "dine" || cached === "standard") return true;
+                const cachedSettings = sessionStorage.getItem(`org_settings_${orgSlug}`);
+                if (cachedSettings) {
+                    const parsed = JSON.parse(cachedSettings);
+                    if (parsed.branch_type) return true;
+                }
+            } catch { }
+        }
+        return false;
+    });
+
+    // Synchronize immediately if BranchContext already resolved the branch type
+    useEffect(() => {
+        if (!ctxBranchLoading && ctxBranchType) {
+            setBranchType(ctxBranchType);
+            setIsBranchTypeResolved(true);
+            if (typeof window !== "undefined" && orgSlug) {
+                try {
+                    sessionStorage.setItem(`org_branch_type_${orgSlug}`, ctxBranchType);
+                } catch { }
+            }
+        }
+    }, [ctxBranchType, ctxBranchLoading, orgSlug]);
 
     useEffect(() => {
         api.getQueue(queueId).then(q => {
@@ -458,9 +501,20 @@ export default function QueueDetailPage({ params }: PageProps) {
         }).catch(() => { });
         api.getSession(sessionId).then(s => setSessionInfo({ session_date: s.session_date, title: s.title, is_active: s.is_active, is_paused: s.is_paused })).catch(() => { });
         api.getOrganizationSettings().then(org => {
-            if (org.branch_type) setBranchType(org.branch_type);
-        }).catch(() => { });
-    }, [queueId, sessionId]);
+            if (org.branch_type) {
+                setBranchType(org.branch_type);
+                if (typeof window !== "undefined" && orgSlug) {
+                    try {
+                        sessionStorage.setItem(`org_branch_type_${orgSlug}`, org.branch_type);
+                        sessionStorage.setItem(`org_settings_${orgSlug}`, JSON.stringify(org));
+                    } catch { }
+                }
+            }
+            setIsBranchTypeResolved(true);
+        }).catch(() => {
+            setIsBranchTypeResolved(true);
+        });
+    }, [queueId, sessionId, orgSlug]);
 
     const isTodaySession = React.useMemo(() => {
         return sessionInfo?.is_active !== false;
@@ -500,6 +554,13 @@ export default function QueueDetailPage({ params }: PageProps) {
     const isZoneMode = Boolean(
         (state?.queue_type === "zone" || initialQueue?.queue_type === "zone") ||
         ((state?.max_capacity || initialQueue?.max_capacity || 0) > 0 && (state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && !isDineMode)
+    );
+
+    const isModeResolved = Boolean(
+        isDineMode ||
+        (state?.queue_type === "zone" || initialQueue?.queue_type === "zone") ||
+        isBranchTypeResolved ||
+        (!ctxBranchLoading && Boolean(ctxBranchType))
     );
     const zoneMaxCapacity = (state?.max_capacity || initialQueue?.max_capacity || 15);
     const zoneDurationMins = (state?.zone_duration_mins ?? initialQueue?.zone_duration_mins ?? null);
@@ -1621,10 +1682,15 @@ export default function QueueDetailPage({ params }: PageProps) {
                             <nav className="px-3 flex flex-col gap-1 flex-1 overflow-y-auto">
                                 {navItems.map((item) => {
                                     const isActiveItem = activeSection === item.id;
+                                    const isResolvingFirstTwo = !isModeResolved && (item.id === "queues" || item.id === "waiting_list");
                                     return (
                                         <button key={item.id} onClick={() => { setActiveSection(item.id); setMobileMenuOpen(false); }} className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all text-left ${isActiveItem ? "font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60" : "font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}>
-                                            <span className={`flex-shrink-0 ${isActiveItem ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}>{item.icon}</span>
-                                            <span className="truncate flex-1">{item.label}</span>
+                                            <span className={`flex-shrink-0 ${isActiveItem ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}>
+                                                {isResolvingFirstTwo ? <span className="inline-block w-4 h-4 bg-slate-200 dark:bg-slate-700/60 rounded animate-pulse" /> : item.icon}
+                                            </span>
+                                            <span className="truncate flex-1">
+                                                {isResolvingFirstTwo ? <span className="inline-block w-24 h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded animate-pulse align-middle" /> : item.label}
+                                            </span>
                                         </button>
                                     );
                                 })}
@@ -1708,20 +1774,25 @@ export default function QueueDetailPage({ params }: PageProps) {
                         <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto w-full ${sidebarCollapsed ? "px-0 items-center" : "px-3"}`}>
                             {navItems.map((item) => {
                                 const isActiveItem = activeSection === item.id;
+                                const isResolvingFirstTwo = !isModeResolved && (item.id === "queues" || item.id === "waiting_list");
                                 return (
                                     <button
                                         key={item.id}
                                         onClick={() => setActiveSection(item.id)}
-                                        title={sidebarCollapsed ? item.label : undefined}
+                                        title={sidebarCollapsed ? (isResolvingFirstTwo ? "Loading…" : item.label) : undefined}
                                         className={`flex items-center gap-3 py-2 text-sm rounded-lg transition-all text-left ${sidebarCollapsed ? "justify-center w-10 h-10 px-0" : "px-3 w-full"} ${isActiveItem
                                             ? "font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60"
                                             : "font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                                             }`}
                                     >
                                         <span className={`flex-shrink-0 ${isActiveItem ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}>
-                                            {item.icon}
+                                            {isResolvingFirstTwo ? <span className="inline-block w-4 h-4 bg-slate-200 dark:bg-slate-700/60 rounded animate-pulse" /> : item.icon}
                                         </span>
-                                        {!sidebarCollapsed && <span className="truncate flex-1">{item.label}</span>}
+                                        {!sidebarCollapsed && (
+                                            <span className="truncate flex-1">
+                                                {isResolvingFirstTwo ? <span className="inline-block w-24 h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded animate-pulse align-middle" /> : item.label}
+                                            </span>
+                                        )}
                                         {item.id === "announcement" && (state?.announcement || initialQueue?.announcement) && (
                                             <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 flex-shrink-0" />
                                         )}
@@ -1741,8 +1812,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                 </aside>
 
                 {/* ── Main Content ──────────────────────────────────── */}
-                <div className={`bg-gray-50 dark:bg-transparent ${isDineMode ? "hide-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : ""}`} style={{ flex: 1, overflowY: "auto" }} onScroll={handleScroll}>
-                    <div className="px-4 py-6 md:px-7 md:py-7 w-full" style={{ maxWidth: isDineMode ? "100%" : 1160, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+                <div className={`bg-gray-50 dark:bg-transparent ${(!isModeResolved || isDineMode) ? "hide-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : ""}`} style={{ flex: 1, overflowY: "auto" }} onScroll={handleScroll}>
+                    <div className="px-4 py-6 md:px-7 md:py-7 w-full" style={{ maxWidth: (!isModeResolved || isDineMode) ? "100%" : 1160, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
 
                         {/* ═══════════════════════════════════════════
                         SECTION: Dashboard / Queues
@@ -1914,28 +1985,28 @@ export default function QueueDetailPage({ params }: PageProps) {
                                     </div>
                                 )}
 
-                                {/* Main Layout (Full-width for Dine / Hotel queues; 2-col for Counter queues) */}
-                                <div className={isDineMode 
+                                {/* Main Layout (Full-width for Dine / Hotel queues or while resolving; 2-col for Counter queues) */}
+                                <div className={(!isModeResolved || isDineMode) 
                                     ? "w-full flex flex-col gap-4 lg:h-[calc(100vh-theme(spacing.36))]" 
                                     : "grid grid-cols-1 lg:grid-cols-3 gap-5 lg:h-[calc(100vh-theme(spacing.36))]"
                                 }>
-                                    {/* Left: Serving + Actions (Full width in Dine Mode) */}
-                                    <div className={`${isDineMode ? "w-full flex-1 hide-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pr-0" : "lg:col-span-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1"} flex flex-col gap-4 lg:overflow-y-auto pb-4 relative`}>
+                                    {/* Left: Serving + Actions (Full width in Dine Mode or while resolving) */}
+                                    <div className={`${(!isModeResolved || isDineMode) ? "w-full flex-1 hide-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pr-0" : "lg:col-span-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1"} flex flex-col gap-4 lg:overflow-y-auto pb-4 relative`}>
 
-                                        {/* Hero – Now Serving or Service Lanes Grid */}
+                                        {/* Hero – Now Serving, Dine Tables, or Service Lanes Grid */}
                                         {(() => {
                                             const hasQueueData = !!(state !== null || initialQueue !== null);
                                             const numLines = state?.service_lines ?? initialQueue?.service_lines ?? 0;
 
-                                            // If queue metadata hasn't loaded yet, show a sleek skeleton to prevent flashing the wrong counter mode
-                                            if (!hasQueueData) {
+                                            // If queue metadata hasn't loaded yet OR mode is still resolving, show a sleek neutral skeleton to prevent flashing the wrong mode
+                                            if (!hasQueueData || !isModeResolved) {
                                                 return (
                                                     <div className="pt-4 pb-1 px-4 sm:px-6 lg:px-8 w-full flex justify-center">
-                                                        <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[1.5rem] p-8 border border-slate-200/80 dark:border-white/10 shadow-xs flex flex-col items-center justify-center animate-pulse min-h-[300px]">
-                                                            <div className="w-28 h-6 bg-slate-100 dark:bg-slate-800 rounded-full mb-6" />
-                                                            <div className="w-36 h-20 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4" />
-                                                            <div className="w-48 h-4 bg-slate-100 dark:bg-slate-800 rounded-md mb-2" />
-                                                            <div className="w-36 h-3 bg-slate-100 dark:bg-slate-800 rounded-md" />
+                                                        <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[1.5rem] p-8 border border-slate-200/80 dark:border-white/10 shadow-xs flex flex-col items-center justify-center animate-pulse min-h-[380px]">
+                                                            <div className="w-32 h-6 bg-slate-100 dark:bg-slate-800 rounded-full mb-6" />
+                                                            <div className="w-48 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-6" />
+                                                            <div className="w-72 h-4 bg-slate-100 dark:bg-slate-800 rounded-md mb-3" />
+                                                            <div className="w-56 h-3 bg-slate-100 dark:bg-slate-800 rounded-md" />
                                                         </div>
                                                     </div>
                                                 );
@@ -1991,8 +2062,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             return null;
                                         })()}
 
-                                        {/* Original single-counter serving hero (only when queue metadata is loaded and service_lines === 0 and not dine or zone mode) */}
-                                        {!!(state !== null || initialQueue !== null) && !isDineMode && !isZoneMode && (state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && (
+                                        {/* Original single-counter serving hero (only when queue metadata is loaded and mode is resolved and service_lines === 0 and not dine or zone mode) */}
+                                        {!!(state !== null || initialQueue !== null) && isModeResolved && !isDineMode && !isZoneMode && (state?.service_lines ?? initialQueue?.service_lines ?? 0) === 0 && (
                                             <>
                                                 <div className="pt-4 pb-1 px-4 sm:px-6 lg:px-8 w-full flex justify-center">
                                                     <div className="relative w-full max-w-2xl flex flex-col filter drop-shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
@@ -2192,7 +2263,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         )} {/* end service_lines === 0 single-counter section */}
 
                                         {/* Quick Actions Toolbar — Desktop (horizontal bar) */}
-                                        {canManageQueue && (
+                                        {canManageQueue && isModeResolved && (
                                             <div className="sticky bottom-0 z-30 mt-auto hidden sm:flex items-center gap-2 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_-4px_20px_rgb(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgb(0,0,0,0.4)] transition-all">
                                                 {/* Manual Entry */}
                                                 <button
@@ -2253,8 +2324,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         )}
                                     </div>
 
-                                    {/* Right: Lists (Hidden in Dine Mode because dedicated Guest Waitlist tab exists in sidebar) */}
-                                    {!isDineMode && (
+                                    {/* Right: Lists (Hidden in Dine Mode because dedicated Guest Waitlist tab exists in sidebar; and hidden while mode is resolving) */}
+                                    {isModeResolved && !isDineMode && (
                                         <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
 
                                             {/* Combined Lists */}

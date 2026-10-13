@@ -121,7 +121,20 @@ export default function QueuesPage({ params }: PageProps) {
     const datePickerRef = useRef<HTMLInputElement>(null);
 
     // Create queue modal state
-    const [branchType, setBranchType] = useState<"standard" | "dine">("standard");
+    const [branchType, setBranchType] = useState<"standard" | "dine">(() => {
+        if (typeof window !== "undefined" && orgSlug) {
+            try {
+                const cached = sessionStorage.getItem(`org_branch_type_${orgSlug}`);
+                if (cached === "dine" || cached === "standard") return cached;
+                const cachedSettings = sessionStorage.getItem(`org_settings_${orgSlug}`);
+                if (cachedSettings) {
+                    const parsed = JSON.parse(cachedSettings);
+                    if (parsed.branch_type === "dine" || parsed.branch_type === "standard") return parsed.branch_type;
+                }
+            } catch {}
+        }
+        return "standard";
+    });
     const [showCreate, setShowCreate] = useState(false);
     const [newName, setNewName] = useState("");
     const [newPrefix, setNewPrefix] = useState("A");
@@ -198,10 +211,18 @@ export default function QueuesPage({ params }: PageProps) {
             loadQueues(true),
             api.getOrganizationSettings().then(res => {
                 if (res.queue_templates) setTemplates(res.queue_templates);
-                if (res.branch_type) setBranchType(res.branch_type);
+                if (res.branch_type) {
+                    setBranchType(res.branch_type);
+                    if (typeof window !== "undefined" && orgSlug) {
+                        try {
+                            sessionStorage.setItem(`org_branch_type_${orgSlug}`, res.branch_type);
+                            sessionStorage.setItem(`org_settings_${orgSlug}`, JSON.stringify(res));
+                        } catch {}
+                    }
+                }
             }).catch(console.error)
         ]);
-    }, []);
+    }, [orgSlug]);
 
     // Background updates: Search/Pagination
     useEffect(() => {

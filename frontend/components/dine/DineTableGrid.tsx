@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import { ServingToken, WaitingToken, TableConfig } from "@/types/api";
 import dynamic from "next/dynamic";
@@ -29,7 +29,9 @@ import {
     ChevronLeft,
     ChevronRight,
     ChevronDown,
-    Loader2
+    Loader2,
+    Building2,
+    Receipt
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -188,8 +190,59 @@ export default function DineTableGrid({
         });
     }, [tables, tableTokensMap]);
 
-    // All tables displayed directly
-    const filteredTables = tables;
+    // Sub-view toggle state under Floor View: "3d" (spatial model) vs "plain" (2D responsive grid)
+    const [floorSubView, setFloorSubView] = useState<"3d" | "plain">("3d");
+    const [selectedSection, setSelectedSection] = useState<string>("all");
+
+    // Load and persist floor subview in localStorage (key: q4q_dine_floor_subview)
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem("q4q_dine_floor_subview");
+                if (saved === "3d" || saved === "plain") {
+                    setFloorSubView(saved);
+                }
+            } catch {}
+        }
+    }, []);
+
+    const handleSetFloorSubView = (subView: "3d" | "plain") => {
+        setFloorSubView(subView);
+        if (typeof window !== "undefined") {
+            try {
+                localStorage.setItem("q4q_dine_floor_subview", subView);
+            } catch {}
+        }
+    };
+
+    // Available sections from tables and/or stored multi-floor layout
+    const availableSections = useMemo(() => {
+        const set = new Set<string>();
+        for (const t of tables) {
+            if (t.section && t.section.trim()) {
+                set.add(t.section.trim());
+            }
+        }
+        if (typeof window !== "undefined") {
+            try {
+                const stored = localStorage.getItem(`floor_layout_${queueId}`);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed?.floors && Array.isArray(parsed.floors)) {
+                        for (const f of parsed.floors) {
+                            if (f.name) set.add(f.name);
+                        }
+                    }
+                }
+            } catch {}
+        }
+        return Array.from(set);
+    }, [tables, queueId]);
+
+    const filteredTables = useMemo(() => {
+        if (selectedSection === "all") return tables;
+        return tables.filter(t => t.section === selectedSection || t.section?.toLowerCase() === selectedSection.toLowerCase());
+    }, [tables, selectedSection]);
 
     // Pax counts for filter buttons
     const paxStats = useMemo(() => {
@@ -498,7 +551,7 @@ export default function DineTableGrid({
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                    {/* View Switcher Toggle */}
+                    {/* View Switcher Toggle (Top-Level: Floor View vs Paper View) */}
                     <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
                         <button
                             type="button"
@@ -532,14 +585,53 @@ export default function DineTableGrid({
                         </button>
                     </div>
 
+                    {/* Sub-View Selector (Inside Floor View: 3D Spatial vs 2D Plain Grid) */}
+                    {viewMode === "floor" && (
+                        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                            <button
+                                type="button"
+                                onClick={() => handleSetFloorSubView("3d")}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${floorSubView === "3d"
+                                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                                    }`}
+                                title="3D Spatial Interactive Model"
+                            >
+                                <Building2 size={13.5} />
+                                <span>3D Spatial View</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleSetFloorSubView("plain")}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${floorSubView === "plain"
+                                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                                    }`}
+                                title="2D Plain Table Card Grid"
+                            >
+                                <LayoutGrid size={13.5} />
+                                <span>2D Grid View</span>
+                            </button>
+                        </div>
+                    )}
 
+                    {/* Mobile Expand Toggle (2D Plain Grid View only) */}
+                    {viewMode === "floor" && floorSubView === "plain" && (
+                        <button
+                            type="button"
+                            onClick={() => { setMobileExpandAll(prev => !prev); setExpandedTable(null); }}
+                            className="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-indigo-600 shadow-sm"
+                        >
+                            {mobileExpandAll ? <><List size={14} /> Compact</> : <><LayoutGrid size={14} /> Expand</>}
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* ========================================================================= */}
-            {/* VIEW MODE 1: FLOOR VIEW — 3D ISOMETRIC CANVAS */}
+            {/* VIEW MODE 1A: 3D SPATIAL INTERACTIVE MODEL */}
             {/* ========================================================================= */}
-            {viewMode === "floor" && (
+            {viewMode === "floor" && floorSubView === "3d" && (
                 <DineFloor3D
                     queueId={queueId}
                     tables={tables}
@@ -571,9 +663,45 @@ export default function DineTableGrid({
                 />
             )}
 
-            {/* ↓ REMOVED: old card grid and mobile card list (replaced by DineFloor3D above) */}
-            {false && (
+            {/* ========================================================================= */}
+            {/* VIEW MODE 1B: 2D PLAIN CARD GRID VIEW */}
+            {/* ========================================================================= */}
+            {viewMode === "floor" && floorSubView === "plain" && (
                 <>
+                    {/* Floor Section Filter (if multiple sections/floors exist) */}
+                    {availableSections.length > 1 && (
+                        <div className="flex items-center gap-1.5 mb-3.5 overflow-x-auto scrollbar-none pb-1">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1">
+                                Section:
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedSection("all")}
+                                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${selectedSection === "all"
+                                    ? "bg-indigo-600 text-white shadow-2xs font-bold"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                    }`}
+                            >
+                                All Tables ({tables.length})
+                            </button>
+                            {availableSections.map((sec) => {
+                                const secCount = tables.filter(t => t.section === sec).length;
+                                return (
+                                    <button
+                                        key={sec}
+                                        type="button"
+                                        onClick={() => setSelectedSection(sec)}
+                                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${selectedSection === sec
+                                            ? "bg-indigo-600 text-white shadow-2xs font-bold"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                            }`}
+                                    >
+                                        {sec} ({secCount})
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
                     {/* Desktop Grid (md and up: 5 boxes per line) */}
                     <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-5 gap-3.5">
                         {filteredTables.map((tbl) => {
@@ -749,13 +877,15 @@ export default function DineTableGrid({
                                                     <div className="flex items-center gap-1.5 mt-1.5 pt-2 border-t border-slate-100 dark:border-white/5">
                                                         <button
                                                             type="button"
-                                                            onClick={() => skipTable(tbl.id)}
+                                                            onClick={() => {
+                                                                toast.success(`Bill generated for ${tbl.name || `Table ${tbl.id}`}`);
+                                                            }}
                                                             disabled={isLoading || isPaused}
-                                                            title={isPaused ? "Queue is on a break" : "Skip customer"}
-                                                            className="flex-1 flex items-center justify-center gap-1 h-8 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors disabled:opacity-50 px-1 border border-slate-200/90 dark:border-slate-700"
+                                                            title="Generate / Print Bill"
+                                                            className="flex-1 flex items-center justify-center gap-1 h-8 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors disabled:opacity-50 px-1 border border-slate-200/90 dark:border-slate-700 cursor-pointer"
                                                         >
-                                                            <FastForward size={10} className="text-slate-400" />
-                                                            <span>Skip</span>
+                                                            <Receipt size={11} className="text-slate-400" />
+                                                            <span>Bill</span>
                                                         </button>
                                                         {vacantTables.length > 0 && (
                                                             <button
@@ -766,7 +896,7 @@ export default function DineTableGrid({
                                                                 }}
                                                                 disabled={isLoading || isPaused}
                                                                 title="Join another vacant table to this party"
-                                                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shrink-0 border border-slate-200/90 dark:border-slate-700"
+                                                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shrink-0 border border-slate-200/90 dark:border-slate-700 cursor-pointer"
                                                             >
                                                                 <Link2 size={12} className="text-slate-400" />
                                                             </button>
@@ -775,11 +905,11 @@ export default function DineTableGrid({
                                                             type="button"
                                                             onClick={() => handleRequestFreeTable(tbl.id, tbl.name || `Table ${tbl.id}`)}
                                                             disabled={isLoading}
-                                                            title="Free Table (Bill Paid)"
+                                                            title="Clear Table (Bill Paid)"
                                                             className="flex-[1.3] flex items-center justify-center gap-1 h-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold shadow-sm shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all disabled:opacity-50 px-1.5 cursor-pointer"
                                                         >
                                                             <Check size={12} strokeWidth={2.5} />
-                                                            <span>{isMerged ? "Free Joined" : "Free Table"}</span>
+                                                            <span>{isMerged ? "Free Joined" : "Clear Table"}</span>
                                                         </button>
                                                     </div>
                                                 )}
