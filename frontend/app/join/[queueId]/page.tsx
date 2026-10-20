@@ -71,13 +71,28 @@ const DEFAULT_JOIN_FIELDS: CustomFieldItem[] = [
     { id: "default_pax", key: "pax", label: "Number of Pax", type: "number", required: true, order: 2 },
 ];
 
-function ensureMandatoryJoinFields(fieldsList: any[] | null | undefined): CustomFieldItem[] {
+function ensureMandatoryJoinFields(fieldsList: any[] | null | undefined, isDine: boolean = false): CustomFieldItem[] {
+    const isPax = (k: string) => ['pax', 'pax_count', 'no_of_pax', 'number_of_pax', 'group_size'].includes((k || '').toLowerCase());
     if (!fieldsList || fieldsList.length === 0) {
-        return DEFAULT_JOIN_FIELDS;
+        return DEFAULT_JOIN_FIELDS.map(f => ({
+            ...f,
+            required: ['name', 'phone'].includes(f.key) || (isDine && isPax(f.key)) ? true : f.required
+        }));
     }
-    const result: CustomFieldItem[] = [...fieldsList];
+    const result: CustomFieldItem[] = fieldsList.map(f => {
+        const lowerKey = (f.key || '').toLowerCase();
+        if (['name', 'phone'].includes(lowerKey)) {
+            return { ...f, required: true };
+        }
+        if (isDine && isPax(lowerKey)) {
+            return { ...f, required: true };
+        }
+        return f;
+    });
+
     const hasName = result.some(f => f.key === 'name' || f.key === 'full_name');
     const hasPhone = result.some(f => f.key === 'phone' || f.key === 'phone_number');
+    const hasPax = result.some(f => isPax(f.key));
 
     if (!hasName) {
         result.unshift({ id: "default_name", key: "name", label: "Full Name", type: "text", required: true, order: 0 });
@@ -85,6 +100,9 @@ function ensureMandatoryJoinFields(fieldsList: any[] | null | undefined): Custom
     if (!hasPhone) {
         const nameIdx = result.findIndex(f => f.key === 'name' || f.key === 'full_name');
         result.splice(nameIdx + 1, 0, { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 });
+    }
+    if (isDine && !hasPax) {
+        result.push({ id: "default_pax", key: "pax", label: "Number of Pax", type: "number", required: true, order: result.length });
     }
     return result.map((f, idx) => ({ ...f, order: f.order ?? idx }));
 }
@@ -430,7 +448,7 @@ export default function JoinQueuePage({ params }: PageProps) {
     const isPaxValid = paxCount >= 1 && paxCount <= 99;
     const isLegacyFormValid = isNameValid && isPhoneValid && companionInput.trim() !== "" && isPaxValid;
     const rawFields = live?.custom_fields || sessionStatus?.custom_fields;
-    const customFieldsList = ensureMandatoryJoinFields(rawFields);
+    const customFieldsList = ensureMandatoryJoinFields(rawFields, isDineQueue);
     const hasCustomFieldsConfigured = true;
     const isFormValid = customFieldsList.length > 0 && !customFieldsList.some(f => {
         if (!f.required) return false;

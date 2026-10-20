@@ -22,6 +22,7 @@ import ServiceLinesGrid from "@/components/ServiceLinesGrid";
 import DineTableGrid from "@/components/dine/DineTableGrid";
 import ZoneArenaGrid from "@/components/zone/ZoneArenaGrid";
 import WebRTCCallModal from "@/components/organization-admin/WebRTCCallModal";
+import ModalPortal from "@/components/ui/ModalPortal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/ui/Logo";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
@@ -377,7 +378,7 @@ export default function QueueDetailPage({ params }: PageProps) {
     const canConfigureQueue = canManageQueue && !isStaff;
     const { toast } = useToast();
     const tz = useBranchTimezone();
-    const { branchType: ctxBranchType, loading: ctxBranchLoading } = useBranch();
+    const { branchType: ctxBranchType, loading: ctxBranchLoading, is3DViewEnabled } = useBranch();
 
     const handleNewCustomer = useCallback((data: import("@/lib/websocket").NewCustomerEvent) => {
         sonnerToast.custom((t) => (
@@ -545,6 +546,10 @@ export default function QueueDetailPage({ params }: PageProps) {
         branchType === "dine" ||
         (branchType as string) === "hotel" ||
         (branchType as string) === "restaurant" ||
+        (state as any)?.industry_template === "dining" ||
+        (initialQueue as any)?.industry_template === "dining" ||
+        (state as any)?.industry_template === "hotel" ||
+        (initialQueue as any)?.industry_template === "hotel" ||
         Boolean(
             (Array.isArray(state?.table_config) && state.table_config.length > 0) ||
             (Array.isArray(initialQueue?.table_config) && initialQueue.table_config.length > 0)
@@ -1834,7 +1839,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                             <p className="text-slate-500 dark:text-slate-400" style={{ fontSize: 13, marginTop: 4 }}>
                                                 Prefix: <span className="mono text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700" style={{ fontWeight: 600, padding: "1px 7px", borderRadius: 5 }}>{state?.prefix || initialQueue?.prefix || "—"}</span>
                                             </p>
-                                            {(state?.open_time || initialQueue?.open_time) && (state?.close_time || initialQueue?.close_time) && (
+                                            {!isDineMode && (state?.open_time || initialQueue?.open_time) && (state?.close_time || initialQueue?.close_time) && (
                                                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold shadow-sm mt-2">
                                                     <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                                                     <span>{formatTime12(state?.open_time || initialQueue?.open_time)} - {formatTime12(state?.close_time || initialQueue?.close_time)}</span>
@@ -2023,6 +2028,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                         isPaused={(state?.is_paused ?? initialQueue?.is_paused) === true}
                                                         isReadOnly={isReadOnly}
                                                         waitingTokens={effectiveWaitingTokens}
+                                                        is3DViewEnabled={is3DViewEnabled}
                                                     />
                                                 );
                                             }
@@ -2263,8 +2269,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                                         )} {/* end service_lines === 0 single-counter section */}
 
                                         {/* Quick Actions Toolbar — Desktop (horizontal bar) */}
-                                        {canManageQueue && isModeResolved && (
-                                            <div className="sticky bottom-0 z-30 mt-auto hidden sm:flex items-center gap-2 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_-4px_20px_rgb(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgb(0,0,0,0.4)] transition-all">
+                                        {canManageQueue && isModeResolved && !isDineMode && (
+                                            <div key="desktop-quick-actions-bar" className="sticky bottom-0 z-30 mt-auto hidden sm:flex items-center gap-2 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[16px] shadow-[0_-4px_20px_rgb(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgb(0,0,0,0.4)] transition-all">
                                                 {/* Manual Entry */}
                                                 <button
                                                     onClick={handleOpenAddModal}
@@ -2273,7 +2279,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                     className="w-auto h-10 px-5 text-[13px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] shadow-[0_4px_12px_rgba(79,70,229,0.25)] hover:shadow-[0_6px_16px_rgba(79,70,229,0.35)] transition-all flex justify-center items-center gap-2 flex-shrink-0 disabled:opacity-50 disabled:shadow-none cursor-pointer"
                                                 >
                                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                                                    {isDineMode ? "Add Walk-in" : "Add Customer"}
+                                                    <span>{isDineMode ? "Add Walk-in" : "Add Customer"}</span>
                                                 </button>
 
                                                 <div className="w-[1px] h-7 bg-slate-200 dark:bg-slate-700/50 mx-1" />
@@ -3265,6 +3271,7 @@ export default function QueueDetailPage({ params }: PageProps) {
                                                 ? "This queue session is closed. Registration field settings are read-only for historical records." 
                                                 : "You are viewing an old historical session. Registration form settings can only be edited on today's active live queue."
                                     }
+                                    isDineMode={isDineMode}
                                     onUpdate={(fields) => {
                                         refresh();
                                     }}
@@ -3307,7 +3314,8 @@ export default function QueueDetailPage({ params }: PageProps) {
                     autoFocusConfirm={true}
                 />
                 {showAddForm && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setShowAddForm(false); }}>
+                    <ModalPortal>
+                        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md transition-all animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setShowAddForm(false); }}>
                         <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-white/10">
                             <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
                                 <div>
@@ -3458,36 +3466,39 @@ export default function QueueDetailPage({ params }: PageProps) {
                             </div>
                         </div>
                     </div>
+                    </ModalPortal>
                 )}
 
                 {/* Invite Line Selection Modal */}
                 {showInviteLineModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setShowInviteLineModal(false); }}>
-                        <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-white/10">
-                            <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
-                                <div>
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Select Service Lane</h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Which lane is calling Token {state?.prefix || ""}{inviteNumber}?</p>
+                    <ModalPortal>
+                        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md transition-all animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setShowInviteLineModal(false); }}>
+                            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-white/10">
+                                <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Select Service Lane</h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Which lane is calling Token {state?.prefix || ""}{inviteNumber}?</p>
+                                    </div>
+                                    <button onClick={() => setShowInviteLineModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-900/5 p-2 rounded-full">
+                                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
                                 </div>
-                                <button onClick={() => setShowInviteLineModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-900/5 p-2 rounded-full">
-                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                </button>
-                            </div>
-                            <div className="p-6">
-                                <div className="grid grid-cols-2 gap-3">
-                                    {Array.from({ length: state?.service_lines || 0 }).map((_, i) => (
-                                        <button
-                                            key={i + 1}
-                                            onClick={() => executeInvite(i + 1)}
-                                            className="px-4 py-3 rounded-xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 dark:border-white/10 dark:hover:border-indigo-500 dark:hover:bg-indigo-900/20 text-slate-700 dark:text-slate-200 font-bold text-sm transition-all text-center"
-                                        >
-                                            Lane {i + 1}
-                                        </button>
-                                    ))}
+                                <div className="p-6">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {Array.from({ length: state?.service_lines || 0 }).map((_, i) => (
+                                            <button
+                                                key={i + 1}
+                                                onClick={() => executeInvite(i + 1)}
+                                                className="px-4 py-3 rounded-xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 dark:border-white/10 dark:hover:border-indigo-500 dark:hover:bg-indigo-900/20 text-slate-700 dark:text-slate-200 font-bold text-sm transition-all text-center"
+                                            >
+                                                Lane {i + 1}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </ModalPortal>
                 )}
 
                 <TokenDetailModal
@@ -3512,12 +3523,16 @@ export default function QueueDetailPage({ params }: PageProps) {
                     } : undefined}
                     isDineMode={isDineMode}
                     tables={dineTables}
+                    onUpdatePaymentStatus={async (tokenId, newStatus) => {
+                        await api.updatePaymentStatus(tokenId, newStatus);
+                        refresh();
+                    }}
                 />
             </div>
 
             {/* Mobile Bottom Dock — rendered at root level to avoid overflow clipping */}
-            {activeSection === "queues" && (
-                <div className={`sm:hidden fixed bottom-0 left-0 right-0 z-[9999] transition-transform duration-300 ease-in-out ${isScrollingDown ? "translate-y-full" : "translate-y-0"}`}>
+            {activeSection === "queues" && !isDineMode && (
+                <div key="mobile-bottom-dock" className={`sm:hidden fixed bottom-0 left-0 right-0 z-[9999] transition-transform duration-300 ease-in-out ${isScrollingDown ? "translate-y-full" : "translate-y-0"}`}>
                     {/* Expandable Panel (slides up from bottom) */}
                     <div className={`overflow-hidden transition-all duration-300 ease-in-out ${mobileQuickExpanded ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"}`}>
                         <div className="mx-3 mb-2 flex flex-col gap-2">

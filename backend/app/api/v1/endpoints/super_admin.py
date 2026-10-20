@@ -74,6 +74,7 @@ class OrgCreateRequest(BaseModel):
     branch_type: str = "standard"
     appointment_feature_enabled: bool = False
     ai_overview_enabled: bool = False
+    dine_3d_view_enabled: bool = True
     parent_organization_id: _uuid.UUID
     admin_email: str | None = None
     admin_password: str | None = None
@@ -93,6 +94,7 @@ class OrgUpdateRequest(BaseModel):
     branch_type: str | None = None
     appointment_feature_enabled: bool | None = None
     ai_overview_enabled: bool | None = None
+    dine_3d_view_enabled: bool | None = None
     is_active: bool
     admin_email: str | None = None
     max_sessions: int | None = Field(None, ge=1)
@@ -112,6 +114,7 @@ class OrgDetail(BaseModel):
     branch_type: str = "standard"
     appointment_feature_enabled: bool = False
     ai_overview_enabled: bool = False
+    dine_3d_view_enabled: bool = True
     is_active: bool
     created_at: str
     max_sessions: int
@@ -392,6 +395,7 @@ def _org_to_detail(o: Organization, admin_user: User | None = None, ai_overview_
         branch_type=getattr(o, "branch_type", "standard") or "standard",
         appointment_feature_enabled=bool(getattr(o, "appointment_feature_enabled", False)),
         ai_overview_enabled=bool(getattr(o, "ai_overview_enabled", False)),
+        dine_3d_view_enabled=bool(getattr(o, "dine_3d_view_enabled", True)),
         is_active=o.is_active,
         created_at=o.created_at.isoformat(),
         max_sessions=o.max_sessions,
@@ -1118,6 +1122,7 @@ async def create_organization(
         branch_type=body.branch_type if body.branch_type in ("standard", "dine") else "standard",
         appointment_feature_enabled=body.appointment_feature_enabled,
         ai_overview_enabled=body.ai_overview_enabled,
+        dine_3d_view_enabled=body.dine_3d_view_enabled if body.dine_3d_view_enabled is not None else True,
         max_sessions=body.max_sessions if body.max_sessions is not None else IN_MEMORY_SETTINGS.get("default_session_limit", 10),
         max_queues_per_session=body.max_queues_per_session if body.max_queues_per_session is not None else IN_MEMORY_SETTINGS.get("default_queue_limit", 20),
         max_staff=body.max_staff if body.max_staff is not None else 5,
@@ -1221,6 +1226,7 @@ async def get_organization_detail(
         branch_type=getattr(org, "branch_type", "standard") or "standard",
         appointment_feature_enabled=bool(getattr(org, "appointment_feature_enabled", False)),
         ai_overview_enabled=bool(getattr(org, "ai_overview_enabled", False)),
+        dine_3d_view_enabled=bool(getattr(org, "dine_3d_view_enabled", True)),
         is_active=org.is_active,
         created_at=org.created_at.isoformat(),
         max_sessions=org.max_sessions,
@@ -1348,6 +1354,8 @@ async def update_organization(
         org.appointment_feature_enabled = body.appointment_feature_enabled
     if body.ai_overview_enabled is not None:
         org.ai_overview_enabled = body.ai_overview_enabled
+    if body.dine_3d_view_enabled is not None:
+        org.dine_3d_view_enabled = body.dine_3d_view_enabled
 
     # Handle admin email update
     admin_user = await db.scalar(

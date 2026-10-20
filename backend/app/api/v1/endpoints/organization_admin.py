@@ -83,6 +83,8 @@ async def create_branch(
         name=request.name,
         slug=request.slug,
         branch_type=branch_type,
+        appointment_feature_enabled=request.appointment_feature_enabled,
+        dine_3d_view_enabled=request.dine_3d_view_enabled,
         address=request.address,
         phone_number=request.phone_number,
         timezone=request.timezone,
@@ -236,6 +238,10 @@ async def update_branch(
         branch.address = request.address
     if request.phone_number is not None:
         branch.phone_number = request.phone_number
+    if request.appointment_feature_enabled is not None:
+        branch.appointment_feature_enabled = request.appointment_feature_enabled
+    if request.dine_3d_view_enabled is not None:
+        branch.dine_3d_view_enabled = request.dine_3d_view_enabled
 
     await db.commit()
     await db.refresh(branch)
@@ -246,7 +252,9 @@ async def update_branch(
         slug=branch.slug,
         is_active=branch.is_active,
         created_at=branch.created_at,
-        branch_type=getattr(branch, "branch_type", "standard") or "standard"
+        branch_type=getattr(branch, "branch_type", "standard") or "standard",
+        appointment_feature_enabled=bool(getattr(branch, "appointment_feature_enabled", False)),
+        dine_3d_view_enabled=bool(getattr(branch, "dine_3d_view_enabled", True)),
     )
 
 @router.patch("/branches/{branch_id}/status", response_model=BranchStatItem)

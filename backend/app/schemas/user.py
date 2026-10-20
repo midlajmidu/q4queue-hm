@@ -50,6 +50,14 @@ class OrganizationResponse(BaseModel):
     slug: str
     is_active: bool
     created_at: datetime
+    branch_type: str = "standard"
+    appointment_feature_enabled: bool = False
+    ai_overview_enabled: bool = False
+    dine_3d_view_enabled: bool = True
+    parent_organization_id: Optional[uuid.UUID] = None
+    max_sessions: int = 10
+    max_queues_per_session: int = 20
+    max_staff: int = 5
 
     model_config = {"from_attributes": True}
 

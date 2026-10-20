@@ -383,6 +383,7 @@ export interface BranchStatItem {
     created_at: string;
     branch_type?: "standard" | "dine";
     appointment_feature_enabled?: boolean;
+    dine_3d_view_enabled?: boolean;
 }
 
 export interface OrgAdminDashboardResponse {
@@ -657,6 +658,7 @@ export interface TokenDetail {
     pax_count: number;
     called_via_invite?: boolean;
     entry_type?: "manual" | "qr" | "auto" | "appointment" | null;
+    payment_status?: "pending" | "unpaid" | "paid";
 }
 
 // ── Public Queue Status (used by join page on mount, no auth) ────
@@ -811,6 +813,7 @@ export interface ServingToken {
     entry_type?: "manual" | "qr" | "auto" | "appointment" | null;
     shared_lines?: number[];
     completed_lines?: number[];
+    payment_status?: "pending" | "unpaid" | "paid";
     appointment_time?: string | null;
     appointment_date?: string | null;
     appointment_booking_ref?: string | null;
@@ -848,6 +851,7 @@ export interface QueueSnapshot {
         pax_count?: number;
         assigned_line?: number | null;
         called_via_invite?: boolean;
+        payment_status?: "pending" | "unpaid" | "paid";
     } | null;
     all_serving_tokens: ServingToken[];  // all lanes currently serving
     waiting_count: number;
@@ -992,6 +996,7 @@ export interface OrgDetail {
     branch_type?: "standard" | "dine";
     appointment_feature_enabled?: boolean;
     ai_overview_enabled?: boolean;
+    dine_3d_view_enabled?: boolean;
     is_active: boolean;
     created_at: string;
     max_sessions: number;
@@ -1025,6 +1030,7 @@ export interface OrgCreateRequest {
     branch_type?: "standard" | "dine";
     appointment_feature_enabled?: boolean;
     ai_overview_enabled?: boolean;
+    dine_3d_view_enabled?: boolean;
     parent_organization_id: string;
     admin_email: string;
     admin_password: string;
@@ -1039,6 +1045,7 @@ export interface OrgUpdateRequest {
     branch_type?: "standard" | "dine";
     appointment_feature_enabled?: boolean;
     ai_overview_enabled?: boolean;
+    dine_3d_view_enabled?: boolean;
     is_active: boolean;
     max_sessions?: number;
     max_queues_per_session?: number;
@@ -1216,6 +1223,7 @@ export interface OrganizationSettingsResponse {
     slug: string;
     branch_type?: "standard" | "dine";
     appointment_feature_enabled?: boolean;
+    dine_3d_view_enabled?: boolean;
     enable_shared_tokens?: boolean;
     email: string;
     address: string | null;

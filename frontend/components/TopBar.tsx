@@ -253,7 +253,7 @@ function NotificationSystem() {
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_0_2px_#fff] dark:shadow-[0_0_0_2px_#0b1121]" />
                 )}
             </button>
-            {typeof document !== "undefined" && createPortal(dropdownContent, document.body)}
+            {isOpen && dropdownContent && typeof document !== "undefined" && createPortal(dropdownContent, document.body)}
         </>
     );
 }

@@ -24,6 +24,7 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
         branch_type: org.branch_type || "standard",
         appointment_feature_enabled: org.appointment_feature_enabled || false,
         ai_overview_enabled: org.ai_overview_enabled ?? false,
+        dine_3d_view_enabled: org.dine_3d_view_enabled ?? true,
         is_active: org.is_active,
         max_sessions: org.max_sessions ?? 10,
         max_queues_per_session: org.max_queues_per_session ?? 20,
@@ -250,7 +251,7 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
                             </div>
 
                             {/* AI Queue Overview */}
-                            <div className="flex items-center justify-between p-3 sm:px-3.5">
+                            <div className="flex items-center justify-between p-3 sm:px-3.5 border-b border-slate-800/60">
                                 <div>
                                     <span className="text-xs font-medium text-white block">AI Queue Intelligence</span>
                                     <p className="text-[11px] text-slate-400 mt-0.5">Predictive wait times and AI queue pacing insights</p>
@@ -264,6 +265,29 @@ export function EditOrgModal({ org, onClose, onSaved }: { org: OrgDetail; onClos
                                     className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/30 ${form.ai_overview_enabled ? "bg-violet-600" : "bg-slate-700"}`}
                                 >
                                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${form.ai_overview_enabled ? "translate-x-4.5" : "translate-x-1"}`} />
+                                </button>
+                            </div>
+
+                            {/* 3D Spatial Floor View (Hotel & Dine) */}
+                            <div className="flex items-center justify-between p-3 sm:px-3.5">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-medium text-white block">3D Spatial Floor Plan</span>
+                                        <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full text-indigo-300 bg-indigo-500/15 border border-indigo-500/30">
+                                            🍽️ Hotel & Dine
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">Enable interactive 3D WebGL floor model and spatial table layout in the dine dashboard</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={form.dine_3d_view_enabled ?? true}
+                                    onClick={() => setForm(f => ({ ...f, dine_3d_view_enabled: !(f.dine_3d_view_enabled ?? true) }))}
+                                    disabled={isSaving}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${(form.dine_3d_view_enabled ?? true) ? "bg-indigo-600" : "bg-slate-700"}`}
+                                >
+                                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${(form.dine_3d_view_enabled ?? true) ? "translate-x-4.5" : "translate-x-1"}`} />
                                 </button>
                             </div>
                         </div>
@@ -452,6 +476,7 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
         branch_type: "standard",
         appointment_feature_enabled: false,
         ai_overview_enabled: false,
+        dine_3d_view_enabled: true,
         admin_email: "",
         admin_password: "",
         parent_organization_id: "",
@@ -697,7 +722,7 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                             </div>
 
                             {/* AI Queue Overview */}
-                            <div className="flex items-center justify-between p-3 sm:px-3.5">
+                            <div className="flex items-center justify-between p-3 sm:px-3.5 border-b border-slate-800/60">
                                 <div>
                                     <span className="text-xs font-medium text-white block">AI Queue Intelligence</span>
                                     <p className="text-[11px] text-slate-400 mt-0.5">Predictive wait times and AI queue pacing insights</p>
@@ -711,6 +736,29 @@ export function CreateOrgModal({ onClose, onCreated }: { onClose: () => void; on
                                     className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/30 ${form.ai_overview_enabled ? "bg-violet-600" : "bg-slate-700"}`}
                                 >
                                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${form.ai_overview_enabled ? "translate-x-4.5" : "translate-x-1"}`} />
+                                </button>
+                            </div>
+
+                            {/* 3D Spatial Floor View (Hotel & Dine) */}
+                            <div className="flex items-center justify-between p-3 sm:px-3.5">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-medium text-white block">3D Spatial Floor Plan</span>
+                                        <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full text-indigo-300 bg-indigo-500/15 border border-indigo-500/30">
+                                            🍽️ Hotel & Dine
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">Enable interactive 3D WebGL floor model and spatial table layout in the dine dashboard</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={form.dine_3d_view_enabled ?? true}
+                                    onClick={() => setForm(f => ({ ...f, dine_3d_view_enabled: !(f.dine_3d_view_enabled ?? true) }))}
+                                    disabled={isSubmitting}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${(form.dine_3d_view_enabled ?? true) ? "bg-indigo-600" : "bg-slate-700"}`}
+                                >
+                                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${(form.dine_3d_view_enabled ?? true) ? "translate-x-4.5" : "translate-x-1"}`} />
                                 </button>
                             </div>
                         </div>

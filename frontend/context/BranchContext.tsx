@@ -8,6 +8,7 @@ import type { OrganizationSettingsResponse } from "@/types/api";
 interface BranchContextType {
     settings: OrganizationSettingsResponse | null;
     hasAppointmentFeature: boolean;
+    is3DViewEnabled: boolean;
     branchType: "standard" | "dine";
     timezone: string;
     loading: boolean;
@@ -17,6 +18,7 @@ interface BranchContextType {
 export const BranchContext = createContext<BranchContextType>({
     settings: null,
     hasAppointmentFeature: false,
+    is3DViewEnabled: true,
     branchType: "standard",
     timezone: "Asia/Kolkata",
     loading: true,
@@ -92,6 +94,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     }, [refreshSettings]);
 
     const hasAppointmentFeature = Boolean(settings?.appointment_feature_enabled);
+    const is3DViewEnabled = settings?.dine_3d_view_enabled ?? true;
     const branchType = (settings?.branch_type as "standard" | "dine") || cachedBranchType || "standard";
     const timezone = settings?.timezone || "Asia/Kolkata";
 
@@ -100,6 +103,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
             value={{
                 settings,
                 hasAppointmentFeature,
+                is3DViewEnabled,
                 branchType,
                 timezone,
                 loading,

@@ -23,6 +23,11 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
     const dashBase = useDashBase();
     const isStaff = user?.role === "staff";
     const isGlobalOrOrgAdmin = user?.role === "super_admin" || user?.role === "organization_admin";
+    const isDine = Boolean(
+        (Array.isArray(queue.table_config) && queue.table_config.length > 0) ||
+        queue.industry_template === "dining" ||
+        queue.industry_template === "hotel"
+    );
 
     const [isActive, setIsActive] = React.useState(queue.is_active);
     const [deleting, setDeleting] = React.useState(false);
@@ -159,7 +164,7 @@ const QueueCard = React.memo(function QueueCard({ queue, onToggled }: Props) {
                             </>
                         )}
                     </div>
-                    {(queue.open_time || queue.close_time) && (
+                    {!isDine && (queue.open_time || queue.close_time) && (
                         <div className="flex items-center gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400">
                             <span>
                                 Hours: {queue.open_time && queue.close_time 

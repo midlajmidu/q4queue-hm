@@ -12,6 +12,8 @@ import {
   ClipboardList,
   Sparkles,
   ChevronRight,
+  CreditCard,
+  Edit2,
 } from "lucide-react";
 import { ServingToken, WaitingToken, TableConfig } from "@/types/api";
 import { TableOccupancy, getTokenPax } from "./hooks/use3DTableState";
@@ -33,6 +35,7 @@ interface Props {
   onOpenAssignModal: (token: WaitingToken) => void;
   onJoinTable: (token: ServingToken, currentTableId: number, currentTableName: string) => void;
   onOpenCapacityEdit: (tbl: TableConfig, e: React.MouseEvent) => void;
+  onUpdatePaymentStatus?: (tokenId: string, nextStatus: "pending" | "unpaid" | "paid") => void | Promise<void>;
   vacantTables: TableConfig[];
   onClose: () => void;
 }
@@ -70,6 +73,7 @@ export default function DineTableHUD({
   onOpenAssignModal,
   onJoinTable,
   onOpenCapacityEdit,
+  onUpdatePaymentStatus,
   vacantTables,
   onClose,
 }: Props) {
@@ -149,9 +153,21 @@ export default function DineTableHUD({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[13px] font-black text-white tracking-tight">
-                  {tableName}
-                </span>
+                <button
+                  type="button"
+                  onClick={(e) => { onOpenCapacityEdit(table, e); onClose(); }}
+                  disabled={isReadOnly}
+                  title={isReadOnly ? undefined : "Click to edit table name and details"}
+                  className="flex items-center gap-1.5 text-[13px] font-black text-white tracking-tight hover:text-indigo-400 transition-colors cursor-pointer group/hudname text-left"
+                >
+                  <span>{tableName}</span>
+                  {!isReadOnly && (
+                    <Edit2
+                      size={10.5}
+                      className="text-slate-400 group-hover/hudname:text-indigo-400 opacity-60 group-hover/hudname:opacity-100 transition-opacity shrink-0"
+                    />
+                  )}
+                </button>
                 {isLingering && (
                   <span className="flex items-center gap-1 text-[10px] font-bold text-red-300 bg-red-500/20 border border-red-500/30 px-1.5 py-0.5 rounded-full animate-pulse">
                     <AlertTriangle size={9} />
@@ -304,6 +320,18 @@ export default function DineTableHUD({
                     {seatedPax}p
                   </span>
                   <ElapsedBadge mins={elapsedMins} isLingering={isLingering} isExtended={isExtended} />
+                  {primaryToken.payment_status === "unpaid" && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded-full animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      Unpaid
+                    </span>
+                  )}
+                  {primaryToken.payment_status === "paid" && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.5 rounded-full">
+                      <Check size={9} strokeWidth={2.5} />
+                      Paid
+                    </span>
+                  )}
                   {isMerged && (
                     <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-white/10 px-1.5 py-0.5 rounded">
                       <Link2 size={9} />
@@ -349,6 +377,28 @@ export default function DineTableHUD({
                 Skip
               </button>
 
+              {/* Payment toggle */}
+              {primaryToken && onUpdatePaymentStatus && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = primaryToken.payment_status === "paid" ? "unpaid" : "paid";
+                    onUpdatePaymentStatus(primaryToken.id, next);
+                    onClose();
+                  }}
+                  disabled={isPaused}
+                  className={`flex-1 flex items-center justify-center gap-1 h-8 rounded-xl text-[11px] font-bold transition-all cursor-pointer truncate ${
+                    primaryToken.payment_status === "paid"
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30"
+                      : "bg-amber-500 hover:bg-amber-600 text-slate-950 font-black shadow-xs"
+                  }`}
+                  title={primaryToken.payment_status === "paid" ? "Click to revert to Unpaid" : "Mark as Paid"}
+                >
+                  <CreditCard size={11} className="shrink-0" />
+                  <span className="truncate">{primaryToken.payment_status === "paid" ? "Paid ✓" : "Mark Paid"}</span>
+                </button>
+              )}
+
               {/* Join extra table */}
               {vacantTables.length > 0 && !isShared && primaryToken && (
                 <button
@@ -376,13 +426,13 @@ export default function DineTableHUD({
               </button>
             </div>
 
-            {/* Edit capacity */}
+            {/* Edit table details */}
             <button
               type="button"
               onClick={(e) => { onOpenCapacityEdit(table, e); onClose(); }}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-semibold text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-semibold text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors cursor-pointer"
             >
-              ✏️ Edit Capacity ({table.capacity}p)
+              ✏️ Edit Table Details ({tableName}, {table.capacity}p)
             </button>
           </div>
         )}
@@ -392,9 +442,9 @@ export default function DineTableHUD({
             <button
               type="button"
               onClick={(e) => { onOpenCapacityEdit(table, e); onClose(); }}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-semibold text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-semibold text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors cursor-pointer"
             >
-              ✏️ Edit Capacity ({table.capacity}p)
+              ✏️ Edit Table Details ({tableName}, {table.capacity}p)
             </button>
           </div>
         )}

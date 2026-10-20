@@ -51,6 +51,7 @@ class OrganizationSettingsResponse(BaseModel):
     auto_session_time: Optional[str] = None
     timezone: str = "Asia/Kolkata"
     appointment_feature_enabled: bool = False
+    dine_3d_view_enabled: bool = True
     enable_shared_tokens: bool = False
     access_token: Optional[str] = None
     parent_org: Optional[ParentOrgSummary] = None
@@ -159,6 +160,7 @@ async def get_organization_settings(
             auto_session_time=org.auto_session_time,
             timezone=org.timezone or "Asia/Kolkata",
             appointment_feature_enabled=is_appt_enabled,
+            dine_3d_view_enabled=bool(getattr(org, "dine_3d_view_enabled", True)),
             enable_shared_tokens=bool(getattr(org, "enable_shared_tokens", False)),
             parent_org=parent_org_summary,
         )
@@ -285,6 +287,7 @@ async def update_organization_settings(
     return OrganizationSettingsResponse(
         name=org.name,
         slug=org.slug,
+        branch_type=getattr(org, "branch_type", "standard") or "standard",
         email=current_user.email,
         address=org.address,
         phone_number=org.phone_number,
@@ -293,6 +296,7 @@ async def update_organization_settings(
         auto_session_time=org.auto_session_time,
         timezone=org.timezone or "Asia/Kolkata",
         appointment_feature_enabled=bool(getattr(org, "appointment_feature_enabled", False)),
+        dine_3d_view_enabled=bool(getattr(org, "dine_3d_view_enabled", True)),
         enable_shared_tokens=bool(getattr(org, "enable_shared_tokens", False)),
         access_token=token,
     )

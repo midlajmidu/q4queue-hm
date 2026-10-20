@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import ModalPortal from "@/components/ui/ModalPortal";
 import {
     Phone,
     Mic,
@@ -630,7 +631,8 @@ const normalizePhoneE164 = (phone: string): string => {
         : status;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+        <ModalPortal>
+            <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md transition-all animate-in fade-in duration-200">
             <div
                 className="relative w-full max-w-[390px] rounded-3xl bg-zinc-900 border border-zinc-800/80 shadow-2xl text-white overflow-hidden"
                 style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
@@ -871,5 +873,6 @@ const normalizePhoneE164 = (phone: string): string => {
                 <audio id="ui-ringtone" autoPlay style={{ display: "none" }}></audio>
             </div>
         </div>
+        </ModalPortal>
     );
 }

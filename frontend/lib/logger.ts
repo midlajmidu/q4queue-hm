@@ -69,18 +69,48 @@ export const logger = {
     },
 };
 
-// ── Global error handlers (call once on app init) ────────────────
+// ── Global error handlers & DOM safety patches ───────────────────
+function patchDomNodeMethods() {
+    if (typeof window === "undefined" || typeof Node === "undefined") return;
+    const nodeProto = Node.prototype as any;
+    if (nodeProto.__q4q_dom_patched) return;
+    nodeProto.__q4q_dom_patched = true;
+
+    // Guard removeChild against concurrent/unmounted portal detachment races in React 19 & Drei
+    const origRemoveChild = nodeProto.removeChild;
+    nodeProto.removeChild = function <T extends Node>(child: T): T {
+        if (!child || child.parentNode !== this) {
+            return child;
+        }
+        return origRemoveChild.call(this, child) as T;
+    };
+
+    // Guard insertBefore against orphaned reference node errors
+    const origInsertBefore = nodeProto.insertBefore;
+    nodeProto.insertBefore = function <T extends Node>(newNode: T, referenceNode: Node | null): T {
+        if (referenceNode && referenceNode.parentNode !== this) {
+            return this.appendChild(newNode) as T;
+        }
+        return origInsertBefore.call(this, newNode, referenceNode) as T;
+    };
+}
+
+// Run immediately upon client bundle evaluation
+patchDomNodeMethods();
+
 export function initGlobalErrorHandlers() {
     if (typeof window === "undefined") return;
+    patchDomNodeMethods();
 
-    // Suppress known development-only warning from @react-three/drei's Html in React 19 StrictMode
+    // Suppress known development-only warning from @react-three/drei's Html in React 19 StrictMode and portal unmounting quirks
     const origConsoleError = console.error;
     console.error = function (...args: any[]) {
-        const msg = typeof args[0] === "string" ? args[0] : "";
+        const msg = args.map((a) => (typeof a === "string" ? a : a?.message ? String(a.message) : "")).join(" ");
         if (
             msg.includes("Attempted to synchronously unmount a root while React was already rendering") ||
             msg.includes("container that has already been passed to createRoot") ||
             msg.includes("Failed to execute 'removeChild' on 'Node'") ||
+            msg.includes("Failed to execute 'insertBefore' on 'Node'") ||
             msg.includes("The node to be removed is not a child of this node")
         ) {
             return;
@@ -89,10 +119,12 @@ export function initGlobalErrorHandlers() {
     };
 
     window.addEventListener("error", (event) => {
+        const fullMsg = `${event.message || ""} ${event.error?.message || ""} ${String(event.error || "")}`;
         if (
-            event.message?.includes("Failed to execute 'removeChild' on 'Node'") ||
-            event.message?.includes("Failed to execute 'insertBefore' on 'Node'") ||
-            event.message?.includes("The node to be removed is not a child of this node")
+            fullMsg.includes("Failed to execute 'removeChild' on 'Node'") ||
+            fullMsg.includes("Failed to execute 'insertBefore' on 'Node'") ||
+            fullMsg.includes("The node to be removed is not a child of this node") ||
+            fullMsg.includes("NotFoundError")
         ) {
             event.preventDefault();
             event.stopPropagation();

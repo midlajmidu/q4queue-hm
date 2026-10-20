@@ -131,6 +131,12 @@ class Token(Base):
     called_via_invite: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
     entry_type: Mapped[str] = mapped_column(String(20), default="qr", server_default="qr", nullable=False)
 
+    # ── Payment Status (Dine-in) ──────────────────────────────
+    # "pending" = no bill yet, "unpaid" = check dropped, "paid" = settled
+    payment_status: Mapped[str] = mapped_column(
+        String(20), default="pending", server_default="pending", nullable=False
+    )
+
     # ── WhatsApp / Tracking ────────────────────────────────────
     # Separate UUID used in public tracking URLs — keeps internal ID private
     tracking_id: Mapped[uuid.UUID] = mapped_column(

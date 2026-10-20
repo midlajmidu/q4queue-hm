@@ -5,7 +5,7 @@ Pydantic schemas for Queue and Token request/response.
 import uuid
 import re
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -419,8 +419,13 @@ class TokenResponse(BaseModel):
     custom_data: Optional[dict] = None
     shared_lines: list[int] = []
     completed_lines: list[int] = []
+    payment_status: str = "pending"
 
     model_config = {"from_attributes": True}
+
+
+class UpdatePaymentStatusRequest(BaseModel):
+    payment_status: Literal["pending", "unpaid", "paid"]
 
 
 class PaginatedQueueResponse(BaseModel):

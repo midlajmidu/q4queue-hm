@@ -1201,6 +1201,43 @@ async def undo_remove_token(db: AsyncSession, *, token_id: uuid.UUID, org_id: uu
     return token
 
 
+async def update_payment_status(
+    db: AsyncSession,
+    *,
+    token_id: uuid.UUID,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID | None = None,
+    payment_status: str,
+) -> Token:
+    allowed_statuses = {"pending", "unpaid", "paid"}
+    if payment_status not in allowed_statuses:
+        raise ValueError(f"Invalid payment status '{payment_status}'. Must be one of {allowed_statuses}")
+
+    token = await _get_token_for_org(db, token_id=token_id, org_id=org_id)
+    if token.status not in (TokenStatus.serving, TokenStatus.done):
+        raise ValueError(f"Cannot update payment status for token with status '{token.status}'")
+
+    token.payment_status = payment_status
+    await db.flush()
+
+    await _log_audit(
+        db,
+        event_type="UPDATE_PAYMENT_STATUS",
+        org_id=org_id,
+        user_id=user_id,
+        resource_type="token",
+        resource_id=str(token.id),
+        details={
+            "token_number": token.token_number,
+            "customer_name": token.customer_name,
+            "payment_status": payment_status,
+            "assigned_line": token.assigned_line,
+        },
+    )
+    return token
+
+
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Admin API — Serve Specific Token

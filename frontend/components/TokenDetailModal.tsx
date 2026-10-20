@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import ModalPortal from "@/components/ui/ModalPortal";
 import { api } from "@/lib/api";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { fmtTime, fmtDateTime } from "@/lib/tzformat";
@@ -32,6 +33,7 @@ export interface TokenDetailData {
     appointment_time?: string | null;
     appointment_date?: string | null;
     appointment_booking_ref?: string | null;
+    payment_status?: "pending" | "unpaid" | "paid";
 }
 
 interface TokenDetailModalProps {
@@ -42,6 +44,7 @@ interface TokenDetailModalProps {
     onUndo?: () => void;
     isDineMode?: boolean;
     tables?: Array<{ id: number; name: string }>;
+    onUpdatePaymentStatus?: (tokenId: string, nextStatus: "pending" | "unpaid" | "paid") => void | Promise<void>;
 }
 
 
@@ -137,10 +140,37 @@ const ENTRY_STYLES: Record<string, string> = {
     appointment: "bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800",
 };
 
-export default function TokenDetailModal({ token, onClose, onRecall, onRemove, onUndo, isDineMode, tables }: TokenDetailModalProps) {
+export default function TokenDetailModal({
+    token,
+    onClose,
+    onRecall,
+    onRemove,
+    onUndo,
+    isDineMode,
+    tables,
+    onUpdatePaymentStatus,
+}: TokenDetailModalProps) {
     const [fullToken, setFullToken] = useState<TokenDetailData | null>(token);
     const [nowMs, setNowMs] = useState<number>(() => Date.now());
+    const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
     const tz = useBranchTimezone();
+
+    const handleTogglePayment = async (newStatus: "pending" | "unpaid" | "paid") => {
+        if (!fullToken?.id || isUpdatingPayment) return;
+        setIsUpdatingPayment(true);
+        try {
+            if (onUpdatePaymentStatus) {
+                await onUpdatePaymentStatus(fullToken.id, newStatus);
+            } else {
+                await api.updatePaymentStatus(fullToken.id, newStatus);
+            }
+            setFullToken((prev) => (prev ? { ...prev, payment_status: newStatus } : null));
+        } catch (err: any) {
+            console.error("Failed to update payment status:", err);
+        } finally {
+            setIsUpdatingPayment(false);
+        }
+    };
 
     useEffect(() => {
         setFullToken(token);
@@ -190,13 +220,14 @@ export default function TokenDetailModal({ token, onClose, onRecall, onRemove, o
     };
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
-            onClick={handleBackdrop}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Token details"
-        >
+        <ModalPortal>
+            <div
+                className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/70 dark:bg-black/80 backdrop-blur-md p-4 transition-all animate-in fade-in duration-200"
+                onClick={handleBackdrop}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Token details"
+            >
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-transparent dark:border-white/10 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
                 {/* Header */}
                 <div className="bg-gradient-to-br from-blue-600 to-indigo-600 dark:from-slate-800/80 dark:to-slate-900 border-b border-transparent dark:border-white/10 px-6 py-5 flex items-start justify-between relative overflow-hidden">
@@ -272,6 +303,68 @@ export default function TokenDetailModal({ token, onClose, onRecall, onRemove, o
                                         Date: {appointmentDate}
                                     </p>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Payment Status Segmented Control (Dine Mode or when payment_status is present) */}
+                    {(isDineMode || fullToken.payment_status) && (
+                        <div className="bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                    Payment Status:
+                                </span>
+                                <span
+                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold ${
+                                        fullToken.payment_status === "paid"
+                                            ? "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                                            : fullToken.payment_status === "unpaid"
+                                            ? "bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 animate-pulse"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                                    }`}
+                                >
+                                    {fullToken.payment_status === "paid" ? "Paid ✓" : fullToken.payment_status === "unpaid" ? "Unpaid" : "Pending"}
+                                </span>
+                            </div>
+
+                            {/* Quick Toggle Buttons */}
+                            <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => handleTogglePayment("pending")}
+                                    disabled={isUpdatingPayment}
+                                    className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                                        (!fullToken.payment_status || fullToken.payment_status === "pending")
+                                            ? "bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 shadow-xs"
+                                            : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                                    }`}
+                                >
+                                    Pending
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleTogglePayment("unpaid")}
+                                    disabled={isUpdatingPayment}
+                                    className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                                        fullToken.payment_status === "unpaid"
+                                            ? "bg-amber-500 text-white shadow-xs"
+                                            : "text-slate-500 hover:text-amber-600"
+                                    }`}
+                                >
+                                    Unpaid
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleTogglePayment("paid")}
+                                    disabled={isUpdatingPayment}
+                                    className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                                        fullToken.payment_status === "paid"
+                                            ? "bg-emerald-600 text-white shadow-xs"
+                                            : "text-slate-500 hover:text-emerald-600"
+                                    }`}
+                                >
+                                    Paid
+                                </button>
                             </div>
                         </div>
                     )}
@@ -479,6 +572,7 @@ export default function TokenDetailModal({ token, onClose, onRecall, onRemove, o
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 }
 

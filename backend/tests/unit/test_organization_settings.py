@@ -59,3 +59,4 @@ async def test_get_organization_settings_returns_settings():
     assert response.email == "admin@clinic.com"
     assert response.timezone == "Asia/Kolkata"
     assert response.auto_session_enabled is True
+    assert response.dine_3d_view_enabled is True

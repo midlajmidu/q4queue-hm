@@ -81,7 +81,7 @@ async def create_queue(
     if data.table_config and len(data.table_config) > 0:
         service_lines = len(data.table_config)
 
-    is_dine = bool((org and getattr(org, "branch_type", "standard") == "dine") or (data.table_config and len(data.table_config) > 0))
+    is_dine = bool((org and getattr(org, "branch_type", "standard") in ("dine", "hotel", "restaurant")) or (data.table_config and len(data.table_config) > 0))
 
     from app.schemas.queue import DEFAULT_CUSTOM_FIELDS
     fields = list(data.custom_fields) if data.custom_fields else [dict(f) for f in DEFAULT_CUSTOM_FIELDS]
@@ -89,8 +89,16 @@ async def create_queue(
         fields.insert(0, dict(DEFAULT_CUSTOM_FIELDS[0]))
     if not any(f.get("key") in ("phone", "phone_number") for f in fields):
         fields.insert(1, dict(DEFAULT_CUSTOM_FIELDS[1]))
-    if is_dine and not any(f.get("key") in ("pax", "pax_count", "no_of_pax") for f in fields):
-        fields.append(dict(DEFAULT_CUSTOM_FIELDS[2]))
+    if is_dine:
+        pax_found = False
+        for f in fields:
+            if f.get("key") in ("pax", "pax_count", "no_of_pax", "number_of_pax"):
+                f["required"] = True
+                pax_found = True
+        if not pax_found:
+            pax_field = dict(DEFAULT_CUSTOM_FIELDS[2])
+            pax_field["required"] = True
+            fields.append(pax_field)
 
     queue_type = data.queue_type or "normal"
     if queue_type != "zone" and service_lines > 0:
@@ -241,6 +249,25 @@ async def update_queue(
             if key == "custom_fields" and value is not None:
                 from app.schemas.queue import validate_custom_fields_list
                 value = validate_custom_fields_list(value)
+
+                from app.models.organization import Organization
+                org = await db.get(Organization, org_id)
+                is_dine = bool(
+                    (org and getattr(org, "branch_type", "standard") in ("dine", "hotel", "restaurant"))
+                    or (queue.table_config and len(queue.table_config) > 0)
+                )
+                if is_dine and value is not None:
+                    pax_found = False
+                    for f in value:
+                        if isinstance(f, dict) and str(f.get("key", "")).lower() in ("pax", "pax_count", "no_of_pax", "number_of_pax"):
+                            f["required"] = True
+                            pax_found = True
+                    if not pax_found:
+                        from app.schemas.queue import DEFAULT_CUSTOM_FIELDS
+                        pax_field = dict(DEFAULT_CUSTOM_FIELDS[2])
+                        pax_field["required"] = True
+                        value.append(pax_field)
+
                 from sqlalchemy.orm.attributes import flag_modified
                 flag_modified(queue, "custom_fields")
             elif key == "table_config" and value is not None:

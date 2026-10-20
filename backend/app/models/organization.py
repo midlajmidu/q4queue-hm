@@ -66,6 +66,7 @@ class Organization(Base):
     enable_shared_tokens: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
     appointment_feature_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
     ai_overview_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false', nullable=False)
+    dine_3d_view_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default='true', nullable=False)
 
     # ── Relationships ──────────────────────────────────────────────
     parent_organization_id: Mapped[uuid.UUID | None] = mapped_column(

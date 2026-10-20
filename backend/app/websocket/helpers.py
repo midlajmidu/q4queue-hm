@@ -103,6 +103,7 @@ async def build_queue_snapshot(
                 "entry_type": getattr(serving_token, "entry_type", "qr"),
                 "pax_count": getattr(serving_token, "pax_count", 1),
                 "served_at": serving_token.served_at.isoformat() if serving_token.served_at else None,
+                "payment_status": getattr(serving_token, "payment_status", "pending"),
             }
             if is_admin:
                 serving_details["customer_age"] = serving_token.customer_age
@@ -124,6 +125,7 @@ async def build_queue_snapshot(
                 "pax_count": getattr(t, "pax_count", 1),
                 "shared_lines": getattr(t, "shared_lines", []),
                 "completed_lines": getattr(t, "completed_lines", []),
+                "payment_status": getattr(t, "payment_status", "pending"),
             }
             if is_admin:
                 sd["customer_phone"] = t.customer_phone

@@ -24,7 +24,7 @@ from app.core.deps import get_token_for_org, require_branch_admin_or_staff
 from app.db.deps import get_db
 from app.models.token import Token
 from app.models.user import User
-from app.schemas.queue import TokenResponse, TokenRestoreResponse
+from app.schemas.queue import TokenResponse, TokenRestoreResponse, UpdatePaymentStatusRequest
 from app.services import token_service
 from app.services.notification_service import notify_queue_event
 from app.audit.service import record_event
@@ -426,3 +426,55 @@ async def undo_remove_token(
         code = 404 if "not found" in msg.lower() else 400
         raise HTTPException(status_code=code, detail=msg)
     return TokenResponse.model_validate(updated)
+
+
+@router.patch(
+    "/{token_id}/payment-status",
+    response_model=TokenResponse,
+    summary="Update Token Payment Status",
+    description="Update payment status of a serving token ('pending', 'unpaid', 'paid').",
+)
+async def update_payment_status(
+    payload: UpdatePaymentStatusRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_branch_admin_or_staff()),
+    token: Token = Depends(get_token_for_org),
+) -> TokenResponse:
+    """
+    SECURITY: get_token_for_org dependency validates org ownership before mutation.
+    """
+    try:
+        updated = await token_service.update_payment_status(
+            db,
+            token_id=token.id,
+            org_id=token.org_id,
+            user_id=current_user.id,
+            payment_status=payload.payment_status,
+        )
+        background_tasks.add_task(
+            token_service.notify_queue_update,
+            queue_id=token.queue_id,
+            org_id=token.org_id,
+        )
+
+        await record_event(
+            event_type="UPDATE_PAYMENT_STATUS",
+            org_id=token.org_id,
+            parent_org_id=current_user.parent_organization_id,
+            user_id=current_user.id,
+            resource_type="token",
+            resource_id=str(token.id),
+            details={
+                "token_number": token.token_number,
+                "customer_name": token.customer_name,
+                "payment_status": payload.payment_status,
+                "assigned_line": token.assigned_line,
+            },
+        )
+    except ValueError as exc:
+        msg = str(exc)
+        code = 404 if "not found" in msg.lower() else 400
+        raise HTTPException(status_code=code, detail=msg)
+    return TokenResponse.model_validate(updated)
+

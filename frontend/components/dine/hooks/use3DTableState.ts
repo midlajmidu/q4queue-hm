@@ -17,6 +17,7 @@ export interface TableOccupancy {
   isLingering: boolean;
   isExtended: boolean;
   tokenTables: number[];
+  paymentStatus?: "pending" | "unpaid" | "paid";
 }
 
 function getElapsedMinutes(isoString?: string | null): number {
@@ -121,6 +122,7 @@ export function use3DTableState(
       isLingering,
       isExtended,
       tokenTables,
+      paymentStatus: primaryToken?.payment_status ?? "pending",
     };
   };
 

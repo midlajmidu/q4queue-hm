@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { api, ApiError } from "@/lib/api";
 import { ServingToken, WaitingToken, TableConfig } from "@/types/api";
+import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 const DineFloor3D = dynamic(() => import("./DineFloor3D"), { ssr: false });
 import {
@@ -31,19 +32,37 @@ import {
     ChevronDown,
     Loader2,
     Building2,
-    Receipt
+    Receipt,
+    Layers,
+    Tag,
+    UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
+import DineTableCard from "./DineTableCard";
+import WaitlistPeekDrawer, { WaitlistBadgeButton } from "./WaitlistPeekDrawer";
+import QuickWalkInModal from "./QuickWalkInModal";
+import ServerRotationBar from "./ServerRotationBar";
+import DineFloatingViewToggle from "./DineFloatingViewToggle";
+import ModalPortal from "@/components/ui/ModalPortal";
+import { useSmartSeatingMatcher } from "./hooks/useSmartSeatingMatcher";
+import { useBranch } from "@/context/BranchContext";
+import {
+    EnhancedTableConfig,
+    TableLifecycleStatus,
+    QuickWalkInPayload,
+    resolveTableStatus,
+} from "@/types/dine";
 
 interface Props {
     queueId: string;
-    tables: TableConfig[];
+    tables: (TableConfig | EnhancedTableConfig)[];
     allServingTokens: ServingToken[];
     prefix: string;
     onUpdate: () => void;
     isPaused?: boolean;
     isReadOnly?: boolean;
     waitingTokens?: WaitingToken[];
+    is3DViewEnabled?: boolean;
 }
 
 function getElapsedMinutes(isoString?: string | null): number {
@@ -67,6 +86,53 @@ function getTokenPax(token: WaitingToken | ServingToken): number {
     return 1;
 }
 
+function formatPaperWaitDuration(isoString?: string | null): { text: string; severity: "low" | "medium" | "high" } {
+    if (!isoString) return { text: "Just now", severity: "low" };
+    const diffMs = Date.now() - new Date(isoString).getTime();
+    const mins = Math.max(0, Math.floor(diffMs / 60000));
+
+    if (mins < 1) return { text: "Just now", severity: "low" };
+    if (mins < 15) return { text: `${mins}m waiting`, severity: "low" };
+    if (mins < 30) return { text: `${mins}m waiting`, severity: "medium" };
+    if (mins < 60) return { text: `${mins}m waiting`, severity: "high" };
+
+    const hrs = Math.floor(mins / 60);
+    const rem = mins % 60;
+    if (hrs < 24) {
+        return { text: `${hrs}h ${rem > 0 ? `${rem}m ` : ""}waiting`, severity: "high" };
+    }
+    const days = Math.floor(hrs / 24);
+    return { text: `${days}d+ waiting`, severity: "high" };
+}
+
+const AVATAR_COLOR_PALETTES = [
+    "bg-indigo-600 text-white border-indigo-700/30",
+    "bg-violet-600 text-white border-violet-700/30",
+    "bg-teal-600 text-white border-teal-700/30",
+    "bg-sky-600 text-white border-sky-700/30",
+    "bg-amber-600 text-white border-amber-700/30",
+    "bg-rose-600 text-white border-rose-700/30",
+    "bg-emerald-600 text-white border-emerald-700/30",
+    "bg-fuchsia-600 text-white border-fuchsia-700/30",
+];
+
+function getContactAvatarColor(name?: string | null): string {
+    if (!name || !name.trim()) return AVATAR_COLOR_PALETTES[0];
+    const trimmed = name.trim();
+    let hash = 0;
+    for (let i = 0; i < trimmed.length; i++) {
+        hash = (hash << 5) - hash + trimmed.charCodeAt(i);
+        hash |= 0;
+    }
+    const index = Math.abs(hash) % AVATAR_COLOR_PALETTES.length;
+    return AVATAR_COLOR_PALETTES[index];
+}
+
+function getContactInitial(name?: string | null): string {
+    if (!name || !name.trim()) return "G";
+    return name.trim().charAt(0).toUpperCase();
+}
+
 export default function DineTableGrid({
     queueId,
     tables,
@@ -76,7 +142,11 @@ export default function DineTableGrid({
     isPaused = false,
     isReadOnly = false,
     waitingTokens = [],
+    is3DViewEnabled: propIs3DViewEnabled,
 }: Props) {
+    const { is3DViewEnabled: ctxIs3DViewEnabled } = useBranch();
+    const is3DViewEnabled = propIs3DViewEnabled !== undefined ? propIs3DViewEnabled : (ctxIs3DViewEnabled ?? true);
+
     const [viewMode, setViewMode] = useState<"floor" | "paper">("floor");
     const [loadingTable, setLoadingTable] = useState<number | null>(null);
     const [mobileExpandAll, setMobileExpandAll] = useState(false);
@@ -95,10 +165,93 @@ export default function DineTableGrid({
     const [modalTableSearch, setModalTableSearch] = useState("");
     const [isSubmittingSeating, setIsSubmittingSeating] = useState(false);
 
-    // Capacity edit modal state
-    const [editingCapacityTable, setEditingCapacityTable] = useState<{ id: number; name: string; capacity: number } | null>(null);
+    // Target table for Assign Customer modal
+    const [assigningTargetTable, setAssigningTargetTable] = useState<EnhancedTableConfig | null>(null);
+    const [assignModalSearch, setAssignModalSearch] = useState("");
+    const [assignModalFilter, setAssignModalFilter] = useState<"all" | "fits" | "exceeds">("all");
+
+    // Capacity, Zone & Name edit modal state
+    const [editingCapacityTable, setEditingCapacityTable] = useState<{ id: number; name: string; capacity: number; section?: string } | null>(null);
+    const [newTableNameInput, setNewTableNameInput] = useState<string>("");
     const [newCapacityInput, setNewCapacityInput] = useState<number>(4);
+    const [newSectionInput, setNewSectionInput] = useState<string>("Main Dining");
     const [isSavingCapacity, setIsSavingCapacity] = useState(false);
+    const [focusFieldOnEdit, setFocusFieldOnEdit] = useState<"name" | "capacity" | "section">("name");
+    const tableNameInputRef = useRef<HTMLInputElement>(null);
+    const capacityInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (editingCapacityTable) {
+            const timer = setTimeout(() => {
+                if (focusFieldOnEdit === "name") {
+                    tableNameInputRef.current?.focus();
+                    tableNameInputRef.current?.select();
+                } else if (focusFieldOnEdit === "capacity") {
+                    capacityInputRef.current?.focus();
+                    capacityInputRef.current?.select();
+                }
+            }, 60);
+            return () => clearTimeout(timer);
+        }
+    }, [editingCapacityTable, focusFieldOnEdit]);
+
+    // Custom user dining zones persisted in localStorage
+    const [customZones, setCustomZones] = useState<string[]>(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem(`dining_custom_zones_${queueId}`);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed)) return parsed;
+                }
+            } catch {}
+        }
+        return [];
+    });
+
+    useEffect(() => {
+        if (typeof window !== "undefined" && queueId) {
+            try {
+                const saved = localStorage.getItem(`dining_custom_zones_${queueId}`);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed)) setCustomZones(parsed);
+                }
+            } catch {}
+        }
+    }, [queueId]);
+
+    const handleAddZone = (newSec: string) => {
+        const trimmed = newSec.trim();
+        if (!trimmed) return;
+        setCustomZones((prev) => {
+            if (prev.some((z) => z.toLowerCase() === trimmed.toLowerCase())) {
+                toast.info(`Zone "${trimmed}" already exists`);
+                return prev;
+            }
+            const updated = [...prev, trimmed];
+            try {
+                localStorage.setItem(`dining_custom_zones_${queueId}`, JSON.stringify(updated));
+            } catch {}
+            return updated;
+        });
+        setSelectedSection(trimmed);
+        toast.success(`Zone "${trimmed}" added`);
+    };
+
+    const handleDeleteZone = (secToDelete: string) => {
+        setCustomZones((prev) => {
+            const updated = prev.filter((z) => z.toLowerCase() !== secToDelete.toLowerCase());
+            try {
+                localStorage.setItem(`dining_custom_zones_${queueId}`, JSON.stringify(updated));
+            } catch {}
+            return updated;
+        });
+        if (selectedSection.toLowerCase() === secToDelete.toLowerCase()) {
+            setSelectedSection("all");
+        }
+        toast.success(`Zone "${secToDelete}" removed`);
+    };
 
     // Join extra table from floor view
     const [joinTargetTable, setJoinTargetTable] = useState<{ token: ServingToken; currentTableId: number; currentTableName: string } | null>(null);
@@ -107,6 +260,33 @@ export default function DineTableGrid({
 
     // Free joined tables confirmation
     const [freeMergedConfirm, setFreeMergedConfirm] = useState<{ token: ServingToken; clickedTableId: number; clickedTableName: string; tableIds: number[] } | null>(null);
+
+    // Host Stand & Lifecycle Enhancement States
+    const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+    const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
+    const [walkInTargetTableId, setWalkInTargetTableId] = useState<number | null>(null);
+    const [activeStatusFilter, setActiveStatusFilter] = useState<TableLifecycleStatus | "all" | "unpaid">("all");
+    const [tableStatusOverrides, setTableStatusOverrides] = useState<Record<number, TableLifecycleStatus>>({});
+    const [isSubmittingWalkIn, setIsSubmittingWalkIn] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                if (assignTableToken) { setAssignTableToken(null); setModalSelectedTableIds([]); }
+                if (joinTargetTable) { setJoinTargetTable(null); setSelectedJoinTableId(null); }
+                if (editingCapacityTable) { setEditingCapacityTable(null); }
+                if (freeMergedConfirm) { setFreeMergedConfirm(null); }
+                if (assigningTargetTable) { setAssigningTargetTable(null); setAssignModalSearch(""); }
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [assignTableToken, joinTargetTable, editingCapacityTable, freeMergedConfirm, assigningTargetTable]);
 
     // Helper: Return all active table IDs for a serving token (assigned_line + shared_lines)
     const getTokenAllActiveTables = (token: ServingToken): number[] => {
@@ -193,34 +373,62 @@ export default function DineTableGrid({
     // Sub-view toggle state under Floor View: "3d" (spatial model) vs "plain" (2D responsive grid)
     const [floorSubView, setFloorSubView] = useState<"3d" | "plain">("3d");
     const [selectedSection, setSelectedSection] = useState<string>("all");
+    const activeFloorSubView = is3DViewEnabled ? floorSubView : "plain";
 
-    // Load and persist floor subview in localStorage (key: q4q_dine_floor_subview)
+    // Load and persist floor subview in localStorage (keys: dine_floor_subview_preference, q4q_dine_floor_subview)
     useEffect(() => {
+        if (!is3DViewEnabled) {
+            setFloorSubView("plain");
+            return;
+        }
         if (typeof window !== "undefined") {
             try {
-                const saved = localStorage.getItem("q4q_dine_floor_subview");
+                const saved = localStorage.getItem("dine_floor_subview_preference") || localStorage.getItem("q4q_dine_floor_subview");
                 if (saved === "3d" || saved === "plain") {
                     setFloorSubView(saved);
                 }
             } catch {}
         }
-    }, []);
+    }, [is3DViewEnabled]);
 
     const handleSetFloorSubView = (subView: "3d" | "plain") => {
+        if (!is3DViewEnabled && subView === "3d") return;
         setFloorSubView(subView);
         if (typeof window !== "undefined") {
             try {
+                localStorage.setItem("dine_floor_subview_preference", subView);
                 localStorage.setItem("q4q_dine_floor_subview", subView);
             } catch {}
         }
     };
 
-    // Available sections from tables and/or stored multi-floor layout
+    // Keyboard shortcut: Press 'v' or 'V' to toggle between 2D Table Cards and 3D Spatial Model
+    useEffect(() => {
+        if (!is3DViewEnabled || viewMode !== "floor") return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement)?.isContentEditable) {
+                return;
+            }
+            if (e.key === "v" || e.key === "V") {
+                e.preventDefault();
+                handleSetFloorSubView(activeFloorSubView === "3d" ? "plain" : "3d");
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [is3DViewEnabled, viewMode, activeFloorSubView]);
+
+    // Available sections from tables, custom zones, and stored multi-floor layout
     const availableSections = useMemo(() => {
         const set = new Set<string>();
         for (const t of tables) {
             if (t.section && t.section.trim()) {
                 set.add(t.section.trim());
+            }
+        }
+        for (const z of customZones) {
+            if (z && z.trim()) {
+                set.add(z.trim());
             }
         }
         if (typeof window !== "undefined") {
@@ -230,19 +438,77 @@ export default function DineTableGrid({
                     const parsed = JSON.parse(stored);
                     if (parsed?.floors && Array.isArray(parsed.floors)) {
                         for (const f of parsed.floors) {
-                            if (f.name) set.add(f.name);
+                            if (f.name && f.name.trim()) set.add(f.name.trim());
                         }
                     }
                 }
             } catch {}
         }
+        const hasUnassigned = tables.some((t) => !t.section || !t.section.trim());
+        if (set.size === 0 || hasUnassigned) {
+            set.add("Main Dining");
+        }
         return Array.from(set);
-    }, [tables, queueId]);
+    }, [tables, customZones, queueId]);
+
+    const enhancedTables = useMemo<EnhancedTableConfig[]>(() => {
+        return tables.map(t => {
+            const tokens = tableTokensMap.get(t.id) || [];
+            const override = tableStatusOverrides[t.id];
+            let status: TableLifecycleStatus;
+            if (tokens.length > 0) {
+                status = (override === "check_dropped" || override === "seated") ? override : "seated";
+            } else {
+                if (override === "held" || override === "blocked") {
+                    status = override;
+                } else {
+                    status = "available";
+                }
+            }
+            return {
+                ...t,
+                status,
+            };
+        });
+    }, [tables, tableStatusOverrides, tableTokensMap]);
+
+    const matcher = useSmartSeatingMatcher(enhancedTables, waitingTokens, tableTokensMap);
 
     const filteredTables = useMemo(() => {
-        if (selectedSection === "all") return tables;
-        return tables.filter(t => t.section === selectedSection || t.section?.toLowerCase() === selectedSection.toLowerCase());
-    }, [tables, selectedSection]);
+        let result = enhancedTables;
+        if (selectedSection !== "all") {
+            result = result.filter(t => {
+                const sec = t.section && t.section.trim() ? t.section.trim() : "Main Dining";
+                return sec.toLowerCase() === selectedSection.toLowerCase();
+            });
+        }
+        if (activeStatusFilter === "unpaid") {
+            result = result.filter(t => {
+                const tokens = tableTokensMap.get(t.id) || [];
+                return tokens.some(tok => tok.payment_status === "unpaid");
+            });
+        } else if (activeStatusFilter !== "all") {
+            result = result.filter(t => {
+                const tokens = tableTokensMap.get(t.id) || [];
+                const st = resolveTableStatus(t, tokens);
+                return st === activeStatusFilter;
+            });
+        }
+        return result;
+    }, [enhancedTables, selectedSection, activeStatusFilter, tableTokensMap]);
+
+    const displayZones = useMemo(() => {
+        if (selectedSection !== "all") {
+            return [selectedSection];
+        }
+        const zones = [...availableSections];
+        zones.sort((a, b) => {
+            if (a.toLowerCase() === "main dining") return -1;
+            if (b.toLowerCase() === "main dining") return 1;
+            return a.localeCompare(b);
+        });
+        return zones;
+    }, [selectedSection, availableSections]);
 
     // Pax counts for filter buttons
     const paxStats = useMemo(() => {
@@ -304,6 +570,11 @@ export default function DineTableGrid({
             const match = waitingTokens.find(w => getTokenPax(w) <= tableCapacity);
             if (match) {
                 await api.serveSpecificToken(queueId, match.token_number, tableId);
+                setTableStatusOverrides(prev => {
+                    const copy = { ...prev };
+                    delete copy[tableId];
+                    return copy;
+                });
                 toast.success(`Seated Party #${prefix}${match.token_number} (${getTokenPax(match)}p) at Table ${tableId}`);
             } else {
                 // Fallback to calling next in queue to this line
@@ -328,6 +599,11 @@ export default function DineTableGrid({
         setLoadingTable(tableId);
         try {
             await api.clearLine(queueId, tableId);
+            setTableStatusOverrides(prev => {
+                const copy = { ...prev };
+                delete copy[tableId];
+                return copy;
+            });
             toast.success(`${tableName} cleared & marked Available`);
             onUpdate();
         } catch {
@@ -341,6 +617,13 @@ export default function DineTableGrid({
         setLoadingTable(tableIds[0]);
         try {
             await Promise.all(tableIds.map(id => api.clearLine(queueId, id)));
+            setTableStatusOverrides(prev => {
+                const copy = { ...prev };
+                for (const id of tableIds) {
+                    delete copy[id];
+                }
+                return copy;
+            });
             const names = tableIds.map(id => tables.find(t => t.id === id)?.name || `T${id}`).join(" + ");
             toast.success(`Cleared joined tables [${names}]`);
             setFreeMergedConfirm(null);
@@ -361,6 +644,11 @@ export default function DineTableGrid({
             } else {
                 await api.clearLine(queueId, tableId);
             }
+            setTableStatusOverrides(prev => {
+                const copy = { ...prev };
+                delete copy[tableId];
+                return copy;
+            });
             toast.success(`Completed Party #${prefix}${token.token_number} at ${tableName}`);
             onUpdate();
         } catch {
@@ -408,6 +696,14 @@ export default function DineTableGrid({
                 for (const addId of additionalIds) {
                     await api.shareToken(queueId, token.token_number, addId);
                 }
+
+                setTableStatusOverrides(prev => {
+                    const copy = { ...prev };
+                    for (const id of selectedIds) {
+                        delete copy[id];
+                    }
+                    return copy;
+                });
 
                 const names = selectedIds.map(id => tables.find(t => t.id === id)?.name || `Table ${id}`).join(" + ");
                 toast.success(`Seated Party #${prefix}${token.token_number} (${getTokenPax(token)}p) across joined [${names}]`);
@@ -470,6 +766,11 @@ export default function DineTableGrid({
         setSeatingTokenId(token.id);
         try {
             await api.serveSpecificToken(queueId, token.token_number, targetTableId);
+            setTableStatusOverrides(prev => {
+                const copy = { ...prev };
+                delete copy[targetTableId];
+                return copy;
+            });
             const targetTable = tables.find(t => t.id === targetTableId);
             const tableName = targetTable?.name || `Table ${targetTableId}`;
             toast.success(`Seated #${prefix}${token.token_number} (${token.customer_name || "Guest"}) at ${tableName}`);
@@ -482,17 +783,35 @@ export default function DineTableGrid({
         }
     };
 
-    // Open inline capacity edit modal
-    const handleOpenCapacityEdit = (tbl: TableConfig, e: React.MouseEvent) => {
+    // Open inline capacity, zone & name edit modal
+    const handleOpenCapacityEdit = (
+        tbl: TableConfig,
+        e: React.MouseEvent,
+        focusField: "name" | "capacity" | "section" = "name"
+    ) => {
         e.stopPropagation();
         if (isReadOnly) return;
-        setEditingCapacityTable({ id: tbl.id, name: tbl.name || `Table ${tbl.id}`, capacity: tbl.capacity });
+        setEditingCapacityTable({
+            id: tbl.id,
+            name: tbl.name || `Table ${tbl.id}`,
+            capacity: tbl.capacity,
+            section: tbl.section || "Main Dining",
+        });
+        setNewTableNameInput(tbl.name || `Table ${tbl.id}`);
         setNewCapacityInput(tbl.capacity);
+        setNewSectionInput(tbl.section || "Main Dining");
+        setFocusFieldOnEdit(focusField);
     };
 
-    // Save updated table capacity
+    // Save updated table name, capacity & zone
     const handleSaveCapacity = async () => {
         if (!editingCapacityTable) return;
+        const trimmedName = newTableNameInput.trim();
+        if (!trimmedName) {
+            toast.error("Please enter a valid table name");
+            return;
+        }
+
         const capacityVal = Number(newCapacityInput);
         if (isNaN(capacityVal) || capacityVal < 1 || capacityVal > 50) {
             toast.error("Please enter a valid chair count between 1 and 50");
@@ -502,23 +821,173 @@ export default function DineTableGrid({
         setIsSavingCapacity(true);
         try {
             const updatedTables = tables.map(t =>
-                t.id === editingCapacityTable.id ? { ...t, capacity: capacityVal } : t
+                t.id === editingCapacityTable.id
+                    ? {
+                        ...t,
+                        name: trimmedName,
+                        capacity: capacityVal,
+                        section: newSectionInput
+                    }
+                    : t
             );
             await api.updateQueue(queueId, { table_config: updatedTables });
-            toast.success(`Updated ${editingCapacityTable.name} to ${capacityVal} chairs`);
+            toast.success(`Updated table to "${trimmedName}"`);
             setEditingCapacityTable(null);
             onUpdate();
         } catch (err: any) {
-            toast.error(err?.message || "Failed to update table capacity");
+            toast.error(err?.message || "Failed to update table");
         } finally {
             setIsSavingCapacity(false);
         }
     };
 
+    const handleUpdatePaymentStatus = async (tokenId: string, nextStatus: "pending" | "unpaid" | "paid") => {
+        try {
+            await api.updatePaymentStatus(tokenId, nextStatus);
+            toast.success(
+                nextStatus === "paid"
+                    ? "Payment marked as Paid"
+                    : nextStatus === "unpaid"
+                    ? "Payment marked as Unpaid"
+                    : "Payment reset to Pending"
+            );
+            onUpdate();
+        } catch (err: any) {
+            toast.error(err?.message || "Failed to update payment status");
+        }
+    };
+
+    const handleAdvanceTableStatus = async (tableId: number, nextStatus: TableLifecycleStatus) => {
+        const tbl = tables.find(t => t.id === tableId);
+        const name = tbl?.name || `Table ${tableId}`;
+
+        if (nextStatus === "check_dropped") {
+            setTableStatusOverrides(prev => ({ ...prev, [tableId]: "check_dropped" }));
+            toast.success(`${name}: Bill Given (Settling)`);
+            const tokens = tableTokensMap.get(tableId) || [];
+            const primary = tokens[0];
+            if (primary && (!primary.payment_status || primary.payment_status === "pending")) {
+                api.updatePaymentStatus(primary.id, "unpaid").then(() => onUpdate()).catch(() => {});
+            }
+
+        } else if (nextStatus === "available") {
+            setTableStatusOverrides(prev => {
+                const copy = { ...prev };
+                delete copy[tableId];
+                return copy;
+            });
+            toast.success(`${name} is Clean & Ready for seating`);
+            onUpdate();
+        } else {
+            setTableStatusOverrides(prev => ({ ...prev, [tableId]: nextStatus }));
+        }
+    };
+
+    const handleQuickWalkInSubmit = async (payload: QuickWalkInPayload) => {
+        if (isReadOnly || isPaused) return;
+        setIsSubmittingWalkIn(true);
+        try {
+            const res = await api.adminJoin(queueId, {
+                name: payload.customerName || "Walk-in Guest",
+                phone: payload.customerPhone || "",
+                pax_count: payload.pax,
+                entry_type: "manual",
+                custom_data: {
+                    preferences: payload.preferences,
+                    notes: payload.notes,
+                    pax: payload.pax,
+                },
+            });
+
+            if (payload.immediateTableId) {
+                setTableStatusOverrides(prev => {
+                    const copy = { ...prev };
+                    delete copy[payload.immediateTableId!];
+                    return copy;
+                });
+                await api.serveSpecificToken(queueId, res.token_number, payload.immediateTableId);
+                const tbl = tables.find(t => t.id === payload.immediateTableId);
+                toast.success(`Walk-in Party #${prefix}${res.token_number} (${payload.pax}p) seated at ${tbl?.name || `Table ${payload.immediateTableId}`}`);
+            } else {
+                toast.success(`Walk-in Party #${prefix}${res.token_number} (${payload.pax}p) added to Waitlist`);
+            }
+            setIsWalkInModalOpen(false);
+            setWalkInTargetTableId(null);
+            onUpdate();
+        } catch (err: unknown) {
+            const msg = err instanceof ApiError ? err.detail : "Failed to seat walk-in";
+            toast.error(msg);
+        } finally {
+            setIsSubmittingWalkIn(false);
+        }
+    };
+
+    const handlePageNextParty = async () => {
+        const nextParty = waitingTokens[0];
+        if (!nextParty) {
+            toast.info("No waiting parties to page");
+            return;
+        }
+        toast.success(`Paged Party #${prefix}${nextParty.token_number} (${nextParty.customer_name || "Guest"}) via SMS`);
+    };
+
+    const renderTableCard = (tbl: EnhancedTableConfig) => {
+        const tokens = tableTokensMap.get(tbl.id) || [];
+        const isOccupied = tokens.length > 0;
+        const primaryToken = tokens[0] || null;
+        const elapsedMins = isOccupied ? getElapsedMinutes(primaryToken?.served_at) : 0;
+        const match = matcher.getMatchForTable(tbl.id);
+
+        return (
+            <DineTableCard
+                key={tbl.id}
+                table={tbl}
+                tokens={tokens}
+                prefix={prefix}
+                match={match}
+                elapsedMins={elapsedMins}
+                isLoading={loadingTable === tbl.id}
+                isReadOnly={isReadOnly}
+                onSeatMatch={async (tableId, waitingTokenId) => {
+                    const token = waitingTokens.find((t) => t.id === waitingTokenId);
+                    if (token) {
+                        await handleSeatWaitingToken(token, tableId);
+                    }
+                }}
+                onSeatWalkIn={(tableId) => {
+                    setWalkInTargetTableId(tableId);
+                    setIsWalkInModalOpen(true);
+                }}
+                onSeatParty={() => {
+                    setAssigningTargetTable(tbl);
+                    setAssignModalSearch("");
+                    setAssignModalFilter("all");
+                }}
+                onAssignParty={() => {
+                    setAssigningTargetTable(tbl);
+                    setAssignModalSearch("");
+                    setAssignModalFilter("all");
+                }}
+                onAdvanceStatus={handleAdvanceTableStatus}
+                onFreeTable={(tableId, tableName) => {
+                    handleRequestFreeTable(tableId, tableName);
+                }}
+                onJoinTable={(token, currentTableId, currentTableName) => {
+                    setJoinTargetTable({ token, currentTableId, currentTableName });
+                    setSelectedJoinTableId(vacantTables[0]?.id ?? null);
+                }}
+                onOpenCapacityEdit={(t, e, field) => {
+                    handleOpenCapacityEdit(t, e, field);
+                }}
+                onUpdatePaymentStatus={handleUpdatePaymentStatus}
+            />
+        );
+    };
+
     const occupiedCount = allServingTokens.length;
 
     return (
-        <div style={{ marginBottom: 24 }}>
+        <div className="w-full flex flex-col flex-1 pb-1">
             {/* Top Bar: Title, Counts, and View Mode Toggle */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
                 <div>
@@ -551,72 +1020,81 @@ export default function DineTableGrid({
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                    {/* View Switcher Toggle (Top-Level: Floor View vs Paper View) */}
-                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                    {/* Container 1: Top-Level View Switcher (Floor View vs Paper View) */}
+                    <div
+                        role="tablist"
+                        aria-label="View Switcher"
+                        className="h-9 p-0.5 flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs relative select-none"
+                    >
+                        {/* Floor View */}
                         <button
                             type="button"
+                            role="tab"
+                            aria-selected={viewMode === "floor"}
                             onClick={() => setViewMode("floor")}
-                            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${viewMode === "floor"
-                                ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold"
-                                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                                }`}
+                            className={`relative h-8 flex items-center gap-1.5 px-3 text-xs font-bold rounded-lg transition-colors cursor-pointer z-10 ${
+                                viewMode === "floor"
+                                    ? "text-slate-900 dark:text-white"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium"
+                            }`}
+                            title="Floor View"
                         >
-                            <LayoutGrid size={14} />
+                            {viewMode === "floor" && (
+                                <motion.div
+                                    layoutId="activeTopBarViewTab"
+                                    transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                                    className="absolute inset-0 bg-white dark:bg-slate-900 rounded-lg shadow-xs -z-10"
+                                />
+                            )}
+                            <LayoutGrid size={13.5} className="shrink-0 opacity-80" />
                             <span>Floor View</span>
                         </button>
+
+                        {/* Paper View */}
                         <button
                             type="button"
+                            role="tab"
+                            aria-selected={viewMode === "paper"}
                             onClick={() => setViewMode("paper")}
-                            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${viewMode === "paper"
-                                ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold"
-                                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                                }`}
+                            className={`relative h-8 flex items-center gap-1.5 px-3 text-xs font-bold rounded-lg transition-colors cursor-pointer z-10 ${
+                                viewMode === "paper"
+                                    ? "text-slate-900 dark:text-white"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium"
+                            }`}
+                            title="Host Stand Waitlist Register & Table Turns"
                         >
-                            <ClipboardList size={14} />
+                            {viewMode === "paper" && (
+                                <motion.div
+                                    layoutId="activeTopBarViewTab"
+                                    transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                                    className="absolute inset-0 bg-white dark:bg-slate-900 rounded-lg shadow-xs -z-10"
+                                />
+                            )}
+                            <ClipboardList size={13.5} className="shrink-0 opacity-80" />
                             <span>Paper View</span>
                             {waitingTokens.length > 0 && (
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${viewMode === "paper"
-                                    ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/50"
-                                    : "bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-                                    }`}>
+                                <span
+                                    className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full transition-colors ${
+                                        viewMode === "paper"
+                                            ? "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                                            : "bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                                    }`}
+                                >
                                     {waitingTokens.length}
                                 </span>
                             )}
                         </button>
                     </div>
 
-                    {/* Sub-View Selector (Inside Floor View: 3D Spatial vs 2D Plain Grid) */}
-                    {viewMode === "floor" && (
-                        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
-                            <button
-                                type="button"
-                                onClick={() => handleSetFloorSubView("3d")}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${floorSubView === "3d"
-                                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                                    }`}
-                                title="3D Spatial Interactive Model"
-                            >
-                                <Building2 size={13.5} />
-                                <span>3D Spatial View</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleSetFloorSubView("plain")}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${floorSubView === "plain"
-                                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                                    }`}
-                                title="2D Plain Table Card Grid"
-                            >
-                                <LayoutGrid size={13.5} />
-                                <span>2D Grid View</span>
-                            </button>
-                        </div>
-                    )}
+                    {/* Waitlist Peek Drawer Toggle Button */}
+                    <WaitlistBadgeButton
+                        count={waitingTokens.length}
+                        isOpen={isWaitlistOpen}
+                        onClick={() => setIsWaitlistOpen(prev => !prev)}
+                    />
 
                     {/* Mobile Expand Toggle (2D Plain Grid View only) */}
-                    {viewMode === "floor" && floorSubView === "plain" && (
+                    {viewMode === "floor" && activeFloorSubView === "plain" && (
                         <button
                             type="button"
                             onClick={() => { setMobileExpandAll(prev => !prev); setExpandedTable(null); }}
@@ -628,10 +1106,11 @@ export default function DineTableGrid({
                 </div>
             </div>
 
+
             {/* ========================================================================= */}
             {/* VIEW MODE 1A: 3D SPATIAL INTERACTIVE MODEL */}
             {/* ========================================================================= */}
-            {viewMode === "floor" && floorSubView === "3d" && (
+            {viewMode === "floor" && is3DViewEnabled && activeFloorSubView === "3d" && (
                 <DineFloor3D
                     queueId={queueId}
                     tables={tables}
@@ -660,399 +1139,136 @@ export default function DineTableGrid({
                         setSelectedJoinTableId(vacantTables[0]?.id ?? null);
                     }}
                     onOpenCapacityEdit={handleOpenCapacityEdit}
+                    onUpdatePaymentStatus={handleUpdatePaymentStatus}
                 />
             )}
 
             {/* ========================================================================= */}
             {/* VIEW MODE 1B: 2D PLAIN CARD GRID VIEW */}
             {/* ========================================================================= */}
-            {viewMode === "floor" && floorSubView === "plain" && (
+            {viewMode === "floor" && activeFloorSubView === "plain" && (
                 <>
-                    {/* Floor Section Filter (if multiple sections/floors exist) */}
-                    {availableSections.length > 1 && (
-                        <div className="flex items-center gap-1.5 mb-3.5 overflow-x-auto scrollbar-none pb-1">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1">
-                                Section:
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => setSelectedSection("all")}
-                                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${selectedSection === "all"
-                                    ? "bg-indigo-600 text-white shadow-2xs font-bold"
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                                    }`}
-                            >
-                                All Tables ({tables.length})
-                            </button>
-                            {availableSections.map((sec) => {
-                                const secCount = tables.filter(t => t.section === sec).length;
+                    {/* Section & Server Rotation Balancer */}
+                    <ServerRotationBar
+                        tables={enhancedTables}
+                        tableTokensMap={tableTokensMap}
+                        availableSections={availableSections}
+                        selectedSection={selectedSection}
+                        onSelectSection={setSelectedSection}
+                        onAddSection={handleAddZone}
+                        onDeleteSection={handleDeleteZone}
+                        isReadOnly={isReadOnly}
+                    />
+                    {/* Zone-Grouped Layout or Empty State */}
+                    {displayZones.length === 0 ? (
+                        <div className="py-12 flex flex-col items-center justify-center text-center p-6 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 mb-6">
+                            <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3">
+                                <Layers size={18} />
+                            </div>
+                            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                No zones or tables configured
+                            </h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1">
+                                Click "+ Add Zone" above to add dining areas for this counter.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-7 mb-8">
+                            {displayZones.map((zoneName, index) => {
+                                const zoneTables = filteredTables.filter((tbl) => {
+                                    const sec = tbl.section && tbl.section.trim() ? tbl.section.trim() : "Main Dining";
+                                    return sec.toLowerCase() === zoneName.toLowerCase();
+                                });
+
+                                const zoneAvailable = zoneTables.filter((t) => {
+                                    const tokens = tableTokensMap.get(t.id) || [];
+                                    return resolveTableStatus(t, tokens) === "available";
+                                }).length;
+
+                                const zoneCovers = zoneTables.reduce((sum, t) => {
+                                    const tokens = tableTokensMap.get(t.id) || [];
+                                    return sum + tokens.reduce((paxSum, tk) => paxSum + (tk.pax_count || 1), 0);
+                                }, 0);
+
                                 return (
-                                    <button
-                                        key={sec}
-                                        type="button"
-                                        onClick={() => setSelectedSection(sec)}
-                                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${selectedSection === sec
-                                            ? "bg-indigo-600 text-white shadow-2xs font-bold"
-                                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                                            }`}
-                                    >
-                                        {sec} ({secCount})
-                                    </button>
+                                    <div key={zoneName} className="space-y-4">
+                                        {/* Divider line before zone (for zones after the first) */}
+                                        {index > 0 && (
+                                            <div className="pt-2 pb-1 border-t border-slate-200/80 dark:border-slate-800/80" />
+                                        )}
+
+                                        {/* Zone Section Header */}
+                                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                                                    <Layers size={14} />
+                                                </div>
+                                                <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight uppercase">
+                                                        {zoneName}
+                                                    </h3>
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                                            {zoneTables.length} {zoneTables.length === 1 ? "table" : "tables"}
+                                                        </span>
+                                                        {zoneAvailable > 0 && (
+                                                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/50 flex items-center gap-1">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                                <span>{zoneAvailable} available</span>
+                                                            </span>
+                                                        )}
+                                                        {zoneCovers > 0 && (
+                                                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/50 flex items-center gap-1">
+                                                                <Users size={11} className="text-indigo-500 dark:text-indigo-400" />
+                                                                <span>{zoneCovers} {zoneCovers === 1 ? "guest" : "guests"}</span>
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {selectedSection !== "all" && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedSection("all")}
+                                                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+                                                >
+                                                    Show all zones
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Zone Table Cards or Empty State */}
+                                        {zoneTables.length === 0 ? (
+                                            <div className="py-8 px-6 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex flex-col items-center justify-center text-center">
+                                                <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-2">
+                                                    <Layers size={16} />
+                                                </div>
+                                                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                    No tables in {zoneName}
+                                                </h4>
+                                                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 max-w-xs">
+                                                    Click any table's zone badge to assign it to "{zoneName}".
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {/* Desktop Card Grid (md and up) */}
+                                                <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 items-stretch">
+                                                    {zoneTables.map(renderTableCard)}
+                                                </div>
+
+                                                {/* Mobile Card Grid (below md) */}
+                                                <div className="md:hidden flex flex-col gap-3">
+                                                    {zoneTables.map(renderTableCard)}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 );
                             })}
                         </div>
                     )}
-                    {/* Desktop Grid (md and up: 5 boxes per line) */}
-                    <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-5 gap-3.5">
-                        {filteredTables.map((tbl) => {
-                            const tokens = tableTokensMap.get(tbl.id) || [];
-                            const isOccupied = tokens.length > 0;
-                            const seatedPax = tokens.reduce((sum, t) => sum + (t.pax_count || 1), 0);
-                            const spareSeats = Math.max(0, tbl.capacity - seatedPax);
-                            const isShared = tokens.length > 1;
-                            const isPartiallyOccupied = seatedPax > 0 && spareSeats > 0;
-                            const primaryToken = tokens[0] || null;
-                            const isLoading = loadingTable === tbl.id;
-                            const elapsedMins = isOccupied ? getElapsedMinutes(primaryToken?.served_at) : 0;
-                            const isLingering = isOccupied && elapsedMins >= 60;
-                            const tokenTables = primaryToken ? getTokenAllActiveTables(primaryToken) : [tbl.id];
-                            const isMerged = tokenTables.length > 1;
-
-                            return (
-                                <div
-                                    key={tbl.id}
-                                    className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl p-4 transition-all duration-200 min-h-[160px] ${isOccupied
-                                        ? isLingering
-                                            ? "bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-900/60 shadow-[0_4px_20px_rgba(244,63,94,0.08)]"
-                                            : isShared
-                                                ? "bg-white dark:bg-slate-900 border border-teal-300 dark:border-teal-800 shadow-xs"
-                                                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:border-slate-300 dark:hover:border-slate-700"
-                                        : "bg-white dark:bg-slate-900/50 border border-slate-200/90 dark:border-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs"
-                                        }`}
-                                >
-                                    {/* Header: Table Name & Capacity Badge & Status Pill */}
-                                    <div className="flex items-center justify-between mb-2 relative z-10">
-                                        <div className="flex items-center gap-1.5 min-w-0">
-                                            <span className={`text-[11.5px] font-black uppercase tracking-[0.06em] truncate ${isOccupied
-                                                ? isLingering ? "text-rose-600 dark:text-rose-400" : isShared ? "text-teal-700 dark:text-teal-300" : "text-slate-900 dark:text-white"
-                                                : "text-slate-700 dark:text-slate-300"
-                                                }`}>
-                                                {tbl.name || `Table ${tbl.id}`}
-                                            </span>
-                                            {isMerged && (
-                                                <span className="text-[9px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded border border-slate-200 dark:border-slate-700 shrink-0" title={`Joined tables: ${tokenTables.map(id => `T${id}`).join(", ")}`}>
-                                                    🔗 Joined
-                                                </span>
-                                            )}
-                                            {isShared && (
-                                                <span className="text-[9px] font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-1 py-0.2 rounded border border-teal-200 dark:border-teal-800 shrink-0">
-                                                    🤝 Shared
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            {/* Interactive Capacity Badge (Click to Edit Chairs) */}
-                                            <button
-                                                type="button"
-                                                onClick={(e) => handleOpenCapacityEdit(tbl, e)}
-                                                disabled={isReadOnly}
-                                                title="Click to edit chairs count"
-                                                className="group/cap inline-flex items-center gap-0.5 text-[9.5px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200/70 dark:bg-slate-800 dark:hover:bg-slate-700 px-1.5 py-0.5 rounded-md border border-slate-200/70 dark:border-slate-700 transition-all cursor-pointer select-none"
-                                            >
-                                                <span>{tbl.capacity}p</span>
-                                                <Edit3 size={8.5} className="opacity-0 group-hover/cap:opacity-100 transition-opacity" />
-                                            </button>
-
-                                            <span className={`text-[9.5px] font-semibold px-1.5 py-0.5 rounded-md border flex items-center gap-1 ${isOccupied
-                                                ? isLingering
-                                                    ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/20 animate-pulse"
-                                                    : isShared
-                                                        ? "bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800"
-                                                        : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-                                                : "bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 shadow-2xs"
-                                                }`}>
-                                                {isOccupied ? (
-                                                    <>
-                                                        <Clock size={10} className="text-slate-400" />
-                                                        <span>{elapsedMins}m</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                                        <span>Available</span>
-                                                    </>
-                                                )}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Card Body */}
-                                    {isOccupied && primaryToken ? (
-                                        isShared ? (
-                                            /* Shared Table Body (Multiple Seated Parties) */
-                                            <div className="flex flex-col flex-1 relative z-10 justify-between">
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold">
-                                                        <span className="text-teal-700 dark:text-teal-300 flex items-center gap-1">
-                                                            <Users size={11} />
-                                                            {tokens.length} Parties
-                                                        </span>
-                                                        <span className="text-slate-600 dark:text-slate-400 font-semibold text-[10px]">
-                                                            {seatedPax}/{tbl.capacity}p {spareSeats > 0 ? `(+${spareSeats})` : "(Full)"}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex flex-col gap-1 mb-2 max-h-[120px] overflow-y-auto pr-0.5">
-                                                        {tokens.map((t) => (
-                                                            <div key={t.id || t.token_number} className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-1">
-                                                                <div className="flex items-center gap-1 min-w-0">
-                                                                    <span className="text-[11px] font-black text-slate-900 dark:text-white shrink-0">
-                                                                        #{prefix}{t.token_number}
-                                                                    </span>
-                                                                    <span className="text-[10.5px] text-slate-600 dark:text-slate-300 truncate font-medium">
-                                                                        {t.customer_name || "Guest"}
-                                                                    </span>
-                                                                    <span className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-1 py-0.2 rounded border border-slate-200/50 dark:border-slate-600 shrink-0">
-                                                                        {getTokenPax(t)}p
-                                                                    </span>
-                                                                </div>
-                                                                {!isReadOnly && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleFreeSingleParty(t, tbl.id, tbl.name || `Table ${tbl.id}`)}
-                                                                        disabled={isLoading}
-                                                                        className="text-[9.5px] font-bold px-1.5 py-0.5 rounded text-emerald-700 dark:text-emerald-300 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800/60 transition-colors cursor-pointer shrink-0"
-                                                                        title={`Free Party #${prefix}${t.token_number}`}
-                                                                    >
-                                                                        Free
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                {!isReadOnly && (
-                                                    <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-slate-100 dark:border-white/5">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRequestFreeTable(tbl.id, tbl.name || `Table ${tbl.id}`)}
-                                                            disabled={isLoading}
-                                                            className="w-full flex items-center justify-center gap-1 h-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold shadow-sm transition-all disabled:opacity-50 px-2 cursor-pointer"
-                                                        >
-                                                            <Check size={12} strokeWidth={2.5} />
-                                                            <span>Clear Table</span>
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            /* Single Seated Party Body */
-                                            <div className="flex flex-col flex-1 relative z-10 justify-between">
-                                                <div>
-                                                    {/* Token Number */}
-                                                    <div className="text-[25px] font-black tracking-tight text-slate-900 dark:text-white leading-none mb-1">
-                                                        <span className="text-slate-400 dark:text-slate-500 font-semibold">{prefix}</span>{primaryToken.token_number}
-                                                    </div>
-                                                    <div className="text-[11.5px] font-medium text-slate-600 dark:text-slate-300 mb-2.5 truncate flex items-center gap-1 flex-wrap">
-                                                        <span className="truncate">{primaryToken.customer_name || "Guest"}</span>
-                                                        <span className="inline-flex items-center gap-0.5 font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded text-[10px] shadow-2xs border border-slate-200/80 dark:border-slate-700" title={`Total Guests: ${getTokenPax(primaryToken)}`}>
-                                                            <Users size={9} />
-                                                            {getTokenPax(primaryToken)}p
-                                                        </span>
-                                                        {isPartiallyOccupied && (
-                                                            <span className="inline-flex items-center gap-0.5 font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-1 py-0.2 rounded text-[9.5px] border border-teal-200/80 dark:border-teal-800">
-                                                                +{spareSeats} Left
-                                                            </span>
-                                                        )}
-                                                        {isMerged && (
-                                                            <span className="inline-flex items-center gap-0.5 font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded text-[9.5px] border border-slate-200 dark:border-slate-700 shrink-0" title={`Joined tables: ${tokenTables.map(id => `T${id}`).join(", ")}`}>
-                                                                <Link2 size={8.5} />
-                                                                {tokenTables.map(id => `T${id}`).join("+")}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Actions */}
-                                                {!isReadOnly && (
-                                                    <div className="flex items-center gap-1.5 mt-1.5 pt-2 border-t border-slate-100 dark:border-white/5">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                toast.success(`Bill generated for ${tbl.name || `Table ${tbl.id}`}`);
-                                                            }}
-                                                            disabled={isLoading || isPaused}
-                                                            title="Generate / Print Bill"
-                                                            className="flex-1 flex items-center justify-center gap-1 h-8 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors disabled:opacity-50 px-1 border border-slate-200/90 dark:border-slate-700 cursor-pointer"
-                                                        >
-                                                            <Receipt size={11} className="text-slate-400" />
-                                                            <span>Bill</span>
-                                                        </button>
-                                                        {vacantTables.length > 0 && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setJoinTargetTable({ token: primaryToken, currentTableId: tbl.id, currentTableName: tbl.name || `Table ${tbl.id}` });
-                                                                    setSelectedJoinTableId(vacantTables[0]?.id ?? null);
-                                                                }}
-                                                                disabled={isLoading || isPaused}
-                                                                title="Join another vacant table to this party"
-                                                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shrink-0 border border-slate-200/90 dark:border-slate-700 cursor-pointer"
-                                                            >
-                                                                <Link2 size={12} className="text-slate-400" />
-                                                            </button>
-                                                        )}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRequestFreeTable(tbl.id, tbl.name || `Table ${tbl.id}`)}
-                                                            disabled={isLoading}
-                                                            title="Clear Table (Bill Paid)"
-                                                            className="flex-[1.3] flex items-center justify-center gap-1 h-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold shadow-sm shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all disabled:opacity-50 px-1.5 cursor-pointer"
-                                                        >
-                                                            <Check size={12} strokeWidth={2.5} />
-                                                            <span>{isMerged ? "Free Joined" : "Clear Table"}</span>
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center flex-1 my-2 text-center">
-                                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 flex items-center justify-center mb-1.5 text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-all duration-200 shadow-2xs">
-                                                <Utensils size={16} />
-                                            </div>
-                                            <span className="text-[12px] font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                                                Vacant Table
-                                            </span>
-                                            <span className="text-[10.5px] text-slate-400 dark:text-slate-500 mt-0.5 font-medium">
-                                                Seats up to {tbl.capacity} guests
-                                            </span>
-                                            {waitingTokens.length > 0 && !isReadOnly && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setViewMode("paper")}
-                                                    className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
-                                                >
-                                                    <ClipboardList size={11} className="text-slate-400" />
-                                                    <span>Seat Party</span>
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Mobile Cards (below md) */}
-                    <div className="md:hidden flex flex-col gap-2">
-                        {filteredTables.map((tbl) => {
-                            const tokens = tableTokensMap.get(tbl.id) || [];
-                            const isOccupied = tokens.length > 0;
-                            const seatedPax = tokens.reduce((sum, t) => sum + (t.pax_count || 1), 0);
-                            const spareSeats = Math.max(0, tbl.capacity - seatedPax);
-                            const isShared = tokens.length > 1;
-                            const isPartiallyOccupied = seatedPax > 0 && spareSeats > 0;
-                            const primaryToken = tokens[0] || null;
-                            const isLoading = loadingTable === tbl.id;
-                            const isExpanded = mobileExpandAll || expandedTable === tbl.id;
-                            const tokenTables = primaryToken ? getTokenAllActiveTables(primaryToken) : [tbl.id];
-                            const isMerged = tokenTables.length > 1;
-
-                            return (
-                                <div key={tbl.id} className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300">
-                                    <div
-                                        className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${isOccupied
-                                            ? isShared
-                                                ? "bg-white dark:bg-slate-900 border-l-4 border-l-teal-500"
-                                                : "bg-white dark:bg-slate-900 border-l-4 border-l-indigo-500"
-                                            : "bg-slate-50 dark:bg-slate-800/50"
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs shadow-xs border border-slate-200 dark:border-slate-700">
-                                                T{tbl.id}
-                                            </div>
-                                            <div>
-                                                <div className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 flex-wrap">
-                                                    <span>{tbl.name}</span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => handleOpenCapacityEdit(tbl, e)}
-                                                        disabled={isReadOnly}
-                                                        className="text-[10px] text-slate-500 hover:text-indigo-600 bg-slate-200/60 dark:bg-slate-700/60 px-1 py-0.2 rounded font-semibold transition-colors"
-                                                    >
-                                                        {tbl.capacity}p ✎
-                                                    </button>
-                                                    {isShared && (
-                                                        <span className="text-[9.5px] font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-1.5 py-0.2 rounded border border-teal-200 dark:border-teal-800">
-                                                            🤝 Shared ({seatedPax}/{tbl.capacity}p)
-                                                        </span>
-                                                    )}
-                                                    {isPartiallyOccupied && !isShared && (
-                                                        <span className="text-[9.5px] font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-1.5 py-0.2 rounded border border-teal-200 dark:border-teal-800">
-                                                            +{spareSeats} seat left
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                {isOccupied && !isShared && primaryToken && (
-                                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 flex-wrap">
-                                                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 mr-1">#{prefix}{primaryToken.token_number}</span>
-                                                        <span>{primaryToken.customer_name || "Guest"}</span>
-                                                        <span className="text-[10px] text-slate-400">({getTokenPax(primaryToken)}p)</span>
-                                                        {isMerged && (
-                                                            <span className="text-[9.5px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700">
-                                                                🔗 {tokenTables.map(id => `T${id}`).join("+")}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                            {isOccupied ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRequestFreeTable(tbl.id, tbl.name || `Table ${tbl.id}`)}
-                                                    disabled={isLoading || isReadOnly}
-                                                    className="px-2.5 py-1 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-xs transition-colors cursor-pointer"
-                                                >
-                                                    {isMerged ? "Free Joined" : isShared ? "Clear All" : "Free Table"}
-                                                </button>
-                                            ) : (
-                                                <span className="text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-md">
-                                                    Available
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* If shared, render each individual party row on mobile with Free Party button */}
-                                    {isShared && (
-                                        <div className="px-3 pb-3 pt-1 border-t border-slate-100 dark:border-slate-800/80 flex flex-col gap-1.5">
-                                            {tokens.map((tok) => (
-                                                <div key={tok.id} className="flex items-center justify-between text-xs py-1 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">#{prefix}{tok.token_number}</span>
-                                                        <span className="text-slate-700 dark:text-slate-300 font-medium">{tok.customer_name || "Guest"}</span>
-                                                        <span className="text-[10.5px] text-slate-400">({getTokenPax(tok)}p)</span>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleFreeSingleParty(tok, tbl.id, tbl.name || `Table ${tbl.id}`)}
-                                                        disabled={isLoading || isReadOnly}
-                                                        className="text-[10.5px] font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-2 py-0.5 rounded transition-colors"
-                                                    >
-                                                        Free Party
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
                 </>
             )}
 
@@ -1089,79 +1305,47 @@ export default function DineTableGrid({
 
                             {/* Main Pax Range Chips */}
                             <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1">
+                                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
                                     <Users size={12} /> Pax:
                                 </span>
-                                <button
-                                    type="button"
-                                    onClick={() => setPaxFilter("all")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "all"
-                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                        }`}
-                                >
-                                    All ({waitingTokens.length})
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPaxFilter("1-4")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "1-4"
-                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                        }`}
-                                >
-                                    1-4p ({paxStats.p1_4})
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPaxFilter("5-6")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "5-6"
-                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                        }`}
-                                >
-                                    5-6p ({paxStats.p5_6})
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPaxFilter("7-9")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "7-9"
-                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                        }`}
-                                >
-                                    7-9p ({paxStats.p7_9})
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPaxFilter("10-12")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "10-12"
-                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                        }`}
-                                >
-                                    10-12p ({paxStats.p10_12})
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPaxFilter("12-15")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "12-15"
-                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                        }`}
-                                >
-                                    12-15p ({paxStats.p12_15})
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPaxFilter("15+")}
-                                    className={`px-3 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${paxFilter === "15+"
-                                        ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm shadow-indigo-500/20"
-                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 font-medium"
-                                        }`}
-                                >
-                                    15+p ({paxStats.p15plus})
-                                </button>
+                                <div className="flex items-center gap-1 flex-wrap bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+                                    {[
+                                        { key: "all", label: "All", count: waitingTokens.length },
+                                        { key: "1-4", label: "1-4p", count: paxStats.p1_4 },
+                                        { key: "5-6", label: "5-6p", count: paxStats.p5_6 },
+                                        { key: "7-9", label: "7-9p", count: paxStats.p7_9 },
+                                        { key: "10-12", label: "10-12p", count: paxStats.p10_12 },
+                                        { key: "12-15", label: "12-15p", count: paxStats.p12_15 },
+                                        { key: "15+", label: "15+p", count: paxStats.p15plus },
+                                    ].map((opt) => {
+                                        const isActive = paxFilter === opt.key;
+                                        return (
+                                            <button
+                                                key={opt.key}
+                                                type="button"
+                                                onClick={() => setPaxFilter(opt.key as any)}
+                                                className={`h-7 px-2.5 text-xs rounded-lg transition-all cursor-pointer flex items-center gap-1.5 font-medium ${
+                                                    isActive
+                                                        ? "bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-500/20"
+                                                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50"
+                                                }`}
+                                            >
+                                                <span>{opt.label}</span>
+                                                <span
+                                                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                                                        isActive
+                                                            ? "bg-white/20 text-white"
+                                                            : opt.count > 0
+                                                            ? "bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                                            : "text-slate-300 dark:text-slate-600"
+                                                    }`}
+                                                >
+                                                    {opt.count}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1192,85 +1376,129 @@ export default function DineTableGrid({
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                            {filteredWaitingTokens.map((token, idx) => {
+                            {/* Table Column Headers */}
+                            <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-2.5 bg-slate-50/70 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 select-none">
+                                <div className="col-span-12 md:col-span-3">Guest & Token</div>
+                                <div className="col-span-6 md:col-span-2">Party Size</div>
+                                <div className="col-span-6 md:col-span-3">Contact</div>
+                                <div className="col-span-6 md:col-span-2">Wait Time</div>
+                                <div className="col-span-6 md:col-span-2 text-right">Action</div>
+                            </div>
+
+                            {filteredWaitingTokens.map((token) => {
                                 const partyPax = getTokenPax(token);
-                                const waitMins = getElapsedMinutes(token.created_at);
+                                const waitInfo = formatPaperWaitDuration(token.created_at);
                                 const isSeating = seatingTokenId === token.id;
+                                const initial = getContactInitial(token.customer_name);
+                                const avatarColor = getContactAvatarColor(token.customer_name || String(token.token_number));
+
+                                const fittingVacantTables = vacantTables
+                                    .filter(t => t.capacity >= partyPax)
+                                    .sort((a, b) => a.capacity - b.capacity);
+                                const bestVacantTable = fittingVacantTables[0] || null;
+
+                                const hasAnyCompatibleTable = tables.some(t => {
+                                    const occ = getTableOccupancy(t.id, t.capacity);
+                                    return occ.isVacant || occ.spareSeats >= partyPax;
+                                });
 
                                 return (
                                     <div
                                         key={token.id}
-                                        className="p-4 sm:px-6 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
+                                        className="px-4 sm:px-6 py-3.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors grid grid-cols-12 gap-4 items-center"
                                     >
-                                        {/* Left: Token Number, Name, Phone, Entry Type */}
-                                        <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
-                                            {/* Token number badge */}
-                                            <div className="w-12 h-12 rounded-xl bg-slate-100/90 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 flex flex-col items-center justify-center shrink-0 shadow-2xs">
-                                                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase leading-none">
-                                                    {prefix}
-                                                </span>
-                                                <span className="text-lg font-black text-slate-900 dark:text-white leading-tight">
-                                                    {token.token_number}
+                                        {/* 1. Guest & Token */}
+                                        <div className="col-span-12 md:col-span-3 flex items-center gap-2.5 min-w-0">
+                                            {/* Contact Initial Avatar with Distinct Colors */}
+                                            <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm leading-none border shadow-2xs select-none shrink-0 ${avatarColor}`}>
+                                                <span className="flex items-center justify-center leading-none translate-y-[-0.5px]">
+                                                    {initial}
                                                 </span>
                                             </div>
 
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="text-sm font-bold text-slate-900 dark:text-white">
+                                            {/* Identity Stack */}
+                                            <div className="min-w-0 flex flex-col justify-center">
+                                                <div className="flex items-center gap-1.5 flex-wrap leading-tight">
+                                                    <span className="text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">
                                                         {token.customer_name || "Guest"}
                                                     </span>
                                                     {token.entry_type && token.entry_type !== "manual" && (
-                                                        <span className="text-[9.5px] uppercase font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded">
+                                                        <span className="text-[9px] uppercase font-bold tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.2 rounded">
                                                             {token.entry_type}
                                                         </span>
                                                     )}
                                                 </div>
-
-                                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
-                                                    {token.customer_phone && (
-                                                        <a
-                                                            href={`tel:${token.customer_phone}`}
-                                                            className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"
-                                                        >
-                                                            <Phone size={11} className="text-slate-400" />
-                                                            <span>{token.customer_phone}</span>
-                                                        </a>
-                                                    )}
-                                                    <span className="flex items-center gap-1 text-slate-400 font-medium">
-                                                        <Clock size={11} />
-                                                        <span>{waitMins}m waiting</span>
-                                                    </span>
+                                                <div className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400 mt-0.5 leading-none">
+                                                    Token {prefix}{token.token_number}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Center: Pax Badge */}
-                                        <div className="flex items-center justify-start md:justify-center flex-1">
-                                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700 shadow-2xs">
-                                                <Users size={13} className="text-slate-400 dark:text-slate-500" />
+                                        {/* 2. Party Size */}
+                                        <div className="col-span-6 md:col-span-2 flex items-center">
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80">
+                                                <Users size={12} className="text-slate-400 dark:text-slate-500" />
                                                 <span>{partyPax} Pax</span>
                                             </span>
                                         </div>
 
-                                        {/* Right: Direct Table Assignment & Seating Action */}
-                                        <div className="flex items-center gap-2 self-end md:self-center shrink-0 flex-1 justify-end">
-                                            {tables.some(t => {
-                                                const occ = getTableOccupancy(t.id, t.capacity);
-                                                return occ.isVacant || occ.spareSeats >= partyPax;
-                                            }) ? (
+                                        {/* 3. Contact */}
+                                        <div className="col-span-6 md:col-span-3 flex items-center">
+                                            {token.customer_phone ? (
+                                                <a
+                                                    href={`tel:${token.customer_phone}`}
+                                                    className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors"
+                                                >
+                                                    <Phone size={12} className="text-slate-400" />
+                                                    <span>{token.customer_phone}</span>
+                                                </a>
+                                            ) : (
+                                                <span className="text-xs text-slate-400">No phone</span>
+                                            )}
+                                        </div>
+
+                                        {/* 4. Wait Time */}
+                                        <div className="col-span-6 md:col-span-2 flex items-center">
+                                            <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+                                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                                    waitInfo.severity === "high"
+                                                        ? "bg-rose-500"
+                                                        : waitInfo.severity === "medium"
+                                                        ? "bg-amber-500"
+                                                        : "bg-emerald-500"
+                                                }`} />
+                                                <Clock size={12} className="text-slate-400" />
+                                                <span className={
+                                                    waitInfo.severity === "high"
+                                                        ? "text-rose-600 dark:text-rose-400 font-semibold"
+                                                        : waitInfo.severity === "medium"
+                                                        ? "text-amber-600 dark:text-amber-400 font-semibold"
+                                                        : "text-slate-600 dark:text-slate-300"
+                                                }>
+                                                    {waitInfo.text}
+                                                </span>
+                                            </span>
+                                        </div>
+
+                                        {/* 5. Action */}
+                                        <div className="col-span-6 md:col-span-2 flex items-center justify-end">
+                                            {hasAnyCompatibleTable ? (
                                                 <button
                                                     type="button"
                                                     onClick={() => {
                                                         setAssignTableToken(token);
-                                                        setModalSelectedTableIds([]);
-                                                        setModalTableFilter("vacant");
+                                                        setModalSelectedTableIds(bestVacantTable ? [bestVacantTable.id] : []);
+                                                        setModalTableFilter(bestVacantTable ? "vacant" : "all");
                                                         setModalTableSearch("");
                                                     }}
                                                     disabled={isSeating || isReadOnly || isPaused}
-                                                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all disabled:opacity-50 cursor-pointer"
+                                                    className="h-9 px-3.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs font-bold shadow-sm shadow-indigo-500/25 hover:shadow-indigo-500/35 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 select-none active:scale-[0.98] whitespace-nowrap"
                                                 >
                                                     {isSeating ? (
-                                                        <span>Seating...</span>
+                                                        <>
+                                                            <Loader2 size={13} className="animate-spin" />
+                                                            <span>Seating...</span>
+                                                        </>
                                                     ) : (
                                                         <>
                                                             <UtensilsCrossed size={13} />
@@ -1279,9 +1507,21 @@ export default function DineTableGrid({
                                                     )}
                                                 </button>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-xl border border-amber-200/80 dark:border-amber-900/60">
-                                                    <span>⏳ All Tables Full</span>
-                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setAssignTableToken(token);
+                                                        setModalSelectedTableIds([]);
+                                                        setModalTableFilter("all");
+                                                        setModalTableSearch("");
+                                                    }}
+                                                    disabled={isSeating || isReadOnly || isPaused}
+                                                    className="h-9 px-3 bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs select-none whitespace-nowrap"
+                                                    title="All tables are occupied. Click to inspect turns or join tables."
+                                                >
+                                                    <Clock size={13} className="text-amber-600 dark:text-amber-400" />
+                                                    <span>Join / View Tables</span>
+                                                </button>
                                             )}
                                         </div>
                                     </div>
@@ -1293,238 +1533,323 @@ export default function DineTableGrid({
             )}
 
             {/* ========================================================================= */}
+            {/* ========================================================================= */}
             {/* INLINE TABLE CAPACITY EDIT MODAL */}
             {/* ========================================================================= */}
             {editingCapacityTable && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-sm w-full p-5 shadow-2xl">
-                        <div className="flex items-center justify-between mb-3.5">
-                            <div>
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                    <Edit3 size={14} className="text-indigo-500" />
-                                    Edit Table Chairs
-                                </h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Configure chairs count for <strong>{editingCapacityTable.name}</strong>
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setEditingCapacityTable(null)}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
-
-                        {/* Quick Presets */}
-                        <div className="mb-4">
-                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                                Chair Presets
-                            </label>
-                            <div className="grid grid-cols-4 gap-1.5">
-                                {[2, 4, 6, 8, 10, 12, 14, 16].map(preset => (
-                                    <button
-                                        key={preset}
-                                        type="button"
-                                        onClick={() => setNewCapacityInput(preset)}
-                                        className={`py-1.5 text-xs font-bold rounded-lg border transition-all ${newCapacityInput === preset
-                                            ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
-                                            : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300"
-                                            }`}
-                                    >
-                                        {preset}p
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Direct Number Input */}
-                        <div className="mb-5">
-                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                                Custom Number of Chairs
-                            </label>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setNewCapacityInput(prev => Math.max(1, prev - 1))}
-                                    className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-lg flex items-center justify-center hover:bg-slate-200 transition-colors"
-                                >
-                                    -
-                                </button>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    max={50}
-                                    value={newCapacityInput}
-                                    onChange={(e) => setNewCapacityInput(Math.max(1, parseInt(e.target.value) || 1))}
-                                    className="flex-1 text-center py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-900 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setNewCapacityInput(prev => Math.min(50, prev + 1))}
-                                    className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-lg flex items-center justify-center hover:bg-slate-200 transition-colors"
-                                >
-                                    +
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setEditingCapacityTable(null)}
-                                className="flex-1 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleSaveCapacity}
-                                disabled={isSavingCapacity}
-                                className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition-all disabled:opacity-50"
-                            >
-                                {isSavingCapacity ? "Saving..." : "Save Chairs"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-
-
-            {/* ========================================================================= */}
-            {/* JOIN EXTRA TABLE MODAL (FROM FLOOR VIEW) */}
-            {/* ========================================================================= */}
-            {joinTargetTable && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-sm w-full p-5 shadow-2xl">
-                        <div className="flex items-center justify-between mb-3.5">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                                    <Link2 size={16} />
-                                </div>
+                <ModalPortal>
+                    <div
+                        className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md transition-all animate-in fade-in duration-200"
+                        onClick={() => setEditingCapacityTable(null)}
+                    >
+                        <div
+                            className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 max-w-sm w-full p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)] animate-in zoom-in-95 duration-200"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-4">
                                 <div>
-                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                                        Join Another Table
+                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                        <Edit3 size={14} className="text-indigo-500" />
+                                        Edit Table Details
                                     </h3>
                                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                                        Connect to <strong>{joinTargetTable.currentTableName}</strong> (Party #{prefix}{joinTargetTable.token.token_number})
+                                        Configure name, chairs & zone for <strong>{editingCapacityTable.name}</strong>
                                     </p>
                                 </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingCapacityTable(null)}
+                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+                                >
+                                    <X size={16} />
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => { setJoinTargetTable(null); setSelectedJoinTableId(null); }}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
 
-                        <div className="mb-4">
-                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                                Select Vacant Table to Join:
-                            </label>
-                            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                                {vacantTables.map(vt => (
-                                    <button
-                                        key={vt.id}
-                                        type="button"
-                                        onClick={() => setSelectedJoinTableId(vt.id)}
-                                        className={`p-2.5 rounded-xl border text-left transition-all ${selectedJoinTableId === vt.id
-                                            ? "bg-indigo-50 dark:bg-indigo-950/50 border-indigo-500 ring-2 ring-indigo-500/20 shadow-xs"
-                                            : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                            {/* Table Name Input */}
+                            <div className="mb-4">
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                                    <span className="flex items-center gap-1">
+                                        <Tag size={12} className="text-indigo-500" /> Table Name
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-normal">
+                                        ID #{editingCapacityTable.id}
+                                    </span>
+                                </label>
+                                <input
+                                    ref={tableNameInputRef}
+                                    type="text"
+                                    value={newTableNameInput}
+                                    onChange={(e) => setNewTableNameInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            handleSaveCapacity();
+                                        }
+                                    }}
+                                    placeholder={`e.g. Table ${editingCapacityTable.id}`}
+                                    maxLength={30}
+                                    className="w-full px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all uppercase"
+                                />
+                            </div>
+
+                            {/* Zone Selection */}
+                            <div className="mb-4">
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                    <Layers size={12} className="text-indigo-500" /> Dining Zone
+                                </label>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    {availableSections.map((sec) => (
+                                        <button
+                                            key={sec}
+                                            type="button"
+                                            onClick={() => setNewSectionInput(sec)}
+                                            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                                                newSectionInput.toLowerCase() === sec.toLowerCase()
+                                                    ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                                                    : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300"
                                             }`}
-                                    >
-                                        <div className="text-xs font-bold text-slate-900 dark:text-white">
-                                            {vt.name || `Table ${vt.id}`}
-                                        </div>
-                                        <div className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                            {vt.capacity} Chairs
-                                        </div>
-                                    </button>
-                                ))}
+                                        >
+                                            {sec}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => { setJoinTargetTable(null); setSelectedJoinTableId(null); }}
-                                className="flex-1 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleConfirmJoinTable}
-                                disabled={!selectedJoinTableId || isSubmittingJoin}
-                                className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition-all disabled:opacity-50"
-                            >
-                                {isSubmittingJoin ? "Joining..." : "Join Table"}
-                            </button>
+                            {/* Quick Presets */}
+                            <div className="mb-4">
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                                    Chair Presets
+                                </label>
+                                <div className="grid grid-cols-4 gap-1.5">
+                                    {[2, 4, 6, 8, 10, 12, 14, 16].map(preset => (
+                                        <button
+                                            key={preset}
+                                            type="button"
+                                            onClick={() => setNewCapacityInput(preset)}
+                                            className={`py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${newCapacityInput === preset
+                                                ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                                                : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300"
+                                                }`}
+                                        >
+                                            {preset}p
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Direct Number Input */}
+                            <div className="mb-5">
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                                    Custom Number of Chairs
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewCapacityInput(prev => Math.max(1, prev - 1))}
+                                        className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-lg flex items-center justify-center hover:bg-slate-200 transition-colors cursor-pointer"
+                                    >
+                                        -
+                                    </button>
+                                    <input
+                                        ref={capacityInputRef}
+                                        type="number"
+                                        min={1}
+                                        max={50}
+                                        value={newCapacityInput}
+                                        onChange={(e) => setNewCapacityInput(Math.max(1, parseInt(e.target.value) || 1))}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                handleSaveCapacity();
+                                            }
+                                        }}
+                                        className="flex-1 text-center py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-900 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewCapacityInput(prev => Math.min(50, prev + 1))}
+                                        className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-lg flex items-center justify-center hover:bg-slate-200 transition-colors cursor-pointer"
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingCapacityTable(null)}
+                                    className="flex-1 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSaveCapacity}
+                                    disabled={isSavingCapacity}
+                                    className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                                >
+                                    {isSavingCapacity ? "Saving..." : "Save Changes"}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </ModalPortal>
             )}
 
+
+
+            {/* ========================================================================= */}
+            {/* JOIN EXTRA TABLE MODAL (Global Portal) */}
+            {/* ========================================================================= */}
+            {/* JOIN EXTRA TABLE MODAL */}
+            {/* ========================================================================= */}
+            {joinTargetTable && (
+                <ModalPortal>
+                    <div
+                        className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md transition-all animate-in fade-in duration-200"
+                        onClick={() => { setJoinTargetTable(null); setSelectedJoinTableId(null); }}
+                    >
+                        <div
+                            className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 max-w-sm w-full p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)] animate-in zoom-in-95 duration-200"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-3.5">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                        <Link2 size={16} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                                            Join Another Table
+                                        </h3>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                            Connect to <strong>{joinTargetTable.currentTableName}</strong> (Party #{prefix}{joinTargetTable.token.token_number})
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => { setJoinTargetTable(null); setSelectedJoinTableId(null); }}
+                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                    Select Vacant Table to Join:
+                                </label>
+                                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                                    {vacantTables.map(vt => (
+                                        <button
+                                            key={vt.id}
+                                            type="button"
+                                            onClick={() => setSelectedJoinTableId(vt.id)}
+                                            className={`p-2.5 rounded-xl border text-left transition-all ${selectedJoinTableId === vt.id
+                                                ? "bg-indigo-50 dark:bg-indigo-950/50 border-indigo-500 ring-2 ring-indigo-500/20 shadow-xs"
+                                                : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                                                }`}
+                                        >
+                                            <div className="text-xs font-bold text-slate-900 dark:text-white">
+                                                {vt.name || `Table ${vt.id}`}
+                                            </div>
+                                            <div className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                                {vt.capacity} Chairs
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => { setJoinTargetTable(null); setSelectedJoinTableId(null); }}
+                                    className="flex-1 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmJoinTable}
+                                    disabled={!selectedJoinTableId || isSubmittingJoin}
+                                    className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition-all disabled:opacity-50"
+                                >
+                                    {isSubmittingJoin ? "Joining..." : "Join Table"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </ModalPortal>
+            )}
+
+            {/* ========================================================================= */}
             {/* ========================================================================= */}
             {/* FREE JOINED TABLES CONFIRMATION MODAL */}
             {/* ========================================================================= */}
             {freeMergedConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-sm w-full p-5 shadow-2xl">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                                <Utensils size={18} />
+                <ModalPortal>
+                    <div
+                        className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md transition-all animate-in fade-in duration-200"
+                        onClick={() => setFreeMergedConfirm(null)}
+                    >
+                        <div
+                            className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 max-w-sm w-full p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)] animate-in zoom-in-95 duration-200"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                    <Utensils size={18} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                                        Free Joined Tables?
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        Party #{prefix}{freeMergedConfirm.token.token_number} is seated across tables:{" "}
+                                        <strong>{freeMergedConfirm.tableIds.map(id => tables.find(t => t.id === id)?.name || `T${id}`).join(" + ")}</strong>
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                                    Free Joined Tables?
-                                </h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Party #{prefix}{freeMergedConfirm.token.token_number} is seated across tables:{" "}
-                                    <strong>{freeMergedConfirm.tableIds.map(id => tables.find(t => t.id === id)?.name || `T${id}`).join(" + ")}</strong>
-                                </p>
+
+                            <p className="text-xs text-slate-600 dark:text-slate-300 mb-4">
+                                Would you like to clear and free all joined tables together, or only this table?
+                            </p>
+
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => freeAllJoinedTables(freeMergedConfirm.tableIds)}
+                                    className="w-full py-2.5 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-all cursor-pointer"
+                                >
+                                    Free All Joined Tables ({freeMergedConfirm.tableIds.map(id => `T${id}`).join("+")})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const tblId = freeMergedConfirm.clickedTableId;
+                                        const tblName = freeMergedConfirm.clickedTableName;
+                                        setFreeMergedConfirm(null);
+                                        freeSingleTable(tblId, tblName);
+                                    }}
+                                    className="w-full py-2 px-3 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
+                                >
+                                    Free Only {freeMergedConfirm.clickedTableName}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFreeMergedConfirm(null)}
+                                    className="w-full py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
                             </div>
-                        </div>
-
-                        <p className="text-xs text-slate-600 dark:text-slate-300 mb-4">
-                            Would you like to clear and free all joined tables together, or only this table?
-                        </p>
-
-                        <div className="flex flex-col gap-2">
-                            <button
-                                type="button"
-                                onClick={() => freeAllJoinedTables(freeMergedConfirm.tableIds)}
-                                className="w-full py-2.5 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-all cursor-pointer"
-                            >
-                                Free All Joined Tables ({freeMergedConfirm.tableIds.map(id => `T${id}`).join("+")})
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const tblId = freeMergedConfirm.clickedTableId;
-                                    const tblName = freeMergedConfirm.clickedTableName;
-                                    setFreeMergedConfirm(null);
-                                    freeSingleTable(tblId, tblName);
-                                }}
-                                className="w-full py-2 px-3 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors"
-                            >
-                                Free Only {freeMergedConfirm.clickedTableName}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setFreeMergedConfirm(null)}
-                                className="w-full py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                            >
-                                Cancel
-                            </button>
                         </div>
                     </div>
-                </div>
+                </ModalPortal>
             )}
 
             {/* ========================================================================= */}
@@ -1606,16 +1931,20 @@ export default function DineTableGrid({
                 }).length;
 
                 return (
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
-                        onClick={(e) => {
-                            if (e.target === e.currentTarget) {
-                                setAssignTableToken(null);
-                                setModalSelectedTableIds([]);
-                            }
-                        }}
-                    >
-                        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-2xl w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh]">
+                    <ModalPortal>
+                        <div
+                            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md transition-all animate-in fade-in duration-200"
+                            onClick={(e) => {
+                                if (e.target === e.currentTarget) {
+                                    setAssignTableToken(null);
+                                    setModalSelectedTableIds([]);
+                                }
+                            }}
+                        >
+                        <div
+                            className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 max-w-2xl w-full p-5 sm:p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)] flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             {/* Modal Header */}
                             <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
                                 <div className="flex items-center gap-3">
@@ -2141,8 +2470,384 @@ export default function DineTableGrid({
                             </div>
                         </div>
                     </div>
-                );
-            })()}
+                </ModalPortal>
+            );
+        })()}
+
+            {/* Waitlist Peek Slide-Over Drawer */}
+            <WaitlistPeekDrawer
+                isOpen={isWaitlistOpen}
+                onClose={() => setIsWaitlistOpen(false)}
+                waitingTokens={waitingTokens}
+                tables={enhancedTables}
+                prefix={prefix}
+                onSeatParty={async (token, tableId) => {
+                    await handleSeatWaitingToken(token, tableId);
+                    setIsWaitlistOpen(false);
+                }}
+                onPageParty={async (token) => {
+                    toast.success(`Paged Party #${prefix}${token.token_number} (${token.customer_name || "Guest"}) via SMS`);
+                }}
+                onNoShowParty={async (token) => {
+                    try {
+                        await api.skipToken(token.id);
+                        toast.info(`Marked Party #${prefix}${token.token_number} as No-Show`);
+                        onUpdate();
+                    } catch {
+                        toast.error("Failed to mark no-show");
+                    }
+                }}
+                onOpenWalkInModal={() => {
+                    setIsWaitlistOpen(false);
+                    setIsWalkInModalOpen(true);
+                }}
+                isReadOnly={isReadOnly}
+            />
+
+            {/* Quick Walk-In Modal */}
+            <QuickWalkInModal
+                isOpen={isWalkInModalOpen}
+                onClose={() => {
+                    setIsWalkInModalOpen(false);
+                    setWalkInTargetTableId(null);
+                }}
+                tables={enhancedTables}
+                initialTableId={walkInTargetTableId}
+                onSubmit={handleQuickWalkInSubmit}
+                isSubmitting={isSubmittingWalkIn}
+            />
+
+            {/* ========================================================================= */}
+            {/* ASSIGN WAITING CUSTOMER TO TABLE MODAL                                    */}
+            {/* ========================================================================= */}
+            {assigningTargetTable && (
+                <ModalPortal>
+                    <div
+                        className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md transition-all animate-in fade-in duration-200"
+                        onClick={() => {
+                            setAssigningTargetTable(null);
+                            setAssignModalSearch("");
+                        }}
+                    >
+                        <div
+                            className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 max-w-2xl w-full p-0 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)] flex flex-col max-h-[88vh] animate-in zoom-in-95 duration-200 overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-xs">
+                                        <UtensilsCrossed size={18} />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                                                Assign Party to {assigningTargetTable.name || `Table ${assigningTargetTable.id}`}
+                                            </h3>
+                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-md border border-indigo-200/70 dark:border-indigo-800/70">
+                                                <Users size={11} />
+                                                {assigningTargetTable.capacity}p Capacity
+                                            </span>
+                                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                                                {assigningTargetTable.section || "Main Dining"}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                            Select a waiting guest from the queue to seat immediately at this table
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setAssigningTargetTable(null);
+                                        setAssignModalSearch("");
+                                    }}
+                                    className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            {/* Search and Segmented Filter Bar */}
+                            <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0">
+                                {/* Search Input */}
+                                <div className="relative flex-1">
+                                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    <input
+                                        type="text"
+                                        value={assignModalSearch}
+                                        onChange={(e) => setAssignModalSearch(e.target.value)}
+                                        placeholder="Search by guest name, phone, or token #..."
+                                        className="w-full pl-9 pr-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                    />
+                                    {assignModalSearch && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setAssignModalSearch("")}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Segmented Filter Pills */}
+                                <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-semibold shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => setAssignModalFilter("all")}
+                                        className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                                            assignModalFilter === "all"
+                                                ? "bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-2xs font-bold"
+                                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                        }`}
+                                    >
+                                        All ({waitingTokens.length})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setAssignModalFilter("fits")}
+                                        className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                                            assignModalFilter === "fits"
+                                                ? "bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-2xs font-bold"
+                                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                        }`}
+                                    >
+                                        <Sparkles size={11} className="text-emerald-500" />
+                                        <span>Fits Table ({waitingTokens.filter(t => getTokenPax(t) <= assigningTargetTable.capacity).length})</span>
+                                    </button>
+                                    {waitingTokens.filter(t => getTokenPax(t) > assigningTargetTable.capacity).length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setAssignModalFilter("exceeds")}
+                                            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                                                assignModalFilter === "exceeds"
+                                                    ? "bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 shadow-2xs font-bold"
+                                                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                            }`}
+                                        >
+                                            Exceeds ({waitingTokens.filter(t => getTokenPax(t) > assigningTargetTable.capacity).length})
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Scrollable List of Waiting Parties */}
+                            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2.5">
+                                {(() => {
+                                    const filtered = waitingTokens.filter((token) => {
+                                        if (assignModalSearch.trim()) {
+                                            const query = assignModalSearch.toLowerCase();
+                                            const nameMatch = token.customer_name?.toLowerCase().includes(query);
+                                            const phoneMatch = token.customer_phone?.toLowerCase().includes(query);
+                                            const tokenMatch = `${prefix}${token.token_number}`.toLowerCase().includes(query);
+                                            if (!nameMatch && !phoneMatch && !tokenMatch) return false;
+                                        }
+                                        const pax = getTokenPax(token);
+                                        if (assignModalFilter === "fits") {
+                                            return pax <= assigningTargetTable.capacity;
+                                        }
+                                        if (assignModalFilter === "exceeds") {
+                                            return pax > assigningTargetTable.capacity;
+                                        }
+                                        return true;
+                                    });
+
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="p-8 text-center flex flex-col items-center justify-center">
+                                                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-3">
+                                                    <Users size={22} />
+                                                </div>
+                                                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                                    No Waiting Parties Found
+                                                </h4>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
+                                                    {assignModalSearch
+                                                        ? "No waiting guests match your current search query."
+                                                        : "There are currently no waiting parties in the queue register."}
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const tableId = assigningTargetTable.id;
+                                                        setAssigningTargetTable(null);
+                                                        setWalkInTargetTableId(tableId);
+                                                        setIsWalkInModalOpen(true);
+                                                    }}
+                                                    className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-xs"
+                                                >
+                                                    <UserPlus size={14} />
+                                                    <span>Seat Walk-in at {assigningTargetTable.name || `Table ${assigningTargetTable.id}`}</span>
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+
+                                    return filtered.map((token, index) => {
+                                        const tokenPax = getTokenPax(token);
+                                        const targetCapacity = assigningTargetTable.capacity;
+                                        const isFit = tokenPax <= targetCapacity;
+                                        const isExact = tokenPax === targetCapacity;
+                                        const avatarColor = getContactAvatarColor(token.customer_name || String(token.token_number));
+                                        const initial = getContactInitial(token.customer_name);
+                                        const waitInfo = formatPaperWaitDuration(token.created_at);
+                                        const isBeingSeated = seatingTokenId === token.id;
+
+                                        return (
+                                            <div
+                                                key={token.id}
+                                                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/70 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-2xs group"
+                                            >
+                                                {/* Left: Contact Avatar + Guest & Token details */}
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm leading-none border shadow-2xs select-none shrink-0 ${avatarColor}`}>
+                                                        <span>{initial}</span>
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                                                                {token.customer_name || "Guest"}
+                                                            </span>
+                                                            <span className="font-mono text-xs font-black text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 px-2 py-0.5 rounded-md shrink-0">
+                                                                #{prefix}{token.token_number}
+                                                            </span>
+                                                            {index === 0 && (
+                                                                <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800/80 px-1.5 py-0.5 rounded-md shrink-0">
+                                                                    Next in Line
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
+                                                            {token.customer_phone ? (
+                                                                <span className="flex items-center gap-1 font-mono text-[11px]">
+                                                                    <Phone size={10} className="text-slate-400" />
+                                                                    {token.customer_phone}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[11px] text-slate-400">Walk-in Party</span>
+                                                            )}
+                                                            <span>•</span>
+                                                            <span className="flex items-center gap-1 text-[11px]">
+                                                                <Clock size={11} className={waitInfo.severity === "high" ? "text-rose-500" : "text-slate-400"} />
+                                                                <span className={waitInfo.severity === "high" ? "text-rose-600 dark:text-rose-400 font-semibold" : ""}>
+                                                                    {waitInfo.text}
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Right: Party Size & Fit Badge + Action Button */}
+                                                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
+                                                    {/* Party Size & Fit */}
+                                                    <div className="flex flex-col items-start sm:items-end">
+                                                        <span className="inline-flex items-center gap-1 text-xs font-black text-slate-800 dark:text-slate-200">
+                                                            <Users size={12} className="text-indigo-600 dark:text-indigo-400" />
+                                                            <span>{tokenPax} {tokenPax === 1 ? "Guest" : "Guests"}</span>
+                                                        </span>
+                                                        {isExact ? (
+                                                            <span className="text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/70 dark:border-indigo-800/70 px-1.5 py-0.5 rounded-md mt-0.5">
+                                                                ★ Exact Fit ({tokenPax}/{targetCapacity}p)
+                                                            </span>
+                                                        ) : isFit ? (
+                                                            <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/70 dark:border-emerald-800/70 px-1.5 py-0.5 rounded-md mt-0.5">
+                                                                ✓ Fits ({tokenPax}/{targetCapacity}p)
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200/70 dark:border-amber-800/70 px-1.5 py-0.5 rounded-md mt-0.5">
+                                                                ⚠ +{tokenPax - targetCapacity} Over
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Seat Button */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            const targetTableId = assigningTargetTable.id;
+                                                            setAssigningTargetTable(null);
+                                                            setAssignModalSearch("");
+                                                            await handleSeatWaitingToken(token, targetTableId);
+                                                        }}
+                                                        disabled={isBeingSeated || isReadOnly}
+                                                        className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                                                    >
+                                                        {isBeingSeated ? (
+                                                            <>
+                                                                <Loader2 size={13} className="animate-spin" />
+                                                                <span>Seating...</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Check size={14} strokeWidth={2.5} />
+                                                                <span>Seat at {assigningTargetTable.name || `Table ${assigningTargetTable.id}`}</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="p-4 px-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex items-center justify-between shrink-0">
+                                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                        {waitingTokens.length}
+                                    </span>
+                                    <span>part{waitingTokens.length === 1 ? "y" : "ies"} currently in waitlist register</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const tableId = assigningTargetTable.id;
+                                            setAssigningTargetTable(null);
+                                            setWalkInTargetTableId(tableId);
+                                            setIsWalkInModalOpen(true);
+                                        }}
+                                        className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                                    >
+                                        <UserPlus size={13} />
+                                        <span>Seat Walk-in Instead</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setAssigningTargetTable(null);
+                                            setAssignModalSearch("");
+                                        }}
+                                        className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ModalPortal>
+            )}
+            {/* ========================================================================= */}
+            {/* DRAGGABLE CORNER-SNAPPING FLOATING ACTIONS (Walk-In & 2D/3D View Switcher) */}
+            {/* ========================================================================= */}
+            <DineFloatingViewToggle
+                onToggleWalkIn={() => {
+                    setWalkInTargetTableId(null);
+                    setIsWalkInModalOpen((prev) => !prev);
+                }}
+                isWalkInOpen={isWalkInModalOpen}
+                showViewToggle={viewMode === "floor" && is3DViewEnabled}
+                activeFloorSubView={activeFloorSubView}
+                onToggleView={() => handleSetFloorSubView(activeFloorSubView === "3d" ? "plain" : "3d")}
+                nextParty={waitingTokens[0] || null}
+                onPageNextParty={handlePageNextParty}
+                prefix={prefix}
+                isReadOnly={isReadOnly}
+            />
         </div>
     );
 }

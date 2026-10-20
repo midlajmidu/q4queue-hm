@@ -43,6 +43,7 @@ interface QueueTokenSettingsProps {
     initialFields: CustomField[] | null;
     readOnly?: boolean;
     readOnlyReason?: string;
+    isDineMode?: boolean;
     onUpdate: (fields: CustomField[]) => void;
 }
 
@@ -51,6 +52,10 @@ export const DEFAULT_FIELDS: CustomField[] = [
     { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 },
     { id: "default_pax", key: "pax", label: "Number of Pax", type: "number", required: true, order: 2 },
 ];
+
+export const isPaxField = (key: string): boolean => {
+    return ['pax', 'pax_count', 'no_of_pax', 'number_of_pax'].includes((key || '').toLowerCase());
+};
 
 const FIELD_TYPES = [
     { value: "text", label: "Text", icon: Type },
@@ -164,28 +169,75 @@ const CustomDropdown = ({ value, onChange, options }: { value: string, onChange:
     );
 };
 
-const ensureMandatoryFields = (fieldsList: CustomField[] | null): CustomField[] => {
+const ensureMandatoryFields = (fieldsList: CustomField[] | null, isDine: boolean = false): CustomField[] => {
     if (!fieldsList || fieldsList.length === 0) {
-        return DEFAULT_FIELDS;
+        return DEFAULT_FIELDS.map(f => ({
+            ...f,
+            required: ['name', 'phone'].includes(f.key) || (isDine && isPaxField(f.key)) ? true : f.required
+        }));
     }
-    const result = [...fieldsList];
-    const hasName = result.some(f => f.key === 'name');
-    const hasPhone = result.some(f => f.key === 'phone');
+    const result = fieldsList.map(f => {
+        const lowerKey = (f.key || '').toLowerCase();
+        if (['name', 'phone'].includes(lowerKey)) {
+            return { ...f, required: true };
+        }
+        if (isDine && isPaxField(lowerKey)) {
+            return { ...f, required: true };
+        }
+        return f;
+    });
+
+    const hasName = result.some(f => (f.key || '').toLowerCase() === 'name');
+    const hasPhone = result.some(f => (f.key || '').toLowerCase() === 'phone');
+    const hasPax = result.some(f => isPaxField(f.key));
 
     if (!hasName) {
         result.unshift({ id: "default_name", key: "name", label: "Full Name", type: "text", required: true, order: 0 });
     }
     if (!hasPhone) {
-        const nameIdx = result.findIndex(f => f.key === 'name');
+        const nameIdx = result.findIndex(f => (f.key || '').toLowerCase() === 'name');
         result.splice(nameIdx + 1, 0, { id: "default_phone", key: "phone", label: "Phone Number", type: "phone", required: true, order: 1 });
     }
-    return result;
+    if (isDine && !hasPax) {
+        const phoneIdx = result.findIndex(f => (f.key || '').toLowerCase() === 'phone');
+        const insertIdx = phoneIdx !== -1 ? phoneIdx + 1 : result.length;
+        result.splice(insertIdx, 0, { id: "default_pax", key: "pax", label: "Number of Pax", type: "number", required: true, order: insertIdx });
+    }
+
+    return result.map((f, idx) => ({ ...f, order: idx }));
 };
 
-export default function QueueTokenSettings({ queueId, initialFields, readOnly = false, readOnlyReason, onUpdate }: QueueTokenSettingsProps) {
-    const { hasAppointmentFeature } = useBranch();
+export default function QueueTokenSettings({
+    queueId,
+    initialFields,
+    readOnly = false,
+    readOnlyReason,
+    isDineMode,
+    onUpdate
+}: QueueTokenSettingsProps) {
+    const { hasAppointmentFeature, branchType, settings } = useBranch();
+    const [queueIsDine, setQueueIsDine] = useState<boolean>(false);
+
+    const effectiveIsDine = Boolean(
+        isDineMode ||
+        queueIsDine ||
+        branchType === "dine" ||
+        (branchType as string) === "hotel" ||
+        (branchType as string) === "restaurant" ||
+        settings?.branch_type === "dine" ||
+        (settings?.branch_type as string) === "hotel" ||
+        (settings?.branch_type as string) === "restaurant"
+    );
+
+    const isFieldMandatory = (key: string): boolean => {
+        const k = (key || '').toLowerCase();
+        if (k === 'name' || k === 'phone') return true;
+        if (effectiveIsDine && isPaxField(k)) return true;
+        return false;
+    };
+
     const [activeTab, setActiveTab] = useState<"fields" | "appointments">("fields");
-    const [fields, setFields] = useState<CustomField[]>(() => ensureMandatoryFields(initialFields));
+    const [fields, setFields] = useState<CustomField[]>(() => ensureMandatoryFields(initialFields, effectiveIsDine));
     const [isSaving, setIsSaving] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
 
@@ -216,19 +268,22 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
             if (q.min_lead_time_mins !== undefined && q.min_lead_time_mins !== null) setMinLeadTimeMins(q.min_lead_time_mins);
             if (q.approval_mode) setApprovalMode(q.approval_mode === "manual" ? "requires_approval" : q.approval_mode);
             if (q.industry_template) setIndustryTemplate(q.industry_template);
+            if (Array.isArray(q.table_config) && q.table_config.length > 0) {
+                setQueueIsDine(true);
+            }
         }).catch(() => {});
     }, [queueId]);
 
-    // Sync state when initialFields prop updates asynchronously from parent
+    // Sync state when initialFields prop updates asynchronously from parent or effectiveIsDine changes
     useEffect(() => {
         if (!isDirty) {
-            setFields(ensureMandatoryFields(initialFields));
+            setFields(ensureMandatoryFields(initialFields, effectiveIsDine));
         }
-    }, [initialFields, isDirty]);
+    }, [initialFields, effectiveIsDine, isDirty]);
 
     const handleResetToDefault = () => {
         if (readOnly) return;
-        setFields(ensureMandatoryFields(DEFAULT_FIELDS));
+        setFields(ensureMandatoryFields(DEFAULT_FIELDS, effectiveIsDine));
         setIsDirty(true);
     };
 
@@ -256,15 +311,19 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
             required: true,
             order: fields.length,
         };
-        setFields(ensureMandatoryFields([...fields, newField]));
+        setFields(ensureMandatoryFields([...fields, newField], effectiveIsDine));
         setIsDirty(true);
     };
 
     const handleRemoveField = (id: string) => {
         if (readOnly) return;
         const target = fields.find(f => f.id === id);
-        if (target && ['name', 'phone'].includes(target.key)) {
-            toast.error("Name and Phone are mandatory core fields and cannot be deleted");
+        if (target && isFieldMandatory(target.key)) {
+            toast.error(
+                effectiveIsDine && isPaxField(target.key)
+                    ? "Number of Pax is mandatory for Dine queues and cannot be deleted"
+                    : "Name and Phone are mandatory core fields and cannot be deleted"
+            );
             return;
         }
         setFields(fields.filter(f => f.id !== id));
@@ -275,10 +334,13 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
         if (readOnly) return;
         setFields(fields.map(f => {
             if (f.id === id) {
-                if (prop === 'key' && ['name', 'phone'].includes(f.key)) {
+                if (prop === 'key' && isFieldMandatory(f.key)) {
                     return f;
                 }
-                if (prop === 'required' && ['name', 'phone'].includes(f.key)) {
+                if (prop === 'required' && isFieldMandatory(f.key)) {
+                    return f;
+                }
+                if (prop === 'type' && effectiveIsDine && isPaxField(f.key)) {
                     return f;
                 }
                 const updated = { ...f, [prop]: val };
@@ -321,7 +383,7 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
         if (readOnly) return;
         setIsSaving(true);
         try {
-            const validatedFields = ensureMandatoryFields(fields);
+            const validatedFields = ensureMandatoryFields(fields, effectiveIsDine);
             const keys = new Set();
             for (const f of validatedFields) {
                 if (!f.key || !f.label) {
@@ -528,17 +590,17 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
                                                 <label className="flex items-center gap-2 cursor-pointer select-none">
                                                     <input
                                                         type="checkbox"
-                                                        checked={field.required || ['name', 'phone'].includes(field.key)}
-                                                        disabled={readOnly || ['name', 'phone'].includes(field.key)}
+                                                        checked={field.required || isFieldMandatory(field.key)}
+                                                        disabled={readOnly || isFieldMandatory(field.key)}
                                                         onChange={(e) => handleFieldChange(field.id, "required", e.target.checked)}
-                                                        className={`w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 ${readOnly || ['name', 'phone'].includes(field.key) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        className={`w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 ${readOnly || isFieldMandatory(field.key) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                     />
                                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                                        Required {['name', 'phone'].includes(field.key) && <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider ml-0.5">(Always)</span>}
+                                                        Required {isFieldMandatory(field.key) && <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider ml-0.5">(Always)</span>}
                                                     </span>
                                                 </label>
 
-                                                {!['name', 'phone'].includes(field.key) && !readOnly ? (
+                                                {!isFieldMandatory(field.key) && !readOnly ? (
                                                     <button
                                                         onClick={() => handleRemoveField(field.id)}
                                                         className="text-rose-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
@@ -547,7 +609,16 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 ) : (
-                                                    <span className="p-1 cursor-not-allowed" title={readOnly ? "Read-only mode" : "Name and Phone are mandatory core fields and cannot be deleted"}>
+                                                    <span
+                                                        className="p-1 cursor-not-allowed"
+                                                        title={
+                                                            readOnly
+                                                                ? "Read-only mode"
+                                                                : effectiveIsDine && isPaxField(field.key)
+                                                                ? "Number of Pax is mandatory for Dine queues and cannot be deleted"
+                                                                : "Name and Phone are mandatory core fields and cannot be deleted"
+                                                        }
+                                                    >
                                                         <Trash2 className="w-4 h-4 text-slate-300 dark:text-slate-700 opacity-40" />
                                                     </span>
                                                 )}
@@ -589,7 +660,7 @@ export default function QueueTokenSettings({ queueId, initialFields, readOnly = 
                                                     <Plus className="w-3.5 h-3.5" /> Phone
                                                 </button>
                                             )}
-                                            {!fields.some(f => f.key === 'pax') && (
+                                            {!fields.some(f => isPaxField(f.key)) && (
                                                 <button onClick={() => handleAddCoreField('pax')} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-sm">
                                                     <Plus className="w-3.5 h-3.5" /> Pax
                                                 </button>

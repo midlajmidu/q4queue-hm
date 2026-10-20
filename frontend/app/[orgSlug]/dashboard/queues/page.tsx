@@ -478,8 +478,8 @@ export default function QueuesPage({ params }: PageProps) {
                     starting_sequence: newStartingSequence || 1,
                     service_lines: totalTables.length,
                     table_config: totalTables,
-                    open_time: newOpenTime || undefined,
-                    close_time: newCloseTime || undefined,
+                    open_time: branchType === "dine" ? undefined : (newOpenTime || undefined),
+                    close_time: branchType === "dine" ? undefined : (newCloseTime || undefined),
                     appointment_enabled: hasAppointmentFeature ? newAppointmentEnabled : false,
                 });
 
@@ -848,29 +848,31 @@ export default function QueuesPage({ params }: PageProps) {
                                         className="w-full rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5">Open Time</label>
-                                        <input
-                                            type="time"
-                                            value={newOpenTime}
-                                            onChange={(e) => setNewOpenTime(e.target.value)}
-                                            className="w-full rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all"
-                                        />
+                                {branchType !== "dine" && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5">Open Time</label>
+                                            <input
+                                                type="time"
+                                                value={newOpenTime}
+                                                onChange={(e) => setNewOpenTime(e.target.value)}
+                                                className="w-full rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5">Close Time</label>
+                                            <input
+                                                type="time"
+                                                value={newCloseTime}
+                                                onChange={(e) => setNewCloseTime(e.target.value)}
+                                                className="w-full rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all"
+                                            />
+                                            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-normal leading-tight">
+                                                Defaults to midnight session closing if blank.
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5">Close Time</label>
-                                        <input
-                                            type="time"
-                                            value={newCloseTime}
-                                            onChange={(e) => setNewCloseTime(e.target.value)}
-                                            className="w-full rounded-xl border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none transition-all"
-                                        />
-                                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-normal leading-tight">
-                                            Defaults to midnight session closing if blank.
-                                        </p>
-                                    </div>
-                                </div>
+                                )}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5">Token Prefix</label>

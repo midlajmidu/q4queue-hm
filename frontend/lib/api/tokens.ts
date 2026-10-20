@@ -110,6 +110,16 @@ export const tokenApi = {
         });
     },
 
+    updatePaymentStatus(
+        tokenId: string,
+        paymentStatus: "pending" | "unpaid" | "paid"
+    ): Promise<TokenDetail> {
+        return request<TokenDetail>(`/tokens/${tokenId}/payment-status`, {
+            method: "PATCH",
+            body: JSON.stringify({ payment_status: paymentStatus }),
+        });
+    },
+
 
     // ── Health ───────────────────────────────────────────────────,
 

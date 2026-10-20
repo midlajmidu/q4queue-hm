@@ -713,8 +713,17 @@ const DineTable3D = React.memo(function DineTable3D({
       )}
 
       {/* Overhead 3D Billboard / In-scene editor controls */}
-      {isEditorMode && isSelected ? (
-        <Html position={[0, 2.3, 0]} center distanceFactor={14} style={{ pointerEvents: "auto" }}>
+      <Html
+        key={`table-hud-${table.id}`}
+        position={[0, isEditorMode && isSelected ? 2.3 : 2.4, 0]}
+        center
+        distanceFactor={isEditorMode && isSelected ? 14 : 16}
+        style={{
+          pointerEvents: isEditorMode && isSelected ? "auto" : "none",
+          display: (isEditorMode && isSelected) || showBillboard ? "block" : "none",
+        }}
+      >
+        {isEditorMode && isSelected ? (
           <div
             className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-slate-950/95 border border-indigo-500/50 shadow-2xl backdrop-blur-md select-none text-white min-w-[210px]"
             onClick={(e) => e.stopPropagation()}
@@ -810,9 +819,7 @@ const DineTable3D = React.memo(function DineTable3D({
               </button>
             </div>
           </div>
-        </Html>
-      ) : showBillboard ? (
-        <Html position={[0, 2.4, 0]} center distanceFactor={16} style={{ pointerEvents: "none" }}>
+        ) : (
           <div className="flex flex-col items-center select-none pointer-events-none">
             {/* Active drag coordinate badge */}
             {isDraggingThis ? (
@@ -855,9 +862,21 @@ const DineTable3D = React.memo(function DineTable3D({
                   ) : isShared ? (
                     <span>{table.name} • {tokens.length} Parties • {seatedPax}p</span>
                   ) : (
-                    <span>
-                      #{prefix}{primaryToken!.token_number} • {primaryToken!.customer_name || "Guest"} • {seatedPax}p • {elapsedMins}m
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span>
+                        #{prefix}{primaryToken!.token_number} • {primaryToken!.customer_name || "Guest"} • {seatedPax}p • {elapsedMins}m
+                      </span>
+                      {primaryToken?.payment_status === "unpaid" && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[8.5px] font-black bg-amber-500 text-slate-950 uppercase tracking-wider">
+                          Unpaid
+                        </span>
+                      )}
+                      {primaryToken?.payment_status === "paid" && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[8.5px] font-black bg-emerald-500 text-slate-950 uppercase tracking-wider">
+                          Paid ✓
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
                 {isPartiallyOccupied && !isShared && (
@@ -870,8 +889,8 @@ const DineTable3D = React.memo(function DineTable3D({
               </>
             )}
           </div>
-        </Html>
-      ) : null}
+        )}
+      </Html>
 
       {/* Raycast hitbox scaled to table dimensions */}
       <mesh
@@ -1273,7 +1292,7 @@ function EntrancePortal3D({
       ))}
 
       {/* Illuminated "ENTRANCE" badge */}
-      <Html position={[0, 2.5, 0.7]} center distanceFactor={14} style={{ pointerEvents: "none" }}>
+      <Html key="entrance-badge" position={[0, 2.5, 0.7]} center distanceFactor={14} style={{ pointerEvents: "none" }}>
         <div className="px-2 py-0.5 rounded-full bg-slate-950/90 border border-emerald-500/50 text-emerald-300 text-[9px] font-black tracking-wider uppercase shadow-lg select-none whitespace-nowrap flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span>Entrance</span>
@@ -1377,7 +1396,7 @@ function HostBillingCounter3D({
       </group>
 
       {/* Overhead Badge */}
-      <Html position={[0, 2.15, 0]} center distanceFactor={14} style={{ pointerEvents: "none" }}>
+      <Html key="host-billing-badge" position={[0, 2.15, 0]} center distanceFactor={14} style={{ pointerEvents: "none" }}>
         <div className="px-2 py-0.5 rounded-full bg-slate-950/90 border border-indigo-500/50 text-indigo-200 text-[9px] font-bold shadow-lg select-none whitespace-nowrap flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
           <span>Host & Billing Counter</span>
@@ -1753,7 +1772,7 @@ function BackWallBranding3D({
   return (
     <group position={[width / 2, 2.05, 0.08]}>
       {/* HTML crisp typography on wall */}
-      <Html position={[0, 0, 0.06]} center distanceFactor={14} style={{ pointerEvents: "none" }}>
+      <Html key={`branding-badge-${floorName || prefix}`} position={[0, 0, 0.06]} center distanceFactor={14} style={{ pointerEvents: "none" }}>
         <div className="flex items-center gap-2 select-none whitespace-nowrap">
           <span className="font-extrabold text-[13px] tracking-widest text-slate-700/80 uppercase font-sans">
             {brandTitle}
@@ -2171,6 +2190,7 @@ export default function DineFloorScene({
             {/* Floor Headline Badge */}
             {isAvenue && (
               <Html
+                key={`floor-badge-${floorItem.id}`}
                 position={[W / 2, 3.2, D / 2]}
                 center
                 distanceFactor={18}
@@ -2361,7 +2381,7 @@ export default function DineFloorScene({
 
                       {/* Dragging Position Pill */}
                       {isDraggingThisWall && (
-                        <Html position={[cx, wallH + 0.7, cz]} center distanceFactor={14}>
+                        <Html key={`wall-drag-${wi}`} position={[cx, wallH + 0.7, cz]} center distanceFactor={14}>
                           <div className="px-2.5 py-1 rounded-full bg-indigo-600 text-white font-bold text-[11px] shadow-2xl flex items-center gap-1.5 whitespace-nowrap select-none">
                             <span>🧱 Partition #{wi + 1}</span>
                             <span>({cx.toFixed(1)}m, {cz.toFixed(1)}m)</span>
@@ -2372,6 +2392,7 @@ export default function DineFloorScene({
                       {/* Floating In-Scene Editor Controls when Selected */}
                       {isSelected && !isDraggingThisWall && (
                         <Html
+                          key={`wall-controls-${wi}`}
                           position={[cx, wallH + 0.75, cz]}
                           center
                           distanceFactor={14}
@@ -2484,8 +2505,8 @@ export default function DineFloorScene({
                     </mesh>
                   )}
                   {isDraggingThisDecor && (
-                    <Html position={[0, 1.6, 0]} center>
-                      <div className="px-2 py-0.5 rounded-full bg-indigo-600 text-white font-bold text-[10px] shadow">
+                    <Html key={`decor-drag-${di}`} position={[0, 1.6, 0]} center>
+                      <div className="px-2.5 py-0.5 rounded-full bg-indigo-600 text-white font-bold text-[10px] shadow">
                         📍 {d.x.toFixed(1)}m, {d.z.toFixed(1)}m
                       </div>
                     </Html>

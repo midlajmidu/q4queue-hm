@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import ModalPortal from "@/components/ui/ModalPortal";
 
 interface Props {
     isOpen: boolean;
@@ -97,15 +98,16 @@ export default function ConfirmModal({
                 : "bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500";
 
     return (
-        <div
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="modal-title"
-            aria-describedby="modal-message"
-        >
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onCancel} aria-hidden="true" />
+        <ModalPortal>
+            <div
+                className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="modal-title"
+                aria-describedby="modal-message"
+            >
+                {/* Backdrop */}
+                <div className="fixed inset-0 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md transition-all animate-in fade-in duration-200" onClick={onCancel} aria-hidden="true" />
 
             {/* Panel */}
             <div
@@ -158,5 +160,6 @@ export default function ConfirmModal({
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 }

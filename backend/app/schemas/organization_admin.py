@@ -10,6 +10,7 @@ class BranchStatItem(BaseModel):
     created_at: datetime
     branch_type: str = "standard"
     appointment_feature_enabled: bool = False
+    dine_3d_view_enabled: bool = True
 
 class OrgAdminDashboardResponse(BaseModel):
     organization_name: str
@@ -26,6 +27,7 @@ class BranchCreateRequest(BaseModel):
     slug: str
     branch_type: str = "standard"
     appointment_feature_enabled: bool = False
+    dine_3d_view_enabled: bool = True
     address: str | None = None
     phone_number: str | None = None
     timezone: str = "Asia/Kolkata"
@@ -40,6 +42,7 @@ class BranchUpdateRequest(BaseModel):
     name: str | None = None
     branch_type: str | None = None
     appointment_feature_enabled: bool | None = None
+    dine_3d_view_enabled: bool | None = None
     address: str | None = None
     phone_number: str | None = None
 

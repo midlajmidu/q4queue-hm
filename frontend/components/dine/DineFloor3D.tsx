@@ -46,6 +46,7 @@ interface Props {
     currentTableName: string
   ) => void;
   onOpenCapacityEdit: (tbl: TableConfig, e: React.MouseEvent) => void;
+  onUpdatePaymentStatus?: (tokenId: string, nextStatus: "pending" | "unpaid" | "paid") => void | Promise<void>;
 }
 
 // ─── WebGL support check ─────────────────────────────────────────────────────
@@ -134,6 +135,7 @@ export default function DineFloor3D({
   onOpenAssignModal,
   onJoinTable,
   onOpenCapacityEdit,
+  onUpdatePaymentStatus,
 }: Props) {
   const [webGLSupported, setWebGLSupported] = useState(true);
   const [hoveredTableId, setHoveredTableId] = useState<number | null>(null);
@@ -395,6 +397,7 @@ export default function DineFloor3D({
           onOpenAssignModal={onOpenAssignModal}
           onJoinTable={onJoinTable}
           onOpenCapacityEdit={onOpenCapacityEdit}
+          onUpdatePaymentStatus={onUpdatePaymentStatus}
           vacantTables={vacantTables}
           onClose={handleHudClose}
         />
