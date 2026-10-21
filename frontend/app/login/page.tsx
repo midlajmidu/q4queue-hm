@@ -151,11 +151,11 @@ export default function LoginPage() {
     };
 
     return (
-        <main className={`force-light min-h-[100dvh] lg:h-screen lg:max-h-screen w-full flex flex-col lg:flex-row bg-white relative overflow-y-auto lg:overflow-hidden select-none selection:bg-[#3849FC]/15 selection:text-[#0A1128] ${plusJakarta.className}`}>
+        <main className={`force-light min-h-[100dvh] lg:h-screen lg:max-h-screen w-full flex flex-col lg:flex-row bg-white sm:bg-[#F8FBFF] lg:bg-white relative overflow-y-auto lg:overflow-hidden select-none selection:bg-[#3849FC]/15 selection:text-[#0A1128] ${plusJakarta.className}`}>
             {/* ---------------------------------------------------- */}
-            {/* LEFT SECTION: Queue Illustration & Hero Marketing */}
+            {/* LEFT SECTION: Queue Illustration & Hero Marketing (Desktop Only) */}
             {/* ---------------------------------------------------- */}
-            <div className="relative w-full lg:w-[57%] xl:w-[58%] 2xl:w-[60%] h-[320px] sm:h-[380px] lg:h-full lg:max-h-screen flex flex-col justify-start items-start bg-[#F8FBFF] overflow-hidden shrink-0">
+            <div className="hidden lg:flex relative lg:w-[57%] xl:w-[58%] 2xl:w-[60%] lg:h-full lg:max-h-screen flex-col justify-start items-start bg-[#F8FBFF] overflow-hidden shrink-0">
                 
                 {/* Subtle Ambient Depth Glows */}
                 <div className="absolute inset-0 pointer-events-none z-0">
@@ -194,7 +194,7 @@ export default function LoginPage() {
                     <svg 
                         viewBox="0 0 120 1000" 
                         preserveAspectRatio="none" 
-                        className="w-full h-full"
+                        className="w-full h-full" 
                         aria-hidden="true"
                     >
                         {/* Layer 1: Soft Pale-Blue Shadow / Ambient Edge */}
@@ -219,19 +219,33 @@ export default function LoginPage() {
             </div>
 
             {/* ---------------------------------------------------- */}
-            {/* RIGHT SECTION: Polished Minimal Authentication Form */}
+            {/* TABLET / MEDIUM AMBIENT HERO WATERMARK BACKGROUND (sm to lg) */}
             {/* ---------------------------------------------------- */}
-            <div className="relative w-full lg:w-[43%] xl:w-[42%] 2xl:w-[40%] bg-white flex flex-col justify-center items-center px-6 sm:px-10 lg:px-8 xl:px-14 py-8 lg:py-6 z-30 lg:h-full lg:max-h-screen overflow-y-auto lg:overflow-hidden">
+            <div className="hidden sm:block lg:hidden absolute inset-0 overflow-hidden pointer-events-none z-0 select-none">
+                <img 
+                    src="/images/queue-hero-seamless@2x.png" 
+                    alt="" 
+                    aria-hidden="true"
+                    className="w-full h-full object-cover object-center opacity-60 sm:opacity-65"
+                />
+                {/* Subtle soft tint to give card depth without washing out the art */}
+                <div className="absolute inset-0 bg-slate-900/5 backdrop-blur-[1px]" />
+            </div>
+
+            {/* ---------------------------------------------------- */}
+            {/* RIGHT SECTION: Polished Authentication Form Container */}
+            {/* ---------------------------------------------------- */}
+            <div className="relative w-full lg:w-[43%] xl:w-[42%] 2xl:w-[40%] bg-white sm:bg-transparent lg:bg-white flex flex-col justify-center items-center px-6 sm:px-10 lg:px-8 xl:px-14 py-8 sm:py-10 lg:py-6 z-10 min-h-[100dvh] lg:min-h-0 lg:h-full lg:max-h-screen overflow-y-auto lg:overflow-hidden">
                 <motion.div 
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                    className="w-full max-w-[380px] xl:max-w-[400px] mx-auto my-auto flex flex-col justify-center"
+                    className="relative z-10 w-full max-w-[390px] sm:max-w-[430px] md:max-w-[450px] lg:max-w-[390px] xl:max-w-[400px] mx-auto my-auto flex flex-col justify-center bg-transparent sm:bg-white/95 backdrop-none sm:backdrop-blur-xl lg:bg-transparent lg:backdrop-blur-none border-none sm:border sm:border-slate-200/80 lg:border-none rounded-none sm:rounded-3xl p-0 sm:py-8 sm:px-8 md:py-8 md:px-9 lg:p-0 shadow-none sm:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] lg:shadow-none"
                 >
                     {/* MODE 1: Standard Login Form */}
                     {viewMode === "login" && (
                         <>
-                            <div className="mb-5 xl:mb-6 flex flex-col items-start">
+                            <div className="mb-4 sm:mb-5 xl:mb-6 flex flex-col items-start">
                                 <h2 className="text-[26px] xl:text-[29px] font-extrabold text-[#0A1128] tracking-[-0.025em] leading-tight">
                                     Welcome Back
                                 </h2>
@@ -249,22 +263,22 @@ export default function LoginPage() {
                                             exit={{ opacity: 0, height: 0, scale: 0.96 }}
                                             className="overflow-hidden"
                                         >
-                                            <div role="alert" className="bg-red-50 text-red-600 text-[12.5px] font-medium p-2.5 rounded-xl border border-red-100 flex items-start gap-2">
-                                                <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <div role="alert" className="bg-red-50 text-red-600 text-xs font-medium p-3 rounded-xl border border-red-100 flex items-start gap-2.5">
+                                                <svg className="w-4 h-4 shrink-0 mt-0.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
-                                                <span>{error || bannerMessage}</span>
+                                                <span className="leading-snug">{error || bannerMessage}</span>
                                             </div>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
 
                                 {/* Email Field */}
-                                <div className="space-y-1">
-                                    <label htmlFor="email" className="block text-[12.5px] font-semibold text-[#1E293B]">
+                                <div className="space-y-1.5">
+                                    <label htmlFor="email" className="block text-[13px] font-semibold text-[#1E293B]">
                                         Email address
                                     </label>
-                                    <div className="relative flex items-center rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 focus-within:border-[#3849FC] focus-within:ring-4 focus-within:ring-[#3849FC]/12 transition-all">
+                                    <div className="relative flex items-center rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 focus-within:border-[#3849FC] focus-within:ring-4 focus-within:ring-[#3849FC]/12 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                                         <div className="pl-3.5 text-slate-400 pointer-events-none flex items-center justify-center">
                                             <Mail className="w-[17px] h-[17px]" strokeWidth={1.8} />
                                         </div>
@@ -283,11 +297,11 @@ export default function LoginPage() {
                                 </div>
 
                                 {/* Password Field */}
-                                <div className="space-y-1">
-                                    <label htmlFor="password" className="block text-[12.5px] font-semibold text-[#1E293B]">
+                                <div className="space-y-1.5">
+                                    <label htmlFor="password" title="Password" className="block text-[13px] font-semibold text-[#1E293B]">
                                         Password
                                     </label>
-                                    <div className="relative flex items-center rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 focus-within:border-[#3849FC] focus-within:ring-4 focus-within:ring-[#3849FC]/12 transition-all">
+                                    <div className="relative flex items-center rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 focus-within:border-[#3849FC] focus-within:ring-4 focus-within:ring-[#3849FC]/12 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                                         <div className="pl-3.5 text-slate-400 pointer-events-none flex items-center justify-center">
                                             <Lock className="w-[17px] h-[17px]" strokeWidth={1.8} />
                                         </div>
