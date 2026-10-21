@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { ReactNode } from "react";
 import "./globals.css";
 import { config } from "@/lib/config";
@@ -9,6 +9,13 @@ const inter = Inter({
   subsets: ["latin"], 
   weight: ["400", "500", "600", "700"], 
   variable: "--font-sans" 
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-display",
+  display: "swap"
 });
 
 export const metadata: Metadata = {
@@ -32,7 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head suppressHydrationWarning />
-      <body className={`${inter.className} ${inter.variable} bg-slate-50 text-slate-900 antialiased`} suppressHydrationWarning>
+      <body className={`${inter.className} ${inter.variable} ${plusJakartaSans.variable} bg-slate-50 text-slate-900 antialiased`} suppressHydrationWarning>
         <ClientProviders>
           <div className="flex flex-col">
             {children}
