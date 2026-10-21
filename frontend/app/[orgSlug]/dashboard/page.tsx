@@ -555,7 +555,7 @@ export default function OverviewPage() {
   const REFRESH_SECS = 20;
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [secondsAgo, setSecondsAgo] = useState(0);
+
   const [isRefreshing, setIsRefreshing] = useState(false); // silent background refresh
 
   const loadData = useCallback(async (silent = false) => {
@@ -587,7 +587,6 @@ export default function OverviewPage() {
       if (controller.signal.aborted) return;
       setOverview(data);
       setLastUpdated(new Date());
-      setSecondsAgo(0);
     } catch (e: unknown) {
       if ((e as { name?: string })?.name === "AbortError") return;
       setError(e instanceof Error ? e.message : "Failed to load overview data");
@@ -634,15 +633,8 @@ export default function OverviewPage() {
     };
   }, [autoRefresh, loadData]);
 
-  // ── "Updated Ns ago" ticker ───────────────────────────────────
-  useEffect(() => {
-    const tick = setInterval(() => {
-      if (!document.hidden && lastUpdated) {
-        setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
-      }
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [lastUpdated]);
+
+
 
   const [staff, setStaff] = useState<import("@/types/api").StaffMember[]>([]);
 
@@ -650,11 +642,7 @@ export default function OverviewPage() {
     if (!user || user.role === "staff") return;
     api.listStaff({ limit: 100, offset: 0 }).then(res => setStaff(res.items)).catch(() => setStaff([]));
   }, [user]);
-  const updatedLabel = lastUpdated
-    ? secondsAgo < 10 ? "Just now"
-      : secondsAgo < 60 ? "moments ago"
-        : `${Math.floor(secondsAgo / 60)}m ago`
-    : null;
+
 
   const queueStats = useMemo(() => {
     return overview?.queue_summary ?? [];
@@ -678,163 +666,185 @@ export default function OverviewPage() {
         <div className="flex flex-col gap-4 md:gap-7">
 
           {/* ══ HEADER CARD ═════════════════════════════════════════════════ */}
-          <div className="fade-in card p-4 md:py-8 md:px-9 mb-4 md:mb-6" style={{
-            position: "relative", zIndex: 1,
-            borderRadius: 24,
-            background: C.cardBg,
-            backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+          <div className="fade-in mb-4 md:mb-6" style={{
+            position: "relative",
+            zIndex: 1,
+            borderRadius: 16,
+            background: "#ffffff",
             border: `1px solid ${C.border}`,
-            boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.015)",
           }}>
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-8">
-              {/* Left: title */}
-              <div style={{ maxWidth: 480 }}>
-                <div className="flex items-center gap-3.5 mb-2.5 md:mb-4">
-                  {/* brand icon */}
-                  <div className="icon-badge" style={{
-                    width: 42, height: 42,
-                    background: C.cardBg,
-                    border: `1px solid ${C.border}`,
-                    boxShadow: `0 2px 8px rgba(0,0,0,.03), inset 0 2px 0 ${C.borderLight}`,
-                    borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center"
+            <style>{`
+              .saas-btn { transition: all 0.15s ease; }
+              .saas-btn:hover:not(:disabled) { transform: translateY(-0.5px); }
+              .saas-btn:active:not(:disabled) { transform: translateY(0); }
+              .saas-select-wrap:focus-within { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important; }
+            `}</style>
+
+            <div className="p-5 md:py-6 md:px-7">
+              {/* Header: Badge, Title & Description */}
+              <div className="flex items-center gap-3.5">
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  background: "#f8fafc",
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <Icons.BarChart3 size={20} color="#334155" strokeWidth={2} />
+                </div>
+                <div>
+                  <h1 style={{
+                    fontSize: "clamp(20px, 2.2vw, 24px)",
+                    fontWeight: 700,
+                    color: C.text,
+                    letterSpacing: "-.025em",
+                    lineHeight: 1.2,
+                    margin: 0,
                   }}>
-                    <Icons.BarChart3 size={20} color="#6366f1" strokeWidth={2.5} />
-                  </div>
-                  <span style={{
-                    fontSize: 11, fontWeight: 600,
-                    letterSpacing: '.06em', textTransform: 'uppercase',
-                    color: C.textSub,
-                  }}>Analytics Dashboard</span>
+                    Organization Overview
+                  </h1>
+                  <p style={{
+                    fontSize: 13,
+                    color: C.textMuted,
+                    lineHeight: 1.45,
+                    marginTop: 3,
+                    fontWeight: 400,
+                  }}>
+                    Live operational state and all-time outcomes
+                  </p>
                 </div>
-                <h1 className="text-2xl md:text-[clamp(26px,2.8vw,32px)]" style={{
-                  fontWeight: 800,
-                  color: C.text, letterSpacing: "-.02em",
-                  lineHeight: 1.1, margin: 0,
-                }}>
-                  Organization Overview
-                </h1>
-                <p className="text-xs md:text-[14.5px] mt-1.5 md:mt-2.5" style={{
-                  color: C.textSub,
-                  lineHeight: 1.6, marginBottom: 0, fontWeight: 400,
-                }}>
-                  Live operational state and all-time outcomes for the selected queue scope.
-                </p>
               </div>
 
-              {/* Right: Global Controls */}
-              <div className="refresh-bar flex items-center justify-between w-full md:w-auto p-2 md:py-[7px] md:px-[14px]" style={{ flexShrink: 0 }}>
-                {/* live indicator */}
-                <div className="flex items-center gap-2">
-                  {autoRefresh && !isRefreshing && (
-                    <span className="live-dot" style={{ display: "block", width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
-                  )}
-                  {isRefreshing && (
-                    <span className="spin" style={{ display: "inline-flex" }}>
-                      <Icons.RefreshCw size={12} color={C.brand} />
-                    </span>
-                  )}
-                  {/* updated label */}
-                  {updatedLabel && (
-                    <span style={{ color: C.textMuted, fontSize: 11 }}>
-                      Updated <strong style={{ color: C.textSub, fontWeight: 600 }}>{updatedLabel}</strong>
-                    </span>
-                  )}
-                </div>
-                {/* divider */}
-                <span className="hidden md:block" style={{ width: 1, height: 12, background: C.border, flexShrink: 0 }} />
-                
-                {/* Action Controls */}
-                <div className="flex items-center gap-3">
-                  {/* manual refresh */}
-                  <button
-                    onClick={() => loadData(false)}
-                    disabled={isLoading}
-                    title="Refresh now"
-                    className="inline-flex items-center justify-center gap-1.5 p-1.5 md:p-0 rounded-md md:rounded-none bg-slate-50 md:bg-transparent border border-gray-200 md:border-none hover:bg-slate-100 md:hover:bg-transparent transition-colors"
-                    style={{ fontSize: 11, fontWeight: 600, color: C.textSub, cursor: isLoading ? "not-allowed" : "pointer", opacity: isLoading ? .4 : 1, transition: "color .15s" }}
-                    onMouseEnter={e => { if (window.innerWidth >= 768) e.currentTarget.style.color = C.brand; }}
-                    onMouseLeave={e => { if (window.innerWidth >= 768) e.currentTarget.style.color = C.textSub; }}
-                  >
-                    <span className={isLoading ? "spin" : ""} style={{ display: "inline-flex" }}>
-                      <Icons.RefreshCw size={11} color="currentColor" />
-                    </span>
-                    <span className="hidden md:inline">Refresh</span>
-                  </button>
-                  {/* divider */}
-                  <span className="hidden md:block" style={{ width: 1, height: 12, background: C.border, flexShrink: 0 }} />
-                  {/* auto-refresh toggle */}
-                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                    <span
-                      role="switch"
-                      aria-checked={autoRefresh}
-                      onClick={() => setAutoRefresh(v => !v)}
-                      style={{
-                        display: "inline-block", width: 28, height: 16, borderRadius: 99,
-                        background: autoRefresh ? C.brand : C.border,
-                        position: "relative", transition: "background .2s", flexShrink: 0,
-                      }}
-                    >
-                      <span style={{
-                        position: "absolute", top: 2, left: autoRefresh ? 14 : 2,
-                        width: 12, height: 12, borderRadius: "50%", background: "#fff",
-                        transition: "left .2s", boxShadow: "0 1px 2px rgba(0,0,0,.2)",
-                      }} />
-                    </span>
-                    <span className="hidden md:inline" style={{ fontSize: 11, color: C.textMuted, whiteSpace: "nowrap" }}>
-                      Auto ({REFRESH_SECS}s)
-                    </span>
+              {/* Toolbar */}
+              <div className="flex flex-col md:flex-row gap-4 md:gap-5 md:items-end mt-5 pt-4" style={{
+                borderTop: `1px solid ${C.borderLight}`,
+              }}>
+                {/* Queue Filter */}
+                <div className="flex flex-col gap-1 w-full md:w-auto">
+                  <label htmlFor="filter-queue" style={{
+                    fontSize: 10.5,
+                    color: C.textMuted,
+                    fontWeight: 600,
+                    letterSpacing: ".05em",
+                    textTransform: "uppercase",
+                  }}>
+                    Queue
                   </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Toolbar */}
-            <div className="flex flex-col md:flex-row gap-4 md:gap-6 md:items-center mt-6 pt-6 border-t border-black/5">
-              {[
-                {
-                  id: "filter-queue", lbl: "QUEUE", val: selectedQueue, set: (val: string) => {
-                    setSelectedQueue(val);
-                    setRecentPage(1);
-                  }, dis: false,
-                  opts: <>
-                    <option value="">All Queues</option>
-                    {queues.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
-                  </>,
-                },
-              ].map(f => (
-                <div key={f.lbl} className="flex flex-col gap-1 w-full md:w-auto">
-                  <label htmlFor={f.id} className="lbl" style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>{f.lbl}:</label>
-                  <div className="w-full md:w-auto" style={{ position: "relative", transition: "transform .2s ease", cursor: "pointer" }} onMouseEnter={e => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={e => e.currentTarget.style.transform = "none"}>
-                    <select id={f.id} name={f.id} value={f.val} onChange={e => f.set(e.target.value)} disabled={f.dis} className="ov-sel w-full md:w-[220px]" style={{ padding: "8px 32px 8px 12px", background: C.cardBgAlt, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, fontWeight: 500, color: C.text, outline: "none", appearance: "none" }} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-nordpass-ignore="true">
-                      {f.opts}
+                  <div className="saas-select-wrap w-full md:w-auto" style={{
+                    position: "relative",
+                    borderRadius: 8,
+                    border: `1px solid ${C.border}`,
+                    background: "#ffffff",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                    transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+                  }}>
+                    <select
+                      id="filter-queue"
+                      name="filter-queue"
+                      value={selectedQueue}
+                      onChange={e => { setSelectedQueue(e.target.value); setRecentPage(1); }}
+                      className="w-full md:w-[210px]"
+                      style={{
+                        padding: "7px 32px 7px 11px",
+                        background: "transparent",
+                        border: "none",
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: C.text,
+                        outline: "none",
+                        appearance: "none",
+                        cursor: "pointer",
+                      }}
+                      autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-nordpass-ignore="true"
+                    >
+                      <option value="">All Queues</option>
+                      {queues.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
                     </select>
-                    <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.6 }}>
-                      <Icons.ChevronDown size={14} color={C.text} strokeWidth={2.5} />
+                    <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.45 }}>
+                      <Icons.ChevronDown size={13} color={C.text} strokeWidth={2.2} />
                     </span>
                   </div>
                 </div>
-              ))}
 
-              <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto md:ml-auto">
-                <button onClick={handleDownloadReport} disabled={isDownloading} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.cardBgAlt, color: C.textSub, borderColor: C.border, cursor: isDownloading ? "not-allowed" : "pointer" }}>
-                  {isDownloading ? (
-                    <span className="spin" style={{ display: "inline-flex" }}>
-                      <Icons.RefreshCw size={13} color="currentColor" />
-                    </span>
-                  ) : (
-                    <Icons.Download size={13} color="currentColor" />
-                  )}
-                  Download Report
-                </button>
+                {/* Action Buttons — pushed right */}
+                <div className="flex flex-col md:flex-row gap-2.5 w-full md:w-auto md:ml-auto">
+                  <button
+                    onClick={handleDownloadReport}
+                    disabled={isDownloading}
+                    className="saas-btn w-full md:w-auto justify-center"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 7,
+                      padding: "7.5px 14px",
+                      fontSize: 12.5,
+                      fontWeight: 500,
+                      borderRadius: 8,
+                      background: "#ffffff",
+                      color: C.textSub,
+                      border: `1px solid ${C.border}`,
+                      cursor: isDownloading ? "not-allowed" : "pointer",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                    }}
+                    onMouseEnter={e => {
+                      if (!isDownloading) {
+                        e.currentTarget.style.borderColor = "#cbd5e1";
+                        e.currentTarget.style.background = "#f8fafc";
+                        e.currentTarget.style.color = C.text;
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = C.border;
+                      e.currentTarget.style.background = "#ffffff";
+                      e.currentTarget.style.color = C.textSub;
+                    }}
+                  >
+                    {isDownloading ? (
+                      <span className="spin" style={{ display: "inline-flex" }}>
+                        <Icons.RefreshCw size={13} color="currentColor" strokeWidth={1.8} />
+                      </span>
+                    ) : (
+                      <Icons.Download size={13} color="currentColor" strokeWidth={1.8} />
+                    )}
+                    Download Report
+                  </button>
 
-                <Link href={`${dashBase}/queues?action=create`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.brand, color: "#fff", borderColor: C.brandDark, boxShadow: "0 1px 2px rgba(79,70,229,.2)" }}>
-                  <Icons.Play size={13} color="currentColor" />
-                  Start Session
-                </Link>
-                <Link href={`${dashBase}/queues?action=create`} className="qa-btn w-full md:w-auto justify-center" style={{ background: C.brandLight, color: C.brand, borderColor: C.brandBorder }}>
-                  <Icons.PlusCircle size={13} color="currentColor" />
-                  Create Queue
-                </Link>
+                  <Link
+                    href={`${dashBase}/queues?action=create`}
+                    className="saas-btn w-full md:w-auto justify-center"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 7,
+                      padding: "7.5px 16px",
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      borderRadius: 8,
+                      background: "#4f46e5",
+                      color: "#ffffff",
+                      border: "1px solid #4338ca",
+                      boxShadow: "0 1px 2px rgba(79, 70, 229, 0.15)",
+                      textDecoration: "none",
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = "#4338ca";
+                      e.currentTarget.style.boxShadow = "0 2px 6px rgba(79, 70, 229, 0.25)";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = "#4f46e5";
+                      e.currentTarget.style.boxShadow = "0 1px 2px rgba(79, 70, 229, 0.15)";
+                    }}
+                  >
+                    <Icons.PlusCircle size={13.5} color="#ffffff" strokeWidth={2} />
+                    Create Queue
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
