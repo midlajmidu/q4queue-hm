@@ -494,6 +494,12 @@ export default function OverviewPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const orgLogoUrl = user?.org_logo_url
+    ? (user.org_logo_url.startsWith("http")
+        ? user.org_logo_url
+        : `${(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/v1\/?$/, "")}${user.org_logo_url}`)
+    : null;
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
   const dashBase = user?.org_slug ? `/${user.org_slug}/dashboard` : "/dashboard";
   const isStaff = user?.role === "staff";
   const canViewStaffPresence = Boolean(user && user.role !== "staff");
@@ -670,7 +676,7 @@ export default function OverviewPage() {
             position: "relative",
             zIndex: 1,
             borderRadius: 16,
-            background: "#ffffff",
+            background: C.cardBg,
             border: `1px solid ${C.border}`,
             boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.015)",
           }}>
@@ -687,15 +693,30 @@ export default function OverviewPage() {
                 <div style={{
                   width: 44,
                   height: 44,
-                  background: "#f8fafc",
+                  background: C.cardBgAlt,
                   border: `1px solid ${C.border}`,
                   borderRadius: 12,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
+                  overflow: "hidden",
                 }}>
-                  <Icons.BarChart3 size={20} color="#334155" strokeWidth={2} />
+                  {orgLogoUrl && !logoLoadFailed ? (
+                    <img
+                      src={orgLogoUrl}
+                      alt={user?.org_name || "Organization Logo"}
+                      onError={() => setLogoLoadFailed(true)}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        padding: 4,
+                      }}
+                    />
+                  ) : (
+                    <Icons.Building2 size={20} color={C.textSub} strokeWidth={1.8} />
+                  )}
                 </div>
                 <div>
                   <h1 style={{
@@ -739,7 +760,7 @@ export default function OverviewPage() {
                     position: "relative",
                     borderRadius: 8,
                     border: `1px solid ${C.border}`,
-                    background: "#ffffff",
+                    background: C.cardBg,
                     boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                     transition: "border-color 0.15s ease, box-shadow 0.15s ease",
                   }}>
@@ -763,8 +784,8 @@ export default function OverviewPage() {
                       }}
                       autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-nordpass-ignore="true"
                     >
-                      <option value="">All Queues</option>
-                      {queues.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
+                      <option value="" style={{ background: C.cardBg, color: C.text }}>All Queues</option>
+                      {queues.map(q => <option key={q.id} value={q.id} style={{ background: C.cardBg, color: C.text }}>{q.name}</option>)}
                     </select>
                     <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.45 }}>
                       <Icons.ChevronDown size={13} color={C.text} strokeWidth={2.2} />
@@ -786,7 +807,7 @@ export default function OverviewPage() {
                       fontSize: 12.5,
                       fontWeight: 500,
                       borderRadius: 8,
-                      background: "#ffffff",
+                      background: C.cardBg,
                       color: C.textSub,
                       border: `1px solid ${C.border}`,
                       cursor: isDownloading ? "not-allowed" : "pointer",
@@ -794,14 +815,14 @@ export default function OverviewPage() {
                     }}
                     onMouseEnter={e => {
                       if (!isDownloading) {
-                        e.currentTarget.style.borderColor = "#cbd5e1";
-                        e.currentTarget.style.background = "#f8fafc";
+                        e.currentTarget.style.borderColor = C.borderHov;
+                        e.currentTarget.style.background = C.cardBgAlt;
                         e.currentTarget.style.color = C.text;
                       }
                     }}
                     onMouseLeave={e => {
                       e.currentTarget.style.borderColor = C.border;
-                      e.currentTarget.style.background = "#ffffff";
+                      e.currentTarget.style.background = C.cardBg;
                       e.currentTarget.style.color = C.textSub;
                     }}
                   >
