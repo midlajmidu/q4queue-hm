@@ -7,7 +7,7 @@ import type { QueueResponse, SessionResponse } from "@/types/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashBase } from "@/hooks/useDashBase";
 import QueueCard from "@/components/QueueCard";
-import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays, CalendarOff, CheckCircle2, AlertCircle, Utensils, Coffee, Users, Trash2, PlusCircle, X, Building2, Layers, ArrowRightLeft, Sparkles } from "lucide-react";
+import { Calendar, Plus, ChevronLeft, ChevronRight, Clock, CalendarDays, CalendarOff, CheckCircle2, AlertCircle, Utensils, Coffee, Users, Trash2, PlusCircle, X, Building2, Layers, ArrowRightLeft, Sparkles, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Bookmark } from "lucide-react";
 import type { QueueTemplate, TableConfig } from "@/types/api";
@@ -605,54 +605,69 @@ export default function QueuesPage({ params }: PageProps) {
                 `}</style>
 
                 {/* ── Header Card ── */}
-                <div className="p-4 md:py-4 md:px-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 rounded-xl shadow-sm ring-1 ring-slate-900/5 w-full">
-                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-5 w-full">
-                        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 w-full xl:w-auto">
-                            {/* Metadata outside the pill */}
-                            <div className="flex items-center gap-2 flex-wrap text-xs font-medium text-slate-400 w-full md:w-auto">
-                                <span className="whitespace-nowrap">{queues.length} {queues.length === 1 ? "queue" : "queues"}</span>
-                                {activeQueues.length > 0 && (
-                                    <span className="inline-flex items-center gap-1 bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-100 dark:border-sky-900/40 font-bold px-2.5 py-0.5 rounded-full text-[11px] uppercase tracking-wider whitespace-nowrap">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
-                                        {activeQueues.length} ACTIVE
+                <div className="p-4 md:py-4.5 md:px-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm ring-1 ring-slate-900/5 w-full">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full">
+                        {/* Left: Identity & Queue Metrics */}
+                        <div className="flex items-center gap-3.5 flex-wrap">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-300">
+                                <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                            </div>
+                            <div className="flex flex-col">
+                                <div className="flex items-center gap-2.5">
+                                    <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                                        Queues
+                                    </h2>
+                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/60">
+                                        {queues.length} {queues.length === 1 ? "queue" : "queues"}
                                     </span>
-                                )}
-                                {inactiveQueues.length > 0 && (
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md whitespace-nowrap">
-                                        {inactiveQueues.length} inactive
-                                    </span>
-                                )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    {activeQueues.length > 0 && (
+                                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            {activeQueues.length} ACTIVE
+                                        </span>
+                                    )}
+                                    {activeQueues.length > 0 && inactiveQueues.length > 0 && (
+                                        <span className="text-slate-300 dark:text-slate-700">•</span>
+                                    )}
+                                    {inactiveQueues.length > 0 && (
+                                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                            {inactiveQueues.length} paused
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
                         {/* Right: Search & Create */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto">
-                            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-sm rounded-xl px-3 h-9 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all w-full sm:w-44 xl:w-56">
-                                <svg className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
+                            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 shadow-sm rounded-xl px-3.5 h-10 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 focus-within:bg-white dark:focus-within:bg-slate-800 transition-all w-full sm:w-60 md:w-72">
+                                <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
                                 <input
                                     type="text"
                                     value={filterName}
                                     onChange={(e) => setFilterName(e.target.value)}
                                     className="text-sm text-slate-900 dark:text-white font-medium focus:outline-none bg-transparent w-full placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                                    placeholder="Search queues…"
+                                    placeholder="Search queues..."
                                 />
                                 {filterName && (
-                                    <button onClick={() => { setFilterName(""); setPage(1); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex-shrink-0">
-                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                        </svg>
+                                    <button
+                                        onClick={() => { setFilterName(""); setPage(1); }}
+                                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 transition-colors flex-shrink-0 rounded-md"
+                                        title="Clear search"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
                                     </button>
                                 )}
                             </div>
                             {canManageQueues && (
                                 <button
                                     onClick={() => { setCreateError(null); setShowCreate(true); }}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl h-9 px-4 shadow-sm shadow-indigo-500/10 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 flex-shrink-0 w-full sm:w-auto"
+                                    className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm rounded-xl h-10 px-4.5 shadow-sm shadow-indigo-500/20 transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto"
                                 >
-                                    <Plus className="w-4 h-4" />
-                                    New Queue
+                                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                                    <span>New Queue</span>
                                 </button>
                             )}
                         </div>
