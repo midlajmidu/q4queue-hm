@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import { useDashBase } from "@/hooks/useDashBase";
 import { useAuth } from "@/hooks/useAuth";
 import type { QueueResponse, SessionResponse, PaginatedSessionResponse } from "@/types/api";
-import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown, Plus, Loader2, LayoutGrid, List, Pause, Play, Square, Pencil, Check, X } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown, Plus, Loader2, LayoutGrid, List, Pause, Play, Square, Pencil, Check, X, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useBranchTimezone } from "@/context/BranchTimezoneContext";
 import { localTodayStr } from "@/lib/tzformat";
@@ -309,104 +309,120 @@ export default function QueueSessionListPage({ params }: PageProps) {
     }
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950">
-            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-
-                {/* ── Page Header ── */}
-                <div className="mb-8">
-                    {/* Breadcrumb */}
-                    <Link
-                        href={`${dashBase}/queues`}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors mb-4 group"
-                    >
-                        <svg className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        Back to Queues
-                    </Link>
-
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        {/* Title block */}
+        <div className="w-full space-y-6 animate-in fade-in duration-300">
+            {/* ── Page Header Card ── */}
+            <div className="p-4 md:py-4.5 md:px-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm ring-1 ring-slate-900/5 w-full">
+                    <div className="flex flex-col gap-3.5">
+                        {/* Breadcrumb */}
                         <div>
-                            <div className="flex items-center gap-2.5 mb-1">
-                                <h1 className="text-[22px] font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
-                                    {queue?.name ? `${queue.name}` : "Sessions"}
-                                </h1>
-                                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">/ Sessions</span>
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                {total > 0 ? `${total} session${total === 1 ? "" : "s"} total` : "No sessions yet"}
-                            </p>
+                            <Link
+                                href={`${dashBase}/queues`}
+                                className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group"
+                            >
+                                <ChevronLeft className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:-translate-x-0.5 transition-all" />
+                                <span>Back to Queues</span>
+                            </Link>
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-2.5">
-                            {/* View Mode Switcher (Cards vs Compact Table) */}
-                            <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 shrink-0 shadow-sm">
-                                <button
-                                    onClick={() => setViewMode("cards")}
-                                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                                        viewMode === "cards"
-                                            ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                                            : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                    }`}
-                                    title="Card View"
-                                >
-                                    <LayoutGrid size={15} />
-                                </button>
-                                <button
-                                    onClick={() => setViewMode("compact")}
-                                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                                        viewMode === "compact"
-                                            ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                                            : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                    }`}
-                                    title="Compact List View"
-                                >
-                                    <List size={15} />
-                                </button>
-                            </div>
-
-                            {/* Date filter chip */}
-                            <div className="relative flex items-center">
-                                <div className={`flex items-center gap-2 h-9 px-3 rounded-lg border transition-all shadow-sm ${
-                                    selectedDate
-                                        ? "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-700/50 dark:text-indigo-300"
-                                        : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 dark:bg-slate-900 dark:border-white/10 dark:text-slate-400"
-                                }`}>
-                                    <CalendarDays className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                                    <input
-                                        type="date"
-                                        value={selectedDate}
-                                        onClick={(e) => { try { (e.target as HTMLInputElement).showPicker(); } catch {} }}
-                                        onChange={(e) => setSelectedDate(e.target.value)}
-                                        className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
-                                    />
-                                    {selectedDate && (
-                                        <button
-                                            onClick={() => setSelectedDate("")}
-                                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-0.5 cursor-pointer ml-1"
-                                            title="Clear date filter"
-                                        >
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                                        </button>
-                                    )}
+                        {/* Main Row: Identity & Actions */}
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            {/* Left: Queue Name & Meta */}
+                            <div className="flex items-center gap-3.5 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400 shadow-sm">
+                                    <Clock className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <h1 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
+                                            {queue?.name ? `${queue.name}` : "Sessions"}
+                                        </h1>
+                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/40">
+                                            Sessions
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                                        {total > 0 ? `${total} session${total === 1 ? "" : "s"} total` : "No sessions yet"}
+                                    </p>
                                 </div>
                             </div>
 
-                            {/* Create button */}
-                            {!isGlobalOrOrgAdmin && (
-                                <button
-                                    onClick={() => {
-                                        setCreateError(null);
-                                        setNewSessionDate(localTodayStr(tz));
-                                        setNewSessionTitle("");
-                                        setIsCreateModalOpen(true);
-                                    }}
-                                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold shadow-sm shadow-indigo-600/20 transition-all cursor-pointer"
-                                >
-                                    <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
-                                    New Session
-                                </button>
-                            )}
+                            {/* Right: Toolbar Controls */}
+                            <div className="flex flex-wrap items-center gap-2.5">
+                                {/* View Mode Segmented Switcher */}
+                                <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-white/10 shrink-0 shadow-inner">
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewMode("cards")}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                            viewMode === "cards"
+                                                ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm"
+                                                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                                        }`}
+                                        title="Card View"
+                                    >
+                                        <LayoutGrid className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">Cards</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewMode("compact")}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                            viewMode === "compact"
+                                                ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm"
+                                                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                                        }`}
+                                        title="Compact List View"
+                                    >
+                                        <List className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">List</span>
+                                    </button>
+                                </div>
+
+                                {/* Date Filter Input */}
+                                <div className="relative flex items-center">
+                                    <div className={`flex items-center gap-2 h-10 px-3 rounded-xl border transition-all shadow-sm ${
+                                        selectedDate
+                                            ? "bg-indigo-50/70 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-700/50 dark:text-indigo-300 ring-2 ring-indigo-500/10"
+                                            : "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-white/10 text-slate-600 hover:border-slate-300 dark:text-slate-300 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 focus-within:bg-white dark:focus-within:bg-slate-800"
+                                    }`}>
+                                        <CalendarDays className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                                        <input
+                                            type="date"
+                                            value={selectedDate}
+                                            onClick={(e) => { try { (e.target as HTMLInputElement).showPicker(); } catch {} }}
+                                            onChange={(e) => setSelectedDate(e.target.value)}
+                                            className="bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer"
+                                        />
+                                        {selectedDate && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedDate("")}
+                                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer ml-0.5 rounded transition-colors"
+                                                title="Clear date filter"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Create New Session Button */}
+                                {!isGlobalOrOrgAdmin && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setCreateError(null);
+                                            setNewSessionDate(localTodayStr(tz));
+                                            setNewSessionTitle("");
+                                            setIsCreateModalOpen(true);
+                                        }}
+                                        className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm rounded-xl h-10 px-4 shadow-sm shadow-indigo-500/20 transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                                    >
+                                        <Plus className="w-4 h-4 stroke-[2.5]" />
+                                        <span>New Session</span>
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -826,7 +842,6 @@ export default function QueueSessionListPage({ params }: PageProps) {
                         )}
                     </div>
                 )}
-            </div>
 
             {/* ── Create Session Modal ── */}
             {isCreateModalOpen && (
