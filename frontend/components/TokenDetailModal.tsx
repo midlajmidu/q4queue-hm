@@ -309,7 +309,7 @@ export default function TokenDetailModal({
 
                     {/* Payment Status Segmented Control (Dine Mode or when payment_status is present) */}
                     {(isDineMode || fullToken.payment_status) && (
-                        <div className="bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                             <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                     Payment Status:

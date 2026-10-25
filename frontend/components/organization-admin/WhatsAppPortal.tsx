@@ -1835,7 +1835,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                     />
                     <div className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
                         {/* Header */}
-                        <div className="px-6 py-4.5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-slate-850">
+                        <div className="px-6 py-4.5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800">
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-500/20">
                                     <MessageSquareText size={18} strokeWidth={2.5} />
@@ -1958,7 +1958,7 @@ export function WhatsAppPortal({ channel = "whatsapp", onChannelChange }: WhatsA
                         </div>
 
                         {/* Footer */}
-                        <div className="px-6 py-4 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-slate-850 flex justify-end">
+                        <div className="px-6 py-4 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-slate-800 flex justify-end">
                             <button
                                 onClick={() => setSelectedMessage(null)}
                                 className="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-xl text-[13px] font-bold transition-colors cursor-pointer"

@@ -12,9 +12,18 @@ interface QueueQRCodeProps {
     className?: string;
     tokenLimitReached?: boolean;
     qrMode?: "dynamic" | "static";
+    isSessionActive?: boolean;
 }
 
-export default function QueueQRCode({ queueId, queueName, isCollapsible = false, className = "", tokenLimitReached = false, qrMode = "dynamic" }: QueueQRCodeProps) {
+export default function QueueQRCode({ 
+    queueId, 
+    queueName, 
+    isCollapsible = false, 
+    className = "", 
+    tokenLimitReached = false, 
+    qrMode = "dynamic",
+    isSessionActive 
+}: QueueQRCodeProps) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
     const normalizedAppUrl = appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
     const defaultJoinUrl = `${normalizedAppUrl}/join/${queueId}?new=true`;
@@ -22,7 +31,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
     const [joinUrl, setJoinUrl] = useState(defaultJoinUrl);
     const [isExpanded, setIsExpanded] = useState(!isCollapsible);
     const [timeLeft, setTimeLeft] = useState(15);
-    const [isSessionInactive, setIsSessionInactive] = useState(false);
+    const [isSessionInactive, setIsSessionInactive] = useState(isSessionActive === false);
     const [isTokenLimitReached, setIsTokenLimitReached] = useState(tokenLimitReached);
     const [tokensUsed, setTokensUsed] = useState(0);
     const [tokensLimit, setTokensLimit] = useState<number | null>(null);
@@ -34,6 +43,12 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
 
     useEffect(() => {
         if (!queueId) return;
+
+        // If known to be inactive from parent, reflect state without making unnecessary requests
+        if (isSessionActive === false) {
+            setIsSessionInactive(true);
+            return;
+        }
 
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
         const normalizedApiUrl = apiBaseUrl.endsWith("/") ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
@@ -97,12 +112,24 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
                 if (countdownTimer) clearInterval(countdownTimer);
                 countdownTimer = setInterval(() => setTimeLeft((value) => Math.max(0, value - 1)), 1000);
                 refreshTimer = setTimeout(initAndStartTotp, Math.max(1000, valid_for * 1000));
-            } catch (error) {
-                console.error("Failed to initialize dynamic QR code:", error);
-                if (!isCancelled) {
-                    setIsSessionInactive(true);
-                    refreshTimer = setTimeout(initAndStartTotp, 5000);
+            } catch (error: unknown) {
+                if (isCancelled) return;
+                setIsSessionInactive(true);
+
+                const err = error as { status?: number; detail?: string; message?: string } | undefined;
+                const isSessionInactiveError = 
+                    err?.status === 409 || 
+                    err?.status === 400 || 
+                    err?.status === 404 ||
+                    /session.*not.*open|start.*session|inactive/i.test(err?.detail || err?.message || "");
+
+                // Only log unexpected errors; inactive queue sessions are standard operational state
+                if (!isSessionInactiveError) {
+                    console.warn("Dynamic QR initialization issue:", err?.message || String(error));
                 }
+
+                // If session is closed, re-check gently after 15 seconds without spamming console
+                refreshTimer = setTimeout(initAndStartTotp, 15000);
             }
         };
 
@@ -113,7 +140,7 @@ export default function QueueQRCode({ queueId, queueName, isCollapsible = false,
             if (refreshTimer) clearTimeout(refreshTimer);
             if (countdownTimer) clearInterval(countdownTimer);
         };
-    }, [queueId, defaultJoinUrl, qrMode, normalizedAppUrl]);
+    }, [queueId, defaultJoinUrl, qrMode, normalizedAppUrl, isSessionActive]);
 
 
     const generateWatermarkedQRUrl = (): string | null => {
