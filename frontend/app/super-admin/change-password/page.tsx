@@ -4,9 +4,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { setToken, getCurrentUser } from "@/lib/auth";
-
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
+import { Source_Code_Pro } from "next/font/google";
+
+const sourceCodePro = Source_Code_Pro({
+    subsets: ["latin"],
+    weight: ["400", "500", "600", "700", "800"],
+    display: "swap",
+});
 
 export default function SuperAdminChangePasswordPage() {
     const router = useRouter();
@@ -21,6 +28,10 @@ export default function SuperAdminChangePasswordPage() {
     const [isChecking, setIsChecking] = useState(true);
 
     useEffect(() => {
+        if (typeof window !== "undefined") {
+            document.title = "Set New Password | Super Admin | Q4Queue";
+        }
+
         const user = getCurrentUser();
         // If the user isn't logged in, redirect to login
         if (!user) {
@@ -55,8 +66,8 @@ export default function SuperAdminChangePasswordPage() {
             const resp = await api.changeFirstPassword({ new_password: password });
             
             // The backend returns a brand new token where is_first_login = false
-            // We must update our local storage to clear the "first login" state
             setToken(resp.access_token);
+            toast.success("Super admin password updated successfully!");
             
             // Redirect to dashboard with hard reload to clear stale useAuth state
             window.location.href = "/super-admin";
@@ -73,110 +84,162 @@ export default function SuperAdminChangePasswordPage() {
 
     if (isChecking) {
         return (
-            <div className="force-light min-h-screen flex items-center justify-center bg-slate-50">
-                <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+            <div className={`force-light min-h-screen flex items-center justify-center bg-[#070C18] ${sourceCodePro.className}`}>
+                <div className="w-10 h-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
             </div>
         );
     }
 
     return (
-        <main className="force-light min-h-screen h-screen relative flex flex-col items-center justify-center bg-hero-glow overflow-hidden px-4">
-            {/* Background grid */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(220_16%_90%/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(220_16%_90%/0.5)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black_70%,transparent_100%)] pointer-events-none" />
-            <div className="absolute top-20 left-[10%] w-72 h-72 bg-primary/8 rounded-full blur-[120px] animate-pulse pointer-events-none" />
-            <div className="absolute bottom-20 right-[10%] w-56 h-56 bg-accent/8 rounded-full blur-[100px] animate-pulse pointer-events-none" />
+        <main
+            className={`relative min-h-[100dvh] w-full flex items-center justify-center px-4 sm:px-8 py-10 bg-[#070C18] overflow-x-hidden overflow-y-auto select-none selection:bg-[#2563EB]/30 selection:text-white ${sourceCodePro.className}`}
+        >
+            {/* Tech & Cybersecurity Doodle Watermark Wallpaper */}
+            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none">
+                <img
+                    src="/images/super-admin-dense-doodle.jpg"
+                    alt="Cybersecurity, Code, Server & Tech Doodles"
+                    className="w-full h-full object-cover object-center opacity-[0.25] sm:opacity-[0.28] transition-opacity duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#070C18] via-transparent to-[#070C18]/85 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#070C18]/60 via-transparent to-[#070C18]/60 pointer-events-none" />
+                <div className="absolute inset-0 bg-[#070C18]/20 backdrop-blur-[0.5px] pointer-events-none" />
+            </div>
 
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full max-w-[460px] relative z-10"
-            >
-                {/* Main Card */}
-                <div className="glass-card rounded-2xl px-8 py-10 md:px-10 md:py-12 space-y-8 bg-white shadow-xl shadow-slate-200/50 border border-slate-100">
-                    <div className="text-center pb-6 border-b border-border/50">
-                        <h1 className="font-heading text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                            Welcome to <span className="text-primary">Q4Queue</span>
-                        </h1>
-                        <p className="text-sm text-slate-500 mt-3 leading-relaxed max-w-xs mx-auto">
-                            For security reasons, you must change your password before accessing the dashboard for the first time.
-                        </p>
+            {/* Floating Glassmorphic Authentication Card */}
+            <div className="relative z-10 w-full max-w-[420px] sm:max-w-[440px] mx-auto">
+                <div className="absolute -inset-1.5 rounded-[32px] bg-gradient-to-br from-blue-500/25 via-indigo-600/15 to-cyan-500/20 blur-2xl opacity-70 pointer-events-none" />
+
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    className={`relative rounded-[26px] sm:rounded-[28px] border border-white/[0.14] bg-[#0A1022]/80 backdrop-blur-2xl p-7 sm:p-9 md:p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.15)] flex flex-col items-center ${sourceCodePro.className}`}
+                    style={{ fontFamily: sourceCodePro.style.fontFamily }}
+                >
+                    <div className="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-3.5 shadow-inner">
+                        <ShieldCheck className="w-6 h-6" />
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                    <h1
+                        className={`text-[21px] sm:text-[23px] font-bold text-white tracking-tight text-center ${sourceCodePro.className}`}
+                        style={{ fontFamily: sourceCodePro.style.fontFamily }}
+                    >
+                        Set Super Admin Password
+                    </h1>
+                    <p
+                        className="text-[12.5px] sm:text-[13px] text-slate-300/80 font-normal leading-relaxed text-center mt-2.5 mb-7 max-w-[340px]"
+                        style={{ fontFamily: sourceCodePro.style.fontFamily }}
+                    >
+                        For platform security, initialize a new master password before accessing the system console.
+                    </p>
+
+                    <form onSubmit={handleSubmit} className="w-full space-y-4" noValidate>
                         <AnimatePresence>
                             {error && (
                                 <motion.div
-                                    initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                                    exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                                    initial={{ opacity: 0, height: 0, scale: 0.96 }}
+                                    animate={{ opacity: 1, height: "auto", scale: 1 }}
+                                    exit={{ opacity: 0, height: 0, scale: 0.96 }}
                                     className="overflow-hidden"
                                 >
-                                    <div role="alert" className="bg-red-50 text-red-600 text-sm font-medium p-3 rounded-lg border border-red-100 text-center">
-                                        {error}
+                                    <div
+                                        role="alert"
+                                        className="bg-red-500/15 text-red-300 text-xs font-medium p-3 rounded-xl border border-red-500/30 flex items-start gap-2.5 backdrop-blur-md"
+                                    >
+                                        <svg
+                                            className="w-4 h-4 shrink-0 mt-0.5 text-red-400"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            strokeWidth={2}
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                            />
+                                        </svg>
+                                        <span className="leading-snug">{error}</span>
                                     </div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
 
                         {/* New Password */}
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">New Password</label>
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="••••••••"
-                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-4 pr-12 py-3 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400"
-                                    disabled={loading}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1.5 rounded-md transition-colors"
-                                    aria-label={showPassword ? "Hide password" : "Show password"}
-                                    disabled={loading}
-                                >
-                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                </button>
-                            </div>
+                        <div className="relative flex items-center h-12 w-full rounded-xl border border-white/10 bg-slate-900/60 hover:border-white/20 focus-within:border-[#2563EB] focus-within:ring-2 focus-within:ring-[#2563EB]/30 transition-all shadow-inner">
+                            <Lock className="w-[18px] h-[18px] text-slate-400 ml-3.5 mr-3 shrink-0" strokeWidth={1.8} />
+                            <input
+                                id="super-admin-new-password"
+                                type={showPassword ? "text" : "password"}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                autoComplete="new-password"
+                                placeholder="New master password (min 8 chars)"
+                                disabled={loading}
+                                className="w-full h-full bg-transparent text-[14.5px] text-white placeholder:text-slate-400/70 outline-none pr-11"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors p-1"
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                disabled={loading}
+                            >
+                                {showPassword ? (
+                                    <EyeOff className="w-[17px] h-[17px]" strokeWidth={1.8} />
+                                ) : (
+                                    <Eye className="w-[17px] h-[17px]" strokeWidth={1.8} />
+                                )}
+                            </button>
                         </div>
 
                         {/* Confirm Password */}
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Confirm New Password</label>
-                            <div className="relative">
-                                <input
-                                    type={showConfirm ? "text" : "password"}
-                                    required
-                                    value={confirm}
-                                    onChange={(e) => setConfirm(e.target.value)}
-                                    placeholder="••••••••"
-                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-4 pr-12 py-3 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-slate-400"
-                                    disabled={loading}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirm(!showConfirm)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1.5 rounded-md transition-colors"
-                                    aria-label={showConfirm ? "Hide password" : "Show password"}
-                                    disabled={loading}
-                                >
-                                    {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                </button>
-                            </div>
+                        <div className="relative flex items-center h-12 w-full rounded-xl border border-white/10 bg-slate-900/60 hover:border-white/20 focus-within:border-[#2563EB] focus-within:ring-2 focus-within:ring-[#2563EB]/30 transition-all shadow-inner">
+                            <Lock className="w-[18px] h-[18px] text-slate-400 ml-3.5 mr-3 shrink-0" strokeWidth={1.8} />
+                            <input
+                                id="super-admin-confirm-password"
+                                type={showConfirm ? "text" : "password"}
+                                value={confirm}
+                                onChange={(e) => setConfirm(e.target.value)}
+                                required
+                                autoComplete="new-password"
+                                placeholder="Confirm master password"
+                                disabled={loading}
+                                className="w-full h-full bg-transparent text-[14.5px] text-white placeholder:text-slate-400/70 outline-none pr-11"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirm(!showConfirm)}
+                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors p-1"
+                                aria-label={showConfirm ? "Hide password" : "Show password"}
+                                disabled={loading}
+                            >
+                                {showConfirm ? (
+                                    <EyeOff className="w-[17px] h-[17px]" strokeWidth={1.8} />
+                                ) : (
+                                    <Eye className="w-[17px] h-[17px]" strokeWidth={1.8} />
+                                )}
+                            </button>
                         </div>
 
+                        {/* Hint */}
+                        <p className="text-[12px] text-slate-400 pt-0.5">
+                            Password must be at least 8 characters long.
+                        </p>
+
+                        {/* Primary Submit CTA Button */}
                         <button
                             type="submit"
                             disabled={loading || !password || !confirm}
-                            className="w-full h-12 mt-2 bg-primary text-primary-foreground font-semibold rounded-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            aria-label="Update master password"
+                            style={{ fontFamily: sourceCodePro.style.fontFamily }}
+                            className="w-full h-12 mt-2 rounded-xl bg-[#1D68FE] hover:bg-[#1557E0] active:bg-[#0E4BC9] text-white font-semibold text-[15px] flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(29,104,254,0.45)] hover:shadow-[0_6px_25px_rgba(29,104,254,0.6)] active:scale-[0.99] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                             {loading ? (
                                 <>
-                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <svg className="animate-spin h-4 w-4 text-white mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
@@ -184,18 +247,17 @@ export default function SuperAdminChangePasswordPage() {
                                 </>
                             ) : (
                                 <>
-                                    Update & Continue <ArrowRight className="w-4 h-4 ml-1" />
+                                    Set Password & Continue <ArrowRight className="w-4 h-4 ml-0.5" />
                                 </>
                             )}
                         </button>
                     </form>
-                </div>
-            </motion.div>
 
-            {/* Minimal footer */}
-            <p className="relative z-10 text-center text-xs text-slate-400 mt-6">
-                © {new Date().getFullYear()} Q4Queue
-            </p>
+                    <div className="mt-8 text-center text-xs text-slate-500">
+                        © {new Date().getFullYear()} Q4Queue Platform Infrastructure
+                    </div>
+                </motion.div>
+            </div>
         </main>
     );
 }
